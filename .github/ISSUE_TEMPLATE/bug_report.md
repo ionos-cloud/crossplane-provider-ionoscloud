@@ -1,19 +1,20 @@
 ---
 name: Bug Report
-about: Help us diagnose and fix bugs in Crossplane
+about: Help us diagnose and fix bugs in Crossplane Provider IONOS Cloud
+title: ''
 labels: bug
+assignees: omungureanu
 ---
 <!--
-Thank you for helping to improve Crossplane!
+Thank you for helping to improve Crossplane Provider IONOS Cloud!
 
 Please be sure to search for open issues before raising a new one. We use issues
-for bug reports and feature requests. Please find us at https://slack.crossplane.io
-for questions, support, and discussion.
+for bug reports and feature requests.
 -->
 
 ### What happened?
 <!--
-Please let us know what behaviour you expected and how Crossplane diverged from
+Please let us know what behaviour you expected and how Crossplane Provider IONOS Cloud diverged from
 that behaviour.
 -->
 
@@ -26,15 +27,25 @@ appreciated!
 -->
 
 ### What environment did it happen in?
-Crossplane version: 
+Crossplane Provider IONOS Cloud version: 
 
 <!--
-Include at least the version or commit of Crossplane you were running. Consider
+Include at least the version or commit of Crossplane Provider IONOS Cloud you were running. Consider
 also including your:
 
-* Cloud provider or hardware configuration
+* Crossplane Version
 * Kubernetes version (use `kubectl version`)
 * Kubernetes distribution (e.g. Tectonic, GKE, OpenShift)
 * OS (e.g. from /etc/os-release)
 * Kernel (e.g. `uname -a`)
+-->
+
+## Additional Notes
+<!--
+Add any other content about the problem here.
+-->
+
+## References
+<!--
+Add any other related issues or other links that you think are important for fixing the bug.
 -->

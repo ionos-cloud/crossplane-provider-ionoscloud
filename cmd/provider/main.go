@@ -27,8 +27,8 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 
-	"github.com/crossplane/provider-template/apis"
-	"github.com/crossplane/provider-template/internal/controller"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller"
 )
 
 func main() {

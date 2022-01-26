@@ -1,4 +1,4 @@
-module github.com/crossplane/provider-template
+module github.com/ionos-cloud/crossplane-provider-ionoscloud
 
 go 1.16
 
