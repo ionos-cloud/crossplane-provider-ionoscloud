@@ -23,8 +23,28 @@ GO111MODULE = on
 
 # Setup Images
 DOCKER_REGISTRY ?= crossplane
+VERSION=latest
+#IMAGEPATH=docker.io/ionos-cloud/crossplane-provider-ionoscloud
+IMAGEPATH=docker.io/docker2801/provider-test
 IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-controller
 -include build/makelib/image.mk
+
+.PHONY: docker-build
+docker-build:
+	docker build . -t $(IMAGEPATH):$(VERSION) -f cluster/Dockerfile
+
+.PHONY: docker-push
+docker-push:
+	docker push $(IMAGEPATH):$(VERSION)
+
+.PHONY: provider
+provider:
+	sed -i "s/VERSION/$(VERSION)/g" package/crossplane.yaml
+	kubectl-crossplane build provider -f package
+
+.PHONY: provider-push
+provider-push:
+	cd package; kubectl-crossplane push provider $(IMAGEPATH)/provider:$(VERSION)
 
 fallthrough: submodules
 	@echo Initial setup complete. Running make again . . .

@@ -12,6 +12,69 @@ This `crossplane-provider-ionoscloud` repository is the Crossplane infrastructur
 
 ## Getting Started and Documentation
 
+Setup:
+
+```text
+kind version
+```
+
+Create cluster:
+
+```text
+kind create cluster --name crossplane-test
+kubectl config use-context kind-crossplane-test
+```
+
+```bash
+go run cmd/provider/main.go -d
+```
+
+Credentials:
+
+```text
+export IONOS_USERNAME=xxx
+export IONOS_PASSWORD=xxx
+export BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
+```
+
+```text
+# Create namespace
+kubectl create namespace crossplane-system
+# Install crossplane via helm
+helm repo add crossplane-stable https://charts.crossplane.io/stable
+helm repo update
+helm install crossplane --namespace crossplane-system crossplane-stable/crossplane
+# Create CRDs
+kubectl apply -f package/crds/ -R
+# Create secret with credentials
+kubectl create secret generic --namespace crossplane-system example-provider-secret --from-literal=credentials="{\"user\":\"${IONOS_USERNAME}\",\"password\":\"${BASE64_PW}\"}"
+# Deploy other providers: provider-helm & provider-kubernetes
+kubectl apply --namespace crossplane-system -f examples/providers/other-providers.yaml
+# Create config for credentials to IONOS CLOUD
+kubectl apply -f examples/provider/config.yaml
+# Create CR of type cluster
+kubectl apply -f examples/ionoscloud/dbaas-postgres/cluster.yaml
+# Get CRs
+kubectl get clusters -A
+```
+
+Build image locally:
+
+```text
+make docker-build
+```
+
+Install provider locally:
+
+```text
+# Create secret with credentials for docker image
+kubectl create secret --namespace crossplane-system docker-registry package-pull --docker-server docker.io --docker-username $DOCKER_USERNAME --docker-password $DOCKER_PASSWORD
+# Load image on current cluster
+kind load docker-image docker.io/docker2801/provider-test:latest --name crossplane-test
+# Install IONOS Crossplane Provider:
+kubectl apply -f examples/provider/install-provider.yaml
+```
+
 ## Contributing
 
 crossplane-provider-ionoscloud is a community driven project and we welcome contributions.
