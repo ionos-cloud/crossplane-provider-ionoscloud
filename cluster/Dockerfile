@@ -23,4 +23,6 @@ COPY --from=builder /workspace/provider .
 COPY package /
 
 EXPOSE 8080
-ENTRYPOINT ["/provider"]
+
+# Add "-d" for debug purposes
+ENTRYPOINT ["/provider", "-d"]

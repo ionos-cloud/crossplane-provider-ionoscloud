@@ -4,5 +4,3 @@ metadata:
   name: provider-ionos
 spec:
   package: docker.io/docker2801/provider:latest
-  packagePullSecrets:
-    - name: package-pull
