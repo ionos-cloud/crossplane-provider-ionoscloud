@@ -4,6 +4,7 @@
 cover.out
 /vendor
 /.vendor-new
+/package/*.xpkg
 .vscode
 .idea
 .DS_Store

@@ -1,0 +1,24 @@
+apiVersion: dbaas.postgres.ionoscloud.crossplane.io/v1alpha1
+kind: Cluster
+metadata:
+  name: example
+spec:
+  forProvider:
+    displayName: testDemo
+    postgresVersion: "13"
+    connections:
+      - cidr: CIDR
+        datacenterID: IONOS_DATACENTER_ID
+        lanID: "IONOS_LAN_ID"
+    cores: 2
+    credentials:
+      password: test1234
+      username: test
+    instances: 1
+    location: IONOS_DATACENTER_LOCATION
+    ram: 2048
+    storageSize: 20480
+    storageType: HDD
+    synchronizationMode: ASYNCHRONOUS
+  providerConfigRef:
+    name: example

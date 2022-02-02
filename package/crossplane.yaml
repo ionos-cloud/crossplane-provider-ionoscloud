@@ -1,14 +1,9 @@
-apiVersion: meta.pkg.crossplane.io/v1alpha1
+apiVersion: meta.pkg.crossplane.io/v1
 kind: Provider
 metadata:
-  name: provider-template
-  annotations:
-    meta.crossplane.io/maintainer: Crossplane Maintainers <info@crossplane.io>
-    meta.crossplane.io/source: github.com/ionos-cloud/crossplane-provider-ionoscloud
-    meta.crossplane.io/license: Apache-2.0
-    meta.crossplane.io/description: |
-      A template that can be used to create Crossplane providers.
-
+  name: provider-ionoscloud
 spec:
+  crossplane:
+    version: ">=v1.0.0"
   controller:
-    image: DOCKER_REGISTRY/provider-template-controller:VERSION
+    image: docker.io/docker2801/provider-controller:latest

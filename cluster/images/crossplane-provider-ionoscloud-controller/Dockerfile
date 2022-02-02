@@ -4,8 +4,8 @@ RUN apk --no-cache add ca-certificates bash
 ARG ARCH
 ARG TINI_VERSION
 
-ADD provider /usr/local/bin/crossplane-template-provider
+ADD provider /usr/local/bin/crossplane-provider-ionoscloud
 
 EXPOSE 8080
 USER 1001
-ENTRYPOINT ["crossplane-template-provider"]
+ENTRYPOINT ["crossplane-provider-ionoscloud"]

@@ -6,7 +6,7 @@ include ../../../build/makelib/common.mk
 
 # ====================================================================================
 #  Options
-IMAGE = $(BUILD_REGISTRY)/provider-template-controller-$(ARCH)
+IMAGE = docker2801/crossplane-provider-ionoscloud-controller-$(ARCH)
 include ../../../build/makelib/image.mk
 
 # ====================================================================================
