@@ -45,20 +45,20 @@ git clone https://github.com/ionos-cloud/crossplane-provider-ionoscloud.git
 
 ## Setup Crossplane Provider IONOS Cloud
 
-Create a K8s cluster (in case of using kind):
+1. Create a K8s cluster (in case of using kind):
 
 ```bash
 kind create cluster --name crossplane-example
 kubectl config use-context kind-crossplane-example
 ```
 
-Create namespace for the crossplane ecosystem:
+2. Create namespace for the crossplane ecosystem:
 
 ```bash
 kubectl create namespace crossplane-system
 ```
 
-Install crossplane via helm:
+3. Install crossplane via helm:
 
 ```bash
 helm repo add crossplane-stable https://charts.crossplane.io/stable
@@ -66,7 +66,7 @@ helm repo update
 helm install crossplane --namespace crossplane-system crossplane-stable/crossplane
 ```
 
-Create CRDs:
+4. Create CRDs:
 
 ```bash
 kubectl apply -f package/crds/ -R
@@ -74,7 +74,7 @@ kubectl apply -f package/crds/ -R
 
 > Note: Before continuing, you can check if `kubectl get providers` will recognize the CRDs of type `providers`. The command should return `No resources found`.
 
-Install provider config, for credentials:
+5. Install provider config, for credentials:
 
 ```bash
 export BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
@@ -82,25 +82,25 @@ kubectl create secret generic --namespace crossplane-system example-provider-sec
 kubectl apply -f examples/provider/config.yaml
 ```
 
-Install Crossplane Provider IONOS Cloud:
+6. Install Crossplane Provider IONOS Cloud:
 
 ```bash
 kubectl apply -f examples/provider/install-provider.yaml
 ```
 
-It is also recommended installing other providers (helm & kubernetes):
+_[Optional]_ It is recommended installing other providers (in this example, helm & kubernetes):
 
 ```bash
 kubectl apply --namespace crossplane-system -f examples/providers/other-providers.yaml
 ```
 
-(Optional) Run the following command to check if the providers are _installed_ and _healthy_:
+7. Check if the Crossplane Provider IONOS Cloud is _installed_ and _healthy_:
 
 ```bash
 kubectl get providers
 ```
 
-(Optional) You should be able to see pods running in the `crossplane-system` namespace, for each provider installed:
+_[Optional]_ You should be able to see pods running in the `crossplane-system` namespace, for each provider installed:
 
 > Hint: by running `kubectl get pods -A`, you are able to see all existing pods from all namespaces.
 
@@ -114,7 +114,7 @@ provider-ionos-cf2fec81b474-54f5d7ddd4-w9w9h        1/1     Running   0         
 provider-kubernetes-df601dea646a-84f7d6db54-t5dn5   1/1     Running   0          65m
 ```
 
-(Optional) Check CRDs:
+_[Optional]_ Check CRDs:
 
 ```bash
 kubectl get crds | grep ionoscloud
@@ -129,13 +129,13 @@ Next, we will create a Custom Resource(CR) of type `clusters.dbaas.postgres.iono
 
 Before running the next command, make sure to update the values in the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file. Look for `spec.forProvider` fields.
 
-**CREATE**: Create a CR of type cluster:
+1. **[CREATE]** Create a CR of type cluster:
 
 ```bash
 kubectl apply -f examples/ionoscloud/dbaas-postgres/cluster.yaml
 ```
 
-Check if the CR created is _synced_ and _ready_:
+❗ Check if the CR created is _synced_ and _ready_:
 
 ```bash
 kubectl get clusters
@@ -147,7 +147,7 @@ The external-name of the CR is the Cluster ID from IONOS Cloud. The CR will be m
 
 You can check if the DBaaS Postgres Cluster was created in the IONOS Cloud:
 
-- if you have `ionosctl` installed locally (one of the latest v6 [versions](https://github.com/ionos-cloud/ionosctl/releases/tag/v6.1.0)), you can run:
+- using `ionosctl` (one of the latest [v6 versions](https://github.com/ionos-cloud/ionosctl/releases/tag/v6.1.0)), you can run:
 
 ```bash
 ionosctl dbaas postgres cluster list 
@@ -157,7 +157,7 @@ ClusterId                              DisplayName   Location   DatacenterId    
 
 - in DCD: go to [DCD Manager](https://dcd.ionos.com/latest/?dbaas=true) to `Manager Resources>Database Manager>Postgres Clusters`
 
-**UPDATE**: If you want to update the CR created, update values from the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file and use the following command:
+2. **[UPDATE]** If you want to update the CR created, update values from the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file and use the following command:
 
 ```bash
 kubectl apply -f examples/ionoscloud/dbaas-postgres/cluster.yaml
@@ -165,10 +165,12 @@ kubectl apply -f examples/ionoscloud/dbaas-postgres/cluster.yaml
 
 The updates applied should be updated in the external resource in IONOS Cloud.
 
-**DELETE**: If you want to delete the CR created, use the following command:
+3. **[DELETE]** If you want to delete the CR created, use the following command:
 
 ```bash
 kubectl delete -f examples/ionoscloud/dbaas-postgres/cluster.yaml
 ```
 
 This should trigger the destroying of the DBaaS Postgres Cluster.
+
+DONE 🎉
