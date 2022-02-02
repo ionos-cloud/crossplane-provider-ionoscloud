@@ -1,13 +1,13 @@
 apiVersion: dbaas.postgres.ionoscloud.crossplane.io/v1alpha1
 kind: Cluster
 metadata:
-  name: example2
+  name: example
 spec:
   forProvider:
     displayName: testDemo
     postgresVersion: "13"
     connections:
-      - cidr: 192.168.4.100/24
+      - cidr: 192.168.1.100/24
         datacenterID: 21d8fd28-5d62-43e9-a67b-68e52dac8885
         lanID: "1"
     cores: 2

@@ -3,4 +3,4 @@ kind: Provider
 metadata:
   name: provider-ionos
 spec:
-  package: docker.io/docker2801/provider:latest
+  package: docker.io/docker2801/provider-testing:latest

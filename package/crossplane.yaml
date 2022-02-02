@@ -6,4 +6,4 @@ spec:
   crossplane:
     version: ">=v1.0.0"
   controller:
-    image: docker.io/docker2801/provider-test:latest
+    image: docker.io/docker2801/provider-controller:latest

@@ -76,7 +76,7 @@ Install provider locally:
 
 ```text
 # Load image on current cluster
-kind load docker-image docker.io/docker2801/provider-test:latest --name crossplane-test
+kind load docker-image docker.io/docker2801/provider-testing:latest --name crossplane-test
 
 # Install IONOS Crossplane Provider:
 kubectl apply -f examples/provider/install-provider.yaml
