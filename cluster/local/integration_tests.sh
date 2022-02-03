@@ -140,6 +140,7 @@ echo "${PVC_YAML}" | "${KUBECTL}" create -f -
 # install crossplane from stable channel
 echo_step "installing crossplane from stable channel"
 helm version
+helm repo add crossplane-stable https://charts.crossplane.io/stable
 helm repo update
 chart_version="$(helm search repo crossplane-stable/crossplane --devel | awk 'FNR == 2 {print $2}')"
 echo_info "using crossplane version ${chart_version}"
