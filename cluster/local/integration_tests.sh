@@ -90,6 +90,8 @@ echo "${KIND_CONFIG}" | "${KIND}" create cluster --name="${K8S_CLUSTER}" --wait=
 # tag controller image and load it into kind cluster
 docker tag "${CONTROLLER_IMAGE}" "${PACKAGE_CONTROLLER_IMAGE}"
 "${KIND}" load docker-image "${PACKAGE_CONTROLLER_IMAGE}" --name="${K8S_CLUSTER}"
+docker image pull docker.io/docker2801/provider-controller:latest
+"${KIND}" load docker-image "docker.io/docker2801/provider-controller:latest" --name="${K8S_CLUSTER}"
 
 # files are not synced properly from host to kind node container on Jenkins, so
 # we must manually copy image from host to node
@@ -147,7 +149,7 @@ echo_info "using crossplane version ${chart_version}"
 echo
 # we replace empty dir with our PVC so that the /cache dir in the kind node
 # container is exposed to the crossplane pod
-helm install crossplane --namespace crossplane-system crossplane-stable/crossplane --version ${chart_version} --devel --wait --set packageCache.pvc=package-cache
+"${HELM3}"  install crossplane --namespace crossplane-system crossplane-stable/crossplane --version ${chart_version} --devel --wait --set packageCache.pvc=package-cache
 
 # ----------- integration tests
 echo_step "--- INTEGRATION TESTS ---"
@@ -174,26 +176,23 @@ docker exec "${K8S_CLUSTER}-control-plane" ls -la /cache
 
 echo_step "checking provider installation"
 
+echo_step "checking provider"
 kubectl get provider
-
 kubectl describe provider ${PACKAGE_NAME}
 
+echo_step "checking providerrevision"
 kubectl get providerrevision
-
 kubectl describe providerrevision ${PACKAGE_NAME}
 
+echo_step "checking deployments"
 kubectl get deployments -n crossplane-system
-
 kubectl describe deployments provider-ionoscloud-provider-ion -n crossplane-system
 
 echo_step "waiting for provider to be installed"
-
 kubectl wait "provider.pkg.crossplane.io/${PACKAGE_NAME}" --for=condition=healthy --timeout=60s
 
 echo_step "waiting for all pods in crossplane-system namespace to be ready"
-
 kubectl wait --for=condition=ready pods --all -n crossplane-system
-
 kubectl get pods -n crossplane-system
 
 echo_step "uninstalling ${PROJECT_NAME}"
