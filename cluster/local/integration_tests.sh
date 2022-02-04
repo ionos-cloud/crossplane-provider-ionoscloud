@@ -139,10 +139,10 @@ echo "${PVC_YAML}" | "${KUBECTL}" create -f -
 
 # install crossplane from stable channel
 echo_step "installing crossplane from stable channel"
-helm version
-helm repo add crossplane-stable https://charts.crossplane.io/stable
-helm repo update
-chart_version="$(helm search repo crossplane-stable/crossplane --devel | awk 'FNR == 2 {print $2}')"
+"${HELM3}" version
+"${HELM3}" repo add crossplane-stable https://charts.crossplane.io/stable
+"${HELM3}" repo update
+chart_version="$("${HELM3}" search repo crossplane-stable/crossplane --devel | awk 'FNR == 2 {print $2}')"
 echo_info "using crossplane version ${chart_version}"
 echo
 # we replace empty dir with our PVC so that the /cache dir in the kind node
