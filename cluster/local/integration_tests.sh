@@ -172,6 +172,14 @@ echo "${INSTALL_YAML}" | "${KUBECTL}" apply -f -
 echo_step "check kind node cache dir contents"
 docker exec "${K8S_CLUSTER}-control-plane" ls -la /cache
 
+echo_step "checking provider installation"
+
+kubectl get provider
+
+kubectl get providerrevision
+
+kubectl describe providerrevision ${PACKAGE_NAME}
+
 echo_step "waiting for provider to be installed"
 
 kubectl wait "provider.pkg.crossplane.io/${PACKAGE_NAME}" --for=condition=healthy --timeout=60s
