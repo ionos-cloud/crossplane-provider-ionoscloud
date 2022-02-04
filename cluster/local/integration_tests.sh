@@ -184,6 +184,10 @@ echo_step "waiting for provider to be installed"
 
 kubectl wait "provider.pkg.crossplane.io/${PACKAGE_NAME}" --for=condition=healthy --timeout=60s
 
+echo_step "waiting for all pods in crossplane-system namespace to be ready"
+
+kubectl wait --for=condition=ready pods --all -n crossplane-system
+
 kubectl get pods -n crossplane-system
 
 echo_step "uninstalling ${PROJECT_NAME}"
