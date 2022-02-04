@@ -176,9 +176,15 @@ echo_step "checking provider installation"
 
 kubectl get provider
 
+kubectl describe provider ${PACKAGE_NAME}
+
 kubectl get providerrevision
 
 kubectl describe providerrevision ${PACKAGE_NAME}
+
+kubectl get deployments -n crossplane-system
+
+kubectl describe deployments provider-ionoscloud-provider-ion -n crossplane-system
 
 echo_step "waiting for provider to be installed"
 
