@@ -1,4 +1,4 @@
-package ionosclients
+package clients
 
 import (
 	"context"

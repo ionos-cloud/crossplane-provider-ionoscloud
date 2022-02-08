@@ -5,12 +5,12 @@ import (
 
 	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/ionosclients"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 )
 
 // ClusterAPIClient is a wrapper around IONOS Service
 type ClusterAPIClient struct {
-	*ionosclients.IonosServices
+	*clients.IonosServices
 }
 
 // ClusterClient is a wrapper around IONOS Service methods
