@@ -4,12 +4,9 @@
 
 ## Overview
 
-Crossplane allows the user to manage infrastructure directly from Kubernetes. Crossplane extends a Kubernetes cluster to support orchestrating any infrastructure or managed service.
-Providers extend Crossplane to enable infrastructure resource provisioning of specific API.
+This `crossplane-provider-ionoscloud` repository is the Crossplane infrastructure provider for IONOS Cloud. The provider that is built from the source code from this repository can be installed into a Crossplane control plane and adds the following new functionality:
 
-This `crossplane-provider-ionoscloud` repository is the Crossplane infrastructure provider for IONOS Cloud Services. The provider can be installed into a Crossplane control plane and adds the following new functionality:
-
-* Custom Resource Definitions (CRDs) that model IONOS Cloud infrastructure and services
+* Custom Resource Definitions (CRDs) that model IONOS Cloud infrastructure and services (e.g. Database As a Service Postgres, etc.)
 * Controllers to provision these resources in IONOS Cloud based on the users desired state captured in CRDs they create
 * Implementations of Crossplane's portable resource abstractions, enabling IONOS Cloud resources to fulfill a user's general need for cloud services
 
