@@ -42,8 +42,8 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/postgres/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/dbaas/postgres"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/ionosclients"
 )
 
 const (
@@ -120,7 +120,7 @@ func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (ma
 		return nil, errors.Wrap(err, errGetCreds)
 	}
 
-	svc, err := ionosclients.NewIonosClients(data)
+	svc, err := clients.NewIonosClients(data)
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
