@@ -16,6 +16,11 @@ import (
 )
 
 const (
+	// UserAgent is the user agent addition that identifies the Crossplane IONOS Cloud Clients
+	UserAgent = "crossplane-provider-ionoscloud"
+)
+
+const (
 	errTrackPCUsage = "cannot track ProviderConfig usage"
 	errGetPC        = "cannot get ProviderConfig"
 	errGetCreds     = "cannot get credentials"
@@ -54,7 +59,9 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 			return nil, fmt.Errorf("failed to decode password: %w", err)
 		}
 	}
-	client := ionoscloud.NewAPIClient(ionoscloud.NewConfiguration(creds.User, string(decodedPW), creds.Token, creds.HostURL))
+	config := ionoscloud.NewConfiguration(creds.User, string(decodedPW), creds.Token, creds.HostURL)
+	config.UserAgent = fmt.Sprintf("%v_%v", UserAgent, config.UserAgent)
+	client := ionoscloud.NewAPIClient(config)
 	return &IonosServices{
 		DBaaSPostgresClient: client,
 	}, nil
