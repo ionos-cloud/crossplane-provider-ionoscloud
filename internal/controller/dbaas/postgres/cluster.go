@@ -20,8 +20,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -55,35 +53,24 @@ const (
 	errNewClient = "cannot create new Service"
 )
 
-// A NoOpService does nothing.
-type NoOpService struct{}
-
-// var (
-//	newNoOpService = func(_ []byte) (interface{}, error) { return &NoOpService{}, nil }
-// )
-
-// Setup adds a controller that reconciles Cluster managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
+// SetupPostgresCluster adds a controller that reconciles Cluster managed resources.
+func SetupPostgresCluster(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
 	name := managed.ControllerName(v1alpha1.ClusterGroupKind)
-
-	o := controller.Options{
-		RateLimiter: ratelimiter.NewDefaultManagedRateLimiter(rl),
-	}
-
-	r := managed.NewReconciler(mgr,
-		resource.ManagedKind(v1alpha1.ClusterGroupVersionKind),
-		managed.WithExternalConnecter(&connectorCluster{
-			kube:  mgr.GetClient(),
-			usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-			log:   l}),
-		managed.WithLogger(l.WithValues("controller", name)),
-		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))))
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(o).
+		WithOptions(controller.Options{
+			RateLimiter: ratelimiter.NewDefaultManagedRateLimiter(rl),
+		}).
 		For(&v1alpha1.Cluster{}).
-		Complete(r)
+		Complete(managed.NewReconciler(mgr,
+			resource.ManagedKind(v1alpha1.ClusterGroupVersionKind),
+			managed.WithExternalConnecter(&connectorCluster{
+				kube:  mgr.GetClient(),
+				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:   l}),
+			managed.WithLogger(l.WithValues("controller", name)),
+			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 
 // A connectorCluster is expected to produce an ExternalClient when its Connect method
@@ -124,7 +111,6 @@ func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (ma
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
-
 	return &externalCluster{service: &postgres.ClusterAPIClient{IonosServices: svc}, log: c.log}, nil
 }
 
@@ -142,6 +128,8 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotCluster)
 	}
+
+	// External Name of the CR is the DBaaS Postgres Cluster ID
 	id := meta.GetExternalName(cr)
 	if id == "" {
 		return managed.ExternalObservation{
@@ -150,10 +138,8 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 			ConnectionDetails: managed.ConnectionDetails{},
 		}, nil
 	}
-
 	cr.Status.AtProvider.ClusterID = id
-	cluster, resp, err := c.service.GetCluster(ctx, id)
-
+	instance, resp, err := c.service.GetCluster(ctx, id)
 	if err != nil {
 		retErr := fmt.Errorf("failed to get cluster by id. Request: %v: %w", resp.RequestURL, err)
 		if resp.StatusCode == http.StatusNotFound {
@@ -166,50 +152,25 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 		}, retErr
 	}
 
-	cr.Status.AtProvider.State = string(*cluster.Metadata.State)
+	cr.Status.AtProvider.State = string(*instance.Metadata.State)
 	c.log.Debug(fmt.Sprintf("Observing state %v...", cr.Status.AtProvider.State))
-	setReadyCondition(cr.Status.AtProvider.State, cr)
+	// Set Ready condition based on State
+	switch cr.Status.AtProvider.State {
+	case string(ionoscloud.AVAILABLE):
+		cr.SetConditions(xpv1.Available())
+	case string(ionoscloud.DESTROYING):
+		cr.SetConditions(xpv1.Deleting())
+	case string(ionoscloud.BUSY):
+		cr.SetConditions(xpv1.Creating())
+	default:
+		cr.SetConditions(xpv1.Unavailable())
+	}
 
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  isClusterUpToDate(cr, cluster),
+		ResourceUpToDate:  postgres.IsClusterUpToDate(cr, instance),
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
-}
-
-func setReadyCondition(apiState string, mg resource.Managed) {
-	switch apiState {
-	case string(ionoscloud.AVAILABLE):
-		mg.SetConditions(xpv1.Available())
-	case string(ionoscloud.DESTROYING):
-		mg.SetConditions(xpv1.Deleting())
-	case string(ionoscloud.FAILED):
-		mg.SetConditions(xpv1.Unavailable())
-	case string(ionoscloud.BUSY):
-		mg.SetConditions(xpv1.Creating())
-	default:
-		mg.SetConditions(xpv1.Unavailable())
-	}
-}
-
-func isClusterUpToDate(cr *v1alpha1.Cluster, clusterResponse ionoscloud.ClusterResponse) bool {
-	switch {
-	case cr == nil && clusterResponse.Properties == nil:
-		return true
-	case cr == nil && clusterResponse.Properties != nil:
-		return false
-	case cr != nil && clusterResponse.Properties == nil:
-		return false
-	}
-
-	if *clusterResponse.Metadata.State == ionoscloud.BUSY {
-		return true
-	}
-
-	if strings.Compare(cr.Spec.ForProvider.DisplayName, *clusterResponse.Properties.DisplayName) != 0 {
-		return false
-	}
-	return true
 }
 
 func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
@@ -218,33 +179,16 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 		return managed.ExternalCreation{}, errors.New(errNotCluster)
 	}
 
-	cluster := ionoscloud.CreateClusterRequest{
-		Properties: &ionoscloud.CreateClusterProperties{
-			PostgresVersion:     &cr.Spec.ForProvider.PostgresVersion,
-			Instances:           &cr.Spec.ForProvider.Instances,
-			Cores:               &cr.Spec.ForProvider.Cores,
-			Ram:                 &cr.Spec.ForProvider.RAM,
-			StorageSize:         &cr.Spec.ForProvider.StorageSize,
-			StorageType:         (*ionoscloud.StorageType)(&cr.Spec.ForProvider.StorageType),
-			Connections:         clusterConnections(cr.Spec.ForProvider.Connections),
-			Location:            (*ionoscloud.Location)(&cr.Spec.ForProvider.Location),
-			DisplayName:         &cr.Spec.ForProvider.DisplayName,
-			Credentials:         clusterCredentials(cr.Spec.ForProvider.Credentials),
-			SynchronizationMode: (*ionoscloud.SynchronizationMode)(&cr.Spec.ForProvider.SynchronizationMode),
-		},
+	cr.SetConditions(xpv1.Creating())
+	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+		return managed.ExternalCreation{}, nil
 	}
-	fromBackup, err := clusterFromBackup(cr.Spec.ForProvider.FromBackup)
+	instanceInput, err := postgres.GenerateCreateClusterInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	if fromBackup != nil {
-		cluster.Properties.SetFromBackup(*fromBackup)
-	}
-	if window := clusterMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
-		cluster.Properties.SetMaintenanceWindow(*window)
-	}
 
-	created, apiResponse, err := c.service.PostCluster(ctx, cluster)
+	instance, apiResponse, err := c.service.CreateCluster(ctx, *instanceInput)
 	creation := managed.ExternalCreation{
 		ConnectionDetails: managed.ConnectionDetails{},
 	}
@@ -252,57 +196,11 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 		return creation, fmt.Errorf("failed to create Cluster: %w, apiResponse: %v", err, apiResponse.Status)
 	}
 
-	cr.Status.AtProvider.ClusterID = *created.Id
-	meta.SetExternalName(cr, *created.Id)
+	// Set External Name
+	cr.Status.AtProvider.ClusterID = *instance.Id
+	meta.SetExternalName(cr, *instance.Id)
 	creation.ExternalNameAssigned = true
-	c.log.Debug(fmt.Sprintf("External name: %v", meta.GetExternalName(cr)))
 	return creation, nil
-}
-
-func clusterConnections(connections []v1alpha1.Connection) *[]ionoscloud.Connection {
-	connects := make([]ionoscloud.Connection, 0)
-	for _, connection := range connections {
-		datacenterID := connection.DatacenterID
-		lanID := connection.LanID
-		cidr := connection.Cidr
-		connects = append(connects, ionoscloud.Connection{
-			DatacenterId: &datacenterID,
-			LanId:        &lanID,
-			Cidr:         &cidr,
-		})
-	}
-	return &connects
-}
-
-func clusterMaintenanceWindow(window v1alpha1.MaintenanceWindow) *ionoscloud.MaintenanceWindow {
-	if window.Time != "" && window.DayOfTheWeek != "" {
-		return &ionoscloud.MaintenanceWindow{
-			Time:         &window.Time,
-			DayOfTheWeek: (*ionoscloud.DayOfTheWeek)(&window.DayOfTheWeek),
-		}
-	}
-	return nil
-}
-
-func clusterCredentials(creds v1alpha1.DBUser) *ionoscloud.DBUser {
-	return &ionoscloud.DBUser{
-		Username: &creds.Username,
-		Password: &creds.Password,
-	}
-}
-
-func clusterFromBackup(req v1alpha1.CreateRestoreRequest) (*ionoscloud.CreateRestoreRequest, error) {
-	if req.BackupID != "" && req.RecoveryTargetTime != "" {
-		recoveryTime, err := time.Parse(time.RFC3339, req.RecoveryTargetTime)
-		if err != nil {
-			return nil, err
-		}
-		return &ionoscloud.CreateRestoreRequest{
-			BackupId:           &req.BackupID,
-			RecoveryTargetTime: &ionoscloud.IonosTime{Time: recoveryTime},
-		}, nil
-	}
-	return nil, nil
 }
 
 func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
@@ -310,24 +208,17 @@ func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (mana
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotCluster)
 	}
+	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+		return managed.ExternalUpdate{}, nil
+	}
 
 	clusterID := cr.Status.AtProvider.ClusterID
-	cluster := ionoscloud.PatchClusterRequest{
-		Properties: &ionoscloud.PatchClusterProperties{
-			PostgresVersion: &cr.Spec.ForProvider.PostgresVersion,
-			Instances:       &cr.Spec.ForProvider.Instances,
-			Cores:           &cr.Spec.ForProvider.Cores,
-			Ram:             &cr.Spec.ForProvider.RAM,
-			StorageSize:     &cr.Spec.ForProvider.StorageSize,
-			Connections:     clusterConnections(cr.Spec.ForProvider.Connections),
-			DisplayName:     &cr.Spec.ForProvider.DisplayName,
-		},
-	}
-	if window := clusterMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
-		cluster.Properties.SetMaintenanceWindow(*window)
+	instanceInput, err := postgres.GenerateUpdateClusterInput(cr)
+	if err != nil {
+		return managed.ExternalUpdate{}, nil
 	}
 
-	_, apiResponse, err := c.service.PatchCluster(ctx, clusterID, cluster)
+	_, apiResponse, err := c.service.UpdateCluster(ctx, clusterID, *instanceInput)
 	update := managed.ExternalUpdate{
 		ConnectionDetails: managed.ConnectionDetails{},
 	}
@@ -343,20 +234,11 @@ func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error
 		return errors.New(errNotCluster)
 	}
 
-	id := meta.GetExternalName(cr)
-	if id == "" {
+	cr.SetConditions(xpv1.Deleting())
+	if cr.Status.AtProvider.State == string(ionoscloud.DESTROYING) {
 		return nil
 	}
 
-	cluster, _, err := c.service.GetCluster(ctx, id)
-	if err != nil {
-		return errors.Wrap(err, "failed to get cluster state")
-	}
-
-	if *cluster.Metadata.State == ionoscloud.DESTROYING {
-		return nil
-	}
-
-	err = c.service.DeleteCluster(ctx, id)
+	err := c.service.DeleteCluster(ctx, cr.Status.AtProvider.ClusterID)
 	return errors.Wrap(err, "failed to delete cluster")
 }

@@ -26,7 +26,10 @@ spec:
       name: SYNCED
       type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
-      name: EXTERNAL-NAME
+      name: ID
+      type: string
+    - jsonPath: .status.atProvider.state
+      name: STATE
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: AGE
