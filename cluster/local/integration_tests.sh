@@ -179,14 +179,17 @@ echo_step "checking provider installation"
 echo_step "checking provider"
 kubectl get provider
 kubectl describe provider ${PACKAGE_NAME}
+sleep 5
 
 echo_step "checking providerrevision"
 kubectl get providerrevision
 kubectl describe providerrevision ${PACKAGE_NAME}
+sleep 5
 
 echo_step "checking deployments"
 kubectl get deployments -n crossplane-system
 kubectl describe deployments provider-ionoscloud-provider-ion -n crossplane-system
+sleep 5
 
 echo_step "waiting for provider to be installed"
 kubectl wait "provider.pkg.crossplane.io/${PACKAGE_NAME}" --for=condition=healthy --timeout=60s
