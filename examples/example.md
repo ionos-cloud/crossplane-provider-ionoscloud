@@ -136,7 +136,8 @@ Next, we will create a Custom Resource(CR) of type `clusters.dbaas.postgres.iono
 
 ### Create a resource in IONOS Cloud
 
-❗ Before running the next command, make sure to **update** the values in the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file. Look for `spec.forProvider` fields. It is required to specify the Datacenter ID, Lan ID, CIDR, and location(in sync with the Datacenter).
+❗ Before running the next command, make sure to **update** the values in the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file. Look for `spec.forProvider` fields. 
+It is required to specify the Datacenter ID, Lan ID, CIDR, and location(in sync with the Datacenter) and credentials for the database user.
 
 1. **[CREATE]** Create a CR of type cluster:
 
@@ -153,8 +154,8 @@ kubectl get clusters
 Output:
 
 ```bash
-NAME       READY   SYNCED   EXTERNAL-NAME                          AGE
-example2   True    True     9b25ecab-83fe-11ec-8d97-828542a828c7   93m
+NAME       READY   SYNCED   ID                                    STATE      AGE
+example2   True    True     9b25ecab-83fe-11ec-8d97-828542a828c7  AVAILABLE  93m
 ```
 
 The external-name of the CR is the Cluster ID from IONOS Cloud. The CR will be marked as ready when the cluster is in available state (subject of change).

@@ -8,6 +8,7 @@ include ../../../build/makelib/common.mk
 #  Options
 DOCKER_REGISTRY ?= crossplane
 IMAGE = $(BUILD_REGISTRY)/crossplane-provider-ionoscloud-$(ARCH)
+#IMAGE = docker2801/provider-testing
 OSBASEIMAGE = scratch
 include ../../../build/makelib/image.mk
 

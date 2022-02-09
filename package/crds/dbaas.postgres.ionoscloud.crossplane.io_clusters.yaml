@@ -26,7 +26,10 @@ spec:
       name: SYNCED
       type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
-      name: EXTERNAL-NAME
+      name: ID
+      type: string
+    - jsonPath: .status.atProvider.state
+      name: STATE
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: AGE
@@ -80,6 +83,10 @@ spec:
                           description: The numeric LAN ID to connect your cluster
                             to.
                           type: string
+                      required:
+                      - cidr
+                      - datacenterID
+                      - lanID
                       type: object
                     type: array
                   cores:
@@ -106,13 +113,13 @@ spec:
                   fromBackup:
                     description: CreateRestoreRequest The restore request.
                     properties:
-                      RecoveryTargetTime:
+                      backupID:
+                        description: The unique ID of the backup you want to restore.
+                        type: string
+                      recoveryTargetTime:
                         description: If this value is supplied as ISO 8601 timestamp,
                           the backup will be replayed up until the given timestamp.
                           If empty, the backup will be applied completely.
-                        type: string
-                      backupID:
-                        description: The unique ID of the backup you want to restore.
                         type: string
                     required:
                     - backupID

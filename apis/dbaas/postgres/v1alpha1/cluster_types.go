@@ -38,11 +38,11 @@ type StorageType string
 // Connection Details about the network connection for your cluster.
 type Connection struct {
 	// The datacenter to connect your cluster to.
-	DatacenterID string `json:"datacenterID,omitempty"`
+	DatacenterID string `json:"datacenterID"`
 	// The numeric LAN ID to connect your cluster to.
-	LanID string `json:"lanID,omitempty"`
+	LanID string `json:"lanID"`
 	// The IP and subnet for your cluster. Note the following unavailable IP ranges: 10.233.64.0/18 10.233.0.0/18 10.233.114.0/24
-	Cidr string `json:"cidr,omitempty"`
+	Cidr string `json:"cidr"`
 }
 
 // MaintenanceWindow A weekly 4 hour-long window, during which maintenance might occur
@@ -69,7 +69,7 @@ type CreateRestoreRequest struct {
 	// The unique ID of the backup you want to restore.
 	BackupID string `json:"backupID"`
 	// If this value is supplied as ISO 8601 timestamp, the backup will be replayed up until the given timestamp. If empty, the backup will be applied completely.
-	RecoveryTargetTime string `json:"RecoveryTargetTime,omitempty"`
+	RecoveryTargetTime string `json:"recoveryTargetTime,omitempty"`
 }
 
 // ClusterParameters are the observable fields of a Cluster.
@@ -118,7 +118,8 @@ type ClusterStatus struct {
 // A Cluster is an example API type.
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
-// +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
+// +kubebuilder:printcolumn:name="ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
+// +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,template}

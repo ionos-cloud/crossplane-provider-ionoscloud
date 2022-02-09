@@ -8,4 +8,5 @@ ADD provider /usr/local/bin/crossplane-provider-ionoscloud
 
 EXPOSE 8080
 USER 1001
-ENTRYPOINT ["crossplane-provider-ionoscloud"]
+# Add -d for debug mode
+ENTRYPOINT ["crossplane-provider-ionoscloud", "-d"]
