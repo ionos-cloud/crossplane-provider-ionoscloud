@@ -41,13 +41,16 @@ eval $(make --no-print-directory -C ${projectdir} build.vars)
 
 # ------------------------------
 
-SAFEHOSTARCH="${SAFEHOSTARCH:-amd64}"
-BUILD_IMAGE="${BUILD_REGISTRY}/${PROJECT_NAME}-${SAFEHOSTARCH}"
-CONTROLLER_IMAGE="${BUILD_REGISTRY}/${PROJECT_NAME}-controller-${SAFEHOSTARCH}"
+REGISTRY=${REGISTRY:-ghcr.io}
+ORG_NAME=${ORG_NAME:-ionos-cloud}
+VERSION=${VERSION:-latest}
+BUILD_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}"
+CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller"
 
 version_tag="$(cat ${projectdir}/_output/version)"
 # tag as latest version to load into kind cluster
-PACKAGE_CONTROLLER_IMAGE="${DOCKER_REGISTRY}/${PROJECT_NAME}-controller:${VERSION}"
+PACKAGE_CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller:${VERSION}"
+PACKAGE_PROVIDER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}:${VERSION}"
 K8S_CLUSTER="${K8S_CLUSTER:-${BUILD_REGISTRY}-inttests}"
 KIND_NODE_IMAGE_TAG="${KIND_NODE_IMAGE_TAG:-v1.21.1}"
 
@@ -87,11 +90,12 @@ EOF
 )"
 echo "${KIND_CONFIG}" | "${KIND}" create cluster --name="${K8S_CLUSTER}" --wait=5m --image="${KIND_NODE_IMAGE}" --config=-
 
-# tag controller image and load it into kind cluster
+# tag controller images and load them into the kind cluster
 docker tag "${CONTROLLER_IMAGE}" "${PACKAGE_CONTROLLER_IMAGE}"
 "${KIND}" load docker-image "${PACKAGE_CONTROLLER_IMAGE}" --name="${K8S_CLUSTER}"
-docker image pull docker.io/docker2801/provider-controller:latest
-"${KIND}" load docker-image "docker.io/docker2801/provider-controller:latest" --name="${K8S_CLUSTER}"
+
+docker tag "${BUILD_IMAGE}" "${PACKAGE_PROVIDER_IMAGE}"
+"${KIND}" load docker-image "${PACKAGE_PROVIDER_IMAGE}" --name="${K8S_CLUSTER}"
 
 # files are not synced properly from host to kind node container on Jenkins, so
 # we must manually copy image from host to node
