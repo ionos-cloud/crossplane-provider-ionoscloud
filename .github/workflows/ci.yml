@@ -172,7 +172,7 @@ jobs:
         run: make vendor vendor.check
 
       - name: Build Helm Chart
-        run: make -j2 build VERSION=dev
+        run: make -j2 build.all VERSION=dev
         env:
           BUILD_ARGS: "--load"
 
