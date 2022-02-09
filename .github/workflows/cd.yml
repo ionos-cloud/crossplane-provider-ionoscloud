@@ -58,13 +58,13 @@ jobs:
       - name: Vendor Dependencies
         run: make vendor vendor.check
       - name: Build Helm Chart
-        run: make -j2 build
+        run: make -j2 build VERSION=latest
         env:
           BUILD_ARGS: "--load"
       - name: Run E2E Tests
         run: make e2e USE_HELM3=true
 
-  release:
+  release-latest:
     runs-on: ubuntu-latest
     needs: test
     steps:
@@ -106,7 +106,7 @@ jobs:
       - name: Vendor Dependencies
         run: make vendor vendor.check
       - name: Build Helm Chart
-        run: make -j2 build
+        run: make -j2 build VERSION=latest
         env:
           BUILD_ARGS: "--load"
       - name: Login to GitHub Container Registry
@@ -115,11 +115,61 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Tag Docker Images
+      - name: Push Docker Images
         run: |
-          make docker-tag VERSION=${GITHUB_REF_NAME}
-          make docker-tag VERSION=latest
+          make docker-push VERSION=latest
+
+  release-tag:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v1
+        with:
+          version: ${{ env.DOCKER_BUILDX_VERSION }}
+          install: true
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Fetch History
+        run: git fetch --prune --unshallow
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Find the Go Build Cache
+        id: go
+        run: echo "::set-output name=cache::$(make go.cachedir)"
+      - name: Cache the Go Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.go.outputs.cache }}
+          key: ${{ runner.os }}-build-e2e-tests-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-e2e-tests-
+      - name: Cache Go Dependencies
+        uses: actions/cache@v2
+        with:
+          path: .work/pkg
+          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-pkg-
+      - name: Vendor Dependencies
+        run: make vendor vendor.check
+      - name: Build Helm Chart
+        run: make -j2 build VERSION=${GITHUB_REF_NAME}
+        env:
+          BUILD_ARGS: "--load"
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push Docker Images
         run: |
           make docker-push VERSION=${GITHUB_REF_NAME}
-          make docker-push VERSION=latest

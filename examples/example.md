@@ -86,7 +86,7 @@ kubectl apply -f examples/provider/config.yaml
 Create an Image Pull Secret with your credentials, to be able to pull the Crossplane provider packages from the Github registry:
 
 ```bash
-kubectl create secret --namespace crossplane-system docker-registry package-pull --docker-server ghcr.io --docker-username GITHUB_USERNAME --docker-password GITHUB_PERSONAL_ACCESSTOKEN
+kubectl create secret --namespace crossplane-system docker-registry package-pull --docker-server ghcr.io --docker-username $GITHUB_USERNAME --docker-password $GITHUB_PERSONAL_ACCESSTOKEN
 ```
 
 Install Crossplane Provider IONOS Cloud:

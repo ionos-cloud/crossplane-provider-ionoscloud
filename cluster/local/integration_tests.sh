@@ -43,7 +43,6 @@ eval $(make --no-print-directory -C ${projectdir} build.vars)
 
 REGISTRY=${REGISTRY:-ghcr.io}
 ORG_NAME=${ORG_NAME:-ionos-cloud}
-VERSION=${VERSION:-latest}
 BUILD_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}"
 CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller"
 

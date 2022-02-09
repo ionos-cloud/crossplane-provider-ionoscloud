@@ -23,9 +23,9 @@ GO111MODULE = on
 
 # Setup Images
 DOCKER_REGISTRY ?= crossplane
-REGISTRY=ghcr.io
-ORG_NAME=ionos-cloud
-VERSION=latest
+REGISTRY ?= ghcr.io
+ORG_NAME ?= ionos-cloud
+VERSION ?= latest
 PROVIDER_IMAGE=$(REGISTRY)/$(ORG_NAME)/$(PROJECT_NAME)
 PACKAGE_PROVIDER_IMAGE=$(PROVIDER_IMAGE):$(VERSION)
 CONTROLLER_IMAGE=$(REGISTRY)/$(ORG_NAME)/$(PROJECT_NAME)-controller
@@ -39,11 +39,6 @@ IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-controller
 docker-push:
 	docker push $(PROVIDER_IMAGE):$(VERSION)
 	docker push $(CONTROLLER_IMAGE):$(VERSION)
-
-.PHONY: docker-tag
-docker-tag:
-	docker tag $(PROVIDER_IMAGE) $(PROVIDER_IMAGE):$(VERSION)
-	docker tag $(CONTROLLER_IMAGE) $(CONTROLLER_IMAGE):$(VERSION)
 
 fallthrough: submodules
 	@echo Initial setup complete. Running make again . . .
@@ -63,7 +58,7 @@ e2e.run: test-integration
 # Run integration tests.
 test-integration: $(KIND) $(KUBECTL) $(HELM3)
 	@$(INFO) running integration tests using kind $(KIND_VERSION)
-	@$(ROOT_DIR)/cluster/local/integration_tests.sh || $(FAIL)
+	@$(ROOT_DIR)/cluster/local/integration_tests.sh VERSION=$(VERSION) || $(FAIL)
 	@$(OK) integration tests passed
 
 # Update the submodules, such as the common build scripts.
