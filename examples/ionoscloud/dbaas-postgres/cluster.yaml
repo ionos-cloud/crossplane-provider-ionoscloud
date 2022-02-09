@@ -7,15 +7,15 @@ spec:
     displayName: testDemo
     postgresVersion: "13"
     connections:
-      - cidr: CIDR
-        datacenterID: IONOS_DATACENTER_ID
-        lanID: "IONOS_LAN_ID"
-    cores: 2
+      - cidr:
+        datacenterID:
+        lanID:
     credentials:
-      password: test1234
-      username: test
+      password:
+      username:
+    location:
     instances: 1
-    location: IONOS_DATACENTER_LOCATION
+    cores: 2
     ram: 2048
     storageSize: 20480
     storageType: HDD

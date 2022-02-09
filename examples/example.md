@@ -136,7 +136,8 @@ Next, we will create a Custom Resource(CR) of type `clusters.dbaas.postgres.iono
 
 ### Create a resource in IONOS Cloud
 
-❗ Before running the next command, make sure to **update** the values in the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file. Look for `spec.forProvider` fields. It is required to specify the Datacenter ID, Lan ID, CIDR, and location(in sync with the Datacenter).
+❗ Before running the next command, make sure to **update** the values in the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file. Look for `spec.forProvider` fields. 
+It is required to specify the Datacenter ID, Lan ID, CIDR, and location(in sync with the Datacenter) and credentials for the database user.
 
 1. **[CREATE]** Create a CR of type cluster:
 
