@@ -35,10 +35,19 @@ PKG_PATH=$(REGISTRY)/$(ORG_NAME)/$(PKG_NAME)
 IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-controller
 -include build/makelib/image.mk
 
-.PHONY: docker-push
-docker-push:
-	docker push $(PROVIDER_IMAGE):$(VERSION)
-	docker push $(CONTROLLER_IMAGE):$(VERSION)
+.PHONY: docker.list
+docker.list:
+	@docker image list
+
+.PHONY: docker.tag
+docker.tag:
+	@docker tag $(PROVIDER_IMAGE) $(PROVIDER_IMAGE):$(VERSION)
+	@docker tag $(CONTROLLER_IMAGE) $(CONTROLLER_IMAGE):$(VERSION)
+
+.PHONY: docker.push
+docker.push:
+	@docker push $(PROVIDER_IMAGE):$(VERSION)
+	@docker push $(CONTROLLER_IMAGE):$(VERSION)
 
 fallthrough: submodules
 	@echo Initial setup complete. Running make again . . .

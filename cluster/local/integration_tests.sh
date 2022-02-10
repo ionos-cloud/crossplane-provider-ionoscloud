@@ -90,10 +90,11 @@ EOF
 echo "${KIND_CONFIG}" | "${KIND}" create cluster --name="${K8S_CLUSTER}" --wait=5m --image="${KIND_NODE_IMAGE}" --config=-
 
 # tag controller images and load them into the kind cluster
-docker tag "${CONTROLLER_IMAGE}" "${PACKAGE_CONTROLLER_IMAGE}"
+#docker tag "${CONTROLLER_IMAGE}" "${PACKAGE_CONTROLLER_IMAGE}"
+sleep 5
 "${KIND}" load docker-image "${PACKAGE_CONTROLLER_IMAGE}" --name="${K8S_CLUSTER}"
 
-docker tag "${BUILD_IMAGE}" "${PACKAGE_PROVIDER_IMAGE}"
+#docker tag "${BUILD_IMAGE}" "${PACKAGE_PROVIDER_IMAGE}"
 "${KIND}" load docker-image "${PACKAGE_PROVIDER_IMAGE}" --name="${K8S_CLUSTER}"
 
 # files are not synced properly from host to kind node container on Jenkins, so
