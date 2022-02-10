@@ -14,6 +14,36 @@ This `crossplane-provider-ionoscloud` repository is the Crossplane infrastructur
 
 For getting started, check out this [example](examples/example.md) for provisioning a DBaaS Postgres Cluster in IONOS Cloud.
 
+## Build
+
+For building images, use:
+
+```bash
+make build
+```
+
+A version can be set via `$VERSION` variable. By running `make build VERSION=v0.x.x`, the specified version will be added into the `package/crossplane.yaml`.
+
+For tagging images, use:
+
+```bash
+make docker.tag VERSION=v0.x.x
+```
+
+## Testing
+
+For running end-to-end integration tests, use:
+
+```bash
+make e2e
+```
+
+If the images have a specific version, other than `latest`, this can be set via `make e2e VERSION=v0.x.x`.
+
+## Releases
+
+Releases can be made on Crossplane Provider IONOS Cloud via tags or manual action of the CD workflow. The CD workflow will test and release the images. It will release images for controller and provider, with 2 tags each: `latest` and the corresponding release tag.
+
 ## Contributing
 
 `crossplane-provider-ionoscloud` is a community driven project and we welcome contributions.
@@ -22,6 +52,6 @@ For getting started, check out this [example](examples/example.md) for provision
 
 For filing bugs, suggesting improvements, or requesting new features, please open an [issue](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/issues).
 
-## Licensing
+## License
 
 crossplane-provider-ionoscloud is under the [Apache 2.0 License](LICENSE).
