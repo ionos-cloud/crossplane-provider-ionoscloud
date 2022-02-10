@@ -110,7 +110,7 @@ jobs:
         env:
           BUILD_ARGS: "--load"
       - name: Run E2E Tests
-        run: make e2e VERSION=dev
+        run: make e2e VERSION=dev USE_HELM3=true
 
   publish-artifacts:
     runs-on: ubuntu-20.04
