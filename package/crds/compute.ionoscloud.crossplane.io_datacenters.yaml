@@ -83,11 +83,6 @@ spec:
                     description: Boolean value representing if the data center requires
                       extra protection, such as two-step verification.
                     type: boolean
-                  version:
-                    description: The version of the data center; incremented with
-                      every change.
-                    format: int32
-                    type: integer
                 required:
                 - location
                 type: object

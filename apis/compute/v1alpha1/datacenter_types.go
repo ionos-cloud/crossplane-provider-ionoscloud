@@ -33,8 +33,6 @@ type DatacenterProperties struct {
 	Description string `json:"description,omitempty"`
 	// The physical location where the datacenter will be created. This will be where all of your servers live. Property cannot be modified after datacenter creation (disallowed in update requests).
 	Location string `json:"location"`
-	// The version of the data center; incremented with every change.
-	Version int32 `json:"version,omitempty"`
 	// Boolean value representing if the data center requires extra protection, such as two-step verification.
 	SecAuthProtection bool `json:"secAuthProtection,omitempty"`
 }
