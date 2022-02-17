@@ -11,12 +11,12 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 )
 
-// ClusterAPIClient is a wrapper around IONOS Service
+// ClusterAPIClient is a wrapper around IONOS Service DBaaS Postgres Cluster
 type ClusterAPIClient struct {
 	*clients.IonosServices
 }
 
-// ClusterClient is a wrapper around IONOS Service methods
+// ClusterClient is a wrapper around IONOS Service DBaaS Postgres Cluster methods
 type ClusterClient interface {
 	GetCluster(ctx context.Context, clusterID string) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
 	DeleteCluster(ctx context.Context, clusterID string) error

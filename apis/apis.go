@@ -20,7 +20,8 @@ package apis
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 
-	postgres1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/postgres/v1alpha1"
+	datacenterv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	postgresv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/postgres/v1alpha1"
 	templatev1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 )
 
@@ -28,7 +29,8 @@ func init() {
 	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
 	AddToSchemes = append(AddToSchemes,
 		templatev1alpha1.SchemeBuilder.AddToScheme,
-		postgres1alpha1.SchemeBuilder.AddToScheme,
+		postgresv1alpha1.SchemeBuilder.AddToScheme,
+		datacenterv1alpha1.SchemeBuilder.AddToScheme,
 	)
 }
 

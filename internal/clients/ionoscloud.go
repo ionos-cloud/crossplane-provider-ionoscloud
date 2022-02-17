@@ -8,6 +8,7 @@ import (
 
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
+	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,6 +31,7 @@ const (
 // IonosServices contains ionos clients
 type IonosServices struct {
 	DBaaSPostgresClient *ionoscloud.APIClient
+	ComputeClient       *sdkgo.APIClient
 }
 
 // credentials specify how to authenticate with the IONOS API
@@ -59,11 +61,19 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 			return nil, fmt.Errorf("failed to decode password: %w", err)
 		}
 	}
-	config := ionoscloud.NewConfiguration(creds.User, string(decodedPW), creds.Token, creds.HostURL)
-	config.UserAgent = fmt.Sprintf("%v_%v", UserAgent, config.UserAgent)
-	client := ionoscloud.NewAPIClient(config)
+
+	// DBaaS Postgres Client
+	dbaasPostgresConfig := ionoscloud.NewConfiguration(creds.User, string(decodedPW), creds.Token, creds.HostURL)
+	dbaasPostgresConfig.UserAgent = fmt.Sprintf("%v_%v", UserAgent, dbaasPostgresConfig.UserAgent)
+	dbaasPostgresClient := ionoscloud.NewAPIClient(dbaasPostgresConfig)
+	// Compute Engine Client
+	computeEngineConfig := sdkgo.NewConfiguration(creds.User, string(decodedPW), creds.Token, creds.HostURL)
+	computeEngineConfig.UserAgent = fmt.Sprintf("%v_%v", UserAgent, computeEngineConfig.UserAgent)
+	computeEngineClient := sdkgo.NewAPIClient(computeEngineConfig)
+
 	return &IonosServices{
-		DBaaSPostgresClient: client,
+		DBaaSPostgresClient: dbaasPostgresClient,
+		ComputeClient:       computeEngineClient,
 	}, nil
 }
 

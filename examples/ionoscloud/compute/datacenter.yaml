@@ -1,0 +1,10 @@
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: exampledc
+spec:
+  forProvider:
+    name: testTestTest
+    location: us/las
+  providerConfigRef:
+    name: example
