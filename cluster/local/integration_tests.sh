@@ -201,8 +201,50 @@ echo_step "waiting for all pods in crossplane-system namespace to be ready"
 kubectl wait --for=condition=ready pods --all -n crossplane-system
 kubectl get pods -n crossplane-system
 
-echo_step "uninstalling ${PROJECT_NAME}"
+echo_step "add secret credentials"
+BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
+kubectl create secret generic --namespace crossplane-system example-provider-secret --from-literal=credentials="{\"user\":\"${IONOS_USERNAME}\",\"password\":\"${BASE64_PW}\"}"
+INSTALL_CRED_YAML="$( cat <<EOF
+apiVersion: ionoscloud.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: example
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: example-provider-secret
+      key: credentials
+EOF
+)"
 
+echo "${INSTALL_CRED_YAML}" | "${KUBECTL}" apply -f -
+
+echo_step "deploy datacenter"
+INSTALL_DC_YAML="$( cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: testdatacenter
+    location: de/txl
+  providerConfigRef:
+    name: example
+EOF
+)"
+
+echo "${INSTALL_DC_YAML}" | "${KUBECTL}" apply -f -
+
+echo_step "waiting for cr datacenter example to be ready"
+kubectl wait --for=condition=ready datacenters/example
+
+echo_step "get datacenters"
+kubectl get datacenters
+
+echo_step "uninstalling ${PROJECT_NAME}"
 echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -
 
 # check pods deleted
