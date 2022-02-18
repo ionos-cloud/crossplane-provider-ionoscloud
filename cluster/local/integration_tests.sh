@@ -33,6 +33,9 @@ echo_error(){
     exit 1
 }
 
+# add integration tests for resources
+source ./cluster/local/integration_tests_compute.sh
+
 # ------------------------------
 projectdir="$( cd "$( dirname "${BASH_SOURCE[0]}")"/../.. && pwd )"
 
@@ -201,8 +204,32 @@ echo_step "waiting for all pods in crossplane-system namespace to be ready"
 kubectl wait --for=condition=ready pods --all -n crossplane-system
 kubectl get pods -n crossplane-system
 
-echo_step "uninstalling ${PROJECT_NAME}"
+echo_step "add secret credentials"
+BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
+kubectl create secret generic --namespace crossplane-system example-provider-secret --from-literal=credentials="{\"user\":\"${IONOS_USERNAME}\",\"password\":\"${BASE64_PW}\"}"
+INSTALL_CRED_YAML="$( cat <<EOF
+apiVersion: ionoscloud.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: example
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: example-provider-secret
+      key: credentials
+EOF
+)"
 
+echo "${INSTALL_CRED_YAML}" | "${KUBECTL}" apply -f -
+
+# Run Datacenter Tests
+echo_step "run datacenter tests"
+datacenter_tests
+
+# Uninstalling Crossplane Provider IONOS Cloud
+echo_step "uninstalling ${PROJECT_NAME}"
 echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -
 
 # check pods deleted

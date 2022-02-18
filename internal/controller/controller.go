@@ -22,15 +22,17 @@ import (
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/datacenter"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/config"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgres"
 )
 
-// Setup creates all Template controllers with the supplied logger and adds them to
-// the supplied manager.
+// Setup creates all Template controllers with the supplied logger
+// and adds them to the supplied manager.
 func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter) error {
 	for _, setup := range []func(ctrl.Manager, logging.Logger, workqueue.RateLimiter) error{
 		config.Setup,
+		datacenter.Setup,
 		postgres.SetupPostgresCluster,
 	} {
 		if err := setup(mgr, l, wl); err != nil {
