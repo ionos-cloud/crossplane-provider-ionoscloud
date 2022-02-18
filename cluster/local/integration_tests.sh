@@ -33,6 +33,9 @@ echo_error(){
     exit 1
 }
 
+# add integration tests for resources
+source ./cluster/local/integration_tests_compute.sh
+
 # ------------------------------
 projectdir="$( cd "$( dirname "${BASH_SOURCE[0]}")"/../.. && pwd )"
 
@@ -221,60 +224,11 @@ EOF
 
 echo "${INSTALL_CRED_YAML}" | "${KUBECTL}" apply -f -
 
-## Datacenter CR Tests
-echo_step "deploy a datacenter CR"
-INSTALL_DC_YAML="$( cat <<EOF
-apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: Datacenter
-metadata:
-  name: example
-spec:
-  forProvider:
-    name: testdatacenter
-    location: de/txl
-  providerConfigRef:
-    name: example
-EOF
-)"
+# Run Datacenter Tests
+echo_step "run datacenter tests"
+datacenter_tests
 
-echo "${INSTALL_DC_YAML}" | "${KUBECTL}" apply -f -
-
-echo_step "waiting for datacenter CR to be ready"
-kubectl wait --for=condition=ready datacenters/example
-
-echo_step "get datacenters and describe datacenter CR"
-kubectl get datacenters
-kubectl describe datacenters example
-
-echo_step "update datacenter CR"
-INSTALL_DC_YAML="$( cat <<EOF
-apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: Datacenter
-metadata:
-  name: example
-spec:
-  forProvider:
-    name: Test Datacenter CR
-    location: de/txl
-    description: e2e crossplane testing
-  providerConfigRef:
-    name: example
-EOF
-)"
-
-echo "${INSTALL_DC_YAML}" | "${KUBECTL}" apply -f -
-
-echo_step "waiting for datacenter CR to be ready"
-kubectl wait --for=condition=ready datacenters/example
-
-echo_step "uninstalling datacenter CR"
-echo "${INSTALL_DC_YAML}" | "${KUBECTL}" delete -f -
-
-echo_step "wait for deletion datacenter CR"
-kubectl wait --for=delete datacenters/example
-
-## Uninstalling Crossplane Provider IONOS Cloud
-
+# Uninstalling Crossplane Provider IONOS Cloud
 echo_step "uninstalling ${PROJECT_NAME}"
 echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -
 
