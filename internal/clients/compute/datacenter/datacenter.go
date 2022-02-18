@@ -10,6 +10,15 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 )
 
+// States of the Datacenters
+const (
+	AVAILABLE  = "AVAILABLE"
+	BUSY       = "BUSY"
+	ACTIVE     = "ACTIVE"
+	UPDATING   = "UPDATING"
+	DESTROYING = "DESTROYING"
+)
+
 // APIClient is a wrapper around IONOS Service
 type APIClient struct {
 	*clients.IonosServices

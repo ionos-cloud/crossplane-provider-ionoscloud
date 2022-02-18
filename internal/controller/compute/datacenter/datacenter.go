@@ -36,7 +36,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
-	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
@@ -156,12 +155,12 @@ func (c *externalDatacenter) Observe(ctx context.Context, mg resource.Managed) (
 	c.log.Debug(fmt.Sprintf("Observing state %v...", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
 	switch cr.Status.AtProvider.State {
-	case string(ionoscloud.AVAILABLE):
+	case datacenter.AVAILABLE, datacenter.ACTIVE:
 		cr.SetConditions(xpv1.Available())
-	case string(ionoscloud.DESTROYING):
-		cr.SetConditions(xpv1.Deleting())
-	case string(ionoscloud.BUSY):
+	case datacenter.BUSY, datacenter.UPDATING:
 		cr.SetConditions(xpv1.Creating())
+	case datacenter.DESTROYING:
+		cr.SetConditions(xpv1.Deleting())
 	default:
 		cr.SetConditions(xpv1.Unavailable())
 	}
@@ -180,7 +179,7 @@ func (c *externalDatacenter) Create(ctx context.Context, mg resource.Managed) (m
 	}
 
 	cr.SetConditions(xpv1.Creating())
-	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == datacenter.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
 	instanceInput, err := datacenter.GenerateCreateDatacenterInput(cr)
@@ -210,7 +209,7 @@ func (c *externalDatacenter) Update(ctx context.Context, mg resource.Managed) (m
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotDatacenter)
 	}
-	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == datacenter.BUSY || cr.Status.AtProvider.State == datacenter.UPDATING {
 		return managed.ExternalUpdate{}, nil
 	}
 
@@ -239,7 +238,7 @@ func (c *externalDatacenter) Delete(ctx context.Context, mg resource.Managed) er
 	}
 
 	cr.SetConditions(xpv1.Deleting())
-	if cr.Status.AtProvider.State == string(ionoscloud.DESTROYING) {
+	if cr.Status.AtProvider.State == datacenter.DESTROYING {
 		return nil
 	}
 
