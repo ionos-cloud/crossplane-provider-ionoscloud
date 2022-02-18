@@ -37,6 +37,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
 	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
+	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
@@ -143,13 +144,7 @@ func (c *externalDatacenter) Observe(ctx context.Context, mg resource.Managed) (
 	instance, apiResponse, err := c.service.GetDatacenter(ctx, id)
 	if err != nil {
 		retErr := fmt.Errorf("failed to get datacenter by id. error: %w", err)
-		if apiResponse != nil {
-			if apiResponse.StatusCode != http.StatusNotFound {
-				retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Status)
-			} else {
-				retErr = nil
-			}
-		}
+		retErr = checkAPIResponseInfo(apiResponse, retErr)
 		return managed.ExternalObservation{
 			ResourceExists:    false,
 			ResourceUpToDate:  false,
@@ -199,9 +194,7 @@ func (c *externalDatacenter) Create(ctx context.Context, mg resource.Managed) (m
 	}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create datacenter. error: %w", err)
-		if apiResponse != nil {
-			retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Status)
-		}
+		retErr = addAPIResponseInfo(apiResponse, retErr)
 		return creation, retErr
 	}
 
@@ -233,9 +226,7 @@ func (c *externalDatacenter) Update(ctx context.Context, mg resource.Managed) (m
 	}
 	if err != nil {
 		retErr := fmt.Errorf("failed to update datacenter. error: %w", err)
-		if apiResponse != nil {
-			retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Status)
-		}
+		retErr = addAPIResponseInfo(apiResponse, retErr)
 		return update, retErr
 	}
 	return update, nil
@@ -255,10 +246,25 @@ func (c *externalDatacenter) Delete(ctx context.Context, mg resource.Managed) er
 	apiResponse, err := c.service.DeleteDatacenter(ctx, cr.Status.AtProvider.DatacenterID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete datacenter. error: %w", err)
-		if apiResponse != nil {
-			retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Status)
-		}
+		retErr = addAPIResponseInfo(apiResponse, retErr)
 		return retErr
 	}
 	return nil
+}
+
+func checkAPIResponseInfo(apiResponse *sdkgo.APIResponse, retErr error) error {
+	if apiResponse != nil && apiResponse.Response != nil {
+		retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Status)
+		if apiResponse.Response.StatusCode == http.StatusNotFound {
+			retErr = nil
+		}
+	}
+	return retErr
+}
+
+func addAPIResponseInfo(apiResponse *sdkgo.APIResponse, retErr error) error {
+	if apiResponse != nil && apiResponse.Response != nil {
+		retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Response.Status)
+	}
+	return retErr
 }
