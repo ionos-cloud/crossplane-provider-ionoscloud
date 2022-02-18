@@ -20,7 +20,7 @@ type Client interface {
 	GetDatacenter(ctx context.Context, datacenterID string) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
 	CreateDatacenter(ctx context.Context, datacenter sdkgo.Datacenter) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
 	UpdateDatacenter(ctx context.Context, datacenterID string, datacenter sdkgo.DatacenterProperties) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
-	DeleteDatacenter(ctx context.Context, datacenterID string) error
+	DeleteDatacenter(ctx context.Context, datacenterID string) (*sdkgo.APIResponse, error)
 }
 
 // GetDatacenter based on datacenterID
@@ -39,9 +39,9 @@ func (cp *APIClient) UpdateDatacenter(ctx context.Context, datacenterID string, 
 }
 
 // DeleteDatacenter based on datacenterID
-func (cp *APIClient) DeleteDatacenter(ctx context.Context, datacenterID string) error {
-	_, err := cp.ComputeClient.DataCentersApi.DatacentersDelete(ctx, datacenterID).Execute()
-	return err
+func (cp *APIClient) DeleteDatacenter(ctx context.Context, datacenterID string) (*sdkgo.APIResponse, error) {
+	resp, err := cp.ComputeClient.DataCentersApi.DatacentersDelete(ctx, datacenterID).Execute()
+	return resp, err
 }
 
 // GenerateCreateDatacenterInput returns CreateDatacenterRequest based on the CR spec

@@ -241,8 +241,9 @@ echo "${INSTALL_DC_YAML}" | "${KUBECTL}" apply -f -
 echo_step "waiting for cr datacenter example to be ready"
 kubectl wait --for=condition=ready datacenters/example
 
-echo_step "get datacenters"
+echo_step "get datacenters and describe datacenter"
 kubectl get datacenters
+kubectl describe datacenters example
 
 echo_step "uninstalling ${PROJECT_NAME}"
 echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -

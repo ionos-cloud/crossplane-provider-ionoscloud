@@ -49,6 +49,7 @@ const (
 	errTrackPCUsage  = "cannot track ProviderConfig usage"
 	errGetPC         = "cannot get ProviderConfig"
 	errGetCreds      = "cannot get credentials"
+	errAPIResponse   = "%w, API Response Status: %v"
 
 	errNewClient = "cannot create new Service"
 )
@@ -139,11 +140,15 @@ func (c *externalDatacenter) Observe(ctx context.Context, mg resource.Managed) (
 		}, nil
 	}
 	cr.Status.AtProvider.DatacenterID = id
-	instance, resp, err := c.service.GetDatacenter(ctx, id)
+	instance, apiResponse, err := c.service.GetDatacenter(ctx, id)
 	if err != nil {
-		retErr := fmt.Errorf("failed to get datacenter by id. Request: %v: %w", resp.RequestURL, err)
-		if resp.StatusCode == http.StatusNotFound {
-			retErr = nil
+		retErr := fmt.Errorf("failed to get datacenter by id. error: %w", err)
+		if apiResponse != nil {
+			if apiResponse.StatusCode != http.StatusNotFound {
+				retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Status)
+			} else {
+				retErr = nil
+			}
 		}
 		return managed.ExternalObservation{
 			ResourceExists:    false,
@@ -193,7 +198,11 @@ func (c *externalDatacenter) Create(ctx context.Context, mg resource.Managed) (m
 		ConnectionDetails: managed.ConnectionDetails{},
 	}
 	if err != nil {
-		return creation, fmt.Errorf("failed to create Datacenter: %w, apiResponse: %v", err, apiResponse.Status)
+		retErr := fmt.Errorf("failed to create datacenter. error: %w", err)
+		if apiResponse != nil {
+			retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Status)
+		}
+		return creation, retErr
 	}
 
 	// Set External Name
@@ -223,7 +232,11 @@ func (c *externalDatacenter) Update(ctx context.Context, mg resource.Managed) (m
 		ConnectionDetails: managed.ConnectionDetails{},
 	}
 	if err != nil {
-		return update, fmt.Errorf("failed to update Datacenter: %w, apiResponse: %v", err, apiResponse.Status)
+		retErr := fmt.Errorf("failed to update datacenter. error: %w", err)
+		if apiResponse != nil {
+			retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Status)
+		}
+		return update, retErr
 	}
 	return update, nil
 }
@@ -239,6 +252,13 @@ func (c *externalDatacenter) Delete(ctx context.Context, mg resource.Managed) er
 		return nil
 	}
 
-	err := c.service.DeleteDatacenter(ctx, cr.Status.AtProvider.DatacenterID)
-	return errors.Wrap(err, "failed to delete datacenter")
+	apiResponse, err := c.service.DeleteDatacenter(ctx, cr.Status.AtProvider.DatacenterID)
+	if err != nil {
+		retErr := fmt.Errorf("failed to delete datacenter. error: %w", err)
+		if apiResponse != nil {
+			retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Status)
+		}
+		return retErr
+	}
+	return nil
 }
