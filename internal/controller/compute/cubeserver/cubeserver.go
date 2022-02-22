@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package cubeserver
 
 import (
 	"context"
@@ -43,26 +43,26 @@ import (
 )
 
 const (
-	errNotServer    = "managed resource is not a Server custom resource"
-	errTrackPCUsage = "cannot track ProviderConfig usage"
-	errGetPC        = "cannot get ProviderConfig"
-	errGetCreds     = "cannot get credentials"
+	errNotCubeServer = "managed resource is not a Cube Server custom resource"
+	errTrackPCUsage  = "cannot track ProviderConfig usage"
+	errGetPC         = "cannot get ProviderConfig"
+	errGetCreds      = "cannot get credentials"
 
 	errNewClient = "cannot create new Service"
 )
 
 // Setup adds a controller that reconciles Server managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
-	name := managed.ControllerName(v1alpha1.ServerGroupKind)
+	name := managed.ControllerName(v1alpha1.CubeServerGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
 			RateLimiter: ratelimiter.NewDefaultManagedRateLimiter(rl),
 		}).
-		For(&v1alpha1.Server{}).
+		For(&v1alpha1.CubeServer{}).
 		Complete(managed.NewReconciler(mgr,
-			resource.ManagedKind(v1alpha1.ServerGroupVersionKind),
+			resource.ManagedKind(v1alpha1.CubeServerGroupVersionKind),
 			managed.WithExternalConnecter(&connectorServer{
 				kube:  mgr.GetClient(),
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
@@ -86,9 +86,9 @@ type connectorServer struct {
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
 func (c *connectorServer) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	_, ok := mg.(*v1alpha1.Server)
+	_, ok := mg.(*v1alpha1.CubeServer)
 	if !ok {
-		return nil, errors.New(errNotServer)
+		return nil, errors.New(errNotCubeServer)
 	}
 
 	if err := c.usage.Track(ctx, mg); err != nil {
@@ -123,12 +123,12 @@ type externalServer struct {
 }
 
 func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*v1alpha1.Server)
+	cr, ok := mg.(*v1alpha1.CubeServer)
 	if !ok {
-		return managed.ExternalObservation{}, errors.New(errNotServer)
+		return managed.ExternalObservation{}, errors.New(errNotCubeServer)
 	}
 
-	// External Name of the CR is the Server ID
+	// External Name of the CR is the Cube Server ID
 	id := meta.GetExternalName(cr)
 	if id == "" {
 		return managed.ExternalObservation{
@@ -164,15 +164,15 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  server.IsServerUpToDate(cr, instance),
+		ResourceUpToDate:  server.IsCubeServerUpToDate(cr, instance),
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
 }
 
 func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.Server)
+	cr, ok := mg.(*v1alpha1.CubeServer)
 	if !ok {
-		return managed.ExternalCreation{}, errors.New(errNotServer)
+		return managed.ExternalCreation{}, errors.New(errNotCubeServer)
 	}
 
 	cr.SetConditions(xpv1.Creating())
@@ -180,7 +180,7 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalCreation{}, nil
 	}
 
-	instanceInput, err := server.GenerateCreateServerInput(cr)
+	instanceInput, err := server.GenerateCreateCubeServerInput(cr, c.service.GetAPIClient())
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -190,7 +190,7 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		ConnectionDetails: managed.ConnectionDetails{},
 	}
 	if err != nil {
-		retErr := fmt.Errorf("failed to create server. error: %w", err)
+		retErr := fmt.Errorf("failed to create cube server. error: %w", err)
 		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
 		return creation, retErr
 	}
@@ -206,16 +206,16 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 }
 
 func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.Server)
+	cr, ok := mg.(*v1alpha1.CubeServer)
 	if !ok {
-		return managed.ExternalUpdate{}, errors.New(errNotServer)
+		return managed.ExternalUpdate{}, errors.New(errNotCubeServer)
 	}
 	if cr.Status.AtProvider.State == compute.BUSY || cr.Status.AtProvider.State == compute.UPDATING {
 		return managed.ExternalUpdate{}, nil
 	}
 
 	serverID := cr.Status.AtProvider.ServerID
-	instanceInput, err := server.GenerateUpdateServerInput(cr)
+	instanceInput, err := server.GenerateUpdateCubeServerInput(cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, nil
 	}
@@ -225,7 +225,7 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 		ConnectionDetails: managed.ConnectionDetails{},
 	}
 	if err != nil {
-		retErr := fmt.Errorf("failed to update server. error: %w", err)
+		retErr := fmt.Errorf("failed to update cube server. error: %w", err)
 		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
 		return update, retErr
 	}
@@ -236,9 +236,9 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 }
 
 func (c *externalServer) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.Server)
+	cr, ok := mg.(*v1alpha1.CubeServer)
 	if !ok {
-		return errors.New(errNotServer)
+		return errors.New(errNotCubeServer)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
@@ -248,7 +248,7 @@ func (c *externalServer) Delete(ctx context.Context, mg resource.Managed) error 
 
 	apiResponse, err := c.service.DeleteServer(ctx, cr.Spec.ForProvider.DatacenterID, cr.Status.AtProvider.ServerID)
 	if err != nil {
-		retErr := fmt.Errorf("failed to delete server. error: %w", err)
+		retErr := fmt.Errorf("failed to delete cube server. error: %w", err)
 		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
 		return retErr
 	}

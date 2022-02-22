@@ -25,6 +25,9 @@ spec:
     - jsonPath: .status.conditions[?(@.type=='Synced')].status
       name: SYNCED
       type: string
+    - jsonPath: .spec.forProvider.datacenterID
+      name: DATACENTER ID
+      type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
       name: ID
       type: string
@@ -70,12 +73,20 @@ spec:
                   availabilityZone:
                     description: The availability zone in which the server should
                       be provisioned.
+                    enum:
+                    - AUTO
+                    - ZONE_1
+                    - ZONE_2
                     type: string
                   cpuFamily:
                     description: CPU architecture on which server gets provisioned;
                       not all CPU architectures are available in all datacenter regions;
                       available CPU architectures can be retrieved from the datacenter
                       resource.
+                    enum:
+                    - AMD_OPTERON
+                    - INTEL_SKYLAKE
+                    - INTEL_XEON
                     type: string
                   datacenterID:
                     type: string
@@ -89,16 +100,37 @@ spec:
                     required:
                     - name
                     type: object
+                  datacenterIDRefSelector:
+                    description: A Selector selects an object.
+                    properties:
+                      matchControllerRef:
+                        description: MatchControllerRef ensures an object with the
+                          same controller reference as the selecting object is selected.
+                        type: boolean
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: MatchLabels ensures an object with matching labels
+                          is selected.
+                        type: object
+                    type: object
                   name:
                     description: The name of the  resource.
                     type: string
-                  templateID:
+                  template:
                     description: The ID of the template for creating a CUBE server;
                       the available templates for CUBE servers can be found on the
                       templates' resource.
-                    type: string
+                    properties:
+                      id:
+                        description: The ID of the  template.
+                        type: string
+                      name:
+                        description: The name of the  resource.
+                        type: string
+                    type: object
                 required:
-                - templateID
+                - template
                 type: object
               providerConfigRef:
                 default:

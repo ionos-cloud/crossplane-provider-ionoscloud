@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
@@ -101,11 +102,34 @@ func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool {
 }
 
 // GenerateCreateCubeServerInput returns CreateServerRequest based on the CR spec
-func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer) (*sdkgo.Server, error) {
+func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer, client *sdkgo.APIClient) (*sdkgo.Server, error) {
+	// TODO: to be updated with DAS Volume Properties
+	var templateID string
+	if cr.Spec.ForProvider.Template.ID == "" {
+		if client != nil {
+			templates, _, err := client.TemplatesApi.TemplatesGet(context.TODO()).
+				Filter("name", cr.Spec.ForProvider.Template.Name).Depth(1).Execute()
+			if err != nil {
+				return nil, err
+			}
+			if items, ok := templates.GetItemsOk(); ok && items != nil {
+				templatesItems := *items
+				if len(templatesItems) > 0 {
+					templateID = *templatesItems[0].Id
+				} else {
+					return nil, fmt.Errorf("error: no templates with the %v name found", cr.Spec.ForProvider.Template.Name)
+				}
+			}
+		} else {
+			return nil, fmt.Errorf("error: APIClient must not be nil")
+		}
+	} else {
+		templateID = cr.Spec.ForProvider.Template.ID
+	}
 	instanceCreateInput := sdkgo.Server{
 		Properties: &sdkgo.ServerProperties{
 			Name:             &cr.Spec.ForProvider.Name,
-			TemplateUuid:     &cr.Spec.ForProvider.TemplateID,
+			TemplateUuid:     &templateID,
 			AvailabilityZone: &cr.Spec.ForProvider.AvailabilityZone,
 			CpuFamily:        &cr.Spec.ForProvider.CPUFamily,
 			Type:             &serverCubeType,

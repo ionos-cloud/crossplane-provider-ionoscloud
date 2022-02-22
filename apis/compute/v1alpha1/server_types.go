@@ -41,7 +41,7 @@ type ServerProperties struct {
 	// +optional
 	DatacenterIDRef *xpv1.Reference `json:"datacenterIDRef,omitempty"`
 	// +optional
-	DatacenterIDRefSelector *xpv1.Selector `json:"datacenterIdRefSelector,omitempty"`
+	DatacenterIDRefSelector *xpv1.Selector `json:"datacenterIDRefSelector,omitempty"`
 	// The name of the  resource.
 	Name string `json:"name,omitempty"`
 	// The total number of cores for the server.
@@ -49,6 +49,7 @@ type ServerProperties struct {
 	// The memory size for the server in MB, such as 2048. Size must be specified in multiples of 256 MB with a minimum of 256 MB.
 	// however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB,
 	// then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
+	// +kubebuilder:validation:MultipleOf=256
 	RAM int32 `json:"ram"`
 	// The availability zone in which the server should be provisioned.
 	// +kubebuilder:validation:Enum=AUTO;ZONE_1;ZONE_2
@@ -103,7 +104,7 @@ func (in *Server) ResolveReferences(ctx context.Context, c client.Reader) error 
 		return errors.Wrap(err, "spec.forProvider.datacenterID")
 	}
 	if datacenterID.ResolvedValue == undefined {
-		return errors.New("cluster either not found or not reconciled yet")
+		return errors.New("datacenter either not found or not reconciled yet")
 	}
 	in.Spec.ForProvider.DatacenterID = datacenterID.ResolvedValue
 	in.Spec.ForProvider.DatacenterIDRef = datacenterID.ResolvedReference

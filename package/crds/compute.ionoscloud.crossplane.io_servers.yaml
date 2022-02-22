@@ -103,7 +103,7 @@ spec:
                     required:
                     - name
                     type: object
-                  datacenterIdRefSelector:
+                  datacenterIDRefSelector:
                     description: A Selector selects an object.
                     properties:
                       matchControllerRef:
@@ -128,6 +128,7 @@ spec:
                       240GB, then ramHotPlug will be set to FALSE and can not be set
                       to TRUE unless RAM size not set to less than 240GB.
                     format: int32
+                    multipleOf: 256
                     type: integer
                 required:
                 - cores

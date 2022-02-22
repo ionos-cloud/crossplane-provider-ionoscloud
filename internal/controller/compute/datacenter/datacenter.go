@@ -127,7 +127,7 @@ func (c *externalDatacenter) Observe(ctx context.Context, mg resource.Managed) (
 		return managed.ExternalObservation{}, errors.New(errNotDatacenter)
 	}
 
-	// External Name of the CR is the DBaaS Postgres Datacenter ID
+	// External Name of the CR is the Datacenter ID
 	id := meta.GetExternalName(cr)
 	if id == "" {
 		return managed.ExternalObservation{
