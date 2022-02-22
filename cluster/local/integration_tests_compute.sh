@@ -8,7 +8,7 @@ set -e
 ## Datacenter CR Tests
 function datacenter_tests() {
   echo_step "deploy a datacenter CR"
-  INSTALL_YAML="$(
+  INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
@@ -23,7 +23,7 @@ spec:
 EOF
   )"
 
-  echo "${INSTALL_YAML}" | "${KUBECTL}" apply -f -
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for datacenter CR to be ready"
   kubectl wait --for=condition=ready datacenters/example
@@ -33,7 +33,7 @@ EOF
   kubectl describe datacenters example
 
   echo_step "update datacenter CR"
-  INSTALL_YAML="$(
+  INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
@@ -49,14 +49,14 @@ spec:
 EOF
   )"
 
-  echo "${INSTALL_YAML}" | "${KUBECTL}" apply -f -
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for datacenter CR to be ready"
   kubectl wait --for=condition=ready datacenters/example
 }
 
 function datacenter_tests_cleanup() {
-  INSTALL_YAML="$(
+  INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
@@ -73,7 +73,7 @@ EOF
   )"
 
   echo_step "uninstalling datacenter CR"
-  echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
   echo_step "wait for deletion datacenter CR"
   kubectl wait --for=delete datacenters/example
@@ -82,7 +82,7 @@ EOF
 ## Server CR Tests
 function server_tests() {
   echo_step "deploy a server CR"
-  INSTALL_YAML="$(
+  INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Server
@@ -102,7 +102,7 @@ spec:
 EOF
   )"
 
-  echo "${INSTALL_YAML}" | "${KUBECTL}" apply -f -
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for server CR to be ready"
   kubectl wait --for=condition=ready servers/example
@@ -112,7 +112,7 @@ EOF
   kubectl describe servers example
 
   echo_step "update server CR"
-  INSTALL_YAML="$(
+  INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Server
@@ -132,14 +132,14 @@ spec:
 EOF
   )"
 
-  echo "${INSTALL_YAML}" | "${KUBECTL}" apply -f -
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for server CR to be ready"
   kubectl wait --for=condition=ready servers/example
 }
 
 function server_tests_cleanup() {
-  INSTALL_YAML="$(
+  INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Server
@@ -160,7 +160,7 @@ EOF
   )"
 
   echo_step "uninstalling server CR"
-  echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
   echo_step "wait for deletion server CR"
   kubectl wait --for=delete servers/example
