@@ -1,0 +1,61 @@
+package compute
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+
+	sdkgo "github.com/ionos-cloud/sdk-go/v6"
+)
+
+// States of Compute Resources
+const (
+	AVAILABLE  = "AVAILABLE"
+	BUSY       = "BUSY"
+	ACTIVE     = "ACTIVE"
+	UPDATING   = "UPDATING"
+	DESTROYING = "DESTROYING"
+)
+
+const (
+	errAPIResponse    = "%w, API Response Status: %v"
+	errAPIResponseNil = "error: APIResponse must not be nil"
+	errAPIClientNil   = "error: APIClient must not be nil"
+
+	// RequestHeader is related to the APIResponse Header
+	requestHeader = "Location"
+)
+
+// WaitForRequest waits for the request to be DONE
+func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *sdkgo.APIResponse) error {
+	if client != nil {
+		if apiResponse != nil && apiResponse.Response != nil {
+			if _, err := client.WaitForRequest(ctx, apiResponse.Response.Header.Get(requestHeader)); err != nil {
+				return err
+			}
+			return nil
+		}
+		return errors.New(errAPIResponseNil)
+	}
+	return errors.New(errAPIClientNil)
+}
+
+// CheckAPIResponseInfo checks status code of an APIResponse, and appends info to an existing error
+func CheckAPIResponseInfo(apiResponse *sdkgo.APIResponse, retErr error) error {
+	if apiResponse != nil && apiResponse.Response != nil {
+		retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Status)
+		if apiResponse.Response.StatusCode == http.StatusNotFound {
+			retErr = nil
+		}
+	}
+	return retErr
+}
+
+// AddAPIResponseInfo adds APIResponse status info to an existing error
+func AddAPIResponseInfo(apiResponse *sdkgo.APIResponse, retErr error) error {
+	if apiResponse != nil && apiResponse.Response != nil {
+		retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Response.Status)
+	}
+	return retErr
+}

@@ -32,6 +32,8 @@ type DatacenterProperties struct {
 	// A description for the datacenter, such as staging, production.
 	Description string `json:"description,omitempty"`
 	// The physical location where the datacenter will be created. This will be where all of your servers live. Property cannot be modified after datacenter creation (disallowed in update requests).
+	// +immutable
+	// +kubebuilder:validation:Enum=de/fra;us/las;us/ewr;de/txl;gb/lhr;es/vit
 	Location string `json:"location"`
 	// Boolean value representing if the data center requires extra protection, such as two-step verification.
 	SecAuthProtection bool `json:"secAuthProtection,omitempty"`

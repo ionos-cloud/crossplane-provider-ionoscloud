@@ -1,7 +1,7 @@
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
-  name: example
+  name: exampledc
 spec:
   forProvider:
     name: test
@@ -9,3 +9,4 @@ spec:
     description: test
   providerConfigRef:
     name: example
+
