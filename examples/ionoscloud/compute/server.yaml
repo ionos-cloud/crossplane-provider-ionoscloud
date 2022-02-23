@@ -1,0 +1,15 @@
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Server
+metadata:
+  name: exampleserver
+spec:
+  forProvider:
+    name: exampleEnterpriseServer
+    cores: 4
+    ram: 2048
+    datacenterIdRef:
+      name: example
+    availabilityZone: AUTO
+    cpuFamily: AMD_OPTERON
+  providerConfigRef:
+    name: example

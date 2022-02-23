@@ -24,6 +24,58 @@ import (
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// ResolveReferences of this CubeServer.
+func (mg *CubeServer) ResolveReferences(ctx context.Context, c client.Reader) error {
+	r := reference.NewAPIResolver(c, mg)
+
+	var rsp reference.ResolutionResponse
+	var err error
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.DatacenterID,
+		Extract:      reference.ExternalName(),
+		Reference:    mg.Spec.ForProvider.DatacenterIDRef,
+		Selector:     mg.Spec.ForProvider.DatacenterIDSelector,
+		To: reference.To{
+			List:    &DatacenterList{},
+			Managed: &Datacenter{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.DatacenterID")
+	}
+	mg.Spec.ForProvider.DatacenterID = rsp.ResolvedValue
+	mg.Spec.ForProvider.DatacenterIDRef = rsp.ResolvedReference
+
+	return nil
+}
+
+// ResolveReferences of this Server.
+func (mg *Server) ResolveReferences(ctx context.Context, c client.Reader) error {
+	r := reference.NewAPIResolver(c, mg)
+
+	var rsp reference.ResolutionResponse
+	var err error
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.DatacenterID,
+		Extract:      reference.ExternalName(),
+		Reference:    mg.Spec.ForProvider.DatacenterIDRef,
+		Selector:     mg.Spec.ForProvider.DatacenterIDSelector,
+		To: reference.To{
+			List:    &DatacenterList{},
+			Managed: &Datacenter{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.DatacenterID")
+	}
+	mg.Spec.ForProvider.DatacenterID = rsp.ResolvedValue
+	mg.Spec.ForProvider.DatacenterIDRef = rsp.ResolvedReference
+
+	return nil
+}
+
 // ResolveReferences of this Volume.
 func (mg *Volume) ResolveReferences(ctx context.Context, c client.Reader) error {
 	r := reference.NewAPIResolver(c, mg)

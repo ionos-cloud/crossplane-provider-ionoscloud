@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package datacenter
+package cubeserver
 
 import (
 	"context"
@@ -39,11 +39,11 @@ import (
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/datacenter"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
 )
 
 const (
-	errNotDatacenter = "managed resource is not a Datacenter custom resource"
+	errNotCubeServer = "managed resource is not a Cube Server custom resource"
 	errTrackPCUsage  = "cannot track ProviderConfig usage"
 	errGetPC         = "cannot get ProviderConfig"
 	errGetCreds      = "cannot get credentials"
@@ -51,29 +51,30 @@ const (
 	errNewClient = "cannot create new Service"
 )
 
-// Setup adds a controller that reconciles Datacenter managed resources.
+// Setup adds a controller that reconciles Server managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
-	name := managed.ControllerName(v1alpha1.DatacenterGroupKind)
+	name := managed.ControllerName(v1alpha1.CubeServerGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
 			RateLimiter: ratelimiter.NewDefaultManagedRateLimiter(rl),
 		}).
-		For(&v1alpha1.Datacenter{}).
+		For(&v1alpha1.CubeServer{}).
 		Complete(managed.NewReconciler(mgr,
-			resource.ManagedKind(v1alpha1.DatacenterGroupVersionKind),
-			managed.WithExternalConnecter(&connectorDatacenter{
+			resource.ManagedKind(v1alpha1.CubeServerGroupVersionKind),
+			managed.WithExternalConnecter(&connectorServer{
 				kube:  mgr.GetClient(),
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:   l}),
+			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 
-// A connectorDatacenter is expected to produce an ExternalClient when its Connect method
+// A connectorServer is expected to produce an ExternalClient when its Connect method
 // is called.
-type connectorDatacenter struct {
+type connectorServer struct {
 	kube  client.Client
 	usage resource.Tracker
 	log   logging.Logger
@@ -84,10 +85,10 @@ type connectorDatacenter struct {
 // 2. Getting the managed resource's ProviderConfig.
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
-func (c *connectorDatacenter) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	_, ok := mg.(*v1alpha1.Datacenter)
+func (c *connectorServer) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
+	_, ok := mg.(*v1alpha1.CubeServer)
 	if !ok {
-		return nil, errors.New(errNotDatacenter)
+		return nil, errors.New(errNotCubeServer)
 	}
 
 	if err := c.usage.Track(ctx, mg); err != nil {
@@ -109,25 +110,25 @@ func (c *connectorDatacenter) Connect(ctx context.Context, mg resource.Managed) 
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
-	return &externalDatacenter{service: &datacenter.APIClient{IonosServices: svc}, log: c.log}, nil
+	return &externalServer{service: &server.APIClient{IonosServices: svc}, log: c.log}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
-// externalDatacenter resource to ensure it reflects the managed resource's desired state.
-type externalDatacenter struct {
-	// A 'client' used to connect to the externalDatacenter resource API. In practice this
+// externalServer resource to ensure it reflects the managed resource's desired state.
+type externalServer struct {
+	// A 'client' used to connect to the externalServer resource API. In practice this
 	// would be something like an AWS SDK client.
-	service datacenter.Client
+	service server.Client
 	log     logging.Logger
 }
 
-func (c *externalDatacenter) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*v1alpha1.Datacenter)
+func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+	cr, ok := mg.(*v1alpha1.CubeServer)
 	if !ok {
-		return managed.ExternalObservation{}, errors.New(errNotDatacenter)
+		return managed.ExternalObservation{}, errors.New(errNotCubeServer)
 	}
 
-	// External Name of the CR is the Datacenter ID
+	// External Name of the CR is the Cube Server ID
 	id := meta.GetExternalName(cr)
 	if id == "" {
 		return managed.ExternalObservation{
@@ -136,10 +137,10 @@ func (c *externalDatacenter) Observe(ctx context.Context, mg resource.Managed) (
 			ConnectionDetails: managed.ConnectionDetails{},
 		}, nil
 	}
-	cr.Status.AtProvider.DatacenterID = id
-	instance, apiResponse, err := c.service.GetDatacenter(ctx, id)
+	cr.Status.AtProvider.ServerID = id
+	instance, apiResponse, err := c.service.GetServer(ctx, cr.Spec.ForProvider.DatacenterID, id)
 	if err != nil {
-		retErr := fmt.Errorf("failed to get datacenter by id. error: %w", err)
+		retErr := fmt.Errorf("failed to get server by id. error: %w", err)
 		retErr = compute.CheckAPIResponseInfo(apiResponse, retErr)
 		return managed.ExternalObservation{
 			ResourceExists:    false,
@@ -147,7 +148,6 @@ func (c *externalDatacenter) Observe(ctx context.Context, mg resource.Managed) (
 			ConnectionDetails: managed.ConnectionDetails{},
 		}, retErr
 	}
-
 	cr.Status.AtProvider.State = *instance.Metadata.State
 	c.log.Debug(fmt.Sprintf("Observing state %v...", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
@@ -164,32 +164,33 @@ func (c *externalDatacenter) Observe(ctx context.Context, mg resource.Managed) (
 
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  datacenter.IsDatacenterUpToDate(cr, instance),
+		ResourceUpToDate:  server.IsCubeServerUpToDate(cr, instance),
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
 }
 
-func (c *externalDatacenter) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.Datacenter)
+func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+	cr, ok := mg.(*v1alpha1.CubeServer)
 	if !ok {
-		return managed.ExternalCreation{}, errors.New(errNotDatacenter)
+		return managed.ExternalCreation{}, errors.New(errNotCubeServer)
 	}
 
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
-	instanceInput, err := datacenter.GenerateCreateDatacenterInput(cr)
+
+	instanceInput, err := server.GenerateCreateCubeServerInput(cr, c.service.GetAPIClient())
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
 
-	instance, apiResponse, err := c.service.CreateDatacenter(ctx, *instanceInput)
+	instance, apiResponse, err := c.service.CreateServer(ctx, cr.Spec.ForProvider.DatacenterID, *instanceInput)
 	creation := managed.ExternalCreation{
 		ConnectionDetails: managed.ConnectionDetails{},
 	}
 	if err != nil {
-		retErr := fmt.Errorf("failed to create datacenter. error: %w", err)
+		retErr := fmt.Errorf("failed to create cube server. error: %w", err)
 		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
 		return creation, retErr
 	}
@@ -198,33 +199,33 @@ func (c *externalDatacenter) Create(ctx context.Context, mg resource.Managed) (m
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.DatacenterID = *instance.Id
+	cr.Status.AtProvider.ServerID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
 	creation.ExternalNameAssigned = true
 	return creation, nil
 }
 
-func (c *externalDatacenter) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.Datacenter)
+func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
+	cr, ok := mg.(*v1alpha1.CubeServer)
 	if !ok {
-		return managed.ExternalUpdate{}, errors.New(errNotDatacenter)
+		return managed.ExternalUpdate{}, errors.New(errNotCubeServer)
 	}
 	if cr.Status.AtProvider.State == compute.BUSY || cr.Status.AtProvider.State == compute.UPDATING {
 		return managed.ExternalUpdate{}, nil
 	}
 
-	datacenterID := cr.Status.AtProvider.DatacenterID
-	instanceInput, err := datacenter.GenerateUpdateDatacenterInput(cr)
+	serverID := cr.Status.AtProvider.ServerID
+	instanceInput, err := server.GenerateUpdateCubeServerInput(cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, nil
 	}
 
-	_, apiResponse, err := c.service.UpdateDatacenter(ctx, datacenterID, *instanceInput)
+	_, apiResponse, err := c.service.UpdateServer(ctx, cr.Spec.ForProvider.DatacenterID, serverID, *instanceInput)
 	update := managed.ExternalUpdate{
 		ConnectionDetails: managed.ConnectionDetails{},
 	}
 	if err != nil {
-		retErr := fmt.Errorf("failed to update datacenter. error: %w", err)
+		retErr := fmt.Errorf("failed to update cube server. error: %w", err)
 		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
 		return update, retErr
 	}
@@ -234,10 +235,10 @@ func (c *externalDatacenter) Update(ctx context.Context, mg resource.Managed) (m
 	return update, nil
 }
 
-func (c *externalDatacenter) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.Datacenter)
+func (c *externalServer) Delete(ctx context.Context, mg resource.Managed) error {
+	cr, ok := mg.(*v1alpha1.CubeServer)
 	if !ok {
-		return errors.New(errNotDatacenter)
+		return errors.New(errNotCubeServer)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
@@ -245,9 +246,9 @@ func (c *externalDatacenter) Delete(ctx context.Context, mg resource.Managed) er
 		return nil
 	}
 
-	apiResponse, err := c.service.DeleteDatacenter(ctx, cr.Status.AtProvider.DatacenterID)
+	apiResponse, err := c.service.DeleteServer(ctx, cr.Spec.ForProvider.DatacenterID, cr.Status.AtProvider.ServerID)
 	if err != nil {
-		retErr := fmt.Errorf("failed to delete datacenter. error: %w", err)
+		retErr := fmt.Errorf("failed to delete cube server. error: %w", err)
 		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
 		return retErr
 	}
