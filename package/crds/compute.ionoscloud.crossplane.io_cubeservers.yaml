@@ -25,7 +25,7 @@ spec:
     - jsonPath: .status.conditions[?(@.type=='Synced')].status
       name: SYNCED
       type: string
-    - jsonPath: .spec.forProvider.datacenterID
+    - jsonPath: .spec.forProvider.datacenterId
       name: DATACENTER ID
       type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
@@ -88,9 +88,12 @@ spec:
                     - INTEL_SKYLAKE
                     - INTEL_XEON
                     type: string
-                  datacenterID:
+                  datacenterId:
+                    description: DatacenterID is the ID of the Datacenter on which
+                      the server will be created. It needs to be provided via directly
+                      or via reference.
                     type: string
-                  datacenterIDRef:
+                  datacenterIdRef:
                     description: DatacenterRef references to a Datacenter to retrieve
                       its name
                     properties:
@@ -100,8 +103,9 @@ spec:
                     required:
                     - name
                     type: object
-                  datacenterIDRefSelector:
-                    description: A Selector selects an object.
+                  datacenterIdSelector:
+                    description: DatacenterIDSelector selects reference to a Datacenter
+                      to retrieve its datacenterId
                     properties:
                       matchControllerRef:
                         description: MatchControllerRef ensures an object with the
@@ -182,7 +186,7 @@ spec:
               atProvider:
                 description: ServerObservation are the observable fields of a Server.
                 properties:
-                  serverID:
+                  serverId:
                     type: string
                   state:
                     type: string

@@ -144,7 +144,7 @@ spec:
                 description: DatacenterObservation are the observable fields of a
                   Datacenter.
                 properties:
-                  datacenterID:
+                  datacenterId:
                     type: string
                   state:
                     type: string
