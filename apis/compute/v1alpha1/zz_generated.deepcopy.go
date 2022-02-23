@@ -93,8 +93,8 @@ func (in *CubeServerProperties) DeepCopyInto(out *CubeServerProperties) {
 		*out = new(v1.Reference)
 		**out = **in
 	}
-	if in.DatacenterIDRefSelector != nil {
-		in, out := &in.DatacenterIDRefSelector, &out.DatacenterIDRefSelector
+	if in.DatacenterIDSelector != nil {
+		in, out := &in.DatacenterIDSelector, &out.DatacenterIDSelector
 		*out = new(v1.Selector)
 		(*in).DeepCopyInto(*out)
 	}
@@ -333,8 +333,8 @@ func (in *ServerProperties) DeepCopyInto(out *ServerProperties) {
 		*out = new(v1.Reference)
 		**out = **in
 	}
-	if in.DatacenterIDRefSelector != nil {
-		in, out := &in.DatacenterIDRefSelector, &out.DatacenterIDRefSelector
+	if in.DatacenterIDSelector != nil {
+		in, out := &in.DatacenterIDSelector, &out.DatacenterIDSelector
 		*out = new(v1.Selector)
 		(*in).DeepCopyInto(*out)
 	}

@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/crossplane/crossplane-runtime v0.15.0
-	github.com/crossplane/crossplane-tools v0.0.0-20210320162312-1baca298c527
+	github.com/crossplane/crossplane-tools v0.0.0-20220106150503-21c1d7761d68
 	github.com/ionos-cloud/sdk-go-dbaas-postgres v1.0.0
 	github.com/ionos-cloud/sdk-go/v6 v6.0.1
 	github.com/pkg/errors v0.9.1
@@ -17,10 +17,10 @@ require (
 
 require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
-	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
+	github.com/alecthomas/units v0.0.0-20210912230133-d1bdfacee922 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
-	github.com/dave/jennifer v1.3.0 // indirect
+	github.com/dave/jennifer v1.4.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/fatih/color v1.12.0 // indirect

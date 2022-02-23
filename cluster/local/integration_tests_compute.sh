@@ -93,7 +93,7 @@ spec:
     name: exampletest
     cores: 4
     ram: 2048
-    datacenterIDRef:
+    datacenterIdRef:
       name: example
     availabilityZone: AUTO
     cpuFamily: INTEL_SKYLAKE
@@ -123,7 +123,7 @@ spec:
     name: exampleServer
     cores: 4
     ram: 2048
-    datacenterIDRef:
+    datacenterIdRef:
       name: example
     availabilityZone: AUTO
     cpuFamily: INTEL_SKYLAKE
@@ -150,7 +150,7 @@ spec:
     name: exampleServer
     cores: 4
     ram: 2048
-    datacenterIDRef:
+    datacenterIdRef:
       name: example
     availabilityZone: AUTO
     cpuFamily: INTEL_SKYLAKE

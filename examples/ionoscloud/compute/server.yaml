@@ -7,7 +7,7 @@ spec:
     name: exampleEnterpriseServer
     cores: 4
     ram: 2048
-    datacenterIDRef:
+    datacenterIdRef:
       name: example
     availabilityZone: AUTO
     cpuFamily: AMD_OPTERON
