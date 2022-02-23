@@ -1,0 +1,289 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.6.2
+  creationTimestamp: null
+  name: volumes.compute.ionoscloud.crossplane.io
+spec:
+  group: compute.ionoscloud.crossplane.io
+  names:
+    categories:
+    - crossplane
+    - managed
+    - template
+    kind: Volume
+    listKind: VolumeList
+    plural: volumes
+    singular: volume
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: READY
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Synced')].status
+      name: SYNCED
+      type: string
+    - jsonPath: .spec.forProvider.datacenterID
+      name: DATACENTER ID
+      type: string
+    - jsonPath: .metadata.annotations.crossplane\.io/external-name
+      name: ID
+      type: string
+    - jsonPath: .status.atProvider.state
+      name: STATE
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: A Volume is an example API type.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: A VolumeSpec defines the desired state of a Volume.
+            properties:
+              deletionPolicy:
+                default: Delete
+                description: DeletionPolicy specifies what will happen to the underlying
+                  external when this managed resource is deleted - either "Delete"
+                  or "Orphan" the external resource.
+                enum:
+                - Orphan
+                - Delete
+                type: string
+              forProvider:
+                description: VolumeProperties are the observable fields of a Volume.
+                properties:
+                  availabilityZone:
+                    description: The availability zone in which the volume should
+                      be provisioned. The storage volume will be provisioned on as
+                      few physical storage devices as possible, but this cannot be
+                      guaranteed upfront. This is unavailable for DAS (Direct Attached
+                      Storage), and subject to availability for SSD.
+                    type: string
+                  backupunitId:
+                    description: The ID of the backup unit that the user has access
+                      to. The property is immutable and is only allowed to be set
+                      on creation of a new a volume. It is mandatory to provide either
+                      'public image' or 'imageAlias' in conjunction with this property.
+                    type: string
+                  bus:
+                    description: The bus type of the volume. Default is VIRTIO
+                    type: string
+                  cpuHotPlug:
+                    description: Hot-plug capable CPU (no reboot required).
+                    type: boolean
+                  datacenterID:
+                    type: string
+                  datacenterIDRef:
+                    description: DatacenterRef references to a Datacenter to retrieve
+                      its name
+                    properties:
+                      name:
+                        description: Name of the referenced object.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  datacenterIDSelector:
+                    description: A Selector selects an object.
+                    properties:
+                      matchControllerRef:
+                        description: MatchControllerRef ensures an object with the
+                          same controller reference as the selecting object is selected.
+                        type: boolean
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: MatchLabels ensures an object with matching labels
+                          is selected.
+                        type: object
+                    type: object
+                  deviceNumber:
+                    description: The Logical Unit Number of the storage volume. Null
+                      for volumes, not mounted to a VM.
+                    format: int64
+                    type: integer
+                  discVirtioHotPlug:
+                    description: Hot-plug capable Virt-IO drive (no reboot required).
+                    type: boolean
+                  discVirtioHotUnplug:
+                    description: Hot-unplug capable Virt-IO drive (no reboot required).
+                      Not supported with Windows VMs.
+                    type: boolean
+                  image:
+                    description: Image or snapshot ID to be used as template for this
+                      volume.
+                    type: string
+                  imageAlias:
+                    type: string
+                  imagePassword:
+                    description: Initial password to be set for installed OS. Works
+                      with public images only. Not modifiable, forbidden in update
+                      requests. Password rules allows all characters from a-z, A-Z,
+                      0-9.
+                    type: string
+                  licenceType:
+                    description: OS type for this volume.
+                    type: string
+                  name:
+                    description: The name of the  resource.
+                    type: string
+                  nicHotPlug:
+                    description: Hot-plug capable NIC (no reboot required).
+                    type: boolean
+                  nicHotUnplug:
+                    description: Hot-unplug capable NIC (no reboot required).
+                    type: boolean
+                  pciSlot:
+                    description: The PCI slot number of the storage volume. Null for
+                      volumes, not mounted to a VM.
+                    format: int32
+                    type: integer
+                  ramHotPlug:
+                    description: Hot-plug capable RAM (no reboot required).
+                    type: boolean
+                  size:
+                    description: The size of the volume in GB.
+                    type: number
+                  sshKeys:
+                    description: Public SSH keys are set on the image as authorized
+                      keys for appropriate SSH login to the instance using the corresponding
+                      private key. This field may only be set in creation requests.
+                      When reading, it always returns null. SSH keys are only supported
+                      if a public Linux image is used for the volume creation.
+                    items:
+                      type: string
+                    type: array
+                  type:
+                    description: Hardware type of the volume. DAS (Direct Attached
+                      Storage) could be used only in a composite call with a Cube
+                      server.
+                    type: string
+                  userData:
+                    description: The cloud-init configuration for the volume as base64
+                      encoded string. The property is immutable and is only allowed
+                      to be set on creation of a new a volume. It is mandatory to
+                      provide either 'public image' or 'imageAlias' that has cloud-init
+                      compatibility in conjunction with this property.
+                    type: string
+                required:
+                - size
+                type: object
+              providerConfigRef:
+                default:
+                  name: default
+                description: ProviderConfigReference specifies how the provider that
+                  will be used to create, observe, update, and delete this managed
+                  resource should be configured.
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                required:
+                - name
+                type: object
+              providerRef:
+                description: 'ProviderReference specifies the provider that will be
+                  used to create, observe, update, and delete this managed resource.
+                  Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`'
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                required:
+                - name
+                type: object
+              writeConnectionSecretToRef:
+                description: WriteConnectionSecretToReference specifies the namespace
+                  and name of a Secret to which any connection details for this managed
+                  resource should be written. Connection details frequently include
+                  the endpoint, username, and password required to connect to the
+                  managed resource.
+                properties:
+                  name:
+                    description: Name of the secret.
+                    type: string
+                  namespace:
+                    description: Namespace of the secret.
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+            required:
+            - forProvider
+            type: object
+          status:
+            description: A VolumeStatus represents the observed state of a Volume.
+            properties:
+              atProvider:
+                description: VolumeObservation are the observable fields of a Volume.
+                properties:
+                  state:
+                    type: string
+                  volumeID:
+                    type: string
+                type: object
+              conditions:
+                description: Conditions of the resource.
+                items:
+                  description: A Condition that may apply to a resource.
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime is the last time this condition
+                        transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A Message containing details about this condition's
+                        last transition from one status to another, if any.
+                      type: string
+                    reason:
+                      description: A Reason for this condition's last transition from
+                        one status to another.
+                      type: string
+                    status:
+                      description: Status of this condition; is it currently True,
+                        False, or Unknown?
+                      type: string
+                    type:
+                      description: Type of this condition. At most one of each condition
+                        type may apply to a resource at any point in time.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
