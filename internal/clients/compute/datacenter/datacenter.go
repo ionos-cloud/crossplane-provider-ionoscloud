@@ -10,15 +10,6 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 )
 
-// States of the Datacenters
-const (
-	AVAILABLE  = "AVAILABLE"
-	BUSY       = "BUSY"
-	ACTIVE     = "ACTIVE"
-	UPDATING   = "UPDATING"
-	DESTROYING = "DESTROYING"
-)
-
 // APIClient is a wrapper around IONOS Service
 type APIClient struct {
 	*clients.IonosServices
@@ -30,6 +21,7 @@ type Client interface {
 	CreateDatacenter(ctx context.Context, datacenter sdkgo.Datacenter) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
 	UpdateDatacenter(ctx context.Context, datacenterID string, datacenter sdkgo.DatacenterProperties) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
 	DeleteDatacenter(ctx context.Context, datacenterID string) (*sdkgo.APIResponse, error)
+	GetAPIClient() *sdkgo.APIClient
 }
 
 // GetDatacenter based on datacenterID
@@ -51,6 +43,11 @@ func (cp *APIClient) UpdateDatacenter(ctx context.Context, datacenterID string, 
 func (cp *APIClient) DeleteDatacenter(ctx context.Context, datacenterID string) (*sdkgo.APIResponse, error) {
 	resp, err := cp.ComputeClient.DataCentersApi.DatacentersDelete(ctx, datacenterID).Execute()
 	return resp, err
+}
+
+// GetAPIClient gets the APIClient
+func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
+	return cp.ComputeClient
 }
 
 // GenerateCreateDatacenterInput returns CreateDatacenterRequest based on the CR spec

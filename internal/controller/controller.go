@@ -22,7 +22,9 @@ import (
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/cubeserver"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/datacenter"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/config"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgres"
 )
@@ -33,6 +35,8 @@ func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter) error {
 	for _, setup := range []func(ctrl.Manager, logging.Logger, workqueue.RateLimiter) error{
 		config.Setup,
 		datacenter.Setup,
+		server.Setup,
+		cubeserver.Setup,
 		postgres.SetupPostgresCluster,
 	} {
 		if err := setup(mgr, l, wl); err != nil {

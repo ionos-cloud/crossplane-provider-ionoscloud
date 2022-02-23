@@ -1,43 +1,13 @@
 #!/usr/bin/env bash
 set -e
 
-# setting up colors
-BLU='\033[0;34m'
-YLW='\033[0;33m'
-GRN='\033[0;32m'
-RED='\033[0;31m'
-NOC='\033[0m' # No Color
-
-echo_info(){
-    printf "\n${BLU}%s${NOC}" "$1"
-}
-echo_step(){
-    printf "\n${BLU}>>>>>>> %s${NOC}\n" "$1"
-}
-echo_sub_step(){
-    printf "\n${BLU}>>> %s${NOC}\n" "$1"
-}
-
-echo_step_completed(){
-    printf "${GRN} [✔]${NOC}"
-}
-
-echo_success(){
-    printf "\n${GRN}%s${NOC}\n" "$1"
-}
-echo_warn(){
-    printf "\n${YLW}%s${NOC}" "$1"
-}
-echo_error(){
-    printf "\n${RED}%s${NOC}" "$1"
-    exit 1
-}
-
+# add prints functions
+source ./cluster/local/print.sh
 # add integration tests for resources
 source ./cluster/local/integration_tests_compute.sh
 
 # ------------------------------
-projectdir="$( cd "$( dirname "${BASH_SOURCE[0]}")"/../.. && pwd )"
+projectdir="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
 
 # get the build environment variables from the special build.vars target in the main makefile
 eval $(make --no-print-directory -C ${projectdir} build.vars)
@@ -61,7 +31,7 @@ PACKAGE_NAME="provider-ionoscloud"
 
 # cleanup on exit
 if [ "$skipcleanup" != true ]; then
-  function cleanup {
+  function cleanup() {
     echo_step "Cleaning up..."
     export KUBECONFIG=
     "${KIND}" delete cluster --name="${K8S_CLUSTER}"
@@ -80,7 +50,8 @@ docker save "${BUILD_IMAGE}" -o "${CACHE_PATH}/${PACKAGE_NAME}.xpkg" && chmod 64
 # create kind cluster with extra mounts
 KIND_NODE_IMAGE="kindest/node:${KIND_NODE_IMAGE_TAG}"
 echo_step "creating k8s cluster using kind ${KIND_VERSION} and node image ${KIND_NODE_IMAGE}"
-KIND_CONFIG="$( cat <<EOF
+KIND_CONFIG="$(
+  cat <<EOF
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -108,7 +79,8 @@ echo_step "create crossplane-system namespace"
 "${KUBECTL}" create ns crossplane-system
 
 echo_step "create persistent volume and claim for mounting package-cache"
-PV_YAML="$( cat <<EOF
+PV_YAML="$(
+  cat <<EOF
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -127,7 +99,8 @@ EOF
 )"
 echo "${PV_YAML}" | "${KUBECTL}" create -f -
 
-PVC_YAML="$( cat <<EOF
+PVC_YAML="$(
+  cat <<EOF
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -155,7 +128,7 @@ echo_info "using crossplane version ${chart_version}"
 echo
 # we replace empty dir with our PVC so that the /cache dir in the kind node
 # container is exposed to the crossplane pod
-"${HELM3}"  install crossplane --namespace crossplane-system crossplane-stable/crossplane --version ${chart_version} --devel --wait --set packageCache.pvc=package-cache
+"${HELM3}" install crossplane --namespace crossplane-system crossplane-stable/crossplane --version ${chart_version} --devel --wait --set packageCache.pvc=package-cache
 
 # ----------- integration tests
 echo_step "--- INTEGRATION TESTS ---"
@@ -163,7 +136,8 @@ echo_step "--- INTEGRATION TESTS ---"
 # install package
 echo_step "installing ${PROJECT_NAME} into \"${CROSSPLANE_NAMESPACE}\" namespace"
 
-INSTALL_YAML="$( cat <<EOF
+INSTALL_YAML="$(
+  cat <<EOF
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
@@ -207,7 +181,8 @@ kubectl get pods -n crossplane-system
 echo_step "add secret credentials"
 BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
 kubectl create secret generic --namespace crossplane-system example-provider-secret --from-literal=credentials="{\"user\":\"${IONOS_USERNAME}\",\"password\":\"${BASE64_PW}\"}"
-INSTALL_CRED_YAML="$( cat <<EOF
+INSTALL_CRED_YAML="$(
+  cat <<EOF
 apiVersion: ionoscloud.crossplane.io/v1alpha1
 kind: ProviderConfig
 metadata:
@@ -224,11 +199,19 @@ EOF
 
 echo "${INSTALL_CRED_YAML}" | "${KUBECTL}" apply -f -
 
-# Run Datacenter Tests
-echo_step "run datacenter tests"
+# run Compute Resources Tests
+echo_step "--- datacenter tests ---"
 datacenter_tests
+echo_step "--- server tests ---"
+server_tests
 
-# Uninstalling Crossplane Provider IONOS Cloud
+# uninstalling Compute Resources
+echo_step "cleanup server tests"
+server_tests_cleanup
+echo_step "cleanup datacenter tests"
+datacenter_tests_cleanup
+
+# uninstalling Crossplane Provider IONOS Cloud
 echo_step "uninstalling ${PROJECT_NAME}"
 echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -
 
@@ -242,7 +225,7 @@ while [[ $(kubectl get providerrevision.pkg.crossplane.io -o name | wc -l) != "0
   if ! [[ $timeout > $current ]]; then
     echo_error "timeout of ${timeout}s has been reached"
   fi
-  sleep $step;
+  sleep $step
 done
 
 echo_success "Integration tests succeeded!"

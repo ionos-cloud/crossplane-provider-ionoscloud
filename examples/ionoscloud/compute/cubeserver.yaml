@@ -1,0 +1,15 @@
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: CubeServer
+metadata:
+  name: examplecubeserver
+spec:
+  forProvider:
+    datacenterIDRef:
+      name: example
+    name: exampleCubeServer
+    template:
+      name: CUBES XS
+    availabilityZone: AUTO
+    cpuFamily: AMD_OPTERON
+  providerConfigRef:
+    name: example
