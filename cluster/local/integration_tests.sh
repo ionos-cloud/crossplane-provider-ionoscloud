@@ -39,7 +39,7 @@ if [ "$skipcleanup" != true ]; then
         if [ ! -z "${POD_INFO_PROVIDER}" ]; then
             POD_PROVIDER=($POD_INFO_PROVIDER)
             echo_step "Saving logs to ${LOGS_FILE} file..."
-            echo "Logs of the ${POD_PROVIDER}" >>${LOGS_FILE}
+            echo "--- logs of the ${POD_PROVIDER} pod---" >>${LOGS_FILE}
             kubectl logs pod/${POD_PROVIDER} -n ${CROSSPLANE_NAMESPACE} >>${LOGS_FILE}
         fi
         export KUBECONFIG=

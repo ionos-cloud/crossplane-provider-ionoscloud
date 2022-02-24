@@ -123,7 +123,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: logs
+          name: provider-logs
           path: provider-ionoscloud.txt
           if-no-files-found: ignore
 
