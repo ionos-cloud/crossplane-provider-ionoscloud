@@ -138,7 +138,7 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 		}, nil
 	}
 	cr.Status.AtProvider.ServerID = id
-	instance, apiResponse, err := c.service.GetServer(ctx, cr.Spec.ForProvider.DatacenterID, id)
+	instance, apiResponse, err := c.service.GetServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, id)
 	if err != nil {
 		retErr := fmt.Errorf("failed to get server by id. error: %w", err)
 		retErr = compute.CheckAPIResponseInfo(apiResponse, retErr)
@@ -185,7 +185,7 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalCreation{}, err
 	}
 
-	instance, apiResponse, err := c.service.CreateServer(ctx, cr.Spec.ForProvider.DatacenterID, *instanceInput)
+	instance, apiResponse, err := c.service.CreateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
 	creation := managed.ExternalCreation{
 		ConnectionDetails: managed.ConnectionDetails{},
 	}
@@ -220,7 +220,7 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalUpdate{}, nil
 	}
 
-	_, apiResponse, err := c.service.UpdateServer(ctx, cr.Spec.ForProvider.DatacenterID, serverID, *instanceInput)
+	_, apiResponse, err := c.service.UpdateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, serverID, *instanceInput)
 	update := managed.ExternalUpdate{
 		ConnectionDetails: managed.ConnectionDetails{},
 	}
@@ -246,7 +246,7 @@ func (c *externalServer) Delete(ctx context.Context, mg resource.Managed) error 
 		return nil
 	}
 
-	apiResponse, err := c.service.DeleteServer(ctx, cr.Spec.ForProvider.DatacenterID, cr.Status.AtProvider.ServerID)
+	apiResponse, err := c.service.DeleteServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete server. error: %w", err)
 		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)

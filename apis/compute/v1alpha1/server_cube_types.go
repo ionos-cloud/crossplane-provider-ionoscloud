@@ -27,20 +27,12 @@ import (
 
 // CubeServerProperties are the observable fields of a Cube Server.
 type CubeServerProperties struct {
-	// DatacenterID is the ID of the Datacenter on which the server will be created.
-	// It needs to be provided via directly or via reference.
+	// DatacenterConfig contains information about the datacenter resource
+	// on which the server will be created
 	//
-	// +immutable
-	// +crossplane:generate:reference:type=Datacenter
-	DatacenterID string `json:"datacenterId,omitempty"`
-	// DatacenterRef references to a Datacenter to retrieve its name
-	// +optional
-	DatacenterIDRef *xpv1.Reference `json:"datacenterIdRef,omitempty"`
-	// DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
-	//
-	// +optional
-	DatacenterIDSelector *xpv1.Selector `json:"datacenterIdSelector,omitempty"`
-	// The ID of the template for creating a CUBE server; the available templates for CUBE servers can be found on the templates' resource.
+	// +kubebuilder:validation:Required
+	DatacenterCfg DatacenterConfig `json:"datacenterConfig"`
+	// The ID or the name of the template for creating a CUBE server.
 	//
 	// +kubebuilder:validation:Required
 	Template Template `json:"template"`
@@ -49,6 +41,7 @@ type CubeServerProperties struct {
 	// The availability zone in which the server should be provisioned.
 	//
 	// +kubebuilder:validation:Enum=AUTO;ZONE_1;ZONE_2
+	// +kubebuilder:default=AUTO
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
 	// CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions;
 	// available CPU architectures can be retrieved from the datacenter resource.
@@ -76,7 +69,7 @@ type CubeServerSpec struct {
 // A CubeServer is an example API type.
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
-// +kubebuilder:printcolumn:name="DATACENTER ID",type="string",JSONPath=".spec.forProvider.datacenterId"
+// +kubebuilder:printcolumn:name="DATACENTER ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
 // +kubebuilder:printcolumn:name="ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"

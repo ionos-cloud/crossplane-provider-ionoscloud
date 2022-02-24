@@ -41,6 +41,24 @@ type DatacenterProperties struct {
 	SecAuthProtection bool `json:"secAuthProtection,omitempty"`
 }
 
+// DatacenterConfig is used by resources that need to link datacenters via id or via reference.
+type DatacenterConfig struct {
+	// DatacenterID is the ID of the Datacenter on which the resource will be created.
+	// It needs to be provided via directly or via reference.
+	//
+	// +immutable
+	// +crossplane:generate:reference:type=Datacenter
+	DatacenterID string `json:"datacenterId,omitempty"`
+	// DatacenterIDRef references to a Datacenter to retrieve its ID
+	//
+	// +optional
+	DatacenterIDRef *xpv1.Reference `json:"datacenterIdRef,omitempty"`
+	// DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
+	//
+	// +optional
+	DatacenterIDSelector *xpv1.Selector `json:"datacenterIdSelector,omitempty"`
+}
+
 // DatacenterObservation are the observable fields of a Datacenter.
 type DatacenterObservation struct {
 	DatacenterID string `json:"datacenterId,omitempty"`
@@ -64,7 +82,8 @@ type DatacenterStatus struct {
 // A Datacenter is an example API type.
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
-// +kubebuilder:printcolumn:name="ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
+// +kubebuilder:printcolumn:name="DATACENTER ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
+// +kubebuilder:printcolumn:name="LOCATION",type="string",JSONPath=".spec.forProvider.location"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status

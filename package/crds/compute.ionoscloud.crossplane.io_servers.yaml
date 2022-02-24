@@ -25,7 +25,7 @@ spec:
     - jsonPath: .status.conditions[?(@.type=='Synced')].status
       name: SYNCED
       type: string
-    - jsonPath: .spec.forProvider.datacenterId
+    - jsonPath: .spec.forProvider.datacenterConfig.datacenterId
       name: DATACENTER ID
       type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
@@ -70,6 +70,7 @@ spec:
                 description: ServerProperties are the observable fields of a Server.
                 properties:
                   availabilityZone:
+                    default: AUTO
                     description: The availability zone in which the server should
                       be provisioned.
                     enum:
@@ -91,34 +92,40 @@ spec:
                     - INTEL_SKYLAKE
                     - INTEL_XEON
                     type: string
-                  datacenterId:
-                    description: DatacenterID is the ID of the Datacenter on which
-                      the server will be created. It needs to be provided via directly
-                      or via reference.
-                    type: string
-                  datacenterIdRef:
-                    description: DatacenterIDRef references to a Datacenter to retrieve
-                      its ID
+                  datacenterConfig:
+                    description: DatacenterConfig contains information about the datacenter
+                      resource on which the server will be created
                     properties:
-                      name:
-                        description: Name of the referenced object.
+                      datacenterId:
+                        description: DatacenterID is the ID of the Datacenter on which
+                          the resource will be created. It needs to be provided via
+                          directly or via reference.
                         type: string
-                    required:
-                    - name
-                    type: object
-                  datacenterIdSelector:
-                    description: DatacenterIDSelector selects reference to a Datacenter
-                      to retrieve its datacenterId
-                    properties:
-                      matchControllerRef:
-                        description: MatchControllerRef ensures an object with the
-                          same controller reference as the selecting object is selected.
-                        type: boolean
-                      matchLabels:
-                        additionalProperties:
-                          type: string
-                        description: MatchLabels ensures an object with matching labels
-                          is selected.
+                      datacenterIdRef:
+                        description: DatacenterIDRef references to a Datacenter to
+                          retrieve its ID
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      datacenterIdSelector:
+                        description: DatacenterIDSelector selects reference to a Datacenter
+                          to retrieve its datacenterId
+                        properties:
+                          matchControllerRef:
+                            description: MatchControllerRef ensures an object with
+                              the same controller reference as the selecting object
+                              is selected.
+                            type: boolean
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: MatchLabels ensures an object with matching
+                              labels is selected.
+                            type: object
                         type: object
                     type: object
                   name:
@@ -136,6 +143,7 @@ spec:
                     type: integer
                 required:
                 - cores
+                - datacenterConfig
                 - ram
                 type: object
               providerConfigRef:
