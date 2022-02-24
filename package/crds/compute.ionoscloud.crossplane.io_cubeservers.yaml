@@ -29,7 +29,7 @@ spec:
       name: DATACENTER ID
       type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
-      name: ID
+      name: SERVER ID
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE
