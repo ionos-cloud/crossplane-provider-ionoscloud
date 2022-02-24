@@ -4,12 +4,13 @@ metadata:
   name: exampleserver
 spec:
   forProvider:
-    name: exampleEnterpriseServer
+    name: exampleServer
     cores: 4
     ram: 2048
-    datacenterIdRef:
-      name: example
     availabilityZone: AUTO
     cpuFamily: AMD_OPTERON
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
   providerConfigRef:
     name: example

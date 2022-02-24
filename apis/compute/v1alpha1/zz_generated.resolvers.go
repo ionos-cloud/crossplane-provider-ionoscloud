@@ -32,20 +32,20 @@ func (mg *CubeServer) ResolveReferences(ctx context.Context, c client.Reader) er
 	var err error
 
 	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
-		CurrentValue: mg.Spec.ForProvider.DatacenterID,
+		CurrentValue: mg.Spec.ForProvider.DatacenterCfg.DatacenterID,
 		Extract:      reference.ExternalName(),
-		Reference:    mg.Spec.ForProvider.DatacenterIDRef,
-		Selector:     mg.Spec.ForProvider.DatacenterIDSelector,
+		Reference:    mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef,
+		Selector:     mg.Spec.ForProvider.DatacenterCfg.DatacenterIDSelector,
 		To: reference.To{
 			List:    &DatacenterList{},
 			Managed: &Datacenter{},
 		},
 	})
 	if err != nil {
-		return errors.Wrap(err, "mg.Spec.ForProvider.DatacenterID")
+		return errors.Wrap(err, "mg.Spec.ForProvider.DatacenterCfg.DatacenterID")
 	}
-	mg.Spec.ForProvider.DatacenterID = rsp.ResolvedValue
-	mg.Spec.ForProvider.DatacenterIDRef = rsp.ResolvedReference
+	mg.Spec.ForProvider.DatacenterCfg.DatacenterID = rsp.ResolvedValue
+	mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef = rsp.ResolvedReference
 
 	return nil
 }
@@ -58,20 +58,20 @@ func (mg *Server) ResolveReferences(ctx context.Context, c client.Reader) error 
 	var err error
 
 	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
-		CurrentValue: mg.Spec.ForProvider.DatacenterID,
+		CurrentValue: mg.Spec.ForProvider.DatacenterCfg.DatacenterID,
 		Extract:      reference.ExternalName(),
-		Reference:    mg.Spec.ForProvider.DatacenterIDRef,
-		Selector:     mg.Spec.ForProvider.DatacenterIDSelector,
+		Reference:    mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef,
+		Selector:     mg.Spec.ForProvider.DatacenterCfg.DatacenterIDSelector,
 		To: reference.To{
 			List:    &DatacenterList{},
 			Managed: &Datacenter{},
 		},
 	})
 	if err != nil {
-		return errors.Wrap(err, "mg.Spec.ForProvider.DatacenterID")
+		return errors.Wrap(err, "mg.Spec.ForProvider.DatacenterCfg.DatacenterID")
 	}
-	mg.Spec.ForProvider.DatacenterID = rsp.ResolvedValue
-	mg.Spec.ForProvider.DatacenterIDRef = rsp.ResolvedReference
+	mg.Spec.ForProvider.DatacenterCfg.DatacenterID = rsp.ResolvedValue
+	mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef = rsp.ResolvedReference
 
 	return nil
 }

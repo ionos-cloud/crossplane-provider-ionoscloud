@@ -93,10 +93,11 @@ spec:
     name: exampletest
     cores: 4
     ram: 2048
-    datacenterIdRef:
-      name: example
     availabilityZone: AUTO
     cpuFamily: INTEL_SKYLAKE
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
   providerConfigRef:
     name: example
 EOF
@@ -123,10 +124,11 @@ spec:
     name: exampleServer
     cores: 4
     ram: 2048
-    datacenterIdRef:
-      name: example
     availabilityZone: AUTO
     cpuFamily: INTEL_SKYLAKE
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
   providerConfigRef:
     name: example
 EOF
@@ -150,10 +152,11 @@ spec:
     name: exampleServer
     cores: 4
     ram: 2048
-    datacenterIdRef:
-      name: example
     availabilityZone: AUTO
     cpuFamily: INTEL_SKYLAKE
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
   providerConfigRef:
     name: example
 EOF

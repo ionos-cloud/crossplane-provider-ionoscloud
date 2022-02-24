@@ -26,7 +26,10 @@ spec:
       name: SYNCED
       type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
-      name: ID
+      name: DATACENTER ID
+      type: string
+    - jsonPath: .spec.forProvider.location
+      name: LOCATION
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE

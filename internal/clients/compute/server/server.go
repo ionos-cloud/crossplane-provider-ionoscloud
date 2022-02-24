@@ -3,18 +3,17 @@ package server
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
-var (
-	serverEnterpriseType = "ENTERPRISE"
-	serverCubeType       = "CUBE"
-)
+var serverCubeType = "CUBE"
 
 // APIClient is a wrapper around IONOS Service
 type APIClient struct {
@@ -59,13 +58,20 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 func GenerateCreateServerInput(cr *v1alpha1.Server) (*sdkgo.Server, error) {
 	instanceCreateInput := sdkgo.Server{
 		Properties: &sdkgo.ServerProperties{
-			Name:             &cr.Spec.ForProvider.Name,
-			Cores:            &cr.Spec.ForProvider.Cores,
-			Ram:              &cr.Spec.ForProvider.RAM,
-			AvailabilityZone: &cr.Spec.ForProvider.AvailabilityZone,
-			CpuFamily:        &cr.Spec.ForProvider.CPUFamily,
-			Type:             &serverEnterpriseType,
+			Name:  &cr.Spec.ForProvider.Name,
+			Cores: &cr.Spec.ForProvider.Cores,
+			Ram:   &cr.Spec.ForProvider.RAM,
 		},
+	}
+	// Set CPUFamily only if it is specified into the Spec.
+	// If not, the CPUFamily will be set corresponding with the datacenter's location
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.CPUFamily)) {
+		instanceCreateInput.Properties.SetCpuFamily(cr.Spec.ForProvider.CPUFamily)
+	}
+	// Set AvailabilityZone only if it is specified into the Spec.
+	// If not, the AvailabilityZone will be set to the default value by the API
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AvailabilityZone)) {
+		instanceCreateInput.Properties.SetAvailabilityZone(cr.Spec.ForProvider.AvailabilityZone)
 	}
 	return &instanceCreateInput, nil
 }
@@ -73,11 +79,15 @@ func GenerateCreateServerInput(cr *v1alpha1.Server) (*sdkgo.Server, error) {
 // GenerateUpdateServerInput returns PatchServerRequest based on the CR spec modifications
 func GenerateUpdateServerInput(cr *v1alpha1.Server) (*sdkgo.ServerProperties, error) {
 	instanceUpdateInput := sdkgo.ServerProperties{
-		Name:             &cr.Spec.ForProvider.Name,
-		Cores:            &cr.Spec.ForProvider.Cores,
-		Ram:              &cr.Spec.ForProvider.RAM,
-		AvailabilityZone: &cr.Spec.ForProvider.AvailabilityZone,
-		CpuFamily:        &cr.Spec.ForProvider.CPUFamily,
+		Name:  &cr.Spec.ForProvider.Name,
+		Cores: &cr.Spec.ForProvider.Cores,
+		Ram:   &cr.Spec.ForProvider.RAM,
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.CPUFamily)) {
+		instanceUpdateInput.SetCpuFamily(cr.Spec.ForProvider.CPUFamily)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AvailabilityZone)) {
+		instanceUpdateInput.SetAvailabilityZone(cr.Spec.ForProvider.AvailabilityZone)
 	}
 	return &instanceUpdateInput, nil
 }
