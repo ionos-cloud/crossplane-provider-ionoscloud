@@ -119,7 +119,8 @@ jobs:
         env:
           IONOS_USERNAME: ${{ secrets.IONOS_USERNAME }}
           IONOS_PASSWORD: ${{ secrets.IONOS_PASSWORD }}
-      - name: Upload artifact
+      - name: Upload Logs
+        if: always()
         uses: actions/upload-artifact@v2
         with:
           name: logs
