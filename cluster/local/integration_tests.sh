@@ -41,7 +41,7 @@ if [ "$skipcleanup" != true ]; then
             kubectl logs pod/${POD_PROVIDER} -n ${CROSSPLANE_NAMESPACE} >${PACKAGE_NAME}.txt
         fi
         export KUBECONFIG=
-        #    "${KIND}" delete cluster --name="${K8S_CLUSTER}"
+        "${KIND}" delete cluster --name="${K8S_CLUSTER}"
     }
 
     trap cleanup EXIT
@@ -206,33 +206,33 @@ EOF
 
 echo "${INSTALL_CRED_YAML}" | "${KUBECTL}" apply -f -
 
-## run Compute Resources Tests
-#echo_step "--- datacenter tests ---"
-#datacenter_tests
-#echo_step "--- server tests ---"
-#server_tests
-#
-## uninstalling Compute Resources
-#echo_step "cleanup server tests"
-#server_tests_cleanup
-#echo_step "cleanup datacenter tests"
-#datacenter_tests_cleanup
+# run Compute Resources Tests
+echo_step "--- datacenter tests ---"
+datacenter_tests
+echo_step "--- server tests ---"
+server_tests
 
-## uninstalling Crossplane Provider IONOS Cloud
-#echo_step "uninstalling ${PROJECT_NAME}"
-#echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -
-#
-## check pods deleted
-#timeout=60
-#current=0
-#step=3
-#while [[ $(kubectl get providerrevision.pkg.crossplane.io -o name | wc -l) != "0" ]]; do
-#    echo "waiting for provider to be deleted for another $step seconds"
-#    current=$current+$step
-#    if ! [[ $timeout > $current ]]; then
-#        echo_error "timeout of ${timeout}s has been reached"
-#    fi
-#    sleep $step
-#done
+# uninstalling Compute Resources
+echo_step "cleanup server tests"
+server_tests_cleanup
+echo_step "cleanup datacenter tests"
+datacenter_tests_cleanup
+
+# uninstalling Crossplane Provider IONOS Cloud
+echo_step "uninstalling ${PROJECT_NAME}"
+echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -
+
+# check pods deleted
+timeout=60
+current=0
+step=3
+while [[ $(kubectl get providerrevision.pkg.crossplane.io -o name | wc -l) != "0" ]]; do
+    echo "waiting for provider to be deleted for another $step seconds"
+    current=$current+$step
+    if ! [[ $timeout > $current ]]; then
+        echo_error "timeout of ${timeout}s has been reached"
+    fi
+    sleep $step
+done
 
 echo_success "Integration tests succeeded!"
