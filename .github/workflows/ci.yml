@@ -109,9 +109,9 @@ jobs:
         run: make -j2 build VERSION=latest
         env:
           BUILD_ARGS: "--load"
-#          Use only if the VERSION is not latest
-#      - name: Docker Images Tag
-#        run: make docker.tag VERSION=latest
+      #          Use only if the VERSION is not latest
+      #      - name: Docker Images Tag
+      #        run: make docker.tag VERSION=latest
       - name: Docker Images List
         run: make docker.list
       - name: Run E2E Tests
@@ -119,6 +119,12 @@ jobs:
         env:
           IONOS_USERNAME: ${{ secrets.IONOS_USERNAME }}
           IONOS_PASSWORD: ${{ secrets.IONOS_PASSWORD }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: logs
+          path: provider-ionoscloud.txt
+          if-no-files-found: ignore
 
   publish-artifacts:
     runs-on: ubuntu-20.04

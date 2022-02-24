@@ -59,6 +59,15 @@ jobs:
         run: make docker.list
       - name: Run E2E Tests
         run: make e2e VERSION=latest USE_HELM3=true
+        env:
+          IONOS_USERNAME: ${{ secrets.IONOS_USERNAME }}
+          IONOS_PASSWORD: ${{ secrets.IONOS_PASSWORD }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: logs
+          path: provider-ionoscloud.txt
+          if-no-files-found: ignore
 
   release-latest:
     runs-on: ubuntu-latest
