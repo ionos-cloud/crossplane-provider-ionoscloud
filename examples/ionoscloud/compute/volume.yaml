@@ -1,0 +1,18 @@
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Volume
+metadata:
+  name: examplevolume
+spec:
+  forProvider:
+    name: exampleVolume
+    size: 30
+    type: HDD
+    bus: VIRTIO
+#    licenceType: LINUX
+    imageAlias: ubuntu:latest
+    imagePassword: test12345
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
