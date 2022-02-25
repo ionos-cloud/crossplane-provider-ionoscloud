@@ -26,6 +26,10 @@ import (
 )
 
 // ServerProperties are the observable fields of a Server.
+// Required values when creating a Server:
+// Datacenter ID or Reference,
+// Cores,
+// RAM.
 type ServerProperties struct {
 	// DatacenterConfig contains information about the datacenter resource
 	// on which the server will be created
@@ -82,6 +86,7 @@ type ServerStatus struct {
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="DATACENTER ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
 // +kubebuilder:printcolumn:name="SERVER ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
+// +kubebuilder:printcolumn:name="NAME",priority=1,type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status

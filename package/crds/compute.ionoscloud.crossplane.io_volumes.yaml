@@ -4,7 +4,7 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.6.2
   creationTimestamp: null
-  name: servers.compute.ionoscloud.crossplane.io
+  name: volumes.compute.ionoscloud.crossplane.io
 spec:
   group: compute.ionoscloud.crossplane.io
   names:
@@ -12,10 +12,10 @@ spec:
     - crossplane
     - managed
     - template
-    kind: Server
-    listKind: ServerList
-    plural: servers
-    singular: server
+    kind: Volume
+    listKind: VolumeList
+    plural: volumes
+    singular: volume
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -29,10 +29,18 @@ spec:
       name: DATACENTER ID
       type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
-      name: SERVER ID
+      name: VOLUME ID
       type: string
     - jsonPath: .spec.forProvider.name
       name: NAME
+      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.licenceType
+      name: LICENCE TYPE
+      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.type
+      name: TYPE
       priority: 1
       type: string
     - jsonPath: .status.atProvider.state
@@ -44,7 +52,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: A Server is an example API type.
+        description: A Volume is an example API type.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -59,7 +67,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: A ServerSpec defines the desired state of a Server.
+            description: A VolumeSpec defines the desired state of a Volume.
             properties:
               deletionPolicy:
                 default: Delete
@@ -71,33 +79,39 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: 'ServerProperties are the observable fields of a Server.
-                  Required values when creating a Server: Datacenter ID or Reference,
-                  Cores, RAM.'
+                description: 'VolumeProperties are the observable fields of a Volume.
+                  Required values when creating a Volume: Datacenter ID or Reference,
+                  Size, Type, Licence Type, Image ID or Image Alias. Note: when using
+                  images, it is recommended to use SSH Keys or Image Password.'
                 properties:
                   availabilityZone:
-                    default: AUTO
-                    description: The availability zone in which the server should
-                      be provisioned.
+                    description: The availability zone in which the volume should
+                      be provisioned. The storage volume will be provisioned on as
+                      few physical storage devices as possible, but this cannot be
+                      guaranteed upfront. This is unavailable for DAS (Direct Attached
+                      Storage), and subject to availability for SSD.
                     enum:
                     - AUTO
                     - ZONE_1
                     - ZONE_2
+                    - ZONE_3
                     type: string
-                  cores:
-                    description: The total number of cores for the server.
-                    format: int32
-                    type: integer
-                  cpuFamily:
-                    description: CPU architecture on which server gets provisioned;
-                      not all CPU architectures are available in all datacenter regions;
-                      available CPU architectures can be retrieved from the datacenter
-                      resource.
+                  backupunitId:
+                    description: The ID of the backup unit that the user has access
+                      to. The property is immutable and is only allowed to be set
+                      on creation of a new a volume. It is mandatory to provide either
+                      'public image' or 'imageAlias' in conjunction with this property.
+                    type: string
+                  bus:
+                    description: The bus type of the volume.
                     enum:
-                    - AMD_OPTERON
-                    - INTEL_SKYLAKE
-                    - INTEL_XEON
+                    - VIRTIO
+                    - IDE
+                    - UNKNOWN
                     type: string
+                  cpuHotPlug:
+                    description: Hot-plug capable CPU (no reboot required).
+                    type: boolean
                   datacenterConfig:
                     description: DatacenterConfig contains information about the datacenter
                       resource on which the server will be created
@@ -134,23 +148,87 @@ spec:
                             type: object
                         type: object
                     type: object
+                  discVirtioHotPlug:
+                    description: Hot-plug capable Virt-IO drive (no reboot required).
+                    type: boolean
+                  discVirtioHotUnplug:
+                    description: Hot-unplug capable Virt-IO drive (no reboot required).
+                      Not supported with Windows VMs.
+                    type: boolean
+                  image:
+                    description: 'Image or snapshot ID to be used as template for
+                      this volume. Make sure the image selected is compatible with
+                      the datacenter''s location. Note: when creating a volume, set
+                      image, image alias, or licence type'
+                    type: string
+                  imageAlias:
+                    description: 'Note: when creating a volume, set image, image alias,
+                      or licence type'
+                    type: string
+                  imagePassword:
+                    description: Initial password to be set for installed OS. Works
+                      with public images only. Not modifiable, forbidden in update
+                      requests. Password rules allows all characters from a-z, A-Z,
+                      0-9.
+                    type: string
+                  licenceType:
+                    description: 'OS type for this volume. Note: when creating a volume,
+                      set image, image alias, or licence type'
+                    enum:
+                    - UNKNOWN
+                    - WINDOWS
+                    - WINDOWS2016
+                    - WINDOWS2022
+                    - LINUX
+                    - OTHER
+                    type: string
                   name:
                     description: The name of the  resource.
                     type: string
-                  ram:
-                    description: The memory size for the server in MB, such as 2048.
-                      Size must be specified in multiples of 256 MB with a minimum
-                      of 256 MB. however, if you set ramHotPlug to TRUE then you must
-                      use a minimum of 1024 MB. If you set the RAM size more than
-                      240GB, then ramHotPlug will be set to FALSE and can not be set
-                      to TRUE unless RAM size not set to less than 240GB.
-                    format: int32
-                    multipleOf: 256
-                    type: integer
+                  nicHotPlug:
+                    description: Hot-plug capable NIC (no reboot required).
+                    type: boolean
+                  nicHotUnplug:
+                    description: Hot-unplug capable NIC (no reboot required).
+                    type: boolean
+                  ramHotPlug:
+                    description: Hot-plug capable RAM (no reboot required).
+                    type: boolean
+                  size:
+                    description: The size of the volume in GB.
+                    type: number
+                  sshKeys:
+                    description: Public SSH keys are set on the image as authorized
+                      keys for appropriate SSH login to the instance using the corresponding
+                      private key. This field may only be set in creation requests.
+                      When reading, it always returns null. SSH keys are only supported
+                      if a public Linux image is used for the volume creation.
+                    items:
+                      type: string
+                    type: array
+                  type:
+                    description: Hardware type of the volume. DAS (Direct Attached
+                      Storage) could be used only in a composite call with a Cube
+                      server.
+                    enum:
+                    - HDD
+                    - SSD
+                    - SSD Standard
+                    - SSD Premium
+                    - DAS
+                    - ISO
+                    type: string
+                  userData:
+                    description: The cloud-init configuration for the volume as base64
+                      encoded string. The property is immutable and is only allowed
+                      to be set on creation of a new a volume. It is mandatory to
+                      provide either 'public image' or 'imageAlias' that has cloud-init
+                      compatibility in conjunction with this property.
+                    type: string
                 required:
-                - cores
                 - datacenterConfig
-                - ram
+                - size
+                - type
                 type: object
               providerConfigRef:
                 default:
@@ -197,14 +275,14 @@ spec:
             - forProvider
             type: object
           status:
-            description: A ServerStatus represents the observed state of a Server.
+            description: A VolumeStatus represents the observed state of a Volume.
             properties:
               atProvider:
-                description: ServerObservation are the observable fields of a Server.
+                description: VolumeObservation are the observable fields of a Volume.
                 properties:
-                  serverId:
-                    type: string
                   state:
+                    type: string
+                  volumeId:
                     type: string
                 type: object
               conditions:

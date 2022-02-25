@@ -25,6 +25,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/cubeserver"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/datacenter"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/volume"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/config"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgres"
 )
@@ -37,6 +38,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter) error {
 		datacenter.Setup,
 		server.Setup,
 		cubeserver.Setup,
+		volume.Setup,
 		postgres.SetupPostgresCluster,
 	} {
 		if err := setup(mgr, l, wl); err != nil {

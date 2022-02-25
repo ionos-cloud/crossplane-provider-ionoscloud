@@ -166,3 +166,92 @@ EOF
   echo_step "wait for deletion server CR"
   kubectl wait --for=delete servers/example
 }
+
+## Volume CR Tests
+function volume_tests() {
+  echo_step "deploy a volume CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Volume
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampletest
+    size: 30
+    type: HDD
+    bus: VIRTIO
+    licenceType: LINUX
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for volume CR to be ready"
+  kubectl wait --for=condition=ready volumes/example
+
+  echo_step "get volume CR"
+  kubectl get volumes
+
+  echo_step "update volume CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Volume
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleVolume
+    size: 30
+    type: HDD
+    bus: VIRTIO
+    licenceType: LINUX
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for volume CR to be ready"
+  kubectl wait --for=condition=ready volumes/example
+}
+
+function volume_tests_cleanup() {
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Volume
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleVolume
+    size: 30
+    type: HDD
+    bus: VIRTIO
+    licenceType: LINUX
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo_step "uninstalling volume CR"
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
+
+  echo_step "wait for deletion volume CR"
+  kubectl wait --for=delete volumes/example
+}
