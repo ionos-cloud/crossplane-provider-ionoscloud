@@ -30,6 +30,11 @@ spec:
       type: string
     - jsonPath: .spec.forProvider.location
       name: LOCATION
+      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.name
+      name: NAME
+      priority: 1
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE

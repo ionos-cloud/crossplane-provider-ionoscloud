@@ -29,6 +29,7 @@ import (
 // Required values when creating a Volume:
 // Datacenter ID or Reference,
 // Size,
+// Type,
 // Licence Type, Image ID or Image Alias.
 // Note: when using images, it is recommended to use SSH Keys or Image Password.
 type VolumeProperties struct {
@@ -43,7 +44,8 @@ type VolumeProperties struct {
 	// DAS (Direct Attached Storage) could be used only in a composite call with a Cube server.
 	//
 	// +kubebuilder:validation:Enum=HDD;SSD;SSD Standard;SSD Premium;DAS;ISO
-	Type string `json:"type,omitempty"`
+	// +kubebuilder:validation:Required
+	Type string `json:"type"`
 	// The size of the volume in GB.
 	//
 	// +kubebuilder:validation:Required
@@ -62,15 +64,15 @@ type VolumeProperties struct {
 	// Password rules allows all characters from a-z, A-Z, 0-9.
 	ImagePassword string `json:"imagePassword,omitempty"`
 	// Note: when creating a volume, set image, image alias, or licence type
-	ImageAlias    string `json:"imageAlias,omitempty"`
+	ImageAlias string `json:"imageAlias,omitempty"`
 	// Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key.
 	// This field may only be set in creation requests. When reading, it always returns null.
 	// SSH keys are only supported if a public Linux image is used for the volume creation.
-	SshKeys []string `json:"sshKeys,omitempty"`
-	// The bus type of the volume. Default is VIRTIO
+	SSHKeys []string `json:"sshKeys,omitempty"`
+	// The bus type of the volume.
 	//
-	// +kubebuilder:default=VIRTIO
 	// +kubebuilder:validation:Enum=VIRTIO;IDE;UNKNOWN
+	// +kubebuilder:defaul=VIRTIO
 	Bus string `json:"bus,omitempty"`
 	// OS type for this volume.
 	// Note: when creating a volume, set image, image alias, or licence type
@@ -78,9 +80,9 @@ type VolumeProperties struct {
 	// +kubebuilder:validation:Enum=UNKNOWN;WINDOWS;WINDOWS2016;WINDOWS2022;LINUX;OTHER
 	LicenceType string `json:"licenceType,omitempty"`
 	// Hot-plug capable CPU (no reboot required).
-	CpuHotPlug bool `json:"cpuHotPlug,omitempty"`
+	CPUHotPlug bool `json:"cpuHotPlug,omitempty"`
 	// Hot-plug capable RAM (no reboot required).
-	RamHotPlug bool `json:"ramHotPlug,omitempty"`
+	RAMHotPlug bool `json:"ramHotPlug,omitempty"`
 	// Hot-plug capable NIC (no reboot required).
 	NicHotPlug bool `json:"nicHotPlug,omitempty"`
 	// Hot-unplug capable NIC (no reboot required).
@@ -89,20 +91,14 @@ type VolumeProperties struct {
 	DiscVirtioHotPlug bool `json:"discVirtioHotPlug,omitempty"`
 	// Hot-unplug capable Virt-IO drive (no reboot required). Not supported with Windows VMs.
 	DiscVirtioHotUnplug bool `json:"discVirtioHotUnplug,omitempty"`
-	// The Logical Unit Number of the storage volume. Null for volumes, not mounted to a VM.
-	DeviceNumber int64 `json:"deviceNumber,omitempty"`
-	// The PCI slot number of the storage volume. Null for volumes, not mounted to a VM.
-	PciSlot int32 `json:"pciSlot,omitempty"`
 	// The ID of the backup unit that the user has access to.
 	// The property is immutable and is only allowed to be set on creation of a new a volume.
 	// It is mandatory to provide either 'public image' or 'imageAlias' in conjunction with this property.
-	BackupunitId string `json:"backupunitId,omitempty"`
+	BackupunitID string `json:"backupunitId,omitempty"`
 	// The cloud-init configuration for the volume as base64 encoded string.
 	// The property is immutable and is only allowed to be set on creation of a new a volume.
 	// It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
 	UserData string `json:"userData,omitempty"`
-	// The UUID of the attached server.
-	BootServer string `json:"bootServer,omitempty"`
 }
 
 // VolumeObservation are the observable fields of a Volume.
@@ -130,6 +126,9 @@ type VolumeStatus struct {
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="DATACENTER ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
 // +kubebuilder:printcolumn:name="VOLUME ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
+// +kubebuilder:printcolumn:name="NAME",priority=1,type="string",JSONPath=".spec.forProvider.name"
+// +kubebuilder:printcolumn:name="LICENCE TYPE",priority=1,type="string",JSONPath=".spec.forProvider.licenceType"
+// +kubebuilder:printcolumn:name="TYPE",priority=1,type="string",JSONPath=".spec.forProvider.type"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status

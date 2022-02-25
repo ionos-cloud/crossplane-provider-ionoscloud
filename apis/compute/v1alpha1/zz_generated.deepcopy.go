@@ -484,8 +484,8 @@ func (in *VolumeObservation) DeepCopy() *VolumeObservation {
 func (in *VolumeProperties) DeepCopyInto(out *VolumeProperties) {
 	*out = *in
 	in.DatacenterCfg.DeepCopyInto(&out.DatacenterCfg)
-	if in.SshKeys != nil {
-		in, out := &in.SshKeys, &out.SshKeys
+	if in.SSHKeys != nil {
+		in, out := &in.SSHKeys, &out.SSHKeys
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

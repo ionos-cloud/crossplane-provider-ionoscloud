@@ -31,6 +31,10 @@ spec:
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
       name: SERVER ID
       type: string
+    - jsonPath: .spec.forProvider.name
+      name: NAME
+      priority: 1
+      type: string
     - jsonPath: .status.atProvider.state
       name: STATE
       type: string

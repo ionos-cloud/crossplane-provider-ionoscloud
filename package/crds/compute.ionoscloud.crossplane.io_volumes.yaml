@@ -31,6 +31,18 @@ spec:
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
       name: VOLUME ID
       type: string
+    - jsonPath: .spec.forProvider.name
+      name: NAME
+      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.licenceType
+      name: LICENCE TYPE
+      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.type
+      name: TYPE
+      priority: 1
+      type: string
     - jsonPath: .status.atProvider.state
       name: STATE
       type: string
@@ -69,8 +81,8 @@ spec:
               forProvider:
                 description: 'VolumeProperties are the observable fields of a Volume.
                   Required values when creating a Volume: Datacenter ID or Reference,
-                  Size, Licence Type, Image ID or Image Alias. Note: when using images,
-                  it is recommended to use SSH Keys or Image Password.'
+                  Size, Type, Licence Type, Image ID or Image Alias. Note: when using
+                  images, it is recommended to use SSH Keys or Image Password.'
                 properties:
                   availabilityZone:
                     description: The availability zone in which the volume should
@@ -90,12 +102,8 @@ spec:
                       on creation of a new a volume. It is mandatory to provide either
                       'public image' or 'imageAlias' in conjunction with this property.
                     type: string
-                  bootServer:
-                    description: The UUID of the attached server.
-                    type: string
                   bus:
-                    default: VIRTIO
-                    description: The bus type of the volume. Default is VIRTIO
+                    description: The bus type of the volume.
                     enum:
                     - VIRTIO
                     - IDE
@@ -140,11 +148,6 @@ spec:
                             type: object
                         type: object
                     type: object
-                  deviceNumber:
-                    description: The Logical Unit Number of the storage volume. Null
-                      for volumes, not mounted to a VM.
-                    format: int64
-                    type: integer
                   discVirtioHotPlug:
                     description: Hot-plug capable Virt-IO drive (no reboot required).
                     type: boolean
@@ -188,11 +191,6 @@ spec:
                   nicHotUnplug:
                     description: Hot-unplug capable NIC (no reboot required).
                     type: boolean
-                  pciSlot:
-                    description: The PCI slot number of the storage volume. Null for
-                      volumes, not mounted to a VM.
-                    format: int32
-                    type: integer
                   ramHotPlug:
                     description: Hot-plug capable RAM (no reboot required).
                     type: boolean
@@ -230,6 +228,7 @@ spec:
                 required:
                 - datacenterConfig
                 - size
+                - type
                 type: object
               providerConfigRef:
                 default:
