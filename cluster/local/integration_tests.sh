@@ -28,16 +28,25 @@ KIND_NODE_IMAGE_TAG="${KIND_NODE_IMAGE_TAG:-v1.21.1}"
 
 CROSSPLANE_NAMESPACE="crossplane-system"
 PACKAGE_NAME="provider-ionoscloud"
+LOGS_FILE="${PACKAGE_NAME}.txt"
 
 # cleanup on exit
 if [ "$skipcleanup" != true ]; then
-  function cleanup() {
-    echo_step "Cleaning up..."
-    export KUBECONFIG=
-    "${KIND}" delete cluster --name="${K8S_CLUSTER}"
-  }
+    function cleanup() {
+        echo_step "Cleaning up..."
+        echo_step "Checking is ${PACKAGE_NAME} pod exists..."
+        POD_INFO_PROVIDER=$(kubectl get pods -n ${CROSSPLANE_NAMESPACE} | grep ${PACKAGE_NAME})
+        if [ ! -z "${POD_INFO_PROVIDER}" ]; then
+            POD_PROVIDER=($POD_INFO_PROVIDER)
+            echo_step "Saving logs to ${LOGS_FILE} file..."
+            echo "--- logs of the ${POD_PROVIDER} pod---" >>${LOGS_FILE}
+            kubectl logs pod/${POD_PROVIDER} -n ${CROSSPLANE_NAMESPACE} >>${LOGS_FILE}
+        fi
+        export KUBECONFIG=
+        "${KIND}" delete cluster --name="${K8S_CLUSTER}"
+    }
 
-  trap cleanup EXIT
+    trap cleanup EXIT
 fi
 
 # setup package cache
@@ -51,7 +60,7 @@ docker save "${BUILD_IMAGE}" -o "${CACHE_PATH}/${PACKAGE_NAME}.xpkg" && chmod 64
 KIND_NODE_IMAGE="kindest/node:${KIND_NODE_IMAGE_TAG}"
 echo_step "creating k8s cluster using kind ${KIND_VERSION} and node image ${KIND_NODE_IMAGE}"
 KIND_CONFIG="$(
-  cat <<EOF
+    cat <<EOF
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -80,7 +89,7 @@ echo_step "create crossplane-system namespace"
 
 echo_step "create persistent volume and claim for mounting package-cache"
 PV_YAML="$(
-  cat <<EOF
+    cat <<EOF
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -100,7 +109,7 @@ EOF
 echo "${PV_YAML}" | "${KUBECTL}" create -f -
 
 PVC_YAML="$(
-  cat <<EOF
+    cat <<EOF
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -137,7 +146,7 @@ echo_step "--- INTEGRATION TESTS ---"
 echo_step "installing ${PROJECT_NAME} into \"${CROSSPLANE_NAMESPACE}\" namespace"
 
 INSTALL_YAML="$(
-  cat <<EOF
+    cat <<EOF
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
@@ -158,31 +167,34 @@ echo_step "checking provider installation"
 
 echo_step "checking provider"
 kubectl get provider
-kubectl describe provider ${PACKAGE_NAME}
+echo "--- describe provider ${PACKAGE_NAME} ---" >>${LOGS_FILE}
+kubectl describe provider ${PACKAGE_NAME} >>${LOGS_FILE}
 sleep 5
 
 echo_step "checking providerrevision"
 kubectl get providerrevision
-kubectl describe providerrevision ${PACKAGE_NAME}
+echo "--- describe providerrevision ${PACKAGE_NAME} ---" >>${LOGS_FILE}
+kubectl describe providerrevision ${PACKAGE_NAME} >>${LOGS_FILE}
 sleep 5
 
 echo_step "checking deployments"
 kubectl get deployments -n crossplane-system
-kubectl describe deployments provider-ionoscloud-provider-ion -n crossplane-system
+echo "--- describe deployments ${PACKAGE_NAME} ---" >>${LOGS_FILE}
+kubectl describe deployments provider-ionoscloud-provider-ion -n ${CROSSPLANE_NAMESPACE} >>${LOGS_FILE}
 sleep 5
 
 echo_step "waiting for provider to be installed"
 kubectl wait "provider.pkg.crossplane.io/${PACKAGE_NAME}" --for=condition=healthy --timeout=60s
 
-echo_step "waiting for all pods in crossplane-system namespace to be ready"
-kubectl wait --for=condition=ready pods --all -n crossplane-system
+echo_step "waiting for all pods in ${CROSSPLANE_NAMESPACE} namespace to be ready"
+kubectl wait --for=condition=ready pods --all -n ${CROSSPLANE_NAMESPACE}
 kubectl get pods -n crossplane-system
 
 echo_step "add secret credentials"
 BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
-kubectl create secret generic --namespace crossplane-system example-provider-secret --from-literal=credentials="{\"user\":\"${IONOS_USERNAME}\",\"password\":\"${BASE64_PW}\"}"
+kubectl create secret generic --namespace ${CROSSPLANE_NAMESPACE} example-provider-secret --from-literal=credentials="{\"user\":\"${IONOS_USERNAME}\",\"password\":\"${BASE64_PW}\"}"
 INSTALL_CRED_YAML="$(
-  cat <<EOF
+    cat <<EOF
 apiVersion: ionoscloud.crossplane.io/v1alpha1
 kind: ProviderConfig
 metadata:
@@ -220,12 +232,12 @@ timeout=60
 current=0
 step=3
 while [[ $(kubectl get providerrevision.pkg.crossplane.io -o name | wc -l) != "0" ]]; do
-  echo "waiting for provider to be deleted for another $step seconds"
-  current=$current+$step
-  if ! [[ $timeout > $current ]]; then
-    echo_error "timeout of ${timeout}s has been reached"
-  fi
-  sleep $step
+    echo "waiting for provider to be deleted for another $step seconds"
+    current=$current+$step
+    if ! [[ $timeout > $current ]]; then
+        echo_error "timeout of ${timeout}s has been reached"
+    fi
+    sleep $step
 done
 
 echo_success "Integration tests succeeded!"
