@@ -8,9 +8,10 @@ spec:
     size: 30
     type: HDD
     bus: VIRTIO
-#    licenceType: LINUX
-    imageAlias: ubuntu:latest
-    imagePassword: test12345
+    licenceType: LINUX
+    availabilityZone: AUTO
+#    imageAlias: ubuntu:latest
+#    imagePassword:
     datacenterConfig:
       datacenterIdRef:
         name: example
