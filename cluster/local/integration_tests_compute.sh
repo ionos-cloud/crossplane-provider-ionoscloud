@@ -28,9 +28,8 @@ EOF
   echo_step "waiting for datacenter CR to be ready"
   kubectl wait --for=condition=ready datacenters/example
 
-  echo_step "get datacenters and describe datacenter CR"
+  echo_step "get datacenter CR"
   kubectl get datacenters
-  kubectl describe datacenters example
 
   echo_step "update datacenter CR"
   INSTALL_RESOURCE_YAML="$(
@@ -108,9 +107,8 @@ EOF
   echo_step "waiting for server CR to be ready"
   kubectl wait --for=condition=ready servers/example
 
-  echo_step "get server and describe server CR"
+  echo_step "get server CR"
   kubectl get servers
-  kubectl describe servers example
 
   echo_step "update server CR"
   INSTALL_RESOURCE_YAML="$(
