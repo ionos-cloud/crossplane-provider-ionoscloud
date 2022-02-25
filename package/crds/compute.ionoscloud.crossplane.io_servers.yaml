@@ -67,7 +67,9 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: ServerProperties are the observable fields of a Server.
+                description: 'ServerProperties are the observable fields of a Server.
+                  Required values when creating a Server: Datacenter ID or Reference,
+                  Cores, RAM.'
                 properties:
                   availabilityZone:
                     default: AUTO

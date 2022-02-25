@@ -26,6 +26,8 @@ import (
 )
 
 // DatacenterProperties are the observable fields of a Datacenter.
+// Required values when creating a Volume:
+// Location.
 type DatacenterProperties struct {
 	// The name of the  resource.
 	Name string `json:"name,omitempty"`

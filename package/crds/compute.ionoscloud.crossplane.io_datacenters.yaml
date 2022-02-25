@@ -67,7 +67,8 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: DatacenterProperties are the observable fields of a Datacenter.
+                description: 'DatacenterProperties are the observable fields of a
+                  Datacenter. Required values when creating a Volume: Location.'
                 properties:
                   description:
                     description: A description for the datacenter, such as staging,

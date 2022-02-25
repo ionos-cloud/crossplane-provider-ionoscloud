@@ -26,6 +26,10 @@ import (
 )
 
 // ServerProperties are the observable fields of a Server.
+// Required values when creating a Server:
+// Datacenter ID or Reference,
+// Cores,
+// RAM.
 type ServerProperties struct {
 	// DatacenterConfig contains information about the datacenter resource
 	// on which the server will be created
