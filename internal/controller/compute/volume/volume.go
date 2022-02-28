@@ -184,7 +184,6 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
 	instance, apiResponse, err := c.service.CreateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
 	creation := managed.ExternalCreation{
 		ConnectionDetails: managed.ConnectionDetails{},

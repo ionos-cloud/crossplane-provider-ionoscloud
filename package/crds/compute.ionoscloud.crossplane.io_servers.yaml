@@ -71,7 +71,7 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: 'ServerProperties are the observable fields of a Server.
+                description: 'ServerParameters are the observable fields of a Server.
                   Required values when creating a Server: Datacenter ID or Reference,
                   Cores, RAM.'
                 properties:
@@ -83,6 +83,8 @@ spec:
                     - AUTO
                     - ZONE_1
                     - ZONE_2
+                    type: string
+                  bootCdromId:
                     type: string
                   cores:
                     description: The total number of cores for the server.
@@ -147,6 +149,44 @@ spec:
                     format: int32
                     multipleOf: 256
                     type: integer
+                  volumeConfig:
+                    description: "In order to attach a volume to the server, it is
+                      recommended to use VolumeConfig to set the existing volume (via
+                      id or via reference) \n VolumeConfig contains information about
+                      the existing volume resource which will be attached to the server
+                      and set as bootVolume"
+                    properties:
+                      volumeId:
+                        description: VolumeID is the ID of the Volume. It needs to
+                          be provided via directly or via reference.
+                        type: string
+                      volumeIdRef:
+                        description: VolumeIDRef references to a Volume to retrieve
+                          its ID
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      volumeIdSelector:
+                        description: VolumeIDSelector selects reference to a Volume
+                          to retrieve its volumeId
+                        properties:
+                          matchControllerRef:
+                            description: MatchControllerRef ensures an object with
+                              the same controller reference as the selecting object
+                              is selected.
+                            type: boolean
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: MatchLabels ensures an object with matching
+                              labels is selected.
+                            type: object
+                        type: object
+                    type: object
                 required:
                 - cores
                 - datacenterConfig

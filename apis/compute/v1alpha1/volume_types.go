@@ -25,14 +25,14 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
-// VolumeProperties are the observable fields of a Volume.
+// VolumeParameters are the observable fields of a Volume.
 // Required values when creating a Volume:
 // Datacenter ID or Reference,
 // Size,
 // Type,
 // Licence Type, Image ID or Image Alias.
 // Note: when using images, it is recommended to use SSH Keys or Image Password.
-type VolumeProperties struct {
+type VolumeParameters struct {
 	// DatacenterConfig contains information about the datacenter resource
 	// on which the server will be created
 	//
@@ -72,7 +72,7 @@ type VolumeProperties struct {
 	// The bus type of the volume.
 	//
 	// +kubebuilder:validation:Enum=VIRTIO;IDE;UNKNOWN
-	// +kubebuilder:defaul=VIRTIO
+	// +kubebuilder:default=VIRTIO
 	Bus string `json:"bus,omitempty"`
 	// OS type for this volume.
 	// Note: when creating a volume, set image, image alias, or licence type
@@ -101,6 +101,24 @@ type VolumeProperties struct {
 	UserData string `json:"userData,omitempty"`
 }
 
+// VolumeConfig is used by resources that need to link volumes via id or via reference.
+type VolumeConfig struct {
+	// VolumeID is the ID of the Volume.
+	// It needs to be provided via directly or via reference.
+	//
+	// +immutable
+	// +crossplane:generate:reference:type=Volume
+	VolumeID string `json:"volumeId,omitempty"`
+	// VolumeIDRef references to a Volume to retrieve its ID
+	//
+	// +optional
+	VolumeIDRef *xpv1.Reference `json:"volumeIdRef,omitempty"`
+	// VolumeIDSelector selects reference to a Volume to retrieve its volumeId
+	//
+	// +optional
+	VolumeIDSelector *xpv1.Selector `json:"volumeIdSelector,omitempty"`
+}
+
 // VolumeObservation are the observable fields of a Volume.
 type VolumeObservation struct {
 	VolumeID string `json:"volumeId,omitempty"`
@@ -110,7 +128,7 @@ type VolumeObservation struct {
 // A VolumeSpec defines the desired state of a Volume.
 type VolumeSpec struct {
 	xpv1.ResourceSpec `json:",inline"`
-	ForProvider       VolumeProperties `json:"forProvider"`
+	ForProvider       VolumeParameters `json:"forProvider"`
 }
 
 // A VolumeStatus represents the observed state of a Volume.

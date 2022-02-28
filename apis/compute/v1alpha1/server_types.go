@@ -25,12 +25,12 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
-// ServerProperties are the observable fields of a Server.
+// ServerParameters are the observable fields of a Server.
 // Required values when creating a Server:
 // Datacenter ID or Reference,
 // Cores,
 // RAM.
-type ServerProperties struct {
+type ServerParameters struct {
 	// DatacenterConfig contains information about the datacenter resource
 	// on which the server will be created
 	//
@@ -58,7 +58,14 @@ type ServerProperties struct {
 	// available CPU architectures can be retrieved from the datacenter resource.
 	//
 	// +kubebuilder:validation:Enum=AMD_OPTERON;INTEL_SKYLAKE;INTEL_XEON
-	CPUFamily string `json:"cpuFamily,omitempty"`
+	CPUFamily   string `json:"cpuFamily,omitempty"`
+	BootCdromID string `json:"bootCdromId,omitempty"`
+	// In order to attach a volume to the server, it is recommended to use VolumeConfig
+	// to set the existing volume (via id or via reference)
+	//
+	// VolumeConfig contains information about the existing volume resource
+	// which will be attached to the server and set as bootVolume
+	VolumeCfg VolumeConfig `json:"volumeConfig,omitempty"`
 }
 
 // ServerObservation are the observable fields of a Server.
@@ -70,7 +77,7 @@ type ServerObservation struct {
 // A ServerSpec defines the desired state of a Server.
 type ServerSpec struct {
 	xpv1.ResourceSpec `json:",inline"`
-	ForProvider       ServerProperties `json:"forProvider"`
+	ForProvider       ServerParameters `json:"forProvider"`
 }
 
 // A ServerStatus represents the observed state of a Server.

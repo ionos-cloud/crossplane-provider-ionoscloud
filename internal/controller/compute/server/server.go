@@ -202,6 +202,19 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	cr.Status.AtProvider.ServerID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
 	creation.ExternalNameAssigned = true
+
+	// Attach volume
+	// if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg)) {
+	//	_, apiResponse, err = c.service.AttachVolume(ctx,
+	//		cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+	//		cr.Status.AtProvider.ServerID,
+	//		sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
+	//	if err != nil {
+	//		retErr := fmt.Errorf("failed to attach volume to server. error: %w", err)
+	//		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
+	//		return creation, retErr
+	//	}
+	// }
 	return creation, nil
 }
 
