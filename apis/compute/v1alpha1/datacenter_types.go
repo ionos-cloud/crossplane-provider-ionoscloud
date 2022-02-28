@@ -50,10 +50,12 @@ type DatacenterConfig struct {
 	//
 	// +immutable
 	// +crossplane:generate:reference:type=Datacenter
+	// +crossplane:generate:reference:extractor=ExtractDatacenterID()
 	DatacenterID string `json:"datacenterId,omitempty"`
 	// DatacenterIDRef references to a Datacenter to retrieve its ID
 	//
 	// +optional
+	// +immutable
 	DatacenterIDRef *xpv1.Reference `json:"datacenterIdRef,omitempty"`
 	// DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
 	//
