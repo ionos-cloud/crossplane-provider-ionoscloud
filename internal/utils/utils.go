@@ -2,8 +2,6 @@ package utils
 
 import (
 	"reflect"
-
-	"github.com/fatih/structs"
 )
 
 // IsEmptyValue checks if a value is empty or not.
@@ -23,7 +21,7 @@ func IsEmptyValue(v reflect.Value) bool {
 	case reflect.Interface, reflect.Ptr:
 		return v.IsNil()
 	case reflect.Struct:
-		return structs.IsZero(v)
+		return v.IsZero()
 	}
 	return false
 }

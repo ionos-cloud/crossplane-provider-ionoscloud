@@ -106,7 +106,6 @@ type VolumeConfig struct {
 	// VolumeID is the ID of the Volume.
 	// It needs to be provided via directly or via reference.
 	//
-	// +immutable
 	// +crossplane:generate:reference:type=Volume
 	// +crossplane:generate:reference:extractor=ExtractVolumeID()
 	VolumeID string `json:"volumeId,omitempty"`

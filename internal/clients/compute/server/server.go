@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -126,10 +125,11 @@ func GenerateUpdateServerInput(cr *v1alpha1.Server) (*sdkgo.ServerProperties, er
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
 		instanceUpdateInput.SetBootVolume(sdkgo.ResourceReference{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
 	}
-	return nil, errors.New("could not get update input")
+	return &instanceUpdateInput, nil
 }
 
 // IsServerUpToDate returns true if the Server is up-to-date or false if it does not
+//nolint
 func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool {
 	switch {
 	case cr == nil && server.Properties == nil:
@@ -143,6 +143,13 @@ func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool {
 		return true
 	}
 	if strings.Compare(cr.Spec.ForProvider.Name, *server.Properties.Name) != 0 {
+		return false
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg)) {
+		if cr.Status.AtProvider.VolumeID != cr.Spec.ForProvider.VolumeCfg.VolumeID {
+			return false
+		}
+	} else if cr.Status.AtProvider.VolumeID != "" {
 		return false
 	}
 	return true

@@ -19,6 +19,9 @@ package server
 import (
 	"context"
 	"fmt"
+	"reflect"
+
+	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -40,6 +43,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const (
@@ -169,6 +173,8 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	}, nil
 }
 
+// Create
+//nolint
 func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
 	cr, ok := mg.(*v1alpha1.Server)
 	if !ok {
@@ -204,30 +210,62 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	creation.ExternalNameAssigned = true
 
 	// Attach volume
-	// if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg)) {
-	//	_, apiResponse, err = c.service.AttachVolume(ctx,
-	//		cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
-	//		cr.Status.AtProvider.ServerID,
-	//		sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
-	//	if err != nil {
-	//		retErr := fmt.Errorf("failed to attach volume to server. error: %w", err)
-	//		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
-	//		return creation, retErr
-	//	}
-	// }
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg)) {
+		c.log.Debug("Attaching Volume...")
+		instanceVolume, apiResponse, err := c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID,
+			sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
+		if err != nil {
+			retErr := fmt.Errorf("failed to attach volume to server. error: %w", err)
+			retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
+			return creation, retErr
+		}
+		if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+			return creation, err
+		}
+		cr.Status.AtProvider.VolumeID = *instanceVolume.Id
+	}
 	return creation, nil
 }
 
+// Update
+//nolint
 func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
 	cr, ok := mg.(*v1alpha1.Server)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotServer)
 	}
-	if cr.Status.AtProvider.State == compute.BUSY || cr.Status.AtProvider.State == compute.UPDATING {
+	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalUpdate{}, nil
 	}
-
 	serverID := cr.Status.AtProvider.ServerID
+	// Attach volume
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg)) {
+		c.log.Debug("Attaching Volume...")
+		instanceVolume, apiResponse, err := c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID,
+			sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
+		if err != nil {
+			retErr := fmt.Errorf("failed to attach volume to server. error: %w", err)
+			retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
+			return managed.ExternalUpdate{}, retErr
+		}
+		if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+			return managed.ExternalUpdate{}, err
+		}
+		cr.Status.AtProvider.VolumeID = *instanceVolume.Id
+	} else if cr.Status.AtProvider.VolumeID != "" {
+		apiResponse, err := c.service.DetachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+			cr.Status.AtProvider.ServerID, cr.Status.AtProvider.VolumeID)
+		if err != nil {
+			retErr := fmt.Errorf("failed to detach volume from server. error: %w", err)
+			retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
+			return managed.ExternalUpdate{}, retErr
+		}
+		if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+			return managed.ExternalUpdate{}, err
+		}
+		cr.Status.AtProvider.VolumeID = ""
+	}
+
 	instanceInput, err := server.GenerateUpdateServerInput(cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, nil

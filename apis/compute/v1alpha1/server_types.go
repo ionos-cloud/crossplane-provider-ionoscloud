@@ -61,7 +61,8 @@ type ServerParameters struct {
 	CPUFamily   string `json:"cpuFamily,omitempty"`
 	BootCdromID string `json:"bootCdromId,omitempty"`
 	// In order to attach a volume to the server, it is recommended to use VolumeConfig
-	// to set the existing volume (via id or via reference)
+	// to set the existing volume (via id or via reference).
+	// To detach a volume from the server, update the CR spec by removing it.
 	//
 	// VolumeConfig contains information about the existing volume resource
 	// which will be attached to the server and set as bootVolume
@@ -71,6 +72,7 @@ type ServerParameters struct {
 // ServerObservation are the observable fields of a Server.
 type ServerObservation struct {
 	ServerID string `json:"serverId,omitempty"`
+	VolumeID string `json:"volumeId,omitempty"`
 	State    string `json:"state,omitempty"`
 }
 
@@ -95,6 +97,7 @@ type ServerStatus struct {
 // +kubebuilder:printcolumn:name="SERVER ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="NAME",priority=1,type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
+// +kubebuilder:printcolumn:name="VOLUME ID",priority=1,type="string",JSONPath=".status.atProvider.volumeId"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,template}

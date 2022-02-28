@@ -5,7 +5,6 @@ go 1.17
 require (
 	github.com/crossplane/crossplane-runtime v0.15.0
 	github.com/crossplane/crossplane-tools v0.0.0-20220106150503-21c1d7761d68
-	github.com/fatih/structs v1.1.0
 	github.com/ionos-cloud/sdk-go-dbaas-postgres v1.0.0
 	github.com/ionos-cloud/sdk-go/v6 v6.0.1
 	github.com/pkg/errors v0.9.1

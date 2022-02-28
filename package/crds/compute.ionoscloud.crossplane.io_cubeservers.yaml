@@ -197,6 +197,8 @@ spec:
                     type: string
                   state:
                     type: string
+                  volumeId:
+                    type: string
                 type: object
               conditions:
                 description: Conditions of the resource.

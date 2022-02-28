@@ -38,6 +38,10 @@ spec:
     - jsonPath: .status.atProvider.state
       name: STATE
       type: string
+    - jsonPath: .status.atProvider.volumeId
+      name: VOLUME ID
+      priority: 1
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: AGE
       type: date
@@ -245,6 +249,8 @@ spec:
                   serverId:
                     type: string
                   state:
+                    type: string
+                  volumeId:
                     type: string
                 type: object
               conditions:
