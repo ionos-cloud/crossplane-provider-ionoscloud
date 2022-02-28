@@ -75,7 +75,7 @@ func (mg *Server) ResolveReferences(ctx context.Context, c client.Reader) error 
 
 	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
 		CurrentValue: mg.Spec.ForProvider.VolumeCfg.VolumeID,
-		Extract:      reference.ExternalName(),
+		Extract:      ExtractVolumeID(),
 		Reference:    mg.Spec.ForProvider.VolumeCfg.VolumeIDRef,
 		Selector:     mg.Spec.ForProvider.VolumeCfg.VolumeIDSelector,
 		To: reference.To{
