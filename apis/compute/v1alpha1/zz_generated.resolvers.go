@@ -33,7 +33,7 @@ func (mg *CubeServer) ResolveReferences(ctx context.Context, c client.Reader) er
 
 	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
 		CurrentValue: mg.Spec.ForProvider.DatacenterCfg.DatacenterID,
-		Extract:      reference.ExternalName(),
+		Extract:      ExtractDatacenterID(),
 		Reference:    mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef,
 		Selector:     mg.Spec.ForProvider.DatacenterCfg.DatacenterIDSelector,
 		To: reference.To{
@@ -59,7 +59,7 @@ func (mg *Server) ResolveReferences(ctx context.Context, c client.Reader) error 
 
 	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
 		CurrentValue: mg.Spec.ForProvider.DatacenterCfg.DatacenterID,
-		Extract:      reference.ExternalName(),
+		Extract:      ExtractDatacenterID(),
 		Reference:    mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef,
 		Selector:     mg.Spec.ForProvider.DatacenterCfg.DatacenterIDSelector,
 		To: reference.To{
@@ -85,7 +85,7 @@ func (mg *Volume) ResolveReferences(ctx context.Context, c client.Reader) error 
 
 	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
 		CurrentValue: mg.Spec.ForProvider.DatacenterCfg.DatacenterID,
-		Extract:      reference.ExternalName(),
+		Extract:      ExtractDatacenterID(),
 		Reference:    mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef,
 		Selector:     mg.Spec.ForProvider.DatacenterCfg.DatacenterIDSelector,
 		To: reference.To{
