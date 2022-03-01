@@ -32,15 +32,15 @@ spec:
       name: SERVER ID
       type: string
     - jsonPath: .spec.forProvider.name
-      name: NAME
+      name: SERVER NAME
+      priority: 1
+      type: string
+    - jsonPath: .status.atProvider.volumeId
+      name: BOOT VOLUME ID
       priority: 1
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE
-      type: string
-    - jsonPath: .status.atProvider.volumeId
-      name: VOLUME ID
-      priority: 1
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: AGE

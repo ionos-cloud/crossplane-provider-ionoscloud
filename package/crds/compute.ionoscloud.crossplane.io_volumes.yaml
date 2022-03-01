@@ -32,11 +32,7 @@ spec:
       name: VOLUME ID
       type: string
     - jsonPath: .spec.forProvider.name
-      name: NAME
-      priority: 1
-      type: string
-    - jsonPath: .spec.forProvider.licenceType
-      name: LICENCE TYPE
+      name: VOLUME NAME
       priority: 1
       type: string
     - jsonPath: .spec.forProvider.type

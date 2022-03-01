@@ -25,10 +25,10 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
-// DatacenterProperties are the observable fields of a Datacenter.
+// DatacenterParameters are the observable fields of a Datacenter.
 // Required values when creating a Volume:
 // Location.
-type DatacenterProperties struct {
+type DatacenterParameters struct {
 	// The name of the  resource.
 	Name string `json:"name,omitempty"`
 	// A description for the datacenter, such as staging, production.
@@ -73,7 +73,7 @@ type DatacenterObservation struct {
 // A DatacenterSpec defines the desired state of a Datacenter.
 type DatacenterSpec struct {
 	xpv1.ResourceSpec `json:",inline"`
-	ForProvider       DatacenterProperties `json:"forProvider"`
+	ForProvider       DatacenterParameters `json:"forProvider"`
 }
 
 // A DatacenterStatus represents the observed state of a Datacenter.
@@ -88,8 +88,8 @@ type DatacenterStatus struct {
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="DATACENTER ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
+// +kubebuilder:printcolumn:name="DATACENTER NAME",priority=1,type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="LOCATION",priority=1,type="string",JSONPath=".spec.forProvider.location"
-// +kubebuilder:printcolumn:name="NAME",priority=1,type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
