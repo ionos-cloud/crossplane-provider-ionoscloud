@@ -68,7 +68,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:   l}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
-			managed.WithLogger(l.WithValues("controller", name)),
+			managed.WithLogger(l.WithValues("controller-volume", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 
@@ -149,7 +149,7 @@ func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (mana
 		}, retErr
 	}
 	cr.Status.AtProvider.State = *instance.Metadata.State
-	c.log.Debug(fmt.Sprintf("Observing state %v...", cr.Status.AtProvider.State))
+	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
 	switch cr.Status.AtProvider.State {
 	case compute.AVAILABLE, compute.ACTIVE:

@@ -72,7 +72,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:   l}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
-			managed.WithLogger(l.WithValues("controller", name)),
+			managed.WithLogger(l.WithValues("controller-server", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 
@@ -153,7 +153,7 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 		}, retErr
 	}
 	cr.Status.AtProvider.State = *instance.Metadata.State
-	c.log.Debug(fmt.Sprintf("Observing state %v...", cr.Status.AtProvider.State))
+	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
 	switch cr.Status.AtProvider.State {
 	case compute.AVAILABLE, compute.ACTIVE:
@@ -208,9 +208,7 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	cr.Status.AtProvider.ServerID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
 	creation.ExternalNameAssigned = true
-
-	// Attach volume
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg)) {
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
 		c.log.Debug("Attaching Volume...")
 		instanceVolume, apiResponse, err := c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID,
 			sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
@@ -238,8 +236,7 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalUpdate{}, nil
 	}
 	serverID := cr.Status.AtProvider.ServerID
-	// Attach volume
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg)) {
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
 		c.log.Debug("Attaching Volume...")
 		instanceVolume, apiResponse, err := c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID,
 			sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
@@ -253,6 +250,7 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 		}
 		cr.Status.AtProvider.VolumeID = *instanceVolume.Id
 	} else if cr.Status.AtProvider.VolumeID != "" {
+		c.log.Debug("Detaching Volume...")
 		apiResponse, err := c.service.DetachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 			cr.Status.AtProvider.ServerID, cr.Status.AtProvider.VolumeID)
 		if err != nil {

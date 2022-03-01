@@ -145,7 +145,7 @@ func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool {
 	if strings.Compare(cr.Spec.ForProvider.Name, *server.Properties.Name) != 0 {
 		return false
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg)) {
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
 		if cr.Status.AtProvider.VolumeID != cr.Spec.ForProvider.VolumeCfg.VolumeID {
 			return false
 		}
