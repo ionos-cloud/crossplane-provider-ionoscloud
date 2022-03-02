@@ -3,7 +3,6 @@ package volume
 import (
 	"context"
 	"reflect"
-	"strings"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
@@ -142,8 +141,7 @@ func GenerateUpdateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.VolumeProperties, er
 }
 
 // IsVolumeUpToDate returns true if the Volume is up-to-date or false if it does not
-//nolint
-func IsVolumeUpToDate(cr *v1alpha1.Volume, volume *sdkgo.Volume) bool {
+func IsVolumeUpToDate(cr *v1alpha1.Volume, volume *sdkgo.Volume) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && volume.Properties == nil:
 		return true
@@ -151,18 +149,11 @@ func IsVolumeUpToDate(cr *v1alpha1.Volume, volume *sdkgo.Volume) bool {
 		return false
 	case cr != nil && volume.Properties == nil:
 		return false
+	case volume.Metadata != nil && *volume.Metadata.State == "BUSY":
+		return true
+	case volume.Properties != nil && *volume.Properties.Name != cr.Spec.ForProvider.Name:
+		return false
+	default:
+		return true
 	}
-	if volume != nil {
-		if metadataOk, ok := volume.GetMetadataOk(); ok && metadataOk != nil {
-			if strings.Compare("BUSY", *metadataOk.State) == 0 {
-				return false
-			}
-		}
-		if propertiesOk, ok := volume.GetPropertiesOk(); ok && propertiesOk != nil {
-			if strings.Compare(cr.Spec.ForProvider.Name, *propertiesOk.Name) != 0 {
-				return false
-			}
-		}
-	}
-	return true
 }

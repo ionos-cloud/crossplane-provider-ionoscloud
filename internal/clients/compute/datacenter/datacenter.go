@@ -2,7 +2,6 @@ package datacenter
 
 import (
 	"context"
-	"strings"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
@@ -73,7 +72,7 @@ func GenerateUpdateDatacenterInput(cr *v1alpha1.Datacenter) (*sdkgo.DatacenterPr
 }
 
 // IsDatacenterUpToDate returns true if the Datacenter is up-to-date or false if it does not
-func IsDatacenterUpToDate(cr *v1alpha1.Datacenter, datacenter sdkgo.Datacenter) bool {
+func IsDatacenterUpToDate(cr *v1alpha1.Datacenter, datacenter sdkgo.Datacenter) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && datacenter.Properties == nil:
 		return true
@@ -81,12 +80,11 @@ func IsDatacenterUpToDate(cr *v1alpha1.Datacenter, datacenter sdkgo.Datacenter) 
 		return false
 	case cr != nil && datacenter.Properties == nil:
 		return false
-	}
-	if *datacenter.Metadata.State == "BUSY" {
+	case datacenter.Metadata != nil && *datacenter.Metadata.State == "BUSY":
+		return true
+	case datacenter.Properties != nil && *datacenter.Properties.Name != cr.Spec.ForProvider.Name:
+		return false
+	default:
 		return true
 	}
-	if strings.Compare(cr.Spec.ForProvider.Name, *datacenter.Properties.Name) != 0 {
-		return false
-	}
-	return true
 }
