@@ -137,9 +137,9 @@ func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool { // nolint
 		return false
 	case cr != nil && server.Properties == nil:
 		return false
-	case cr.Spec.ForProvider.Name != *server.Properties.Name:
+	case server.Properties != nil && cr.Spec.ForProvider.Name != *server.Properties.Name:
 		return false
-	case *server.Metadata.State == "BUSY":
+	case server.Metadata != nil && *server.Metadata.State == "BUSY":
 		return true
 	case cr.Spec.ForProvider.VolumeCfg.VolumeID != cr.Status.AtProvider.VolumeID:
 		return false

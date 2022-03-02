@@ -128,26 +128,16 @@ func (c *externalDatacenter) Observe(ctx context.Context, mg resource.Managed) (
 	}
 
 	// External Name of the CR is the Datacenter ID
-	id := meta.GetExternalName(cr)
-	if id == "" {
-		return managed.ExternalObservation{
-			ResourceExists:    false,
-			ResourceUpToDate:  false,
-			ConnectionDetails: managed.ConnectionDetails{},
-		}, nil
+	if meta.GetExternalName(cr) == "" {
+		return managed.ExternalObservation{}, nil
 	}
-	cr.Status.AtProvider.DatacenterID = id
-	instance, apiResponse, err := c.service.GetDatacenter(ctx, id)
+	instance, apiResponse, err := c.service.GetDatacenter(ctx, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get datacenter by id. error: %w", err)
-		retErr = compute.CheckAPIResponseInfo(apiResponse, retErr)
-		return managed.ExternalObservation{
-			ResourceExists:    false,
-			ResourceUpToDate:  false,
-			ConnectionDetails: managed.ConnectionDetails{},
-		}, retErr
+		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 
+	cr.Status.AtProvider.DatacenterID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = *instance.Metadata.State
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
@@ -185,16 +175,13 @@ func (c *externalDatacenter) Create(ctx context.Context, mg resource.Managed) (m
 	}
 
 	instance, apiResponse, err := c.service.CreateDatacenter(ctx, *instanceInput)
-	creation := managed.ExternalCreation{
-		ConnectionDetails: managed.ConnectionDetails{},
-	}
+	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create datacenter. error: %w", err)
-		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
-		return creation, retErr
+		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return managed.ExternalCreation{}, err
+		return creation, err
 	}
 
 	// Set External Name
@@ -216,22 +203,18 @@ func (c *externalDatacenter) Update(ctx context.Context, mg resource.Managed) (m
 	datacenterID := cr.Status.AtProvider.DatacenterID
 	instanceInput, err := datacenter.GenerateUpdateDatacenterInput(cr)
 	if err != nil {
-		return managed.ExternalUpdate{}, nil
+		return managed.ExternalUpdate{}, err
 	}
 
 	_, apiResponse, err := c.service.UpdateDatacenter(ctx, datacenterID, *instanceInput)
-	update := managed.ExternalUpdate{
-		ConnectionDetails: managed.ConnectionDetails{},
-	}
 	if err != nil {
 		retErr := fmt.Errorf("failed to update datacenter. error: %w", err)
-		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
-		return update, retErr
+		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalUpdate{}, err
 	}
-	return update, nil
+	return managed.ExternalUpdate{}, nil
 }
 
 func (c *externalDatacenter) Delete(ctx context.Context, mg resource.Managed) error {
@@ -248,8 +231,7 @@ func (c *externalDatacenter) Delete(ctx context.Context, mg resource.Managed) er
 	apiResponse, err := c.service.DeleteDatacenter(ctx, cr.Status.AtProvider.DatacenterID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete datacenter. error: %w", err)
-		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
-		return retErr
+		return compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err
