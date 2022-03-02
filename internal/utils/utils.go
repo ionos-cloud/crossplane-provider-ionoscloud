@@ -1,6 +1,8 @@
 package utils
 
-import "reflect"
+import (
+	"reflect"
+)
 
 // IsEmptyValue checks if a value is empty or not.
 //nolint
@@ -18,6 +20,8 @@ func IsEmptyValue(v reflect.Value) bool {
 		return v.Float() == 0
 	case reflect.Interface, reflect.Ptr:
 		return v.IsNil()
+	case reflect.Struct:
+		return v.IsZero()
 	}
 	return false
 }

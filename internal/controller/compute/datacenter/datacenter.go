@@ -116,7 +116,7 @@ func (c *connectorDatacenter) Connect(ctx context.Context, mg resource.Managed) 
 // externalDatacenter resource to ensure it reflects the managed resource's desired state.
 type externalDatacenter struct {
 	// A 'client' used to connect to the externalDatacenter resource API. In practice this
-	// would be something like an AWS SDK client.
+	// would be something like an IONOS Cloud SDK client.
 	service datacenter.Client
 	log     logging.Logger
 }
@@ -149,7 +149,7 @@ func (c *externalDatacenter) Observe(ctx context.Context, mg resource.Managed) (
 	}
 
 	cr.Status.AtProvider.State = *instance.Metadata.State
-	c.log.Debug(fmt.Sprintf("Observing state %v...", cr.Status.AtProvider.State))
+	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
 	switch cr.Status.AtProvider.State {
 	case compute.AVAILABLE, compute.ACTIVE:

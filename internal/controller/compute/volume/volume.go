@@ -117,7 +117,7 @@ func (c *connectorVolume) Connect(ctx context.Context, mg resource.Managed) (man
 // externalVolume resource to ensure it reflects the managed resource's desired state.
 type externalVolume struct {
 	// A 'client' used to connect to the externalVolume resource API. In practice this
-	// would be something like an AWS SDK client.
+	// would be something like an IONOS Cloud SDK client.
 	service volume.Client
 	log     logging.Logger
 }
@@ -149,7 +149,7 @@ func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (mana
 		}, retErr
 	}
 	cr.Status.AtProvider.State = *instance.Metadata.State
-	c.log.Debug(fmt.Sprintf("Observing state %v...", cr.Status.AtProvider.State))
+	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
 	switch cr.Status.AtProvider.State {
 	case compute.AVAILABLE, compute.ACTIVE:
@@ -184,7 +184,6 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
 	instance, apiResponse, err := c.service.CreateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
 	creation := managed.ExternalCreation{
 		ConnectionDetails: managed.ConnectionDetails{},

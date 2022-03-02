@@ -32,11 +32,7 @@ spec:
       name: VOLUME ID
       type: string
     - jsonPath: .spec.forProvider.name
-      name: NAME
-      priority: 1
-      type: string
-    - jsonPath: .spec.forProvider.licenceType
-      name: LICENCE TYPE
+      name: VOLUME NAME
       priority: 1
       type: string
     - jsonPath: .spec.forProvider.type
@@ -79,7 +75,7 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: 'VolumeProperties are the observable fields of a Volume.
+                description: 'VolumeParameters are the observable fields of a Volume.
                   Required values when creating a Volume: Datacenter ID or Reference,
                   Size, Type, Licence Type, Image ID or Image Alias. Note: when using
                   images, it is recommended to use SSH Keys or Image Password.'
@@ -103,6 +99,7 @@ spec:
                       'public image' or 'imageAlias' in conjunction with this property.
                     type: string
                   bus:
+                    default: VIRTIO
                     description: The bus type of the volume.
                     enum:
                     - VIRTIO

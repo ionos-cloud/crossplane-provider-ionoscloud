@@ -26,6 +26,10 @@ type Client interface {
 	CreateServer(ctx context.Context, datacenterID string, server sdkgo.Server) (sdkgo.Server, *sdkgo.APIResponse, error)
 	UpdateServer(ctx context.Context, datacenterID, serverID string, server sdkgo.ServerProperties) (sdkgo.Server, *sdkgo.APIResponse, error)
 	DeleteServer(ctx context.Context, datacenterID, serverID string) (*sdkgo.APIResponse, error)
+	AttachVolume(ctx context.Context, datacenterID, serverID string, volume sdkgo.Volume) (sdkgo.Volume, *sdkgo.APIResponse, error)
+	DetachVolume(ctx context.Context, datacenterID, serverID, volumeID string) (*sdkgo.APIResponse, error)
+	AttachCdrom(ctx context.Context, datacenterID, serverID string, cdrom sdkgo.Image) (sdkgo.Image, *sdkgo.APIResponse, error)
+	DetachCdrom(ctx context.Context, datacenterID, serverID, imageID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
 }
 
@@ -47,6 +51,26 @@ func (cp *APIClient) UpdateServer(ctx context.Context, datacenterID, serverID st
 // DeleteServer based on datacenterID, serverID
 func (cp *APIClient) DeleteServer(ctx context.Context, datacenterID, serverID string) (*sdkgo.APIResponse, error) {
 	return cp.ComputeClient.ServersApi.DatacentersServersDelete(ctx, datacenterID, serverID).Execute()
+}
+
+// AttachVolume based on datacenterID, serverID, and volume
+func (cp *APIClient) AttachVolume(ctx context.Context, datacenterID, serverID string, volume sdkgo.Volume) (sdkgo.Volume, *sdkgo.APIResponse, error) {
+	return cp.ComputeClient.ServersApi.DatacentersServersVolumesPost(ctx, datacenterID, serverID).Volume(volume).Execute()
+}
+
+// DetachVolume based on datacenterID, serverID, and volume
+func (cp *APIClient) DetachVolume(ctx context.Context, datacenterID, serverID, volumeID string) (*sdkgo.APIResponse, error) {
+	return cp.ComputeClient.ServersApi.DatacentersServersVolumesDelete(ctx, datacenterID, serverID, volumeID).Execute()
+}
+
+// AttachCdrom based on datacenterID, serverID, and image
+func (cp *APIClient) AttachCdrom(ctx context.Context, datacenterID, serverID string, cdrom sdkgo.Image) (sdkgo.Image, *sdkgo.APIResponse, error) {
+	return cp.ComputeClient.ServersApi.DatacentersServersCdromsPost(ctx, datacenterID, serverID).Cdrom(cdrom).Execute()
+}
+
+// DetachCdrom based on datacenterID, serverID, and imageId
+func (cp *APIClient) DetachCdrom(ctx context.Context, datacenterID, serverID, imageID string) (*sdkgo.APIResponse, error) {
+	return cp.ComputeClient.ServersApi.DatacentersServersCdromsDelete(ctx, datacenterID, serverID, imageID).Execute()
 }
 
 // GetAPIClient gets the APIClient
@@ -73,6 +97,12 @@ func GenerateCreateServerInput(cr *v1alpha1.Server) (*sdkgo.Server, error) {
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AvailabilityZone)) {
 		instanceCreateInput.Properties.SetAvailabilityZone(cr.Spec.ForProvider.AvailabilityZone)
 	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.BootCdromID)) {
+		instanceCreateInput.Properties.SetBootCdrom(sdkgo.ResourceReference{Id: &cr.Spec.ForProvider.BootCdromID})
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
+		instanceCreateInput.Properties.SetBootVolume(sdkgo.ResourceReference{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
+	}
 	return &instanceCreateInput, nil
 }
 
@@ -89,11 +119,17 @@ func GenerateUpdateServerInput(cr *v1alpha1.Server) (*sdkgo.ServerProperties, er
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AvailabilityZone)) {
 		instanceUpdateInput.SetAvailabilityZone(cr.Spec.ForProvider.AvailabilityZone)
 	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.BootCdromID)) {
+		instanceUpdateInput.SetBootCdrom(sdkgo.ResourceReference{Id: &cr.Spec.ForProvider.BootCdromID})
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
+		instanceUpdateInput.SetBootVolume(sdkgo.ResourceReference{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
+	}
 	return &instanceUpdateInput, nil
 }
 
 // IsServerUpToDate returns true if the Server is up-to-date or false if it does not
-func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool {
+func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && server.Properties == nil:
 		return true
@@ -101,14 +137,29 @@ func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool {
 		return false
 	case cr != nil && server.Properties == nil:
 		return false
-	}
-	if *server.Metadata.State == "BUSY" {
+	case cr.Spec.ForProvider.Name != *server.Properties.Name:
+		return false
+	case *server.Metadata.State == "BUSY":
+		return true
+	case cr.Spec.ForProvider.VolumeCfg.VolumeID != cr.Status.AtProvider.VolumeID:
+		return false
+	default:
 		return true
 	}
-	if strings.Compare(cr.Spec.ForProvider.Name, *server.Properties.Name) != 0 {
-		return false
+}
+
+// LateInitializer fills the empty fields in *v1alpha1.ServerParameters with
+// the values seen in sdkgo.Server.
+func LateInitializer(in *v1alpha1.ServerParameters, sg *sdkgo.Server) {
+	if sg == nil {
+		return
 	}
-	return true
+	// Add Boot CD-ROM ID to the Spec, if it was updated via other tool (e.g. DCD)
+	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
+		if bootCdromOk, ok := propertiesOk.GetBootCdromOk(); ok && bootCdromOk != nil {
+			in.BootCdromID = *bootCdromOk.Id
+		}
+	}
 }
 
 // GenerateCreateCubeServerInput returns CreateServerRequest based on the CR spec

@@ -28,12 +28,12 @@ spec:
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
       name: DATACENTER ID
       type: string
-    - jsonPath: .spec.forProvider.location
-      name: LOCATION
+    - jsonPath: .spec.forProvider.name
+      name: DATACENTER NAME
       priority: 1
       type: string
-    - jsonPath: .spec.forProvider.name
-      name: NAME
+    - jsonPath: .spec.forProvider.location
+      name: LOCATION
       priority: 1
       type: string
     - jsonPath: .status.atProvider.state
@@ -72,7 +72,7 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: 'DatacenterProperties are the observable fields of a
+                description: 'DatacenterParameters are the observable fields of a
                   Datacenter. Required values when creating a Volume: Location.'
                 properties:
                   description:

@@ -19,6 +19,11 @@ package server
 import (
 	"context"
 	"fmt"
+	"reflect"
+
+	"github.com/google/go-cmp/cmp"
+
+	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -40,6 +45,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const (
@@ -54,7 +60,6 @@ const (
 // Setup adds a controller that reconciles Server managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
 	name := managed.ControllerName(v1alpha1.ServerGroupKind)
-
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
@@ -68,6 +73,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:   l}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
+			managed.WithInitializers(),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
@@ -117,7 +123,7 @@ func (c *connectorServer) Connect(ctx context.Context, mg resource.Managed) (man
 // externalServer resource to ensure it reflects the managed resource's desired state.
 type externalServer struct {
 	// A 'client' used to connect to the externalServer resource API. In practice this
-	// would be something like an AWS SDK client.
+	// would be something like an IONOS Cloud SDK client.
 	service server.Client
 	log     logging.Logger
 }
@@ -129,28 +135,21 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	}
 
 	// External Name of the CR is the Server ID
-	id := meta.GetExternalName(cr)
-	if id == "" {
-		return managed.ExternalObservation{
-			ResourceExists:    false,
-			ResourceUpToDate:  false,
-			ConnectionDetails: managed.ConnectionDetails{},
-		}, nil
+	if meta.GetExternalName(cr) == "" {
+		return managed.ExternalObservation{}, nil
 	}
-	cr.Status.AtProvider.ServerID = id
-	instance, apiResponse, err := c.service.GetServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, id)
+	observed, apiResponse, err := c.service.GetServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get server by id. error: %w", err)
-		retErr = compute.CheckAPIResponseInfo(apiResponse, retErr)
-		return managed.ExternalObservation{
-			ResourceExists:    false,
-			ResourceUpToDate:  false,
-			ConnectionDetails: managed.ConnectionDetails{},
-		}, retErr
+		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
-	cr.Status.AtProvider.State = *instance.Metadata.State
-	c.log.Debug(fmt.Sprintf("Observing state %v...", cr.Status.AtProvider.State))
-	// Set Ready condition based on State
+
+	current := cr.Spec.ForProvider.DeepCopy()
+	server.LateInitializer(&cr.Spec.ForProvider, &observed)
+
+	cr.Status.AtProvider.ServerID = meta.GetExternalName(cr)
+	cr.Status.AtProvider.State = *observed.Metadata.State
+	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	switch cr.Status.AtProvider.State {
 	case compute.AVAILABLE, compute.ACTIVE:
 		cr.SetConditions(xpv1.Available())
@@ -163,18 +162,18 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	}
 
 	return managed.ExternalObservation{
-		ResourceExists:    true,
-		ResourceUpToDate:  server.IsServerUpToDate(cr, instance),
-		ConnectionDetails: managed.ConnectionDetails{},
+		ResourceExists:          true,
+		ResourceUpToDate:        server.IsServerUpToDate(cr, observed),
+		ConnectionDetails:       managed.ConnectionDetails{},
+		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}, nil
 }
 
-func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint:gocyclo
 	cr, ok := mg.(*v1alpha1.Server)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotServer)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
@@ -184,55 +183,87 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
 	instance, apiResponse, err := c.service.CreateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
-	creation := managed.ExternalCreation{
-		ConnectionDetails: managed.ConnectionDetails{},
-	}
+	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create server. error: %w", err)
-		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
-		return creation, retErr
+		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return managed.ExternalCreation{}, err
+		return creation, err
 	}
 
 	// Set External Name
 	cr.Status.AtProvider.ServerID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
 	creation.ExternalNameAssigned = true
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
+		c.log.Debug("Attaching Volume...")
+		_, apiResponse, err = c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+			cr.Status.AtProvider.ServerID, sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
+		if err != nil {
+			retErr := fmt.Errorf("failed to attach volume to server. error: %w", err)
+			return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
+		}
+		if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+			return creation, err
+		}
+		// Set Boot Volume ID
+		cr.Status.AtProvider.VolumeID = cr.Spec.ForProvider.VolumeCfg.VolumeID
+	}
+
 	return creation, nil
 }
 
-func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
+func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) { // nolint:gocyclo
 	cr, ok := mg.(*v1alpha1.Server)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotServer)
 	}
-	if cr.Status.AtProvider.State == compute.BUSY || cr.Status.AtProvider.State == compute.UPDATING {
+	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalUpdate{}, nil
 	}
+	// Attach or Detach Volume
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
+		c.log.Debug("Attaching Volume...")
+		_, apiResponse, err := c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID,
+			sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
+		if err != nil {
+			retErr := fmt.Errorf("failed to attach volume to server. error: %w", err)
+			return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
+		}
+		if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+			return managed.ExternalUpdate{}, err
+		}
+	} else if cr.Status.AtProvider.VolumeID != "" {
+		c.log.Debug("Detaching Volume...")
+		apiResponse, err := c.service.DetachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+			cr.Status.AtProvider.ServerID, cr.Status.AtProvider.VolumeID)
+		if err != nil {
+			retErr := fmt.Errorf("failed to detach volume from server. error: %w", err)
+			return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
+		}
+		if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+			return managed.ExternalUpdate{}, err
+		}
+	}
+	// Set Boot Volume ID
+	cr.Status.AtProvider.VolumeID = cr.Spec.ForProvider.VolumeCfg.VolumeID
 
-	serverID := cr.Status.AtProvider.ServerID
+	// Enterprise Server
 	instanceInput, err := server.GenerateUpdateServerInput(cr)
 	if err != nil {
-		return managed.ExternalUpdate{}, nil
+		return managed.ExternalUpdate{}, err
 	}
-
-	_, apiResponse, err := c.service.UpdateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, serverID, *instanceInput)
-	update := managed.ExternalUpdate{
-		ConnectionDetails: managed.ConnectionDetails{},
-	}
+	_, apiResponse, err := c.service.UpdateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to update server. error: %w", err)
-		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
-		return update, retErr
+		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalUpdate{}, err
 	}
-	return update, nil
+	return managed.ExternalUpdate{}, nil
 }
 
 func (c *externalServer) Delete(ctx context.Context, mg resource.Managed) error {
@@ -249,8 +280,7 @@ func (c *externalServer) Delete(ctx context.Context, mg resource.Managed) error 
 	apiResponse, err := c.service.DeleteServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete server. error: %w", err)
-		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
-		return retErr
+		return compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err

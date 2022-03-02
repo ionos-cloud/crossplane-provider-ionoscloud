@@ -25,12 +25,12 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
-// ServerProperties are the observable fields of a Server.
+// ServerParameters are the observable fields of a Server.
 // Required values when creating a Server:
 // Datacenter ID or Reference,
 // Cores,
 // RAM.
-type ServerProperties struct {
+type ServerParameters struct {
 	// DatacenterConfig contains information about the datacenter resource
 	// on which the server will be created
 	//
@@ -59,18 +59,28 @@ type ServerProperties struct {
 	//
 	// +kubebuilder:validation:Enum=AMD_OPTERON;INTEL_SKYLAKE;INTEL_XEON
 	CPUFamily string `json:"cpuFamily,omitempty"`
+	// +kubebuilder:validation:Optional
+	BootCdromID string `json:"bootCdromId,omitempty"`
+	// In order to attach a volume to the server, it is recommended to use VolumeConfig
+	// to set the existing volume (via id or via reference).
+	// To detach a volume from the server, update the CR spec by removing it.
+	//
+	// VolumeConfig contains information about the existing volume resource
+	// which will be attached to the server and set as bootVolume
+	VolumeCfg VolumeConfig `json:"volumeConfig,omitempty"`
 }
 
 // ServerObservation are the observable fields of a Server.
 type ServerObservation struct {
 	ServerID string `json:"serverId,omitempty"`
+	VolumeID string `json:"volumeId,omitempty"`
 	State    string `json:"state,omitempty"`
 }
 
 // A ServerSpec defines the desired state of a Server.
 type ServerSpec struct {
 	xpv1.ResourceSpec `json:",inline"`
-	ForProvider       ServerProperties `json:"forProvider"`
+	ForProvider       ServerParameters `json:"forProvider"`
 }
 
 // A ServerStatus represents the observed state of a Server.
@@ -86,7 +96,8 @@ type ServerStatus struct {
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="DATACENTER ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
 // +kubebuilder:printcolumn:name="SERVER ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
-// +kubebuilder:printcolumn:name="NAME",priority=1,type="string",JSONPath=".spec.forProvider.name"
+// +kubebuilder:printcolumn:name="SERVER NAME",priority=1,type="string",JSONPath=".spec.forProvider.name"
+// +kubebuilder:printcolumn:name="BOOT VOLUME ID",priority=1,type="string",JSONPath=".status.atProvider.volumeId"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
