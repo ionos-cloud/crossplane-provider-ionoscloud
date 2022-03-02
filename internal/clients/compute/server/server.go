@@ -129,8 +129,7 @@ func GenerateUpdateServerInput(cr *v1alpha1.Server) (*sdkgo.ServerProperties, er
 }
 
 // IsServerUpToDate returns true if the Server is up-to-date or false if it does not
-//nolint
-func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool {
+func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && server.Properties == nil:
 		return true
@@ -138,21 +137,29 @@ func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool {
 		return false
 	case cr != nil && server.Properties == nil:
 		return false
-	}
-	if *server.Metadata.State == "BUSY" {
+	case cr.Spec.ForProvider.Name != *server.Properties.Name:
+		return false
+	case *server.Metadata.State == "BUSY":
+		return true
+	case cr.Spec.ForProvider.VolumeCfg.VolumeID != cr.Status.AtProvider.VolumeID:
+		return false
+	default:
 		return true
 	}
-	if strings.Compare(cr.Spec.ForProvider.Name, *server.Properties.Name) != 0 {
-		return false
+}
+
+// LateInitializer fills the empty fields in *v1alpha1.ServerParameters with
+// the values seen in sdkgo.Server.
+func LateInitializer(in *v1alpha1.ServerParameters, sg *sdkgo.Server) {
+	if sg == nil {
+		return
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
-		if cr.Status.AtProvider.VolumeID != cr.Spec.ForProvider.VolumeCfg.VolumeID {
-			return false
+	// Add Boot CD-ROM ID to the Spec, if it was updated via other tool (e.g. DCD)
+	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
+		if bootCdromOk, ok := propertiesOk.GetBootCdromOk(); ok && bootCdromOk != nil {
+			in.BootCdromID = *bootCdromOk.Id
 		}
-	} else if cr.Status.AtProvider.VolumeID != "" {
-		return false
 	}
-	return true
 }
 
 // GenerateCreateCubeServerInput returns CreateServerRequest based on the CR spec

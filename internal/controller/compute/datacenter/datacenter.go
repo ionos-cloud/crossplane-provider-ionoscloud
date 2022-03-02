@@ -67,7 +67,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
 				kube:  mgr.GetClient(),
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:   l}),
-			managed.WithLogger(l.WithValues("controller-datacenter", name)),
+			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 
@@ -116,7 +116,7 @@ func (c *connectorDatacenter) Connect(ctx context.Context, mg resource.Managed) 
 // externalDatacenter resource to ensure it reflects the managed resource's desired state.
 type externalDatacenter struct {
 	// A 'client' used to connect to the externalDatacenter resource API. In practice this
-	// would be something like an AWS SDK client.
+	// would be something like an IONOS Cloud SDK client.
 	service datacenter.Client
 	log     logging.Logger
 }

@@ -53,8 +53,8 @@ const (
 	errNewClient = "cannot create new Service"
 )
 
-// SetupPostgresCluster adds a controller that reconciles Cluster managed resources.
-func SetupPostgresCluster(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
+// Setup adds a controller that reconciles Cluster managed resources.
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
 	name := managed.ControllerName(v1alpha1.ClusterGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -118,7 +118,7 @@ func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (ma
 // externalCluster resource to ensure it reflects the managed resource's desired state.
 type externalCluster struct {
 	// A 'client' used to connect to the externalCluster resource API. In practice this
-	// would be something like an AWS SDK client.
+	// would be something like an IONOS Cloud SDK client.
 	service postgres.ClusterClient
 	log     logging.Logger
 }

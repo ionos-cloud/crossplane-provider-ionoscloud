@@ -58,7 +58,8 @@ type ServerParameters struct {
 	// available CPU architectures can be retrieved from the datacenter resource.
 	//
 	// +kubebuilder:validation:Enum=AMD_OPTERON;INTEL_SKYLAKE;INTEL_XEON
-	CPUFamily   string `json:"cpuFamily,omitempty"`
+	CPUFamily string `json:"cpuFamily,omitempty"`
+	// +kubebuilder:validation:Optional
 	BootCdromID string `json:"bootCdromId,omitempty"`
 	// In order to attach a volume to the server, it is recommended to use VolumeConfig
 	// to set the existing volume (via id or via reference).

@@ -34,16 +34,15 @@ import (
 // and adds them to the supplied manager.
 func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter) error {
 	for _, setup := range []func(ctrl.Manager, logging.Logger, workqueue.RateLimiter) error{
-		config.Setup,
 		datacenter.Setup,
 		server.Setup,
 		cubeserver.Setup,
 		volume.Setup,
-		postgres.SetupPostgresCluster,
+		postgres.Setup,
 	} {
 		if err := setup(mgr, l, wl); err != nil {
 			return err
 		}
 	}
-	return nil
+	return config.Setup(mgr, l, wl)
 }

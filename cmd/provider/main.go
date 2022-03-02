@@ -33,9 +33,9 @@ import (
 
 func main() {
 	var (
-		app            = kingpin.New(filepath.Base(os.Args[0]), "Template support for Crossplane.").DefaultEnvars()
+		app            = kingpin.New(filepath.Base(os.Args[0]), "IONOS Cloud support for Crossplane.").DefaultEnvars()
 		debug          = app.Flag("debug", "Run with debug logging.").Short('d').Bool()
-		syncPeriod     = app.Flag("sync", "Controller manager sync period such as 300ms, 1.5h, or 2h45m").Short('s').Default("1h").Duration()
+		syncInterval   = app.Flag("sync", "Controller manager sync interval such as 300ms, 1.5h, or 2h45m").Short('s').Default("1h").Duration()
 		leaderElection = app.Flag("leader-election", "Use leader election for the controller manager.").Short('l').Default("false").Envar("LEADER_ELECTION").Bool()
 	)
 	kingpin.MustParse(app.Parse(os.Args[1:]))
@@ -49,7 +49,7 @@ func main() {
 		ctrl.SetLogger(zl)
 	}
 
-	log.Debug("Starting", "sync-period", syncPeriod.String())
+	log.Debug("Starting", "sync-period", syncInterval.String())
 
 	cfg, err := ctrl.GetConfig()
 	kingpin.FatalIfError(err, "Cannot get API server rest config")
@@ -57,7 +57,7 @@ func main() {
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		LeaderElection:   *leaderElection,
 		LeaderElectionID: "crossplane-leader-election-provider-ionoscloud",
-		SyncPeriod:       syncPeriod,
+		SyncPeriod:       syncInterval,
 	})
 	kingpin.FatalIfError(err, "Cannot create controller manager")
 
