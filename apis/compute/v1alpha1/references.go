@@ -35,3 +35,17 @@ func ExtractVolumeID() reference.ExtractValueFn {
 		return meta.GetExternalName(res)
 	}
 }
+
+// ExtractLanID returns the externalName of a referenced Lan.
+func ExtractLanID() reference.ExtractValueFn {
+	return func(mg resource.Managed) string {
+		res, ok := mg.(*Lan)
+		if !ok {
+			return defaultStringValue
+		}
+		if meta.GetExternalName(res) == res.Name {
+			return defaultStringValue
+		}
+		return meta.GetExternalName(res)
+	}
+}

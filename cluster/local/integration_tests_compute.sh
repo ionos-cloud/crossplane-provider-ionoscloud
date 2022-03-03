@@ -255,3 +255,83 @@ EOF
   echo_step "wait for deletion volume CR"
   kubectl wait --for=delete volumes/example
 }
+
+## Lan CR Tests
+function lan_tests() {
+  echo_step "deploy a lan CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampletest
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for lan CR to be ready"
+  kubectl wait --for=condition=ready lans/example
+
+  echo_step "get lan CR"
+  kubectl get lans
+
+  echo_step "update lan CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampletestLan
+    public: true
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for lan CR to be ready"
+  kubectl wait --for=condition=ready lans/example
+}
+
+function lan_tests_cleanup() {
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampletestLan
+    public: true
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo_step "uninstalling lan CR"
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
+
+  echo_step "wait for deletion lan CR"
+  kubectl wait --for=delete lans/example
+}
