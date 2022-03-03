@@ -214,12 +214,16 @@ echo "${INSTALL_CRED_YAML}" | "${KUBECTL}" apply -f -
 # run Compute Resources Tests
 echo_step "--- datacenter tests ---"
 datacenter_tests
+echo_step "--- lan tests ---"
+lan_tests
 echo_step "--- server tests ---"
 server_tests
 echo_step "--- volume tests ---"
 volume_tests
 
 # uninstalling Compute Resources
+echo_step "cleanup lan tests"
+lan_tests_cleanup
 echo_step "cleanup server tests"
 server_tests_cleanup
 echo_step "cleanup volume tests"
