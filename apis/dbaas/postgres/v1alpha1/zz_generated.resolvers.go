@@ -50,6 +50,24 @@ func (mg *Cluster) ResolveReferences(ctx context.Context, c client.Reader) error
 		mg.Spec.ForProvider.Connections[i3].DatacenterCfg.DatacenterIDRef = rsp.ResolvedReference
 
 	}
+	for i3 := 0; i3 < len(mg.Spec.ForProvider.Connections); i3++ {
+		rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+			CurrentValue: mg.Spec.ForProvider.Connections[i3].LanCfg.LanID,
+			Extract:      v1alpha1.ExtractLanID(),
+			Reference:    mg.Spec.ForProvider.Connections[i3].LanCfg.LanIDRef,
+			Selector:     mg.Spec.ForProvider.Connections[i3].LanCfg.LanIDSelector,
+			To: reference.To{
+				List:    &v1alpha1.LanList{},
+				Managed: &v1alpha1.Lan{},
+			},
+		})
+		if err != nil {
+			return errors.Wrap(err, "mg.Spec.ForProvider.Connections[i3].LanCfg.LanID")
+		}
+		mg.Spec.ForProvider.Connections[i3].LanCfg.LanID = rsp.ResolvedValue
+		mg.Spec.ForProvider.Connections[i3].LanCfg.LanIDRef = rsp.ResolvedReference
+
+	}
 
 	return nil
 }

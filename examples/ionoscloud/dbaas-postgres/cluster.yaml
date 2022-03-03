@@ -10,6 +10,20 @@ spec:
   providerConfigRef:
     name: example
 ---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: examplelan
+spec:
+  forProvider:
+    name: exampleLan
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
 apiVersion: dbaas.postgres.ionoscloud.crossplane.io/v1alpha1
 kind: Cluster
 metadata:
@@ -22,7 +36,9 @@ spec:
       - datacenterConfig:
           datacenterIdRef:
             name: example
-        lanId: "1"
+        lanConfig:
+          lanIdRef:
+            name: examplelan
         cidr: 192.168.1.100/24
     credentials:
       username: test

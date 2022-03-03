@@ -134,7 +134,7 @@ func clusterConnections(connections []v1alpha1.Connection) *[]ionoscloud.Connect
 	connects := make([]ionoscloud.Connection, 0)
 	for _, connection := range connections {
 		datacenterID := connection.DatacenterCfg.DatacenterID
-		lanID := connection.LanID
+		lanID := connection.LanCfg.LanID
 		cidr := connection.Cidr
 		connects = append(connects, ionoscloud.Connection{
 			DatacenterId: &datacenterID,

@@ -98,10 +98,10 @@ type Connection struct {
 	//
 	// +kubebuilder:validation:Required
 	DatacenterCfg DatacenterConfig `json:"datacenterConfig"`
-	// The numeric LAN ID to connect your cluster to.
+	// LanConfig contains information about the lan resource
 	//
 	// +kubebuilder:validation:Required
-	LanID string `json:"lanId"`
+	LanCfg LanConfig `json:"lanConfig"`
 	// The IP and subnet for your cluster. Note the following unavailable IP ranges: 10.233.64.0/18 10.233.0.0/18 10.233.114.0/24
 	//
 	// +kubebuilder:validation:Required
@@ -157,6 +157,26 @@ type DatacenterConfig struct {
 	DatacenterIDSelector *xpv1.Selector `json:"datacenterIdSelector,omitempty"`
 }
 
+// LanConfig is used by resources that need to link lans via id or via reference.
+type LanConfig struct {
+	// LanID is the ID of the Lan on which the cluster will connect to.
+	// It needs to be provided via directly or via reference.
+	//
+	// +immutable
+	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.Lan
+	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractLanID()
+	LanID string `json:"lanId,omitempty"`
+	// LanIDRef references to a Lan to retrieve its ID
+	//
+	// +optional
+	// +immutable
+	LanIDRef *xpv1.Reference `json:"lanIdRef,omitempty"`
+	// LanIDSelector selects reference to a Lan to retrieve its lanId
+	//
+	// +optional
+	LanIDSelector *xpv1.Selector `json:"lanIdSelector,omitempty"`
+}
+
 // ClusterObservation are the observable fields of a Cluster.
 type ClusterObservation struct {
 	ClusterID string `json:"clusterId,omitempty"`
@@ -182,7 +202,8 @@ type ClusterStatus struct {
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="CLUSTER ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="CLUSTER NAME",priority=1,type="string",JSONPath=".spec.forProvider.displayName"
-// +kubebuilder:printcolumn:name="DATACENTER ID",priority=1,type="string",JSONPath=".spec.forProvider.connections[0].datacenterId"
+// +kubebuilder:printcolumn:name="DATACENTER ID",priority=1,type="string",JSONPath=".spec.forProvider.connections[0].datacenterConfig.datacenterId"
+// +kubebuilder:printcolumn:name="LAN ID",priority=1,type="string",JSONPath=".spec.forProvider.connections[0].lanConfig.lanId"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
