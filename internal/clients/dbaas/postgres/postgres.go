@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
@@ -94,8 +93,27 @@ func GenerateUpdateClusterInput(cr *v1alpha1.Cluster) (*ionoscloud.PatchClusterR
 	return &instanceUpdateInput, nil
 }
 
+// LateInitializer fills the empty fields in *v1alpha1.ClusterParameters with
+// the values seen in ionoscloud.ClusterResponse.
+func LateInitializer(in *v1alpha1.ClusterParameters, sg *ionoscloud.ClusterResponse) {
+	if sg == nil {
+		return
+	}
+	// Add Maintenance Window to the Spec, if it was set by the API
+	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
+		if maintenanceWindowOk, ok := propertiesOk.GetMaintenanceWindowOk(); ok && maintenanceWindowOk != nil {
+			if timeOk, ok := maintenanceWindowOk.GetTimeOk(); ok && timeOk != nil {
+				in.MaintenanceWindow.Time = *timeOk
+			}
+			if dayOfTheWeekOk, ok := maintenanceWindowOk.GetDayOfTheWeekOk(); ok && dayOfTheWeekOk != nil {
+				in.MaintenanceWindow.DayOfTheWeek = string(*dayOfTheWeekOk)
+			}
+		}
+	}
+}
+
 // IsClusterUpToDate returns true if the cluster is up-to-date or false if it does not
-func IsClusterUpToDate(cr *v1alpha1.Cluster, clusterResponse ionoscloud.ClusterResponse) bool {
+func IsClusterUpToDate(cr *v1alpha1.Cluster, clusterResponse ionoscloud.ClusterResponse) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && clusterResponse.Properties == nil:
 		return true
@@ -103,20 +121,19 @@ func IsClusterUpToDate(cr *v1alpha1.Cluster, clusterResponse ionoscloud.ClusterR
 		return false
 	case cr != nil && clusterResponse.Properties == nil:
 		return false
-	}
-	if *clusterResponse.Metadata.State == ionoscloud.BUSY {
+	case clusterResponse.Metadata != nil && *clusterResponse.Metadata.State == ionoscloud.BUSY:
+		return true
+	case clusterResponse.Properties != nil && *clusterResponse.Properties.DisplayName != cr.Spec.ForProvider.DisplayName:
+		return false
+	default:
 		return true
 	}
-	if strings.Compare(cr.Spec.ForProvider.DisplayName, *clusterResponse.Properties.DisplayName) != 0 {
-		return false
-	}
-	return true
 }
 
 func clusterConnections(connections []v1alpha1.Connection) *[]ionoscloud.Connection {
 	connects := make([]ionoscloud.Connection, 0)
 	for _, connection := range connections {
-		datacenterID := connection.DatacenterID
+		datacenterID := connection.DatacenterCfg.DatacenterID
 		lanID := connection.LanID
 		cidr := connection.Cidr
 		connects = append(connects, ionoscloud.Connection{
