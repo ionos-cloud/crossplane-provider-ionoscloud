@@ -2,7 +2,10 @@ package postgres
 
 import (
 	"context"
+	"reflect"
 	"time"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 
 	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 
@@ -95,7 +98,7 @@ func GenerateUpdateClusterInput(cr *v1alpha1.Cluster) (*ionoscloud.PatchClusterR
 
 // LateInitializer fills the empty fields in *v1alpha1.ClusterParameters with
 // the values seen in ionoscloud.ClusterResponse.
-func LateInitializer(in *v1alpha1.ClusterParameters, sg *ionoscloud.ClusterResponse) {
+func LateInitializer(in *v1alpha1.ClusterParameters, sg *ionoscloud.ClusterResponse) { // nolint:gocyclo
 	if sg == nil {
 		return
 	}
@@ -103,10 +106,14 @@ func LateInitializer(in *v1alpha1.ClusterParameters, sg *ionoscloud.ClusterRespo
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
 		if maintenanceWindowOk, ok := propertiesOk.GetMaintenanceWindowOk(); ok && maintenanceWindowOk != nil {
 			if timeOk, ok := maintenanceWindowOk.GetTimeOk(); ok && timeOk != nil {
-				in.MaintenanceWindow.Time = *timeOk
+				if utils.IsEmptyValue(reflect.ValueOf(in.MaintenanceWindow.Time)) {
+					in.MaintenanceWindow.Time = *timeOk
+				}
 			}
 			if dayOfTheWeekOk, ok := maintenanceWindowOk.GetDayOfTheWeekOk(); ok && dayOfTheWeekOk != nil {
-				in.MaintenanceWindow.DayOfTheWeek = string(*dayOfTheWeekOk)
+				if utils.IsEmptyValue(reflect.ValueOf(in.MaintenanceWindow.DayOfTheWeek)) {
+					in.MaintenanceWindow.DayOfTheWeek = string(*dayOfTheWeekOk)
+				}
 			}
 		}
 	}
@@ -114,20 +121,28 @@ func LateInitializer(in *v1alpha1.ClusterParameters, sg *ionoscloud.ClusterRespo
 
 // IsClusterUpToDate returns true if the cluster is up-to-date or false if it does not
 func IsClusterUpToDate(cr *v1alpha1.Cluster, clusterResponse ionoscloud.ClusterResponse) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && clusterResponse.Properties == nil:
-		return true
-	case cr == nil && clusterResponse.Properties != nil:
+	if clusterResponse.Properties == nil || clusterResponse.Metadata == nil || cr == nil {
 		return false
-	case cr != nil && clusterResponse.Properties == nil:
-		return false
-	case clusterResponse.Metadata != nil && *clusterResponse.Metadata.State == ionoscloud.BUSY:
-		return true
-	case clusterResponse.Properties != nil && *clusterResponse.Properties.DisplayName != cr.Spec.ForProvider.DisplayName:
-		return false
-	default:
-		return true
 	}
+	switch {
+	case *clusterResponse.Metadata.State == ionoscloud.BUSY:
+		return true
+	case *clusterResponse.Properties.DisplayName != cr.Spec.ForProvider.DisplayName:
+		return false
+	case *clusterResponse.Properties.PostgresVersion != cr.Spec.ForProvider.PostgresVersion:
+		return false
+	case *clusterResponse.Properties.Instances != cr.Spec.ForProvider.Instances:
+		return false
+	case *clusterResponse.Properties.Cores != cr.Spec.ForProvider.Cores:
+		return false
+	case *clusterResponse.Properties.Ram != cr.Spec.ForProvider.RAM:
+		return false
+	case *clusterResponse.Properties.StorageSize != cr.Spec.ForProvider.StorageSize:
+		return false
+	case !reflect.DeepEqual(*clusterResponse.Properties.StorageSize, cr.Spec.ForProvider.Connections):
+		return false
+	}
+	return true
 }
 
 func clusterConnections(connections []v1alpha1.Connection) *[]ionoscloud.Connection {
