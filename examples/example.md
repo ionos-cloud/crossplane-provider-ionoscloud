@@ -145,15 +145,15 @@ Next, we will create a Custom Resource(CR) of type `clusters.dbaas.postgres.iono
 ### Create a resource in IONOS Cloud
 
 ❗ Before running the next command, make sure to **update** the values in the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file. Look for `spec.forProvider` fields. 
-It is required to specify the Datacenter ID, Lan ID, CIDR, and location(in sync with the Datacenter) and credentials for the database user.
+It is required to specify the Datacenter (via ID or via reference), Lan (via ID or via reference), CIDR, and location(in sync with the Datacenter) and credentials for the database user.
 
-1. **[CREATE]** Create a CR of type cluster:
+1. **[CREATE]** Create a datacenter CR, a lan CR and a cluster CR - using the next command:
 
 ```bash
 kubectl apply -f examples/ionoscloud/dbaas-postgres/cluster.yaml
 ```
 
-Check if the CR created is _synced_ and _ready_:
+Check if the cluster CR created is _synced_ and _ready_:
 
 ```bash
 kubectl get clusters
@@ -162,11 +162,17 @@ kubectl get clusters
 Output:
 
 ```bash
-NAME       READY   SYNCED   ID                                    STATE      AGE
-example2   True    True     9b25ecab-83fe-11ec-8d97-828542a828c7  AVAILABLE  93m
+NAME       READY   SYNCED   CLUSTER ID                            STATE      AGE
+example    True    True     9b25ecab-83fe-11ec-8d97-828542a828c7  AVAILABLE  93m
 ```
 
-The external-name of the CR is the Cluster ID from IONOS Cloud. The CR will be marked as ready when the cluster is in available state (subject of change).
+For more details, use:
+
+```bash
+kubectl get clusters -o wide
+```
+
+The external-name of the CR is the Cluster ID from IONOS Cloud. The cluster CR will be marked as ready when the cluster is in available state (subject of change).
 
 You can check if the DBaaS Postgres Cluster was created in the IONOS Cloud:
 
@@ -185,7 +191,7 @@ ClusterId                              DisplayName   Location   DatacenterId    
 
 - in DCD: go to [DCD Manager](https://dcd.ionos.com/latest/?dbaas=true) to `Manager Resources>Database Manager>Postgres Clusters`
 
-2. **[UPDATE]** If you want to update the CR created, update values from the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file and use the following command:
+2. **[UPDATE]** If you want to update the cluster CR created, update values from the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file and use the following command:
 
 ```bash
 kubectl apply -f examples/ionoscloud/dbaas-postgres/cluster.yaml
@@ -193,13 +199,28 @@ kubectl apply -f examples/ionoscloud/dbaas-postgres/cluster.yaml
 
 The updates applied should be updated in the external resource in IONOS Cloud.
 
-3. **[DELETE]** If you want to delete the CR created, use the following command:
+3. **[DELETE]** If you want to delete the cluster CR created (named `example`), use the following command:
+
+```bash
+kubectl delete cluster example
+```
+
+This should trigger the destroying of the DBaaS Postgres Cluster.
+
+⚠️ Make sure to delete the DBaaS Postgres Cluster **before** deleting the datacenter or the lan used in the Cluster's connection!
+
+Delete the lan and datacenter CRs:
+
+```bash
+kubectl delete lan examplelan
+kubectl delete datacenter example
+```
+
+Or you can use the following command (not recommended for this particular case - it might delete the datacenter before the cluster): 
 
 ```bash
 kubectl delete -f examples/ionoscloud/dbaas-postgres/cluster.yaml
 ```
-
-This should trigger the destroying of the DBaaS Postgres Cluster.
 
 ## Cleanup
 

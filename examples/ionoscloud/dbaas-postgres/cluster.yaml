@@ -1,3 +1,29 @@
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleDatacenter
+    location: de/txl
+    description: test
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: examplelan
+spec:
+  forProvider:
+    name: exampleLan
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
 apiVersion: dbaas.postgres.ionoscloud.crossplane.io/v1alpha1
 kind: Cluster
 metadata:
@@ -7,13 +33,17 @@ spec:
     displayName: testDemo
     postgresVersion: "13"
     connections:
-      - cidr:
-        datacenterID:
-        lanID:
+      - datacenterConfig:
+          datacenterIdRef:
+            name: example
+        lanConfig:
+          lanIdRef:
+            name: examplelan
+        cidr: 192.168.1.100/24
     credentials:
-      password:
-      username:
-    location:
+      username: test
+      password: test12345
+    location: de/txl
     instances: 1
     cores: 2
     ram: 2048
