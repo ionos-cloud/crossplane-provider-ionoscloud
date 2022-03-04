@@ -207,7 +207,20 @@ kubectl delete cluster example
 
 This should trigger the destroying of the DBaaS Postgres Cluster.
 
-⚠️Make sure to delete the DBaaS Postgres Cluster _before_ deleting the datacenter or the lan used in the Cluster's connection!
+⚠️ Make sure to delete the DBaaS Postgres Cluster **before** deleting the datacenter or the lan used in the Cluster's connection!
+
+Delete the lan and datacenter CRs:
+
+```bash
+kubectl delete lan examplelan
+kubectl delete datacenter example
+```
+
+Or you can use the following command (not recommended for this particular case - it might delete the datacenter before the cluster): 
+
+```bash
+kubectl delete -f examples/ionoscloud/dbaas-postgres/cluster.yaml
+```
 
 ## Cleanup
 
