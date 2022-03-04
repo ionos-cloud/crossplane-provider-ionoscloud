@@ -2,11 +2,15 @@ package nic
 
 import (
 	"context"
+	"reflect"
+
+	"github.com/rung/go-safecast"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 // APIClient is a wrapper around IONOS Service
@@ -49,31 +53,63 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 }
 
 // GenerateCreateNicInput returns CreateNicRequest based on the CR spec
-func GenerateCreateNicInput(cr *v1alpha1.Nic) (*sdkgo.Nic, error) {
+func GenerateCreateNicInput(cr *v1alpha1.Nic) (*sdkgo.Nic, error) { // nolint:gocyclo
+	lanID, err := safecast.Atoi32(cr.Spec.ForProvider.LanCfg.LanID)
+	if err != nil {
+		return nil, err
+	}
 	instanceCreateInput := sdkgo.Nic{
 		Properties: &sdkgo.NicProperties{
-			Name:           &cr.Spec.ForProvider.Name,
-			Mac:            &cr.Spec.ForProvider.Mac,
-			Ips:            &cr.Spec.ForProvider.Ips,
-			Dhcp:           &cr.Spec.ForProvider.Dhcp,
-			Lan:            &cr.Spec.ForProvider.Lan,
-			FirewallActive: &cr.Spec.ForProvider.FirewallActive,
-			FirewallType:   &cr.Spec.ForProvider.FirewallType,
+			Lan: &lanID,
 		},
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Name)) {
+		instanceCreateInput.Properties.SetName(cr.Spec.ForProvider.Name)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Mac)) {
+		instanceCreateInput.Properties.SetMac(cr.Spec.ForProvider.Mac)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Ips)) {
+		instanceCreateInput.Properties.SetIps(cr.Spec.ForProvider.Ips)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Dhcp)) {
+		instanceCreateInput.Properties.SetDhcp(cr.Spec.ForProvider.Dhcp)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.FirewallActive)) {
+		instanceCreateInput.Properties.SetFirewallActive(cr.Spec.ForProvider.FirewallActive)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.FirewallType)) {
+		instanceCreateInput.Properties.SetFirewallType(cr.Spec.ForProvider.FirewallType)
 	}
 	return &instanceCreateInput, nil
 }
 
 // GenerateUpdateNicInput returns PatchNicRequest based on the CR spec modifications
-func GenerateUpdateNicInput(cr *v1alpha1.Nic) (*sdkgo.NicProperties, error) {
+func GenerateUpdateNicInput(cr *v1alpha1.Nic) (*sdkgo.NicProperties, error) { // nolint:gocyclo
+	lanID, err := safecast.Atoi32(cr.Spec.ForProvider.LanCfg.LanID)
+	if err != nil {
+		return nil, err
+	}
 	instanceUpdateInput := sdkgo.NicProperties{
-		Name:           &cr.Spec.ForProvider.Name,
-		Mac:            &cr.Spec.ForProvider.Mac,
-		Ips:            &cr.Spec.ForProvider.Ips,
-		Dhcp:           &cr.Spec.ForProvider.Dhcp,
-		Lan:            &cr.Spec.ForProvider.Lan,
-		FirewallActive: &cr.Spec.ForProvider.FirewallActive,
-		FirewallType:   &cr.Spec.ForProvider.FirewallType,
+		Lan: &lanID,
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Name)) {
+		instanceUpdateInput.SetName(cr.Spec.ForProvider.Name)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Mac)) {
+		instanceUpdateInput.SetMac(cr.Spec.ForProvider.Mac)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Ips)) {
+		instanceUpdateInput.SetIps(cr.Spec.ForProvider.Ips)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Dhcp)) {
+		instanceUpdateInput.SetDhcp(cr.Spec.ForProvider.Dhcp)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.FirewallActive)) {
+		instanceUpdateInput.SetFirewallActive(cr.Spec.ForProvider.FirewallActive)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.FirewallType)) {
+		instanceUpdateInput.SetFirewallType(cr.Spec.ForProvider.FirewallType)
 	}
 	return &instanceUpdateInput, nil
 }

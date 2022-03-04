@@ -41,6 +41,11 @@ type NicParameters struct {
 	//
 	// +kubebuilder:validation:Required
 	ServerCfg ServerConfig `json:"serverConfig"`
+	// LanConfig contains information about the lan resource
+	// on which the nic will be on
+	//
+	// +kubebuilder:validation:Required
+	LanCfg LanConfig `json:"lanConfig"`
 	// The name of the  resource.
 	//
 	// +kubebuilder:validation:Optional
@@ -59,10 +64,6 @@ type NicParameters struct {
 	//
 	// +kubebuilder:validation:Optional
 	Dhcp bool `json:"dhcp,omitempty"`
-	// The LAN ID the NIC will be on. If the LAN ID does not exist, it will be implicitly created.
-	//
-	// +kubebuilder:validation:Required
-	Lan int32 `json:"lan"`
 	// Activate or deactivate the firewall. By default, an active firewall without any defined rules
 	// will block all incoming network traffic except for the firewall rules that explicitly allows certain protocols, IP addresses and ports.
 	//
@@ -100,6 +101,7 @@ type NicStatus struct {
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="DATACENTER ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
 // +kubebuilder:printcolumn:name="SERVER ID",type="string",JSONPath=".spec.forProvider.serverConfig.serverId"
+// +kubebuilder:printcolumn:name="LAN ID",type="string",JSONPath=".spec.forProvider.lanConfig.lanId"
 // +kubebuilder:printcolumn:name="NIC ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="NIC NAME",priority=1,type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="IPS",priority=1,type="array",JSONPath=".spec.forProvider.ips"

@@ -115,6 +115,22 @@ func (mg *Nic) ResolveReferences(ctx context.Context, c client.Reader) error {
 	mg.Spec.ForProvider.ServerCfg.ServerID = rsp.ResolvedValue
 	mg.Spec.ForProvider.ServerCfg.ServerIDRef = rsp.ResolvedReference
 
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.LanCfg.LanID,
+		Extract:      ExtractLanID(),
+		Reference:    mg.Spec.ForProvider.LanCfg.LanIDRef,
+		Selector:     mg.Spec.ForProvider.LanCfg.LanIDSelector,
+		To: reference.To{
+			List:    &LanList{},
+			Managed: &Lan{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.LanCfg.LanID")
+	}
+	mg.Spec.ForProvider.LanCfg.LanID = rsp.ResolvedValue
+	mg.Spec.ForProvider.LanCfg.LanIDRef = rsp.ResolvedReference
+
 	return nil
 }
 

@@ -495,6 +495,7 @@ func (in *NicParameters) DeepCopyInto(out *NicParameters) {
 	*out = *in
 	in.DatacenterCfg.DeepCopyInto(&out.DatacenterCfg)
 	in.ServerCfg.DeepCopyInto(&out.ServerCfg)
+	in.LanCfg.DeepCopyInto(&out.LanCfg)
 	if in.Ips != nil {
 		in, out := &in.Ips, &out.Ips
 		*out = make([]string, len(*in))

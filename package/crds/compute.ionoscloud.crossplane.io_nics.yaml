@@ -31,6 +31,9 @@ spec:
     - jsonPath: .spec.forProvider.serverConfig.serverId
       name: SERVER ID
       type: string
+    - jsonPath: .spec.forProvider.lanConfig.lanId
+      name: LAN ID
+      type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
       name: NIC ID
       type: string
@@ -138,11 +141,42 @@ spec:
                     items:
                       type: string
                     type: array
-                  lan:
-                    description: The LAN ID the NIC will be on. If the LAN ID does
-                      not exist, it will be implicitly created.
-                    format: int32
-                    type: integer
+                  lanConfig:
+                    description: LanConfig contains information about the lan resource
+                      on which the nic will be on
+                    properties:
+                      lanId:
+                        description: LanID is the ID of the Lan on which the resource
+                          will be created. It needs to be provided via directly or
+                          via reference.
+                        type: string
+                      lanIdRef:
+                        description: LanIDRef references to a Lan to retrieve its
+                          ID
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      lanIdSelector:
+                        description: LanIDSelector selects reference to a Lan to retrieve
+                          its lanId
+                        properties:
+                          matchControllerRef:
+                            description: MatchControllerRef ensures an object with
+                              the same controller reference as the selecting object
+                              is selected.
+                            type: boolean
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: MatchLabels ensures an object with matching
+                              labels is selected.
+                            type: object
+                        type: object
+                    type: object
                   mac:
                     description: The MAC address of the NIC.
                     type: string
@@ -187,7 +221,7 @@ spec:
                     type: object
                 required:
                 - datacenterConfig
-                - lan
+                - lanConfig
                 - serverConfig
                 type: object
               providerConfigRef:
