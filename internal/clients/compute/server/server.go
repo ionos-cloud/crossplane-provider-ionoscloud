@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strings"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
@@ -130,22 +129,26 @@ func GenerateUpdateServerInput(cr *v1alpha1.Server) (*sdkgo.ServerProperties, er
 
 // IsServerUpToDate returns true if the Server is up-to-date or false if it does not
 func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool { // nolint:gocyclo
+	if server.Properties == nil || server.Metadata == nil || cr == nil {
+		return false
+	}
 	switch {
-	case cr == nil && server.Properties == nil:
-		return true
-	case cr == nil && server.Properties != nil:
+	case cr.Spec.ForProvider.Name != *server.Properties.Name:
 		return false
-	case cr != nil && server.Properties == nil:
+	case cr.Spec.ForProvider.Cores != *server.Properties.Cores:
 		return false
-	case server.Properties != nil && cr.Spec.ForProvider.Name != *server.Properties.Name:
+	case cr.Spec.ForProvider.RAM != *server.Properties.Ram:
 		return false
-	case server.Metadata != nil && *server.Metadata.State == "BUSY":
+	case cr.Spec.ForProvider.CPUFamily != *server.Properties.CpuFamily:
+		return false
+	case cr.Spec.ForProvider.AvailabilityZone != *server.Properties.AvailabilityZone:
+		return false
+	case *server.Metadata.State == "BUSY":
 		return true
 	case cr.Spec.ForProvider.VolumeCfg.VolumeID != cr.Status.AtProvider.VolumeID:
 		return false
-	default:
-		return true
 	}
+	return true
 }
 
 // LateInitializer fills the empty fields in *v1alpha1.ServerParameters with
@@ -157,7 +160,9 @@ func LateInitializer(in *v1alpha1.ServerParameters, sg *sdkgo.Server) {
 	// Add Boot CD-ROM ID to the Spec, if it was updated via other tool (e.g. DCD)
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
 		if bootCdromOk, ok := propertiesOk.GetBootCdromOk(); ok && bootCdromOk != nil {
-			in.BootCdromID = *bootCdromOk.Id
+			if utils.IsEmptyValue(reflect.ValueOf(in.BootCdromID)) {
+				in.BootCdromID = *bootCdromOk.Id
+			}
 		}
 	}
 }
@@ -210,7 +215,7 @@ func GenerateUpdateCubeServerInput(cr *v1alpha1.CubeServer) (*sdkgo.ServerProper
 }
 
 // IsCubeServerUpToDate returns true if the Server is up-to-date or false if it does not
-func IsCubeServerUpToDate(cr *v1alpha1.CubeServer, server sdkgo.Server) bool {
+func IsCubeServerUpToDate(cr *v1alpha1.CubeServer, server sdkgo.Server) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && server.Properties == nil:
 		return true
@@ -218,12 +223,13 @@ func IsCubeServerUpToDate(cr *v1alpha1.CubeServer, server sdkgo.Server) bool {
 		return false
 	case cr != nil && server.Properties == nil:
 		return false
-	}
-	if *server.Metadata.State == "BUSY" {
+	case server.Metadata != nil && *server.Metadata.State == "BUSY":
+		return true
+	case server.Properties != nil && *server.Properties.Name != cr.Spec.ForProvider.Name:
+		return false
+	case server.Properties != nil && *server.Properties.AvailabilityZone != cr.Spec.ForProvider.Name:
+		return false
+	default:
 		return true
 	}
-	if strings.Compare(cr.Spec.ForProvider.Name, *server.Properties.Name) != 0 {
-		return false
-	}
-	return true
 }

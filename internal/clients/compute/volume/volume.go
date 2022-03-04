@@ -142,18 +142,46 @@ func GenerateUpdateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.VolumeProperties, er
 
 // IsVolumeUpToDate returns true if the Volume is up-to-date or false if it does not
 func IsVolumeUpToDate(cr *v1alpha1.Volume, volume *sdkgo.Volume) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && volume.Properties == nil:
-		return true
-	case cr == nil && volume.Properties != nil:
+	if volume.Properties == nil || volume.Metadata == nil || cr == nil {
 		return false
-	case cr != nil && volume.Properties == nil:
-		return false
-	case volume.Metadata != nil && *volume.Metadata.State == "BUSY":
-		return true
-	case volume.Properties != nil && *volume.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	default:
-		return true
 	}
+	switch {
+	case *volume.Metadata.State == "BUSY":
+		return true
+	case *volume.Properties.Name != cr.Spec.ForProvider.Name:
+		return false
+	case *volume.Properties.Type != cr.Spec.ForProvider.Type:
+		return false
+	case *volume.Properties.Size != cr.Spec.ForProvider.Size:
+		return false
+	case *volume.Properties.CpuHotPlug != cr.Spec.ForProvider.CPUHotPlug:
+		return false
+	case *volume.Properties.RamHotPlug != cr.Spec.ForProvider.RAMHotPlug:
+		return false
+	case *volume.Properties.NicHotPlug != cr.Spec.ForProvider.NicHotPlug:
+		return false
+	case *volume.Properties.NicHotUnplug != cr.Spec.ForProvider.NicHotUnplug:
+		return false
+	case *volume.Properties.DiscVirtioHotPlug != cr.Spec.ForProvider.DiscVirtioHotPlug:
+		return false
+	case *volume.Properties.DiscVirtioHotUnplug != cr.Spec.ForProvider.DiscVirtioHotUnplug:
+		return false
+	case *volume.Properties.AvailabilityZone != cr.Spec.ForProvider.AvailabilityZone:
+		return false
+	case *volume.Properties.Bus != cr.Spec.ForProvider.Bus:
+		return false
+	case *volume.Properties.Image != cr.Spec.ForProvider.Image:
+		return false
+	case *volume.Properties.ImageAlias != cr.Spec.ForProvider.ImageAlias:
+		return false
+	case !reflect.DeepEqual(*volume.Properties.SshKeys, cr.Spec.ForProvider.SSHKeys):
+		return false
+	case *volume.Properties.LicenceType != cr.Spec.ForProvider.LicenceType:
+		return false
+	case *volume.Properties.BackupunitId != cr.Spec.ForProvider.BackupunitID:
+		return false
+	case *volume.Properties.UserData != cr.Spec.ForProvider.UserData:
+		return false
+	}
+	return true
 }
