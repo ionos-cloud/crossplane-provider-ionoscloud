@@ -43,7 +43,7 @@ if [ "$skipcleanup" != true ]; then
             kubectl logs pod/${POD_PROVIDER} -n ${CROSSPLANE_NAMESPACE} >>${LOGS_FILE}
         fi
         export KUBECONFIG=
-        "${KIND}" delete cluster --name="${K8S_CLUSTER}"
+#        "${KIND}" delete cluster --name="${K8S_CLUSTER}"
     }
 
     trap cleanup EXIT
@@ -211,29 +211,29 @@ EOF
 
 echo "${INSTALL_CRED_YAML}" | "${KUBECTL}" apply -f -
 
-# run Compute Resources Tests
-echo_step "--- datacenter tests ---"
-datacenter_tests
-echo_step "--- lan tests ---"
-lan_tests
-echo_step "--- server tests ---"
-server_tests
-echo_step "--- volume tests ---"
-volume_tests
-
-# uninstalling Compute Resources
-echo_step "cleanup lan tests"
-lan_tests_cleanup
-echo_step "cleanup server tests"
-server_tests_cleanup
-echo_step "cleanup volume tests"
-volume_tests_cleanup
-echo_step "cleanup datacenter tests"
-datacenter_tests_cleanup
+## run Compute Resources Tests
+#echo_step "--- datacenter tests ---"
+#datacenter_tests
+#echo_step "--- lan tests ---"
+#lan_tests
+#echo_step "--- server tests ---"
+#server_tests
+#echo_step "--- volume tests ---"
+#volume_tests
+#
+## uninstalling Compute Resources
+#echo_step "cleanup lan tests"
+#lan_tests_cleanup
+#echo_step "cleanup server tests"
+#server_tests_cleanup
+#echo_step "cleanup volume tests"
+#volume_tests_cleanup
+#echo_step "cleanup datacenter tests"
+#datacenter_tests_cleanup
 
 # uninstalling Crossplane Provider IONOS Cloud
 echo_step "uninstalling ${PROJECT_NAME}"
-echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -
+#echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -
 
 # check pods deleted
 timeout=60

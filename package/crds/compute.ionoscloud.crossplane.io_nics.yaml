@@ -44,7 +44,7 @@ spec:
     - jsonPath: .spec.forProvider.ips
       name: IPS
       priority: 1
-      type: array
+      type: string
     - jsonPath: .status.atProvider.state
       name: STATE
       type: string
@@ -132,6 +132,10 @@ spec:
                   firewallType:
                     description: The type of firewall rules that will be allowed on
                       the NIC. If not specified, the default INGRESS value is used.
+                    enum:
+                    - BIDIRECTIONAL
+                    - EGRESS
+                    - INGRESS
                     type: string
                   ips:
                     description: Collection of IP addresses, assigned to the NIC.
@@ -221,6 +225,7 @@ spec:
                     type: object
                 required:
                 - datacenterConfig
+                - dhcp
                 - lanConfig
                 - serverConfig
                 type: object

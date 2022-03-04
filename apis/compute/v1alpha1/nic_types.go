@@ -62,8 +62,8 @@ type NicParameters struct {
 	Ips []string `json:"ips,omitempty"`
 	// Indicates if the NIC will reserve an IP using DHCP.
 	//
-	// +kubebuilder:validation:Optional
-	Dhcp bool `json:"dhcp,omitempty"`
+	// +kubebuilder:validation:Required
+	Dhcp bool `json:"dhcp"`
 	// Activate or deactivate the firewall. By default, an active firewall without any defined rules
 	// will block all incoming network traffic except for the firewall rules that explicitly allows certain protocols, IP addresses and ports.
 	//
@@ -71,6 +71,7 @@ type NicParameters struct {
 	FirewallActive bool `json:"firewallActive,omitempty"`
 	// The type of firewall rules that will be allowed on the NIC. If not specified, the default INGRESS value is used.
 	//
+	// +kubebuilder:validation:Enum=BIDIRECTIONAL;EGRESS;INGRESS
 	// +kubebuilder:validation:Optional
 	FirewallType string `json:"firewallType,omitempty"`
 }
@@ -104,7 +105,7 @@ type NicStatus struct {
 // +kubebuilder:printcolumn:name="LAN ID",type="string",JSONPath=".spec.forProvider.lanConfig.lanId"
 // +kubebuilder:printcolumn:name="NIC ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="NIC NAME",priority=1,type="string",JSONPath=".spec.forProvider.name"
-// +kubebuilder:printcolumn:name="IPS",priority=1,type="array",JSONPath=".spec.forProvider.ips"
+// +kubebuilder:printcolumn:name="IPS",priority=1,type="string",JSONPath=".spec.forProvider.ips"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status

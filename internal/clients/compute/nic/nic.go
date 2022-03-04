@@ -52,6 +52,22 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 	return cp.ComputeClient
 }
 
+// LateInitializer fills the empty fields in *v1alpha1.NicParameters with
+// the values seen in sdkgo.Server.
+func LateInitializer(in *v1alpha1.NicParameters, sg *sdkgo.Nic) {
+	if sg == nil {
+		return
+	}
+	// Add IPS to the Spec, if it was set by the API
+	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
+		if ipsOk, ok := propertiesOk.GetIpsOk(); ok && ipsOk != nil {
+			if utils.IsEmptyValue(reflect.ValueOf(in.Ips)) {
+				in.Ips = *ipsOk
+			}
+		}
+	}
+}
+
 // GenerateCreateNicInput returns CreateNicRequest based on the CR spec
 func GenerateCreateNicInput(cr *v1alpha1.Nic) (*sdkgo.Nic, error) { // nolint:gocyclo
 	lanID, err := safecast.Atoi32(cr.Spec.ForProvider.LanCfg.LanID)
@@ -60,7 +76,9 @@ func GenerateCreateNicInput(cr *v1alpha1.Nic) (*sdkgo.Nic, error) { // nolint:go
 	}
 	instanceCreateInput := sdkgo.Nic{
 		Properties: &sdkgo.NicProperties{
-			Lan: &lanID,
+			Lan:            &lanID,
+			FirewallActive: &cr.Spec.ForProvider.FirewallActive,
+			Dhcp:           &cr.Spec.ForProvider.Dhcp,
 		},
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Name)) {
@@ -71,12 +89,6 @@ func GenerateCreateNicInput(cr *v1alpha1.Nic) (*sdkgo.Nic, error) { // nolint:go
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Ips)) {
 		instanceCreateInput.Properties.SetIps(cr.Spec.ForProvider.Ips)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Dhcp)) {
-		instanceCreateInput.Properties.SetDhcp(cr.Spec.ForProvider.Dhcp)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.FirewallActive)) {
-		instanceCreateInput.Properties.SetFirewallActive(cr.Spec.ForProvider.FirewallActive)
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.FirewallType)) {
 		instanceCreateInput.Properties.SetFirewallType(cr.Spec.ForProvider.FirewallType)
@@ -91,7 +103,9 @@ func GenerateUpdateNicInput(cr *v1alpha1.Nic) (*sdkgo.NicProperties, error) { //
 		return nil, err
 	}
 	instanceUpdateInput := sdkgo.NicProperties{
-		Lan: &lanID,
+		Lan:            &lanID,
+		FirewallActive: &cr.Spec.ForProvider.FirewallActive,
+		Dhcp:           &cr.Spec.ForProvider.Dhcp,
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Name)) {
 		instanceUpdateInput.SetName(cr.Spec.ForProvider.Name)
@@ -102,12 +116,6 @@ func GenerateUpdateNicInput(cr *v1alpha1.Nic) (*sdkgo.NicProperties, error) { //
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Ips)) {
 		instanceUpdateInput.SetIps(cr.Spec.ForProvider.Ips)
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Dhcp)) {
-		instanceUpdateInput.SetDhcp(cr.Spec.ForProvider.Dhcp)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.FirewallActive)) {
-		instanceUpdateInput.SetFirewallActive(cr.Spec.ForProvider.FirewallActive)
-	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.FirewallType)) {
 		instanceUpdateInput.SetFirewallType(cr.Spec.ForProvider.FirewallType)
 	}
@@ -116,18 +124,22 @@ func GenerateUpdateNicInput(cr *v1alpha1.Nic) (*sdkgo.NicProperties, error) { //
 
 // IsNicUpToDate returns true if the Nic is up-to-date or false if it does not
 func IsNicUpToDate(cr *v1alpha1.Nic, nic sdkgo.Nic) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && nic.Properties == nil:
-		return true
-	case cr == nil && nic.Properties != nil:
+	if nic.Properties == nil || nic.Metadata == nil || cr == nil {
 		return false
-	case cr != nil && nic.Properties == nil:
-		return false
-	case nic.Metadata != nil && *nic.Metadata.State == "BUSY":
-		return true
-	case nic.Properties != nil && *nic.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	default:
-		return true
 	}
+	switch {
+	case *nic.Metadata.State == "BUSY":
+		return true
+	case *nic.Properties.Name != cr.Spec.ForProvider.Name:
+		return false
+	case *nic.Properties.Dhcp != cr.Spec.ForProvider.Dhcp:
+		return false
+	case *nic.Properties.FirewallActive != cr.Spec.ForProvider.FirewallActive:
+		return false
+	case *nic.Properties.FirewallType != cr.Spec.ForProvider.FirewallType:
+		return false
+	case !reflect.DeepEqual(*nic.Properties.Ips, cr.Spec.ForProvider.Ips):
+		return false
+	}
+	return true
 }
