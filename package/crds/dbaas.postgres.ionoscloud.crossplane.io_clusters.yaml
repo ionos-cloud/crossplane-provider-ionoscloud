@@ -26,7 +26,19 @@ spec:
       name: SYNCED
       type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
-      name: ID
+      name: CLUSTER ID
+      type: string
+    - jsonPath: .spec.forProvider.displayName
+      name: CLUSTER NAME
+      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.connections[0].datacenterConfig.datacenterId
+      name: DATACENTER ID
+      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.connections[0].lanConfig.lanId
+      name: LAN ID
+      priority: 1
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE
@@ -64,7 +76,11 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: ClusterParameters are the observable fields of a Cluster.
+                description: 'ClusterParameters are the observable fields of a Cluster.
+                  Required fields in order to create a DBaaS Postgres Cluster: PostgresVersion,
+                  Instances, Cores, RAM, Storage Size, Storage Type, Connection (Datacenter
+                  ID or Reference, Lan ID and CIDR), Location (in sync with Datacenter),
+                  DisplayName, Credentials, Synchronization Mode.'
                 properties:
                   connections:
                     items:
@@ -76,18 +92,85 @@ spec:
                             following unavailable IP ranges: 10.233.64.0/18 10.233.0.0/18
                             10.233.114.0/24'
                           type: string
-                        datacenterID:
-                          description: The datacenter to connect your cluster to.
-                          type: string
-                        lanID:
-                          description: The numeric LAN ID to connect your cluster
-                            to.
-                          type: string
+                        datacenterConfig:
+                          description: DatacenterConfig contains information about
+                            the datacenter resource
+                          properties:
+                            datacenterId:
+                              description: DatacenterID is the ID of the Datacenter
+                                on which the resource will be created. It needs to
+                                be provided via directly or via reference.
+                              type: string
+                            datacenterIdRef:
+                              description: DatacenterIDRef references to a Datacenter
+                                to retrieve its ID
+                              properties:
+                                name:
+                                  description: Name of the referenced object.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            datacenterIdSelector:
+                              description: DatacenterIDSelector selects reference
+                                to a Datacenter to retrieve its datacenterId
+                              properties:
+                                matchControllerRef:
+                                  description: MatchControllerRef ensures an object
+                                    with the same controller reference as the selecting
+                                    object is selected.
+                                  type: boolean
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  description: MatchLabels ensures an object with
+                                    matching labels is selected.
+                                  type: object
+                              type: object
+                          type: object
+                        lanConfig:
+                          description: LanConfig contains information about the lan
+                            resource
+                          properties:
+                            lanId:
+                              description: LanID is the ID of the Lan on which the
+                                cluster will connect to. It needs to be provided via
+                                directly or via reference.
+                              type: string
+                            lanIdRef:
+                              description: LanIDRef references to a Lan to retrieve
+                                its ID
+                              properties:
+                                name:
+                                  description: Name of the referenced object.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            lanIdSelector:
+                              description: LanIDSelector selects reference to a Lan
+                                to retrieve its lanId
+                              properties:
+                                matchControllerRef:
+                                  description: MatchControllerRef ensures an object
+                                    with the same controller reference as the selecting
+                                    object is selected.
+                                  type: boolean
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  description: MatchLabels ensures an object with
+                                    matching labels is selected.
+                                  type: object
+                              type: object
+                          type: object
                       required:
                       - cidr
-                      - datacenterID
-                      - lanID
+                      - datacenterConfig
+                      - lanConfig
                       type: object
+                    maxItems: 1
+                    minItems: 1
                     type: array
                   cores:
                     description: The number of CPU cores per instance.
@@ -99,7 +182,7 @@ spec:
                       password:
                         type: string
                       username:
-                        description: The username for the initial postgres user. some
+                        description: The username for the initial postgres user. Some
                           system usernames are restricted (e.g. \"postgres\", \"admin\",
                           \"standby\").
                         type: string
@@ -113,7 +196,7 @@ spec:
                   fromBackup:
                     description: CreateRestoreRequest The restore request.
                     properties:
-                      backupID:
+                      backupId:
                         description: The unique ID of the backup you want to restore.
                         type: string
                       recoveryTargetTime:
@@ -122,7 +205,7 @@ spec:
                           If empty, the backup will be applied completely.
                         type: string
                     required:
-                    - backupID
+                    - backupId
                     type: object
                   instances:
                     description: The total number of instances in the cluster (one
@@ -133,6 +216,13 @@ spec:
                     description: Location The physical location where the cluster
                       will be created. This will be where all of your instances live.
                       Property cannot be modified after datacenter creation.
+                    enum:
+                    - de/fra
+                    - us/las
+                    - us/ewr
+                    - de/txl
+                    - gb/lhr
+                    - es/vit
                     type: string
                   maintenanceWindow:
                     description: MaintenanceWindow A weekly 4 hour-long window, during
@@ -151,17 +241,28 @@ spec:
                     description: The amount of memory per instance in megabytes. Has
                       to be a multiple of 1024.
                     format: int32
+                    multipleOf: 1024
                     type: integer
                   storageSize:
                     description: The amount of storage per instance in megabytes.
                     format: int32
                     type: integer
                   storageType:
-                    description: StorageType The storage type used in your cluster.
+                    enum:
+                    - HDD
+                    - SSD
+                    - SSD Standard
+                    - SSD Premium
+                    - DAS
+                    - ISO
                     type: string
                   synchronizationMode:
                     description: SynchronizationMode Represents different modes of
                       replication.
+                    enum:
+                    - ASYNCHRONOUS
+                    - STRICTLY_SYNCHRONOUS
+                    - SYNCHRONOUS
                     type: string
                 required:
                 - connections
@@ -226,7 +327,7 @@ spec:
               atProvider:
                 description: ClusterObservation are the observable fields of a Cluster.
                 properties:
-                  clusterID:
+                  clusterId:
                     type: string
                   state:
                     type: string

@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
@@ -69,6 +71,8 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
 				kube:  mgr.GetClient(),
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:   l}),
+			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
+			managed.WithInitializers(),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
@@ -123,38 +127,30 @@ type externalCluster struct {
 	log     logging.Logger
 }
 
-func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
 	cr, ok := mg.(*v1alpha1.Cluster)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotCluster)
 	}
 
 	// External Name of the CR is the DBaaS Postgres Cluster ID
-	id := meta.GetExternalName(cr)
-	if id == "" {
-		return managed.ExternalObservation{
-			ResourceExists:    false,
-			ResourceUpToDate:  false,
-			ConnectionDetails: managed.ConnectionDetails{},
-		}, nil
+	if meta.GetExternalName(cr) == "" {
+		return managed.ExternalObservation{}, nil
 	}
-	cr.Status.AtProvider.ClusterID = id
-	instance, resp, err := c.service.GetCluster(ctx, id)
+	observed, resp, err := c.service.GetCluster(ctx, meta.GetExternalName(cr))
 	if err != nil {
-		retErr := fmt.Errorf("failed to get cluster by id. Request: %v: %w", resp.RequestURL, err)
-		if resp.StatusCode == http.StatusNotFound {
-			retErr = nil
+		if resp != nil && resp.Response != nil && resp.StatusCode == http.StatusNotFound {
+			return managed.ExternalObservation{}, nil
 		}
-		return managed.ExternalObservation{
-			ResourceExists:    false,
-			ResourceUpToDate:  false,
-			ConnectionDetails: managed.ConnectionDetails{},
-		}, retErr
+		return managed.ExternalObservation{}, fmt.Errorf("failed to get cluster by id. err: %w", err)
 	}
 
-	cr.Status.AtProvider.State = string(*instance.Metadata.State)
-	c.log.Debug(fmt.Sprintf("Observing state %v...", cr.Status.AtProvider.State))
-	// Set Ready condition based on State
+	current := cr.Spec.ForProvider.DeepCopy()
+	postgres.LateInitializer(&cr.Spec.ForProvider, &observed)
+
+	cr.Status.AtProvider.ClusterID = meta.GetExternalName(cr)
+	cr.Status.AtProvider.State = string(*observed.Metadata.State)
+	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	switch cr.Status.AtProvider.State {
 	case string(ionoscloud.AVAILABLE):
 		cr.SetConditions(xpv1.Available())
@@ -167,9 +163,10 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 	}
 
 	return managed.ExternalObservation{
-		ResourceExists:    true,
-		ResourceUpToDate:  postgres.IsClusterUpToDate(cr, instance),
-		ConnectionDetails: managed.ConnectionDetails{},
+		ResourceExists:          true,
+		ResourceUpToDate:        postgres.IsClusterUpToDate(cr, observed),
+		ConnectionDetails:       managed.ConnectionDetails{},
+		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}, nil
 }
 
@@ -189,11 +186,13 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 	}
 
 	instance, apiResponse, err := c.service.CreateCluster(ctx, *instanceInput)
-	creation := managed.ExternalCreation{
-		ConnectionDetails: managed.ConnectionDetails{},
-	}
+	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
-		return creation, fmt.Errorf("failed to create Cluster: %w, apiResponse: %v", err, apiResponse.Status)
+		retErr := fmt.Errorf("failed to create Cluster: %w", err)
+		if apiResponse != nil && apiResponse.Response != nil {
+			retErr = fmt.Errorf("%w API Response Status: %v", retErr, apiResponse.Status)
+		}
+		return creation, retErr
 	}
 
 	// Set External Name
@@ -219,13 +218,14 @@ func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (mana
 	}
 
 	_, apiResponse, err := c.service.UpdateCluster(ctx, clusterID, *instanceInput)
-	update := managed.ExternalUpdate{
-		ConnectionDetails: managed.ConnectionDetails{},
-	}
 	if err != nil {
-		return update, fmt.Errorf("failed to update Cluster: %w, apiResponse: %v", err, apiResponse.Status)
+		retErr := fmt.Errorf("failed to update Cluster: %w", err)
+		if apiResponse != nil && apiResponse.Response != nil {
+			retErr = fmt.Errorf("%w API Response Status: %v", retErr, apiResponse.Status)
+		}
+		return managed.ExternalUpdate{}, retErr
 	}
-	return update, nil
+	return managed.ExternalUpdate{}, nil
 }
 
 func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error {
