@@ -129,26 +129,30 @@ func GenerateUpdateServerInput(cr *v1alpha1.Server) (*sdkgo.ServerProperties, er
 
 // IsServerUpToDate returns true if the Server is up-to-date or false if it does not
 func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool { // nolint:gocyclo
-	if server.Properties == nil || server.Metadata == nil || cr == nil {
-		return false
-	}
 	switch {
-	case cr.Spec.ForProvider.Name != *server.Properties.Name:
+	case cr == nil && server.Properties == nil:
+		return true
+	case cr == nil && server.Properties != nil:
 		return false
-	case cr.Spec.ForProvider.Cores != *server.Properties.Cores:
+	case cr != nil && server.Properties == nil:
 		return false
-	case cr.Spec.ForProvider.RAM != *server.Properties.Ram:
+	case server.Properties.Name != nil && cr.Spec.ForProvider.Name != *server.Properties.Name:
 		return false
-	case cr.Spec.ForProvider.CPUFamily != *server.Properties.CpuFamily:
+	case server.Properties.Cores != nil && cr.Spec.ForProvider.Cores != *server.Properties.Cores:
 		return false
-	case cr.Spec.ForProvider.AvailabilityZone != *server.Properties.AvailabilityZone:
+	case server.Properties.Ram != nil && cr.Spec.ForProvider.RAM != *server.Properties.Ram:
 		return false
-	case *server.Metadata.State == "BUSY":
+	case server.Properties.CpuFamily != nil && cr.Spec.ForProvider.CPUFamily != *server.Properties.CpuFamily:
+		return false
+	case server.Properties.AvailabilityZone != nil && cr.Spec.ForProvider.AvailabilityZone != *server.Properties.AvailabilityZone:
+		return false
+	case server.Metadata.State != nil && *server.Metadata.State == "BUSY":
 		return true
 	case cr.Spec.ForProvider.VolumeCfg.VolumeID != cr.Status.AtProvider.VolumeID:
 		return false
+	default:
+		return true
 	}
-	return true
 }
 
 // LateInitializer fills the empty fields in *v1alpha1.ServerParameters with

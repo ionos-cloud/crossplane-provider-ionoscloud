@@ -142,46 +142,50 @@ func GenerateUpdateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.VolumeProperties, er
 
 // IsVolumeUpToDate returns true if the Volume is up-to-date or false if it does not
 func IsVolumeUpToDate(cr *v1alpha1.Volume, volume *sdkgo.Volume) bool { // nolint:gocyclo
-	if volume.Properties == nil || volume.Metadata == nil || cr == nil {
-		return false
-	}
 	switch {
-	case *volume.Metadata.State == "BUSY":
+	case cr == nil && volume.Properties == nil:
 		return true
-	case *volume.Properties.Name != cr.Spec.ForProvider.Name:
+	case cr == nil && volume.Properties != nil:
 		return false
-	case *volume.Properties.Type != cr.Spec.ForProvider.Type:
+	case cr != nil && volume.Properties == nil:
 		return false
-	case *volume.Properties.Size != cr.Spec.ForProvider.Size:
+	case volume.Metadata.State != nil && *volume.Metadata.State == "BUSY":
+		return true
+	case volume.Properties.Name != nil && *volume.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
-	case *volume.Properties.CpuHotPlug != cr.Spec.ForProvider.CPUHotPlug:
+	case volume.Properties.Type != nil && *volume.Properties.Type != cr.Spec.ForProvider.Type:
 		return false
-	case *volume.Properties.RamHotPlug != cr.Spec.ForProvider.RAMHotPlug:
+	case volume.Properties.Size != nil && *volume.Properties.Size != cr.Spec.ForProvider.Size:
 		return false
-	case *volume.Properties.NicHotPlug != cr.Spec.ForProvider.NicHotPlug:
+	case volume.Properties.CpuHotPlug != nil && *volume.Properties.CpuHotPlug != cr.Spec.ForProvider.CPUHotPlug:
 		return false
-	case *volume.Properties.NicHotUnplug != cr.Spec.ForProvider.NicHotUnplug:
+	case volume.Properties.RamHotPlug != nil && *volume.Properties.RamHotPlug != cr.Spec.ForProvider.RAMHotPlug:
 		return false
-	case *volume.Properties.DiscVirtioHotPlug != cr.Spec.ForProvider.DiscVirtioHotPlug:
+	case volume.Properties.NicHotPlug != nil && *volume.Properties.NicHotPlug != cr.Spec.ForProvider.NicHotPlug:
 		return false
-	case *volume.Properties.DiscVirtioHotUnplug != cr.Spec.ForProvider.DiscVirtioHotUnplug:
+	case volume.Properties.NicHotUnplug != nil && *volume.Properties.NicHotUnplug != cr.Spec.ForProvider.NicHotUnplug:
 		return false
-	case *volume.Properties.AvailabilityZone != cr.Spec.ForProvider.AvailabilityZone:
+	case volume.Properties.DiscVirtioHotPlug != nil && *volume.Properties.DiscVirtioHotPlug != cr.Spec.ForProvider.DiscVirtioHotPlug:
 		return false
-	case *volume.Properties.Bus != cr.Spec.ForProvider.Bus:
+	case volume.Properties.DiscVirtioHotUnplug != nil && *volume.Properties.DiscVirtioHotUnplug != cr.Spec.ForProvider.DiscVirtioHotUnplug:
 		return false
-	case *volume.Properties.Image != cr.Spec.ForProvider.Image:
+	case volume.Properties.AvailabilityZone != nil && *volume.Properties.AvailabilityZone != cr.Spec.ForProvider.AvailabilityZone:
 		return false
-	case *volume.Properties.ImageAlias != cr.Spec.ForProvider.ImageAlias:
+	case volume.Properties.Bus != nil && *volume.Properties.Bus != cr.Spec.ForProvider.Bus:
 		return false
-	case !reflect.DeepEqual(*volume.Properties.SshKeys, cr.Spec.ForProvider.SSHKeys):
+	case volume.Properties.Image != nil && *volume.Properties.Image != cr.Spec.ForProvider.Image:
 		return false
-	case *volume.Properties.LicenceType != cr.Spec.ForProvider.LicenceType:
+	case volume.Properties.ImageAlias != nil && *volume.Properties.ImageAlias != cr.Spec.ForProvider.ImageAlias:
 		return false
-	case *volume.Properties.BackupunitId != cr.Spec.ForProvider.BackupunitID:
+	case volume.Properties.SshKeys != nil && !reflect.DeepEqual(*volume.Properties.SshKeys, cr.Spec.ForProvider.SSHKeys):
 		return false
-	case *volume.Properties.UserData != cr.Spec.ForProvider.UserData:
+	case volume.Properties.LicenceType != nil && *volume.Properties.LicenceType != cr.Spec.ForProvider.LicenceType:
 		return false
+	case volume.Properties.BackupunitId != nil && *volume.Properties.BackupunitId != cr.Spec.ForProvider.BackupunitID:
+		return false
+	case volume.Properties.UserData != nil && *volume.Properties.UserData != cr.Spec.ForProvider.UserData:
+		return false
+	default:
+		return true
 	}
-	return true
 }

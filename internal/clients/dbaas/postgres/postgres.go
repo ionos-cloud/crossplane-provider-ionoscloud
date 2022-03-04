@@ -121,28 +121,32 @@ func LateInitializer(in *v1alpha1.ClusterParameters, sg *ionoscloud.ClusterRespo
 
 // IsClusterUpToDate returns true if the cluster is up-to-date or false if it does not
 func IsClusterUpToDate(cr *v1alpha1.Cluster, clusterResponse ionoscloud.ClusterResponse) bool { // nolint:gocyclo
-	if clusterResponse.Properties == nil || clusterResponse.Metadata == nil || cr == nil {
-		return false
-	}
 	switch {
-	case *clusterResponse.Metadata.State == ionoscloud.BUSY:
+	case cr == nil && clusterResponse.Properties == nil:
 		return true
-	case *clusterResponse.Properties.DisplayName != cr.Spec.ForProvider.DisplayName:
+	case cr == nil && clusterResponse.Properties != nil:
 		return false
-	case *clusterResponse.Properties.PostgresVersion != cr.Spec.ForProvider.PostgresVersion:
+	case cr != nil && clusterResponse.Properties == nil:
 		return false
-	case *clusterResponse.Properties.Instances != cr.Spec.ForProvider.Instances:
+	case clusterResponse.Metadata.State != nil && *clusterResponse.Metadata.State == ionoscloud.BUSY:
+		return true
+	case clusterResponse.Properties.DisplayName != nil && *clusterResponse.Properties.DisplayName != cr.Spec.ForProvider.DisplayName:
 		return false
-	case *clusterResponse.Properties.Cores != cr.Spec.ForProvider.Cores:
+	case clusterResponse.Properties.PostgresVersion != nil && *clusterResponse.Properties.PostgresVersion != cr.Spec.ForProvider.PostgresVersion:
 		return false
-	case *clusterResponse.Properties.Ram != cr.Spec.ForProvider.RAM:
+	case clusterResponse.Properties.Instances != nil && *clusterResponse.Properties.Instances != cr.Spec.ForProvider.Instances:
 		return false
-	case *clusterResponse.Properties.StorageSize != cr.Spec.ForProvider.StorageSize:
+	case clusterResponse.Properties.Cores != nil && *clusterResponse.Properties.Cores != cr.Spec.ForProvider.Cores:
 		return false
-	case !reflect.DeepEqual(*clusterResponse.Properties.StorageSize, cr.Spec.ForProvider.Connections):
+	case clusterResponse.Properties.Ram != nil && *clusterResponse.Properties.Ram != cr.Spec.ForProvider.RAM:
 		return false
+	case clusterResponse.Properties.StorageSize != nil && *clusterResponse.Properties.StorageSize != cr.Spec.ForProvider.StorageSize:
+		return false
+	case clusterResponse.Properties.Connections != nil && !reflect.DeepEqual(*clusterResponse.Properties.Connections, cr.Spec.ForProvider.Connections):
+		return false
+	default:
+		return true
 	}
-	return true
 }
 
 func clusterConnections(connections []v1alpha1.Connection) *[]ionoscloud.Connection {
