@@ -369,7 +369,7 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for nic CR to be ready"
-  kubectl wait --for=condition=ready nics/example
+  kubectl wait --for=condition=ready nics/example --timeout 120s
 
   echo_step "get nic CR"
   kubectl get nics
@@ -403,7 +403,7 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for nic CR to be ready"
-  kubectl wait --for=condition=ready nics/example
+  kubectl wait --for=condition=ready nics/example --timeout 120s
 }
 
 function nic_tests_cleanup() {
