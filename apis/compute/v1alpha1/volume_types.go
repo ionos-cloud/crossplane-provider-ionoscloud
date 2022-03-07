@@ -43,6 +43,7 @@ type VolumeParameters struct {
 	// Hardware type of the volume.
 	// DAS (Direct Attached Storage) could be used only in a composite call with a Cube server.
 	//
+	// +immutable
 	// +kubebuilder:validation:Enum=HDD;SSD;SSD Standard;SSD Premium;DAS;ISO
 	// +kubebuilder:validation:Required
 	Type string `json:"type"`
@@ -59,15 +60,22 @@ type VolumeParameters struct {
 	// Image or snapshot ID to be used as template for this volume.
 	// Make sure the image selected is compatible with the datacenter's location.
 	// Note: when creating a volume, set image, image alias, or licence type
+	//
+	// +immutable
 	Image string `json:"image,omitempty"`
 	// Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
 	// Password rules allows all characters from a-z, A-Z, 0-9.
+	//
+	// +immutable
 	ImagePassword string `json:"imagePassword,omitempty"`
+	// +immutable
 	// Note: when creating a volume, set image, image alias, or licence type
 	ImageAlias string `json:"imageAlias,omitempty"`
 	// Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key.
 	// This field may only be set in creation requests. When reading, it always returns null.
 	// SSH keys are only supported if a public Linux image is used for the volume creation.
+	//
+	// +immutable
 	SSHKeys []string `json:"sshKeys,omitempty"`
 	// The bus type of the volume.
 	//
@@ -77,6 +85,7 @@ type VolumeParameters struct {
 	// OS type for this volume.
 	// Note: when creating a volume, set image, image alias, or licence type
 	//
+	// +immutable
 	// +kubebuilder:validation:Enum=UNKNOWN;WINDOWS;WINDOWS2016;WINDOWS2022;LINUX;OTHER
 	LicenceType string `json:"licenceType,omitempty"`
 	// Hot-plug capable CPU (no reboot required).
@@ -94,10 +103,14 @@ type VolumeParameters struct {
 	// The ID of the backup unit that the user has access to.
 	// The property is immutable and is only allowed to be set on creation of a new a volume.
 	// It is mandatory to provide either 'public image' or 'imageAlias' in conjunction with this property.
+	//
+	// +immutable
 	BackupunitID string `json:"backupunitId,omitempty"`
 	// The cloud-init configuration for the volume as base64 encoded string.
 	// The property is immutable and is only allowed to be set on creation of a new a volume.
 	// It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
+	//
+	// +immutable
 	UserData string `json:"userData,omitempty"`
 }
 

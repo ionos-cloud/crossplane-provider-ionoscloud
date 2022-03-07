@@ -2,7 +2,10 @@ package postgres
 
 import (
 	"context"
+	"reflect"
 	"time"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 
 	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 
@@ -95,7 +98,7 @@ func GenerateUpdateClusterInput(cr *v1alpha1.Cluster) (*ionoscloud.PatchClusterR
 
 // LateInitializer fills the empty fields in *v1alpha1.ClusterParameters with
 // the values seen in ionoscloud.ClusterResponse.
-func LateInitializer(in *v1alpha1.ClusterParameters, sg *ionoscloud.ClusterResponse) {
+func LateInitializer(in *v1alpha1.ClusterParameters, sg *ionoscloud.ClusterResponse) { // nolint:gocyclo
 	if sg == nil {
 		return
 	}
@@ -103,10 +106,14 @@ func LateInitializer(in *v1alpha1.ClusterParameters, sg *ionoscloud.ClusterRespo
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
 		if maintenanceWindowOk, ok := propertiesOk.GetMaintenanceWindowOk(); ok && maintenanceWindowOk != nil {
 			if timeOk, ok := maintenanceWindowOk.GetTimeOk(); ok && timeOk != nil {
-				in.MaintenanceWindow.Time = *timeOk
+				if utils.IsEmptyValue(reflect.ValueOf(in.MaintenanceWindow.Time)) {
+					in.MaintenanceWindow.Time = *timeOk
+				}
 			}
 			if dayOfTheWeekOk, ok := maintenanceWindowOk.GetDayOfTheWeekOk(); ok && dayOfTheWeekOk != nil {
-				in.MaintenanceWindow.DayOfTheWeek = string(*dayOfTheWeekOk)
+				if utils.IsEmptyValue(reflect.ValueOf(in.MaintenanceWindow.DayOfTheWeek)) {
+					in.MaintenanceWindow.DayOfTheWeek = string(*dayOfTheWeekOk)
+				}
 			}
 		}
 	}
@@ -121,9 +128,21 @@ func IsClusterUpToDate(cr *v1alpha1.Cluster, clusterResponse ionoscloud.ClusterR
 		return false
 	case cr != nil && clusterResponse.Properties == nil:
 		return false
-	case clusterResponse.Metadata != nil && *clusterResponse.Metadata.State == ionoscloud.BUSY:
+	case clusterResponse.Metadata.State != nil && *clusterResponse.Metadata.State == ionoscloud.BUSY:
 		return true
-	case clusterResponse.Properties != nil && *clusterResponse.Properties.DisplayName != cr.Spec.ForProvider.DisplayName:
+	case clusterResponse.Properties.DisplayName != nil && *clusterResponse.Properties.DisplayName != cr.Spec.ForProvider.DisplayName:
+		return false
+	case clusterResponse.Properties.PostgresVersion != nil && *clusterResponse.Properties.PostgresVersion != cr.Spec.ForProvider.PostgresVersion:
+		return false
+	case clusterResponse.Properties.Instances != nil && *clusterResponse.Properties.Instances != cr.Spec.ForProvider.Instances:
+		return false
+	case clusterResponse.Properties.Cores != nil && *clusterResponse.Properties.Cores != cr.Spec.ForProvider.Cores:
+		return false
+	case clusterResponse.Properties.Ram != nil && *clusterResponse.Properties.Ram != cr.Spec.ForProvider.RAM:
+		return false
+	case clusterResponse.Properties.StorageSize != nil && *clusterResponse.Properties.StorageSize != cr.Spec.ForProvider.StorageSize:
+		return false
+	case clusterResponse.Properties.Connections != nil && !reflect.DeepEqual(*clusterResponse.Properties.Connections, cr.Spec.ForProvider.Connections):
 		return false
 	default:
 		return true

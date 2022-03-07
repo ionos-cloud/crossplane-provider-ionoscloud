@@ -91,9 +91,13 @@ func IsLanUpToDate(cr *v1alpha1.Lan, lan sdkgo.Lan) bool { // nolint:gocyclo
 		return false
 	case cr != nil && lan.Properties == nil:
 		return false
-	case lan.Metadata != nil && *lan.Metadata.State == "BUSY":
+	case lan.Metadata.State != nil && *lan.Metadata.State == "BUSY":
 		return true
-	case lan.Properties != nil && *lan.Properties.Name != cr.Spec.ForProvider.Name:
+	case lan.Properties.Name != nil && *lan.Properties.Name != cr.Spec.ForProvider.Name:
+		return false
+	case lan.Properties.Public != nil && *lan.Properties.Public != cr.Spec.ForProvider.Public:
+		return false
+	case lan.Properties.Pcc != nil && *lan.Properties.Pcc != cr.Spec.ForProvider.Pcc:
 		return false
 	default:
 		return true

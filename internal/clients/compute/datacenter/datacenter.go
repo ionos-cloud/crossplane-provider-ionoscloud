@@ -80,9 +80,11 @@ func IsDatacenterUpToDate(cr *v1alpha1.Datacenter, datacenter sdkgo.Datacenter) 
 		return false
 	case cr != nil && datacenter.Properties == nil:
 		return false
-	case datacenter.Metadata != nil && *datacenter.Metadata.State == "BUSY":
+	case datacenter.Metadata.State != nil && *datacenter.Metadata.State == "BUSY":
 		return true
-	case datacenter.Properties != nil && *datacenter.Properties.Name != cr.Spec.ForProvider.Name:
+	case datacenter.Properties.Name != nil && *datacenter.Properties.Name != cr.Spec.ForProvider.Name:
+		return false
+	case datacenter.Properties.Description != nil && *datacenter.Properties.Description != cr.Spec.ForProvider.Description:
 		return false
 	default:
 		return true
