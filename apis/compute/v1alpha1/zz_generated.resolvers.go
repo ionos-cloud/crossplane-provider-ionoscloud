@@ -76,6 +76,64 @@ func (mg *Lan) ResolveReferences(ctx context.Context, c client.Reader) error {
 	return nil
 }
 
+// ResolveReferences of this Nic.
+func (mg *Nic) ResolveReferences(ctx context.Context, c client.Reader) error {
+	r := reference.NewAPIResolver(c, mg)
+
+	var rsp reference.ResolutionResponse
+	var err error
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.DatacenterCfg.DatacenterID,
+		Extract:      ExtractDatacenterID(),
+		Reference:    mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef,
+		Selector:     mg.Spec.ForProvider.DatacenterCfg.DatacenterIDSelector,
+		To: reference.To{
+			List:    &DatacenterList{},
+			Managed: &Datacenter{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.DatacenterCfg.DatacenterID")
+	}
+	mg.Spec.ForProvider.DatacenterCfg.DatacenterID = rsp.ResolvedValue
+	mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef = rsp.ResolvedReference
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.ServerCfg.ServerID,
+		Extract:      ExtractServerID(),
+		Reference:    mg.Spec.ForProvider.ServerCfg.ServerIDRef,
+		Selector:     mg.Spec.ForProvider.ServerCfg.ServerIDSelector,
+		To: reference.To{
+			List:    &ServerList{},
+			Managed: &Server{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.ServerCfg.ServerID")
+	}
+	mg.Spec.ForProvider.ServerCfg.ServerID = rsp.ResolvedValue
+	mg.Spec.ForProvider.ServerCfg.ServerIDRef = rsp.ResolvedReference
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.LanCfg.LanID,
+		Extract:      ExtractLanID(),
+		Reference:    mg.Spec.ForProvider.LanCfg.LanIDRef,
+		Selector:     mg.Spec.ForProvider.LanCfg.LanIDSelector,
+		To: reference.To{
+			List:    &LanList{},
+			Managed: &Lan{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.LanCfg.LanID")
+	}
+	mg.Spec.ForProvider.LanCfg.LanID = rsp.ResolvedValue
+	mg.Spec.ForProvider.LanCfg.LanIDRef = rsp.ResolvedReference
+
+	return nil
+}
+
 // ResolveReferences of this Server.
 func (mg *Server) ResolveReferences(ctx context.Context, c client.Reader) error {
 	r := reference.NewAPIResolver(c, mg)

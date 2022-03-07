@@ -4,12 +4,11 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
-
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 // APIClient is a wrapper around IONOS Service

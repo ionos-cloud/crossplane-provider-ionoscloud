@@ -70,6 +70,26 @@ type ServerParameters struct {
 	VolumeCfg VolumeConfig `json:"volumeConfig,omitempty"`
 }
 
+// ServerConfig is used by resources that need to link servers via id or via reference.
+type ServerConfig struct {
+	// ServerID is the ID of the Server on which the resource will be created.
+	// It needs to be provided via directly or via reference.
+	//
+	// +immutable
+	// +crossplane:generate:reference:type=Server
+	// +crossplane:generate:reference:extractor=ExtractServerID()
+	ServerID string `json:"serverId,omitempty"`
+	// ServerIDRef references to a Server to retrieve its ID
+	//
+	// +optional
+	// +immutable
+	ServerIDRef *xpv1.Reference `json:"serverIdRef,omitempty"`
+	// ServerIDSelector selects reference to a Server to retrieve its serverId
+	//
+	// +optional
+	ServerIDSelector *xpv1.Selector `json:"serverIdSelector,omitempty"`
+}
+
 // ServerObservation are the observable fields of a Server.
 type ServerObservation struct {
 	ServerID string `json:"serverId,omitempty"`

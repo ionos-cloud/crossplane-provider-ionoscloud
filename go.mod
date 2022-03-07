@@ -9,6 +9,7 @@ require (
 	github.com/ionos-cloud/sdk-go-dbaas-postgres v1.0.0
 	github.com/ionos-cloud/sdk-go/v6 v6.0.1
 	github.com/pkg/errors v0.9.1
+	github.com/rung/go-safecast v1.0.1
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	k8s.io/apimachinery v0.21.3
 	k8s.io/client-go v0.21.3

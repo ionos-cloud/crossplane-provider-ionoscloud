@@ -78,95 +78,6 @@ EOF
   kubectl wait --for=delete datacenters/example
 }
 
-## Server CR Tests
-function server_tests() {
-  echo_step "deploy a server CR"
-  INSTALL_RESOURCE_YAML="$(
-    cat <<EOF
-apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: Server
-metadata:
-  name: example
-spec:
-  forProvider:
-    name: exampletest
-    cores: 4
-    ram: 2048
-    availabilityZone: AUTO
-    cpuFamily: INTEL_SKYLAKE
-    datacenterConfig:
-      datacenterIdRef:
-        name: example
-  providerConfigRef:
-    name: example
-EOF
-  )"
-
-  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
-
-  echo_step "waiting for server CR to be ready"
-  kubectl wait --for=condition=ready servers/example
-
-  echo_step "get server CR"
-  kubectl get servers
-
-  echo_step "update server CR"
-  INSTALL_RESOURCE_YAML="$(
-    cat <<EOF
-apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: Server
-metadata:
-  name: example
-spec:
-  forProvider:
-    name: exampleServer
-    cores: 4
-    ram: 2048
-    availabilityZone: AUTO
-    cpuFamily: INTEL_SKYLAKE
-    datacenterConfig:
-      datacenterIdRef:
-        name: example
-  providerConfigRef:
-    name: example
-EOF
-  )"
-
-  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
-
-  echo_step "waiting for server CR to be ready"
-  kubectl wait --for=condition=ready servers/example
-}
-
-function server_tests_cleanup() {
-  INSTALL_RESOURCE_YAML="$(
-    cat <<EOF
-apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: Server
-metadata:
-  name: example
-spec:
-  forProvider:
-    name: exampleServer
-    cores: 4
-    ram: 2048
-    availabilityZone: AUTO
-    cpuFamily: INTEL_SKYLAKE
-    datacenterConfig:
-      datacenterIdRef:
-        name: example
-  providerConfigRef:
-    name: example
-EOF
-  )"
-
-  echo_step "uninstalling server CR"
-  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
-
-  echo_step "wait for deletion server CR"
-  kubectl wait --for=delete servers/example
-}
-
 ## Volume CR Tests
 function volume_tests() {
   echo_step "deploy a volume CR"
@@ -256,6 +167,98 @@ EOF
   kubectl wait --for=delete volumes/example
 }
 
+## Server CR Tests
+function server_tests() {
+  echo_step "deploy a server CR and attach volume"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Server
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampletest
+    cores: 4
+    ram: 2048
+    availabilityZone: AUTO
+    cpuFamily: INTEL_SKYLAKE
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    volumeConfig:
+      volumeIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for server CR to be ready"
+  kubectl wait --for=condition=ready servers/example
+
+  echo_step "get server CR"
+  kubectl get servers
+
+  echo_step "update server CR and detach volume"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Server
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleServer
+    cores: 4
+    ram: 2048
+    availabilityZone: AUTO
+    cpuFamily: INTEL_SKYLAKE
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for server CR to be ready"
+  kubectl wait --for=condition=ready servers/example
+}
+
+function server_tests_cleanup() {
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Server
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleServer
+    cores: 4
+    ram: 2048
+    availabilityZone: AUTO
+    cpuFamily: INTEL_SKYLAKE
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo_step "uninstalling server CR"
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
+
+  echo_step "wait for deletion server CR"
+  kubectl wait --for=delete servers/example
+}
+
 ## Lan CR Tests
 function lan_tests() {
   echo_step "deploy a lan CR"
@@ -334,4 +337,103 @@ EOF
 
   echo_step "wait for deletion lan CR"
   kubectl wait --for=delete lans/example
+}
+
+## Nic CR Tests
+function nic_tests() {
+  echo_step "deploy a nic CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Nic
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleNic
+    dhcp: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    serverConfig:
+      serverIdRef:
+        name: example
+    lanConfig:
+      lanIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for nic CR to be ready"
+  kubectl wait --for=condition=ready nics/example --timeout 120s
+
+  echo_step "get nic CR"
+  kubectl get nics
+
+  echo_step "update nic CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Nic
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleNic
+    dhcp: true
+    firewallActive: true
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    serverConfig:
+      serverIdRef:
+        name: example
+    lanConfig:
+      lanIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for nic CR to be ready"
+  kubectl wait --for=condition=ready nics/example --timeout 120s
+}
+
+function nic_tests_cleanup() {
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Nic
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleNic
+    dhcp: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    serverConfig:
+      serverIdRef:
+        name: example
+    lanConfig:
+      lanIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo_step "uninstalling nic CR"
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
+
+  echo_step "wait for deletion nic CR"
+  kubectl wait --for=delete nics/example
 }
