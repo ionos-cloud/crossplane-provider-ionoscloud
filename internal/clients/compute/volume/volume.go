@@ -20,7 +20,7 @@ type APIClient struct {
 type Client interface {
 	GetVolume(ctx context.Context, datacenterID, volumeID string) (sdkgo.Volume, *sdkgo.APIResponse, error)
 	CreateVolume(ctx context.Context, datacenterID string, volume sdkgo.Volume) (sdkgo.Volume, *sdkgo.APIResponse, error)
-	UpdateVolume(ctx context.Context, datacenterID, volumeID string, volume sdkgo.VolumeProperties) (sdkgo.Volume, *sdkgo.APIResponse, error)
+	UpdateVolume(ctx context.Context, datacenterID, volumeID string, volume sdkgo.Volume) (sdkgo.Volume, *sdkgo.APIResponse, error)
 	DeleteVolume(ctx context.Context, datacenterID, volumeID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
 }
@@ -36,8 +36,8 @@ func (cp *APIClient) CreateVolume(ctx context.Context, datacenterID string, volu
 }
 
 // UpdateVolume based on datacenterID, volumeID and Volume properties
-func (cp *APIClient) UpdateVolume(ctx context.Context, datacenterID, volumeID string, volume sdkgo.VolumeProperties) (sdkgo.Volume, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.VolumesApi.DatacentersVolumesPatch(ctx, datacenterID, volumeID).Volume(volume).Execute()
+func (cp *APIClient) UpdateVolume(ctx context.Context, datacenterID, volumeID string, volume sdkgo.Volume) (sdkgo.Volume, *sdkgo.APIResponse, error) {
+	return cp.ComputeClient.VolumesApi.DatacentersVolumesPut(ctx, datacenterID, volumeID).Volume(volume).Execute()
 }
 
 // DeleteVolume based on datacenterID, volumeID
@@ -98,10 +98,9 @@ func GenerateCreateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.Volume, error) {
 
 // GenerateUpdateVolumeInput returns PatchVolumeRequest based on the CR spec modifications
 //nolint
-func GenerateUpdateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.VolumeProperties, error) {
+func GenerateUpdateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.Volume, error) {
 	instanceUpdateInput := sdkgo.VolumeProperties{
 		Name:                &cr.Spec.ForProvider.Name,
-		Type:                &cr.Spec.ForProvider.Type,
 		Size:                &cr.Spec.ForProvider.Size,
 		CpuHotPlug:          &cr.Spec.ForProvider.CPUHotPlug,
 		RamHotPlug:          &cr.Spec.ForProvider.RAMHotPlug,
@@ -110,34 +109,10 @@ func GenerateUpdateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.VolumeProperties, er
 		DiscVirtioHotPlug:   &cr.Spec.ForProvider.DiscVirtioHotPlug,
 		DiscVirtioHotUnplug: &cr.Spec.ForProvider.DiscVirtioHotUnplug,
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AvailabilityZone)) {
-		instanceUpdateInput.SetAvailabilityZone(cr.Spec.ForProvider.AvailabilityZone)
-	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Bus)) {
 		instanceUpdateInput.SetBus(cr.Spec.ForProvider.Bus)
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Image)) {
-		instanceUpdateInput.SetImage(cr.Spec.ForProvider.Image)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.ImageAlias)) {
-		instanceUpdateInput.SetImageAlias(cr.Spec.ForProvider.ImageAlias)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.ImagePassword)) {
-		instanceUpdateInput.SetImagePassword(cr.Spec.ForProvider.ImagePassword)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.SSHKeys)) {
-		instanceUpdateInput.SetSshKeys(cr.Spec.ForProvider.SSHKeys)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.LicenceType)) {
-		instanceUpdateInput.SetLicenceType(cr.Spec.ForProvider.LicenceType)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.BackupunitID)) {
-		instanceUpdateInput.SetBackupunitId(cr.Spec.ForProvider.BackupunitID)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.UserData)) {
-		instanceUpdateInput.SetUserData(cr.Spec.ForProvider.UserData)
-	}
-	return &instanceUpdateInput, nil
+	return &sdkgo.Volume{Properties: &instanceUpdateInput}, nil
 }
 
 // IsVolumeUpToDate returns true if the Volume is up-to-date or false if it does not
@@ -153,8 +128,6 @@ func IsVolumeUpToDate(cr *v1alpha1.Volume, volume *sdkgo.Volume) bool { // nolin
 		return true
 	case volume.Properties.Name != nil && *volume.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
-	case volume.Properties.Type != nil && *volume.Properties.Type != cr.Spec.ForProvider.Type:
-		return false
 	case volume.Properties.Size != nil && *volume.Properties.Size != cr.Spec.ForProvider.Size:
 		return false
 	case volume.Properties.CpuHotPlug != nil && *volume.Properties.CpuHotPlug != cr.Spec.ForProvider.CPUHotPlug:
@@ -169,21 +142,7 @@ func IsVolumeUpToDate(cr *v1alpha1.Volume, volume *sdkgo.Volume) bool { // nolin
 		return false
 	case volume.Properties.DiscVirtioHotUnplug != nil && *volume.Properties.DiscVirtioHotUnplug != cr.Spec.ForProvider.DiscVirtioHotUnplug:
 		return false
-	case volume.Properties.AvailabilityZone != nil && *volume.Properties.AvailabilityZone != cr.Spec.ForProvider.AvailabilityZone:
-		return false
 	case volume.Properties.Bus != nil && *volume.Properties.Bus != cr.Spec.ForProvider.Bus:
-		return false
-	case volume.Properties.Image != nil && *volume.Properties.Image != cr.Spec.ForProvider.Image:
-		return false
-	case volume.Properties.ImageAlias != nil && *volume.Properties.ImageAlias != cr.Spec.ForProvider.ImageAlias:
-		return false
-	case volume.Properties.SshKeys != nil && !reflect.DeepEqual(*volume.Properties.SshKeys, cr.Spec.ForProvider.SSHKeys):
-		return false
-	case volume.Properties.LicenceType != nil && *volume.Properties.LicenceType != cr.Spec.ForProvider.LicenceType:
-		return false
-	case volume.Properties.BackupunitId != nil && *volume.Properties.BackupunitId != cr.Spec.ForProvider.BackupunitID:
-		return false
-	case volume.Properties.UserData != nil && *volume.Properties.UserData != cr.Spec.ForProvider.UserData:
 		return false
 	default:
 		return true
