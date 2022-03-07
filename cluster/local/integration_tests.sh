@@ -216,10 +216,10 @@ echo_step "--- datacenter tests ---"
 datacenter_tests
 echo_step "--- lan tests ---"
 lan_tests
-echo_step "--- server tests ---"
-server_tests
 echo_step "--- volume tests ---"
 volume_tests
+echo_step "--- server tests ---"
+server_tests
 echo_step "--- nic tests ---"
 nic_tests
 
@@ -228,10 +228,10 @@ echo_step "cleanup nic tests"
 nic_tests_cleanup
 echo_step "cleanup lan tests"
 lan_tests_cleanup
-echo_step "cleanup server tests"
-server_tests_cleanup
 echo_step "cleanup volume tests"
 volume_tests_cleanup
+echo_step "cleanup server tests"
+server_tests_cleanup
 echo_step "cleanup datacenter tests"
 datacenter_tests_cleanup
 
