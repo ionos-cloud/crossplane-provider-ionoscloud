@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
@@ -68,6 +69,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:   l}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
+			managed.WithInitializers(),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
@@ -122,32 +124,31 @@ type externalServer struct {
 	log     logging.Logger
 }
 
-func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
 	cr, ok := mg.(*v1alpha1.CubeServer)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotCubeServer)
 	}
 
 	// External Name of the CR is the Cube Server ID
-	id := meta.GetExternalName(cr)
-	if id == "" {
-		return managed.ExternalObservation{
-			ResourceExists:    false,
-			ResourceUpToDate:  false,
-			ConnectionDetails: managed.ConnectionDetails{},
-		}, nil
+	if meta.GetExternalName(cr) == "" {
+		return managed.ExternalObservation{}, nil
 	}
-	cr.Status.AtProvider.ServerID = id
-	instance, apiResponse, err := c.service.GetServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, id)
+	instance, apiResponse, err := c.service.GetServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, meta.GetExternalName(cr))
 	if err != nil {
-		retErr := fmt.Errorf("failed to get server by id. error: %w", err)
-		retErr = compute.CheckAPIResponseInfo(apiResponse, retErr)
-		return managed.ExternalObservation{
-			ResourceExists:    false,
-			ResourceUpToDate:  false,
-			ConnectionDetails: managed.ConnectionDetails{},
-		}, retErr
+		retErr := fmt.Errorf("failed to get cube server by id. error: %w", err)
+		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
+	if instance.Entities != nil && instance.Entities.Volumes != nil && instance.Entities.Volumes.Items != nil {
+		if len(*instance.Entities.Volumes.Items) > 0 {
+			items := *instance.Entities.Volumes.Items
+			cr.Status.AtProvider.VolumeID = *items[0].Id
+		}
+	}
+	current := cr.Spec.ForProvider.DeepCopy()
+	server.LateInitializerCube(&cr.Spec.ForProvider, &instance)
+
+	cr.Status.AtProvider.ServerID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = *instance.Metadata.State
 	c.log.Debug(fmt.Sprintf("Observing state %v...", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
@@ -163,13 +164,14 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	}
 
 	return managed.ExternalObservation{
-		ResourceExists:    true,
-		ResourceUpToDate:  server.IsCubeServerUpToDate(cr, instance),
-		ConnectionDetails: managed.ConnectionDetails{},
+		ResourceExists:          true,
+		ResourceUpToDate:        server.IsCubeServerUpToDate(cr, instance),
+		ConnectionDetails:       managed.ConnectionDetails{},
+		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}, nil
 }
 
-func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint: gocyclo
 	cr, ok := mg.(*v1alpha1.CubeServer)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotCubeServer)
@@ -186,16 +188,13 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	}
 
 	instance, apiResponse, err := c.service.CreateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
-	creation := managed.ExternalCreation{
-		ConnectionDetails: managed.ConnectionDetails{},
-	}
+	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create cube server. error: %w", err)
-		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
-		return creation, retErr
+		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return managed.ExternalCreation{}, err
+		return creation, err
 	}
 
 	// Set External Name
@@ -221,17 +220,17 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	}
 
 	_, apiResponse, err := c.service.UpdateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, serverID, *instanceInput)
-	update := managed.ExternalUpdate{
-		ConnectionDetails: managed.ConnectionDetails{},
-	}
+	update := managed.ExternalUpdate{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to update cube server. error: %w", err)
-		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
-		return update, retErr
+		return update, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return managed.ExternalUpdate{}, err
+		return update, err
 	}
+
+	// TODO: to update volume support
+
 	return update, nil
 }
 
@@ -249,8 +248,7 @@ func (c *externalServer) Delete(ctx context.Context, mg resource.Managed) error 
 	apiResponse, err := c.service.DeleteServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete cube server. error: %w", err)
-		retErr = compute.AddAPIResponseInfo(apiResponse, retErr)
-		return retErr
+		return compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err

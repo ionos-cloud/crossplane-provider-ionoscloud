@@ -1,14 +1,30 @@
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleDatacenter
+    location: de/txl
+    description: test
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: CubeServer
 metadata:
   name: examplecubeserver
 spec:
   forProvider:
     name: exampleCubeServer
+    availabilityZone: AUTO
+    cpuFamily: INTEL_SKYLAKE
     template:
       name: CUBES XS
-    availabilityZone: AUTO
-    cpuFamily: AMD_OPTERON
+    volume:
+      name: exampleDasVolume
+      bus: VIRTIO
+      licenceType: LINUX
     datacenterConfig:
       datacenterIdRef:
         name: example

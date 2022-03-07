@@ -12,6 +12,8 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
+const depthQueryParam = int32(5)
+
 var serverCubeType = "CUBE"
 
 // APIClient is a wrapper around IONOS Service
@@ -34,7 +36,7 @@ type Client interface {
 
 // GetServer based on datacenterID and serverID
 func (cp *APIClient) GetServer(ctx context.Context, datacenterID, serverID string) (sdkgo.Server, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.ServersApi.DatacentersServersFindById(ctx, datacenterID, serverID).Execute()
+	return cp.ComputeClient.ServersApi.DatacentersServersFindById(ctx, datacenterID, serverID).Depth(depthQueryParam).Execute()
 }
 
 // CreateServer based on Server properties
@@ -127,6 +129,22 @@ func GenerateUpdateServerInput(cr *v1alpha1.Server) (*sdkgo.ServerProperties, er
 	return &instanceUpdateInput, nil
 }
 
+// LateInitializer fills the empty fields in *v1alpha1.ServerParameters with
+// the values seen in sdkgo.Server.
+func LateInitializer(in *v1alpha1.ServerParameters, sg *sdkgo.Server) {
+	if sg == nil {
+		return
+	}
+	// Add Boot CD-ROM ID to the Spec, if it was updated via other tool (e.g. DCD)
+	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
+		if bootCdromOk, ok := propertiesOk.GetBootCdromOk(); ok && bootCdromOk != nil {
+			if utils.IsEmptyValue(reflect.ValueOf(in.BootCdromID)) {
+				in.BootCdromID = *bootCdromOk.Id
+			}
+		}
+	}
+}
+
 // IsServerUpToDate returns true if the Server is up-to-date or false if it does not
 func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool { // nolint:gocyclo
 	switch {
@@ -155,30 +173,17 @@ func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool { // nolint
 	}
 }
 
-// LateInitializer fills the empty fields in *v1alpha1.ServerParameters with
-// the values seen in sdkgo.Server.
-func LateInitializer(in *v1alpha1.ServerParameters, sg *sdkgo.Server) {
-	if sg == nil {
-		return
-	}
-	// Add Boot CD-ROM ID to the Spec, if it was updated via other tool (e.g. DCD)
-	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
-		if bootCdromOk, ok := propertiesOk.GetBootCdromOk(); ok && bootCdromOk != nil {
-			if utils.IsEmptyValue(reflect.ValueOf(in.BootCdromID)) {
-				in.BootCdromID = *bootCdromOk.Id
-			}
-		}
-	}
-}
-
 // GenerateCreateCubeServerInput returns CreateServerRequest based on the CR spec
-func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer, client *sdkgo.APIClient) (*sdkgo.Server, error) {
-	// TODO: to be updated with DAS Volume Properties
+func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer, client *sdkgo.APIClient) (*sdkgo.Server, error) { // nolint:gocyclo
+	// Cube Server needs a template ID in order to create a Volume
 	var templateID string
-	if cr.Spec.ForProvider.Template.ID == "" {
+	// Cube Server has a DAS Volume attached to it
+	var volumeType = "DAS"
+
+	// Find the corresponding template ID
+	if utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Template.TemplateID)) {
 		if client != nil {
-			templates, _, err := client.TemplatesApi.TemplatesGet(context.TODO()).
-				Filter("name", cr.Spec.ForProvider.Template.Name).Depth(1).Execute()
+			templates, _, err := client.TemplatesApi.TemplatesGet(context.TODO()).Filter("name", cr.Spec.ForProvider.Template.Name).Depth(1).Execute()
 			if err != nil {
 				return nil, err
 			}
@@ -194,8 +199,34 @@ func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer, client *sdkgo.APICli
 			return nil, fmt.Errorf("error: APIClient must not be nil")
 		}
 	} else {
-		templateID = cr.Spec.ForProvider.Template.ID
+		templateID = cr.Spec.ForProvider.Template.TemplateID
 	}
+
+	// Get DAS Volume Input
+	dasVolumeInput := sdkgo.Volume{
+		Properties: &sdkgo.VolumeProperties{
+			Name: &cr.Spec.ForProvider.DasVolumeProperties.Name,
+			Type: &volumeType,
+			Bus:  &cr.Spec.ForProvider.DasVolumeProperties.Bus,
+		},
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.Image)) {
+		dasVolumeInput.Properties.SetImage(cr.Spec.ForProvider.DasVolumeProperties.Image)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.ImageAlias)) {
+		dasVolumeInput.Properties.SetImageAlias(cr.Spec.ForProvider.DasVolumeProperties.ImageAlias)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.ImagePassword)) {
+		dasVolumeInput.Properties.SetImagePassword(cr.Spec.ForProvider.DasVolumeProperties.ImagePassword)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.SSHKeys)) {
+		dasVolumeInput.Properties.SetSshKeys(cr.Spec.ForProvider.DasVolumeProperties.SSHKeys)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.LicenceType)) {
+		dasVolumeInput.Properties.SetLicenceType(cr.Spec.ForProvider.DasVolumeProperties.LicenceType)
+	}
+
+	// Create Server Input
 	instanceCreateInput := sdkgo.Server{
 		Properties: &sdkgo.ServerProperties{
 			Name:             &cr.Spec.ForProvider.Name,
@@ -204,6 +235,7 @@ func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer, client *sdkgo.APICli
 			CpuFamily:        &cr.Spec.ForProvider.CPUFamily,
 			Type:             &serverCubeType,
 		},
+		Entities: &sdkgo.ServerEntities{Volumes: &sdkgo.AttachedVolumes{Items: &[]sdkgo.Volume{dasVolumeInput}}},
 	}
 	return &instanceCreateInput, nil
 }
@@ -211,11 +243,28 @@ func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer, client *sdkgo.APICli
 // GenerateUpdateCubeServerInput returns PatchServerRequest based on the CR spec modifications
 func GenerateUpdateCubeServerInput(cr *v1alpha1.CubeServer) (*sdkgo.ServerProperties, error) {
 	instanceUpdateInput := sdkgo.ServerProperties{
-		Name:             &cr.Spec.ForProvider.Name,
-		AvailabilityZone: &cr.Spec.ForProvider.AvailabilityZone,
-		CpuFamily:        &cr.Spec.ForProvider.CPUFamily,
+		Name: &cr.Spec.ForProvider.Name,
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Status.AtProvider.VolumeID)) {
+		instanceUpdateInput.SetBootVolume(sdkgo.ResourceReference{Id: &cr.Status.AtProvider.VolumeID})
 	}
 	return &instanceUpdateInput, nil
+}
+
+// LateInitializerCube fills the empty fields in *v1alpha1.CubeServerProperties with
+// the values seen in sdkgo.Server.
+func LateInitializerCube(in *v1alpha1.CubeServerProperties, sg *sdkgo.Server) {
+	if sg == nil {
+		return
+	}
+	// Add Template ID to the Spec, if it was updated via other tool (e.g. DCD)
+	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
+		if templateUUIDOk, ok := propertiesOk.GetTemplateUuidOk(); ok && templateUUIDOk != nil {
+			if utils.IsEmptyValue(reflect.ValueOf(in.Template.TemplateID)) {
+				in.Template.TemplateID = *templateUUIDOk
+			}
+		}
+	}
 }
 
 // IsCubeServerUpToDate returns true if the Server is up-to-date or false if it does not
@@ -227,11 +276,13 @@ func IsCubeServerUpToDate(cr *v1alpha1.CubeServer, server sdkgo.Server) bool { /
 		return false
 	case cr != nil && server.Properties == nil:
 		return false
-	case server.Metadata != nil && *server.Metadata.State == "BUSY":
+	case server.Metadata.State != nil && *server.Metadata.State == "BUSY":
 		return true
-	case server.Properties != nil && *server.Properties.Name != cr.Spec.ForProvider.Name:
+	case server.Properties.Name != nil && *server.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
-	case server.Properties != nil && *server.Properties.AvailabilityZone != cr.Spec.ForProvider.Name:
+	case server.Properties.BootVolume != nil && *server.Properties.BootVolume.Id != cr.Status.AtProvider.VolumeID:
+		return false
+	case cr.Status.AtProvider.VolumeID != "" && !server.Properties.HasBootVolume():
 		return false
 	default:
 		return true
