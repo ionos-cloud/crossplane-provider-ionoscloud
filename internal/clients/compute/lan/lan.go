@@ -84,18 +84,22 @@ func GenerateUpdateLanInput(cr *v1alpha1.Lan) (*sdkgo.LanProperties, error) {
 
 // IsLanUpToDate returns true if the Lan is up-to-date or false if it does not
 func IsLanUpToDate(cr *v1alpha1.Lan, lan sdkgo.Lan) bool { // nolint:gocyclo
-	if lan.Properties == nil || lan.Metadata == nil || cr == nil {
-		return false
-	}
 	switch {
-	case *lan.Metadata.State == "BUSY":
+	case cr == nil && lan.Properties == nil:
 		return true
-	case *lan.Properties.Name != cr.Spec.ForProvider.Name:
+	case cr == nil && lan.Properties != nil:
 		return false
-	case *lan.Properties.Public != cr.Spec.ForProvider.Public:
+	case cr != nil && lan.Properties == nil:
 		return false
-	case *lan.Properties.Pcc != cr.Spec.ForProvider.Pcc:
+	case lan.Metadata.State != nil && *lan.Metadata.State == "BUSY":
+		return true
+	case lan.Properties.Name != nil && *lan.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
+	case lan.Properties.Public != nil && *lan.Properties.Public != cr.Spec.ForProvider.Public:
+		return false
+	case lan.Properties.Pcc != nil && *lan.Properties.Pcc != cr.Spec.ForProvider.Pcc:
+		return false
+	default:
+		return true
 	}
-	return true
 }

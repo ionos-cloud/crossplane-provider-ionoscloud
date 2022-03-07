@@ -73,16 +73,20 @@ func GenerateUpdateDatacenterInput(cr *v1alpha1.Datacenter) (*sdkgo.DatacenterPr
 
 // IsDatacenterUpToDate returns true if the Datacenter is up-to-date or false if it does not
 func IsDatacenterUpToDate(cr *v1alpha1.Datacenter, datacenter sdkgo.Datacenter) bool { // nolint:gocyclo
-	if datacenter.Properties == nil || datacenter.Metadata == nil || cr == nil {
-		return false
-	}
 	switch {
-	case *datacenter.Metadata.State == "BUSY":
+	case cr == nil && datacenter.Properties == nil:
 		return true
-	case *datacenter.Properties.Name != cr.Spec.ForProvider.Name:
+	case cr == nil && datacenter.Properties != nil:
 		return false
-	case *datacenter.Properties.Description != cr.Spec.ForProvider.Description:
+	case cr != nil && datacenter.Properties == nil:
 		return false
+	case datacenter.Metadata.State != nil && *datacenter.Metadata.State == "BUSY":
+		return true
+	case datacenter.Properties.Name != nil && *datacenter.Properties.Name != cr.Spec.ForProvider.Name:
+		return false
+	case datacenter.Properties.Description != nil && *datacenter.Properties.Description != cr.Spec.ForProvider.Description:
+		return false
+	default:
+		return true
 	}
-	return true
 }
