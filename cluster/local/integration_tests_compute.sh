@@ -335,3 +335,102 @@ EOF
   echo_step "wait for deletion lan CR"
   kubectl wait --for=delete lans/example
 }
+
+## Nic CR Tests
+function nic_tests() {
+  echo_step "deploy a nic CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Nic
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleNic
+    dhcp: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    serverConfig:
+      serverIdRef:
+        name: example
+    lanConfig:
+      lanIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for nic CR to be ready"
+  kubectl wait --for=condition=ready nics/example
+
+  echo_step "get nic CR"
+  kubectl get nics
+
+  echo_step "update nic CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Nic
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleNic
+    dhcp: true
+    firewallActive: true
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    serverConfig:
+      serverIdRef:
+        name: example
+    lanConfig:
+      lanIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for nic CR to be ready"
+  kubectl wait --for=condition=ready nics/example
+}
+
+function nic_tests_cleanup() {
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Nic
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleNic
+    dhcp: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    serverConfig:
+      serverIdRef:
+        name: example
+    lanConfig:
+      lanIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo_step "uninstalling nic CR"
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
+
+  echo_step "wait for deletion nic CR"
+  kubectl wait --for=delete nics/example
+}

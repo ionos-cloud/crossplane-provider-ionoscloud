@@ -1,0 +1,21 @@
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Nic
+metadata:
+  name: examplenic
+spec:
+  forProvider:
+    name: exampleNic
+    dhcp: false
+    #    firewallActive: true
+    #    firewallType: BIDIRECTIONAL
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    serverConfig:
+      serverIdRef:
+        name: exampleserver
+    lanConfig:
+      lanIdRef:
+        name: examplelan
+  providerConfigRef:
+    name: example
