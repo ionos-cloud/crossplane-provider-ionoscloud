@@ -251,6 +251,17 @@ func GenerateUpdateCubeServerInput(cr *v1alpha1.CubeServer) (*sdkgo.ServerProper
 	return &instanceUpdateInput, nil
 }
 
+// GenerateUpdateVolumeInput returns Volume based on the CR spec modifications
+func GenerateUpdateVolumeInput(cr *v1alpha1.CubeServer) (*sdkgo.Volume, error) {
+	instanceUpdateInput := sdkgo.VolumeProperties{
+		Name: &cr.Spec.ForProvider.DasVolumeProperties.Name,
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.Bus)) {
+		instanceUpdateInput.SetBus(cr.Spec.ForProvider.DasVolumeProperties.Bus)
+	}
+	return &sdkgo.Volume{Properties: &instanceUpdateInput}, nil
+}
+
 // LateInitializerCube fills the empty fields in *v1alpha1.CubeServerProperties with
 // the values seen in sdkgo.Server.
 func LateInitializerCube(in *v1alpha1.CubeServerProperties, sg *sdkgo.Server) {
@@ -284,7 +295,19 @@ func IsCubeServerUpToDate(cr *v1alpha1.CubeServer, server sdkgo.Server) bool { /
 		return false
 	case cr.Status.AtProvider.VolumeID != "" && !server.Properties.HasBootVolume():
 		return false
-	default:
-		return true
 	}
+	if server.HasEntities() && server.Entities.HasVolumes() && server.Entities.Volumes.HasItems() {
+		items := *server.Entities.Volumes.Items
+		if len(items) > 0 {
+			if propertiesOk, ok := items[0].GetPropertiesOk(); ok && propertiesOk != nil {
+				if propertiesOk.Name != nil && *propertiesOk.Name != cr.Spec.ForProvider.DasVolumeProperties.Name {
+					return false
+				}
+				if propertiesOk.Bus != nil && *propertiesOk.Bus != cr.Spec.ForProvider.DasVolumeProperties.Bus {
+					return false
+				}
+			}
+		}
+	}
+	return true
 }

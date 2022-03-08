@@ -41,6 +41,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/volume"
 )
 
 const (
@@ -112,7 +113,10 @@ func (c *connectorServer) Connect(ctx context.Context, mg resource.Managed) (man
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
-	return &externalServer{service: &server.APIClient{IonosServices: svc}, log: c.log}, nil
+	return &externalServer{
+		service:       &server.APIClient{IonosServices: svc},
+		serviceVolume: &volume.APIClient{IonosServices: svc},
+		log:           c.log}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -120,8 +124,9 @@ func (c *connectorServer) Connect(ctx context.Context, mg resource.Managed) (man
 type externalServer struct {
 	// A 'client' used to connect to the externalServer resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service server.Client
-	log     logging.Logger
+	service       server.Client
+	serviceVolume volume.Client
+	log           logging.Logger
 }
 
 func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
@@ -171,7 +176,7 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	}, nil
 }
 
-func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint: gocyclo
+func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
 	cr, ok := mg.(*v1alpha1.CubeServer)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotCubeServer)
@@ -218,7 +223,6 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	if err != nil {
 		return managed.ExternalUpdate{}, nil
 	}
-
 	_, apiResponse, err := c.service.UpdateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, serverID, *instanceInput)
 	update := managed.ExternalUpdate{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
@@ -228,8 +232,18 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return update, err
 	}
-
-	// TODO: to update volume support
+	instanceVolumeInput, err := server.GenerateUpdateVolumeInput(cr)
+	if err != nil {
+		return update, nil
+	}
+	_, apiResponse, err = c.serviceVolume.UpdateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.VolumeID, *instanceVolumeInput)
+	if err != nil {
+		retErr := fmt.Errorf("failed to update das volume. error: %w", err)
+		return update, compute.AddAPIResponseInfo(apiResponse, retErr)
+	}
+	if err = compute.WaitForRequest(ctx, c.serviceVolume.GetAPIClient(), apiResponse); err != nil {
+		return update, err
+	}
 
 	return update, nil
 }
@@ -245,6 +259,7 @@ func (c *externalServer) Delete(ctx context.Context, mg resource.Managed) error 
 		return nil
 	}
 
+	// Deleting the CUBE Server will also delete the DAS Volume
 	apiResponse, err := c.service.DeleteServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete cube server. error: %w", err)
