@@ -212,6 +212,8 @@ EOF
 echo "${INSTALL_CRED_YAML}" | "${KUBECTL}" apply -f -
 
 # run Compute Resources Tests
+echo_step "--- ipblock tests ---"
+ipblock_tests
 echo_step "--- datacenter tests ---"
 datacenter_tests
 echo_step "--- lan tests ---"
@@ -234,6 +236,8 @@ echo_step "cleanup server tests"
 server_tests_cleanup
 echo_step "cleanup datacenter tests"
 datacenter_tests_cleanup
+echo_step "cleanup ipblock tests"
+ipblock_tests_cleanup
 
 # uninstalling Crossplane Provider IONOS Cloud
 echo_step "uninstalling ${PROJECT_NAME}"
