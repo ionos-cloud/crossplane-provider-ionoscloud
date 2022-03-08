@@ -11,7 +11,7 @@ spec:
     categories:
     - crossplane
     - managed
-    - template
+    - ionoscloud
     kind: IPBlock
     listKind: IPBlockList
     plural: ipblocks
