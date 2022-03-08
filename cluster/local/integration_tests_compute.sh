@@ -4,6 +4,82 @@ set -e
 
 ## The purpose of this script is to have the tests for
 ## the compute resources
+## Please name the functions the following format:
+## <resource_name>_tests() and <resource_name>_tests_cleanup().
+
+## IPBlock CR Tests
+function ipblock_tests() {
+  echo_step "deploy a ipblock CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleIpBlock
+    size: 2
+    location: us/las
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for ipblock CR to be ready"
+  kubectl wait --for=condition=ready ipblocks/example
+
+  echo_step "get ipblock CR"
+  kubectl get ipblocks
+
+  echo_step "update ipblock CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleIpBlockUpdate
+    size: 2
+    location: us/las
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for ipblock CR to be ready"
+  kubectl wait --for=condition=ready ipblocks/example
+}
+
+function ipblock_tests_cleanup() {
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleIpBlockUpdate
+    size: 2
+    location: us/las
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo_step "uninstalling ipblock CR"
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
+
+  echo_step "wait for deletion ipblock CR"
+  kubectl wait --for=delete ipblocks/example
+}
 
 ## Datacenter CR Tests
 function datacenter_tests() {
