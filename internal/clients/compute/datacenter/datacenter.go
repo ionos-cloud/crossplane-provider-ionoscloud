@@ -49,7 +49,7 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 	return cp.ComputeClient
 }
 
-// GenerateCreateDatacenterInput returns CreateDatacenterRequest based on the CR spec
+// GenerateCreateDatacenterInput returns sdkgo.Datacenter based on the CR spec
 func GenerateCreateDatacenterInput(cr *v1alpha1.Datacenter) (*sdkgo.Datacenter, error) {
 	instanceCreateInput := sdkgo.Datacenter{
 		Properties: &sdkgo.DatacenterProperties{
@@ -62,7 +62,7 @@ func GenerateCreateDatacenterInput(cr *v1alpha1.Datacenter) (*sdkgo.Datacenter, 
 	return &instanceCreateInput, nil
 }
 
-// GenerateUpdateDatacenterInput returns PatchDatacenterRequest based on the CR spec modifications
+// GenerateUpdateDatacenterInput returns sdkgo.DatacenterProperties based on the CR spec modifications
 func GenerateUpdateDatacenterInput(cr *v1alpha1.Datacenter) (*sdkgo.DatacenterProperties, error) {
 	instanceUpdateInput := sdkgo.DatacenterProperties{
 		Name:        &cr.Spec.ForProvider.Name,

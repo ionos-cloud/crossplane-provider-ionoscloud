@@ -68,7 +68,7 @@ func LateInitializer(in *v1alpha1.NicParameters, sg *sdkgo.Nic) {
 	}
 }
 
-// GenerateCreateNicInput returns CreateNicRequest based on the CR spec
+// GenerateCreateNicInput returns sdkgo.Nic based on the CR spec
 func GenerateCreateNicInput(cr *v1alpha1.Nic) (*sdkgo.Nic, error) { // nolint:gocyclo
 	lanID, err := safecast.Atoi32(cr.Spec.ForProvider.LanCfg.LanID)
 	if err != nil {
@@ -96,7 +96,7 @@ func GenerateCreateNicInput(cr *v1alpha1.Nic) (*sdkgo.Nic, error) { // nolint:go
 	return &instanceCreateInput, nil
 }
 
-// GenerateUpdateNicInput returns PatchNicRequest based on the CR spec modifications
+// GenerateUpdateNicInput returns sdkgo.NicProperties based on the CR spec modifications
 func GenerateUpdateNicInput(cr *v1alpha1.Nic) (*sdkgo.NicProperties, error) { // nolint:gocyclo
 	lanID, err := safecast.Atoi32(cr.Spec.ForProvider.LanCfg.LanID)
 	if err != nil {

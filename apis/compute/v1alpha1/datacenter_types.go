@@ -26,7 +26,7 @@ import (
 )
 
 // DatacenterParameters are the observable fields of a Datacenter.
-// Required values when creating a Volume:
+// Required values when creating a Datacenter:
 // Location.
 type DatacenterParameters struct {
 	// The name of the  resource.
@@ -93,7 +93,7 @@ type DatacenterStatus struct {
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,template}
+// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
 type Datacenter struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

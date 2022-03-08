@@ -50,9 +50,8 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 	return cp.ComputeClient
 }
 
-// GenerateCreateVolumeInput returns CreateVolumeRequest based on the CR spec
-//nolint
-func GenerateCreateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.Volume, error) {
+// GenerateCreateVolumeInput returns sdkgo.Volume based on the CR spec
+func GenerateCreateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.Volume, error) { // nolint:gocyclo
 	instanceCreateInput := sdkgo.Volume{
 		Properties: &sdkgo.VolumeProperties{
 			Name:                &cr.Spec.ForProvider.Name,
@@ -96,8 +95,7 @@ func GenerateCreateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.Volume, error) {
 	return &instanceCreateInput, nil
 }
 
-// GenerateUpdateVolumeInput returns PatchVolumeRequest based on the CR spec modifications
-//nolint
+// GenerateUpdateVolumeInput returns sdkgo.Volume based on the CR spec modifications
 func GenerateUpdateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.Volume, error) {
 	instanceUpdateInput := sdkgo.VolumeProperties{
 		Name:                &cr.Spec.ForProvider.Name,

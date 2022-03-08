@@ -11,7 +11,7 @@ spec:
     categories:
     - crossplane
     - managed
-    - template
+    - ionoscloud
     kind: Datacenter
     listKind: DatacenterList
     plural: datacenters
@@ -73,7 +73,7 @@ spec:
                 type: string
               forProvider:
                 description: 'DatacenterParameters are the observable fields of a
-                  Datacenter. Required values when creating a Volume: Location.'
+                  Datacenter. Required values when creating a Datacenter: Location.'
                 properties:
                   description:
                     description: A description for the datacenter, such as staging,

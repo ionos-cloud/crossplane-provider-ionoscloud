@@ -51,7 +51,7 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 	return cp.ComputeClient
 }
 
-// GenerateCreateLanInput returns CreateLanRequest based on the CR spec
+// GenerateCreateLanInput returns sdkgo.LanPost based on the CR spec
 func GenerateCreateLanInput(cr *v1alpha1.Lan) (*sdkgo.LanPost, error) {
 	instanceCreateInput := sdkgo.LanPost{
 		Properties: &sdkgo.LanPropertiesPost{
@@ -67,7 +67,7 @@ func GenerateCreateLanInput(cr *v1alpha1.Lan) (*sdkgo.LanPost, error) {
 	return &instanceCreateInput, nil
 }
 
-// GenerateUpdateLanInput returns PatchLanRequest based on the CR spec modifications
+// GenerateUpdateLanInput returns sdkgo.LanProperties based on the CR spec modifications
 func GenerateUpdateLanInput(cr *v1alpha1.Lan) (*sdkgo.LanProperties, error) {
 	instanceUpdateInput := sdkgo.LanProperties{
 		Public: &cr.Spec.ForProvider.Public,
