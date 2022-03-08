@@ -37,6 +37,15 @@ func (l *DatacenterList) GetItems() []resource.Managed {
 	return items
 }
 
+// GetItems of this IPBlockList.
+func (l *IPBlockList) GetItems() []resource.Managed {
+	items := make([]resource.Managed, len(l.Items))
+	for i := range l.Items {
+		items[i] = &l.Items[i]
+	}
+	return items
+}
+
 // GetItems of this LanList.
 func (l *LanList) GetItems() []resource.Managed {
 	items := make([]resource.Managed, len(l.Items))
