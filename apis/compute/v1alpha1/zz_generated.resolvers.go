@@ -91,7 +91,7 @@ func (mg *FirewallRule) ResolveReferences(ctx context.Context, c client.Reader) 
 
 	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
 		CurrentValue: mg.Spec.ForProvider.NicCfg.NicID,
-		Extract:      ExtractServerID(),
+		Extract:      ExtractNicID(),
 		Reference:    mg.Spec.ForProvider.NicCfg.NicIDRef,
 		Selector:     mg.Spec.ForProvider.NicCfg.NicIDSelector,
 		To: reference.To{

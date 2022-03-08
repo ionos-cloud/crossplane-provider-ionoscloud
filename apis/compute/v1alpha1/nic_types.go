@@ -83,7 +83,7 @@ type NicConfig struct {
 	//
 	// +immutable
 	// +crossplane:generate:reference:type=Nic
-	// +crossplane:generate:reference:extractor=ExtractServerID()
+	// +crossplane:generate:reference:extractor=ExtractNicID()
 	NicID string `json:"nicId,omitempty"`
 	// NicIDRef references to a Nic to retrieve its ID
 	//
