@@ -25,9 +25,6 @@ spec:
     - jsonPath: .status.conditions[?(@.type=='Synced')].status
       name: SYNCED
       type: string
-    - jsonPath: .metadata.annotations.crossplane\.io/external-name
-      name: FIREWALL RULE ID
-      type: string
     - jsonPath: .spec.forProvider.datacenterConfig.datacenterId
       name: DATACENTER ID
       priority: 1
@@ -38,7 +35,9 @@ spec:
       type: string
     - jsonPath: .spec.forProvider.nicConfig.nicId
       name: NIC ID
-      priority: 1
+      type: string
+    - jsonPath: .metadata.annotations.crossplane\.io/external-name
+      name: FIREWALL RULE ID
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE
