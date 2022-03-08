@@ -79,7 +79,7 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 	return cp.ComputeClient
 }
 
-// GenerateCreateServerInput returns CreateServerRequest based on the CR spec
+// GenerateCreateServerInput returns sdkgo.Server based on the CR spec
 func GenerateCreateServerInput(cr *v1alpha1.Server) (*sdkgo.Server, error) {
 	instanceCreateInput := sdkgo.Server{
 		Properties: &sdkgo.ServerProperties{
@@ -107,7 +107,7 @@ func GenerateCreateServerInput(cr *v1alpha1.Server) (*sdkgo.Server, error) {
 	return &instanceCreateInput, nil
 }
 
-// GenerateUpdateServerInput returns PatchServerRequest based on the CR spec modifications
+// GenerateUpdateServerInput returns sdkgo.ServerProperties based on the CR spec modifications
 func GenerateUpdateServerInput(cr *v1alpha1.Server) (*sdkgo.ServerProperties, error) {
 	instanceUpdateInput := sdkgo.ServerProperties{
 		Name:  &cr.Spec.ForProvider.Name,
