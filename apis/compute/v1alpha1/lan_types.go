@@ -19,10 +19,9 @@ package v1alpha1
 import (
 	"reflect"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
 // LanParameters are the observable fields of a Lan.
@@ -54,7 +53,6 @@ type LanConfig struct {
 	// It needs to be provided via directly or via reference.
 	//
 	// +immutable
-	// +kubebuilder:validation:Format=uuid
 	// +crossplane:generate:reference:type=Lan
 	// +crossplane:generate:reference:extractor=ExtractLanID()
 	LanID string `json:"lanId,omitempty"`

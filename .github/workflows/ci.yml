@@ -119,13 +119,6 @@ jobs:
         env:
           IONOS_USERNAME: ${{ secrets.IONOS_USERNAME }}
           IONOS_PASSWORD: ${{ secrets.IONOS_PASSWORD }}
-      - name: Upload Logs
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: provider-logs
-          path: provider-ionoscloud.txt
-          if-no-files-found: ignore
 
   publish-artifacts:
     runs-on: ubuntu-20.04
