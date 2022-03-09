@@ -2,12 +2,17 @@
 
 ## Overview
 
-Crossplane allows the user to manage infrastructure directly from Kubernetes. Crossplane extends a Kubernetes cluster to support orchestrating any infrastructure or managed service.
-Providers extend Crossplane to enable infrastructure resource provisioning of specific API. 
+Crossplane allows the user to manage infrastructure directly from Kubernetes. Crossplane extends a Kubernetes cluster to
+support orchestrating any infrastructure or managed service. Providers extend Crossplane to enable infrastructure
+resource provisioning of specific API.
 
-Crossplane Provider IONOS Cloud contains a Controller and Custom Resource Definitions(CRDs). The CRDs are defined in sync with the API and contain the desired state, the Controller has a reconcile loop, and it constantly compares the desired state vs actual state and takes action to reach the desired state. Using the SDK Go, the controller performs CRUD operations and resources are managed in IONOS Cloud. See [diagram](diagram.png).
+Crossplane Provider IONOS Cloud contains a Controller and Custom Resource Definitions(CRDs). The CRDs are defined in
+sync with the API and contain the desired state, the Controller has a reconcile loop, and it constantly compares the
+desired state vs actual state and takes action to reach the desired state. Using the SDK Go, the controller performs
+CRUD operations and resources are managed in IONOS Cloud. See [diagram](diagram.png).
 
-In this Proof of Concept of the IONOS Cloud Provider, we will create a DBaaS Postgres Cluster resource in the IONOS Cloud.
+In this Proof of Concept of the IONOS Cloud Provider, we will create a DBaaS Postgres Cluster resource in the IONOS
+Cloud.
 
 ## Prerequisites
 
@@ -16,13 +21,14 @@ List of prerequisites:
 * A Kubernetes implementation like [`kind`](https://kind.sigs.k8s.io/)
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl)
 * [Helm](https://helm.sh/docs/intro/install/)
-* Docker 
+* Docker
 * Credentials to access IONOS Cloud
 * Clone this repository locally to be able to run examples
 
 Check prerequisites:
 
 - K8s (in case of using kind):
+
 ```bash
 kind version
 ```
@@ -83,7 +89,8 @@ kubectl apply -f examples/provider/config.yaml
 
 6. Install Crossplane Provider IONOS Cloud
 
-Create an Image Pull Secret with your credentials, to be able to pull the Crossplane provider packages from the Github registry:
+Create an Image Pull Secret with your credentials, to be able to pull the Crossplane provider packages from the Github
+registry:
 
 ```bash
 kubectl create secret --namespace crossplane-system docker-registry package-pull --docker-server ghcr.io --docker-username $GITHUB_USERNAME --docker-password $GITHUB_PERSONAL_ACCESSTOKEN
@@ -140,12 +147,15 @@ providerconfigs.ionoscloud.crossplane.io                   2022-02-02T08:01:41Z
 providerconfigusages.ionoscloud.crossplane.io              2022-02-02T08:01:41Z
 ```
 
-Next, we will create a Custom Resource(CR) of type `clusters.dbaas.postgres.ionoscloud.crossplane.io` in order to provision a DBaaS Postgres Cluster in the IONOS Cloud.
+Next, we will create a Custom Resource(CR) of type `clusters.dbaas.postgres.ionoscloud.crossplane.io` in order to
+provision a DBaaS Postgres Cluster in the IONOS Cloud.
 
 ### Create a resource in IONOS Cloud
 
-❗ Before running the next command, make sure to **update** the values in the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file. Look for `spec.forProvider` fields. 
-It is required to specify the Datacenter (via ID or via reference), Lan (via ID or via reference), CIDR, and location(in sync with the Datacenter) and credentials for the database user.
+❗ Before running the next command, make sure to **update** the values in
+the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file. Look for `spec.forProvider` fields. It is required to
+specify the Datacenter (via ID or via reference), Lan (via ID or via reference), CIDR, and location(in sync with the
+Datacenter) and credentials for the database user.
 
 1. **[CREATE]** Create a datacenter CR, a lan CR and a cluster CR - using the next command:
 
@@ -172,11 +182,13 @@ For more details, use:
 kubectl get clusters -o wide
 ```
 
-The external-name of the CR is the Cluster ID from IONOS Cloud. The cluster CR will be marked as ready when the cluster is in available state (subject of change).
+The external-name of the CR is the Cluster ID from IONOS Cloud. The cluster CR will be marked as ready when the cluster
+is in available state (subject of change).
 
 You can check if the DBaaS Postgres Cluster was created in the IONOS Cloud:
 
-- using `ionosctl` (one of the latest [v6 versions](https://github.com/ionos-cloud/ionosctl/releases/tag/v6.1.0)), you can run:
+- using `ionosctl` (one of the latest [v6 versions](https://github.com/ionos-cloud/ionosctl/releases/tag/v6.1.0)), you
+  can run:
 
 ```bash
 ionosctl dbaas postgres cluster list
@@ -189,9 +201,11 @@ ClusterId                              DisplayName   Location   DatacenterId    
 9b25ecab-83fe-11ec-8d97-828542a828c7   testDemo      de/txl     21d8fd28-5d62-43e9-a67b-68e52dac8885   1       192.168.1.100/24   1           AVAILABLE
 ```
 
-- in DCD: go to [DCD Manager](https://dcd.ionos.com/latest/?dbaas=true) to `Manager Resources>Database Manager>Postgres Clusters`
+- in DCD: go to [DCD Manager](https://dcd.ionos.com/latest/?dbaas=true)
+  to `Manager Resources>Database Manager>Postgres Clusters`
 
-2. **[UPDATE]** If you want to update the cluster CR created, update values from the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file and use the following command:
+2. **[UPDATE]** If you want to update the cluster CR created, update values from
+   the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file and use the following command:
 
 ```bash
 kubectl apply -f examples/ionoscloud/dbaas-postgres/cluster.yaml
@@ -207,7 +221,8 @@ kubectl delete cluster example
 
 This should trigger the destroying of the DBaaS Postgres Cluster.
 
-⚠️ Make sure to delete the DBaaS Postgres Cluster **before** deleting the datacenter or the lan used in the Cluster's connection!
+⚠️ Make sure to delete the DBaaS Postgres Cluster **before** deleting the datacenter or the lan used in the Cluster's
+connection!
 
 Delete the lan and datacenter CRs:
 
@@ -216,13 +231,35 @@ kubectl delete lan examplelan
 kubectl delete datacenter example
 ```
 
-Or you can use the following command (not recommended for this particular case - it might delete the datacenter before the cluster): 
+Or you can use the following command (not recommended for this particular case - it might delete the datacenter before
+the cluster):
 
 ```bash
 kubectl delete -f examples/ionoscloud/dbaas-postgres/cluster.yaml
 ```
 
 ## Cleanup
+
+### Uninstall the Provider
+
+After deleting all resources, it is safe to uninstall the Crossplane Provider IONOS Cloud.
+
+Make sure you delete the `ProviderConfig` **before** deleting the `Provider` (more
+details [here](https://crossplane.io/docs/v1.6/reference/uninstall.html#uninstall-packages)):
+
+```bash
+kubectl delete -f examples/provider/config.yaml
+```
+
+Now it is safe to delete also the `Provider` (the `ProviderRevision` will be deleted automatically):
+
+```bash
+kubectl delete -f examples/provider/install-provider.yaml
+```
+
+### Delete K8s Cluster
+
+Use the following command to delete the k8s cluster:
 
 ```bash
 kind delete cluster --name crossplane-example
