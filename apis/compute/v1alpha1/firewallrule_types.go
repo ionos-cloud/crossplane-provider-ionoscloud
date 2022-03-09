@@ -105,6 +105,7 @@ type FirewallRuleConfig struct {
 	// It needs to be provided via directly or via reference.
 	//
 	// +immutable
+	// +kubebuilder:validation:Format=uuid
 	// +crossplane:generate:reference:type=FirewallRule
 	// +crossplane:generate:reference:extractor=ExtractFirewallRuleID()
 	FirewallRuleID string `json:"firewallRuleId,omitempty"`
