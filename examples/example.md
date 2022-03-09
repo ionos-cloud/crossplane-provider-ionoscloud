@@ -244,14 +244,14 @@ kubectl delete -f examples/ionoscloud/dbaas-postgres/cluster.yaml
 
 After deleting all resources, it is safe to uninstall the Crossplane Provider IONOS Cloud.
 
-Make sure you delete the ProviderConfig before deleting the Provider (more
+Make sure you delete the `ProviderConfig` **before** deleting the `Provider` (more
 details [here](https://crossplane.io/docs/v1.6/reference/uninstall.html#uninstall-packages)):
 
 ```bash
 kubectl delete -f examples/provider/config.yaml
 ```
 
-Now it is safe to delete also the Provider (the ProviderRevision will be deleted automatically):
+Now it is safe to delete also the `Provider` (the `ProviderRevision` will be deleted automatically):
 
 ```bash
 kubectl delete -f examples/provider/install-provider.yaml
