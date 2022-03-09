@@ -273,7 +273,7 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for server CR to be ready"
-  kubectl wait --for=condition=ready servers/example
+  kubectl wait --for=condition=ready servers/example --timeout=90s
 
   echo_step "get server CR"
   kubectl get servers
@@ -303,7 +303,7 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for server CR to be ready"
-  kubectl wait --for=condition=ready servers/example
+  kubectl wait --for=condition=ready servers/example --timeout=90s
 }
 
 function server_tests_cleanup() {
