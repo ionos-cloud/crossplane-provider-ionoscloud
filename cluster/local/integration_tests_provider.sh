@@ -59,9 +59,7 @@ spec:
       key: credentials
 EOF
   )"
-
   echo "${INSTALL_CRED_YAML}" | "${KUBECTL}" apply -f -
-
 }
 
 function uninstall_provider() {
