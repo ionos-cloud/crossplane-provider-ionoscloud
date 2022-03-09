@@ -24,6 +24,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/cubeserver"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/datacenter"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/firewallrule"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/ipblock"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/lan"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/nic"
@@ -43,6 +44,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter) error {
 		volume.Setup,
 		lan.Setup,
 		nic.Setup,
+		firewallrule.Setup,
 		ipblock.Setup,
 		postgres.Setup,
 	} {

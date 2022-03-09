@@ -63,3 +63,17 @@ func ExtractServerID() reference.ExtractValueFn {
 		return meta.GetExternalName(res)
 	}
 }
+
+// ExtractNicID returns the externalName of a referenced Nic.
+func ExtractNicID() reference.ExtractValueFn {
+	return func(mg resource.Managed) string {
+		res, ok := mg.(*Nic)
+		if !ok {
+			return defaultStringValue
+		}
+		if meta.GetExternalName(res) == res.Name {
+			return defaultStringValue
+		}
+		return meta.GetExternalName(res)
+	}
+}

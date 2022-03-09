@@ -1,0 +1,364 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.6.2
+  creationTimestamp: null
+  name: firewallrules.compute.ionoscloud.crossplane.io
+spec:
+  group: compute.ionoscloud.crossplane.io
+  names:
+    categories:
+    - crossplane
+    - managed
+    - ionoscloud
+    kind: FirewallRule
+    listKind: FirewallRuleList
+    plural: firewallrules
+    singular: firewallrule
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: READY
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Synced')].status
+      name: SYNCED
+      type: string
+    - jsonPath: .spec.forProvider.datacenterConfig.datacenterId
+      name: DATACENTER ID
+      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.serverConfig.serverId
+      name: SERVER ID
+      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.nicConfig.nicId
+      name: NIC ID
+      type: string
+    - jsonPath: .metadata.annotations.crossplane\.io/external-name
+      name: FIREWALL RULE ID
+      type: string
+    - jsonPath: .status.atProvider.state
+      name: STATE
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: A FirewallRule is an example API type.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: A FirewallRuleSpec defines the desired state of a FirewallRule.
+            properties:
+              deletionPolicy:
+                default: Delete
+                description: DeletionPolicy specifies what will happen to the underlying
+                  external when this managed resource is deleted - either "Delete"
+                  or "Orphan" the external resource.
+                enum:
+                - Orphan
+                - Delete
+                type: string
+              forProvider:
+                description: 'FirewallRuleParameters are the observable fields of
+                  a FirewallRule. Required values when creating a FirewallRule: DatacenterConfig,
+                  ServerConfig, NicConfig, Protocol.'
+                properties:
+                  datacenterConfig:
+                    description: DatacenterConfig contains information about the datacenter
+                      resource on which the resource will be created
+                    properties:
+                      datacenterId:
+                        description: DatacenterID is the ID of the Datacenter on which
+                          the resource will be created. It needs to be provided via
+                          directly or via reference.
+                        type: string
+                      datacenterIdRef:
+                        description: DatacenterIDRef references to a Datacenter to
+                          retrieve its ID
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      datacenterIdSelector:
+                        description: DatacenterIDSelector selects reference to a Datacenter
+                          to retrieve its datacenterId
+                        properties:
+                          matchControllerRef:
+                            description: MatchControllerRef ensures an object with
+                              the same controller reference as the selecting object
+                              is selected.
+                            type: boolean
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: MatchLabels ensures an object with matching
+                              labels is selected.
+                            type: object
+                        type: object
+                    type: object
+                  icmpCode:
+                    description: Defines the allowed code (from 0 to 254) if protocol
+                      ICMP is chosen. Value null allows all codes.
+                    format: int32
+                    maximum: 254
+                    minimum: 0
+                    type: integer
+                  icmpType:
+                    description: Defines the allowed type (from 0 to 254) if the protocol
+                      ICMP is chosen. Value null allows all types.
+                    format: int32
+                    maximum: 254
+                    minimum: 0
+                    type: integer
+                  name:
+                    description: The name of the  resource.
+                    type: string
+                  nicConfig:
+                    description: NicConfig contains information about the nic resource
+                      on which the resource will be created
+                    properties:
+                      nicId:
+                        description: NicID is the ID of the Nic on which the resource
+                          will be created. It needs to be provided via directly or
+                          via reference.
+                        type: string
+                      nicIdRef:
+                        description: NicIDRef references to a Nic to retrieve its
+                          ID
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      nicIdSelector:
+                        description: NicIDSelector selects reference to a Nic to retrieve
+                          its nicId
+                        properties:
+                          matchControllerRef:
+                            description: MatchControllerRef ensures an object with
+                              the same controller reference as the selecting object
+                              is selected.
+                            type: boolean
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: MatchLabels ensures an object with matching
+                              labels is selected.
+                            type: object
+                        type: object
+                    type: object
+                  portRangeEnd:
+                    description: Defines the end range of the allowed port (from 1
+                      to 65534) if the protocol TCP or UDP is chosen. Leave portRangeStart
+                      and portRangeEnd null to allow all ports.
+                    format: int32
+                    maximum: 65534
+                    minimum: 1
+                    type: integer
+                  portRangeStart:
+                    description: Defines the start range of the allowed port (from
+                      1 to 65534) if protocol TCP or UDP is chosen. Leave portRangeStart
+                      and portRangeEnd value null to allow all ports.
+                    format: int32
+                    maximum: 65534
+                    minimum: 1
+                    type: integer
+                  protocol:
+                    description: The protocol for the rule. Property cannot be modified
+                      after it is created (disallowed in update requests).
+                    enum:
+                    - TCP
+                    - UDP
+                    - ICMP
+                    - ANY
+                    type: string
+                  serverConfig:
+                    description: ServerConfig contains information about the server
+                      resource on which the resource will be created
+                    properties:
+                      serverId:
+                        description: ServerID is the ID of the Server on which the
+                          resource will be created. It needs to be provided via directly
+                          or via reference.
+                        type: string
+                      serverIdRef:
+                        description: ServerIDRef references to a Server to retrieve
+                          its ID
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      serverIdSelector:
+                        description: ServerIDSelector selects reference to a Server
+                          to retrieve its serverId
+                        properties:
+                          matchControllerRef:
+                            description: MatchControllerRef ensures an object with
+                              the same controller reference as the selecting object
+                              is selected.
+                            type: boolean
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: MatchLabels ensures an object with matching
+                              labels is selected.
+                            type: object
+                        type: object
+                    type: object
+                  sourceIp:
+                    description: Only traffic originating from the respective IPv4
+                      address is allowed. Value null allows traffic from any IP address.
+                    pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
+                    type: string
+                  sourceMac:
+                    description: 'Only traffic originating from the respective MAC
+                      address is allowed. Valid format: aa:bb:cc:dd:ee:ff. Value null
+                      allows traffic from any MAC address.'
+                    pattern: ^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$
+                    type: string
+                  targetIp:
+                    description: If the target NIC has multiple IP addresses, only
+                      the traffic directed to the respective IP address of the NIC
+                      is allowed. Value null allows traffic to any target IP address.
+                    pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
+                    type: string
+                  type:
+                    description: The type of the firewall rule. If not specified,
+                      the default INGRESS value is used.
+                    enum:
+                    - INGRESS
+                    - EGRESS
+                    type: string
+                required:
+                - datacenterConfig
+                - nicConfig
+                - protocol
+                - serverConfig
+                type: object
+              providerConfigRef:
+                default:
+                  name: default
+                description: ProviderConfigReference specifies how the provider that
+                  will be used to create, observe, update, and delete this managed
+                  resource should be configured.
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                required:
+                - name
+                type: object
+              providerRef:
+                description: 'ProviderReference specifies the provider that will be
+                  used to create, observe, update, and delete this managed resource.
+                  Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`'
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                required:
+                - name
+                type: object
+              writeConnectionSecretToRef:
+                description: WriteConnectionSecretToReference specifies the namespace
+                  and name of a Secret to which any connection details for this managed
+                  resource should be written. Connection details frequently include
+                  the endpoint, username, and password required to connect to the
+                  managed resource.
+                properties:
+                  name:
+                    description: Name of the secret.
+                    type: string
+                  namespace:
+                    description: Namespace of the secret.
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+            required:
+            - forProvider
+            type: object
+          status:
+            description: A FirewallRuleStatus represents the observed state of a FirewallRule.
+            properties:
+              atProvider:
+                description: FirewallRuleObservation are the observable fields of
+                  a FirewallRule.
+                properties:
+                  firewallRuleId:
+                    type: string
+                  state:
+                    type: string
+                type: object
+              conditions:
+                description: Conditions of the resource.
+                items:
+                  description: A Condition that may apply to a resource.
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime is the last time this condition
+                        transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A Message containing details about this condition's
+                        last transition from one status to another, if any.
+                      type: string
+                    reason:
+                      description: A Reason for this condition's last transition from
+                        one status to another.
+                      type: string
+                    status:
+                      description: Status of this condition; is it currently True,
+                        False, or Unknown?
+                      type: string
+                    type:
+                      description: Type of this condition. At most one of each condition
+                        type may apply to a resource at any point in time.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

@@ -76,6 +76,26 @@ type NicParameters struct {
 	FirewallType string `json:"firewallType,omitempty"`
 }
 
+// NicConfig is used by resources that need to link nic via id or via reference.
+type NicConfig struct {
+	// NicID is the ID of the Nic on which the resource will be created.
+	// It needs to be provided via directly or via reference.
+	//
+	// +immutable
+	// +crossplane:generate:reference:type=Nic
+	// +crossplane:generate:reference:extractor=ExtractNicID()
+	NicID string `json:"nicId,omitempty"`
+	// NicIDRef references to a Nic to retrieve its ID
+	//
+	// +optional
+	// +immutable
+	NicIDRef *xpv1.Reference `json:"nicIdRef,omitempty"`
+	// NicIDSelector selects reference to a Nic to retrieve its nicId
+	//
+	// +optional
+	NicIDSelector *xpv1.Selector `json:"nicIdSelector,omitempty"`
+}
+
 // NicObservation are the observable fields of a Nic.
 type NicObservation struct {
 	NicID    string `json:"nicId,omitempty"`
