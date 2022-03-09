@@ -241,6 +241,9 @@ ipblock_tests_cleanup
 
 # uninstalling Crossplane Provider IONOS Cloud
 echo_step "uninstalling ${PROJECT_NAME}"
+# after deleting the ProviderConfig, it is safe to
+# also delete the Provider IONOS Cloud
+echo "${INSTALL_CRED_YAML}" | "${KUBECTL}" delete -f -
 echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -
 
 # check pods deleted
