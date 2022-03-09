@@ -100,6 +100,8 @@ type Template struct {
 	// The name of the  resource.
 	Name string `json:"name,omitempty"`
 	// The ID of the  template.
+	//
+	// +kubebuilder:validation:Format=uuid
 	TemplateID string `json:"templateId,omitempty"`
 }
 

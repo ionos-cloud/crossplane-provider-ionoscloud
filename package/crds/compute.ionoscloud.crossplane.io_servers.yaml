@@ -112,6 +112,7 @@ spec:
                         description: DatacenterID is the ID of the Datacenter on which
                           the resource will be created. It needs to be provided via
                           directly or via reference.
+                        format: uuid
                         type: string
                       datacenterIdRef:
                         description: DatacenterIDRef references to a Datacenter to
@@ -164,6 +165,7 @@ spec:
                       volumeId:
                         description: VolumeID is the ID of the Volume. It needs to
                           be provided via directly or via reference.
+                        format: uuid
                         type: string
                       volumeIdRef:
                         description: VolumeIDRef references to a Volume to retrieve
