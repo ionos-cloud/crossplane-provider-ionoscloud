@@ -12,8 +12,6 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
-const depthQueryParam = int32(5)
-
 var serverCubeType = "CUBE"
 
 // APIClient is a wrapper around IONOS Service
@@ -36,7 +34,7 @@ type Client interface {
 
 // GetServer based on datacenterID and serverID
 func (cp *APIClient) GetServer(ctx context.Context, datacenterID, serverID string) (sdkgo.Server, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.ServersApi.DatacentersServersFindById(ctx, datacenterID, serverID).Depth(depthQueryParam).Execute()
+	return cp.ComputeClient.ServersApi.DatacentersServersFindById(ctx, datacenterID, serverID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateServer based on Server properties

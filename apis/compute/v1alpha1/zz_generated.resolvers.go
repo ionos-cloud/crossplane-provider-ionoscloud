@@ -108,6 +108,64 @@ func (mg *FirewallRule) ResolveReferences(ctx context.Context, c client.Reader) 
 	return nil
 }
 
+// ResolveReferences of this IPFailover.
+func (mg *IPFailover) ResolveReferences(ctx context.Context, c client.Reader) error {
+	r := reference.NewAPIResolver(c, mg)
+
+	var rsp reference.ResolutionResponse
+	var err error
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.DatacenterCfg.DatacenterID,
+		Extract:      ExtractDatacenterID(),
+		Reference:    mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef,
+		Selector:     mg.Spec.ForProvider.DatacenterCfg.DatacenterIDSelector,
+		To: reference.To{
+			List:    &DatacenterList{},
+			Managed: &Datacenter{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.DatacenterCfg.DatacenterID")
+	}
+	mg.Spec.ForProvider.DatacenterCfg.DatacenterID = rsp.ResolvedValue
+	mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef = rsp.ResolvedReference
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.LanCfg.LanID,
+		Extract:      ExtractLanID(),
+		Reference:    mg.Spec.ForProvider.LanCfg.LanIDRef,
+		Selector:     mg.Spec.ForProvider.LanCfg.LanIDSelector,
+		To: reference.To{
+			List:    &LanList{},
+			Managed: &Lan{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.LanCfg.LanID")
+	}
+	mg.Spec.ForProvider.LanCfg.LanID = rsp.ResolvedValue
+	mg.Spec.ForProvider.LanCfg.LanIDRef = rsp.ResolvedReference
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.NicCfg.NicID,
+		Extract:      ExtractNicID(),
+		Reference:    mg.Spec.ForProvider.NicCfg.NicIDRef,
+		Selector:     mg.Spec.ForProvider.NicCfg.NicIDSelector,
+		To: reference.To{
+			List:    &NicList{},
+			Managed: &Nic{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.NicCfg.NicID")
+	}
+	mg.Spec.ForProvider.NicCfg.NicID = rsp.ResolvedValue
+	mg.Spec.ForProvider.NicCfg.NicIDRef = rsp.ResolvedReference
+
+	return nil
+}
+
 // ResolveReferences of this Lan.
 func (mg *Lan) ResolveReferences(ctx context.Context, c client.Reader) error {
 	r := reference.NewAPIResolver(c, mg)

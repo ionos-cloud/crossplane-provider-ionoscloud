@@ -1,24 +1,18 @@
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: Nic
+kind: IPFailover
 metadata:
-  name: examplenic
+  name: exampleipfailovers
 spec:
   forProvider:
-    name: exampleNic
-    dhcp: false
-    ips:
-      - 162.222.200.6
-      - 162.222.200.7
-    #    firewallActive: true
-    firewallType: INGRESS
+    ip: 162.222.200.7
     datacenterConfig:
       datacenterIdRef:
         name: example
-    serverConfig:
-      serverIdRef:
-        name: exampleserver
     lanConfig:
       lanIdRef:
         name: examplelan
+    nicConfig:
+      nicIdRef:
+        name: examplenic
   providerConfigRef:
     name: example

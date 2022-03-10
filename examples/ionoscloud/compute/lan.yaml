@@ -6,7 +6,7 @@ spec:
   forProvider:
     name: exampleLan
     #    pcc:
-    public: false
+    public: true
     datacenterConfig:
       datacenterIdRef:
         name: example

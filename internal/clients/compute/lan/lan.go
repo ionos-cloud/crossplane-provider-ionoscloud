@@ -2,6 +2,7 @@ package lan
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
@@ -27,7 +28,7 @@ type Client interface {
 
 // GetLan based on datacenterID, lanID
 func (cp *APIClient) GetLan(ctx context.Context, datacenterID, lanID string) (sdkgo.Lan, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.LANsApi.DatacentersLansFindById(ctx, datacenterID, lanID).Execute()
+	return cp.ComputeClient.LANsApi.DatacentersLansFindById(ctx, datacenterID, lanID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateLan based on datacenterID and Lan properties
@@ -101,4 +102,97 @@ func IsLanUpToDate(cr *v1alpha1.Lan, lan sdkgo.Lan) bool { // nolint:gocyclo
 	default:
 		return true
 	}
+}
+
+// GenerateCreateIPFailoverInput returns sdkgo.LanProperties based on the CR spec and current LanProperties
+func GenerateCreateIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanProperties) (*sdkgo.LanProperties, error) {
+	var instanceCreateInput sdkgo.LanProperties
+	if current == nil {
+		return nil, fmt.Errorf("error: input properties must not be nil")
+	}
+	if ipFailoversOk, ok := current.GetIpFailoverOk(); ok && ipFailoversOk != nil && len(*ipFailoversOk) > 0 {
+		ipFailovers := *ipFailoversOk
+		ipFailovers = append(ipFailovers, sdkgo.IPFailover{
+			Ip:      &cr.Spec.ForProvider.IP,
+			NicUuid: &cr.Spec.ForProvider.NicCfg.NicID,
+		})
+		instanceCreateInput.SetIpFailover(ipFailovers)
+	} else {
+		instanceCreateInput.SetIpFailover([]sdkgo.IPFailover{
+			{
+				Ip:      &cr.Spec.ForProvider.IP,
+				NicUuid: &cr.Spec.ForProvider.NicCfg.NicID,
+			},
+		})
+	}
+	return &instanceCreateInput, nil
+}
+
+// GenerateRemoveIPFailoverInput returns sdkgo.LanProperties based on the CR spec and current LanProperties
+func GenerateRemoveIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanProperties) (*sdkgo.LanProperties, error) {
+	var instanceRemoveInput sdkgo.LanProperties
+	if current == nil {
+		return nil, fmt.Errorf("error: input properties must not be nil")
+	}
+	if ipFailoversOk, ok := current.GetIpFailoverOk(); ok && ipFailoversOk != nil && len(*ipFailoversOk) > 0 {
+		setIPFailovers := make([]sdkgo.IPFailover, 0)
+		for _, ipFailover := range *ipFailoversOk {
+			if ipFailover.HasIp() && ipFailover.HasNicUuid() {
+				if !(*ipFailover.Ip == cr.Spec.ForProvider.IP && *ipFailover.NicUuid == cr.Spec.ForProvider.NicCfg.NicID) {
+					setIPFailovers = append(setIPFailovers, ipFailover)
+				}
+			}
+		}
+		instanceRemoveInput.SetIpFailover(setIPFailovers)
+	}
+	return &instanceRemoveInput, nil
+}
+
+// IsIPFailoverUpToDate returns true if the IPFailover is up-to-date or false if it does not
+func IsIPFailoverUpToDate(cr *v1alpha1.IPFailover, lan sdkgo.Lan) bool { // nolint:gocyclo
+	switch {
+	case cr == nil && lan.Properties == nil:
+		return true
+	case cr == nil && lan.Properties != nil:
+		return false
+	case cr != nil && lan.Properties == nil:
+		return false
+	case lan.Metadata.State != nil && *lan.Metadata.State == "BUSY":
+		return true
+	case IsIPFailoverPresent(cr, lan):
+		return true
+	default:
+		return false
+	}
+}
+
+// IsIPFailoverPresent returns true if the IPFailover exists in the specified Lan
+func IsIPFailoverPresent(cr *v1alpha1.IPFailover, lan sdkgo.Lan) bool { // nolint:gocyclo
+	if propertiesOk, ok := lan.GetPropertiesOk(); ok && propertiesOk != nil {
+		if ipFailoversOk, ok := propertiesOk.GetIpFailoverOk(); ok && ipFailoversOk != nil && len(*ipFailoversOk) > 0 {
+			for _, ipFailover := range *ipFailoversOk {
+				if ipFailover.HasIp() && ipFailover.HasNicUuid() {
+					if *ipFailover.Ip == cr.Spec.ForProvider.IP && *ipFailover.NicUuid == cr.Spec.ForProvider.NicCfg.NicID {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
+// GetIPFailoverIPs returns all the IPFailovers' IPs set on Lan
+func GetIPFailoverIPs(lan sdkgo.Lan) []string {
+	ips := make([]string, 0)
+	if propertiesOk, ok := lan.GetPropertiesOk(); ok && propertiesOk != nil {
+		if ipFailoversOk, ok := propertiesOk.GetIpFailoverOk(); ok && ipFailoversOk != nil && len(*ipFailoversOk) > 0 {
+			for _, ipFailover := range *ipFailoversOk {
+				if ipFailover.HasIp() && ipFailover.HasNicUuid() {
+					ips = append(ips, *ipFailover.Ip)
+				}
+			}
+		}
+	}
+	return ips
 }
