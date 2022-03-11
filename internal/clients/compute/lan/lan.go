@@ -140,7 +140,6 @@ func GenerateUpdateIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanPr
 			if ipFailover.HasIp() {
 				// Get and Update IPFailover based on External Name
 				if *ipFailover.Ip == cr.Status.AtProvider.IP {
-					fmt.Printf("update ip: %v to %v", cr.Status.AtProvider.IP, cr.Spec.ForProvider.IP)
 					ipFailover.SetIp(cr.Spec.ForProvider.IP)
 					ipFailover.SetNicUuid(cr.Spec.ForProvider.NicCfg.NicID)
 				}
