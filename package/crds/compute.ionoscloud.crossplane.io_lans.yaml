@@ -39,6 +39,10 @@ spec:
       name: PUBLIC
       priority: 1
       type: string
+    - jsonPath: .status.atProvider.ipFailovers
+      name: IPFAILOVERS
+      priority: 1
+      type: string
     - jsonPath: .status.atProvider.state
       name: STATE
       type: string
@@ -178,6 +182,11 @@ spec:
               atProvider:
                 description: LanObservation are the observable fields of a Lan.
                 properties:
+                  ipFailovers:
+                    description: IPFailovers will be set using IPFailover CR
+                    items:
+                      type: string
+                    type: array
                   lanId:
                     type: string
                   state:

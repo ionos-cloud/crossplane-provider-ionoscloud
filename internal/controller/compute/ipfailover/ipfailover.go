@@ -30,6 +30,7 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -129,7 +130,8 @@ func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (
 		return managed.ExternalObservation{}, errors.New(errNotIPFailover)
 	}
 
-	if !utils.IsStringInSlice(cr.Status.AtProvider.IPFailovers, cr.Spec.ForProvider.IP) {
+	// External Name of the CR is the IPFailover IP
+	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
 	instance, apiResponse, err := c.service.GetLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
@@ -138,7 +140,10 @@ func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (
 		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 
-	cr.Status.AtProvider.IPFailovers = lan.GetIPFailoverIPs(instance)
+	if !utils.IsStringInSlice(lan.GetIPFailoverIPs(instance), cr.Status.AtProvider.IP) {
+		return managed.ExternalObservation{}, nil
+	}
+	cr.Status.AtProvider.IP = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = *instance.Metadata.State
 	if lan.IsIPFailoverPresent(cr, instance) {
 		cr.SetConditions(xpv1.Available())
@@ -175,7 +180,7 @@ func (c *externalIPFailover) Create(ctx context.Context, mg resource.Managed) (m
 		return managed.ExternalCreation{}, err
 	}
 	// Create IPFailover
-	instanceUpdated, apiResponse, err := c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID, *instanceInput)
+	_, apiResponse, err = c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to update lan to create ipfailover. error: %w", err)
@@ -185,7 +190,10 @@ func (c *externalIPFailover) Create(ctx context.Context, mg resource.Managed) (m
 		return creation, err
 	}
 
-	cr.Status.AtProvider.IPFailovers = lan.GetIPFailoverIPs(instanceUpdated)
+	// Set External Name
+	cr.Status.AtProvider.IP = cr.Spec.ForProvider.IP
+	meta.SetExternalName(cr, cr.Spec.ForProvider.IP)
+	creation.ExternalNameAssigned = true
 	return creation, nil
 }
 
@@ -204,8 +212,8 @@ func (c *externalIPFailover) Update(ctx context.Context, mg resource.Managed) (m
 		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
 		return managed.ExternalUpdate{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
-	// Generate IPFailover Input
-	instanceInput, err := lan.GenerateCreateIPFailoverInput(cr, instance.Properties)
+	// Generate IPFailover Update Input based on External Name
+	instanceInput, err := lan.GenerateUpdateIPFailoverInput(cr, instance.Properties)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}

@@ -34,12 +34,8 @@ spec:
     - jsonPath: .spec.forProvider.nicConfig.nicId
       name: NIC ID
       type: string
-    - jsonPath: .spec.forProvider.ip
+    - jsonPath: .metadata.annotations.crossplane\.io/external-name
       name: IP
-      type: string
-    - jsonPath: .status.atProvider.ipFailovers
-      name: LAN IPFAILOVERS
-      priority: 1
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE
@@ -250,10 +246,8 @@ spec:
                 description: IPFailoverObservation are the observable fields of a
                   IPFailover.
                 properties:
-                  ipFailovers:
-                    items:
-                      type: string
-                    type: array
+                  ip:
+                    type: string
                   state:
                     type: string
                 type: object

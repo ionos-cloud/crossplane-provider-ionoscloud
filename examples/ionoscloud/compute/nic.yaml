@@ -7,8 +7,8 @@ spec:
     name: exampleNic
     dhcp: false
     ips:
-      - 162.222.200.6
-      - 162.222.200.7
+      - 162.222.200.10
+      - 162.222.200.11
     #    firewallActive: true
     firewallType: INGRESS
     datacenterConfig:

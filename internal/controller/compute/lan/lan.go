@@ -139,6 +139,7 @@ func (c *externalLan) Observe(ctx context.Context, mg resource.Managed) (managed
 		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 
+	cr.Status.AtProvider.IPFailovers = lan.GetIPFailoverIPs(instance)
 	cr.Status.AtProvider.LanID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = *instance.Metadata.State
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))

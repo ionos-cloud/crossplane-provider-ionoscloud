@@ -70,8 +70,10 @@ type LanConfig struct {
 
 // LanObservation are the observable fields of a Lan.
 type LanObservation struct {
-	LanID string `json:"lanId,omitempty"`
-	State string `json:"state,omitempty"`
+	// IPFailovers will be set using IPFailover CR
+	IPFailovers []string `json:"ipFailovers,omitempty"`
+	LanID       string   `json:"lanId,omitempty"`
+	State       string   `json:"state,omitempty"`
 }
 
 // A LanSpec defines the desired state of a Lan.
@@ -95,6 +97,7 @@ type LanStatus struct {
 // +kubebuilder:printcolumn:name="LAN ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="LAN NAME",priority=1,type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="PUBLIC",priority=1,type="string",JSONPath=".spec.forProvider.public"
+// +kubebuilder:printcolumn:name="IPFAILOVERS",priority=1,type="string",JSONPath=".status.atProvider.ipFailovers"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status

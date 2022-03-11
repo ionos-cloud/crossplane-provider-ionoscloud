@@ -128,6 +128,30 @@ func GenerateCreateIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanPr
 	return &instanceCreateInput, nil
 }
 
+// GenerateUpdateIPFailoverInput returns sdkgo.LanProperties based on the CR spec and current LanProperties
+func GenerateUpdateIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanProperties) (*sdkgo.LanProperties, error) {
+	var instanceUpdateInput sdkgo.LanProperties
+	if current == nil {
+		return nil, fmt.Errorf("error: input properties must not be nil")
+	}
+	if ipFailoversOk, ok := current.GetIpFailoverOk(); ok && ipFailoversOk != nil && len(*ipFailoversOk) > 0 {
+		setIPFailovers := make([]sdkgo.IPFailover, 0)
+		for _, ipFailover := range *ipFailoversOk {
+			if ipFailover.HasIp() {
+				// Get and Update IPFailover based on External Name
+				if *ipFailover.Ip == cr.Status.AtProvider.IP {
+					fmt.Printf("update ip: %v to %v", cr.Status.AtProvider.IP, cr.Spec.ForProvider.IP)
+					ipFailover.SetIp(cr.Spec.ForProvider.IP)
+					ipFailover.SetNicUuid(cr.Spec.ForProvider.NicCfg.NicID)
+				}
+				setIPFailovers = append(setIPFailovers, ipFailover)
+			}
+		}
+		instanceUpdateInput.SetIpFailover(setIPFailovers)
+	}
+	return &instanceUpdateInput, nil
+}
+
 // GenerateRemoveIPFailoverInput returns sdkgo.LanProperties based on the CR spec and current LanProperties
 func GenerateRemoveIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanProperties) (*sdkgo.LanProperties, error) {
 	var instanceRemoveInput sdkgo.LanProperties
@@ -137,8 +161,8 @@ func GenerateRemoveIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanPr
 	if ipFailoversOk, ok := current.GetIpFailoverOk(); ok && ipFailoversOk != nil && len(*ipFailoversOk) > 0 {
 		setIPFailovers := make([]sdkgo.IPFailover, 0)
 		for _, ipFailover := range *ipFailoversOk {
-			if ipFailover.HasIp() && ipFailover.HasNicUuid() {
-				if !(*ipFailover.Ip == cr.Spec.ForProvider.IP && *ipFailover.NicUuid == cr.Spec.ForProvider.NicCfg.NicID) {
+			if ipFailover.HasIp() {
+				if *ipFailover.Ip != cr.Status.AtProvider.IP {
 					setIPFailovers = append(setIPFailovers, ipFailover)
 				}
 			}
@@ -172,7 +196,7 @@ func IsIPFailoverPresent(cr *v1alpha1.IPFailover, lan sdkgo.Lan) bool { // nolin
 		if ipFailoversOk, ok := propertiesOk.GetIpFailoverOk(); ok && ipFailoversOk != nil && len(*ipFailoversOk) > 0 {
 			for _, ipFailover := range *ipFailoversOk {
 				if ipFailover.HasIp() && ipFailover.HasNicUuid() {
-					if *ipFailover.Ip == cr.Spec.ForProvider.IP && *ipFailover.NicUuid == cr.Spec.ForProvider.NicCfg.NicID {
+					if *ipFailover.Ip == cr.Status.AtProvider.IP && *ipFailover.NicUuid == cr.Spec.ForProvider.NicCfg.NicID {
 						return true
 					}
 				}
@@ -182,7 +206,7 @@ func IsIPFailoverPresent(cr *v1alpha1.IPFailover, lan sdkgo.Lan) bool { // nolin
 	return false
 }
 
-// GetIPFailoverIPs returns all the IPFailovers' IPs set on Lan
+// GetIPFailoverIPs returns all the IPFailovers IPs set on Lan
 func GetIPFailoverIPs(lan sdkgo.Lan) []string {
 	ips := make([]string, 0)
 	if propertiesOk, ok := lan.GetPropertiesOk(); ok && propertiesOk != nil {

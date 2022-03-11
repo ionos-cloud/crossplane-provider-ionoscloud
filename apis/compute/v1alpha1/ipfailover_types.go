@@ -55,8 +55,8 @@ type IPFailoverParameters struct {
 
 // IPFailoverObservation are the observable fields of a IPFailover.
 type IPFailoverObservation struct {
-	IPFailovers []string `json:"ipFailovers,omitempty"`
-	State       string   `json:"state,omitempty"`
+	IP    string `json:"ip,omitempty"`
+	State string `json:"state,omitempty"`
 }
 
 // A IPFailoverSpec defines the desired state of a IPFailover.
@@ -79,8 +79,7 @@ type IPFailoverStatus struct {
 // +kubebuilder:printcolumn:name="DATACENTER ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
 // +kubebuilder:printcolumn:name="LAN ID",type="string",JSONPath=".spec.forProvider.lanConfig.lanId"
 // +kubebuilder:printcolumn:name="NIC ID",type="string",JSONPath=".spec.forProvider.nicConfig.nicId"
-// +kubebuilder:printcolumn:name="IP",type="string",JSONPath=".spec.forProvider.ip"
-// +kubebuilder:printcolumn:name="LAN IPFAILOVERS",priority=1,type="string",JSONPath=".status.atProvider.ipFailovers"
+// +kubebuilder:printcolumn:name="IP",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status

@@ -1,10 +1,10 @@
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPFailover
 metadata:
-  name: exampleipfailovers
+  name: exampleipfailover
 spec:
   forProvider:
-    ip: 162.222.200.7
+    ip: 162.222.200.11
     datacenterConfig:
       datacenterIdRef:
         name: example
