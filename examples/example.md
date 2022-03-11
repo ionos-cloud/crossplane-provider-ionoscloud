@@ -1,5 +1,18 @@
 # Crossplane Provider IONOS Cloud - Example (PoC)
 
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Prerequisites](#prerequisites)
+3. [Setup Crossplane Provider IONOS Cloud](#setup-crossplane-provider-ionos-cloud)
+4. [Provision Resources](#provision-resources-in-ionos-cloud)
+    1. [DBaaS Postgres Cluster](#dbaas-postgres-cluster)
+    2. [Compute Engine Resources](#compute-engine-resources)
+5. [Cleanup](#cleanup)
+    1. [Uninstall the Provider](#uninstall-the-provider)
+    2. [Uninstall K8s Cluster](#uninstall-k8s-cluster)
+6. [Conclusion](#conclusion)
+
 ## Overview
 
 Crossplane allows the user to manage infrastructure directly from Kubernetes. Crossplane extends a Kubernetes cluster to
@@ -11,8 +24,7 @@ sync with the API and contain the desired state, the Controller has a reconcile 
 desired state vs actual state and takes action to reach the desired state. Using the SDK Go, the controller performs
 CRUD operations and resources are managed in IONOS Cloud. See [diagram](diagram.png).
 
-In this Proof of Concept of the IONOS Cloud Provider, we will create a DBaaS Postgres Cluster resource and Compute
-Engine Resources in the IONOS Cloud.
+In this Proof of Concept of the IONOS Cloud Provider, we will create a DBaaS Postgres Cluster resource in IONOS Cloud.
 
 ## Prerequisites
 
@@ -150,7 +162,9 @@ providerconfigusages.ionoscloud.crossplane.io              2022-02-02T08:01:41Z
 Next, we will create a Custom Resource(CR) of type `clusters.dbaas.postgres.ionoscloud.crossplane.io` in order to
 provision a DBaaS Postgres Cluster in the IONOS Cloud.
 
-### Provision DBaaS Postgres Cluster in IONOS Cloud
+## Provision Resources in IONOS Cloud
+
+### DBaaS Postgres Cluster
 
 ❗ Before running the next command, make sure to **update** the values in
 the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file. Look for `spec.forProvider` fields. It is required to
@@ -238,12 +252,12 @@ the cluster):
 kubectl delete -f examples/ionoscloud/dbaas-postgres/cluster.yaml
 ```
 
-### Provision Compute Engine Resources in IONOS Cloud
+### Compute Engine Resources
 
-Before running the following commands, you can **update** the example files accordingly with your specifications.
+Before running the following commands, you can **update** the examples with the desired specifications.
 
 <details >
-<summary title="Click to toggle">Create/Update/Delete Resources Commands Table</summary>
+<summary title="Click to toggle">See Create/Update/Delete Resources Commands </summary>
 
 | Resource | Create/Update | Delete |
 | --- | --- | --- |
@@ -252,11 +266,20 @@ Before running the following commands, you can **update** the example files acco
 | Server | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/server.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/server.yaml</pre> | 
 | Volume | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/volume.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/volume.yaml</pre> | 
 | Lan | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/lan.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/lan.yaml</pre> | 
-| Nic | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/nic.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/nic.yaml</pre> | 
+| NIC | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/nic.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/nic.yaml</pre> | 
 | FirewallRule | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/firewallrule.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/firewallrule.yaml</pre> | 
 | IPFailover | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/ipfailover.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/ipfailover.yaml</pre> | 
 
 </details>
+
+_Notes_:
+
+1. The `crossplane-provider-ionoscloud` controller waits for API requests to be DONE, for IONOS Cloud Compute Engine
+   resources, and it checks for the state of resources.
+2. Kubernetes Controllers main objective is to keep the system into the desired state - so if an external resource is
+   deleted (using other tools: e.g. [DCD](https://dcd.ionos.com/latest/)
+   , [ionosctl](https://github.com/ionos-cloud/ionosctl)), the `crossplane-provider-ionoscloud` controller will recreate
+   the resource automatically.
 
 ## Cleanup
 
@@ -277,7 +300,7 @@ Now it is safe to delete also the `Provider` (the `ProviderRevision` will be del
 kubectl delete -f examples/provider/install-provider.yaml
 ```
 
-### Delete K8s Cluster
+### Uninstall K8s Cluster
 
 Use the following command to delete the k8s cluster:
 
@@ -285,4 +308,14 @@ Use the following command to delete the k8s cluster:
 kind delete cluster --name crossplane-example
 ```
 
-DONE 🎉
+## Conclusion
+
+Main advantages of the Crossplane Provider IONOS Cloud are:
+
+- **provisioning** resources in IONOS Cloud from a Kubernetes Cluster - using CRDs (Custom Resource Definitions);
+- maintaining a **healthy** setup using controller and reconciling loops;
+- flexibility regarding Cloud Providers - a user can install Crossplane Providers from **multiple** Cloud Providers in
+  one Kubernetes Cluster.
+
+There is always room for improvements, and we welcome feedback and contributions. Feel free to open
+an [issue](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/issues) or PR with your idea!
