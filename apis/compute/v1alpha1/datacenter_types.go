@@ -50,6 +50,7 @@ type DatacenterConfig struct {
 	// It needs to be provided via directly or via reference.
 	//
 	// +immutable
+	// +kubebuilder:validation:Format=uuid
 	// +crossplane:generate:reference:type=Datacenter
 	// +crossplane:generate:reference:extractor=ExtractDatacenterID()
 	DatacenterID string `json:"datacenterId,omitempty"`

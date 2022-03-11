@@ -20,7 +20,7 @@ type APIClient struct {
 type Client interface {
 	GetVolume(ctx context.Context, datacenterID, volumeID string) (sdkgo.Volume, *sdkgo.APIResponse, error)
 	CreateVolume(ctx context.Context, datacenterID string, volume sdkgo.Volume) (sdkgo.Volume, *sdkgo.APIResponse, error)
-	UpdateVolume(ctx context.Context, datacenterID, volumeID string, volume sdkgo.Volume) (sdkgo.Volume, *sdkgo.APIResponse, error)
+	UpdateVolume(ctx context.Context, datacenterID, volumeID string, volume sdkgo.VolumeProperties) (sdkgo.Volume, *sdkgo.APIResponse, error)
 	DeleteVolume(ctx context.Context, datacenterID, volumeID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
 }
@@ -36,8 +36,8 @@ func (cp *APIClient) CreateVolume(ctx context.Context, datacenterID string, volu
 }
 
 // UpdateVolume based on datacenterID, volumeID and Volume properties
-func (cp *APIClient) UpdateVolume(ctx context.Context, datacenterID, volumeID string, volume sdkgo.Volume) (sdkgo.Volume, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.VolumesApi.DatacentersVolumesPut(ctx, datacenterID, volumeID).Volume(volume).Execute()
+func (cp *APIClient) UpdateVolume(ctx context.Context, datacenterID, volumeID string, volume sdkgo.VolumeProperties) (sdkgo.Volume, *sdkgo.APIResponse, error) {
+	return cp.ComputeClient.VolumesApi.DatacentersVolumesPatch(ctx, datacenterID, volumeID).Volume(volume).Execute()
 }
 
 // DeleteVolume based on datacenterID, volumeID
@@ -95,11 +95,10 @@ func GenerateCreateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.Volume, error) { // 
 	return &instanceCreateInput, nil
 }
 
-// GenerateUpdateVolumeInput returns sdkgo.Volume based on the CR spec modifications
-func GenerateUpdateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.Volume, error) {
+// GenerateUpdateVolumeInput returns sdkgo.VolumeProperties based on the CR spec modifications
+func GenerateUpdateVolumeInput(cr *v1alpha1.Volume, properties *sdkgo.VolumeProperties) (*sdkgo.VolumeProperties, error) {
 	instanceUpdateInput := sdkgo.VolumeProperties{
 		Name:                &cr.Spec.ForProvider.Name,
-		Size:                &cr.Spec.ForProvider.Size,
 		CpuHotPlug:          &cr.Spec.ForProvider.CPUHotPlug,
 		RamHotPlug:          &cr.Spec.ForProvider.RAMHotPlug,
 		NicHotPlug:          &cr.Spec.ForProvider.NicHotPlug,
@@ -110,7 +109,14 @@ func GenerateUpdateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.Volume, error) {
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Bus)) {
 		instanceUpdateInput.SetBus(cr.Spec.ForProvider.Bus)
 	}
-	return &sdkgo.Volume{Properties: &instanceUpdateInput}, nil
+	if properties != nil {
+		if properties.HasSize() {
+			if *properties.Size != cr.Spec.ForProvider.Size {
+				instanceUpdateInput.SetSize(cr.Spec.ForProvider.Size)
+			}
+		}
+	}
+	return &instanceUpdateInput, nil
 }
 
 // IsVolumeUpToDate returns true if the Volume is up-to-date or false if it does not

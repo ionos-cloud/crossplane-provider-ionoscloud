@@ -82,6 +82,7 @@ type NicConfig struct {
 	// It needs to be provided via directly or via reference.
 	//
 	// +immutable
+	// +kubebuilder:validation:Format=uuid
 	// +crossplane:generate:reference:type=Nic
 	// +crossplane:generate:reference:extractor=ExtractNicID()
 	NicID string `json:"nicId,omitempty"`

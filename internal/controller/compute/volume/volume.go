@@ -202,12 +202,17 @@ func (c *externalVolume) Update(ctx context.Context, mg resource.Managed) (manag
 	}
 
 	volumeID := cr.Status.AtProvider.VolumeID
-	instanceInput, err := volume.GenerateUpdateVolumeInput(cr)
+	// Get the current Volume
+	instanceObserved, apiResponse, err := c.service.GetVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, volumeID)
+	if err != nil {
+		retErr := fmt.Errorf("failed to get volume by id. error: %w", err)
+		return managed.ExternalUpdate{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+	}
+	instanceInput, err := volume.GenerateUpdateVolumeInput(cr, instanceObserved.Properties)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
-
-	_, apiResponse, err := c.service.UpdateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, volumeID, *instanceInput)
+	_, apiResponse, err = c.service.UpdateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, volumeID, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to update volume. error: %w", err)
 		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)

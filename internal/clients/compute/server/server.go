@@ -249,15 +249,15 @@ func GenerateUpdateCubeServerInput(cr *v1alpha1.CubeServer) (*sdkgo.ServerProper
 	return &instanceUpdateInput, nil
 }
 
-// GenerateUpdateVolumeInput returns Volume based on the CR spec modifications
-func GenerateUpdateVolumeInput(cr *v1alpha1.CubeServer) (*sdkgo.Volume, error) {
+// GenerateUpdateVolumeInput returns VolumeProperties based on the CR spec modifications
+func GenerateUpdateVolumeInput(cr *v1alpha1.CubeServer) (*sdkgo.VolumeProperties, error) {
 	instanceUpdateInput := sdkgo.VolumeProperties{
 		Name: &cr.Spec.ForProvider.DasVolumeProperties.Name,
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.Bus)) {
 		instanceUpdateInput.SetBus(cr.Spec.ForProvider.DasVolumeProperties.Bus)
 	}
-	return &sdkgo.Volume{Properties: &instanceUpdateInput}, nil
+	return &instanceUpdateInput, nil
 }
 
 // LateInitializerCube fills the empty fields in *v1alpha1.CubeServerProperties with

@@ -4,6 +4,7 @@ set -e
 # add prints functions
 source ./cluster/local/print.sh
 # add integration tests for resources
+source ./cluster/local/integration_tests_provider.sh
 source ./cluster/local/integration_tests_compute.sh
 
 # ------------------------------
@@ -28,20 +29,10 @@ KIND_NODE_IMAGE_TAG="${KIND_NODE_IMAGE_TAG:-v1.21.1}"
 
 CROSSPLANE_NAMESPACE="crossplane-system"
 PACKAGE_NAME="provider-ionoscloud"
-LOGS_FILE="${PACKAGE_NAME}.txt"
 
 # cleanup on exit
 if [ "$skipcleanup" != true ]; then
   function cleanup() {
-    echo_step "Cleaning up..."
-    echo_step "Checking is ${PACKAGE_NAME} pod exists..."
-    POD_INFO_PROVIDER=$(kubectl get pods -n ${CROSSPLANE_NAMESPACE} | grep ${PACKAGE_NAME})
-    if [ ! -z "${POD_INFO_PROVIDER}" ]; then
-      POD_PROVIDER=($POD_INFO_PROVIDER)
-      echo_step "Saving logs to ${LOGS_FILE} file..."
-      echo "--- logs of the ${POD_PROVIDER} pod---" >>${LOGS_FILE}
-      kubectl logs pod/${POD_PROVIDER} -n ${CROSSPLANE_NAMESPACE} >>${LOGS_FILE}
-    fi
     export KUBECONFIG=
     "${KIND}" delete cluster --name="${K8S_CLUSTER}"
   }
@@ -143,73 +134,8 @@ echo
 echo_step "--- INTEGRATION TESTS ---"
 
 # install package
-echo_step "installing ${PROJECT_NAME} into \"${CROSSPLANE_NAMESPACE}\" namespace"
-
-INSTALL_YAML="$(
-  cat <<EOF
-apiVersion: pkg.crossplane.io/v1
-kind: Provider
-metadata:
-  name: "${PACKAGE_NAME}"
-spec:
-  package: "${PACKAGE_NAME}"
-  packagePullPolicy: Never
-EOF
-)"
-
-echo "${INSTALL_YAML}" | "${KUBECTL}" apply -f -
-
-# printing the cache dir contents can be useful for troubleshooting failures
-echo_step "check kind node cache dir contents"
-docker exec "${K8S_CLUSTER}-control-plane" ls -la /cache
-
-echo_step "checking provider installation"
-
-echo_step "checking provider"
-kubectl get provider
-echo "--- describe provider ${PACKAGE_NAME} ---" >>${LOGS_FILE}
-kubectl describe provider ${PACKAGE_NAME} >>${LOGS_FILE}
-sleep 5
-
-echo_step "checking providerrevision"
-kubectl get providerrevision
-echo "--- describe providerrevision ${PACKAGE_NAME} ---" >>${LOGS_FILE}
-kubectl describe providerrevision ${PACKAGE_NAME} >>${LOGS_FILE}
-sleep 5
-
-echo_step "checking deployments"
-kubectl get deployments -n crossplane-system
-echo "--- describe deployments ${PACKAGE_NAME} ---" >>${LOGS_FILE}
-kubectl describe deployments provider-ionoscloud-provider-ion -n ${CROSSPLANE_NAMESPACE} >>${LOGS_FILE}
-sleep 5
-
-echo_step "waiting for provider to be installed"
-kubectl wait "provider.pkg.crossplane.io/${PACKAGE_NAME}" --for=condition=healthy --timeout=60s
-
-echo_step "waiting for all pods in ${CROSSPLANE_NAMESPACE} namespace to be ready"
-kubectl wait --for=condition=ready pods --all -n ${CROSSPLANE_NAMESPACE}
-kubectl get pods -n crossplane-system
-
-echo_step "add secret credentials"
-BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
-kubectl create secret generic --namespace ${CROSSPLANE_NAMESPACE} example-provider-secret --from-literal=credentials="{\"user\":\"${IONOS_USERNAME}\",\"password\":\"${BASE64_PW}\"}"
-INSTALL_CRED_YAML="$(
-  cat <<EOF
-apiVersion: ionoscloud.crossplane.io/v1alpha1
-kind: ProviderConfig
-metadata:
-  name: example
-spec:
-  credentials:
-    source: Secret
-    secretRef:
-      namespace: crossplane-system
-      name: example-provider-secret
-      key: credentials
-EOF
-)"
-
-echo "${INSTALL_CRED_YAML}" | "${KUBECTL}" apply -f -
+echo_step "--- install Crossplane Provider IONOSCLOUD ---"
+install_provider
 
 # run Compute Resources Tests
 echo_step "--- ipblock tests ---"
@@ -225,38 +151,23 @@ server_tests
 echo_step "--- nic tests ---"
 nic_tests
 
+echo_step "--- cleaning up ---"
 # uninstalling Compute Resources
-echo_step "cleanup nic tests"
+echo_step "--- cleanup nic tests ---"
 nic_tests_cleanup
-echo_step "cleanup lan tests"
+echo_step "--- cleanup lan tests ---"
 lan_tests_cleanup
-echo_step "cleanup volume tests"
+echo_step "--- cleanup volume tests ---"
 volume_tests_cleanup
-echo_step "cleanup server tests"
+echo_step "--- cleanup server tests ---"
 server_tests_cleanup
-echo_step "cleanup datacenter tests"
+echo_step "--- cleanup datacenter tests ---"
 datacenter_tests_cleanup
-echo_step "cleanup ipblock tests"
+echo_step "--- cleanup ipblock tests ---"
 ipblock_tests_cleanup
 
 # uninstalling Crossplane Provider IONOS Cloud
-echo_step "uninstalling ${PROJECT_NAME}"
-# after deleting the ProviderConfig, it is safe to
-# also delete the Provider IONOS Cloud
-echo "${INSTALL_CRED_YAML}" | "${KUBECTL}" delete -f -
-echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -
-
-# check pods deleted
-timeout=60
-current=0
-step=3
-while [[ $(kubectl get providerrevision.pkg.crossplane.io -o name | wc -l) != "0" ]]; do
-  echo "waiting for provider to be deleted for another $step seconds"
-  current=$current+$step
-  if ! [[ $timeout > $current ]]; then
-    echo_error "timeout of ${timeout}s has been reached"
-  fi
-  sleep $step
-done
+echo_step "--- uninstalling ${PROJECT_NAME} ---"
+uninstall_provider
 
 echo_success "Integration tests succeeded!"
