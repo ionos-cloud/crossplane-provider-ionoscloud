@@ -34,11 +34,11 @@ spec:
     - jsonPath: .spec.forProvider.nicConfig.nicId
       name: NIC ID
       type: string
-    - jsonPath: .metadata.annotations.crossplane\.io/external-name
+    - jsonPath: .status.atProvider.ip
       name: IP
       type: string
     - jsonPath: .status.atProvider.state
-      name: STATE
+      name: LAN STATE
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: AGE

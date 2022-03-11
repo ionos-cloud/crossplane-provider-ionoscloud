@@ -147,6 +147,14 @@ func GenerateUpdateIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanPr
 			}
 		}
 		instanceUpdateInput.SetIpFailover(setIPFailovers)
+	} else {
+		// Note: If the lan was not correctly updated, create the IPFailover again
+		instanceUpdateInput.SetIpFailover([]sdkgo.IPFailover{
+			{
+				Ip:      &cr.Spec.ForProvider.IP,
+				NicUuid: &cr.Spec.ForProvider.NicCfg.NicID,
+			},
+		})
 	}
 	return &instanceUpdateInput, nil
 }
@@ -161,7 +169,7 @@ func GenerateRemoveIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanPr
 		setIPFailovers := make([]sdkgo.IPFailover, 0)
 		for _, ipFailover := range *ipFailoversOk {
 			if ipFailover.HasIp() {
-				if *ipFailover.Ip != cr.Status.AtProvider.IP {
+				if *ipFailover.Ip != cr.Spec.ForProvider.IP {
 					setIPFailovers = append(setIPFailovers, ipFailover)
 				}
 			}
@@ -182,6 +190,8 @@ func IsIPFailoverUpToDate(cr *v1alpha1.IPFailover, lan sdkgo.Lan) bool { // noli
 		return false
 	case lan.Metadata.State != nil && *lan.Metadata.State == "BUSY":
 		return true
+	case cr.Status.AtProvider.IP != cr.Spec.ForProvider.IP:
+		return false
 	case IsIPFailoverPresent(cr, lan):
 		return true
 	default:
@@ -195,7 +205,7 @@ func IsIPFailoverPresent(cr *v1alpha1.IPFailover, lan sdkgo.Lan) bool { // nolin
 		if ipFailoversOk, ok := propertiesOk.GetIpFailoverOk(); ok && ipFailoversOk != nil && len(*ipFailoversOk) > 0 {
 			for _, ipFailover := range *ipFailoversOk {
 				if ipFailover.HasIp() && ipFailover.HasNicUuid() {
-					if *ipFailover.Ip == cr.Status.AtProvider.IP && *ipFailover.NicUuid == cr.Spec.ForProvider.NicCfg.NicID {
+					if *ipFailover.Ip == cr.Spec.ForProvider.IP && *ipFailover.NicUuid == cr.Spec.ForProvider.NicCfg.NicID {
 						return true
 					}
 				}
