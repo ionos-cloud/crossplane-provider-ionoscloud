@@ -151,13 +151,7 @@ Check CRDs:
 kubectl get crds | grep ionoscloud
 ```
 
-Output:
-
-```bash
-clusters.dbaas.postgres.ionoscloud.crossplane.io           2022-02-02T08:01:41Z
-providerconfigs.ionoscloud.crossplane.io                   2022-02-02T08:01:41Z
-providerconfigusages.ionoscloud.crossplane.io              2022-02-02T08:01:41Z
-```
+A CRD named `clusters.dbaas.postgres.ionoscloud.crossplane.io` should be displayed in the output.
 
 Next, we will create a Custom Resource(CR) of type `clusters.dbaas.postgres.ionoscloud.crossplane.io` in order to
 provision a DBaaS Postgres Cluster in the IONOS Cloud.
@@ -254,12 +248,15 @@ kubectl delete -f examples/ionoscloud/dbaas-postgres/cluster.yaml
 
 ### Compute Engine Resources
 
-Before running the following commands, you can **update** the examples with the desired specifications.
+Before running the following commands, you can update the examples with the desired specifications. Keep in mind that
+the Custom Resources(CRs) will manage corresponding external resources on IONOS Cloud.
+
+Check the following tables for available commands:
 
 <details >
-<summary title="Click to toggle">See Create/Update/Delete Resources Commands </summary>
+<summary title="Click to toggle">See CREATE/UPDATE/DELETE Custom Resources Commands </summary>
 
-| Resource | Create/Update | Delete |
+| RESOURCE | CREATE/UPDATE | DELETE |
 | --- | --- | --- |
 | IPBlock | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/ipblock.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/ipblock.yaml</pre> | 
 | Datacenter | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/datacenter.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/datacenter.yaml</pre> | 
@@ -272,6 +269,22 @@ Before running the following commands, you can **update** the examples with the 
 
 </details>
 
+<details >
+<summary title="Click to toggle">See GET Custom Resources Commands </summary>
+
+| RESOURCE | GET | GET MORE DETAILS | JSON OUTPUT |
+| --- | --- | --- | --- | 
+| IPBlock | <pre lang="bash">kubectl get ipblocks</pre> | <pre lang="bash">kubectl get ipblocks -o wide</pre> | <pre lang="bash">kubectl get ipblocks -o json</pre> | 
+| Datacenter | <pre lang="bash">kubectl get datacenters</pre> | <pre lang="bash">kubectl get datacenters -o wide</pre> | <pre lang="bash">kubectl get datacenters -o json</pre> | 
+| Server | <pre lang="bash">kubectl get servers</pre> | <pre lang="bash">kubectl get servers -o wide</pre> | <pre lang="bash">kubectl get servers -o json</pre> | 
+| Volume | <pre lang="bash">kubectl get volumes</pre> | <pre lang="bash">kubectl get volumes -o wide</pre> | <pre lang="bash">kubectl get volumes -o json</pre> | 
+| Lan | <pre lang="bash">kubectl get lans</pre> | <pre lang="bash">kubectl get lans -o wide</pre> | <pre lang="bash">kubectl get lans -o json</pre> | 
+| NIC | <pre lang="bash">kubectl get nics</pre> | <pre lang="bash">kubectl get nics -o wide</pre> | <pre lang="bash">kubectl get nics -o json</pre> | 
+| FirewallRule | <pre lang="bash">kubectl get firewallrules</pre> | <pre lang="bash">kubectl get firewallrules -o wide</pre> | <pre lang="bash">kubectl get firewallrules -o json</pre> | 
+| IPFailover | <pre lang="bash">kubectl get ipfailovers</pre> | <pre lang="bash">kubectl get ipfailovers -o wide</pre> | <pre lang="bash">kubectl get ipfailovers -o json</pre> | 
+
+</details>
+
 _Notes_:
 
 1. The `crossplane-provider-ionoscloud` controller waits for API requests to be DONE, for IONOS Cloud Compute Engine
@@ -280,6 +293,7 @@ _Notes_:
    deleted (using other tools: e.g. [DCD](https://dcd.ionos.com/latest/)
    , [ionosctl](https://github.com/ionos-cloud/ionosctl)), the `crossplane-provider-ionoscloud` controller will recreate
    the resource automatically.
+3. JSON Output on `kubectl get` commands can be useful in checking status messages.
 
 ## Cleanup
 
