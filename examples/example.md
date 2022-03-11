@@ -240,38 +240,23 @@ kubectl delete -f examples/ionoscloud/dbaas-postgres/cluster.yaml
 
 ### Provision Compute Engine Resources in IONOS Cloud
 
-Before running the following commands, you can update the examples files accordingly with your specifications.
+Before running the following commands, you can **update** the example files accordingly with your specifications.
 
-#### Datacenter
+<details >
+<summary title="Click to toggle">Create/Update/Delete Resources Commands Table</summary>
 
-Resource | Create/Update | Delete 
---- | --- | --- 
-Datacenter | <pre>kubectl apply -f examples/ionoscloud/compute-engine/datacenter.yaml</pre> | <pre>kubectl delete -f examples/ionoscloud/compute-engine/datacenter.yaml</pre>
+| Resource | Create/Update | Delete |
+| --- | --- | --- |
+| IPBlock | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/ipblock.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/ipblock.yaml</pre> | 
+| Datacenter | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/datacenter.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/datacenter.yaml</pre> | 
+| Server | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/server.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/server.yaml</pre> | 
+| Volume | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/volume.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/volume.yaml</pre> | 
+| Lan | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/lan.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/lan.yaml</pre> | 
+| Nic | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/nic.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/nic.yaml</pre> | 
+| FirewallRule | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/firewallrule.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/firewallrule.yaml</pre> | 
+| IPFailover | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/ipfailover.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/ipfailover.yaml</pre> | 
 
-```bash
-# Create a datacenter
-kubectl apply -f examples/ionoscloud/compute-engine/datacenter.yaml
-# Create a lan
-kubectl apply -f examples/ionoscloud/compute-engine/lan.yaml
-# Create a server
-kubectl apply -f examples/ionoscloud/compute-engine/server.yaml
-# Create a volume
-kubectl apply -f examples/ionoscloud/compute-engine/volume.yaml
-# Create a nic
-kubectl apply -f examples/ionoscloud/compute-engine/nic.yaml
-# Create a firewall rule
-kubectl apply -f examples/ionoscloud/compute-engine/firewallrule.yaml
-# Create an ipblock
-kubectl apply -f examples/ionoscloud/compute-engine/ipblock
-```
-
-Create a server:
-
-```bash
-kubectl apply -f examples/ionoscloud/compute-engine/server.yaml
-```
-
-
+</details>
 
 ## Cleanup
 
