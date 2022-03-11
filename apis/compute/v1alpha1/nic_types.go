@@ -28,8 +28,9 @@ import (
 // NicParameters are the observable fields of a Nic.
 // Required values when creating a Nic:
 // Datacenter ID or Reference,
-// Cores,
-// RAM.
+// Server ID or Reference,
+// Lan ID or Reference,
+// DHCP.
 type NicParameters struct {
 	// DatacenterConfig contains information about the datacenter resource
 	// on which the nic will be created

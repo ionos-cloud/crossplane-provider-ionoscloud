@@ -1,3 +1,10 @@
+# Use this file to create a Volume CR.
+# Required values for creating a Volume CR are:
+# - DatacenterConfig (via ID or reference),
+# - Size,
+# - Type,
+# - Licence Type, Image ID or Image Alias.
+# Note: when using images, it is recommended to use SSH Keys or Image Password.
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Volume
 metadata:
@@ -10,8 +17,8 @@ spec:
     bus: VIRTIO
     licenceType: LINUX
     availabilityZone: AUTO
-#    imageAlias: ubuntu:latest
-#    imagePassword:
+    #    imageAlias: ubuntu:latest
+    #    imagePassword:
     datacenterConfig:
       datacenterIdRef:
         name: example
