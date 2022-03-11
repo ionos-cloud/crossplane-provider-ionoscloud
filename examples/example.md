@@ -6,7 +6,7 @@
 2. [Prerequisites](#prerequisites)
 3. [Setup Crossplane Provider IONOS Cloud](#setup-crossplane-provider-ionos-cloud)
 4. [Provision Resources](#provision-resources-in-ionos-cloud)
-    1. [DBaaS Postgres Cluster](#dbaas-postgres-cluster)
+    1. [DBaaS Postgres Resources](#dbaas-postgres-resources)
     2. [Compute Engine Resources](#compute-engine-resources)
 5. [Cleanup](#cleanup)
     1. [Uninstall the Provider](#uninstall-the-provider)
@@ -158,17 +158,19 @@ provision a DBaaS Postgres Cluster in the IONOS Cloud.
 
 ## Provision Resources in IONOS Cloud
 
-### DBaaS Postgres Cluster
+### DBaaS Postgres Resources
+
+For the DBaaS Postgres Service, there is only Cluster resource available into the Crossplane Provider IONOS Cloud.
 
 ❗ Before running the next command, make sure to **update** the values in
-the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file. Look for `spec.forProvider` fields. It is required to
+the `examples/ionoscloud/dbaas/postgres-cluster.yaml` file. Look for `spec.forProvider` fields. It is required to
 specify the Datacenter (via ID or via reference), Lan (via ID or via reference), CIDR, and location(in sync with the
-Datacenter) and credentials for the database user.
+Datacenter) and also credentials for the database user.
 
 1. **[CREATE]** Create a datacenter CR, a lan CR and a cluster CR - using the next command:
 
 ```bash
-kubectl apply -f examples/ionoscloud/dbaas-postgres/cluster.yaml
+kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml
 ```
 
 Check if the cluster CR created is _synced_ and _ready_:
@@ -213,10 +215,10 @@ ClusterId                              DisplayName   Location   DatacenterId    
   to `Manager Resources>Database Manager>Postgres Clusters`
 
 2. **[UPDATE]** If you want to update the cluster CR created, update values from
-   the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file and use the following command:
+   the `examples/ionoscloud/dbaas/postgres-cluster.yaml` file and use the following command:
 
 ```bash
-kubectl apply -f examples/ionoscloud/dbaas-postgres/cluster.yaml
+kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml
 ```
 
 The updates applied should be updated in the external resource in IONOS Cloud.
@@ -243,7 +245,7 @@ Or you can use the following command (not recommended for this particular case -
 the cluster):
 
 ```bash
-kubectl delete -f examples/ionoscloud/dbaas-postgres/cluster.yaml
+kubectl delete -f examples/ionoscloud/dbaas/postgres-cluster.yaml
 ```
 
 ### Compute Engine Resources
@@ -254,9 +256,9 @@ the Custom Resources(CRs) will manage corresponding external resources on IONOS 
 Check the following tables for available commands:
 
 <details >
-<summary title="Click to toggle">See CREATE/UPDATE/DELETE Custom Resources Commands </summary>
+<summary title="Click to toggle">See <b>CREATE/UPDATE/DELETE</b> Custom Resources Commands </summary>
 
-| RESOURCE | CREATE/UPDATE | DELETE |
+| CUSTOM RESOURCE | CREATE/UPDATE | DELETE |
 | --- | --- | --- |
 | IPBlock | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/ipblock.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/ipblock.yaml</pre> | 
 | Datacenter | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute-engine/datacenter.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute-engine/datacenter.yaml</pre> | 
@@ -270,9 +272,9 @@ Check the following tables for available commands:
 </details>
 
 <details >
-<summary title="Click to toggle">See GET Custom Resources Commands </summary>
+<summary title="Click to toggle">See <b>GET</b> Custom Resources Commands </summary>
 
-| RESOURCE | GET | GET MORE DETAILS | JSON OUTPUT |
+| CUSTOM RESOURCE | GET | GET MORE DETAILS | JSON OUTPUT |
 | --- | --- | --- | --- | 
 | IPBlock | <pre lang="bash">kubectl get ipblocks</pre> | <pre lang="bash">kubectl get ipblocks -o wide</pre> | <pre lang="bash">kubectl get ipblocks -o json</pre> | 
 | Datacenter | <pre lang="bash">kubectl get datacenters</pre> | <pre lang="bash">kubectl get datacenters -o wide</pre> | <pre lang="bash">kubectl get datacenters -o json</pre> | 
@@ -328,8 +330,8 @@ Main advantages of the Crossplane Provider IONOS Cloud are:
 
 - **provisioning** resources in IONOS Cloud from a Kubernetes Cluster - using CRDs (Custom Resource Definitions);
 - maintaining a **healthy** setup using controller and reconciling loops;
-- flexibility regarding Cloud Providers - a user can install Crossplane Providers from **multiple** Cloud Providers in
-  one Kubernetes Cluster.
+- can be installed on a **Crossplane control plane** and add new functionality for the user along with other Cloud
+  Providers.
 
 There is always room for improvements, and we welcome feedback and contributions. Feel free to open
 an [issue](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/issues) or PR with your idea!
