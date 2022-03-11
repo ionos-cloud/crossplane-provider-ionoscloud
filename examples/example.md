@@ -11,8 +11,8 @@ sync with the API and contain the desired state, the Controller has a reconcile 
 desired state vs actual state and takes action to reach the desired state. Using the SDK Go, the controller performs
 CRUD operations and resources are managed in IONOS Cloud. See [diagram](diagram.png).
 
-In this Proof of Concept of the IONOS Cloud Provider, we will create a DBaaS Postgres Cluster resource in the IONOS
-Cloud.
+In this Proof of Concept of the IONOS Cloud Provider, we will create a DBaaS Postgres Cluster resource and Compute
+Engine Resources in the IONOS Cloud.
 
 ## Prerequisites
 
@@ -150,7 +150,7 @@ providerconfigusages.ionoscloud.crossplane.io              2022-02-02T08:01:41Z
 Next, we will create a Custom Resource(CR) of type `clusters.dbaas.postgres.ionoscloud.crossplane.io` in order to
 provision a DBaaS Postgres Cluster in the IONOS Cloud.
 
-### Create a resource in IONOS Cloud
+### Provision DBaaS Postgres Cluster in IONOS Cloud
 
 ❗ Before running the next command, make sure to **update** the values in
 the `examples/ionoscloud/dbaas-postgres/cluster.yaml` file. Look for `spec.forProvider` fields. It is required to
@@ -237,6 +237,41 @@ the cluster):
 ```bash
 kubectl delete -f examples/ionoscloud/dbaas-postgres/cluster.yaml
 ```
+
+### Provision Compute Engine Resources in IONOS Cloud
+
+Before running the following commands, you can update the examples files accordingly with your specifications.
+
+#### Datacenter
+
+Resource | Create/Update | Delete 
+--- | --- | --- 
+Datacenter | <pre>kubectl apply -f examples/ionoscloud/compute-engine/datacenter.yaml</pre> | <pre>kubectl delete -f examples/ionoscloud/compute-engine/datacenter.yaml</pre>
+
+```bash
+# Create a datacenter
+kubectl apply -f examples/ionoscloud/compute-engine/datacenter.yaml
+# Create a lan
+kubectl apply -f examples/ionoscloud/compute-engine/lan.yaml
+# Create a server
+kubectl apply -f examples/ionoscloud/compute-engine/server.yaml
+# Create a volume
+kubectl apply -f examples/ionoscloud/compute-engine/volume.yaml
+# Create a nic
+kubectl apply -f examples/ionoscloud/compute-engine/nic.yaml
+# Create a firewall rule
+kubectl apply -f examples/ionoscloud/compute-engine/firewallrule.yaml
+# Create an ipblock
+kubectl apply -f examples/ionoscloud/compute-engine/ipblock
+```
+
+Create a server:
+
+```bash
+kubectl apply -f examples/ionoscloud/compute-engine/server.yaml
+```
+
+
 
 ## Cleanup
 
