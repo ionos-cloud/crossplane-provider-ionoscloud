@@ -140,7 +140,6 @@ func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (
 
 	cr.Status.AtProvider.State = *instance.Metadata.State
 	if lan.IsIPFailoverPresent(cr, instance) {
-		c.log.Debug("Observing state...")
 		cr.Status.AtProvider.IP = cr.Spec.ForProvider.IP
 		cr.SetConditions(xpv1.Available())
 	} else {
