@@ -1,3 +1,6 @@
+# Use this file to create Datacenter, Lan and DBaaS Postgres Cluster CRs.
+# Required values for creating a Datacenter CR are:
+# - Location.
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
@@ -10,6 +13,9 @@ spec:
   providerConfigRef:
     name: example
 ---
+# Required values for creating a Lan CR are:
+# - DatacenterConfig (via ID or reference),
+# - Public.
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
@@ -24,6 +30,18 @@ spec:
   providerConfigRef:
     name: example
 ---
+# Required values for creating a DBaaS Postgres Cluster CR are:
+# - PostgresVersion,
+# - Instances,
+# - Cores,
+# - RAM,
+# - Storage Size,
+# - Storage Type,
+# - Connection (Datacenter ID or Reference, Lan ID and CIDR),
+# - Location (in sync with Datacenter),
+# - DisplayName,
+# - Credentials,
+# - Synchronization Mode.
 apiVersion: dbaas.postgres.ionoscloud.crossplane.io/v1alpha1
 kind: Cluster
 metadata:

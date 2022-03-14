@@ -1,0 +1,29 @@
+# Use this file to create a Server CR.
+# Required values for creating a Server CR are:
+# - DatacenterConfig (via ID or reference),
+# - Cores,
+# - RAM.
+# In order to attach a volume to the Server,
+# set the volumeConfig field (via ID or reference)
+# and apply the spec.
+# In order to detach a volume from a Server,
+# remove the volumeConfig field and reapply the spec.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Server
+metadata:
+  name: exampleserver
+spec:
+  forProvider:
+    name: exampleServer
+    cores: 4
+    ram: 2048
+    availabilityZone: AUTO
+    cpuFamily: AMD_OPTERON
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  #    volumeConfig:
+  #      volumeIdRef:
+  #        name: examplevolume
+  providerConfigRef:
+    name: example

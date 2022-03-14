@@ -1,0 +1,33 @@
+# Use this file to create a FirewallRule CR.
+# Required values for creating a FirewallRule CR are:
+# - DatacenterConfig (via ID or reference),
+# - ServerConfig (via ID or reference),
+# - NicConfig (via ID or reference),
+# - Protocol.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: FirewallRule
+metadata:
+  name: examplefr
+spec:
+  forProvider:
+    name: exampleFirewallRule
+    protocol: ANY
+    type: INGRESS
+    #    sourceMac:
+    #    sourceIp:
+    #    targetIp:
+    #    icmpCode:
+    #    icmpType:
+    #    portRangeStart:
+    #    portRangeEnd:
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    serverConfig:
+      serverIdRef:
+        name: exampleserver
+    nicConfig:
+      nicIdRef:
+        name: examplenic
+  providerConfigRef:
+    name: example
