@@ -76,7 +76,7 @@ spec:
     name: exampleNic
     dhcp: false
     ips:
-      - 158.222.102.34
+      -
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -116,7 +116,7 @@ metadata:
   name: exampleipfailover
 spec:
   forProvider:
-    ip: 158.222.102.34
+    ip:
     datacenterConfig:
       datacenterIdRef:
         name: example
