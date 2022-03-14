@@ -28,7 +28,7 @@ import (
 // IPFailoverParameters are the observable fields of a IPFailover.
 // Required values when creating a IPFailover:
 // DatacenterConfig,
-// LanConfig,
+// LanConfig (LAN resource must be a public LAN),
 // NicConfig,
 // IP.
 type IPFailoverParameters struct {

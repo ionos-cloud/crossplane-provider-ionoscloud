@@ -17,6 +17,8 @@ limitations under the License.
 package controller
 
 import (
+	"time"
+
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -35,10 +37,10 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgres"
 )
 
-// Setup creates all Template controllers with the supplied logger
+// Setup creates all IONOS Cloud controllers with the supplied logger
 // and adds them to the supplied manager.
-func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter) error {
-	for _, setup := range []func(ctrl.Manager, logging.Logger, workqueue.RateLimiter) error{
+func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter, poll time.Duration) error {
+	for _, setup := range []func(ctrl.Manager, logging.Logger, workqueue.RateLimiter, time.Duration) error{
 		datacenter.Setup,
 		server.Setup,
 		cubeserver.Setup,
@@ -50,7 +52,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter) error {
 		ipfailover.Setup,
 		postgres.Setup,
 	} {
-		if err := setup(mgr, l, wl); err != nil {
+		if err := setup(mgr, l, wl, poll); err != nil {
 			return err
 		}
 	}
