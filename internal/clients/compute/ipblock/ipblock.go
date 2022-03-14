@@ -27,7 +27,7 @@ type Client interface {
 
 // GetIPBlock based on ipBlockID
 func (cp *APIClient) GetIPBlock(ctx context.Context, ipBlockID string) (sdkgo.IpBlock, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.IPBlocksApi.IpblocksFindById(ctx, ipBlockID).Execute()
+	return cp.ComputeClient.IPBlocksApi.IpblocksFindById(ctx, ipBlockID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateIPBlock based on IPBlock properties

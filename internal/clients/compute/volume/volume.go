@@ -27,7 +27,7 @@ type Client interface {
 
 // GetVolume based on datacenterID and volumeID
 func (cp *APIClient) GetVolume(ctx context.Context, datacenterID, volumeID string) (sdkgo.Volume, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.VolumesApi.DatacentersVolumesFindById(ctx, datacenterID, volumeID).Execute()
+	return cp.ComputeClient.VolumesApi.DatacentersVolumesFindById(ctx, datacenterID, volumeID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateVolume based on Volume properties

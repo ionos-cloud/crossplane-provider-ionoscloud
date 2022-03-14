@@ -29,7 +29,7 @@ type Client interface {
 
 // GetNic based on datacenterID, serverID, nicID
 func (cp *APIClient) GetNic(ctx context.Context, datacenterID, serverID, nicID string) (sdkgo.Nic, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.NetworkInterfacesApi.DatacentersServersNicsFindById(ctx, datacenterID, serverID, nicID).Execute()
+	return cp.ComputeClient.NetworkInterfacesApi.DatacentersServersNicsFindById(ctx, datacenterID, serverID, nicID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateNic based on Nic properties, using datacenterID and serverID
@@ -63,6 +63,11 @@ func LateInitializer(in *v1alpha1.NicParameters, sg *sdkgo.Nic) {
 		if ipsOk, ok := propertiesOk.GetIpsOk(); ok && ipsOk != nil {
 			if utils.IsEmptyValue(reflect.ValueOf(in.Ips)) {
 				in.Ips = *ipsOk
+			}
+		}
+		if firewallTypeOk, ok := propertiesOk.GetFirewallTypeOk(); ok && firewallTypeOk != nil {
+			if utils.IsEmptyValue(reflect.ValueOf(in.FirewallType)) {
+				in.FirewallType = *firewallTypeOk
 			}
 		}
 	}
@@ -141,7 +146,7 @@ func IsNicUpToDate(cr *v1alpha1.Nic, nic sdkgo.Nic) bool { // nolint:gocyclo
 		return false
 	case nic.Properties.FirewallType != nil && *nic.Properties.FirewallType != cr.Spec.ForProvider.FirewallType:
 		return false
-	case nic.Properties.Ips != nil && !reflect.DeepEqual(*nic.Properties.Ips, cr.Spec.ForProvider.Ips):
+	case nic.Properties.Ips != nil && !utils.IsEqStringSlices(*nic.Properties.Ips, cr.Spec.ForProvider.Ips):
 		return false
 	default:
 		return true

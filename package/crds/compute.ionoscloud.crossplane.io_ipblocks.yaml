@@ -28,16 +28,15 @@ spec:
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
       name: IPBLOCK ID
       type: string
+    - jsonPath: .spec.forProvider.ips
+      name: IPS
+      type: string
     - jsonPath: .spec.forProvider.name
       name: NAME
       priority: 1
       type: string
     - jsonPath: .spec.forProvider.location
       name: LOCATION
-      priority: 1
-      type: string
-    - jsonPath: .spec.forProvider.ips
-      name: IPS
       priority: 1
       type: string
     - jsonPath: .status.atProvider.state
