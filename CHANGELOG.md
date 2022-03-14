@@ -13,6 +13,7 @@
     - Existing CRDs updated:
         - _DBaaS Postgres Cluster_ with Datacenter and LAN references.
     - Updated example [GUIDE](examples/example.md).
+    - Removed debug mode from controller image. Status messages are displayed with `kubectl get <resource> -o json`.
 
 ## [0.1.0-alpha.1] (February 2022)
 

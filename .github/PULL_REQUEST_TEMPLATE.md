@@ -13,7 +13,7 @@ If yours does, you can uncomment the below line to indicate which issue your PR 
 "Fixes #500":
 
 -->
-Fixes #
+This PR adds:
 
 ## Checklist
 
@@ -22,17 +22,10 @@ Fixes #
 
 I have:
 
-- [ ] Add PR name as appropriate (e.g. `feat:`/`fix:`/`doc:`/`test:`/`refactor:`)
+- [ ] Add PR name as appropriate (e.g. `feat`/`fix`/`doc`/`test`/`refactor`)
 - [ ] Run `make reviewable` to ensure this PR is ready for review
 - [ ] Add or update tests
 - [ ] Add or update Documentation
+- [ ] Update CHANGELOG.md (label: `upcoming release`)
 - [ ] Check Sonar Cloud Scan
 - [ ] Update Github or Jira Issue
-
-### How has this code been tested
-
-<!--
-Before reviewers can be confident in the correctness of this pull request, it
-needs to tested and shown to be correct. Briefly describe the testing that has
-already been done or which is planned for this change.
--->
