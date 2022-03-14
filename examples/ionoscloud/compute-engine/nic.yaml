@@ -12,10 +12,9 @@ spec:
   forProvider:
     name: exampleNic
     dhcp: false
-    ips:
-      - 162.222.200.10
-      - 162.222.200.11
     #    ips:
+    #      - 162.222.200.10
+    #      - 162.222.200.11
     #    mac:
     #    firewallActive: true
     firewallType: INGRESS
