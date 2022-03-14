@@ -74,6 +74,32 @@ see: [DBaaS Postgres](examples/example.md#dbaas-postgres-resources).
 For more information and commands on how to manage Compute Engine resources on IONOS Cloud using Crossplane Provider,
 see: [Compute Engine Resources](examples/example.md#compute-engine-resources).
 
+### References
+
+References are used in order to reference other resources on which the new created resources are dependent. Using
+referenced resources, the user can create for example, a datacenter and a lan using one command, without to manually
+update the lan CR specification file with the required datacenter ID.
+
+The references are resolved **only once**, when the resource is created, and the resolvers are generated
+using [crossplane-tools](https://github.com/crossplane/crossplane-tools).
+
+Example:
+
+```yaml
+datacenterConfig:
+  datacenterIdRef:
+    name: <datacenter_CR_name>
+```
+
+The user can set the datacenter ID directly, using:
+
+```yaml
+datacenterConfig:
+  datacenterId: <datacenter_ID>
+```
+
+_Note_: If both the `datacenterId` and the `datacenterIdRef` fields are set, the `datacenterId` value has priority.
+
 ## Testing
 
 For running end-to-end integration tests, use:
