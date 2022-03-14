@@ -71,8 +71,10 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: CubeServerProperties are the observable fields of a Cube
-                  Server.
+                description: 'CubeServerProperties are the observable fields of a
+                  Cube Server. Required values when creating a CubeServer: Datacenter
+                  ID or Reference, Template ID or Name, Volume Properties (Name, Bus,
+                  Licence Type or Image/Image Alias).'
                 properties:
                   availabilityZone:
                     default: AUTO

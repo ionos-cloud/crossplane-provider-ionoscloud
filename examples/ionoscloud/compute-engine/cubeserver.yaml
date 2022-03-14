@@ -1,15 +1,10 @@
-apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: Datacenter
-metadata:
-  name: example
-spec:
-  forProvider:
-    name: exampleDatacenter
-    location: de/txl
-    description: test
-  providerConfigRef:
-    name: example
----
+# Use this file to create a Cube Server CR.
+# Required values for creating a Cube Server CR are:
+# - DatacenterConfig (via ID or reference),
+# - Template Name or ID,
+# - Volume.
+# Note: Make sure the datacenter's location (e.g. de/txl)
+# supports servers of type CUBE!
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: CubeServer
 metadata:
@@ -25,6 +20,8 @@ spec:
       name: exampleDasVolume
       bus: VIRTIO
       licenceType: LINUX
+    #      imageAlias:
+    #      imagePassword:
     datacenterConfig:
       datacenterIdRef:
         name: example

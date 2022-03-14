@@ -143,6 +143,7 @@ type DatacenterConfig struct {
 	// It needs to be provided via directly or via reference.
 	//
 	// +immutable
+	// +kubebuilder:validation:Format=uuid
 	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.Datacenter
 	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractDatacenterID()
 	DatacenterID string `json:"datacenterId,omitempty"`

@@ -1,3 +1,6 @@
+# Use this file to create a Datacenter CR.
+# Required values for creating a Datacenter CR are:
+# - Location.
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
@@ -7,5 +10,6 @@ spec:
     name: exampleDatacenter
     location: us/las
     description: test
+#    secAuthProtection: true
   providerConfigRef:
     name: example

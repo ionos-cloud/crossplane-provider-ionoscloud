@@ -1,3 +1,9 @@
+# Use this file to create a Nic CR.
+# Required values for creating a Nic CR are:
+# - DatacenterConfig (via ID or reference),
+# - ServerConfig (via ID or reference),
+# - LanConfig (via ID or reference),
+# - DHCP.
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Nic
 metadata:
@@ -6,8 +12,12 @@ spec:
   forProvider:
     name: exampleNic
     dhcp: false
+    #    ips:
+    #      - 162.222.200.10
+    #      - 162.222.200.11
+    #    mac:
     #    firewallActive: true
-    #    firewallType: BIDIRECTIONAL
+    firewallType: INGRESS
     datacenterConfig:
       datacenterIdRef:
         name: example

@@ -28,8 +28,9 @@ import (
 // NicParameters are the observable fields of a Nic.
 // Required values when creating a Nic:
 // Datacenter ID or Reference,
-// Cores,
-// RAM.
+// Server ID or Reference,
+// Lan ID or Reference,
+// DHCP.
 type NicParameters struct {
 	// DatacenterConfig contains information about the datacenter resource
 	// on which the nic will be created
@@ -125,7 +126,6 @@ type NicStatus struct {
 // +kubebuilder:printcolumn:name="SERVER ID",type="string",JSONPath=".spec.forProvider.serverConfig.serverId"
 // +kubebuilder:printcolumn:name="LAN ID",type="string",JSONPath=".spec.forProvider.lanConfig.lanId"
 // +kubebuilder:printcolumn:name="NIC ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
-// +kubebuilder:printcolumn:name="NIC NAME",priority=1,type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="IPS",priority=1,type="string",JSONPath=".spec.forProvider.ips"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"

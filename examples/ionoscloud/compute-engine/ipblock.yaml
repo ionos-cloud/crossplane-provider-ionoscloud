@@ -1,0 +1,17 @@
+# Use this file to create an IPBlock CR.
+# Required values for creating an IPBlock CR are:
+# - Size,
+# - Location.
+# Note: IPS will be updated automatically and
+# will be displayed on `kubectl get ipblocks` command.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleIpBlock
+    size: 2
+    location: us/las
+  providerConfigRef:
+    name: example

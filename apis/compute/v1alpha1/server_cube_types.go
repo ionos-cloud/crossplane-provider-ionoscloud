@@ -26,6 +26,10 @@ import (
 )
 
 // CubeServerProperties are the observable fields of a Cube Server.
+// Required values when creating a CubeServer:
+// Datacenter ID or Reference,
+// Template ID or Name,
+// Volume Properties (Name, Bus, Licence Type or Image/Image Alias).
 type CubeServerProperties struct {
 	// DatacenterConfig contains information about the datacenter resource
 	// on which the server will be created
@@ -57,6 +61,12 @@ type CubeServerProperties struct {
 }
 
 // DasVolumeProperties are the observable fields of a Cube Server's DAS Volume.
+// Required values when creating a DAS Volume:
+// Name,
+// Bus,
+// Licence Type or Image/Image Alias.
+// If using Image or Image Alias, you may want to provide also
+// an Image Password or SSH Keys.
 type DasVolumeProperties struct {
 	// The name of the DAS Volume.
 	//

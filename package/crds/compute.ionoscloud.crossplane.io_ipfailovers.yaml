@@ -4,7 +4,7 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.6.2
   creationTimestamp: null
-  name: nics.compute.ionoscloud.crossplane.io
+  name: ipfailovers.compute.ionoscloud.crossplane.io
 spec:
   group: compute.ionoscloud.crossplane.io
   names:
@@ -12,10 +12,10 @@ spec:
     - crossplane
     - managed
     - ionoscloud
-    kind: Nic
-    listKind: NicList
-    plural: nics
-    singular: nic
+    kind: IPFailover
+    listKind: IPFailoverList
+    plural: ipfailovers
+    singular: ipfailover
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -28,21 +28,17 @@ spec:
     - jsonPath: .spec.forProvider.datacenterConfig.datacenterId
       name: DATACENTER ID
       type: string
-    - jsonPath: .spec.forProvider.serverConfig.serverId
-      name: SERVER ID
-      type: string
     - jsonPath: .spec.forProvider.lanConfig.lanId
       name: LAN ID
       type: string
-    - jsonPath: .metadata.annotations.crossplane\.io/external-name
+    - jsonPath: .spec.forProvider.nicConfig.nicId
       name: NIC ID
       type: string
-    - jsonPath: .spec.forProvider.ips
-      name: IPS
-      priority: 1
+    - jsonPath: .status.atProvider.ip
+      name: IP
       type: string
     - jsonPath: .status.atProvider.state
-      name: STATE
+      name: LAN STATE
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: AGE
@@ -50,7 +46,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: A Nic is an example API type.
+        description: A IPFailover is an example API type.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -65,7 +61,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: A NicSpec defines the desired state of a Nic.
+            description: A IPFailoverSpec defines the desired state of a IPFailover.
             properties:
               deletionPolicy:
                 default: Delete
@@ -77,13 +73,13 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: 'NicParameters are the observable fields of a Nic. Required
-                  values when creating a Nic: Datacenter ID or Reference, Server ID
-                  or Reference, Lan ID or Reference, DHCP.'
+                description: 'IPFailoverParameters are the observable fields of a
+                  IPFailover. Required values when creating a IPFailover: DatacenterConfig,
+                  LanConfig, NicConfig, IP.'
                 properties:
                   datacenterConfig:
                     description: DatacenterConfig contains information about the datacenter
-                      resource on which the nic will be created
+                      resource on which the resource will be created
                     properties:
                       datacenterId:
                         description: DatacenterID is the ID of the Datacenter on which
@@ -118,34 +114,13 @@ spec:
                             type: object
                         type: object
                     type: object
-                  dhcp:
-                    description: Indicates if the NIC will reserve an IP using DHCP.
-                    type: boolean
-                  firewallActive:
-                    description: Activate or deactivate the firewall. By default,
-                      an active firewall without any defined rules will block all
-                      incoming network traffic except for the firewall rules that
-                      explicitly allows certain protocols, IP addresses and ports.
-                    type: boolean
-                  firewallType:
-                    description: The type of firewall rules that will be allowed on
-                      the NIC. If not specified, the default INGRESS value is used.
-                    enum:
-                    - BIDIRECTIONAL
-                    - EGRESS
-                    - INGRESS
+                  ip:
+                    description: IP must be the public IP for which the group is responsible
+                      for
                     type: string
-                  ips:
-                    description: Collection of IP addresses, assigned to the NIC.
-                      Explicitly assigned public IPs need to come from reserved IP
-                      blocks. Passing value null or empty array will assign an IP
-                      address automatically.
-                    items:
-                      type: string
-                    type: array
                   lanConfig:
                     description: LanConfig contains information about the lan resource
-                      on which the nic will be on
+                      on which the resource will be created
                     properties:
                       lanId:
                         description: LanID is the ID of the Lan on which the resource
@@ -179,25 +154,19 @@ spec:
                             type: object
                         type: object
                     type: object
-                  mac:
-                    description: The MAC address of the NIC.
-                    type: string
-                  name:
-                    description: The name of the  resource.
-                    type: string
-                  serverConfig:
-                    description: ServerConfig contains information about the server
-                      resource on which the nic will be created
+                  nicConfig:
+                    description: NicConfig contains information about the nic resource
+                      on which the resource will be created
                     properties:
-                      serverId:
-                        description: ServerID is the ID of the Server on which the
-                          resource will be created. It needs to be provided via directly
-                          or via reference.
+                      nicId:
+                        description: NicID is the ID of the Nic on which the resource
+                          will be created. It needs to be provided via directly or
+                          via reference.
                         format: uuid
                         type: string
-                      serverIdRef:
-                        description: ServerIDRef references to a Server to retrieve
-                          its ID
+                      nicIdRef:
+                        description: NicIDRef references to a Nic to retrieve its
+                          ID
                         properties:
                           name:
                             description: Name of the referenced object.
@@ -205,9 +174,9 @@ spec:
                         required:
                         - name
                         type: object
-                      serverIdSelector:
-                        description: ServerIDSelector selects reference to a Server
-                          to retrieve its serverId
+                      nicIdSelector:
+                        description: NicIDSelector selects reference to a Nic to retrieve
+                          its nicId
                         properties:
                           matchControllerRef:
                             description: MatchControllerRef ensures an object with
@@ -224,9 +193,9 @@ spec:
                     type: object
                 required:
                 - datacenterConfig
-                - dhcp
+                - ip
                 - lanConfig
-                - serverConfig
+                - nicConfig
                 type: object
               providerConfigRef:
                 default:
@@ -273,16 +242,15 @@ spec:
             - forProvider
             type: object
           status:
-            description: A NicStatus represents the observed state of a Nic.
+            description: A IPFailoverStatus represents the observed state of a IPFailover.
             properties:
               atProvider:
-                description: NicObservation are the observable fields of a Nic.
+                description: IPFailoverObservation are the observable fields of a
+                  IPFailover.
                 properties:
-                  nicId:
+                  ip:
                     type: string
                   state:
-                    type: string
-                  volumeId:
                     type: string
                 type: object
               conditions:

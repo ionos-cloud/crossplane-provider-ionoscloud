@@ -1,0 +1,24 @@
+# Use this file to create a IPFailover CR.
+# Required values for creating a IPFailover CR are:
+# - DatacenterConfig (via ID or reference),
+# - LanConfig (via ID or reference),
+# - NicConfig (via ID or reference),
+# - IP.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPFailover
+metadata:
+  name: exampleipfailover
+spec:
+  forProvider:
+    ip: 162.222.200.11
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    lanConfig:
+      lanIdRef:
+        name: examplelan
+    nicConfig:
+      nicIdRef:
+        name: examplenic
+  providerConfigRef:
+    name: example
