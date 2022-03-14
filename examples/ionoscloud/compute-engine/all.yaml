@@ -1,3 +1,8 @@
+# Use this file to create a Datacenter CR, a Volume CR,
+# a Server CR, a Lan CR, a Nic CR, a FirewallRule CR
+# and an IPFailover CR.
+# ! Before applying this file, make sure to add reserved
+# ips to the Nic CR and to the IPFailover CR.
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
@@ -22,8 +27,6 @@ spec:
     bus: VIRTIO
     licenceType: LINUX
     availabilityZone: AUTO
-    #    imageAlias: ubuntu:latest
-    #    imagePassword:
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -57,8 +60,7 @@ metadata:
 spec:
   forProvider:
     name: exampleLan
-    #    pcc:
-    public: false
+    public: true
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -73,8 +75,8 @@ spec:
   forProvider:
     name: exampleNic
     dhcp: false
-#    firewallActive: true
-#    firewallType: BIDIRECTIONAL
+    ips:
+      -
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -84,5 +86,45 @@ spec:
     lanConfig:
       lanIdRef:
         name: examplelan
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: FirewallRule
+metadata:
+  name: examplefr
+spec:
+  forProvider:
+    name: exampleFirewallRule
+    protocol: ANY
+    type: INGRESS
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    serverConfig:
+      serverIdRef:
+        name: exampleserver
+    nicConfig:
+      nicIdRef:
+        name: examplenic
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPFailover
+metadata:
+  name: exampleipfailover
+spec:
+  forProvider:
+    ip:
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    lanConfig:
+      lanIdRef:
+        name: examplelan
+    nicConfig:
+      nicIdRef:
+        name: examplenic
   providerConfigRef:
     name: example

@@ -75,7 +75,7 @@ spec:
               forProvider:
                 description: 'IPFailoverParameters are the observable fields of a
                   IPFailover. Required values when creating a IPFailover: DatacenterConfig,
-                  LanConfig, NicConfig, IP.'
+                  LanConfig (LAN resource must be a public LAN), NicConfig, IP.'
                 properties:
                   datacenterConfig:
                     description: DatacenterConfig contains information about the datacenter
