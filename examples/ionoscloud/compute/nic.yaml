@@ -6,8 +6,11 @@ spec:
   forProvider:
     name: exampleNic
     dhcp: false
+    ips:
+      - 162.222.200.10
+      - 162.222.200.11
     #    firewallActive: true
-    #    firewallType: BIDIRECTIONAL
+    firewallType: INGRESS
     datacenterConfig:
       datacenterIdRef:
         name: example

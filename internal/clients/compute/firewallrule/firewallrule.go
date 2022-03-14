@@ -27,7 +27,7 @@ type Client interface {
 
 // GetFirewallRule based on firewallRuleID
 func (cp *APIClient) GetFirewallRule(ctx context.Context, datacenterID, serverID, nicID, firewallRuleID string) (sdkgo.FirewallRule, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.FirewallRulesApi.DatacentersServersNicsFirewallrulesFindById(ctx, datacenterID, serverID, nicID, firewallRuleID).Execute()
+	return cp.ComputeClient.FirewallRulesApi.DatacentersServersNicsFirewallrulesFindById(ctx, datacenterID, serverID, nicID, firewallRuleID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateFirewallRule based on FirewallRule properties

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package lan
+package ipfailover
 
 import (
 	"context"
@@ -30,7 +30,6 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -43,27 +42,27 @@ import (
 )
 
 const (
-	errNotLan       = "managed resource is not a Lan custom resource"
-	errTrackPCUsage = "cannot track ProviderConfig usage"
-	errGetPC        = "cannot get ProviderConfig"
-	errGetCreds     = "cannot get credentials"
+	errNotIPFailover = "managed resource is not a IPFailover custom resource"
+	errTrackPCUsage  = "cannot track ProviderConfig usage"
+	errGetPC         = "cannot get ProviderConfig"
+	errGetCreds      = "cannot get credentials"
 
 	errNewClient = "cannot create new Service"
 )
 
-// Setup adds a controller that reconciles Lan managed resources.
+// Setup adds a controller that reconciles IPFailover managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
-	name := managed.ControllerName(v1alpha1.LanGroupKind)
+	name := managed.ControllerName(v1alpha1.IPFailoverGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
 			RateLimiter: ratelimiter.NewDefaultManagedRateLimiter(rl),
 		}).
-		For(&v1alpha1.Lan{}).
+		For(&v1alpha1.IPFailover{}).
 		Complete(managed.NewReconciler(mgr,
-			resource.ManagedKind(v1alpha1.LanGroupVersionKind),
-			managed.WithExternalConnecter(&connectorLan{
+			resource.ManagedKind(v1alpha1.IPFailoverGroupVersionKind),
+			managed.WithExternalConnecter(&connectorIPFailover{
 				kube:  mgr.GetClient(),
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:   l}),
@@ -73,9 +72,9 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 
-// A connectorLan is expected to produce an ExternalClient when its Connect method
+// A connectorIPFailover is expected to produce an ExternalClient when its Connect method
 // is called.
-type connectorLan struct {
+type connectorIPFailover struct {
 	kube  client.Client
 	usage resource.Tracker
 	log   logging.Logger
@@ -86,10 +85,10 @@ type connectorLan struct {
 // 2. Getting the managed resource's ProviderConfig.
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
-func (c *connectorLan) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	_, ok := mg.(*v1alpha1.Lan)
+func (c *connectorIPFailover) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
+	_, ok := mg.(*v1alpha1.IPFailover)
 	if !ok {
-		return nil, errors.New(errNotLan)
+		return nil, errors.New(errNotIPFailover)
 	}
 
 	if err := c.usage.Track(ctx, mg); err != nil {
@@ -111,76 +110,75 @@ func (c *connectorLan) Connect(ctx context.Context, mg resource.Managed) (manage
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
-	return &externalLan{service: &lan.APIClient{IonosServices: svc}, log: c.log}, nil
+	return &externalIPFailover{service: &lan.APIClient{IonosServices: svc}, log: c.log}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
-// externalLan resource to ensure it reflects the managed resource's desired state.
-type externalLan struct {
-	// A 'client' used to connect to the externalLan resource API. In practice this
+// externalIPFailover resource to ensure it reflects the managed resource's desired state.
+type externalIPFailover struct {
+	// A 'client' used to connect to the externalIPFailover resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
 	service lan.Client
 	log     logging.Logger
 }
 
-func (c *externalLan) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*v1alpha1.Lan)
+func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+	cr, ok := mg.(*v1alpha1.IPFailover)
 	if !ok {
-		return managed.ExternalObservation{}, errors.New(errNotLan)
+		return managed.ExternalObservation{}, errors.New(errNotIPFailover)
 	}
 
-	// External Name of the CR is the Lan ID
-	if meta.GetExternalName(cr) == "" {
+	// External Name of the CR is the IPFailover IP
+	if cr.Status.AtProvider.IP == "" {
 		return managed.ExternalObservation{}, nil
 	}
-	instance, apiResponse, err := c.service.GetLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, meta.GetExternalName(cr))
+	instance, apiResponse, err := c.service.GetLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
 		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 
-	cr.Status.AtProvider.IPFailovers = lan.GetIPFailoverIPs(instance)
-	cr.Status.AtProvider.LanID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = *instance.Metadata.State
-	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
-	// Set Ready condition based on State
-	switch cr.Status.AtProvider.State {
-	case compute.AVAILABLE, compute.ACTIVE:
+	if lan.IsIPFailoverPresent(cr, instance) {
+		cr.Status.AtProvider.IP = cr.Spec.ForProvider.IP
 		cr.SetConditions(xpv1.Available())
-	case compute.BUSY, compute.UPDATING:
-		cr.SetConditions(xpv1.Creating())
-	case compute.DESTROYING:
-		cr.SetConditions(xpv1.Deleting())
-	default:
+	} else {
 		cr.SetConditions(xpv1.Unavailable())
 	}
 
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  lan.IsLanUpToDate(cr, instance),
+		ResourceUpToDate:  lan.IsIPFailoverUpToDate(cr, instance),
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
 }
 
-func (c *externalLan) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.Lan)
+func (c *externalIPFailover) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+	cr, ok := mg.(*v1alpha1.IPFailover)
 	if !ok {
-		return managed.ExternalCreation{}, errors.New(errNotLan)
+		return managed.ExternalCreation{}, errors.New(errNotIPFailover)
 	}
 
 	cr.SetConditions(xpv1.Creating())
-	if cr.Status.AtProvider.State == compute.BUSY {
+	instance, apiResponse, err := c.service.GetLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
+	if err != nil {
+		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
+		return managed.ExternalCreation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+	}
+	if lan.IsIPFailoverPresent(cr, instance) {
 		return managed.ExternalCreation{}, nil
 	}
-	instanceInput, err := lan.GenerateCreateLanInput(cr)
+
+	// Generate IPFailover Input
+	instanceInput, err := lan.GenerateCreateIPFailoverInput(cr, instance.Properties)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
-	instance, apiResponse, err := c.service.CreateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
+	// Create IPFailover
+	_, apiResponse, err = c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
-		retErr := fmt.Errorf("failed to create lan. error: %w", err)
+		retErr := fmt.Errorf("failed to update lan to create ipfailover. error: %w", err)
 		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
@@ -188,29 +186,33 @@ func (c *externalLan) Create(ctx context.Context, mg resource.Managed) (managed.
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.LanID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
-	creation.ExternalNameAssigned = true
+	cr.Status.AtProvider.IP = cr.Spec.ForProvider.IP
 	return creation, nil
 }
 
-func (c *externalLan) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.Lan)
+func (c *externalIPFailover) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
+	cr, ok := mg.(*v1alpha1.IPFailover)
 	if !ok {
-		return managed.ExternalUpdate{}, errors.New(errNotLan)
+		return managed.ExternalUpdate{}, errors.New(errNotIPFailover)
 	}
-	if cr.Status.AtProvider.State == compute.BUSY || cr.Status.AtProvider.State == compute.UPDATING {
+
+	instance, apiResponse, err := c.service.GetLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
+	if err != nil {
+		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
+		return managed.ExternalUpdate{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+	}
+	if lan.IsIPFailoverPresent(cr, instance) {
 		return managed.ExternalUpdate{}, nil
 	}
 
-	instanceInput, err := lan.GenerateUpdateLanInput(cr)
+	instanceInput, err := lan.GenerateUpdateIPFailoverInput(cr, instance.Properties)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
-
-	_, apiResponse, err := c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.LanID, *instanceInput)
+	// Update IPFailover
+	_, apiResponse, err = c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID, *instanceInput)
 	if err != nil {
-		retErr := fmt.Errorf("failed to update lan. error: %w", err)
+		retErr := fmt.Errorf("failed to update lan to update ipfailover. error: %w", err)
 		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
@@ -219,20 +221,33 @@ func (c *externalLan) Update(ctx context.Context, mg resource.Managed) (managed.
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalLan) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.Lan)
+func (c *externalIPFailover) Delete(ctx context.Context, mg resource.Managed) error {
+	cr, ok := mg.(*v1alpha1.IPFailover)
 	if !ok {
-		return errors.New(errNotLan)
+		return errors.New(errNotIPFailover)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
-	if cr.Status.AtProvider.State == compute.DESTROYING {
+	// Get Lan
+	instance, apiResponse, err := c.service.GetLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
+	if err != nil {
+		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
+		return compute.CheckAPIResponseInfo(apiResponse, retErr)
+	}
+	if !lan.IsIPFailoverPresent(cr, instance) || cr.Status.AtProvider.State == compute.DESTROYING {
+		cr.Status.AtProvider.IP = ""
 		return nil
 	}
 
-	apiResponse, err := c.service.DeleteLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.LanID)
+	// Generate IPFailover Input to Remove
+	instanceInput, err := lan.GenerateRemoveIPFailoverInput(cr, instance.Properties)
 	if err != nil {
-		retErr := fmt.Errorf("failed to delete lan. error: %w", err)
+		return err
+	}
+	// Remove IPFailover
+	_, apiResponse, err = c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID, *instanceInput)
+	if err != nil {
+		retErr := fmt.Errorf("failed to update lan to remove ipfailover. error: %w", err)
 		return compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {

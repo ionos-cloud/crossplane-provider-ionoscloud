@@ -37,10 +37,6 @@ spec:
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
       name: NIC ID
       type: string
-    - jsonPath: .spec.forProvider.name
-      name: NIC NAME
-      priority: 1
-      type: string
     - jsonPath: .spec.forProvider.ips
       name: IPS
       priority: 1

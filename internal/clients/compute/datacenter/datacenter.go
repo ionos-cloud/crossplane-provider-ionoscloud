@@ -7,6 +7,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 // APIClient is a wrapper around IONOS Service
@@ -25,7 +26,7 @@ type Client interface {
 
 // GetDatacenter based on datacenterID
 func (cp *APIClient) GetDatacenter(ctx context.Context, datacenterID string) (sdkgo.Datacenter, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.DataCentersApi.DatacentersFindById(ctx, datacenterID).Execute()
+	return cp.ComputeClient.DataCentersApi.DatacentersFindById(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateDatacenter based on Datacenter properties
