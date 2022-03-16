@@ -103,8 +103,8 @@ func (in *ClusterObservation) DeepCopy() *ClusterObservation {
 func (in *ClusterParameters) DeepCopyInto(out *ClusterParameters) {
 	*out = *in
 	out.MaintenanceWindow = in.MaintenanceWindow
-	if in.ApiSubnetAllowList != nil {
-		in, out := &in.ApiSubnetAllowList, &out.ApiSubnetAllowList
+	if in.APISubnetAllowList != nil {
+		in, out := &in.APISubnetAllowList, &out.APISubnetAllowList
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

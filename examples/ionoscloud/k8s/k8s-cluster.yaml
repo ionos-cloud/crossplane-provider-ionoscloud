@@ -1,0 +1,20 @@
+# Use this file to create a K8s Cluster CR.
+# Required values for creating a K8s Cluster CR are:
+# - Name.
+apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
+kind: Cluster
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleK8sCluster
+    public: true
+  #    k8sVersion:
+  #    apiSubnetAllowList:
+  #    s3Buckets:
+  #      - name:
+  #    maintenanceWindow:
+  #      time:
+  #      dayOfTheWeek:
+  providerConfigRef:
+    name: example

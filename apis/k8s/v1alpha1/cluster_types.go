@@ -48,6 +48,7 @@ type ClusterParameters struct {
 	// The indicator if the cluster is public or private.
 	// Be aware that setting it to false is currently in beta phase.
 	//
+	// +immutable
 	// +kubebuilder:default=true
 	// +kubebuilder:validation:Optional
 	Public bool `json:"public,omitempty"`
@@ -57,7 +58,7 @@ type ClusterParameters struct {
 	// Example: "1.2.3.4/32", "2002::1234:abcd:ffff:c0a8:101/64", "1.2.3.4", "2002::1234:abcd:ffff:c0a8:101"
 	//
 	// +kubebuilder:validation:Optional
-	ApiSubnetAllowList []string `json:"apiSubnetAllowList,omitempty"`
+	APISubnetAllowList []string `json:"apiSubnetAllowList,omitempty"`
 	// List of S3 bucket configured for K8s usage.
 	// For now it contains only an S3 bucket used to store K8s API audit logs
 	//
@@ -74,7 +75,7 @@ type ClusterParameters struct {
 	ViableNodePoolVersions []string `json:"viableNodePoolVersions,omitempty"`
 }
 
-// MaintenanceWindow A weekly 4 hour-long window, during which maintenance might occur
+// MaintenanceWindow A weekly window, during which maintenance might occur
 type MaintenanceWindow struct {
 	Time string `json:"time,omitempty"`
 	// DayOfTheWeek The name of the week day.
