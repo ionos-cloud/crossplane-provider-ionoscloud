@@ -22,12 +22,14 @@ BUILD_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}"
 CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller"
 
 # ------------------------------
-# set which tests to run
-# example: make e2e test_compute=false test_dbaas_postgres=true
-test_compute=${test_compute:-true}
-# by default, do not test dbaas postgres cluster
+# You can select which tests to run.
+# Pay attention to the default values that are set!
+# To run specific tests, for example for dbaas resources,
+# use: make e2e TEST_COMPUTE=false TEST_DBAAS=true
+TEST_COMPUTE=${TEST_COMPUTE:-true}
+# by default, do not test dbaas resources
 # since it takes a lot of time
-test_dbaas_postgres=${test_dbaas_postgres:-false}
+TEST_DBAAS=${TEST_DBAAS:-false}
 
 version_tag="$(cat ${projectdir}/_output/version)"
 # tag as latest version to load into kind cluster
@@ -146,7 +148,7 @@ echo_step "--- INTEGRATION TESTS ---"
 echo_step "--- install Crossplane Provider IONOSCLOUD ---"
 install_provider
 
-if [ "$test_compute" = true ]; then
+if [ "$TEST_COMPUTE" = true ]; then
   echo_step "--- ipblock tests ---"
   ipblock_tests
   echo_step "--- datacenter tests ---"
@@ -161,7 +163,7 @@ if [ "$test_compute" = true ]; then
   nic_tests
 fi
 
-if [ "$test_dbaas_postgres" = true ]; then
+if [ "$TEST_DBAAS" = true ]; then
   echo_step "--- dbaas postgres cluster tests ---"
   dbaas_postgres_cluster_tests
 fi
@@ -170,7 +172,7 @@ echo_step "-------------------"
 echo_step "--- CLEANING UP ---"
 echo_step "-------------------"
 
-if [ "$test_compute" = true ]; then
+if [ "$TEST_COMPUTE" = true ]; then
   echo_step "--- cleanup nic tests ---"
   nic_tests_cleanup
   echo_step "--- cleanup lan tests ---"
@@ -185,7 +187,7 @@ if [ "$test_compute" = true ]; then
   ipblock_tests_cleanup
 fi
 
-if [ "$test_dbaas_postgres" = true ]; then
+if [ "$TEST_DBAAS" = true ]; then
   echo_step "--- dbaas postgres cluster tests ---"
   dbaas_postgres_cluster_tests_cleanup
 fi

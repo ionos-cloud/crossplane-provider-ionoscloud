@@ -102,6 +102,8 @@ _Note_: If both the `datacenterId` and the `datacenterIdRef` fields are set, the
 
 ## Testing
 
+Crossplane Provider IONOS Cloud has end-to-end integration tests for the resources supported.
+
 For running end-to-end integration tests, use:
 
 ```bash
