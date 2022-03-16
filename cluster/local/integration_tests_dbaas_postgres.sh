@@ -76,7 +76,7 @@ EOF
   kubectl wait --for=condition=synced clusters.dbaas.postgres.ionoscloud.crossplane.io/example --timeout=600s
 
   echo_step "get dbaas postgres cluster CR"
-  kubectl get ipblocks
+  kubectl get clusters.dbaas.postgres.ionoscloud.crossplane.io -o wide
 
   echo_step "update dbaas postgres cluster CR"
   INSTALL_RESOURCE_YAML="$(

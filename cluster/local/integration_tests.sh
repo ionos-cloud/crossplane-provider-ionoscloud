@@ -23,6 +23,7 @@ CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller"
 
 # ------------------------------
 # set which tests to run
+# example: make e2e test_compute=false test_dbaas_postgres=true
 test_compute=${test_compute:-true}
 # by default, do not test dbaas postgres cluster
 # since it takes a lot of time
