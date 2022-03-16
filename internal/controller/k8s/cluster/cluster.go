@@ -151,9 +151,9 @@ func (c *externalK8sCluster) Observe(ctx context.Context, mg resource.Managed) (
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
 	switch cr.Status.AtProvider.State {
-	case k8s.AVAILABLE, k8s.ACTIVE:
+	case k8s.ACTIVE:
 		cr.SetConditions(xpv1.Available())
-	case k8s.BUSY, k8s.UPDATING, k8s.DEPLOYING:
+	case k8s.DEPLOYING, k8s.BUSY, k8s.UPDATING:
 		cr.SetConditions(xpv1.Creating())
 	case k8s.DESTROYING, k8s.TERMINATED:
 		cr.SetConditions(xpv1.Deleting())
@@ -176,7 +176,7 @@ func (c *externalK8sCluster) Create(ctx context.Context, mg resource.Managed) (m
 	}
 
 	cr.SetConditions(xpv1.Creating())
-	if cr.Status.AtProvider.State == k8s.BUSY || cr.Status.AtProvider.State == k8s.UPDATING || cr.Status.AtProvider.State == k8s.DEPLOYING {
+	if cr.Status.AtProvider.State == k8s.DEPLOYING {
 		return managed.ExternalCreation{}, nil
 	}
 	instanceInput, err := cluster.GenerateCreateK8sClusterInput(cr)
@@ -210,19 +210,12 @@ func (c *externalK8sCluster) Update(ctx context.Context, mg resource.Managed) (m
 		return managed.ExternalUpdate{}, nil
 	}
 
-	datacenterID := cr.Status.AtProvider.ClusterID
 	instanceInput, err := cluster.GenerateUpdateK8sClusterInput(cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
-
-	_, apiResponse, err := c.service.UpdateK8sCluster(ctx, datacenterID, *instanceInput)
-	if err != nil {
-		retErr := fmt.Errorf("failed to update k8s cluster. error: %w", err)
-		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
-	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return managed.ExternalUpdate{}, err
+	if _, _, err = c.service.UpdateK8sCluster(ctx, cr.Status.AtProvider.ClusterID, *instanceInput); err != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("failed to update k8s cluster. error: %w", err)
 	}
 	return managed.ExternalUpdate{}, nil
 }

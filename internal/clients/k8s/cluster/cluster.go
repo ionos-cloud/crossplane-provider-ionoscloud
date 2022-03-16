@@ -149,16 +149,16 @@ func IsK8sClusterUpToDate(cr *v1alpha1.Cluster, cluster sdkgo.KubernetesCluster)
 		return true
 	case cluster.Properties.Name != nil && *cluster.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
-	case cluster.Properties.Public != nil && *cluster.Properties.Public != cr.Spec.ForProvider.Public:
-		return false
-	case cluster.Properties.K8sVersion != nil && *cluster.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
-		return false
-	case cluster.Properties.ApiSubnetAllowList != nil && !utils.IsEqStringSlices(*cluster.Properties.ApiSubnetAllowList, cr.Spec.ForProvider.APISubnetAllowList):
-		return false
-	case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.Time != nil && *cluster.Properties.MaintenanceWindow.Time != cr.Spec.ForProvider.MaintenanceWindow.Time:
-		return false
-	case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.DayOfTheWeek != nil && *cluster.Properties.MaintenanceWindow.DayOfTheWeek != cr.Spec.ForProvider.MaintenanceWindow.DayOfTheWeek:
-		return false
+	// case cluster.Properties.Public != nil && *cluster.Properties.Public != cr.Spec.ForProvider.Public:
+	//	return false
+	// case cluster.Properties.K8sVersion != nil && *cluster.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
+	//	return false
+	// case cluster.Properties.ApiSubnetAllowList != nil && !utils.IsEqStringSlices(*cluster.Properties.ApiSubnetAllowList, cr.Spec.ForProvider.APISubnetAllowList):
+	//	return false
+	// case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.Time != nil && *cluster.Properties.MaintenanceWindow.Time != cr.Spec.ForProvider.MaintenanceWindow.Time:
+	//	return false
+	// case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.DayOfTheWeek != nil && *cluster.Properties.MaintenanceWindow.DayOfTheWeek != cr.Spec.ForProvider.MaintenanceWindow.DayOfTheWeek:
+	//	return false
 	default:
 		return true
 	}
