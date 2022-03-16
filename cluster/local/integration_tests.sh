@@ -20,6 +20,10 @@ ORG_NAME=${ORG_NAME:-ionos-cloud}
 BUILD_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}"
 CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller"
 
+# ------------------------------
+# Set which tests to run
+run_compute=${run_compute:-true}
+
 version_tag="$(cat ${projectdir}/_output/version)"
 # tag as latest version to load into kind cluster
 PACKAGE_CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller:${VERSION}"
@@ -137,34 +141,38 @@ echo_step "--- INTEGRATION TESTS ---"
 echo_step "--- install Crossplane Provider IONOSCLOUD ---"
 install_provider
 
-# run Compute Resources Tests
-echo_step "--- ipblock tests ---"
-ipblock_tests
-echo_step "--- datacenter tests ---"
-datacenter_tests
-echo_step "--- lan tests ---"
-lan_tests
-echo_step "--- volume tests ---"
-volume_tests
-echo_step "--- server tests ---"
-server_tests
-echo_step "--- nic tests ---"
-nic_tests
+if [ "$run_compute" = true ]; then
+  # run Compute Resources Tests
+  echo_step "--- ipblock tests ---"
+  ipblock_tests
+  echo_step "--- datacenter tests ---"
+  datacenter_tests
+  echo_step "--- lan tests ---"
+  lan_tests
+  echo_step "--- volume tests ---"
+  volume_tests
+  echo_step "--- server tests ---"
+  server_tests
+  echo_step "--- nic tests ---"
+  nic_tests
+fi
 
 echo_step "--- cleaning up ---"
-# uninstalling Compute Resources
-echo_step "--- cleanup nic tests ---"
-nic_tests_cleanup
-echo_step "--- cleanup lan tests ---"
-lan_tests_cleanup
-echo_step "--- cleanup volume tests ---"
-volume_tests_cleanup
-echo_step "--- cleanup server tests ---"
-server_tests_cleanup
-echo_step "--- cleanup datacenter tests ---"
-datacenter_tests_cleanup
-echo_step "--- cleanup ipblock tests ---"
-ipblock_tests_cleanup
+if [ "$run_compute" = true ]; then
+  # uninstalling Compute Resources
+  echo_step "--- cleanup nic tests ---"
+  nic_tests_cleanup
+  echo_step "--- cleanup lan tests ---"
+  lan_tests_cleanup
+  echo_step "--- cleanup volume tests ---"
+  volume_tests_cleanup
+  echo_step "--- cleanup server tests ---"
+  server_tests_cleanup
+  echo_step "--- cleanup datacenter tests ---"
+  datacenter_tests_cleanup
+  echo_step "--- cleanup ipblock tests ---"
+  ipblock_tests_cleanup
+fi
 
 # uninstalling Crossplane Provider IONOS Cloud
 echo_step "--- uninstalling ${PROJECT_NAME} ---"
