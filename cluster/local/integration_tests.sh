@@ -6,6 +6,7 @@ source ./cluster/local/print.sh
 # add integration tests for resources
 source ./cluster/local/integration_tests_provider.sh
 source ./cluster/local/integration_tests_compute.sh
+source ./cluster/local/integration_tests_dbaas_postgres.sh
 
 # ------------------------------
 projectdir="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
@@ -21,8 +22,11 @@ BUILD_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}"
 CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller"
 
 # ------------------------------
-# Set which tests to run
-run_compute=${run_compute:-true}
+# set which tests to run
+test_compute=${test_compute:-true}
+# by default, do not test dbaas postgres cluster
+# since it takes a lot of time
+test_dbaas_postgres=${test_dbaas_postgres:-false}
 
 version_tag="$(cat ${projectdir}/_output/version)"
 # tag as latest version to load into kind cluster
@@ -141,8 +145,7 @@ echo_step "--- INTEGRATION TESTS ---"
 echo_step "--- install Crossplane Provider IONOSCLOUD ---"
 install_provider
 
-if [ "$run_compute" = true ]; then
-  # run Compute Resources Tests
+if [ "$test_compute" = true ]; then
   echo_step "--- ipblock tests ---"
   ipblock_tests
   echo_step "--- datacenter tests ---"
@@ -157,9 +160,16 @@ if [ "$run_compute" = true ]; then
   nic_tests
 fi
 
-echo_step "--- cleaning up ---"
-if [ "$run_compute" = true ]; then
-  # uninstalling Compute Resources
+if [ "$test_dbaas_postgres" = true ]; then
+  echo_step "--- dbaas postgres cluster tests ---"
+  dbaas_postgres_cluster_tests
+fi
+
+echo_step "-------------------"
+echo_step "--- CLEANING UP ---"
+echo_step "-------------------"
+
+if [ "$test_compute" = true ]; then
   echo_step "--- cleanup nic tests ---"
   nic_tests_cleanup
   echo_step "--- cleanup lan tests ---"
@@ -172,6 +182,11 @@ if [ "$run_compute" = true ]; then
   datacenter_tests_cleanup
   echo_step "--- cleanup ipblock tests ---"
   ipblock_tests_cleanup
+fi
+
+if [ "$test_dbaas_postgres" = true ]; then
+  echo_step "--- dbaas postgres cluster tests ---"
+  dbaas_postgres_cluster_tests_cleanup
 fi
 
 # uninstalling Crossplane Provider IONOS Cloud
