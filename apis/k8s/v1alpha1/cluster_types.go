@@ -108,18 +108,18 @@ type ClusterStatus struct {
 
 // +kubebuilder:object:root=true
 
-// A ClusterInstance is an example API type.
+// A Cluster is an example API type.
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="CLUSTER ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
-// +kubebuilder:printcolumn:name="CLUSTER NAME",priority=1,type="string",JSONPath=".spec.forProvider.name"
+// +kubebuilder:printcolumn:name="CLUSTER NAME",type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="K8S VERSION",priority=1,type="string",JSONPath=".spec.forProvider.k8sVersion"
 // +kubebuilder:printcolumn:name="PUBLIC",priority=1,type="string",JSONPath=".spec.forProvider.public"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
-type ClusterInstance struct {
+type Cluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -129,21 +129,21 @@ type ClusterInstance struct {
 
 // +kubebuilder:object:root=true
 
-// ClusterInstanceList contains a list of Cluster
-type ClusterInstanceList struct {
+// ClusterList contains a list of Cluster
+type ClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ClusterInstance `json:"items"`
+	Items           []Cluster `json:"items"`
 }
 
 // Cluster type metadata.
 var (
-	ClusterKind             = reflect.TypeOf(ClusterInstance{}).Name()
+	ClusterKind             = reflect.TypeOf(Cluster{}).Name()
 	ClusterGroupKind        = schema.GroupKind{Group: Group, Kind: ClusterKind}.String()
 	ClusterKindAPIVersion   = ClusterKind + "." + SchemeGroupVersion.String()
 	ClusterGroupVersionKind = SchemeGroupVersion.WithKind(ClusterKind)
 )
 
 func init() {
-	SchemeBuilder.Register(&ClusterInstance{}, &ClusterInstanceList{})
+	SchemeBuilder.Register(&Cluster{}, &ClusterList{})
 }

@@ -42,7 +42,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s/cluster"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s/k8scluster"
 )
 
 const (
@@ -63,7 +63,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll ti
 		WithOptions(controller.Options{
 			RateLimiter: ratelimiter.NewDefaultManagedRateLimiter(rl),
 		}).
-		For(&v1alpha1.ClusterInstance{}).
+		For(&v1alpha1.Cluster{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.ClusterGroupVersionKind),
 			managed.WithExternalConnecter(&connectorCluster{
@@ -91,7 +91,7 @@ type connectorCluster struct {
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
 func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	_, ok := mg.(*v1alpha1.ClusterInstance)
+	_, ok := mg.(*v1alpha1.Cluster)
 	if !ok {
 		return nil, errors.New(errNotK8sCluster)
 	}
@@ -115,7 +115,7 @@ func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (ma
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
-	return &externalCluster{service: &cluster.APIClient{IonosServices: svc}, log: c.log}, nil
+	return &externalCluster{service: &k8scluster.APIClient{IonosServices: svc}, log: c.log}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -123,12 +123,12 @@ func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (ma
 type externalCluster struct {
 	// A 'client' used to connect to the externalK8sCluster resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service cluster.Client
+	service k8scluster.Client
 	log     logging.Logger
 }
 
 func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*v1alpha1.ClusterInstance)
+	cr, ok := mg.(*v1alpha1.Cluster)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotK8sCluster)
 	}
@@ -144,7 +144,7 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 	}
 
 	current := cr.Spec.ForProvider.DeepCopy()
-	cluster.LateInitializer(&cr.Spec.ForProvider, &observed)
+	k8scluster.LateInitializer(&cr.Spec.ForProvider, &observed)
 
 	// Set Ready condition based on State
 	cr.Status.AtProvider.ClusterID = meta.GetExternalName(cr)
@@ -163,14 +163,14 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        cluster.IsK8sClusterUpToDate(cr, observed),
+		ResourceUpToDate:        k8scluster.IsK8sClusterUpToDate(cr, observed),
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}, nil
 }
 
 func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.ClusterInstance)
+	cr, ok := mg.(*v1alpha1.Cluster)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotK8sCluster)
 	}
@@ -179,7 +179,7 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 	if cr.Status.AtProvider.State == k8s.DEPLOYING {
 		return managed.ExternalCreation{}, nil
 	}
-	instanceInput, err := cluster.GenerateCreateK8sClusterInput(cr)
+	instanceInput, err := k8scluster.GenerateCreateK8sClusterInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -199,7 +199,7 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 }
 
 func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.ClusterInstance)
+	cr, ok := mg.(*v1alpha1.Cluster)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotK8sCluster)
 	}
@@ -210,7 +210,7 @@ func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (mana
 		return managed.ExternalUpdate{}, fmt.Errorf("resource needs to be in ACTIVE state to update it, current state: %v", cr.Status.AtProvider.State)
 	}
 
-	instanceInput, err := cluster.GenerateUpdateK8sClusterInput(cr)
+	instanceInput, err := k8scluster.GenerateUpdateK8sClusterInput(cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
@@ -221,7 +221,7 @@ func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (mana
 }
 
 func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.ClusterInstance)
+	cr, ok := mg.(*v1alpha1.Cluster)
 	if !ok {
 		return errors.New(errNotK8sCluster)
 	}

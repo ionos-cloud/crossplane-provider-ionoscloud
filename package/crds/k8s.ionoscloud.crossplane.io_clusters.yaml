@@ -4,7 +4,7 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.6.2
   creationTimestamp: null
-  name: clusterinstances.k8s.ionoscloud.crossplane.io
+  name: clusters.k8s.ionoscloud.crossplane.io
 spec:
   group: k8s.ionoscloud.crossplane.io
   names:
@@ -12,10 +12,10 @@ spec:
     - crossplane
     - managed
     - ionoscloud
-    kind: ClusterInstance
-    listKind: ClusterInstanceList
-    plural: clusterinstances
-    singular: clusterinstance
+    kind: Cluster
+    listKind: ClusterList
+    plural: clusters
+    singular: cluster
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -30,7 +30,6 @@ spec:
       type: string
     - jsonPath: .spec.forProvider.name
       name: CLUSTER NAME
-      priority: 1
       type: string
     - jsonPath: .spec.forProvider.k8sVersion
       name: K8S VERSION
@@ -49,7 +48,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: A ClusterInstance is an example API type.
+        description: A Cluster is an example API type.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
