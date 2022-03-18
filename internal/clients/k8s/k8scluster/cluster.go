@@ -135,14 +135,10 @@ func LateStatusInitializer(in *v1alpha1.ClusterObservation, sg *sdkgo.Kubernetes
 	// Add Properties to the Spec, if they were set by the API
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
 		if availableUpgradeVersionsOk, ok := propertiesOk.GetAvailableUpgradeVersionsOk(); ok && availableUpgradeVersionsOk != nil {
-			if utils.IsEmptyValue(reflect.ValueOf(in.AvailableUpgradeVersions)) {
-				in.AvailableUpgradeVersions = *availableUpgradeVersionsOk
-			}
+			in.AvailableUpgradeVersions = *availableUpgradeVersionsOk
 		}
 		if viableNodePoolVersionsOk, ok := propertiesOk.GetViableNodePoolVersionsOk(); ok && viableNodePoolVersionsOk != nil {
-			if utils.IsEmptyValue(reflect.ValueOf(in.ViableNodePoolVersions)) {
-				in.ViableNodePoolVersions = *viableNodePoolVersionsOk
-			}
+			in.ViableNodePoolVersions = *viableNodePoolVersionsOk
 		}
 	}
 }
@@ -169,10 +165,6 @@ func IsK8sClusterUpToDate(cr *v1alpha1.Cluster, cluster sdkgo.KubernetesCluster)
 	case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.Time != nil && *cluster.Properties.MaintenanceWindow.Time != cr.Spec.ForProvider.MaintenanceWindow.Time:
 		return false
 	case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.DayOfTheWeek != nil && *cluster.Properties.MaintenanceWindow.DayOfTheWeek != cr.Spec.ForProvider.MaintenanceWindow.DayOfTheWeek:
-		return false
-	case cluster.Properties.AvailableUpgradeVersions != nil && !utils.IsEqStringSlices(*cluster.Properties.AvailableUpgradeVersions, cr.Status.AtProvider.AvailableUpgradeVersions):
-		return false
-	case cluster.Properties.ViableNodePoolVersions != nil && !utils.IsEqStringSlices(*cluster.Properties.ViableNodePoolVersions, cr.Status.AtProvider.ViableNodePoolVersions):
 		return false
 	default:
 		return true
