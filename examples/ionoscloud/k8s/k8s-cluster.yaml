@@ -7,14 +7,14 @@ metadata:
   name: example
 spec:
   forProvider:
-    name: exampleK8sCluster
+    name: exampleK8sClusterr
     public: true
-  #    k8sVersion:
+  #    k8sVersion: 1.22.6
   #    apiSubnetAllowList:
   #    s3Buckets:
   #      - name:
   #    maintenanceWindow:
-  #      time:
-  #      dayOfTheWeek:
+  #      time: "23:40:58Z"
+  #      dayOfTheWeek: Friday
   providerConfigRef:
     name: example

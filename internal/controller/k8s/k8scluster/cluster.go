@@ -145,6 +145,7 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 
 	current := cr.Spec.ForProvider.DeepCopy()
 	k8scluster.LateInitializer(&cr.Spec.ForProvider, &observed)
+	k8scluster.LateStatusInitializer(&cr.Status.AtProvider, &observed)
 
 	// Set Ready condition based on State
 	cr.Status.AtProvider.ClusterID = meta.GetExternalName(cr)

@@ -88,12 +88,6 @@ spec:
                     items:
                       type: string
                     type: array
-                  availableUpgradeVersions:
-                    description: "List of available versions for upgrading the cluster
-                      \n Read Only Parameter"
-                    items:
-                      type: string
-                    type: array
                   k8sVersion:
                     description: 'The Kubernetes version the cluster is running. This
                       imposes restrictions on what Kubernetes versions can be run
@@ -136,12 +130,6 @@ spec:
                       - name
                       type: object
                     maxItems: 1
-                    type: array
-                  viableNodePoolVersions:
-                    description: "List of versions that may be used for node pools
-                      under this cluster \n Read Only Parameter"
-                    items:
-                      type: string
                     type: array
                 required:
                 - name
@@ -196,10 +184,18 @@ spec:
               atProvider:
                 description: ClusterObservation are the observable fields of a Cluster.
                 properties:
+                  availableUpgradeVersions:
+                    items:
+                      type: string
+                    type: array
                   clusterId:
                     type: string
                   state:
                     type: string
+                  viableNodePoolVersions:
+                    items:
+                      type: string
+                    type: array
                 type: object
               conditions:
                 description: Conditions of the resource.

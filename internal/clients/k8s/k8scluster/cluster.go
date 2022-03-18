@@ -118,19 +118,30 @@ func LateInitializer(in *v1alpha1.ClusterParameters, sg *sdkgo.KubernetesCluster
 				}
 			}
 		}
-		// if availableUpgradeVersionsOk, ok := propertiesOk.GetAvailableUpgradeVersionsOk(); ok && availableUpgradeVersionsOk != nil {
-		//	if utils.IsEmptyValue(reflect.ValueOf(in.AvailableUpgradeVersions)) {
-		//		in.AvailableUpgradeVersions = *availableUpgradeVersionsOk
-		//	}
-		// }
-		if viableNodePoolVersionsOk, ok := propertiesOk.GetViableNodePoolVersionsOk(); ok && viableNodePoolVersionsOk != nil {
-			if utils.IsEmptyValue(reflect.ValueOf(in.ViableNodePoolVersions)) {
-				in.ViableNodePoolVersions = *viableNodePoolVersionsOk
-			}
-		}
 		if versionOk, ok := propertiesOk.GetK8sVersionOk(); ok && versionOk != nil {
 			if utils.IsEmptyValue(reflect.ValueOf(in.K8sVersion)) {
 				in.K8sVersion = *versionOk
+			}
+		}
+	}
+}
+
+// LateStatusInitializer fills the empty fields in *v1alpha1.ClusterObservation with
+// the values seen in sdkgo.KubernetesCluster.
+func LateStatusInitializer(in *v1alpha1.ClusterObservation, sg *sdkgo.KubernetesCluster) {
+	if sg == nil {
+		return
+	}
+	// Add Properties to the Spec, if they were set by the API
+	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
+		if availableUpgradeVersionsOk, ok := propertiesOk.GetAvailableUpgradeVersionsOk(); ok && availableUpgradeVersionsOk != nil {
+			if utils.IsEmptyValue(reflect.ValueOf(in.AvailableUpgradeVersions)) {
+				in.AvailableUpgradeVersions = *availableUpgradeVersionsOk
+			}
+		}
+		if viableNodePoolVersionsOk, ok := propertiesOk.GetViableNodePoolVersionsOk(); ok && viableNodePoolVersionsOk != nil {
+			if utils.IsEmptyValue(reflect.ValueOf(in.ViableNodePoolVersions)) {
+				in.ViableNodePoolVersions = *viableNodePoolVersionsOk
 			}
 		}
 	}
@@ -149,16 +160,20 @@ func IsK8sClusterUpToDate(cr *v1alpha1.Cluster, cluster sdkgo.KubernetesCluster)
 		return true
 	case cluster.Properties.Name != nil && *cluster.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
-	// case cluster.Properties.Public != nil && *cluster.Properties.Public != cr.Spec.ForProvider.Public:
-	//	return false
-	// case cluster.Properties.K8sVersion != nil && *cluster.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
-	//	return false
-	// case cluster.Properties.ApiSubnetAllowList != nil && !utils.IsEqStringSlices(*cluster.Properties.ApiSubnetAllowList, cr.Spec.ForProvider.APISubnetAllowList):
-	//	return false
-	// case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.Time != nil && *cluster.Properties.MaintenanceWindow.Time != cr.Spec.ForProvider.MaintenanceWindow.Time:
-	//	return false
-	// case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.DayOfTheWeek != nil && *cluster.Properties.MaintenanceWindow.DayOfTheWeek != cr.Spec.ForProvider.MaintenanceWindow.DayOfTheWeek:
-	//	return false
+	case cluster.Properties.Public != nil && *cluster.Properties.Public != cr.Spec.ForProvider.Public:
+		return false
+	case cluster.Properties.K8sVersion != nil && *cluster.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
+		return false
+	case cluster.Properties.ApiSubnetAllowList != nil && !utils.IsEqStringSlices(*cluster.Properties.ApiSubnetAllowList, cr.Spec.ForProvider.APISubnetAllowList):
+		return false
+	case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.Time != nil && *cluster.Properties.MaintenanceWindow.Time != cr.Spec.ForProvider.MaintenanceWindow.Time:
+		return false
+	case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.DayOfTheWeek != nil && *cluster.Properties.MaintenanceWindow.DayOfTheWeek != cr.Spec.ForProvider.MaintenanceWindow.DayOfTheWeek:
+		return false
+	case cluster.Properties.AvailableUpgradeVersions != nil && !utils.IsEqStringSlices(*cluster.Properties.AvailableUpgradeVersions, cr.Status.AtProvider.AvailableUpgradeVersions):
+		return false
+	case cluster.Properties.ViableNodePoolVersions != nil && !utils.IsEqStringSlices(*cluster.Properties.ViableNodePoolVersions, cr.Status.AtProvider.ViableNodePoolVersions):
+		return false
 	default:
 		return true
 	}

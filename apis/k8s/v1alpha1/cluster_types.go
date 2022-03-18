@@ -65,14 +65,6 @@ type ClusterParameters struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:MaxItems=1
 	S3Buckets []S3Bucket `json:"s3Buckets,omitempty"`
-	// List of available versions for upgrading the cluster
-	//
-	// Read Only Parameter
-	AvailableUpgradeVersions []string `json:"availableUpgradeVersions,omitempty"`
-	// List of versions that may be used for node pools under this cluster
-	//
-	// Read Only Parameter
-	ViableNodePoolVersions []string `json:"viableNodePoolVersions,omitempty"`
 }
 
 // MaintenanceWindow A weekly window, during which maintenance might occur
@@ -90,8 +82,10 @@ type S3Bucket struct {
 
 // ClusterObservation are the observable fields of a Cluster.
 type ClusterObservation struct {
-	ClusterID string `json:"clusterId,omitempty"`
-	State     string `json:"state,omitempty"`
+	ClusterID                string   `json:"clusterId,omitempty"`
+	State                    string   `json:"state,omitempty"`
+	AvailableUpgradeVersions []string `json:"availableUpgradeVersions,omitempty"`
+	ViableNodePoolVersions   []string `json:"viableNodePoolVersions,omitempty"`
 }
 
 // A ClusterSpec defines the desired state of a Cluster.
