@@ -104,8 +104,8 @@ _Note_: If both the `datacenterId` and the `datacenterIdRef` fields are set, the
 
 ### Provider Logs
 
-The Crossplane Provider IONOS Cloud has support for `--debug` flag. The easiest way to set flags on the provider is to
-create a [ControllerConfig](examples/provider/debug-config.yaml) and reference it from
+The Crossplane Provider IONOS Cloud has support for `--debug` flag. You can create
+a [ControllerConfig](examples/provider/debug-config.yaml) and reference it from
 the [Provider](examples/provider/install-provider.yaml).
 
 In order to see logs of the Crossplane Provider IONOS Cloud controller's pod, use:
