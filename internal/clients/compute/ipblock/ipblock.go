@@ -69,22 +69,21 @@ func GenerateCreateIPBlockInput(cr *v1alpha1.IPBlock) (*sdkgo.IpBlock, error) {
 func GenerateUpdateIPBlockInput(cr *v1alpha1.IPBlock) (*sdkgo.IpBlockProperties, error) {
 	instanceUpdateInput := sdkgo.IpBlockProperties{
 		Name: &cr.Spec.ForProvider.Name,
+		Size: &cr.Spec.ForProvider.Size,
 	}
 	return &instanceUpdateInput, nil
 }
 
-// LateInitializer fills the empty fields in *v1alpha1.IPBlockParameters with
+// LateStatusInitializer fills the empty fields in *v1alpha1.IPBlockObservation with
 // the values seen in sdkgo.IpBlockProperties.
-func LateInitializer(in *v1alpha1.IPBlockParameters, sg *sdkgo.IpBlock) {
+func LateStatusInitializer(in *v1alpha1.IPBlockObservation, sg *sdkgo.IpBlock) {
 	if sg == nil {
 		return
 	}
-	// Add Boot CD-ROM ID to the Spec, if it was updated via other tool (e.g. DCD)
+	// Add IPs to the Status
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
 		if ipsOk, ok := propertiesOk.GetIpsOk(); ok && ipsOk != nil {
-			if utils.IsEmptyValue(reflect.ValueOf(in.Ips)) {
-				in.Ips = *ipsOk
-			}
+			in.Ips = *ipsOk
 		}
 	}
 }

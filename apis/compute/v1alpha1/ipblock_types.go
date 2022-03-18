@@ -40,18 +40,15 @@ type IPBlockParameters struct {
 	Location string `json:"location"`
 	// The size of the IP block.
 	//
-	// +immutable
 	// +kubebuilder:validation:Required
 	Size int32 `json:"size"`
-	// Collection of IPs, associated with the IP Block.
-	// Read-only parameter
-	Ips []string `json:"ips,omitempty"`
 }
 
 // IPBlockObservation are the observable fields of a IPBlock.
 type IPBlockObservation struct {
-	IPBlockID string `json:"ipBlockId,omitempty"`
-	State     string `json:"state,omitempty"`
+	IPBlockID string   `json:"ipBlockId,omitempty"`
+	State     string   `json:"state,omitempty"`
+	Ips       []string `json:"ips,omitempty"`
 }
 
 // A IPBlockSpec defines the desired state of a IPBlock.
@@ -72,7 +69,7 @@ type IPBlockStatus struct {
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="IPBLOCK ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
-// +kubebuilder:printcolumn:name="IPS",type="string",JSONPath=".spec.forProvider.ips"
+// +kubebuilder:printcolumn:name="IPS",type="string",JSONPath=".status.atProvider.ips"
 // +kubebuilder:printcolumn:name="NAME",priority=1,type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="LOCATION",priority=1,type="string",JSONPath=".spec.forProvider.location"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"

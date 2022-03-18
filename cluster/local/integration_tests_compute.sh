@@ -33,7 +33,7 @@ EOF
   kubectl wait --for=condition=synced ipblocks/example
 
   echo_step "get ipblock CR"
-  kubectl get ipblocks
+  kubectl get ipblocks -o wide
 
   echo_step "update ipblock CR"
   INSTALL_RESOURCE_YAML="$(
@@ -45,7 +45,7 @@ metadata:
 spec:
   forProvider:
     name: exampleIpBlockUpdate
-    size: 2
+    size: 3
     location: us/las
   providerConfigRef:
     name: example
@@ -57,6 +57,9 @@ EOF
   echo_step "waiting for ipblock CR to be ready & synced"
   kubectl wait --for=condition=ready ipblocks/example
   kubectl wait --for=condition=synced ipblocks/example
+
+  echo_step "get updated ipblock CR"
+  kubectl get ipblocks -o wide
 }
 
 function ipblock_tests_cleanup() {
@@ -69,7 +72,7 @@ metadata:
 spec:
   forProvider:
     name: exampleIpBlockUpdate
-    size: 2
+    size: 3
     location: us/las
   providerConfigRef:
     name: example
