@@ -100,6 +100,18 @@ datacenterConfig:
 
 _Note_: If both the `datacenterId` and the `datacenterIdRef` fields are set, the `datacenterId` value has priority.
 
+## Testing
+
+Crossplane Provider IONOS Cloud has end-to-end integration tests for the resources supported.
+
+For running end-to-end integration tests, use:
+
+```bash
+make e2e
+```
+
+If the images have a specific version, other than `latest`, this can be set via `make e2e VERSION=v0.x.x`.
+
 ## Debug Mode
 
 ### Provider Logs
@@ -115,18 +127,6 @@ kubectl -n crossplane-system logs <name-of-ionoscloud-provider-pod>
 ```
 
 More details [here](https://negz.github.io/crossplane.github.io/docs/v1.4/reference/troubleshoot.html#provider-logs).
-
-## Testing
-
-Crossplane Provider IONOS Cloud has end-to-end integration tests for the resources supported.
-
-For running end-to-end integration tests, use:
-
-```bash
-make e2e
-```
-
-If the images have a specific version, other than `latest`, this can be set via `make e2e VERSION=v0.x.x`.
 
 ## Releases
 
