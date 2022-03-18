@@ -108,7 +108,7 @@ type ClusterStatus struct {
 
 // +kubebuilder:object:root=true
 
-// A Cluster is an example API type.
+// A ClusterInstance is an example API type.
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="CLUSTER ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
@@ -119,7 +119,7 @@ type ClusterStatus struct {
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
-type Cluster struct {
+type ClusterInstance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -129,21 +129,21 @@ type Cluster struct {
 
 // +kubebuilder:object:root=true
 
-// ClusterList contains a list of Cluster
-type ClusterList struct {
+// ClusterInstanceList contains a list of Cluster
+type ClusterInstanceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Cluster `json:"items"`
+	Items           []ClusterInstance `json:"items"`
 }
 
 // Cluster type metadata.
 var (
-	ClusterKind             = reflect.TypeOf(Cluster{}).Name()
+	ClusterKind             = reflect.TypeOf(ClusterInstance{}).Name()
 	ClusterGroupKind        = schema.GroupKind{Group: Group, Kind: ClusterKind}.String()
 	ClusterKindAPIVersion   = ClusterKind + "." + SchemeGroupVersion.String()
 	ClusterGroupVersionKind = SchemeGroupVersion.WithKind(ClusterKind)
 )
 
 func init() {
-	SchemeBuilder.Register(&Cluster{}, &ClusterList{})
+	SchemeBuilder.Register(&ClusterInstance{}, &ClusterInstanceList{})
 }

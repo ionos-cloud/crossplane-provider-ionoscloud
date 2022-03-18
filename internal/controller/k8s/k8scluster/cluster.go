@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cluster
+package k8scluster
 
 import (
 	"context"
@@ -46,7 +46,7 @@ import (
 )
 
 const (
-	errNotK8sCluster = "managed resource is not a K8sCluster custom resource"
+	errNotK8sCluster = "managed resource is not a K8s Cluster custom resource"
 	errTrackPCUsage  = "cannot track ProviderConfig usage"
 	errGetPC         = "cannot get ProviderConfig"
 	errGetCreds      = "cannot get credentials"
@@ -63,10 +63,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll ti
 		WithOptions(controller.Options{
 			RateLimiter: ratelimiter.NewDefaultManagedRateLimiter(rl),
 		}).
-		For(&v1alpha1.Cluster{}).
+		For(&v1alpha1.ClusterInstance{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.ClusterGroupVersionKind),
-			managed.WithExternalConnecter(&connectorK8sCluster{
+			managed.WithExternalConnecter(&connectorCluster{
 				kube:  mgr.GetClient(),
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:   l}),
@@ -79,7 +79,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll ti
 
 // A connectorK8sCluster is expected to produce an ExternalClient when its Connect method
 // is called.
-type connectorK8sCluster struct {
+type connectorCluster struct {
 	kube  client.Client
 	usage resource.Tracker
 	log   logging.Logger
@@ -90,8 +90,8 @@ type connectorK8sCluster struct {
 // 2. Getting the managed resource's ProviderConfig.
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
-func (c *connectorK8sCluster) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	_, ok := mg.(*v1alpha1.Cluster)
+func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
+	_, ok := mg.(*v1alpha1.ClusterInstance)
 	if !ok {
 		return nil, errors.New(errNotK8sCluster)
 	}
@@ -115,20 +115,20 @@ func (c *connectorK8sCluster) Connect(ctx context.Context, mg resource.Managed) 
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
-	return &externalK8sCluster{service: &cluster.APIClient{IonosServices: svc}, log: c.log}, nil
+	return &externalCluster{service: &cluster.APIClient{IonosServices: svc}, log: c.log}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
-// externalK8sCluster resource to ensure it reflects the managed resource's desired state.
-type externalK8sCluster struct {
+// externalCluster resource to ensure it reflects the managed resource's desired state.
+type externalCluster struct {
 	// A 'client' used to connect to the externalK8sCluster resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
 	service cluster.Client
 	log     logging.Logger
 }
 
-func (c *externalK8sCluster) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*v1alpha1.Cluster)
+func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+	cr, ok := mg.(*v1alpha1.ClusterInstance)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotK8sCluster)
 	}
@@ -146,17 +146,17 @@ func (c *externalK8sCluster) Observe(ctx context.Context, mg resource.Managed) (
 	current := cr.Spec.ForProvider.DeepCopy()
 	cluster.LateInitializer(&cr.Spec.ForProvider, &observed)
 
+	// Set Ready condition based on State
 	cr.Status.AtProvider.ClusterID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = *observed.Metadata.State
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
-	// Set Ready condition based on State
 	switch cr.Status.AtProvider.State {
-	case k8s.ACTIVE:
+	case k8s.AVAILABLE, k8s.ACTIVE:
 		cr.SetConditions(xpv1.Available())
-	case k8s.DEPLOYING, k8s.BUSY, k8s.UPDATING:
-		cr.SetConditions(xpv1.Creating())
 	case k8s.DESTROYING, k8s.TERMINATED:
 		cr.SetConditions(xpv1.Deleting())
+	case k8s.BUSY, k8s.DEPLOYING, k8s.UPDATING:
+		cr.SetConditions(xpv1.Creating())
 	default:
 		cr.SetConditions(xpv1.Unavailable())
 	}
@@ -169,8 +169,8 @@ func (c *externalK8sCluster) Observe(ctx context.Context, mg resource.Managed) (
 	}, nil
 }
 
-func (c *externalK8sCluster) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.Cluster)
+func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+	cr, ok := mg.(*v1alpha1.ClusterInstance)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotK8sCluster)
 	}
@@ -190,9 +190,6 @@ func (c *externalK8sCluster) Create(ctx context.Context, mg resource.Managed) (m
 		retErr := fmt.Errorf("failed to create k8s cluster. error: %w", err)
 		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return creation, err
-	}
 
 	// Set External Name
 	cr.Status.AtProvider.ClusterID = *instance.Id
@@ -201,13 +198,16 @@ func (c *externalK8sCluster) Create(ctx context.Context, mg resource.Managed) (m
 	return creation, nil
 }
 
-func (c *externalK8sCluster) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.Cluster)
+func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
+	cr, ok := mg.(*v1alpha1.ClusterInstance)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotK8sCluster)
 	}
-	if cr.Status.AtProvider.State == k8s.BUSY || cr.Status.AtProvider.State == k8s.UPDATING || cr.Status.AtProvider.State == k8s.DEPLOYING {
+	if cr.Status.AtProvider.State == compute.UPDATING {
 		return managed.ExternalUpdate{}, nil
+	}
+	if cr.Status.AtProvider.State != compute.ACTIVE {
+		return managed.ExternalUpdate{}, fmt.Errorf("resource needs to be in ACTIVE state to update it, current state: %v", cr.Status.AtProvider.State)
 	}
 
 	instanceInput, err := cluster.GenerateUpdateK8sClusterInput(cr)
@@ -220,14 +220,14 @@ func (c *externalK8sCluster) Update(ctx context.Context, mg resource.Managed) (m
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalK8sCluster) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.Cluster)
+func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error {
+	cr, ok := mg.(*v1alpha1.ClusterInstance)
 	if !ok {
 		return errors.New(errNotK8sCluster)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
-	if cr.Status.AtProvider.State == k8s.DESTROYING || cr.Status.AtProvider.State == k8s.TERMINATED {
+	if cr.Status.AtProvider.State == compute.DESTROYING || cr.Status.AtProvider.State == k8s.TERMINATED {
 		return nil
 	}
 
@@ -235,9 +235,6 @@ func (c *externalK8sCluster) Delete(ctx context.Context, mg resource.Managed) er
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete k8s cluster. error: %w", err)
 		return compute.AddAPIResponseInfo(apiResponse, retErr)
-	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return err
 	}
 	return nil
 }

@@ -2,7 +2,7 @@
 # Required values for creating a K8s Cluster CR are:
 # - Name.
 apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
-kind: Cluster
+kind: ClusterInstance
 metadata:
   name: example
 spec:

@@ -52,7 +52,7 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 }
 
 // GenerateCreateK8sClusterInput returns sdkgo.KubernetesClusterForPost based on the CR spec
-func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClusterForPost, error) {
+func GenerateCreateK8sClusterInput(cr *v1alpha1.ClusterInstance) (*sdkgo.KubernetesClusterForPost, error) {
 	instanceCreateInput := sdkgo.KubernetesClusterForPost{
 		Properties: &sdkgo.KubernetesClusterPropertiesForPost{
 			Name: &cr.Spec.ForProvider.Name,
@@ -77,7 +77,7 @@ func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClust
 }
 
 // GenerateUpdateK8sClusterInput returns sdkgo.KubernetesClusterForPut based on the CR spec modifications
-func GenerateUpdateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClusterForPut, error) {
+func GenerateUpdateK8sClusterInput(cr *v1alpha1.ClusterInstance) (*sdkgo.KubernetesClusterForPut, error) {
 	instanceUpdateInput := sdkgo.KubernetesClusterForPut{
 		Properties: &sdkgo.KubernetesClusterPropertiesForPut{
 			Name: &cr.Spec.ForProvider.Name,
@@ -118,11 +118,11 @@ func LateInitializer(in *v1alpha1.ClusterParameters, sg *sdkgo.KubernetesCluster
 				}
 			}
 		}
-		if availableUpgradeVersionsOk, ok := propertiesOk.GetAvailableUpgradeVersionsOk(); ok && availableUpgradeVersionsOk != nil {
-			if utils.IsEmptyValue(reflect.ValueOf(in.AvailableUpgradeVersions)) {
-				in.AvailableUpgradeVersions = *availableUpgradeVersionsOk
-			}
-		}
+		// if availableUpgradeVersionsOk, ok := propertiesOk.GetAvailableUpgradeVersionsOk(); ok && availableUpgradeVersionsOk != nil {
+		//	if utils.IsEmptyValue(reflect.ValueOf(in.AvailableUpgradeVersions)) {
+		//		in.AvailableUpgradeVersions = *availableUpgradeVersionsOk
+		//	}
+		// }
 		if viableNodePoolVersionsOk, ok := propertiesOk.GetViableNodePoolVersionsOk(); ok && viableNodePoolVersionsOk != nil {
 			if utils.IsEmptyValue(reflect.ValueOf(in.ViableNodePoolVersions)) {
 				in.ViableNodePoolVersions = *viableNodePoolVersionsOk
@@ -137,7 +137,7 @@ func LateInitializer(in *v1alpha1.ClusterParameters, sg *sdkgo.KubernetesCluster
 }
 
 // IsK8sClusterUpToDate returns true if the K8sCluster is up-to-date or false if it does not
-func IsK8sClusterUpToDate(cr *v1alpha1.Cluster, cluster sdkgo.KubernetesCluster) bool { // nolint:gocyclo
+func IsK8sClusterUpToDate(cr *v1alpha1.ClusterInstance, cluster sdkgo.KubernetesCluster) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && cluster.Properties == nil:
 		return true
@@ -149,16 +149,16 @@ func IsK8sClusterUpToDate(cr *v1alpha1.Cluster, cluster sdkgo.KubernetesCluster)
 		return true
 	case cluster.Properties.Name != nil && *cluster.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
-	// case cluster.Properties.Public != nil && *cluster.Properties.Public != cr.Spec.ForProvider.Public:
-	//	return false
-	// case cluster.Properties.K8sVersion != nil && *cluster.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
-	//	return false
-	// case cluster.Properties.ApiSubnetAllowList != nil && !utils.IsEqStringSlices(*cluster.Properties.ApiSubnetAllowList, cr.Spec.ForProvider.APISubnetAllowList):
-	//	return false
-	// case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.Time != nil && *cluster.Properties.MaintenanceWindow.Time != cr.Spec.ForProvider.MaintenanceWindow.Time:
-	//	return false
-	// case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.DayOfTheWeek != nil && *cluster.Properties.MaintenanceWindow.DayOfTheWeek != cr.Spec.ForProvider.MaintenanceWindow.DayOfTheWeek:
-	//	return false
+	case cluster.Properties.Public != nil && *cluster.Properties.Public != cr.Spec.ForProvider.Public:
+		return false
+	case cluster.Properties.K8sVersion != nil && *cluster.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
+		return false
+	case cluster.Properties.ApiSubnetAllowList != nil && !utils.IsEqStringSlices(*cluster.Properties.ApiSubnetAllowList, cr.Spec.ForProvider.APISubnetAllowList):
+		return false
+	case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.Time != nil && *cluster.Properties.MaintenanceWindow.Time != cr.Spec.ForProvider.MaintenanceWindow.Time:
+		return false
+	case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.DayOfTheWeek != nil && *cluster.Properties.MaintenanceWindow.DayOfTheWeek != cr.Spec.ForProvider.MaintenanceWindow.DayOfTheWeek:
+		return false
 	default:
 		return true
 	}
