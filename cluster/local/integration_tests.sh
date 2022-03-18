@@ -6,6 +6,7 @@ source ./cluster/local/print.sh
 # add integration tests for resources
 source ./cluster/local/integration_tests_provider.sh
 source ./cluster/local/integration_tests_compute.sh
+source ./cluster/local/integration_tests_dbaas_postgres.sh
 
 # ------------------------------
 projectdir="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
@@ -19,6 +20,16 @@ REGISTRY=${REGISTRY:-ghcr.io}
 ORG_NAME=${ORG_NAME:-ionos-cloud}
 BUILD_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}"
 CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller"
+
+# ------------------------------
+# You can select which tests to run.
+# Pay attention to the default values that are set!
+# To run specific tests, for example for dbaas resources,
+# use: make e2e TEST_COMPUTE=false TEST_DBAAS=true
+TEST_COMPUTE=${TEST_COMPUTE:-true}
+# by default, do not test dbaas resources
+# since it takes a lot of time
+TEST_DBAAS=${TEST_DBAAS:-false}
 
 version_tag="$(cat ${projectdir}/_output/version)"
 # tag as latest version to load into kind cluster
@@ -137,34 +148,49 @@ echo_step "--- INTEGRATION TESTS ---"
 echo_step "--- install Crossplane Provider IONOSCLOUD ---"
 install_provider
 
-# run Compute Resources Tests
-echo_step "--- ipblock tests ---"
-ipblock_tests
-echo_step "--- datacenter tests ---"
-datacenter_tests
-echo_step "--- lan tests ---"
-lan_tests
-echo_step "--- volume tests ---"
-volume_tests
-echo_step "--- server tests ---"
-server_tests
-echo_step "--- nic tests ---"
-nic_tests
+if [ "$TEST_COMPUTE" = true ]; then
+  echo_step "--- ipblock tests ---"
+  ipblock_tests
+  echo_step "--- datacenter tests ---"
+  datacenter_tests
+  echo_step "--- lan tests ---"
+  lan_tests
+  echo_step "--- volume tests ---"
+  volume_tests
+  echo_step "--- server tests ---"
+  server_tests
+  echo_step "--- nic tests ---"
+  nic_tests
+fi
 
-echo_step "--- cleaning up ---"
-# uninstalling Compute Resources
-echo_step "--- cleanup nic tests ---"
-nic_tests_cleanup
-echo_step "--- cleanup lan tests ---"
-lan_tests_cleanup
-echo_step "--- cleanup volume tests ---"
-volume_tests_cleanup
-echo_step "--- cleanup server tests ---"
-server_tests_cleanup
-echo_step "--- cleanup datacenter tests ---"
-datacenter_tests_cleanup
-echo_step "--- cleanup ipblock tests ---"
-ipblock_tests_cleanup
+if [ "$TEST_DBAAS" = true ]; then
+  echo_step "--- dbaas postgres cluster tests ---"
+  dbaas_postgres_cluster_tests
+fi
+
+echo_step "-------------------"
+echo_step "--- CLEANING UP ---"
+echo_step "-------------------"
+
+if [ "$TEST_COMPUTE" = true ]; then
+  echo_step "--- cleanup nic tests ---"
+  nic_tests_cleanup
+  echo_step "--- cleanup lan tests ---"
+  lan_tests_cleanup
+  echo_step "--- cleanup volume tests ---"
+  volume_tests_cleanup
+  echo_step "--- cleanup server tests ---"
+  server_tests_cleanup
+  echo_step "--- cleanup datacenter tests ---"
+  datacenter_tests_cleanup
+  echo_step "--- cleanup ipblock tests ---"
+  ipblock_tests_cleanup
+fi
+
+if [ "$TEST_DBAAS" = true ]; then
+  echo_step "--- dbaas postgres cluster tests ---"
+  dbaas_postgres_cluster_tests_cleanup
+fi
 
 # uninstalling Crossplane Provider IONOS Cloud
 echo_step "--- uninstalling ${PROJECT_NAME} ---"
