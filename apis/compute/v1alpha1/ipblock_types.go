@@ -40,6 +40,7 @@ type IPBlockParameters struct {
 	Location string `json:"location"`
 	// The size of the IP block.
 	//
+	// +immutable
 	// +kubebuilder:validation:Required
 	Size int32 `json:"size"`
 }

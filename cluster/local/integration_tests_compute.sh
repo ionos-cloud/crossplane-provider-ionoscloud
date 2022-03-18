@@ -45,7 +45,7 @@ metadata:
 spec:
   forProvider:
     name: exampleIpBlockUpdate
-    size: 3
+    size: 2
     location: us/las
   providerConfigRef:
     name: example
@@ -72,7 +72,7 @@ metadata:
 spec:
   forProvider:
     name: exampleIpBlockUpdate
-    size: 3
+    size: 2
     location: us/las
   providerConfigRef:
     name: example

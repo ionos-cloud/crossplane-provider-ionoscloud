@@ -69,7 +69,6 @@ func GenerateCreateIPBlockInput(cr *v1alpha1.IPBlock) (*sdkgo.IpBlock, error) {
 func GenerateUpdateIPBlockInput(cr *v1alpha1.IPBlock) (*sdkgo.IpBlockProperties, error) {
 	instanceUpdateInput := sdkgo.IpBlockProperties{
 		Name: &cr.Spec.ForProvider.Name,
-		Size: &cr.Spec.ForProvider.Size,
 	}
 	return &instanceUpdateInput, nil
 }
