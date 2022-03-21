@@ -112,6 +112,22 @@ make e2e
 
 If the images have a specific version, other than `latest`, this can be set via `make e2e VERSION=v0.x.x`.
 
+## Debug Mode
+
+### Provider Logs
+
+The Crossplane Provider IONOS Cloud has support for `--debug` flag. You can create
+a [ControllerConfig](examples/provider/debug-config.yaml) and reference it from
+the [Provider](examples/provider/install-provider.yaml).
+
+In order to see logs of the Crossplane Provider IONOS Cloud controller's pod, use:
+
+```bash
+kubectl -n crossplane-system logs <name-of-ionoscloud-provider-pod>
+```
+
+More details [here](https://negz.github.io/crossplane.github.io/docs/v1.4/reference/troubleshoot.html#provider-logs).
+
 ## Releases
 
 Releases can be made on Crossplane Provider IONOS Cloud via tags or manual action of the CD workflow. The CD workflow

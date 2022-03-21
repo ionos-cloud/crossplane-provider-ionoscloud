@@ -9,6 +9,8 @@
       values;
     - Added references (using [crossplane-tools](https://github.com/crossplane/crossplane-tools)) on CRDs to be able to
       reference a resource dependency by name.
+    - Debug Mode: see [Provider Logs](README.md#debug-mode)
+      using [ControllerConfig](examples/provider/debug-config.yaml)
 - **Enhancements**:
     - Existing CRDs updated:
         - _DBaaS Postgres Cluster_ with Datacenter and LAN references.
