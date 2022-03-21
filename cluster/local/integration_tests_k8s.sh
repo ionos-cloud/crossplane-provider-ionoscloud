@@ -67,7 +67,7 @@ function k8s_cluster_tests_cleanup() {
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
-kind: IPBlock
+kind: Cluster
 metadata:
   name: examplek8s
 spec:
