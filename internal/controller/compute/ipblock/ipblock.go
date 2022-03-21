@@ -142,7 +142,7 @@ func (c *externalIPBlock) Observe(ctx context.Context, mg resource.Managed) (man
 		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 	current := cr.Spec.ForProvider.DeepCopy()
-	ipblock.LateInitializer(&cr.Spec.ForProvider, &observed)
+	ipblock.LateStatusInitializer(&cr.Status.AtProvider, &observed)
 
 	cr.Status.AtProvider.IPBlockID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = *observed.Metadata.State
