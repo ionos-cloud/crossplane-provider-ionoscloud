@@ -218,6 +218,7 @@ func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (mana
 	if _, _, err = c.service.UpdateK8sCluster(ctx, cr.Status.AtProvider.ClusterID, *instanceInput); err != nil {
 		return managed.ExternalUpdate{}, fmt.Errorf("failed to update k8s cluster. error: %w", err)
 	}
+	cr.Status.AtProvider.State = compute.UPDATING
 	return managed.ExternalUpdate{}, nil
 }
 
