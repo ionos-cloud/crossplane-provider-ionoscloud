@@ -28,7 +28,7 @@ spec:
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
       name: IPBLOCK ID
       type: string
-    - jsonPath: .spec.forProvider.ips
+    - jsonPath: .status.atProvider.ips
       name: IPS
       type: string
     - jsonPath: .spec.forProvider.name
@@ -78,12 +78,6 @@ spec:
                 description: 'IPBlockParameters are the observable fields of a IPBlock.
                   Required values when creating an IPBlock: Location, Size.'
                 properties:
-                  ips:
-                    description: Collection of IPs, associated with the IP Block.
-                      Read-only parameter
-                    items:
-                      type: string
-                    type: array
                   location:
                     description: Location of that IP block. Property cannot be modified
                       after it is created (disallowed in update requests).
@@ -158,6 +152,10 @@ spec:
                 properties:
                   ipBlockId:
                     type: string
+                  ips:
+                    items:
+                      type: string
+                    type: array
                   state:
                     type: string
                 type: object
