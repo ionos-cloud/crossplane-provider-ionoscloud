@@ -31,7 +31,7 @@ TEST_COMPUTE=${TEST_COMPUTE:-true}
 # by default, do not test the following resources
 # since it takes a lot of time
 TEST_DBAAS=${TEST_DBAAS:-false}
-TEST_K8S=${TEST_K8S:-true}
+TEST_K8S=${TEST_K8S:-false}
 
 version_tag="$(cat ${projectdir}/_output/version)"
 # tag as latest version to load into kind cluster
