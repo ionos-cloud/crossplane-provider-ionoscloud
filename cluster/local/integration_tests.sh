@@ -7,6 +7,7 @@ source ./cluster/local/print.sh
 source ./cluster/local/integration_tests_provider.sh
 source ./cluster/local/integration_tests_compute.sh
 source ./cluster/local/integration_tests_dbaas_postgres.sh
+source ./cluster/local/integration_tests_k8s.sh
 
 # ------------------------------
 projectdir="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
@@ -27,9 +28,10 @@ CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller"
 # To run specific tests, for example for dbaas resources,
 # use: make e2e TEST_COMPUTE=false TEST_DBAAS=true
 TEST_COMPUTE=${TEST_COMPUTE:-true}
-# by default, do not test dbaas resources
+# by default, do not test the following resources
 # since it takes a lot of time
 TEST_DBAAS=${TEST_DBAAS:-false}
+TEST_K8S=${TEST_K8S:-false}
 
 version_tag="$(cat ${projectdir}/_output/version)"
 # tag as latest version to load into kind cluster
@@ -168,6 +170,11 @@ if [ "$TEST_DBAAS" = true ]; then
   dbaas_postgres_cluster_tests
 fi
 
+if [ "$TEST_K8S" = true ]; then
+  echo_step "--- k8s cluster tests ---"
+  k8s_cluster_tests
+fi
+
 echo_step "-------------------"
 echo_step "--- CLEANING UP ---"
 echo_step "-------------------"
@@ -190,6 +197,11 @@ fi
 if [ "$TEST_DBAAS" = true ]; then
   echo_step "--- dbaas postgres cluster tests ---"
   dbaas_postgres_cluster_tests_cleanup
+fi
+
+if [ "$TEST_K8S" = true ]; then
+  echo_step "--- k8s cluster tests ---"
+  k8s_cluster_tests_cleanup
 fi
 
 # uninstalling Crossplane Provider IONOS Cloud

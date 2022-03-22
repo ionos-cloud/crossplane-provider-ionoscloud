@@ -3,7 +3,7 @@
 set -e
 
 ## The purpose of this script is to have the tests for
-## the compute resources
+## the compute-engine resources
 ## Please name the functions the following format:
 ## <resource_name>_tests() and <resource_name>_tests_cleanup().
 

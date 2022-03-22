@@ -253,7 +253,7 @@ kubectl delete -f examples/ionoscloud/dbaas/postgres-cluster.yaml
 Before running the following commands, you can update the examples with the desired specifications. Keep in mind that
 the Custom Resources(CRs) will manage corresponding external resources on IONOS Cloud.
 
-Check the following tables for available commands:
+Check the following tables for available commands for Compute Engine Resources:
 
 <details >
 <summary title="Click to toggle">See <b>CREATE/UPDATE/DELETE</b> Custom Resources Commands </summary>
@@ -296,6 +296,36 @@ _Notes_:
    , [ionosctl](https://github.com/ionos-cloud/ionosctl)), the `crossplane-provider-ionoscloud` controller will recreate
    the resource automatically.
 3. JSON Output on `kubectl get` commands can be useful in checking status messages.
+
+### Kubernetes Resources
+
+Check the following tables for available commands for Kubernetes Resources:
+
+<details >
+<summary title="Click to toggle">See <b>CREATE/UPDATE/DELETE</b> Custom Resources Commands </summary>
+
+| CUSTOM RESOURCE | CREATE/UPDATE | DELETE |
+| --- | --- | --- |
+| K8s Cluster | <pre lang="bash">kubectl apply -f examples/ionoscloud/k8s/k8s-cluster.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/k8s/k8s-cluster.yaml</pre> | 
+
+</details>
+
+<details >
+<summary title="Click to toggle">See <b>GET</b> Custom Resources Commands </summary>
+
+| CUSTOM RESOURCE | GET | GET MORE DETAILS | JSON OUTPUT |
+| --- | --- | --- | --- | 
+| K8s Cluster | <pre lang="bash">kubectl get clusters.k8s.ionoscloud.crossplane.io</pre> | <pre lang="bash">kubectl get clusters.k8s.ionoscloud.crossplane.io -o wide</pre> | <pre lang="bash">kubectl get clusters.k8s.ionoscloud.crossplane.io -o json</pre> | 
+
+</details>
+
+The configuration file from the Kubernetes Cluster provisioned can be saved into a secret, as described in
+the `writeConnectionSecretToRef` from [example](ionoscloud/k8s/k8s-cluster.yaml). Use the following command to get a
+valid kubeconfig file:
+
+```bash
+kubectl get secret kubeconfig -o json | jq '.data.kubeconfig | @base64d' -r | jq . > /tmp/kubeconfig
+```
 
 ## Cleanup
 

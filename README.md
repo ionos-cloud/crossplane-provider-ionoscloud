@@ -74,6 +74,18 @@ see: [DBaaS Postgres](examples/example.md#dbaas-postgres-resources).
 For more information and commands on how to manage Compute Engine resources on IONOS Cloud using Crossplane Provider,
 see: [Compute Engine Resources](examples/example.md#compute-engine-resources).
 
+<details >
+<summary title="Click to toggle">See <b>Kubernetes</b> Resources </summary>
+
+| RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION |
+| --- | --- |
+| K8s Clusters | `clusters.k8s.ionoscloud.crossplane.io` |
+
+</details>
+
+For more information and commands on how to manage Kubernetes resources on IONOS Cloud using Crossplane Provider,
+see: [Kubernetes Resources](examples/example.md#kubernetes-resources).
+
 ### References
 
 References are used in order to reference other resources on which the new created resources are dependent. Using

@@ -35,6 +35,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/volume"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/config"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgres"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/k8s/k8scluster"
 )
 
 // Setup creates all IONOS Cloud controllers with the supplied logger
@@ -50,6 +51,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter, poll ti
 		firewallrule.Setup,
 		ipblock.Setup,
 		ipfailover.Setup,
+		k8scluster.Setup,
 		postgres.Setup,
 	} {
 		if err := setup(mgr, l, wl, poll); err != nil {
