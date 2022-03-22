@@ -68,7 +68,7 @@ func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClust
 		instanceCreateInput.Properties.SetApiSubnetAllowList(cr.Spec.ForProvider.APISubnetAllowList)
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(s3Buckets(cr.Spec.ForProvider.S3Buckets))) {
-		instanceCreateInput.Properties.SetS3Buckets(s3Buckets(cr.Spec.ForProvider.S3Buckets))
+		instanceCreateInput.Properties.SetS3Buckets(*s3Buckets(cr.Spec.ForProvider.S3Buckets))
 	}
 	if window := clusterMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
 		instanceCreateInput.Properties.SetMaintenanceWindow(*window)
@@ -80,17 +80,13 @@ func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClust
 func GenerateUpdateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClusterForPut, error) {
 	instanceUpdateInput := sdkgo.KubernetesClusterForPut{
 		Properties: &sdkgo.KubernetesClusterPropertiesForPut{
-			Name: &cr.Spec.ForProvider.Name,
+			Name:               &cr.Spec.ForProvider.Name,
+			ApiSubnetAllowList: &cr.Spec.ForProvider.APISubnetAllowList,
+			S3Buckets:          s3Buckets(cr.Spec.ForProvider.S3Buckets),
 		},
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.K8sVersion)) {
 		instanceUpdateInput.Properties.SetK8sVersion(cr.Spec.ForProvider.K8sVersion)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.APISubnetAllowList)) {
-		instanceUpdateInput.Properties.SetApiSubnetAllowList(cr.Spec.ForProvider.APISubnetAllowList)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(s3Buckets(cr.Spec.ForProvider.S3Buckets))) {
-		instanceUpdateInput.Properties.SetS3Buckets(s3Buckets(cr.Spec.ForProvider.S3Buckets))
 	}
 	if window := clusterMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
 		instanceUpdateInput.Properties.SetMaintenanceWindow(*window)
@@ -121,6 +117,11 @@ func LateInitializer(in *v1alpha1.ClusterParameters, sg *sdkgo.KubernetesCluster
 		if versionOk, ok := propertiesOk.GetK8sVersionOk(); ok && versionOk != nil {
 			if utils.IsEmptyValue(reflect.ValueOf(in.K8sVersion)) {
 				in.K8sVersion = *versionOk
+			}
+		}
+		if apiSubnetAllowListOk, ok := propertiesOk.GetApiSubnetAllowListOk(); ok && apiSubnetAllowListOk != nil {
+			if !utils.IsEmptyValue(reflect.ValueOf(in.APISubnetAllowList)) && utils.ContainsStringSlices(in.APISubnetAllowList, *apiSubnetAllowListOk) {
+				in.APISubnetAllowList = *apiSubnetAllowListOk
 			}
 		}
 	}
@@ -160,7 +161,7 @@ func IsK8sClusterUpToDate(cr *v1alpha1.Cluster, cluster sdkgo.KubernetesCluster)
 		return false
 	case cluster.Properties.K8sVersion != nil && *cluster.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
 		return false
-	case cluster.Properties.ApiSubnetAllowList != nil && !utils.IsEqStringSlices(*cluster.Properties.ApiSubnetAllowList, cr.Spec.ForProvider.APISubnetAllowList):
+	case cluster.Properties.ApiSubnetAllowList != nil && !utils.ContainsStringSlices(*cluster.Properties.ApiSubnetAllowList, cr.Spec.ForProvider.APISubnetAllowList):
 		return false
 	case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.Time != nil && *cluster.Properties.MaintenanceWindow.Time != cr.Spec.ForProvider.MaintenanceWindow.Time:
 		return false
@@ -181,7 +182,7 @@ func clusterMaintenanceWindow(window v1alpha1.MaintenanceWindow) *sdkgo.Kubernet
 	return nil
 }
 
-func s3Buckets(s3BucketSpecs []v1alpha1.S3Bucket) []sdkgo.S3Bucket {
+func s3Buckets(s3BucketSpecs []v1alpha1.S3Bucket) *[]sdkgo.S3Bucket {
 	buckets := make([]sdkgo.S3Bucket, 0)
 	for _, s3BucketSpec := range s3BucketSpecs {
 		s3BucketName := s3BucketSpec.Name
@@ -191,5 +192,5 @@ func s3Buckets(s3BucketSpecs []v1alpha1.S3Bucket) []sdkgo.S3Bucket {
 			})
 		}
 	}
-	return buckets
+	return &buckets
 }

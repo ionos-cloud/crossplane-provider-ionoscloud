@@ -2,6 +2,7 @@ package utils
 
 import (
 	"reflect"
+	"strings"
 )
 
 // DepthQueryParam is used in GET requests in Cloud API
@@ -42,10 +43,34 @@ func IsEqStringSlices(first, second []string) bool {
 	return true
 }
 
-// IsStringInSlice will return true if the slice contains string
+// IsStringInSlice will return true if the slice contains the specific string
 func IsStringInSlice(input []string, specific string) bool {
 	for _, element := range input {
 		if element == specific {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsStringSlices will return true if the second slice string
+// contains string of the first slice string.
+func ContainsStringSlices(first, second []string) bool {
+	if len(first) != len(second) {
+		return false
+	}
+	for _, v := range first {
+		if !ContainsStringInSlice(second, v) {
+			return false
+		}
+	}
+	return true
+}
+
+// ContainsStringInSlice will return true if the slice contains string
+func ContainsStringInSlice(input []string, specific string) bool {
+	for _, element := range input {
+		if strings.Contains(element, specific) {
 			return true
 		}
 	}

@@ -7,7 +7,7 @@ metadata:
   name: example
 spec:
   forProvider:
-    name: exampleK8sClusterr
+    name: exampleK8sCluster
     public: true
   #    k8sVersion: 1.22.6
   #    apiSubnetAllowList:
