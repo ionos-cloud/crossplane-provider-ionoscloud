@@ -2,7 +2,9 @@ name: CI [Daily]
 
 on:
   schedule:
-    - cron: '0 0 * * 1-5'
+    # The job will run at 7am UTC
+    # every week day
+    - cron: '0 7 * * 1-5'
   workflow_dispatch: { }
 
 env:
