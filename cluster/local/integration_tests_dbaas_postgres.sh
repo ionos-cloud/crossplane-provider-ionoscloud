@@ -72,8 +72,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for dbaas postgres cluster CR to be ready & synced"
-  kubectl wait --for=condition=ready postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=600s
-  kubectl wait --for=condition=synced postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=600s
+  kubectl wait --for=condition=ready postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=900s
+  kubectl wait --for=condition=synced postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=900s
 
   echo_step "get dbaas postgres cluster CR"
   kubectl get postgresclusters.dbaas.ionoscloud.crossplane.io -o wide
