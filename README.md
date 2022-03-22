@@ -74,6 +74,18 @@ see: [DBaaS Postgres](examples/example.md#dbaas-postgres-resources).
 For more information and commands on how to manage Compute Engine resources on IONOS Cloud using Crossplane Provider,
 see: [Compute Engine Resources](examples/example.md#compute-engine-resources).
 
+<details >
+<summary title="Click to toggle">See <b>Kubernetes</b> Resources </summary>
+
+| RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION |
+| --- | --- |
+| K8s Clusters | `clusters.k8s.ionoscloud.crossplane.io` |
+
+</details>
+
+For more information and commands on how to manage Kubernetes resources on IONOS Cloud using Crossplane Provider,
+see: [Kubernetes Resources](examples/example.md#kubernetes-resources).
+
 ### References
 
 References are used in order to reference other resources on which the new created resources are dependent. Using
@@ -111,6 +123,22 @@ make e2e
 ```
 
 If the images have a specific version, other than `latest`, this can be set via `make e2e VERSION=v0.x.x`.
+
+## Debug Mode
+
+### Provider Logs
+
+The Crossplane Provider IONOS Cloud has support for `--debug` flag. You can create
+a [ControllerConfig](examples/provider/debug-config.yaml) and reference it from
+the [Provider](examples/provider/install-provider.yaml).
+
+In order to see logs of the Crossplane Provider IONOS Cloud controller's pod, use:
+
+```bash
+kubectl -n crossplane-system logs <name-of-ionoscloud-provider-pod>
+```
+
+More details [here](https://negz.github.io/crossplane.github.io/docs/v1.4/reference/troubleshoot.html#provider-logs).
 
 ## Releases
 

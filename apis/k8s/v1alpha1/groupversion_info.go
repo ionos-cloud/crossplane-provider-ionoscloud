@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 contains the v1alpha1 group DBaaS Postgres resources of the IONOS Cloud provider.
+// Package v1alpha1 contains the v1alpha1 group K8s resources of the IONOS Cloud provider.
 // +kubebuilder:object:generate=true
-// +groupName=dbaas.ionoscloud.crossplane.io
+// +groupName=k8s.ionoscloud.crossplane.io
 // +versionName=v1alpha1
 package v1alpha1
 
@@ -27,7 +27,7 @@ import (
 
 // Package type metadata.
 const (
-	Group   = "dbaas.ionoscloud.crossplane.io"
+	Group   = "k8s.ionoscloud.crossplane.io"
 	Version = "v1alpha1"
 )
 

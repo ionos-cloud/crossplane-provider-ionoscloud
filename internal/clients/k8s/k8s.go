@@ -1,0 +1,12 @@
+package k8s
+
+// States of K8s Resources
+const (
+	AVAILABLE  = "AVAILABLE"
+	BUSY       = "BUSY"
+	DEPLOYING  = "DEPLOYING"
+	ACTIVE     = "ACTIVE"
+	UPDATING   = "UPDATING"
+	DESTROYING = "DESTROYING"
+	TERMINATED = "TERMINATED"
+)

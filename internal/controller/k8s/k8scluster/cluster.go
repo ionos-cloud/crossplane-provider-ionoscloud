@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ipblock
+package k8scluster
 
 import (
 	"context"
@@ -37,35 +37,36 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s/k8scluster"
 )
 
 const (
-	errNotIPBlock   = "managed resource is not a IPBlock custom resource"
-	errTrackPCUsage = "cannot track ProviderConfig usage"
-	errGetPC        = "cannot get ProviderConfig"
-	errGetCreds     = "cannot get credentials"
+	errNotK8sCluster = "managed resource is not a K8s Cluster custom resource"
+	errTrackPCUsage  = "cannot track ProviderConfig usage"
+	errGetPC         = "cannot get ProviderConfig"
+	errGetCreds      = "cannot get credentials"
 
 	errNewClient = "cannot create new Service"
 )
 
-// Setup adds a controller that reconciles IPBlock managed resources.
+// Setup adds a controller that reconciles K8sCluster managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration) error {
-	name := managed.ControllerName(v1alpha1.IPBlockGroupKind)
+	name := managed.ControllerName(v1alpha1.ClusterGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
 			RateLimiter: ratelimiter.NewDefaultManagedRateLimiter(rl),
 		}).
-		For(&v1alpha1.IPBlock{}).
+		For(&v1alpha1.Cluster{}).
 		Complete(managed.NewReconciler(mgr,
-			resource.ManagedKind(v1alpha1.IPBlockGroupVersionKind),
-			managed.WithExternalConnecter(&connectorIPBlock{
+			resource.ManagedKind(v1alpha1.ClusterGroupVersionKind),
+			managed.WithExternalConnecter(&connectorCluster{
 				kube:  mgr.GetClient(),
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:   l}),
@@ -76,9 +77,9 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll ti
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 
-// A connectorIPBlock is expected to produce an ExternalClient when its Connect method
+// A connectorK8sCluster is expected to produce an ExternalClient when its Connect method
 // is called.
-type connectorIPBlock struct {
+type connectorCluster struct {
 	kube  client.Client
 	usage resource.Tracker
 	log   logging.Logger
@@ -89,10 +90,10 @@ type connectorIPBlock struct {
 // 2. Getting the managed resource's ProviderConfig.
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
-func (c *connectorIPBlock) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	_, ok := mg.(*v1alpha1.IPBlock)
+func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
+	_, ok := mg.(*v1alpha1.Cluster)
 	if !ok {
-		return nil, errors.New(errNotIPBlock)
+		return nil, errors.New(errNotK8sCluster)
 	}
 
 	if err := c.usage.Track(ctx, mg); err != nil {
@@ -114,135 +115,139 @@ func (c *connectorIPBlock) Connect(ctx context.Context, mg resource.Managed) (ma
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
-	return &externalIPBlock{service: &ipblock.APIClient{IonosServices: svc}, log: c.log}, nil
+	return &externalCluster{service: &k8scluster.APIClient{IonosServices: svc}, log: c.log}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
-// externalIPBlock resource to ensure it reflects the managed resource's desired state.
-type externalIPBlock struct {
-	// A 'client' used to connect to the externalIPBlock resource API. In practice this
+// externalCluster resource to ensure it reflects the managed resource's desired state.
+type externalCluster struct {
+	// A 'client' used to connect to the externalK8sCluster resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service ipblock.Client
+	service k8scluster.Client
 	log     logging.Logger
 }
 
-func (c *externalIPBlock) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*v1alpha1.IPBlock)
+func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+	var kubeconfig string
+
+	cr, ok := mg.(*v1alpha1.Cluster)
 	if !ok {
-		return managed.ExternalObservation{}, errors.New(errNotIPBlock)
+		return managed.ExternalObservation{}, errors.New(errNotK8sCluster)
 	}
 
-	// External Name of the CR is the IPBlock ID
+	// External Name of the CR is the K8sCluster ID
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
-	observed, apiResponse, err := c.service.GetIPBlock(ctx, meta.GetExternalName(cr))
+	observed, apiResponse, err := c.service.GetK8sCluster(ctx, meta.GetExternalName(cr))
 	if err != nil {
-		retErr := fmt.Errorf("failed to get ipBlock by id. error: %w", err)
+		retErr := fmt.Errorf("failed to get k8s cluster by id. error: %w", err)
 		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
-	current := cr.Spec.ForProvider.DeepCopy()
-	ipblock.LateStatusInitializer(&cr.Status.AtProvider, &observed)
 
-	cr.Status.AtProvider.IPBlockID = meta.GetExternalName(cr)
+	current := cr.Spec.ForProvider.DeepCopy()
+	k8scluster.LateInitializer(&cr.Spec.ForProvider, &observed)
+	k8scluster.LateStatusInitializer(&cr.Status.AtProvider, &observed)
+
+	// Set Ready condition based on State
+	cr.Status.AtProvider.ClusterID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = *observed.Metadata.State
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
-	// Set Ready condition based on State
 	switch cr.Status.AtProvider.State {
-	case compute.AVAILABLE, compute.ACTIVE:
+	case k8s.AVAILABLE, k8s.ACTIVE:
 		cr.SetConditions(xpv1.Available())
-	case compute.BUSY, compute.UPDATING:
-		cr.SetConditions(xpv1.Creating())
-	case compute.DESTROYING:
+	case k8s.DESTROYING, k8s.TERMINATED:
 		cr.SetConditions(xpv1.Deleting())
+	case k8s.BUSY, k8s.DEPLOYING, k8s.UPDATING:
+		cr.SetConditions(xpv1.Creating())
 	default:
 		cr.SetConditions(xpv1.Unavailable())
 	}
 
+	if kubeconfig, _, err = c.service.GetKubeConfig(ctx, cr.Status.AtProvider.ClusterID); err != nil {
+		c.log.Info(fmt.Sprintf("failed to get connection details. error: %v", err))
+	}
+
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        ipblock.IsIPBlockUpToDate(cr, observed),
-		ConnectionDetails:       managed.ConnectionDetails{},
+		ResourceUpToDate:        k8scluster.IsK8sClusterUpToDate(cr, observed),
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		ConnectionDetails: managed.ConnectionDetails{
+			"kubeconfig": []byte(kubeconfig),
+		},
 	}, nil
 }
 
-func (c *externalIPBlock) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.IPBlock)
+func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+	cr, ok := mg.(*v1alpha1.Cluster)
 	if !ok {
-		return managed.ExternalCreation{}, errors.New(errNotIPBlock)
+		return managed.ExternalCreation{}, errors.New(errNotK8sCluster)
 	}
 
 	cr.SetConditions(xpv1.Creating())
-	if cr.Status.AtProvider.State == compute.BUSY {
+	if cr.Status.AtProvider.State == k8s.DEPLOYING {
 		return managed.ExternalCreation{}, nil
 	}
-	instanceInput, err := ipblock.GenerateCreateIPBlockInput(cr)
+	instanceInput, err := k8scluster.GenerateCreateK8sClusterInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
 
-	instance, apiResponse, err := c.service.CreateIPBlock(ctx, *instanceInput)
+	instance, apiResponse, err := c.service.CreateK8sCluster(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
-		retErr := fmt.Errorf("failed to create ipBlock. error: %w", err)
+		retErr := fmt.Errorf("failed to create k8s cluster. error: %w", err)
 		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
-	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return creation, err
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.IPBlockID = *instance.Id
+	cr.Status.AtProvider.ClusterID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
 	creation.ExternalNameAssigned = true
 	return creation, nil
 }
 
-func (c *externalIPBlock) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.IPBlock)
+func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
+	cr, ok := mg.(*v1alpha1.Cluster)
 	if !ok {
-		return managed.ExternalUpdate{}, errors.New(errNotIPBlock)
+		return managed.ExternalUpdate{}, errors.New(errNotK8sCluster)
 	}
-	if cr.Status.AtProvider.State == compute.BUSY || cr.Status.AtProvider.State == compute.UPDATING {
+	if cr.Status.AtProvider.State == compute.UPDATING {
 		return managed.ExternalUpdate{}, nil
 	}
+	if cr.Status.AtProvider.State != compute.ACTIVE {
+		return managed.ExternalUpdate{}, fmt.Errorf("resource needs to be in ACTIVE state to update it, current state: %v", cr.Status.AtProvider.State)
+	}
 
-	ipBlockID := cr.Status.AtProvider.IPBlockID
-	instanceInput, err := ipblock.GenerateUpdateIPBlockInput(cr)
+	instanceInput, err := k8scluster.GenerateUpdateK8sClusterInput(cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
-
-	_, apiResponse, err := c.service.UpdateIPBlock(ctx, ipBlockID, *instanceInput)
-	if err != nil {
-		retErr := fmt.Errorf("failed to update ipBlock. error: %w", err)
-		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
+	if _, _, err = c.service.UpdateK8sCluster(ctx, cr.Status.AtProvider.ClusterID, *instanceInput); err != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("failed to update k8s cluster. error: %w", err)
 	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return managed.ExternalUpdate{}, err
-	}
+	cr.Status.AtProvider.State = compute.UPDATING
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalIPBlock) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.IPBlock)
+func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error {
+	cr, ok := mg.(*v1alpha1.Cluster)
 	if !ok {
-		return errors.New(errNotIPBlock)
+		return errors.New(errNotK8sCluster)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
-	if cr.Status.AtProvider.State == compute.DESTROYING {
+	if cr.Status.AtProvider.State == compute.DESTROYING || cr.Status.AtProvider.State == k8s.TERMINATED {
 		return nil
 	}
-
-	apiResponse, err := c.service.DeleteIPBlock(ctx, cr.Status.AtProvider.IPBlockID)
-	if err != nil {
-		retErr := fmt.Errorf("failed to delete ipBlock. error: %w", err)
-		return compute.AddAPIResponseInfo(apiResponse, retErr)
+	if cr.Status.AtProvider.State != compute.ACTIVE {
+		return fmt.Errorf("resource needs to be in ACTIVE state to delete it, current state: %v", cr.Status.AtProvider.State)
 	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return err
+
+	apiResponse, err := c.service.DeleteK8sCluster(ctx, cr.Status.AtProvider.ClusterID)
+	if err != nil {
+		retErr := fmt.Errorf("failed to delete k8s cluster. error: %w", err)
+		return compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	return nil
 }
