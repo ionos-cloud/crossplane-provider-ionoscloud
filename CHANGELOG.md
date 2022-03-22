@@ -14,6 +14,10 @@
         - _DBaaS Postgres Cluster_ with Datacenter and LAN references.
     - Updated example [GUIDE](examples/example.md).
     - Removed debug mode from controller image. Status messages are displayed with `kubectl get <resource> -o json`.
+- **Breaking Changes**:
+    - Renamed DBaaS Postgres Cluster CR from `Cluster` to `PostgresCluster`
+    - Renamed DBaaS Postgres Cluster CR API Version from `dbaas.postgres.ionoscloud.crossplane.io`
+      to `dbaas.ionoscloud.crossplane.io`
 
 ## [0.1.0-alpha.1] (February 2022)
 

@@ -1,4 +1,4 @@
-package postgres
+package postgrescluster
 
 import (
 	"context"
@@ -48,7 +48,7 @@ func (cp *ClusterAPIClient) UpdateCluster(ctx context.Context, clusterID string,
 }
 
 // GenerateCreateClusterInput returns CreateClusterRequest based on the CR spec
-func GenerateCreateClusterInput(cr *v1alpha1.Cluster) (*ionoscloud.CreateClusterRequest, error) {
+func GenerateCreateClusterInput(cr *v1alpha1.PostgresCluster) (*ionoscloud.CreateClusterRequest, error) {
 	instanceCreateInput := ionoscloud.CreateClusterRequest{
 		Properties: &ionoscloud.CreateClusterProperties{
 			PostgresVersion:     &cr.Spec.ForProvider.PostgresVersion,
@@ -78,7 +78,7 @@ func GenerateCreateClusterInput(cr *v1alpha1.Cluster) (*ionoscloud.CreateCluster
 }
 
 // GenerateUpdateClusterInput returns PatchClusterRequest based on the CR spec modifications
-func GenerateUpdateClusterInput(cr *v1alpha1.Cluster) (*ionoscloud.PatchClusterRequest, error) {
+func GenerateUpdateClusterInput(cr *v1alpha1.PostgresCluster) (*ionoscloud.PatchClusterRequest, error) {
 	instanceUpdateInput := ionoscloud.PatchClusterRequest{
 		Properties: &ionoscloud.PatchClusterProperties{
 			PostgresVersion: &cr.Spec.ForProvider.PostgresVersion,
@@ -120,7 +120,7 @@ func LateInitializer(in *v1alpha1.ClusterParameters, sg *ionoscloud.ClusterRespo
 }
 
 // IsClusterUpToDate returns true if the cluster is up-to-date or false if it does not
-func IsClusterUpToDate(cr *v1alpha1.Cluster, clusterResponse ionoscloud.ClusterResponse) bool { // nolint:gocyclo
+func IsClusterUpToDate(cr *v1alpha1.PostgresCluster, clusterResponse ionoscloud.ClusterResponse) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && clusterResponse.Properties == nil:
 		return true

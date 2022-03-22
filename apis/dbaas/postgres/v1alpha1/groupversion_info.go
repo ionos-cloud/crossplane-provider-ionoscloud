@@ -16,7 +16,7 @@ limitations under the License.
 
 // Package v1alpha1 contains the v1alpha1 group Sample resources of the Template provider.
 // +kubebuilder:object:generate=true
-// +groupName=dbaas.postgres.ionoscloud.crossplane.io
+// +groupName=dbaas.ionoscloud.crossplane.io
 // +versionName=v1alpha1
 package v1alpha1
 
@@ -27,7 +27,7 @@ import (
 
 // Package type metadata.
 const (
-	Group   = "dbaas.postgres.ionoscloud.crossplane.io"
+	Group   = "dbaas.ionoscloud.crossplane.io"
 	Version = "v1alpha1"
 )
 

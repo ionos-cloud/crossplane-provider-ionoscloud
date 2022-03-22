@@ -173,10 +173,10 @@ Datacenter) and also credentials for the database user.
 kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml
 ```
 
-Check if the cluster CR created is _synced_ and _ready_:
+Check if the Postgres Cluster CR created is _synced_ and _ready_:
 
 ```bash
-kubectl get clusters
+kubectl get postgresclusters
 ```
 
 Output:
@@ -189,7 +189,7 @@ example    True    True     9b25ecab-83fe-11ec-8d97-828542a828c7  AVAILABLE  93m
 For more details, use:
 
 ```bash
-kubectl get clusters -o wide
+kubectl get postgresclusters -o wide
 ```
 
 The external-name of the CR is the Cluster ID from IONOS Cloud. The cluster CR will be marked as ready when the cluster
@@ -226,7 +226,7 @@ The updates applied should be updated in the external resource in IONOS Cloud.
 3. **[DELETE]** If you want to delete the cluster CR created (named `example`), use the following command:
 
 ```bash
-kubectl delete cluster example
+kubectl delete postgrescluster example
 ```
 
 This should trigger the destroying of the DBaaS Postgres Cluster.

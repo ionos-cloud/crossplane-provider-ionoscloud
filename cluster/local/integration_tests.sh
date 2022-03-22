@@ -26,10 +26,10 @@ CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller"
 # Pay attention to the default values that are set!
 # To run specific tests, for example for dbaas resources,
 # use: make e2e TEST_COMPUTE=false TEST_DBAAS=true
-TEST_COMPUTE=${TEST_COMPUTE:-true}
+TEST_COMPUTE=${TEST_COMPUTE:-false}
 # by default, do not test dbaas resources
 # since it takes a lot of time
-TEST_DBAAS=${TEST_DBAAS:-false}
+TEST_DBAAS=${TEST_DBAAS:-true}
 
 version_tag="$(cat ${projectdir}/_output/version)"
 # tag as latest version to load into kind cluster

@@ -38,8 +38,8 @@ spec:
   providerConfigRef:
     name: example
 ---
-apiVersion: dbaas.postgres.ionoscloud.crossplane.io/v1alpha1
-kind: Cluster
+apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
+kind: PostgresCluster
 metadata:
   name: example
 spec:
@@ -72,17 +72,17 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for dbaas postgres cluster CR to be ready & synced"
-  kubectl wait --for=condition=ready clusters.dbaas.postgres.ionoscloud.crossplane.io/example --timeout=600s
-  kubectl wait --for=condition=synced clusters.dbaas.postgres.ionoscloud.crossplane.io/example --timeout=600s
+  kubectl wait --for=condition=ready postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=600s
+  kubectl wait --for=condition=synced postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=600s
 
   echo_step "get dbaas postgres cluster CR"
-  kubectl get clusters.dbaas.postgres.ionoscloud.crossplane.io -o wide
+  kubectl get postgresclusters.dbaas.ionoscloud.crossplane.io -o wide
 
   echo_step "update dbaas postgres cluster CR"
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
-apiVersion: dbaas.postgres.ionoscloud.crossplane.io/v1alpha1
-kind: Cluster
+apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
+kind: PostgresCluster
 metadata:
   name: example
 spec:
@@ -115,8 +115,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for dbaas postgres cluster CR to be ready & synced"
-  kubectl wait --for=condition=ready clusters.dbaas.postgres.ionoscloud.crossplane.io/example --timeout=300s
-  kubectl wait --for=condition=synced clusters.dbaas.postgres.ionoscloud.crossplane.io/example --timeout=300s
+  kubectl wait --for=condition=ready postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=300s
+  kubectl wait --for=condition=synced postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=300s
 }
 
 function dbaas_postgres_cluster_tests_cleanup() {
@@ -148,8 +148,8 @@ spec:
   providerConfigRef:
     name: example
 ---
-apiVersion: dbaas.postgres.ionoscloud.crossplane.io/v1alpha1
-kind: Cluster
+apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
+kind: PostgresCluster
 metadata:
   name: example
 spec:
@@ -183,5 +183,5 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
   echo_step "wait for deletion dbaas postgres cluster CR"
-  kubectl wait --for=delete clusters.dbaas.postgres.ionoscloud.crossplane.io/example --timeout=300s
+  kubectl wait --for=delete postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=300s
 }

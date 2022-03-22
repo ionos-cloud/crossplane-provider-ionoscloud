@@ -42,8 +42,8 @@ spec:
 # - DisplayName,
 # - Credentials,
 # - Synchronization Mode.
-apiVersion: dbaas.postgres.ionoscloud.crossplane.io/v1alpha1
-kind: Cluster
+apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
+kind: PostgresCluster
 metadata:
   name: example
 spec:

@@ -4,18 +4,18 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.6.2
   creationTimestamp: null
-  name: clusters.dbaas.postgres.ionoscloud.crossplane.io
+  name: postgresclusters.dbaas.ionoscloud.crossplane.io
 spec:
-  group: dbaas.postgres.ionoscloud.crossplane.io
+  group: dbaas.ionoscloud.crossplane.io
   names:
     categories:
     - crossplane
     - managed
     - ionoscloud
-    kind: Cluster
-    listKind: ClusterList
-    plural: clusters
-    singular: cluster
+    kind: PostgresCluster
+    listKind: PostgresClusterList
+    plural: postgresclusters
+    singular: postgrescluster
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -49,7 +49,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: A Cluster is an example API type.
+        description: A PostgresCluster is an example API type.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
