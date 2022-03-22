@@ -319,6 +319,14 @@ Check the following tables for available commands for Kubernetes Resources:
 
 </details>
 
+The configuration file from the Kubernetes Cluster provisioned can be saved into a secret, as described in
+the `writeConnectionSecretToRef` from [example](ionoscloud/k8s/k8s-cluster.yaml). Use the following command to get a
+valid kubeconfig file:
+
+```bash
+kubectl get secret kubeconfig -o json | jq '.data.kubeconfig | @base64d' -r | jq . > /tmp/kubeconfig
+```
+
 ## Cleanup
 
 ### Uninstall the Provider

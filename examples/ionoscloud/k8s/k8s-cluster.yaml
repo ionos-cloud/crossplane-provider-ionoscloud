@@ -11,10 +11,14 @@ spec:
     public: true
   #    k8sVersion: 1.22.6
   #    apiSubnetAllowList:
+  #      -
   #    s3Buckets:
   #      - name:
   #    maintenanceWindow:
   #      time: "23:40:58Z"
   #      dayOfTheWeek: Friday
+  writeConnectionSecretToRef:
+    namespace: default
+    name: kubeconfig
   providerConfigRef:
     name: example

@@ -128,6 +128,8 @@ type externalCluster struct {
 }
 
 func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+	var kubeconfig string
+
 	cr, ok := mg.(*v1alpha1.Cluster)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotK8sCluster)
@@ -162,11 +164,17 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 		cr.SetConditions(xpv1.Unavailable())
 	}
 
+	if kubeconfig, _, err = c.service.GetKubeConfig(ctx, cr.Status.AtProvider.ClusterID); err != nil {
+		c.log.Info(fmt.Sprintf("failed to get connection details. error: %v", err))
+	}
+
 	return managed.ExternalObservation{
 		ResourceExists:          true,
 		ResourceUpToDate:        k8scluster.IsK8sClusterUpToDate(cr, observed),
-		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		ConnectionDetails: managed.ConnectionDetails{
+			"kubeconfig": []byte(kubeconfig),
+		},
 	}, nil
 }
 

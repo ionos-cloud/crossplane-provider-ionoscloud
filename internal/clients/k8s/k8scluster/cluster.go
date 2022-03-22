@@ -19,6 +19,7 @@ type APIClient struct {
 // Client is a wrapper around IONOS Service K8s Cluster methods
 type Client interface {
 	GetK8sCluster(ctx context.Context, clusterID string) (sdkgo.KubernetesCluster, *sdkgo.APIResponse, error)
+	GetKubeConfig(ctx context.Context, clusterID string) (string, *sdkgo.APIResponse, error)
 	CreateK8sCluster(ctx context.Context, cluster sdkgo.KubernetesClusterForPost) (sdkgo.KubernetesCluster, *sdkgo.APIResponse, error)
 	UpdateK8sCluster(ctx context.Context, clusterID string, cluster sdkgo.KubernetesClusterForPut) (sdkgo.KubernetesCluster, *sdkgo.APIResponse, error)
 	DeleteK8sCluster(ctx context.Context, clusterID string) (*sdkgo.APIResponse, error)
@@ -28,6 +29,11 @@ type Client interface {
 // GetK8sCluster based on clusterID
 func (cp *APIClient) GetK8sCluster(ctx context.Context, clusterID string) (sdkgo.KubernetesCluster, *sdkgo.APIResponse, error) {
 	return cp.ComputeClient.KubernetesApi.K8sFindByClusterId(ctx, clusterID).Depth(utils.DepthQueryParam).Execute()
+}
+
+// GetKubeConfig based on clusterID
+func (cp *APIClient) GetKubeConfig(ctx context.Context, clusterID string) (string, *sdkgo.APIResponse, error) {
+	return cp.ComputeClient.KubernetesApi.K8sKubeconfigGet(ctx, clusterID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateK8sCluster based on KubernetesClusterForPost
@@ -81,7 +87,7 @@ func GenerateUpdateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClust
 	instanceUpdateInput := sdkgo.KubernetesClusterForPut{
 		Properties: &sdkgo.KubernetesClusterPropertiesForPut{
 			Name:               &cr.Spec.ForProvider.Name,
-			ApiSubnetAllowList: &cr.Spec.ForProvider.APISubnetAllowList,
+			ApiSubnetAllowList: apiSubnetAllowList(cr.Spec.ForProvider.APISubnetAllowList),
 			S3Buckets:          s3Buckets(cr.Spec.ForProvider.S3Buckets),
 		},
 	}
@@ -193,4 +199,14 @@ func s3Buckets(s3BucketSpecs []v1alpha1.S3Bucket) *[]sdkgo.S3Bucket {
 		}
 	}
 	return &buckets
+}
+
+func apiSubnetAllowList(setAPISubnetAllowList []string) *[]string {
+	apiSubnets := make([]string, 0)
+	for _, apiSubnet := range setAPISubnetAllowList {
+		if apiSubnet != "" {
+			apiSubnets = append(apiSubnets, apiSubnet)
+		}
+	}
+	return &apiSubnets
 }

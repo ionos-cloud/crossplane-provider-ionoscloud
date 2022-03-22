@@ -23,6 +23,9 @@ spec:
     maintenanceWindow:
       dayOfTheWeek: Monday
       time: "23:40:58Z"
+  writeConnectionSecretToRef:
+    namespace: default
+    name: kubeconfig
   providerConfigRef:
     name: example
 EOF
@@ -51,6 +54,9 @@ spec:
     maintenanceWindow:
       dayOfTheWeek: Friday
       time: "23:40:58Z"
+  writeConnectionSecretToRef:
+    namespace: default
+    name: kubeconfig
   providerConfigRef:
     name: example
 EOF
@@ -77,6 +83,9 @@ spec:
     maintenanceWindow:
       dayOfTheWeek: Friday
       time: "23:40:58Z"
+  writeConnectionSecretToRef:
+    namespace: default
+    name: kubeconfig
   providerConfigRef:
     name: example
 EOF
