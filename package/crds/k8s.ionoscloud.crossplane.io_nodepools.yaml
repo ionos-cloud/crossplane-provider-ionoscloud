@@ -16,7 +16,7 @@ spec:
     listKind: NodePoolList
     plural: nodepools
     singular: nodepool
-  scope: NodePool
+  scope: Cluster
   versions:
   - additionalPrinterColumns:
     - jsonPath: .status.conditions[?(@.type=='Ready')].status
@@ -25,21 +25,17 @@ spec:
     - jsonPath: .status.conditions[?(@.type=='Synced')].status
       name: SYNCED
       type: string
-    - jsonPath: .metadata.annotations.crossplane\.io/external-name
-      name: NODEPOOL ID
-      type: string
     - jsonPath: .spec.forProvider.clusterConfig.clusterId
       name: CLUSTER ID
       type: string
-    - jsonPath: .spec.forProvider.datacenterConfig.datacenterId
-      name: DATACENTER ID
-      priority: 1
+    - jsonPath: .metadata.annotations.crossplane\.io/external-name
+      name: NODEPOOL ID
       type: string
     - jsonPath: .spec.forProvider.name
       name: NODEPOOL NAME
       type: string
-    - jsonPath: .spec.forProvider.nodeCount
-      name: NODE COUNT
+    - jsonPath: .spec.forProvider.datacenterConfig.datacenterId
+      name: DATACENTER ID
       priority: 1
       type: string
     - jsonPath: .spec.forProvider.k8sVersion
@@ -102,7 +98,6 @@ spec:
                           Value for this attribute must be greater than equal to 1
                           and minNodeCount.
                         format: int32
-                        minimum: 1
                         type: integer
                       minNodeCount:
                         description: The minimum number of worker nodes that the managed
@@ -110,7 +105,6 @@ spec:
                           Value for this attribute must be greater than equal to 1
                           and less than equal to maxNodeCount.
                         format: int32
-                        minimum: 1
                         type: integer
                     required:
                     - maxNodeCount
@@ -327,7 +321,6 @@ spec:
                   storageSize:
                     description: The size of the volume in GB. The size should be
                       greater than 10GB.
-                    exclusiveMinimum: true
                     format: int32
                     minimum: 10
                     type: integer
@@ -406,10 +399,6 @@ spec:
                     type: array
                   state:
                     type: string
-                  viableNodePoolVersions:
-                    items:
-                      type: string
-                    type: array
                 type: object
               conditions:
                 description: Conditions of the resource.

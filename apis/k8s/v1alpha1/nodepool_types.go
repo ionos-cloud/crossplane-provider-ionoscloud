@@ -92,7 +92,6 @@ type NodePoolParameters struct {
 	// +immutable
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=10
-	// +kubebuilder:validation:ExclusiveMinimum=true
 	StorageSize int32 `json:"storageSize"`
 	// The Kubernetes version the NodePool is running. This imposes restrictions on what Kubernetes
 	// versions can be run in a cluster's NodePools. Additionally, not all Kubernetes versions are
@@ -145,14 +144,12 @@ type KubernetesAutoScaling struct {
 	// Should be set together with 'maxNodeCount'.
 	// Value for this attribute must be greater than equal to 1 and less than equal to maxNodeCount.
 	//
-	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Required
 	MinNodeCount int32 `json:"minNodeCount"`
 	// The maximum number of worker nodes that the managed node pool can scale-out.
 	// Should be set together with 'minNodeCount'.
 	// Value for this attribute must be greater than equal to 1 and minNodeCount.
 	//
-	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Required
 	MaxNodeCount int32 `json:"maxNodeCount"`
 }
@@ -231,7 +228,6 @@ type NodePoolObservation struct {
 	NodePoolID               string   `json:"NodePoolId,omitempty"`
 	State                    string   `json:"state,omitempty"`
 	AvailableUpgradeVersions []string `json:"availableUpgradeVersions,omitempty"`
-	ViableNodePoolVersions   []string `json:"viableNodePoolVersions,omitempty"`
 }
 
 // A NodePoolSpec defines the desired state of a NodePool.
@@ -251,16 +247,15 @@ type NodePoolStatus struct {
 // A NodePool is an example API type.
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
-// +kubebuilder:printcolumn:name="NODEPOOL ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="CLUSTER ID",type="string",JSONPath=".spec.forProvider.clusterConfig.clusterId"
-// +kubebuilder:printcolumn:name="DATACENTER ID",priority=1,type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
+// +kubebuilder:printcolumn:name="NODEPOOL ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="NODEPOOL NAME",type="string",JSONPath=".spec.forProvider.name"
-// +kubebuilder:printcolumn:name="NODE COUNT",priority=1,type="string",JSONPath=".spec.forProvider.nodeCount"
+// +kubebuilder:printcolumn:name="DATACENTER ID",priority=1,type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
 // +kubebuilder:printcolumn:name="K8S VERSION",priority=1,type="string",JSONPath=".spec.forProvider.k8sVersion"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=NodePool,categories={crossplane,managed,ionoscloud}
+// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
 type NodePool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

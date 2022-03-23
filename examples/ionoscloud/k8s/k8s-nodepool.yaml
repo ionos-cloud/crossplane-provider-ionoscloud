@@ -1,0 +1,68 @@
+# Use this file to create Datacenter, Lan and DBaaS Postgres Cluster CRs.
+# Required values for creating a Datacenter CR are:
+# - Location.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleDatacenter
+    location: us/las
+    description: test
+  providerConfigRef:
+    name: example
+---
+# Use this file to create a K8s Cluster CR.
+# Required values for creating a K8s Cluster CR are:
+# - Name.
+apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
+kind: Cluster
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleK8sCluster
+    public: true
+  #    k8sVersion: 1.22.6
+  #    apiSubnetAllowList:
+  #      -
+  #    s3Buckets:
+  #      - name:
+  #    maintenanceWindow:
+  #      time: "23:40:58Z"
+  #      dayOfTheWeek: Friday
+  writeConnectionSecretToRef:
+    namespace: default
+    name: kubeconfig
+  providerConfigRef:
+    name: example
+---
+# Use this file to create a K8s Cluster CR.
+# Required values for creating a K8s Cluster CR are:
+# - Name.
+apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
+kind: NodePool
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleK8sNodepool
+    nodeCount: 1
+    cpuFamily: AMD_OPTERON
+    coresCount: 2
+    ramSize: 2048
+    availabilityZone: AUTO
+    storageType: HDD
+    storageSize: 20
+#    autoScaling:
+#      minNodeCount: 1
+#      maxNodeCount: 1
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    clusterConfig:
+      clusterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
