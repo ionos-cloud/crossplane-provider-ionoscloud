@@ -21,6 +21,7 @@ type Client interface {
 	CreateDatacenter(ctx context.Context, datacenter sdkgo.Datacenter) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
 	UpdateDatacenter(ctx context.Context, datacenterID string, datacenter sdkgo.DatacenterProperties) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
 	DeleteDatacenter(ctx context.Context, datacenterID string) (*sdkgo.APIResponse, error)
+	GetCPUFamiliesForDatacenter(ctx context.Context, datacenterID string) ([]string, error)
 	GetAPIClient() *sdkgo.APIClient
 }
 
@@ -43,6 +44,25 @@ func (cp *APIClient) UpdateDatacenter(ctx context.Context, datacenterID string, 
 func (cp *APIClient) DeleteDatacenter(ctx context.Context, datacenterID string) (*sdkgo.APIResponse, error) {
 	resp, err := cp.ComputeClient.DataCentersApi.DatacentersDelete(ctx, datacenterID).Execute()
 	return resp, err
+}
+
+// GetCPUFamiliesForDatacenter based on datacenterID
+func (cp *APIClient) GetCPUFamiliesForDatacenter(ctx context.Context, datacenterID string) ([]string, error) {
+	cpuFamiliesAvailable := make([]string, 0)
+	datacenter, _, err := cp.ComputeClient.DataCentersApi.DatacentersFindById(ctx, datacenterID).Execute()
+	if err != nil {
+		return cpuFamiliesAvailable, err
+	}
+	if propertiesOk, ok := datacenter.GetPropertiesOk(); ok && propertiesOk != nil {
+		if cpuArchitecturesOk, ok := propertiesOk.GetCpuArchitectureOk(); ok && cpuArchitecturesOk != nil && len(*cpuArchitecturesOk) > 0 {
+			for _, cpuArchitecture := range *cpuArchitecturesOk {
+				if cpuFamilyOk, ok := cpuArchitecture.GetCpuFamilyOk(); ok && cpuFamilyOk != nil {
+					cpuFamiliesAvailable = append(cpuFamiliesAvailable, *cpuFamilyOk)
+				}
+			}
+		}
+	}
+	return cpuFamiliesAvailable, nil
 }
 
 // GetAPIClient gets the APIClient
