@@ -23,6 +23,7 @@ type Client interface {
 	CreateK8sCluster(ctx context.Context, cluster sdkgo.KubernetesClusterForPost) (sdkgo.KubernetesCluster, *sdkgo.APIResponse, error)
 	UpdateK8sCluster(ctx context.Context, clusterID string, cluster sdkgo.KubernetesClusterForPut) (sdkgo.KubernetesCluster, *sdkgo.APIResponse, error)
 	DeleteK8sCluster(ctx context.Context, clusterID string) (*sdkgo.APIResponse, error)
+	HasActiveK8sNodePools(ctx context.Context, clusterID string) (bool, error)
 	GetAPIClient() *sdkgo.APIClient
 }
 
@@ -50,6 +51,24 @@ func (cp *APIClient) UpdateK8sCluster(ctx context.Context, clusterID string, clu
 func (cp *APIClient) DeleteK8sCluster(ctx context.Context, clusterID string) (*sdkgo.APIResponse, error) {
 	resp, err := cp.ComputeClient.KubernetesApi.K8sDelete(ctx, clusterID).Execute()
 	return resp, err
+}
+
+// HasActiveK8sNodePools based on clusterID
+func (cp *APIClient) HasActiveK8sNodePools(ctx context.Context, clusterID string) (bool, error) {
+	cluster, _, err := cp.ComputeClient.KubernetesApi.K8sFindByClusterId(ctx, clusterID).Depth(utils.DepthQueryParam).Execute()
+	if err != nil {
+		return false, err
+	}
+	if cluster.HasEntities() {
+		if cluster.Entities.HasNodepools() {
+			if cluster.Entities.Nodepools.HasItems() {
+				if len(*cluster.Entities.Nodepools.Items) > 0 {
+					return true, nil
+				}
+			}
+		}
+	}
+	return false, nil
 }
 
 // GetAPIClient gets the APIClient
