@@ -244,13 +244,13 @@ func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error
 	if hasNodePools {
 		return fmt.Errorf("kubernetes cluster cannot be deleted. NodePools still exist")
 	}
-	if cr.Status.AtProvider.State != compute.ACTIVE {
-		return fmt.Errorf("resource needs to be in ACTIVE state to delete it, current state: %v", cr.Status.AtProvider.State)
-	}
 
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == compute.DESTROYING || cr.Status.AtProvider.State == k8s.TERMINATED {
 		return nil
+	}
+	if cr.Status.AtProvider.State != compute.ACTIVE {
+		return fmt.Errorf("resource needs to be in ACTIVE state to delete it, current state: %v", cr.Status.AtProvider.State)
 	}
 	apiResponse, err := c.service.DeleteK8sCluster(ctx, cr.Status.AtProvider.ClusterID)
 	if err != nil {
