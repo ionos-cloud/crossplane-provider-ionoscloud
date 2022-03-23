@@ -80,6 +80,27 @@ type S3Bucket struct {
 	Name string `json:"name"`
 }
 
+// ClusterConfig is used by resources that need to link clusters via id or via reference.
+type ClusterConfig struct {
+	// ClusterID is the ID of the Cluster on which the resource will be created.
+	// It needs to be provided via directly or via reference.
+	//
+	// +immutable
+	// +kubebuilder:validation:Format=uuid
+	// +crossplane:generate:reference:type=Cluster
+	// +crossplane:generate:reference:extractor=ExtractClusterID()
+	ClusterID string `json:"clusterId,omitempty"`
+	// ClusterIDRef references to a Cluster to retrieve its ID
+	//
+	// +optional
+	// +immutable
+	ClusterIDRef *xpv1.Reference `json:"clusterIdRef,omitempty"`
+	// ClusterIDSelector selects reference to a Cluster to retrieve its clusterId
+	//
+	// +optional
+	ClusterIDSelector *xpv1.Selector `json:"clusterIdSelector,omitempty"`
+}
+
 // ClusterObservation are the observable fields of a Cluster.
 type ClusterObservation struct {
 	ClusterID                string   `json:"clusterId,omitempty"`
