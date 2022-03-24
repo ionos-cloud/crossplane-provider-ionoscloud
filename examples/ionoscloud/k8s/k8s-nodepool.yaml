@@ -1,4 +1,4 @@
-# Use this file to create Datacenter, Lan and DBaaS Postgres Cluster CRs.
+# Use this file to create Datacenter, Lan and K8s Cluster, K8s NodePool CRs.
 # Required values for creating a Datacenter CR are:
 # - Location.
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
@@ -38,9 +38,34 @@ spec:
   providerConfigRef:
     name: example
 ---
-# Use this file to create a K8s Cluster CR.
-# Required values for creating a K8s Cluster CR are:
-# - Name.
+# Required values for creating a Lan CR are:
+# - DatacenterConfig (via ID or reference),
+# - Public.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: examplelan
+spec:
+  forProvider:
+    name: exampleLan
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
+# Use this file to create a K8s NodePool CR.
+# Required values for creating a K8s NodePool CR are:
+# - Name,
+# - ClusterConfig (via ID or reference),
+# - DatacenterConfig (via ID or reference),
+# - NodeCount,
+# - CoresCount,
+# - RAMSize,
+# - AvailabilityZone,
+# - StorageType,
+# - StorageSize.
 apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: NodePool
 metadata:
@@ -49,15 +74,30 @@ spec:
   forProvider:
     name: exampleK8sNodepool
     nodeCount: 1
+    # Note: If the CPU Family is not set, the Crossplane Provider
+    # will set the first one offered by the Datacenter.
     cpuFamily: AMD_OPTERON
-    coresCount: 2
+    coresCount: 1
     ramSize: 2048
     availabilityZone: AUTO
     storageType: HDD
-    storageSize: 20
-#    autoScaling:
-#      minNodeCount: 1
-#      maxNodeCount: 1
+    storageSize: 10
+    #    publicIps:
+    #      -
+    #    lans:
+    #      - lanConfig:
+    #          lanIdRef:
+    #            name: examplelan
+    #        dhcp:
+    #        routes:
+    #          -
+    #    autoScaling:
+    #      minNodeCount: 1
+    #      maxNodeCount: 2
+    #    labels:
+    #      key: "value"
+    #    annotations:
+    #      key: "value"
     datacenterConfig:
       datacenterIdRef:
         name: example

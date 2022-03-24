@@ -3,6 +3,7 @@ package k8snodepool
 import (
 	"context"
 	"reflect"
+	"strconv"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
@@ -66,15 +67,17 @@ func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool) (*sdkgo.KubernetesNod
 			StorageSize:      &cr.Spec.ForProvider.StorageSize,
 		},
 	}
-	// TODO: ADD AUTOSCALING + LANS
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.K8sVersion)) {
 		instanceCreateInput.Properties.SetK8sVersion(cr.Spec.ForProvider.K8sVersion)
 	}
-	if window := nodepoolMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
-		instanceCreateInput.Properties.SetMaintenanceWindow(*window)
-	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Labels)) {
 		instanceCreateInput.Properties.SetLabels(cr.Spec.ForProvider.Labels)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AutoScaling)) {
+		instanceCreateInput.Properties.SetAutoScaling(sdkgo.KubernetesAutoScaling{
+			MinNodeCount: &cr.Spec.ForProvider.AutoScaling.MinNodeCount,
+			MaxNodeCount: &cr.Spec.ForProvider.AutoScaling.MaxNodeCount,
+		})
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Annotations)) {
 		instanceCreateInput.Properties.SetAnnotations(cr.Spec.ForProvider.Annotations)
@@ -85,6 +88,12 @@ func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool) (*sdkgo.KubernetesNod
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.GatewayIP)) {
 		instanceCreateInput.Properties.SetGatewayIp(cr.Spec.ForProvider.GatewayIP)
 	}
+	if window := nodepoolMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
+		instanceCreateInput.Properties.SetMaintenanceWindow(*window)
+	}
+	if poolLans := kubernetesNodePoolLans(cr.Spec.ForProvider.Lans); poolLans != nil {
+		instanceCreateInput.Properties.SetLans(*poolLans)
+	}
 	return &instanceCreateInput, nil
 }
 
@@ -92,16 +101,36 @@ func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool) (*sdkgo.KubernetesNod
 func GenerateUpdateK8sNodePoolInput(cr *v1alpha1.NodePool) (*sdkgo.KubernetesNodePoolForPut, error) {
 	instanceUpdateInput := sdkgo.KubernetesNodePoolForPut{
 		Properties: &sdkgo.KubernetesNodePoolPropertiesForPut{
-			Name:      &cr.Spec.ForProvider.Name,
-			NodeCount: &cr.Spec.ForProvider.NodeCount,
+			NodeCount:  &cr.Spec.ForProvider.NodeCount,
+			K8sVersion: &cr.Spec.ForProvider.K8sVersion,
 		},
 	}
-	// TODO: ADD OTHER OPTIONS FOR UPDATE
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.K8sVersion)) {
-		instanceUpdateInput.Properties.SetK8sVersion(cr.Spec.ForProvider.K8sVersion)
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AutoScaling.MinNodeCount)) {
+		instanceUpdateInput.Properties.SetAutoScaling(sdkgo.KubernetesAutoScaling{
+			MinNodeCount: &cr.Spec.ForProvider.AutoScaling.MinNodeCount,
+			MaxNodeCount: &cr.Spec.ForProvider.AutoScaling.MaxNodeCount,
+		})
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Annotations)) {
+		instanceUpdateInput.Properties.SetAnnotations(cr.Spec.ForProvider.Annotations)
+	} else {
+		instanceUpdateInput.Properties.SetAnnotations(map[string]string{})
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Labels)) {
+		instanceUpdateInput.Properties.SetLabels(cr.Spec.ForProvider.Labels)
+	} else {
+		instanceUpdateInput.Properties.SetLabels(map[string]string{})
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.PublicIPs)) {
+		instanceUpdateInput.Properties.SetPublicIps(cr.Spec.ForProvider.PublicIPs)
+	} else {
+		instanceUpdateInput.Properties.SetPublicIps([]string{})
 	}
 	if window := nodepoolMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
 		instanceUpdateInput.Properties.SetMaintenanceWindow(*window)
+	}
+	if poolLans := kubernetesNodePoolLans(cr.Spec.ForProvider.Lans); poolLans != nil {
+		instanceUpdateInput.Properties.SetLans(*poolLans)
 	}
 	return &instanceUpdateInput, nil
 }
@@ -131,6 +160,13 @@ func LateInitializer(in *v1alpha1.NodePoolParameters, sg *sdkgo.KubernetesNodePo
 				in.K8sVersion = *versionOk
 			}
 		}
+		// Set the CPU Family set by the Crossplane Provider,
+		// if no CPU Family was provided, to be transparent to the user.
+		if cpuFamilyOk, ok := propertiesOk.GetCpuFamilyOk(); ok && cpuFamilyOk != nil {
+			if utils.IsEmptyValue(reflect.ValueOf(in.CPUFamily)) {
+				in.CPUFamily = *cpuFamilyOk
+			}
+		}
 	}
 }
 
@@ -150,7 +186,6 @@ func LateStatusInitializer(in *v1alpha1.NodePoolObservation, sg *sdkgo.Kubernete
 
 // IsK8sNodePoolUpToDate returns true if the NodePool is up-to-date or false if it does not
 func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodePool) bool { // nolint:gocyclo
-	// TODO: add more updatable options to check
 	switch {
 	case cr == nil && nodepool.Properties == nil:
 		return true
@@ -160,13 +195,25 @@ func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodeP
 		return false
 	case nodepool.Metadata.State != nil && *nodepool.Metadata.State == "BUSY" || *nodepool.Metadata.State == "DEPLOYING":
 		return true
-	case nodepool.Properties.Name != nil && *nodepool.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
 	case nodepool.Properties.K8sVersion != nil && *nodepool.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
+		return false
+	case nodepool.Properties.NodeCount != nil && *nodepool.Properties.NodeCount != cr.Spec.ForProvider.NodeCount:
+		return false
+	case nodepool.Properties.PublicIps != nil && !utils.IsEqStringSlices(*nodepool.Properties.PublicIps, cr.Spec.ForProvider.PublicIPs):
+		return false
+	case nodepool.Properties.Labels != nil && !utils.IsEqStringMaps(*nodepool.Properties.Labels, cr.Spec.ForProvider.Labels):
+		return false
+	case nodepool.Properties.Annotations != nil && !utils.IsEqStringMaps(*nodepool.Properties.Annotations, cr.Spec.ForProvider.Annotations):
+		return false
+	case nodepool.Properties.AutoScaling != nil && nodepool.Properties.AutoScaling.MinNodeCount != nil && *nodepool.Properties.AutoScaling.MinNodeCount != cr.Spec.ForProvider.AutoScaling.MinNodeCount:
+		return false
+	case nodepool.Properties.AutoScaling != nil && nodepool.Properties.AutoScaling.MaxNodeCount != nil && *nodepool.Properties.AutoScaling.MaxNodeCount != cr.Spec.ForProvider.AutoScaling.MaxNodeCount:
 		return false
 	case nodepool.Properties.MaintenanceWindow != nil && nodepool.Properties.MaintenanceWindow.Time != nil && *nodepool.Properties.MaintenanceWindow.Time != cr.Spec.ForProvider.MaintenanceWindow.Time:
 		return false
 	case nodepool.Properties.MaintenanceWindow != nil && nodepool.Properties.MaintenanceWindow.DayOfTheWeek != nil && *nodepool.Properties.MaintenanceWindow.DayOfTheWeek != cr.Spec.ForProvider.MaintenanceWindow.DayOfTheWeek:
+		return false
+	case nodepool.Properties.Lans != nil && !isEqKubernetesNodePoolLans(cr.Spec.ForProvider.Lans, *nodepool.Properties.Lans):
 		return false
 	default:
 		return true
@@ -181,4 +228,68 @@ func nodepoolMaintenanceWindow(window v1alpha1.MaintenanceWindow) *sdkgo.Kuberne
 		}
 	}
 	return nil
+}
+
+func kubernetesNodePoolLans(crLans []v1alpha1.KubernetesNodePoolLan) *[]sdkgo.KubernetesNodePoolLan {
+	lans := make([]sdkgo.KubernetesNodePoolLan, 0)
+	if len(crLans) > 0 {
+		for _, crLan := range crLans {
+			lanIDConverted, _ := strconv.ParseInt(crLan.LanCfg.LanID, 10, 64)
+			lanID := int32(lanIDConverted)
+			newNodePoolLan := sdkgo.KubernetesNodePoolLan{
+				Id:   &lanID,
+				Dhcp: &crLan.Dhcp,
+			}
+			if len(crLan.Routes) > 0 {
+				routes := make([]sdkgo.KubernetesNodePoolLanRoutes, 0)
+				for _, route := range crLan.Routes {
+					network := route.Network
+					gatewayIP := route.GatewayIP
+					routes = append(routes, sdkgo.KubernetesNodePoolLanRoutes{
+						Network:   &network,
+						GatewayIp: &gatewayIP,
+					})
+				}
+				newNodePoolLan.SetRoutes(routes)
+			}
+			lans = append(lans, newNodePoolLan)
+		}
+	}
+	return &lans
+}
+
+func isEqKubernetesNodePoolLans(crLans []v1alpha1.KubernetesNodePoolLan, lans []sdkgo.KubernetesNodePoolLan) bool { // nolint:gocyclo
+	if len(crLans) != len(lans) {
+		return false
+	}
+	for i, crLan := range crLans {
+		lan := lans[i]
+		if lan.Dhcp != nil && crLan.Dhcp != *lan.Dhcp {
+			return false
+		}
+		if lan.Routes != nil && len(*lan.Routes) != len(crLan.Routes) {
+			return false
+		}
+		if lan.Routes == nil && len(crLan.Routes) > 0 {
+			return false
+		}
+		lanIDConverted, _ := strconv.ParseInt(crLan.LanCfg.LanID, 10, 64)
+		if lan.Id != nil && *lan.Id != int32(lanIDConverted) {
+			return false
+		}
+		// TODO: fix code to check also the routes available
+		for j, crRoute := range crLan.Routes {
+			if lan.Routes != nil {
+				routes := *lan.Routes
+				route := routes[j]
+				if route.GatewayIp != nil && *route.GatewayIp != crRoute.GatewayIP {
+					return false
+				}
+				if route.Network != nil && *route.Network != crRoute.Network {
+					return false
+				}
+			}
+		}
+	}
+	return true
 }

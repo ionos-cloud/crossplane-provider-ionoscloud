@@ -43,6 +43,19 @@ func IsEqStringSlices(first, second []string) bool {
 	return true
 }
 
+// IsEqStringMaps will return true if the maps are equal
+func IsEqStringMaps(first, second map[string]string) bool {
+	if len(first) != len(second) {
+		return false
+	}
+	for firstKey, firstValue := range first {
+		if secondValue, ok := second[firstKey]; !ok || secondValue != firstValue {
+			return false
+		}
+	}
+	return true
+}
+
 // IsStringInSlice will return true if the slice contains the specific string
 func IsStringInSlice(input []string, specific string) bool {
 	for _, element := range input {

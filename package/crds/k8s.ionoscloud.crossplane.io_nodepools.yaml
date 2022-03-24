@@ -98,6 +98,7 @@ spec:
                           Value for this attribute must be greater than equal to 1
                           and minNodeCount.
                         format: int32
+                        minimum: 1
                         type: integer
                       minNodeCount:
                         description: The minimum number of worker nodes that the managed
@@ -105,10 +106,8 @@ spec:
                           Value for this attribute must be greater than equal to 1
                           and less than equal to maxNodeCount.
                         format: int32
+                        minimum: 1
                         type: integer
-                    required:
-                    - maxNodeCount
-                    - minNodeCount
                     type: object
                   availabilityZone:
                     description: The availability zone in which the target VM should
@@ -219,7 +218,8 @@ spec:
                     description: Map of labels attached to NodePool.
                     type: object
                   lans:
-                    description: Array of additional LANs attached to worker nodes
+                    description: Array of additional private LANs attached to worker
+                      nodes
                     items:
                       description: KubernetesNodePoolLan struct for KubernetesNodePoolLan
                       properties:
@@ -228,7 +228,8 @@ spec:
                             reserve an IP using DHCP.
                           type: boolean
                         lanConfig:
-                          description: The LAN of an existing LAN at the related datacenter
+                          description: The LAN of an existing private LAN at the related
+                            datacenter
                           properties:
                             lanId:
                               description: LanID is the ID of the Lan on which the
@@ -263,8 +264,8 @@ spec:
                               type: object
                           type: object
                         routes:
-                          description: Array of additional LANs attached to worker
-                            nodes
+                          description: Array of additional LANs Routes attached to
+                            worker nodes
                           items:
                             description: KubernetesNodePoolLanRoutes struct for KubernetesNodePoolLanRoutes
                             properties:

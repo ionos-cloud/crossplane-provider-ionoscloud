@@ -46,6 +46,7 @@ type NodePoolParameters struct {
 	// and must be empty or begin and end with an alphanumeric character ([a-z0-9A-Z]) with
 	// dashes (-), underscores (_), dots (.), and alphanumerics between.
 	//
+	// +immutable
 	// +kubebuilder:validation:Required
 	Name string `json:"name"`
 	// A Datacenter, to which the user has access.
@@ -109,7 +110,7 @@ type NodePoolParameters struct {
 	//
 	// +kubebuilder:validation:Optional
 	AutoScaling KubernetesAutoScaling `json:"autoScaling,omitempty"`
-	// Array of additional LANs attached to worker nodes
+	// Array of additional private LANs attached to worker nodes
 	//
 	// +kubebuilder:validation:Optional
 	Lans []KubernetesNodePoolLan `json:"lans,omitempty"`
@@ -144,19 +145,19 @@ type KubernetesAutoScaling struct {
 	// Should be set together with 'maxNodeCount'.
 	// Value for this attribute must be greater than equal to 1 and less than equal to maxNodeCount.
 	//
-	// +kubebuilder:validation:Required
-	MinNodeCount int32 `json:"minNodeCount"`
+	// +kubebuilder:validation:Minimum=1
+	MinNodeCount int32 `json:"minNodeCount,omitempty"`
 	// The maximum number of worker nodes that the managed node pool can scale-out.
 	// Should be set together with 'minNodeCount'.
 	// Value for this attribute must be greater than equal to 1 and minNodeCount.
 	//
-	// +kubebuilder:validation:Required
-	MaxNodeCount int32 `json:"maxNodeCount"`
+	// +kubebuilder:validation:Minimum=1
+	MaxNodeCount int32 `json:"maxNodeCount,omitempty"`
 }
 
 // KubernetesNodePoolLan struct for KubernetesNodePoolLan
 type KubernetesNodePoolLan struct {
-	// The LAN of an existing LAN at the related datacenter
+	// The LAN of an existing private LAN at the related datacenter
 	//
 	// +kubebuilder:validation:Optional
 	LanCfg LanConfig `json:"lanConfig"`
@@ -164,7 +165,7 @@ type KubernetesNodePoolLan struct {
 	//
 	// +kubebuilder:validation:Optional
 	Dhcp bool `json:"dhcp,omitempty"`
-	// Array of additional LANs attached to worker nodes
+	// Array of additional LANs Routes attached to worker nodes
 	//
 	// +kubebuilder:validation:Optional
 	Routes []KubernetesNodePoolLanRoutes `json:"routes,omitempty"`
