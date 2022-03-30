@@ -198,7 +198,7 @@ type ClusterStatus struct {
 
 // +kubebuilder:object:root=true
 
-// A Cluster is an example API type.
+// A PostgresCluster is an example API type.
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="CLUSTER ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
@@ -209,7 +209,7 @@ type ClusterStatus struct {
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
-type Cluster struct {
+type PostgresCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -219,21 +219,21 @@ type Cluster struct {
 
 // +kubebuilder:object:root=true
 
-// ClusterList contains a list of Cluster
-type ClusterList struct {
+// PostgresClusterList contains a list of Cluster
+type PostgresClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Cluster `json:"items"`
+	Items           []PostgresCluster `json:"items"`
 }
 
 // Cluster type metadata.
 var (
-	ClusterKind             = reflect.TypeOf(Cluster{}).Name()
-	ClusterGroupKind        = schema.GroupKind{Group: Group, Kind: ClusterKind}.String()
-	ClusterKindAPIVersion   = ClusterKind + "." + SchemeGroupVersion.String()
-	ClusterGroupVersionKind = SchemeGroupVersion.WithKind(ClusterKind)
+	PostgresClusterKind             = reflect.TypeOf(PostgresCluster{}).Name()
+	PostgresClusterGroupKind        = schema.GroupKind{Group: Group, Kind: PostgresClusterKind}.String()
+	PostgresClusterKindAPIVersion   = PostgresClusterKind + "." + SchemeGroupVersion.String()
+	PostgresClusterGroupVersionKind = SchemeGroupVersion.WithKind(PostgresClusterKind)
 )
 
 func init() {
-	SchemeBuilder.Register(&Cluster{}, &ClusterList{})
+	SchemeBuilder.Register(&PostgresCluster{}, &PostgresClusterList{})
 }
