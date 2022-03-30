@@ -199,6 +199,8 @@ func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodeP
 		return false
 	case nodepool.Properties.NodeCount != nil && *nodepool.Properties.NodeCount != cr.Spec.ForProvider.NodeCount:
 		return false
+	case nodepool.Properties.GatewayIp != nil && *nodepool.Properties.GatewayIp != cr.Spec.ForProvider.GatewayIP:
+		return false
 	case nodepool.Properties.PublicIps != nil && !utils.IsEqStringSlices(*nodepool.Properties.PublicIps, cr.Spec.ForProvider.PublicIPs):
 		return false
 	case nodepool.Properties.Labels != nil && !utils.IsEqStringMaps(*nodepool.Properties.Labels, cr.Spec.ForProvider.Labels):
@@ -277,7 +279,6 @@ func isEqKubernetesNodePoolLans(crLans []v1alpha1.KubernetesNodePoolLan, lans []
 		if lan.Id != nil && *lan.Id != int32(lanIDConverted) {
 			return false
 		}
-		// TODO: fix code to check also the routes available
 		for j, crRoute := range crLan.Routes {
 			if lan.Routes != nil {
 				routes := *lan.Routes
