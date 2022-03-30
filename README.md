@@ -48,7 +48,7 @@ check: [Provision Resources in IONOS Cloud](examples/example.md#provision-resour
 
 | RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION |
 | --- | --- |
-| DBaaS Postgres Clusters | `clusters.dbaas.postgres.ionoscloud.crossplane.io` |
+| DBaaS Postgres Clusters | `postgresclusters.dbaas.ionoscloud.crossplane.io` |
 
 </details>
 

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package postgres
+package postgrescluster
 
 import (
 	"context"
@@ -44,7 +44,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/postgres/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/dbaas/postgres"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/dbaas/postgrescluster"
 )
 
 const (
@@ -58,16 +58,16 @@ const (
 
 // Setup adds a controller that reconciles Cluster managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration) error {
-	name := managed.ControllerName(v1alpha1.ClusterGroupKind)
+	name := managed.ControllerName(v1alpha1.PostgresClusterGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
 			RateLimiter: ratelimiter.NewDefaultManagedRateLimiter(rl),
 		}).
-		For(&v1alpha1.Cluster{}).
+		For(&v1alpha1.PostgresCluster{}).
 		Complete(managed.NewReconciler(mgr,
-			resource.ManagedKind(v1alpha1.ClusterGroupVersionKind),
+			resource.ManagedKind(v1alpha1.PostgresClusterGroupVersionKind),
 			managed.WithExternalConnecter(&connectorCluster{
 				kube:  mgr.GetClient(),
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
@@ -93,7 +93,7 @@ type connectorCluster struct {
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
 func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	_, ok := mg.(*v1alpha1.Cluster)
+	_, ok := mg.(*v1alpha1.PostgresCluster)
 	if !ok {
 		return nil, errors.New(errNotCluster)
 	}
@@ -117,7 +117,7 @@ func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (ma
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
-	return &externalCluster{service: &postgres.ClusterAPIClient{IonosServices: svc}, log: c.log}, nil
+	return &externalCluster{service: &postgrescluster.ClusterAPIClient{IonosServices: svc}, log: c.log}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -125,12 +125,12 @@ func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (ma
 type externalCluster struct {
 	// A 'client' used to connect to the externalCluster resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service postgres.ClusterClient
+	service postgrescluster.ClusterClient
 	log     logging.Logger
 }
 
 func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
-	cr, ok := mg.(*v1alpha1.Cluster)
+	cr, ok := mg.(*v1alpha1.PostgresCluster)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotCluster)
 	}
@@ -144,11 +144,11 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 		if resp != nil && resp.Response != nil && resp.StatusCode == http.StatusNotFound {
 			return managed.ExternalObservation{}, nil
 		}
-		return managed.ExternalObservation{}, fmt.Errorf("failed to get cluster by id. err: %w", err)
+		return managed.ExternalObservation{}, fmt.Errorf("failed to get postgres cluster by id. err: %w", err)
 	}
 
 	current := cr.Spec.ForProvider.DeepCopy()
-	postgres.LateInitializer(&cr.Spec.ForProvider, &observed)
+	postgrescluster.LateInitializer(&cr.Spec.ForProvider, &observed)
 
 	cr.Status.AtProvider.ClusterID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = string(*observed.Metadata.State)
@@ -166,14 +166,14 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        postgres.IsClusterUpToDate(cr, observed),
+		ResourceUpToDate:        postgrescluster.IsClusterUpToDate(cr, observed),
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}, nil
 }
 
 func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.Cluster)
+	cr, ok := mg.(*v1alpha1.PostgresCluster)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotCluster)
 	}
@@ -182,7 +182,7 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
 		return managed.ExternalCreation{}, nil
 	}
-	instanceInput, err := postgres.GenerateCreateClusterInput(cr)
+	instanceInput, err := postgrescluster.GenerateCreateClusterInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -190,7 +190,7 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 	instance, apiResponse, err := c.service.CreateCluster(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
-		retErr := fmt.Errorf("failed to create Cluster: %w", err)
+		retErr := fmt.Errorf("failed to create postgres cluster: %w", err)
 		if apiResponse != nil && apiResponse.Response != nil {
 			retErr = fmt.Errorf("%w API Response Status: %v", retErr, apiResponse.Status)
 		}
@@ -205,7 +205,7 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 }
 
 func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.Cluster)
+	cr, ok := mg.(*v1alpha1.PostgresCluster)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotCluster)
 	}
@@ -214,14 +214,14 @@ func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (mana
 	}
 
 	clusterID := cr.Status.AtProvider.ClusterID
-	instanceInput, err := postgres.GenerateUpdateClusterInput(cr)
+	instanceInput, err := postgrescluster.GenerateUpdateClusterInput(cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, nil
 	}
 
 	_, apiResponse, err := c.service.UpdateCluster(ctx, clusterID, *instanceInput)
 	if err != nil {
-		retErr := fmt.Errorf("failed to update Cluster: %w", err)
+		retErr := fmt.Errorf("failed to update postgres cluster: %w", err)
 		if apiResponse != nil && apiResponse.Response != nil {
 			retErr = fmt.Errorf("%w API Response Status: %v", retErr, apiResponse.Status)
 		}
@@ -231,7 +231,7 @@ func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (mana
 }
 
 func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.Cluster)
+	cr, ok := mg.(*v1alpha1.PostgresCluster)
 	if !ok {
 		return errors.New(errNotCluster)
 	}
@@ -242,5 +242,5 @@ func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error
 	}
 
 	err := c.service.DeleteCluster(ctx, cr.Status.AtProvider.ClusterID)
-	return errors.Wrap(err, "failed to delete cluster")
+	return errors.Wrap(err, "failed to delete postgres cluster")
 }
