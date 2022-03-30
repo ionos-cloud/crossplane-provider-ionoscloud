@@ -80,6 +80,7 @@ see: [Compute Engine Resources](examples/example.md#compute-engine-resources).
 | RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION |
 | --- | --- |
 | K8s Clusters | `clusters.k8s.ionoscloud.crossplane.io` |
+| K8s NodePools | `nodepools.k8s.ionoscloud.crossplane.io` |
 
 </details>
 
