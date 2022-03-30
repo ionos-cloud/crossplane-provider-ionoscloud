@@ -36,6 +36,8 @@ import (
 // AvailabilityZone,
 // StorageType,
 // StorageSize.
+// Note: If the NodePool is part of a Private K8s Cluster,
+// it is required to set gatewayIp.
 type NodePoolParameters struct {
 	// The K8s Cluster on which the NodePool will be created
 	//

@@ -81,7 +81,8 @@ spec:
                 description: 'NodePoolParameters are the observable fields of a NodePool.
                   Required fields in order to create a K8s NodePool: ClusterConfig,
                   Name, DatacenterConfig, NodeCount, CoresCount, RAMSize, AvailabilityZone,
-                  StorageType, StorageSize.'
+                  StorageType, StorageSize. Note: If the NodePool is part of a Private
+                  K8s Cluster, it is required to set gatewayIp.'
                 properties:
                   annotations:
                     additionalProperties:
