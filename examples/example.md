@@ -8,6 +8,7 @@
 4. [Provision Resources](#provision-resources-in-ionos-cloud)
     1. [DBaaS Postgres Resources](#dbaas-postgres-resources)
     2. [Compute Engine Resources](#compute-engine-resources)
+    3. [Kubernetes Resources](#kubernetes-resources)
 5. [Cleanup](#cleanup)
     1. [Uninstall the Provider](#uninstall-the-provider)
     2. [Uninstall K8s Cluster](#uninstall-k8s-cluster)
@@ -307,6 +308,7 @@ Check the following tables for available commands for Kubernetes Resources:
 | CUSTOM RESOURCE | CREATE/UPDATE | DELETE |
 | --- | --- | --- |
 | K8s Cluster | <pre lang="bash">kubectl apply -f examples/ionoscloud/k8s/k8s-cluster.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/k8s/k8s-cluster.yaml</pre> | 
+| K8s NodePool | <pre lang="bash">kubectl apply -f examples/ionoscloud/k8s/k8s-nodepool.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/k8s/k8s-nodepool.yaml</pre> | 
 
 </details>
 
@@ -316,6 +318,7 @@ Check the following tables for available commands for Kubernetes Resources:
 | CUSTOM RESOURCE | GET | GET MORE DETAILS | JSON OUTPUT |
 | --- | --- | --- | --- | 
 | K8s Cluster | <pre lang="bash">kubectl get clusters.k8s.ionoscloud.crossplane.io</pre> | <pre lang="bash">kubectl get clusters.k8s.ionoscloud.crossplane.io -o wide</pre> | <pre lang="bash">kubectl get clusters.k8s.ionoscloud.crossplane.io -o json</pre> | 
+| K8s NodePool | <pre lang="bash">kubectl get nodepools.k8s.ionoscloud.crossplane.io</pre> | <pre lang="bash">kubectl get nodepools.k8s.ionoscloud.crossplane.io -o wide</pre> | <pre lang="bash">kubectl get nodepools.k8s.ionoscloud.crossplane.io -o json</pre> | 
 
 </details>
 

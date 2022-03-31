@@ -5,7 +5,7 @@
 - **Features**:
     - New CRDs added:
         - _Compute Engine Resources_: Datacenter, Server, Volume, Lan, NIC, FirewallRule, IPFailover, IPBlock;
-        - _Kubernetes Resources_: Cluster;
+        - _Kubernetes Resources_: Cluster, NodePool;
     - Added validations on CRDs - regarding format, type, minimum/maximum values, specific set of values, required
       values;
     - Added references (using [crossplane-tools](https://github.com/crossplane/crossplane-tools)) on CRDs to be able to
@@ -24,7 +24,7 @@
 
 ## [0.1.0-alpha.1] (February 2022)
 
-- First release of Crossplane Provider IONOS Cloud! 🎉
+- First (private) release of Crossplane Provider IONOS Cloud! 🎉
 - **Features**:
     - New CRDs:
         - _DBaaS Postgres Cluster_.

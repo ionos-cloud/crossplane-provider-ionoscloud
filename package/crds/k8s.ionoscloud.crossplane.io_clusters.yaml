@@ -76,7 +76,7 @@ spec:
                 type: string
               forProvider:
                 description: 'ClusterParameters are the observable fields of a Cluster.
-                  Required fields in order to create a K8s Cluster: Name.'
+                  Required fields in order to create a K8s Cluster: Name, Public.'
                 properties:
                   apiSubnetAllowList:
                     description: 'Access to the K8s API server is restricted to these
@@ -114,7 +114,6 @@ spec:
                       (-), underscores (_), dots (.), and alphanumerics between.
                     type: string
                   public:
-                    default: true
                     description: The indicator if the cluster is public or private.
                       Be aware that setting it to false is currently in beta phase.
                     type: boolean
@@ -133,6 +132,7 @@ spec:
                     type: array
                 required:
                 - name
+                - public
                 type: object
               providerConfigRef:
                 default:

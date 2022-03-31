@@ -9,7 +9,7 @@ that is built from the source code from this repository can be installed into a 
 following new functionality:
 
 * Custom Resource Definitions (CRDs) that model IONOS Cloud infrastructure and services (e.g. Database As a Service
-  Postgres, Compute Engine, etc.)
+  Postgres, Compute Engine, Kubernetes, etc.)
 * Controllers to provision these resources in IONOS Cloud based on the users desired state captured in CRDs they create
 * Implementations of Crossplane's portable resource abstractions, enabling IONOS Cloud resources to fulfill a user's
   general need for cloud services
@@ -80,6 +80,7 @@ see: [Compute Engine Resources](examples/example.md#compute-engine-resources).
 | RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION |
 | --- | --- |
 | K8s Clusters | `clusters.k8s.ionoscloud.crossplane.io` |
+| K8s NodePools | `nodepools.k8s.ionoscloud.crossplane.io` |
 
 </details>
 
@@ -116,13 +117,15 @@ _Note_: If both the `datacenterId` and the `datacenterIdRef` fields are set, the
 
 Crossplane Provider IONOS Cloud has end-to-end integration tests for the resources supported.
 
-For running end-to-end integration tests, use:
+For running end-to-end integration tests locally, use:
 
 ```bash
 make e2e
 ```
 
 If the images have a specific version, other than `latest`, this can be set via `make e2e VERSION=v0.x.x`.
+
+Daily workflows with all end-to-end integration tests are running using Github Actions. You can check their status [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/actions/workflows/ci-daily.yml).
 
 ## Debug Mode
 

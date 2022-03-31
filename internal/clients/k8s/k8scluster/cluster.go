@@ -23,6 +23,7 @@ type Client interface {
 	CreateK8sCluster(ctx context.Context, cluster sdkgo.KubernetesClusterForPost) (sdkgo.KubernetesCluster, *sdkgo.APIResponse, error)
 	UpdateK8sCluster(ctx context.Context, clusterID string, cluster sdkgo.KubernetesClusterForPut) (sdkgo.KubernetesCluster, *sdkgo.APIResponse, error)
 	DeleteK8sCluster(ctx context.Context, clusterID string) (*sdkgo.APIResponse, error)
+	HasActiveK8sNodePools(ctx context.Context, clusterID string) (bool, error)
 	GetAPIClient() *sdkgo.APIClient
 }
 
@@ -52,6 +53,24 @@ func (cp *APIClient) DeleteK8sCluster(ctx context.Context, clusterID string) (*s
 	return resp, err
 }
 
+// HasActiveK8sNodePools based on clusterID
+func (cp *APIClient) HasActiveK8sNodePools(ctx context.Context, clusterID string) (bool, error) {
+	cluster, _, err := cp.ComputeClient.KubernetesApi.K8sFindByClusterId(ctx, clusterID).Depth(utils.DepthQueryParam).Execute()
+	if err != nil {
+		return false, err
+	}
+	if cluster.HasEntities() {
+		if cluster.Entities.HasNodepools() {
+			if cluster.Entities.Nodepools.HasItems() {
+				if len(*cluster.Entities.Nodepools.Items) > 0 {
+					return true, nil
+				}
+			}
+		}
+	}
+	return false, nil
+}
+
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 	return cp.ComputeClient
@@ -61,14 +80,12 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClusterForPost, error) {
 	instanceCreateInput := sdkgo.KubernetesClusterForPost{
 		Properties: &sdkgo.KubernetesClusterPropertiesForPost{
-			Name: &cr.Spec.ForProvider.Name,
+			Name:   &cr.Spec.ForProvider.Name,
+			Public: &cr.Spec.ForProvider.Public,
 		},
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.K8sVersion)) {
 		instanceCreateInput.Properties.SetK8sVersion(cr.Spec.ForProvider.K8sVersion)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Public)) {
-		instanceCreateInput.Properties.SetPublic(cr.Spec.ForProvider.Public)
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.APISubnetAllowList)) {
 		instanceCreateInput.Properties.SetApiSubnetAllowList(cr.Spec.ForProvider.APISubnetAllowList)
@@ -167,6 +184,8 @@ func IsK8sClusterUpToDate(cr *v1alpha1.Cluster, cluster sdkgo.KubernetesCluster)
 		return false
 	case cluster.Properties.K8sVersion != nil && *cluster.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
 		return false
+	case cluster.Properties.S3Buckets != nil && !isEqS3Buckets(cr.Spec.ForProvider.S3Buckets, *cluster.Properties.S3Buckets):
+		return false
 	case cluster.Properties.ApiSubnetAllowList != nil && !utils.ContainsStringSlices(*cluster.Properties.ApiSubnetAllowList, cr.Spec.ForProvider.APISubnetAllowList):
 		return false
 	case cluster.Properties.MaintenanceWindow != nil && cluster.Properties.MaintenanceWindow.Time != nil && *cluster.Properties.MaintenanceWindow.Time != cr.Spec.ForProvider.MaintenanceWindow.Time:
@@ -209,4 +228,17 @@ func apiSubnetAllowList(setAPISubnetAllowList []string) *[]string {
 		}
 	}
 	return &apiSubnets
+}
+
+func isEqS3Buckets(crBuckets []v1alpha1.S3Bucket, buckets []sdkgo.S3Bucket) bool {
+	if len(crBuckets) != len(buckets) {
+		return false
+	}
+	for i, crBucket := range crBuckets {
+		lan := buckets[i]
+		if lan.Name != nil && crBucket.Name != *lan.Name {
+			return false
+		}
+	}
+	return true
 }

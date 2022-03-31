@@ -67,8 +67,9 @@ type DatacenterConfig struct {
 
 // DatacenterObservation are the observable fields of a Datacenter.
 type DatacenterObservation struct {
-	DatacenterID string `json:"datacenterId,omitempty"`
-	State        string `json:"state,omitempty"`
+	DatacenterID         string   `json:"datacenterId,omitempty"`
+	State                string   `json:"state,omitempty"`
+	AvailableCPUFamilies []string `json:"availableCpuFamilies,omitempty"`
 }
 
 // A DatacenterSpec defines the desired state of a Datacenter.

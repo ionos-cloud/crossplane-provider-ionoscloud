@@ -174,6 +174,8 @@ fi
 if [ "$TEST_K8S" = true ]; then
   echo_step "--- k8s cluster tests ---"
   k8s_cluster_tests
+  echo_step "--- k8s nodepool tests ---"
+  k8s_nodepool_tests
 fi
 
 echo_step "-------------------"
@@ -201,6 +203,8 @@ if [ "$TEST_DBAAS" = true ]; then
 fi
 
 if [ "$TEST_K8S" = true ]; then
+  echo_step "--- k8s nodepool tests ---"
+  k8s_nodepool_tests_cleanup
   echo_step "--- k8s cluster tests ---"
   k8s_cluster_tests_cleanup
 fi

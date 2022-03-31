@@ -143,6 +143,7 @@ func (c *externalDatacenter) Observe(ctx context.Context, mg resource.Managed) (
 
 	cr.Status.AtProvider.DatacenterID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = *instance.Metadata.State
+	cr.Status.AtProvider.AvailableCPUFamilies, _ = c.service.GetCPUFamiliesForDatacenter(ctx, cr.Status.AtProvider.DatacenterID)
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
 	switch cr.Status.AtProvider.State {

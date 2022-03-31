@@ -1,0 +1,53 @@
+# Use this file to create a K8s NodePool CR.
+# Required values for creating a K8s NodePool CR are:
+# - Name,
+# - ClusterConfig (via ID or reference),
+# - DatacenterConfig (via ID or reference),
+# - NodeCount,
+# - CoresCount,
+# - RAMSize,
+# - AvailabilityZone,
+# - StorageType,
+# - StorageSize.
+# Note: If the NodePool is part of a Private K8s Cluster,
+# it is required to set gatewayIp field.
+apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
+kind: NodePool
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleK8sNodepool
+    nodeCount: 1
+    # Note: If the CPU Family is not set, the Crossplane Provider
+    # will set the first one offered by the Datacenter.
+    cpuFamily: AMD_OPTERON
+    coresCount: 1
+    ramSize: 2048
+    availabilityZone: AUTO
+    storageType: HDD
+    storageSize: 10
+    #    gatewayIp:
+    #    lans:
+    #      - lanConfig:
+    #          lanIdRef:
+    #            name:
+    #        dhcp:
+    #        routes:
+    #          - network:
+    #            gatewayIp:
+    #    autoScaling:
+    #      minNodeCount: 1
+    #      maxNodeCount: 2
+    #    labels:
+    #      key: "value"
+    #    annotations:
+    #      key: "value"
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    clusterConfig:
+      clusterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
