@@ -54,6 +54,12 @@ export IONOS_PASSWORD=xxx
 export BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
 ```
 
+or
+
+```bash
+export IONOS_TOKEN=xxx
+```
+
 - clone this repository locally:
 
 ```bash
@@ -63,20 +69,20 @@ cd crossplane-provider-ionoscloud
 
 ## Setup Crossplane Provider IONOS Cloud
 
-1. Create a K8s cluster (in case of using kind):
+**1. Create a K8s cluster (in case of using kind):**
 
 ```bash
 kind create cluster --name crossplane-example
 kubectl config use-context kind-crossplane-example
 ```
 
-2. Create namespace for the crossplane ecosystem:
+**2. Create namespace for the crossplane ecosystem:**
 
 ```bash
 kubectl create namespace crossplane-system
 ```
 
-3. Install crossplane via helm:
+**3. Install crossplane via helm:**
 
 ```bash
 helm repo add crossplane-stable https://charts.crossplane.io/stable
@@ -84,7 +90,7 @@ helm repo update
 helm install crossplane --namespace crossplane-system crossplane-stable/crossplane
 ```
 
-4. Register CRDs into k8s cluster:
+**4. Register CRDs into k8s cluster:**
 
 ```bash
 kubectl apply -f package/crds/ -R
@@ -92,7 +98,7 @@ kubectl apply -f package/crds/ -R
 
 > Note: Before continuing, you can check if `kubectl get providers` will recognize the CRDs of type `providers`. The command should return `No resources found`.
 
-5. Install ProviderConfig, for credentials:
+**5. Install ProviderConfig, for credentials:**
 
 ```bash
 export BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
@@ -107,12 +113,20 @@ kubectl create secret generic --namespace crossplane-system example-provider-sec
 kubectl apply -f examples/provider/config.yaml
 ```
 
-_Note_: You can overwrite the default IONOS Cloud API endpoint, by setting `host_url` option in credentials struct: `--from-literal=credentials="{\"host_url\":\"${IONOS_API_URL}\"}"`
+_Note_: You can overwrite the default IONOS Cloud API endpoint, by setting `host_url` option in credentials
+struct: `--from-literal=credentials="{\"host_url\":\"${IONOS_API_URL}\"}"`
 
-6. Install Crossplane Provider IONOS Cloud
+**6. Install Crossplane Provider IONOS Cloud**
 
-Create an Image Pull Secret with your credentials, to be able to pull the Crossplane provider packages from the Github
-registry:
+Create an Image Pull Secret with your credentials, to be able to pull the Crossplane provider packages from the GitHub
+registry. You can export environment variables for GitHub access using:
+
+```bash
+export GITHUB_USERNAME=xxx
+export GITHUB_PERSONAL_ACCESSTOKEN=xxx
+```
+
+Create Secret:
 
 ```bash
 kubectl create secret --namespace crossplane-system docker-registry package-pull --docker-server ghcr.io --docker-username $GITHUB_USERNAME --docker-password $GITHUB_PERSONAL_ACCESSTOKEN
@@ -130,7 +144,7 @@ You can install other providers (in this example, helm & kubernetes):
 kubectl apply --namespace crossplane-system -f examples/providers/other-providers.yaml
 ```
 
-7. Check if the Crossplane Provider IONOS Cloud is _installed_ and _healthy_:
+**7. Check if the Crossplane Provider IONOS Cloud is _installed_ and _healthy_:**
 
 ```bash
 kubectl get providers
@@ -161,9 +175,9 @@ Check CRDs:
 kubectl get crds | grep ionoscloud
 ```
 
-A CRD named `clusters.dbaas.postgres.ionoscloud.crossplane.io` should be displayed in the output.
+A CRD named `postgresclusters.dbaas.ionoscloud.crossplane.io` should be displayed in the output.
 
-Next, we will create a Custom Resource(CR) of type `clusters.dbaas.postgres.ionoscloud.crossplane.io` in order to
+Next, we will create a Custom Resource(CR) of type `postgresclusters.dbaas.ionoscloud.crossplane.io` in order to
 provision a DBaaS Postgres Cluster in the IONOS Cloud.
 
 ## Provision Resources in IONOS Cloud
@@ -257,6 +271,26 @@ the cluster):
 ```bash
 kubectl delete -f examples/ionoscloud/dbaas/postgres-cluster.yaml
 ```
+
+See the following tables for DBaaS Postgres resources commands:
+
+<details >
+<summary title="Click to toggle">See <b>CREATE/UPDATE/DELETE</b> Custom Resources Commands </summary>
+
+| CUSTOM RESOURCE | CREATE/UPDATE | DELETE |
+| --- | --- | --- |
+| DBaaS Postgres Cluster | <pre lang="bash">kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/dbaas/postgres-cluster.yaml</pre> |
+
+</details>
+
+<details >
+<summary title="Click to toggle">See <b>GET</b> Custom Resources Commands </summary>
+
+| CUSTOM RESOURCE | GET | GET MORE DETAILS | JSON OUTPUT |
+| --- | --- | --- | --- | 
+|  DBaaS Postgres Cluster  | <pre lang="bash">kubectl get postgresclusters</pre> | <pre lang="bash">kubectl get postgresclusters -o wide</pre> | <pre lang="bash">kubectl get postgresclusters -o json</pre> | 
+
+</details>
 
 ### Compute Engine Resources
 
