@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.1.0-alpha.2] (upcoming release)
+## [0.1.0-alpha.2] (March 2022)
 
 - **Features**:
     - New CRDs added:
