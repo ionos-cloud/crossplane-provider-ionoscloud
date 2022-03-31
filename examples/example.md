@@ -84,7 +84,7 @@ helm repo update
 helm install crossplane --namespace crossplane-system crossplane-stable/crossplane
 ```
 
-4. Create CRDs:
+4. Register CRDs into k8s cluster:
 
 ```bash
 kubectl apply -f package/crds/ -R
@@ -92,13 +92,22 @@ kubectl apply -f package/crds/ -R
 
 > Note: Before continuing, you can check if `kubectl get providers` will recognize the CRDs of type `providers`. The command should return `No resources found`.
 
-5. Install provider config, for credentials:
+5. Install ProviderConfig, for credentials:
 
 ```bash
 export BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
 kubectl create secret generic --namespace crossplane-system example-provider-secret --from-literal=credentials="{\"user\":\"${IONOS_USERNAME}\",\"password\":\"${BASE64_PW}\"}"
 kubectl apply -f examples/provider/config.yaml
 ```
+
+or
+
+```bash
+kubectl create secret generic --namespace crossplane-system example-provider-secret --from-literal=credentials="{\"token\":\"${IONOS_TOKEN}\"}"
+kubectl apply -f examples/provider/config.yaml
+```
+
+_Note_: You can overwrite the default IONOS Cloud API endpoint, by setting `host_url` option in credentials struct: `--from-literal=credentials="{\"host_url\":\"${IONOS_API_URL}\"}"`
 
 6. Install Crossplane Provider IONOS Cloud
 

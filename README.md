@@ -35,7 +35,51 @@ For tagging images, use:
 make docker.tag VERSION=v0.x.x
 ```
 
+## Setup Crossplane Provider IONOS Cloud
+
+In order to setup Crossplane Provider IONOS Cloud, see details
+in [here](examples/example.md#setup-crossplane-provider-ionos-cloud).
+
+## Authentication on IONOS Cloud
+
+Crossplane Provider IONOS Cloud uses [ProviderConfig](examples/provider/config.yaml) in order to setup credentials via
+secrets. You can use environments variables when creating the `ProviderConfig` resource.
+
+<details >
+<summary title="Click to toggle">See <b>ENVIRONMENT VARIABLES</b></summary>
+
+Environment Variable | Description
+--- | --- 
+`IONOS_USERNAME` | Specify the username used to login, to authenticate against the IONOS Cloud API | 
+`IONOS_PASSWORD` | Specify the password used to login, to authenticate against the IONOS Cloud API | 
+`IONOS_TOKEN` | Specify the token used to login, if a token is being used instead of username and password |
+`IONOS_API_URL` | Specify the API URL. It will overwrite the API endpoint default value `api.ionos.com`. Note: the host URL does not contain the `/cloudapi/v6` path, so it should _not_ be included in the `IONOS_API_URL` environment variable |
+
+</details>
+
+Create `Secret` using username and password and `ProviderConfig`:
+
+```bash
+export BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
+kubectl create secret generic --namespace crossplane-system example-provider-secret --from-literal=credentials="{\"user\":\"${IONOS_USERNAME}\",\"password\":\"${BASE64_PW}\"}"
+kubectl apply -f examples/provider/config.yaml
+```
+
+Create `Secret` using token and `ProviderConfig`:
+
+```bash
+kubectl create secret generic --namespace crossplane-system example-provider-secret --from-literal=credentials="{\"token\":\"${IONOS_TOKEN}\"}"
+kubectl apply -f examples/provider/config.yaml
+```
+
+_Note_: You can overwrite the default IONOS Cloud API endpoint, by setting `host_url` option in credentials
+struct: `credentials="{\"host_url\":\"${IONOS_API_URL}\"}"`.
+
 ## Provision Resources on IONOS Cloud
+
+The Crossplane Provider for IONOS Cloud gives the ability to manage IONOS Cloud infrastructure directly from Kubernetes,
+using Custom Resource Definitions(CRDs). All CRDs are _Cluster Scoped_ (not being created in only one specific
+namespace, but on the entire cluster).
 
 Check the following tables to see an updated list of the CRDs and corresponding IONOS Cloud Resources that Crossplane
 Provider IONOS Cloud supports.
@@ -125,7 +169,8 @@ make e2e
 
 If the images have a specific version, other than `latest`, this can be set via `make e2e VERSION=v0.x.x`.
 
-Daily workflows with all end-to-end integration tests are running using Github Actions. You can check their status [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/actions/workflows/ci-daily.yml).
+Daily workflows with all end-to-end integration tests are running using Github Actions. You can check their
+status [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/actions/workflows/ci-daily.yml).
 
 ## Debug Mode
 
