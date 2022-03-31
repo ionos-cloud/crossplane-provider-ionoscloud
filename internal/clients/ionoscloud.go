@@ -34,20 +34,25 @@ type IonosServices struct {
 	ComputeClient       *sdkgo.APIClient
 }
 
-// credentials specify how to authenticate with the IONOS API
+// credentials specify how to authenticate with the IONOS Cloud API
 type credentials struct {
 	// Username to use
 	User string `json:"user"`
-	// Password to use. The password must be base64 encoded to prevent parsing anc escaping issues with special characters.
+
+	// Password to use
+	// The password must be base64 encoded to prevent parsing anc escaping issues with special characters.
 	Password string `json:"password"`
-	// Token is used instead of username and password if both are empty
+
+	// Token can be used instead of username and password
 	Token string `json:"token"`
-	// HostURL is the baseURL of the IONOS API. Optional.
+
+	// HostURL is the baseURL of the IONOS Cloud API.
+	// It can be used for overwriting the default endpoint. Optional.
 	HostURL string `json:"host_url"`
 }
 
-// NewIonosClients creates a IonosService from the given data. The data must be a json struct with the fields `User` and
-// `Password`. Both fields must be a string value. The password string must be base64 encoded.
+// NewIonosClients creates a IonosService from the given data. The data must be a json struct with the fields `User`,
+// `Password`, `Token`. Both fields must be a string value. The password string must be base64 encoded.
 func NewIonosClients(data []byte) (*IonosServices, error) {
 	creds := credentials{}
 	if err := json.Unmarshal(data, &creds); err != nil {
