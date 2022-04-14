@@ -1,0 +1,29 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: example
+  labels:
+    crossplane.io/xrd: xdatacenters.compute.example.org
+    provider: ionoscloud
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: compute.example.org/v1alpha1
+    kind: XDatacenter
+  resources:
+    - name: exampleresource
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: Datacenter
+        name: exampledc
+        spec:
+          forProvider:
+            name: exampleDatacenter
+            location: us/las
+            description: test
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.location
+          toFieldPath: spec.forProvider.location

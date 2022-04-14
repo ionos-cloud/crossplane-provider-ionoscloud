@@ -1,0 +1,8 @@
+apiVersion: compute.example.org/v1alpha1
+kind: Datacenter
+metadata:
+  namespace: crossplane-system
+  name: my-dc-test
+spec:
+  parameters:
+    location: de/txl

@@ -1,0 +1,32 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xdatacenters.compute.example.org
+spec:
+  group: compute.example.org
+  names:
+    kind: XDatacenter
+    plural: xdatacenters
+  claimNames:
+    kind: Datacenter
+    plural: datacenter
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                parameters:
+                  type: object
+                  properties:
+                    location:
+                      type: string
+                  required:
+                    - location
+              required:
+                - parameters
