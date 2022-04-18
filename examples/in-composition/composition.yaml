@@ -15,7 +15,6 @@ spec:
       base:
         apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
         kind: Datacenter
-        name: exampledc
         spec:
           forProvider:
             name: exampleDatacenter
@@ -27,3 +26,9 @@ spec:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.location
           toFieldPath: spec.forProvider.location
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.name
+          toFieldPath: spec.forProvider.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.description
+          toFieldPath: spec.forProvider.description

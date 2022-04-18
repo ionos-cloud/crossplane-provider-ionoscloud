@@ -6,7 +6,9 @@ spec:
   group: compute.example.org
   names:
     kind: XDatacenter
+    listKind: XDatacenterList
     plural: xdatacenters
+    singular: xdatacenter
   claimNames:
     kind: Datacenter
     plural: datacenter
@@ -17,6 +19,7 @@ spec:
       schema:
         openAPIV3Schema:
           type: object
+          description: A XDatacenter is a composite resource
           properties:
             spec:
               type: object
@@ -24,6 +27,10 @@ spec:
                 parameters:
                   type: object
                   properties:
+                    name:
+                      type: string
+                    description:
+                      type: string
                     location:
                       type: string
                   required:

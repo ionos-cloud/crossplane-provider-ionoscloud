@@ -1,0 +1,9 @@
+apiVersion: compute.example.org/v1alpha1
+kind: XDatacenter
+metadata:
+  name: my-dc-testxr
+spec:
+  parameters:
+    name: testExampleXR
+    description: testExampleDescription
+    location: de/txl
