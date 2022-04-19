@@ -1,0 +1,15 @@
+apiVersion: platform.example.org/v1alpha1
+kind: ClusterInstance
+metadata:
+  # Claims are namespaced scoped, comparing with XR.
+  namespace: crossplane-system
+  name: my-cluster-ref
+spec:
+  parameters:
+    datacenterName: testExample
+    datacenterDescription: testExampleDescription
+    datacenterLocation: us/las
+    clusterName: testK8sCluster
+    clusterPublic: true
+    nodepoolName: testK8sNodepool
+    nodepoolCpuFamily: AMD_OPTERON

@@ -1,0 +1,13 @@
+apiVersion: platform.example.org/v1alpha1
+kind: XClusterInstance
+metadata:
+  name: my-cluster-refxr
+spec:
+  parameters:
+    datacenterName: testExampleXR
+    datacenterDescription: testExampleDescriptionXR
+    datacenterLocation: us/las
+    clusterName: testK8sClusterXR
+    clusterPublic: true
+    nodepoolName: testK8sNodepoolXR
+    nodepoolCpuFamily: AMD_OPTERON

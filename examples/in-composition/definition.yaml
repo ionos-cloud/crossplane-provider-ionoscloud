@@ -1,17 +1,17 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: CompositeResourceDefinition
 metadata:
-  name: xdatacenters.compute.example.org
+  name: xclusterinstances.platform.example.org
 spec:
-  group: compute.example.org
+  group: platform.example.org
   names:
-    kind: XDatacenter
-    listKind: XDatacenterList
-    plural: xdatacenters
-    singular: xdatacenter
+    kind: XClusterInstance
+    plural: xclusterinstances
+    singular: xclusterinstance
   claimNames:
-    kind: Datacenter
-    plural: datacenter
+    kind: ClusterInstance
+    plural: clusterinstances
+    singular: clusterinstance
   versions:
     - name: v1alpha1
       served: true
@@ -19,7 +19,7 @@ spec:
       schema:
         openAPIV3Schema:
           type: object
-          description: A XDatacenter is a composite resource
+          description: A XClusterInstance is a composite resource
           properties:
             spec:
               type: object
@@ -27,13 +27,26 @@ spec:
                 parameters:
                   type: object
                   properties:
-                    name:
+                    datacenterName:
                       type: string
-                    description:
+                    datacenterLocation:
                       type: string
-                    location:
+                    datacenterDescription:
+                      type: string
+                    clusterName:
+                      type: string
+                    clusterPublic:
+                      type: boolean
+                    nodepoolName:
+                      type: string
+                    nodepoolCpuFamily:
                       type: string
                   required:
-                    - location
+                    - datacenterName
+                    - datacenterLocation
+                    - clusterPublic
+                    - clusterName
+                    - nodepoolName
+                    - nodepoolCpuFamily
               required:
                 - parameters
