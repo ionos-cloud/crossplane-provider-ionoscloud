@@ -277,8 +277,8 @@ See the following tables for DBaaS Postgres resources commands:
 <details >
 <summary title="Click to toggle">See <b>CREATE/UPDATE/DELETE</b> Custom Resources Commands </summary>
 
-| CUSTOM RESOURCE | CREATE/UPDATE | DELETE |
-| --- | --- | --- |
+| CUSTOM RESOURCE        | CREATE/UPDATE                                                                           | DELETE                                                                                   |
+|------------------------|-----------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
 | DBaaS Postgres Cluster | <pre lang="bash">kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/dbaas/postgres-cluster.yaml</pre> |
 
 </details>
@@ -286,9 +286,9 @@ See the following tables for DBaaS Postgres resources commands:
 <details >
 <summary title="Click to toggle">See <b>GET</b> Custom Resources Commands </summary>
 
-| CUSTOM RESOURCE | GET | GET MORE DETAILS | JSON OUTPUT |
-| --- | --- | --- | --- | 
-|  DBaaS Postgres Cluster  | <pre lang="bash">kubectl get postgresclusters</pre> | <pre lang="bash">kubectl get postgresclusters -o wide</pre> | <pre lang="bash">kubectl get postgresclusters -o json</pre> | 
+| CUSTOM RESOURCE        | GET                                                 | GET MORE DETAILS                                            | JSON OUTPUT                                                 |
+|------------------------|-----------------------------------------------------|-------------------------------------------------------------|-------------------------------------------------------------|
+| DBaaS Postgres Cluster | <pre lang="bash">kubectl get postgresclusters</pre> | <pre lang="bash">kubectl get postgresclusters -o wide</pre> | <pre lang="bash">kubectl get postgresclusters -o json</pre> | 
 
 </details>
 
@@ -302,32 +302,32 @@ Check the following tables for available commands for Compute Engine Resources:
 <details >
 <summary title="Click to toggle">See <b>CREATE/UPDATE/DELETE</b> Custom Resources Commands </summary>
 
-| CUSTOM RESOURCE | CREATE/UPDATE | DELETE |
-| --- | --- | --- |
-| IPBlock | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/ipblock.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/ipblock.yaml</pre> | 
-| Datacenter | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/datacenter.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/datacenter.yaml</pre> | 
-| Server | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/server.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/server.yaml</pre> | 
-| Volume | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/volume.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/volume.yaml</pre> | 
-| Lan | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/lan.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/lan.yaml</pre> | 
-| NIC | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/nic.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/nic.yaml</pre> | 
-| FirewallRule | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/firewallrule.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/firewallrule.yaml</pre> | 
-| IPFailover | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/ipfailover.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/ipfailover.yaml</pre> | 
+| CUSTOM RESOURCE | CREATE/UPDATE                                                                         | DELETE                                                                                 |
+|-----------------|---------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| IPBlock         | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/ipblock.yaml</pre>      | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/ipblock.yaml</pre>      | 
+| Datacenter      | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/datacenter.yaml</pre>   | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/datacenter.yaml</pre>   | 
+| Server          | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/server.yaml</pre>       | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/server.yaml</pre>       | 
+| Volume          | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/volume.yaml</pre>       | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/volume.yaml</pre>       | 
+| Lan             | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/lan.yaml</pre>          | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/lan.yaml</pre>          | 
+| NIC             | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/nic.yaml</pre>          | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/nic.yaml</pre>          | 
+| FirewallRule    | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/firewallrule.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/firewallrule.yaml</pre> | 
+| IPFailover      | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/ipfailover.yaml</pre>   | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/ipfailover.yaml</pre>   | 
 
 </details>
 
 <details >
 <summary title="Click to toggle">See <b>GET</b> Custom Resources Commands </summary>
 
-| CUSTOM RESOURCE | GET | GET MORE DETAILS | JSON OUTPUT |
-| --- | --- | --- | --- | 
-| IPBlock | <pre lang="bash">kubectl get ipblocks</pre> | <pre lang="bash">kubectl get ipblocks -o wide</pre> | <pre lang="bash">kubectl get ipblocks -o json</pre> | 
-| Datacenter | <pre lang="bash">kubectl get datacenters</pre> | <pre lang="bash">kubectl get datacenters -o wide</pre> | <pre lang="bash">kubectl get datacenters -o json</pre> | 
-| Server | <pre lang="bash">kubectl get servers</pre> | <pre lang="bash">kubectl get servers -o wide</pre> | <pre lang="bash">kubectl get servers -o json</pre> | 
-| Volume | <pre lang="bash">kubectl get volumes</pre> | <pre lang="bash">kubectl get volumes -o wide</pre> | <pre lang="bash">kubectl get volumes -o json</pre> | 
-| Lan | <pre lang="bash">kubectl get lans</pre> | <pre lang="bash">kubectl get lans -o wide</pre> | <pre lang="bash">kubectl get lans -o json</pre> | 
-| NIC | <pre lang="bash">kubectl get nics</pre> | <pre lang="bash">kubectl get nics -o wide</pre> | <pre lang="bash">kubectl get nics -o json</pre> | 
-| FirewallRule | <pre lang="bash">kubectl get firewallrules</pre> | <pre lang="bash">kubectl get firewallrules -o wide</pre> | <pre lang="bash">kubectl get firewallrules -o json</pre> | 
-| IPFailover | <pre lang="bash">kubectl get ipfailovers</pre> | <pre lang="bash">kubectl get ipfailovers -o wide</pre> | <pre lang="bash">kubectl get ipfailovers -o json</pre> | 
+| CUSTOM RESOURCE | GET                                              | GET MORE DETAILS                                         | JSON OUTPUT                                              |
+|-----------------|--------------------------------------------------|----------------------------------------------------------|----------------------------------------------------------|
+| IPBlock         | <pre lang="bash">kubectl get ipblocks</pre>      | <pre lang="bash">kubectl get ipblocks -o wide</pre>      | <pre lang="bash">kubectl get ipblocks -o json</pre>      | 
+| Datacenter      | <pre lang="bash">kubectl get datacenters</pre>   | <pre lang="bash">kubectl get datacenters -o wide</pre>   | <pre lang="bash">kubectl get datacenters -o json</pre>   | 
+| Server          | <pre lang="bash">kubectl get servers</pre>       | <pre lang="bash">kubectl get servers -o wide</pre>       | <pre lang="bash">kubectl get servers -o json</pre>       | 
+| Volume          | <pre lang="bash">kubectl get volumes</pre>       | <pre lang="bash">kubectl get volumes -o wide</pre>       | <pre lang="bash">kubectl get volumes -o json</pre>       | 
+| Lan             | <pre lang="bash">kubectl get lans</pre>          | <pre lang="bash">kubectl get lans -o wide</pre>          | <pre lang="bash">kubectl get lans -o json</pre>          | 
+| NIC             | <pre lang="bash">kubectl get nics</pre>          | <pre lang="bash">kubectl get nics -o wide</pre>          | <pre lang="bash">kubectl get nics -o json</pre>          | 
+| FirewallRule    | <pre lang="bash">kubectl get firewallrules</pre> | <pre lang="bash">kubectl get firewallrules -o wide</pre> | <pre lang="bash">kubectl get firewallrules -o json</pre> | 
+| IPFailover      | <pre lang="bash">kubectl get ipfailovers</pre>   | <pre lang="bash">kubectl get ipfailovers -o wide</pre>   | <pre lang="bash">kubectl get ipfailovers -o json</pre>   | 
 
 </details>
 
@@ -348,20 +348,20 @@ Check the following tables for available commands for Kubernetes Resources:
 <details >
 <summary title="Click to toggle">See <b>CREATE/UPDATE/DELETE</b> Custom Resources Commands </summary>
 
-| CUSTOM RESOURCE | CREATE/UPDATE | DELETE |
-| --- | --- | --- |
-| K8s Cluster | <pre lang="bash">kubectl apply -f examples/ionoscloud/k8s/k8s-cluster.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/k8s/k8s-cluster.yaml</pre> | 
-| K8s NodePool | <pre lang="bash">kubectl apply -f examples/ionoscloud/k8s/k8s-nodepool.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/k8s/k8s-nodepool.yaml</pre> | 
+| CUSTOM RESOURCE | CREATE/UPDATE                                                                     | DELETE                                                                             |
+|-----------------|-----------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| K8s Cluster     | <pre lang="bash">kubectl apply -f examples/ionoscloud/k8s/k8s-cluster.yaml</pre>  | <pre lang="bash">kubectl delete -f examples/ionoscloud/k8s/k8s-cluster.yaml</pre>  | 
+| K8s NodePool    | <pre lang="bash">kubectl apply -f examples/ionoscloud/k8s/k8s-nodepool.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/k8s/k8s-nodepool.yaml</pre> | 
 
 </details>
 
 <details >
 <summary title="Click to toggle">See <b>GET</b> Custom Resources Commands </summary>
 
-| CUSTOM RESOURCE | GET | GET MORE DETAILS | JSON OUTPUT |
-| --- | --- | --- | --- | 
-| K8s Cluster | <pre lang="bash">kubectl get clusters.k8s.ionoscloud.crossplane.io</pre> | <pre lang="bash">kubectl get clusters.k8s.ionoscloud.crossplane.io -o wide</pre> | <pre lang="bash">kubectl get clusters.k8s.ionoscloud.crossplane.io -o json</pre> | 
-| K8s NodePool | <pre lang="bash">kubectl get nodepools.k8s.ionoscloud.crossplane.io</pre> | <pre lang="bash">kubectl get nodepools.k8s.ionoscloud.crossplane.io -o wide</pre> | <pre lang="bash">kubectl get nodepools.k8s.ionoscloud.crossplane.io -o json</pre> | 
+| CUSTOM RESOURCE | GET                                                                       | GET MORE DETAILS                                                                  | JSON OUTPUT                                                                       |
+|-----------------|---------------------------------------------------------------------------|-----------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| K8s Cluster     | <pre lang="bash">kubectl get clusters.k8s.ionoscloud.crossplane.io</pre>  | <pre lang="bash">kubectl get clusters.k8s.ionoscloud.crossplane.io -o wide</pre>  | <pre lang="bash">kubectl get clusters.k8s.ionoscloud.crossplane.io -o json</pre>  | 
+| K8s NodePool    | <pre lang="bash">kubectl get nodepools.k8s.ionoscloud.crossplane.io</pre> | <pre lang="bash">kubectl get nodepools.k8s.ionoscloud.crossplane.io -o wide</pre> | <pre lang="bash">kubectl get nodepools.k8s.ionoscloud.crossplane.io -o json</pre> | 
 
 </details>
 

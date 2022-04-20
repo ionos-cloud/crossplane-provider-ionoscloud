@@ -48,12 +48,12 @@ secrets. You can use environments variables when creating the `ProviderConfig` r
 <details >
 <summary title="Click to toggle">See <b>ENVIRONMENT VARIABLES</b></summary>
 
-Environment Variable | Description
---- | --- 
-`IONOS_USERNAME` | Specify the username used to login, to authenticate against the IONOS Cloud API | 
-`IONOS_PASSWORD` | Specify the password used to login, to authenticate against the IONOS Cloud API | 
-`IONOS_TOKEN` | Specify the token used to login, if a token is being used instead of username and password |
-`IONOS_API_URL` | Specify the API URL. It will overwrite the API endpoint default value `api.ionos.com`. Note: the host URL does not contain the `/cloudapi/v6` path, so it should _not_ be included in the `IONOS_API_URL` environment variable |
+| Environment Variable | Description                                                                                                                                                                                                                    |
+|----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `IONOS_USERNAME`     | Specify the username used to login, to authenticate against the IONOS Cloud API                                                                                                                                                | 
+| `IONOS_PASSWORD`     | Specify the password used to login, to authenticate against the IONOS Cloud API                                                                                                                                                | 
+ | `IONOS_TOKEN`        | Specify the token used to login, if a token is being used instead of username and password                                                                                                                                     |
+ | `IONOS_API_URL`      | Specify the API URL. It will overwrite the API endpoint default value `api.ionos.com`. Note: the host URL does not contain the `/cloudapi/v6` path, so it should _not_ be included in the `IONOS_API_URL` environment variable |
 
 </details>
 
@@ -90,9 +90,9 @@ check: [Provision Resources in IONOS Cloud](examples/example.md#provision-resour
 <details >
 <summary title="Click to toggle">See <b>DBaaS Postgres</b> Resources </summary>
 
-| RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION |
-| --- | --- |
-| DBaaS Postgres Clusters | `postgresclusters.dbaas.ionoscloud.crossplane.io` |
+| RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION                        |
+|--------------------------|---------------------------------------------------|
+| DBaaS Postgres Clusters  | `postgresclusters.dbaas.ionoscloud.crossplane.io` |
 
 </details>
 
@@ -102,16 +102,16 @@ see: [DBaaS Postgres](examples/example.md#dbaas-postgres-resources).
 <details >
 <summary title="Click to toggle">See <b>Compute Engine</b> Resources </summary>
 
-| RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION |
-| --- | --- |
-| IPBlocks | `ipblocks.compute.ionoscloud.crossplane.io` |
-| Datacenters | `datacenters.compute.ionoscloud.crossplane.io` |
-| Servers | `servers.compute.ionoscloud.crossplane.io` |
-| Volumes | `volumes.compute.ionoscloud.crossplane.io` |
-| Lans | `lans.compute.ionoscloud.crossplane.io` |
-| NICs | `nics.compute.ionoscloud.crossplane.io` |
-| FirewallRules | `firewallrules.compute.ionoscloud.crossplane.io` |
-| IPFailovers | `ipfailovers.compute.ionoscloud.crossplane.io` |
+| RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION                       |
+|--------------------------|--------------------------------------------------|
+| IPBlocks                 | `ipblocks.compute.ionoscloud.crossplane.io`      |
+| Datacenters              | `datacenters.compute.ionoscloud.crossplane.io`   |
+| Servers                  | `servers.compute.ionoscloud.crossplane.io`       |
+| Volumes                  | `volumes.compute.ionoscloud.crossplane.io`       |
+| Lans                     | `lans.compute.ionoscloud.crossplane.io`          |
+| NICs                     | `nics.compute.ionoscloud.crossplane.io`          |
+| FirewallRules            | `firewallrules.compute.ionoscloud.crossplane.io` |
+| IPFailovers              | `ipfailovers.compute.ionoscloud.crossplane.io`   |
 
 </details>
 
@@ -121,10 +121,10 @@ see: [Compute Engine Resources](examples/example.md#compute-engine-resources).
 <details >
 <summary title="Click to toggle">See <b>Kubernetes</b> Resources </summary>
 
-| RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION |
-| --- | --- |
-| K8s Clusters | `clusters.k8s.ionoscloud.crossplane.io` |
-| K8s NodePools | `nodepools.k8s.ionoscloud.crossplane.io` |
+| RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION               |
+|--------------------------|------------------------------------------|
+| K8s Clusters             | `clusters.k8s.ionoscloud.crossplane.io`  |
+| K8s NodePools            | `nodepools.k8s.ionoscloud.crossplane.io` |
 
 </details>
 
