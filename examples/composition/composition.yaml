@@ -1,0 +1,89 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: example
+  labels:
+    crossplane.io/xrd: xclusterinstances.platform.example.org
+    provider: ionoscloud
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: platform.example.org/v1alpha1
+    kind: XClusterInstance
+  resources:
+    - name: exampledatacenter
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: Datacenter
+        spec:
+          forProvider:
+            name: exampleDatacenter
+            location: us/las
+            description: test
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.datacenterLocation
+          toFieldPath: spec.forProvider.location
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.datacenterName
+          toFieldPath: spec.forProvider.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.datacenterDescription
+          toFieldPath: spec.forProvider.description
+    - name: examplecluster
+      base:
+        apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
+        kind: Cluster
+        spec:
+          forProvider:
+            name: exampleK8sCluster
+            public: true
+          writeConnectionSecretToRef:
+            namespace: default
+            name: kubeconfig
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.clusterName
+          toFieldPath: spec.forProvider.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.clusterPublic
+          toFieldPath: spec.forProvider.public
+    - name: examplenodepool
+      base:
+        apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
+        kind: NodePool
+        spec:
+          forProvider:
+            name: exampleK8sNodepool
+            nodeCount: 1
+            cpuFamily: AMD_OPTERON
+            coresCount: 1
+            ramSize: 2048
+            availabilityZone: AUTO
+            storageType: HDD
+            storageSize: 10
+            datacenterConfig:
+              datacenterIdRef:
+                name: example
+            clusterConfig:
+              clusterIdRef:
+                name: example
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.nodepoolName
+          toFieldPath: spec.forProvider.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.nodepoolCpuFamily
+          toFieldPath: spec.forProvider.nodepoolCpuFamily
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[0].name
+          toFieldPath: spec.forProvider.datacenterConfig.datacenterIdRef.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[1].name
+          toFieldPath: spec.forProvider.clusterConfig.clusterIdRef.name

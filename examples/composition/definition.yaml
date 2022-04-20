@@ -1,0 +1,52 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xclusterinstances.platform.example.org
+spec:
+  group: platform.example.org
+  names:
+    kind: XClusterInstance
+    plural: xclusterinstances
+    singular: xclusterinstance
+  claimNames:
+    kind: ClusterInstance
+    plural: clusterinstances
+    singular: clusterinstance
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: A XClusterInstance is a composite resource
+          properties:
+            spec:
+              type: object
+              properties:
+                parameters:
+                  type: object
+                  properties:
+                    datacenterName:
+                      type: string
+                    datacenterLocation:
+                      type: string
+                    datacenterDescription:
+                      type: string
+                    clusterName:
+                      type: string
+                    clusterPublic:
+                      type: boolean
+                    nodepoolName:
+                      type: string
+                    nodepoolCpuFamily:
+                      type: string
+                  required:
+                    - datacenterName
+                    - datacenterLocation
+                    - clusterPublic
+                    - clusterName
+                    - nodepoolName
+                    - nodepoolCpuFamily
+              required:
+                - parameters
