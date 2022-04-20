@@ -11,9 +11,12 @@ This file contains an up-to-date list with the Managed Resources supported by Cr
 
 Before using the following commands for resources, make sure to follow the next recommendations:
 
-- clone the Github Repository locally to easily access the examples folder(**NOTE**: all commands are run from the root
-  of the `crossplane-provider-ionoscloud` directory);
-- update the examples provided accordingly with the desired specifications for your infrastructure.
+- clone the [Github Repository](https://github.com/ionos-cloud/crossplane-provider-ionoscloud) locally to easily access
+  the [examples](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples) folder(**Note**:
+  all commands presented in this document should be run from the root of the `crossplane-provider-ionoscloud` directory)
+  ;
+- update the [examples](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples) provided
+  accordingly with the desired specifications for your infrastructure.
 
 ### Compute Engine Managed Resources
 
@@ -88,7 +91,8 @@ Notes:
 - Kubernetes Controllers main objective is to keep the system into the desired state - so if an external resource is
   updated or deleted (using other tools: e.g. [DCD](https://dcd.ionos.com/latest/)
   , [ionosctl](https://github.com/ionos-cloud/ionosctl)), the `crossplane-provider-ionoscloud` controller will recreate
-  the resource automatically. Crossplane acts like the only source of truth for the resources provisioned via CRDs.
+  the resource automatically. Crossplane acts like it is the only source of truth for the resources provisioned via
+  Managed Resources.
 
 ### Kubernetes Managed Resources
 
@@ -172,9 +176,9 @@ Notes:
 
 ## References
 
-References are used in order to reference other resources on which the new created resources are dependent. Using
-referenced resources, the user can create for example, a datacenter and a lan using one command, without to manually
-update the lan CR specification file with the required datacenter ID.
+References are used in order to reference other resources on which the new resources are dependent. Using referenced
+resources, the user can create for example, a datacenter and a lan using one command, without to manually update the lan
+CR specification file with the required datacenter ID.
 
 The references are resolved **only once**, when the resource is created, and the resolvers are generated
 using [crossplane-tools](https://github.com/crossplane/crossplane-tools).
@@ -207,25 +211,29 @@ Resources) it should create when someone creates the XR.
 #### Define Composite Resources
 
 First step is to define the `CompositeResourceDefinition` so that Crossplane knows which XRs you would like to create
-and what fields that XRs should have. In the example provided, this is done in the definition file.
+and what fields that XRs should have. In the example provided, this is done in
+the [definition file](../examples/composition/definition.yaml).
 
 #### Configure Compositions
 
 Next step is to teach Crossplane what to do when a Composite Resource is created. Compositions are linking an XR with
 one or multiple CRs (ipblocks, postgresclusters, nodepools, clusters, etc). Basically, the user controls the CRs for
 IONOS Cloud Resources via XRs: when an XR is created, updated or deleted, according to the Composition configured,
-Crossplane will create, update, or delete CRs. In the example provided, this is done in the composition file.
+Crossplane will create, update, or delete CRs. In the example provided, this is done in
+the [composition file](../examples/composition/composition.yaml).
 
 #### Claim Composite Resources
 
 After defining Composite Resources and configuring Compositions, the next step is to create Composite Resource Claims (
 aka claims). A difference between and XRs and claims is that claims are namespaced scoped, while XRs are cluster scoped.
-Also, an XR contains references to the CRs, while claim contains reference to the corresponding XR.
+Also, an XR contains references to the CRs, while claim contains reference to the corresponding XR. In the example
+provided, a claim is defined in the [claim file](../examples/composition/claim.yaml), while an XR
+in [composite file](../examples/composition/composite.yaml).
 
 ### Example
 
 An example for creating a Datacenter, a Kubernetes Cluster and a Kubernetes NodePool via Compositions and Claims can be
-found here.
+found [here](../examples/composition).
 
 ### More Details
 
