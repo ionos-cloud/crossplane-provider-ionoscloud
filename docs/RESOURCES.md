@@ -1,11 +1,29 @@
 # Crossplane Provider IONOS Cloud Managed Resources
 
+## Table of Contents
+
+1. [Introduction](#introduction)
+2. [Provisioning Resources in IONOS Cloud](#provisioning-resources-in-ionos-cloud)
+    1. [Compute Engine Managed Resources](#compute-engine-managed-resources)
+    2. [Kubernetes Managed Resources](#kubernetes-managed-resources)
+    3. [DBaaS Postgres Managed Resources](#dbaas-postgres-managed-resources)
+3. [References](#references)
+4. [Compositions and Claims](#compositions-and-claims)
+    1. [Steps](#steps)
+        1. [Define Composite Resources](#define-composite-resources)
+        2. [Configure Compositions](#configure-compositions)
+        3. [Claim Composite Resources](#claim-composite-resources)
+    2. [Example](#example)
+    3. [More Details](#more-details)
+
+## Introduction
+
 Crossplane Provider IONOS Cloud contains a Controller and Custom Resource Definitions(CRDs). The CRDs are defined in
 sync with the API and contain the desired state, the Controller has a reconcile loop, and it constantly compares the
 desired state vs actual state and takes action to reach the desired state. Using the Go SDKs for the corresponding cloud
 servies, the controller performs CRUD operations and resources are managed in IONOS Cloud.
 
-This file contains an up-to-date list with the Managed Resources supported by Crossplane Provider IONOS Cloud.
+This file contains an up-to-date list of the Managed Resources supported by Crossplane Provider IONOS Cloud.
 
 ## Provisioning Resources in IONOS Cloud
 
