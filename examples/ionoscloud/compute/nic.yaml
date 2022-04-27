@@ -4,7 +4,7 @@ metadata:
   name: example
 spec:
   forProvider:
-    name: exampleIpBlock
+    name: exampleIpBlockSecSec
     size: 3
     location: us/las
   providerConfigRef:
@@ -16,7 +16,7 @@ metadata:
   name: exampleipblock
 spec:
   forProvider:
-    name: exampleIpBlockSec
+    name: exampleIpBlockSecSec
     size: 2
     location: us/las
   providerConfigRef:
@@ -28,7 +28,7 @@ metadata:
   name: example
 spec:
   forProvider:
-    name: exampleDatacenter
+    name: exampleDatacentersec
     location: us/las
     description: test
   providerConfigRef:
@@ -80,12 +80,12 @@ spec:
     name: exampleNic
     dhcp: false
     ipsConfig:
-      ipblockConfigs:
-        - ipblockIdRef:
-            name: exampleipblock
-          indexes: [1]
-        - ipblockIdRef:
-            name: example
+#      ipblockConfigs:
+#        - ipblockIdRef:
+#            name: exampleipblock
+#          indexes: [1]
+#        - ipblockIdRef:
+#            name: example
     #    ips:
     #      - 162.222.200.10
     #      - 162.222.200.11
