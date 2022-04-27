@@ -441,6 +441,11 @@ spec:
   forProvider:
     name: exampleNic
     dhcp: false
+    ipsConfig:
+      ipblockConfigs:
+        - ipblockIdRef:
+            name: example
+          indexes: [ 0 ]
     datacenterConfig:
       datacenterIdRef:
         name: example
