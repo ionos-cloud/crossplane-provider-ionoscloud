@@ -45,6 +45,31 @@ type IPBlockParameters struct {
 	Size int32 `json:"size"`
 }
 
+// IPBlockConfig is used by resources that need to link ipblock via id or via reference.
+type IPBlockConfig struct {
+	// NicID is the ID of the IPBlock on which the resource will be created.
+	// It needs to be provided via directly or via reference.
+	//
+	// +immutable
+	// +kubebuilder:validation:Format=uuid
+	// +crossplane:generate:reference:type=IPBlock
+	// +crossplane:generate:reference:extractor=ExtractIPBlockID()
+	IPBlockID string `json:"ipblockId,omitempty"`
+	// IPBlockIDRef references to a IPBlock to retrieve its ID
+	//
+	// +optional
+	// +immutable
+	IPBlockIDRef *xpv1.Reference `json:"ipblockIdRef,omitempty"`
+	// IPBlockIDSelector selects reference to a IPBlock to retrieve its nicId
+	//
+	// +optional
+	IPBlockIDSelector *xpv1.Selector `json:"ipblockIdSelector,omitempty"`
+	// Indexes are referring to the IPs indexes retrieved from the IPBlock.
+	//
+	// +optional
+	Indexes []int `json:"indexes,omitempty"`
+}
+
 // IPBlockObservation are the observable fields of a IPBlock.
 type IPBlockObservation struct {
 	IPBlockID string   `json:"ipBlockId,omitempty"`

@@ -201,7 +201,7 @@ func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodeP
 		return false
 	case nodepool.Properties.GatewayIp != nil && *nodepool.Properties.GatewayIp != cr.Spec.ForProvider.GatewayIP:
 		return false
-	case nodepool.Properties.PublicIps != nil && !utils.IsEqStringSlices(*nodepool.Properties.PublicIps, cr.Spec.ForProvider.PublicIPs):
+	case nodepool.Properties.PublicIps != nil && !utils.ContainsStringSlices(*nodepool.Properties.PublicIps, cr.Spec.ForProvider.PublicIPs):
 		return false
 	case nodepool.Properties.Labels != nil && !utils.IsEqStringMaps(*nodepool.Properties.Labels, cr.Spec.ForProvider.Labels):
 		return false

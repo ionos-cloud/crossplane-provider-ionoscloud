@@ -1,3 +1,70 @@
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleIpBlock
+    size: 3
+    location: us/las
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
+metadata:
+  name: exampleipblock
+spec:
+  forProvider:
+    name: exampleIpBlockSec
+    size: 2
+    location: us/las
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleDatacenter
+    location: us/las
+    description: test
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Server
+metadata:
+  name: exampleserver
+spec:
+  forProvider:
+    name: exampleServer
+    cores: 2
+    ram: 2048
+    availabilityZone: AUTO
+    cpuFamily: AMD_OPTERON
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: examplelan
+spec:
+  forProvider:
+    name: exampleLan
+    public: true
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
 # Use this file to create a Nic CR.
 # Required values for creating a Nic CR are:
 # - DatacenterConfig (via ID or reference),
@@ -12,6 +79,13 @@ spec:
   forProvider:
     name: exampleNic
     dhcp: false
+    ipsConfig:
+      ipblockConfigs:
+        - ipblockIdRef:
+            name: exampleipblock
+          indexes: [1]
+        - ipblockIdRef:
+            name: example
     #    ips:
     #      - 162.222.200.10
     #      - 162.222.200.11

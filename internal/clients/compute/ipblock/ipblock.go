@@ -22,12 +22,36 @@ type Client interface {
 	CreateIPBlock(ctx context.Context, ipBlock sdkgo.IpBlock) (sdkgo.IpBlock, *sdkgo.APIResponse, error)
 	UpdateIPBlock(ctx context.Context, ipBlockID string, ipBlock sdkgo.IpBlockProperties) (sdkgo.IpBlock, *sdkgo.APIResponse, error)
 	DeleteIPBlock(ctx context.Context, ipBlockID string) (*sdkgo.APIResponse, error)
+	GetIPs(ctx context.Context, ipBlockID string, indexes ...int) ([]string, error)
 	GetAPIClient() *sdkgo.APIClient
 }
 
 // GetIPBlock based on ipBlockID
 func (cp *APIClient) GetIPBlock(ctx context.Context, ipBlockID string) (sdkgo.IpBlock, *sdkgo.APIResponse, error) {
 	return cp.ComputeClient.IPBlocksApi.IpblocksFindById(ctx, ipBlockID).Depth(utils.DepthQueryParam).Execute()
+}
+
+// GetIPs based on ipBlockID and indexes. Indexes is an optional arg, if it is not provided, all IPs will be returned.
+func (cp *APIClient) GetIPs(ctx context.Context, ipBlockID string, indexes ...int) ([]string, error) {
+	ipblockIds := make([]string, 0)
+	ipblock, _, err := cp.ComputeClient.IPBlocksApi.IpblocksFindById(ctx, ipBlockID).Depth(utils.DepthQueryParam).Execute()
+	if err != nil {
+		return nil, err
+	}
+	if properties, ok := ipblock.GetPropertiesOk(); ok && properties != nil {
+		if ipsOk, ok := properties.GetIpsOk(); ok && ipsOk != nil {
+			ips := *ipsOk
+			if len(indexes) == 0 {
+				ipblockIds = append(ipblockIds, ips...)
+			}
+			for _, index := range indexes {
+				if index < len(ips) {
+					ipblockIds = append(ipblockIds, ips[index])
+				}
+			}
+		}
+	}
+	return ipblockIds, nil
 }
 
 // CreateIPBlock based on IPBlock properties

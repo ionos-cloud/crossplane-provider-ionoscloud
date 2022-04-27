@@ -67,7 +67,7 @@ func IsStringInSlice(input []string, specific string) bool {
 }
 
 // ContainsStringSlices will return true if the second slice string
-// contains string of the first slice string.
+// contains string of the first slice string. Same length
 func ContainsStringSlices(first, second []string) bool {
 	if len(first) != len(second) {
 		return false

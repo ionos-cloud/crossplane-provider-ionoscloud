@@ -37,7 +37,7 @@ spec:
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
       name: NIC ID
       type: string
-    - jsonPath: .spec.forProvider.ips
+    - jsonPath: .status.atProvider.ips
       name: IPS
       priority: 1
       type: string
@@ -135,14 +135,66 @@ spec:
                     - EGRESS
                     - INGRESS
                     type: string
-                  ips:
+                  ipsConfig:
                     description: Collection of IP addresses, assigned to the NIC.
                       Explicitly assigned public IPs need to come from reserved IP
                       blocks. Passing value null or empty array will assign an IP
-                      address automatically.
-                    items:
-                      type: string
-                    type: array
+                      address automatically. The IPs can be set directly or using
+                      reference to the existing IPBlocks and indexes. If no indexes
+                      are set, all IPs from the corresponding IPBlock will be assigned.
+                      All IPs set on the Nic will be displayed on the status's ips
+                      field.
+                    properties:
+                      ipblockConfigs:
+                        items:
+                          description: IPBlockConfig is used by resources that need
+                            to link ipblock via id or via reference.
+                          properties:
+                            indexes:
+                              description: Indexes are referring to the IPs indexes
+                                retrieved from the IPBlock.
+                              items:
+                                type: integer
+                              type: array
+                            ipblockId:
+                              description: NicID is the ID of the IPBlock on which
+                                the resource will be created. It needs to be provided
+                                via directly or via reference.
+                              format: uuid
+                              type: string
+                            ipblockIdRef:
+                              description: IPBlockIDRef references to a IPBlock to
+                                retrieve its ID
+                              properties:
+                                name:
+                                  description: Name of the referenced object.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            ipblockIdSelector:
+                              description: IPBlockIDSelector selects reference to
+                                a IPBlock to retrieve its nicId
+                              properties:
+                                matchControllerRef:
+                                  description: MatchControllerRef ensures an object
+                                    with the same controller reference as the selecting
+                                    object is selected.
+                                  type: boolean
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  description: MatchLabels ensures an object with
+                                    matching labels is selected.
+                                  type: object
+                              type: object
+                          type: object
+                        type: array
+                      ips:
+                        items:
+                          type: string
+                        type: array
+                    type: object
                   lanConfig:
                     description: LanConfig contains information about the lan resource
                       on which the nic will be on
@@ -278,6 +330,10 @@ spec:
               atProvider:
                 description: NicObservation are the observable fields of a Nic.
                 properties:
+                  ips:
+                    items:
+                      type: string
+                    type: array
                   nicId:
                     type: string
                   state:
