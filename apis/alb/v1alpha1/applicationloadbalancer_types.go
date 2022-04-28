@@ -32,7 +32,8 @@ import (
 // ListenerLanConfig (via ID or via reference),
 // TargetLanConfig (via ID or via reference).
 type ApplicationLoadBalancerParameters struct {
-	// A Datacenter, to which the user has access.
+	// A Datacenter, to which the user has access, to provision
+	// the ApplicationLoadBalancer in.
 	//
 	// +immutable
 	// +kubebuilder:validation:Required
@@ -54,6 +55,9 @@ type ApplicationLoadBalancerParameters struct {
 	// Collection of the Application Load Balancer IP addresses.
 	// (Inbound and outbound) IPs of the listenerLan are customer-reserved public IPs for
 	// the public Load Balancers, and private IPs for the private Load Balancers.
+	// The IPs can be set directly or using reference to the existing IPBlocks and indexes.
+	// If no indexes are set, all IPs from the corresponding IPBlock will be assigned.
+	// All IPs set on the Nic will be displayed on the status's ips field.
 	//
 	// +optional
 	// +kubebuilder:validation:Optional
@@ -144,6 +148,7 @@ type IPBlockConfig struct {
 // ApplicationLoadBalancerObservation are the observable fields of an ApplicationLoadBalancer.
 type ApplicationLoadBalancerObservation struct {
 	ApplicationLoadBalancerID string   `json:"applicationLoadBalancerId,omitempty"`
+	PublicIPs                 []string `json:"publicIps,omitempty"`
 	State                     string   `json:"state,omitempty"`
 	AvailableUpgradeVersions  []string `json:"availableUpgradeVersions,omitempty"`
 	ViableNodePoolVersions    []string `json:"viableNodePoolVersions,omitempty"`
@@ -171,7 +176,7 @@ type ApplicationLoadBalancerStatus struct {
 // +kubebuilder:printcolumn:name="APPLICATIONLOADBALANCER NAME",type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="LISTENER LAN",priority=1,type="string",JSONPath=".spec.forProvider.listenerLanConfig.lanId"
 // +kubebuilder:printcolumn:name="TARGET LAN",priority=1,type="string",JSONPath=".spec.forProvider.targetLanConfig.lanId"
-// +kubebuilder:printcolumn:name="IPS",priority=1,type="string",JSONPath=".spec.forProvider.ipsConfig.ips"
+// +kubebuilder:printcolumn:name="IPS",priority=1,type="string",JSONPath=".status.atProvider.publicIps"
 // +kubebuilder:printcolumn:name="LB PRIVATE IPS",priority=1,type="string",JSONPath=".spec.forProvider.lbPrivateIps"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"

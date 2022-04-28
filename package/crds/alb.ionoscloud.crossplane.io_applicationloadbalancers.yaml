@@ -42,7 +42,7 @@ spec:
       name: TARGET LAN
       priority: 1
       type: string
-    - jsonPath: .spec.forProvider.ipsConfig.ips
+    - jsonPath: .status.atProvider.publicIps
       name: IPS
       priority: 1
       type: string
@@ -94,7 +94,8 @@ spec:
                   (via ID or via reference).'
                 properties:
                   datacenterConfig:
-                    description: A Datacenter, to which the user has access.
+                    description: A Datacenter, to which the user has access, to provision
+                      the ApplicationLoadBalancer in.
                     properties:
                       datacenterId:
                         description: DatacenterID is the ID of the Datacenter on which
@@ -133,7 +134,11 @@ spec:
                     description: Collection of the Application Load Balancer IP addresses.
                       (Inbound and outbound) IPs of the listenerLan are customer-reserved
                       public IPs for the public Load Balancers, and private IPs for
-                      the private Load Balancers.
+                      the private Load Balancers. The IPs can be set directly or using
+                      reference to the existing IPBlocks and indexes. If no indexes
+                      are set, all IPs from the corresponding IPBlock will be assigned.
+                      All IPs set on the Nic will be displayed on the status's ips
+                      field.
                     properties:
                       ipblockConfigs:
                         items:
@@ -329,6 +334,10 @@ spec:
                   applicationLoadBalancerId:
                     type: string
                   availableUpgradeVersions:
+                    items:
+                      type: string
+                    type: array
+                  publicIps:
                     items:
                       type: string
                     type: array
