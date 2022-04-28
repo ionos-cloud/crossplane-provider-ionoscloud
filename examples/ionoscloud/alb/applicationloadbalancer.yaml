@@ -67,8 +67,8 @@ spec:
       lanIdRef:
         name: examplelan
     ipsConfig:
-      ipblockConfigs:
-        - ipblockIdRef:
+      ipBlockConfigs:
+        - ipBlockIdRef:
             name: example
           indexes: [ 0, 2 ]
   providerConfigRef:

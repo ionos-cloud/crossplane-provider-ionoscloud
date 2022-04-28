@@ -140,7 +140,7 @@ spec:
                       All IPs set on the Nic will be displayed on the status's ips
                       field.
                     properties:
-                      ipblockConfigs:
+                      ipBlockConfigs:
                         items:
                           description: IPBlockConfig is used by resources that need
                             to link ipblock via id or via reference.
@@ -151,13 +151,13 @@ spec:
                               items:
                                 type: integer
                               type: array
-                            ipblockId:
+                            ipBlockId:
                               description: NicID is the ID of the IPBlock on which
                                 the resource will be created. It needs to be provided
                                 via directly or via reference.
                               format: uuid
                               type: string
-                            ipblockIdRef:
+                            ipBlockIdRef:
                               description: IPBlockIDRef references to a IPBlock to
                                 retrieve its ID
                               properties:
@@ -167,7 +167,7 @@ spec:
                               required:
                               - name
                               type: object
-                            ipblockIdSelector:
+                            ipBlockIdSelector:
                               description: IPBlockIDSelector selects reference to
                                 a IPBlock to retrieve its nicId
                               properties:

@@ -130,16 +130,16 @@ type IPBlockConfig struct {
 	// +kubebuilder:validation:Format=uuid
 	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.IPBlock
 	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractIPBlockID()
-	IPBlockID string `json:"ipblockId,omitempty"`
+	IPBlockID string `json:"ipBlockId,omitempty"`
 	// IPBlockIDRef references to a IPBlock to retrieve its ID
 	//
 	// +optional
 	// +immutable
-	IPBlockIDRef *xpv1.Reference `json:"ipblockIdRef,omitempty"`
+	IPBlockIDRef *xpv1.Reference `json:"ipBlockIdRef,omitempty"`
 	// IPBlockIDSelector selects reference to a IPBlock to retrieve its nicId
 	//
 	// +optional
-	IPBlockIDSelector *xpv1.Selector `json:"ipblockIdSelector,omitempty"`
+	IPBlockIDSelector *xpv1.Selector `json:"ipBlockIdSelector,omitempty"`
 	// Indexes are referring to the IPs indexes retrieved from the IPBlock.
 	//
 	// +optional
