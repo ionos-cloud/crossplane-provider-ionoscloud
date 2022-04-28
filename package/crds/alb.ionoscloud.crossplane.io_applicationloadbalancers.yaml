@@ -1,0 +1,322 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.6.2
+  creationTimestamp: null
+  name: applicationloadbalancers.alb.ionoscloud.crossplane.io
+spec:
+  group: alb.ionoscloud.crossplane.io
+  names:
+    categories:
+    - crossplane
+    - managed
+    - ionoscloud
+    kind: ApplicationLoadBalancer
+    listKind: ApplicationLoadBalancerList
+    plural: applicationloadbalancers
+    singular: applicationloadbalancer
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: READY
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Synced')].status
+      name: SYNCED
+      type: string
+    - jsonPath: .spec.forProvider.datacenterConfig.datacenterId
+      name: DATACENTER ID
+      type: string
+    - jsonPath: .metadata.annotations.crossplane\.io/external-name
+      name: APPLICATIONLOADBALANCER ID
+      type: string
+    - jsonPath: .spec.forProvider.name
+      name: APPLICATIONLOADBALANCER NAME
+      type: string
+    - jsonPath: .spec.forProvider.listenerLan
+      name: LISTENER LAN
+      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.targetLan
+      name: TARGET LAN
+      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.ipsConfig.ips
+      name: IPS
+      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.lbPrivateIps
+      name: LB PRIVATE IPS
+      priority: 1
+      type: string
+    - jsonPath: .status.atProvider.state
+      name: STATE
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: An ApplicationLoadBalancer is an example API type.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ApplicationLoadBalancerSpec defines the desired state of
+              an ApplicationLoadBalancer.
+            properties:
+              deletionPolicy:
+                default: Delete
+                description: DeletionPolicy specifies what will happen to the underlying
+                  external when this managed resource is deleted - either "Delete"
+                  or "Orphan" the external resource.
+                enum:
+                - Orphan
+                - Delete
+                type: string
+              forProvider:
+                description: 'ApplicationLoadBalancerParameters are the observable
+                  fields of an ApplicationLoadBalancer. Required fields in order to
+                  create an ApplicationLoadBalancer:'
+                properties:
+                  datacenterConfig:
+                    description: A Datacenter, to which the user has access.
+                    properties:
+                      datacenterId:
+                        description: DatacenterID is the ID of the Datacenter on which
+                          the resource should have access. It needs to be provided
+                          via directly or via reference.
+                        format: uuid
+                        type: string
+                      datacenterIdRef:
+                        description: DatacenterIDRef references to a Datacenter to
+                          retrieve its ID
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      datacenterIdSelector:
+                        description: DatacenterIDSelector selects reference to a Datacenter
+                          to retrieve its datacenterId
+                        properties:
+                          matchControllerRef:
+                            description: MatchControllerRef ensures an object with
+                              the same controller reference as the selecting object
+                              is selected.
+                            type: boolean
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: MatchLabels ensures an object with matching
+                              labels is selected.
+                            type: object
+                        type: object
+                    type: object
+                  ipsConfig:
+                    description: Collection of the Application Load Balancer IP addresses.
+                      (Inbound and outbound) IPs of the listenerLan are customer-reserved
+                      public IPs for the public Load Balancers, and private IPs for
+                      the private Load Balancers.
+                    properties:
+                      ipblockConfigs:
+                        items:
+                          description: IPBlockConfig is used by resources that need
+                            to link ipblock via id or via reference.
+                          properties:
+                            indexes:
+                              description: Indexes are referring to the IPs indexes
+                                retrieved from the IPBlock.
+                              items:
+                                type: integer
+                              type: array
+                            ipblockId:
+                              description: NicID is the ID of the IPBlock on which
+                                the resource will be created. It needs to be provided
+                                via directly or via reference.
+                              format: uuid
+                              type: string
+                            ipblockIdRef:
+                              description: IPBlockIDRef references to a IPBlock to
+                                retrieve its ID
+                              properties:
+                                name:
+                                  description: Name of the referenced object.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            ipblockIdSelector:
+                              description: IPBlockIDSelector selects reference to
+                                a IPBlock to retrieve its nicId
+                              properties:
+                                matchControllerRef:
+                                  description: MatchControllerRef ensures an object
+                                    with the same controller reference as the selecting
+                                    object is selected.
+                                  type: boolean
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  description: MatchLabels ensures an object with
+                                    matching labels is selected.
+                                  type: object
+                              type: object
+                          type: object
+                        type: array
+                      ips:
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  lbPrivateIps:
+                    description: Collection of private IP addresses with the subnet
+                      mask of the Application Load Balancer. IPs must contain valid
+                      a subnet mask. If no IP is provided, the system will generate
+                      an IP with /24 subnet.
+                    items:
+                      type: string
+                    type: array
+                  listenerLan:
+                    description: ID of the listening (inbound) LAN.
+                    format: int32
+                    type: integer
+                  name:
+                    description: The name of the Application Load Balancer.
+                    type: string
+                  targetLan:
+                    description: ID of the balanced private target LAN (outbound).
+                    format: int32
+                    type: integer
+                required:
+                - datacenterConfig
+                - listenerLan
+                - name
+                - targetLan
+                type: object
+              providerConfigRef:
+                default:
+                  name: default
+                description: ProviderConfigReference specifies how the provider that
+                  will be used to create, observe, update, and delete this managed
+                  resource should be configured.
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                required:
+                - name
+                type: object
+              providerRef:
+                description: 'ProviderReference specifies the provider that will be
+                  used to create, observe, update, and delete this managed resource.
+                  Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`'
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                required:
+                - name
+                type: object
+              writeConnectionSecretToRef:
+                description: WriteConnectionSecretToReference specifies the namespace
+                  and name of a Secret to which any connection details for this managed
+                  resource should be written. Connection details frequently include
+                  the endpoint, username, and password required to connect to the
+                  managed resource.
+                properties:
+                  name:
+                    description: Name of the secret.
+                    type: string
+                  namespace:
+                    description: Namespace of the secret.
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+            required:
+            - forProvider
+            type: object
+          status:
+            description: ApplicationLoadBalancerStatus represents the observed state
+              of an ApplicationLoadBalancer.
+            properties:
+              atProvider:
+                description: ApplicationLoadBalancerObservation are the observable
+                  fields of an ApplicationLoadBalancer.
+                properties:
+                  applicationLoadBalancerId:
+                    type: string
+                  availableUpgradeVersions:
+                    items:
+                      type: string
+                    type: array
+                  state:
+                    type: string
+                  viableNodePoolVersions:
+                    items:
+                      type: string
+                    type: array
+                type: object
+              conditions:
+                description: Conditions of the resource.
+                items:
+                  description: A Condition that may apply to a resource.
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime is the last time this condition
+                        transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A Message containing details about this condition's
+                        last transition from one status to another, if any.
+                      type: string
+                    reason:
+                      description: A Reason for this condition's last transition from
+                        one status to another.
+                      type: string
+                    status:
+                      description: Status of this condition; is it currently True,
+                        False, or Unknown?
+                      type: string
+                    type:
+                      description: Type of this condition. At most one of each condition
+                        type may apply to a resource at any point in time.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

@@ -77,3 +77,17 @@ func ExtractNicID() reference.ExtractValueFn {
 		return meta.GetExternalName(res)
 	}
 }
+
+// ExtractIPBlockID returns the externalName of a referenced IPBlock.
+func ExtractIPBlockID() reference.ExtractValueFn {
+	return func(mg resource.Managed) string {
+		res, ok := mg.(*IPBlock)
+		if !ok {
+			return defaultStringValue
+		}
+		if meta.GetExternalName(res) == res.Name {
+			return defaultStringValue
+		}
+		return meta.GetExternalName(res)
+	}
+}
