@@ -82,11 +82,11 @@ spec:
     name: exampleNic
     dhcp: false
     ipsConfig:
-      ipblockConfigs:
-        - ipblockIdRef:
+      ipBlockConfigs:
+        - ipBlockIdRef:
             name: exampleipblock
           indexes: [ 1 ]
-        - ipblockIdRef:
+        - ipBlockIdRef:
             name: example
     #      ips:
     #        - 162.222.200.10
