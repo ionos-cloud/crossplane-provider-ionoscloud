@@ -63,7 +63,7 @@ type NicParameters struct {
 	// All IPs set on the Nic will be displayed on the status's ips field.
 	//
 	// +kubebuilder:validation:Optional
-	IpsCfg IpsConfig `json:"ipsConfig,omitempty"`
+	IpsCfg IPsConfig `json:"ipsConfig,omitempty"`
 	// Indicates if the NIC will reserve an IP using DHCP.
 	//
 	// +kubebuilder:validation:Required
@@ -78,15 +78,6 @@ type NicParameters struct {
 	// +kubebuilder:validation:Enum=BIDIRECTIONAL;EGRESS;INGRESS
 	// +kubebuilder:validation:Optional
 	FirewallType string `json:"firewallType,omitempty"`
-}
-
-// IpsConfig is used by resources that need to link ips from ipblock via id or via reference
-// and using index. If no index is set, all IPs from the corresponding IPBlock will be assigned.
-// If both ips and ipblockConfigs fields will be set, the IPs assigned will be a sum of the two.
-// All IPs set on the Nic will be displayed on the status's ips field.
-type IpsConfig struct {
-	Ips         []string        `json:"ips,omitempty"`
-	IPBlockCfgs []IPBlockConfig `json:"ipblockConfigs,omitempty"`
 }
 
 // NicConfig is used by resources that need to link nic via id or via reference.

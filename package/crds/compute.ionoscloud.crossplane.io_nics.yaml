@@ -145,24 +145,25 @@ spec:
                       All IPs set on the Nic will be displayed on the status's ips
                       field.
                     properties:
-                      ipblockConfigs:
+                      ipBlockConfigs:
                         items:
                           description: IPBlockConfig is used by resources that need
-                            to link ipblock via id or via reference.
+                            to link IPBlock via id or via reference.
                           properties:
                             indexes:
                               description: Indexes are referring to the IPs indexes
-                                retrieved from the IPBlock.
+                                retrieved from the IPBlock. Indexes are starting from
+                                0.
                               items:
                                 type: integer
                               type: array
-                            ipblockId:
+                            ipBlockId:
                               description: NicID is the ID of the IPBlock on which
                                 the resource will be created. It needs to be provided
                                 via directly or via reference.
                               format: uuid
                               type: string
-                            ipblockIdRef:
+                            ipBlockIdRef:
                               description: IPBlockIDRef references to a IPBlock to
                                 retrieve its ID
                               properties:
@@ -172,7 +173,7 @@ spec:
                               required:
                               - name
                               type: object
-                            ipblockIdSelector:
+                            ipBlockIdSelector:
                               description: IPBlockIDSelector selects reference to
                                 a IPBlock to retrieve its nicId
                               properties:
