@@ -48,7 +48,8 @@ func (cp *APIClient) DeleteIPBlock(ctx context.Context, ipBlockID string) (*sdkg
 	return resp, err
 }
 
-// GetIPs based on ipBlockID and indexes. Indexes is an optional arg, if it is not provided, all IPs will be returned.
+// GetIPs based on ipBlockID and indexes (optional argument).
+// If indexes (0-indexes) are not set, all IPs will be returned.
 func (cp *APIClient) GetIPs(ctx context.Context, ipBlockID string, indexes ...int) ([]string, error) {
 	ipBlockIds := make([]string, 0)
 	ipBlock, _, err := cp.ComputeClient.IPBlocksApi.IpblocksFindById(ctx, ipBlockID).Depth(utils.DepthQueryParam).Execute()
@@ -62,9 +63,10 @@ func (cp *APIClient) GetIPs(ctx context.Context, ipBlockID string, indexes ...in
 				ipBlockIds = append(ipBlockIds, ips...)
 			}
 			for _, index := range indexes {
-				if index < len(ips) {
-					ipBlockIds = append(ipBlockIds, ips[index])
+				if index >= len(ips) {
+					return ipBlockIds, fmt.Errorf("error: index out of range. it must be less than %v", len(ips))
 				}
+				ipBlockIds = append(ipBlockIds, ips[index])
 			}
 			return ipBlockIds, nil
 		}

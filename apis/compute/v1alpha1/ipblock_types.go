@@ -65,6 +65,7 @@ type IPBlockConfig struct {
 	// +optional
 	IPBlockIDSelector *xpv1.Selector `json:"ipBlockIdSelector,omitempty"`
 	// Indexes are referring to the IPs indexes retrieved from the IPBlock.
+	// Indexes are starting from 0.
 	//
 	// +optional
 	Indexes []int `json:"indexes,omitempty"`
