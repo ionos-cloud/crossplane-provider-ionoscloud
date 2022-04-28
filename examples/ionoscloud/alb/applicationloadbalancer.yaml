@@ -1,0 +1,75 @@
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleIpBlock
+    size: 3
+    location: de/txl
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleDatacenter
+    location: de/txl
+    description: test
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: examplelan
+spec:
+  forProvider:
+    name: exampleLan
+    public: true
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleLan
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
+apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
+kind: ApplicationLoadBalancer
+metadata:
+  name: examplealb
+spec:
+  forProvider:
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    name: exampleApplicationLoadBalancer
+    targetLanConfig:
+      lanIdRef:
+        name: example
+    listenerLanConfig:
+      lanIdRef:
+        name: examplelan
+    ipsConfig:
+      ipblockConfigs:
+        - ipblockIdRef:
+            name: example
+          indexes: [ 0, 2 ]
+  providerConfigRef:
+    name: example
