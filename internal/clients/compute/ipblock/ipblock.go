@@ -2,6 +2,7 @@ package ipblock
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
@@ -65,9 +66,11 @@ func (cp *APIClient) GetIPs(ctx context.Context, ipBlockID string, indexes ...in
 					ipBlockIds = append(ipBlockIds, ips[index])
 				}
 			}
+			return ipBlockIds, nil
 		}
+		return nil, fmt.Errorf("error: getting ips from ipblock properties")
 	}
-	return ipBlockIds, nil
+	return nil, fmt.Errorf("error: getting properties from ipblock")
 }
 
 // GetAPIClient gets the APIClient
