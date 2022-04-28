@@ -80,7 +80,7 @@ spec:
                 type: string
               forProvider:
                 description: 'LanParameters are the observable fields of a Lan. Required
-                  values when creating a Lan: Public.'
+                  values when creating a Lan: DatacenterConfig, Public.'
                 properties:
                   datacenterConfig:
                     description: DatacenterConfig contains information about the datacenter

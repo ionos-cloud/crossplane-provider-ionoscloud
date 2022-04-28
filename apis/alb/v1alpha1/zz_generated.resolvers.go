@@ -48,6 +48,38 @@ func (mg *ApplicationLoadBalancer) ResolveReferences(ctx context.Context, c clie
 	mg.Spec.ForProvider.DatacenterCfg.DatacenterID = rsp.ResolvedValue
 	mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef = rsp.ResolvedReference
 
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.ListenerLanCfg.LanID,
+		Extract:      v1alpha1.ExtractLanID(),
+		Reference:    mg.Spec.ForProvider.ListenerLanCfg.LanIDRef,
+		Selector:     mg.Spec.ForProvider.ListenerLanCfg.LanIDSelector,
+		To: reference.To{
+			List:    &v1alpha1.LanList{},
+			Managed: &v1alpha1.Lan{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.ListenerLanCfg.LanID")
+	}
+	mg.Spec.ForProvider.ListenerLanCfg.LanID = rsp.ResolvedValue
+	mg.Spec.ForProvider.ListenerLanCfg.LanIDRef = rsp.ResolvedReference
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.TargetLanCfg.LanID,
+		Extract:      v1alpha1.ExtractLanID(),
+		Reference:    mg.Spec.ForProvider.TargetLanCfg.LanIDRef,
+		Selector:     mg.Spec.ForProvider.TargetLanCfg.LanIDSelector,
+		To: reference.To{
+			List:    &v1alpha1.LanList{},
+			Managed: &v1alpha1.Lan{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.TargetLanCfg.LanID")
+	}
+	mg.Spec.ForProvider.TargetLanCfg.LanID = rsp.ResolvedValue
+	mg.Spec.ForProvider.TargetLanCfg.LanIDRef = rsp.ResolvedReference
+
 	for i4 := 0; i4 < len(mg.Spec.ForProvider.IpsCfg.IPBlockCfgs); i4++ {
 		rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
 			CurrentValue: mg.Spec.ForProvider.IpsCfg.IPBlockCfgs[i4].IPBlockID,

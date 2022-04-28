@@ -34,11 +34,11 @@ spec:
     - jsonPath: .spec.forProvider.name
       name: APPLICATIONLOADBALANCER NAME
       type: string
-    - jsonPath: .spec.forProvider.listenerLan
+    - jsonPath: .spec.forProvider.listenerLanConfig.lanId
       name: LISTENER LAN
       priority: 1
       type: string
-    - jsonPath: .spec.forProvider.targetLan
+    - jsonPath: .spec.forProvider.targetLanConfig.lanId
       name: TARGET LAN
       priority: 1
       type: string
@@ -89,7 +89,9 @@ spec:
               forProvider:
                 description: 'ApplicationLoadBalancerParameters are the observable
                   fields of an ApplicationLoadBalancer. Required fields in order to
-                  create an ApplicationLoadBalancer:'
+                  create an ApplicationLoadBalancer: DatacenterConfig (via ID or via
+                  reference), Name, ListenerLanConfig (via ID or via reference), TargetLanConfig
+                  (via ID or via reference).'
                 properties:
                   datacenterConfig:
                     description: A Datacenter, to which the user has access.
@@ -191,22 +193,86 @@ spec:
                     items:
                       type: string
                     type: array
-                  listenerLan:
-                    description: ID of the listening (inbound) LAN.
-                    format: int32
-                    type: integer
+                  listenerLanConfig:
+                    description: ID of the listening (inbound) LAN. Lan ID can be
+                      set directly or via reference.
+                    properties:
+                      lanId:
+                        description: LanID is the ID of the Lan on which the resource
+                          will be created. It needs to be provided via directly or
+                          via reference.
+                        type: string
+                      lanIdRef:
+                        description: LanIDRef references to a Lan to retrieve its
+                          ID
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      lanIdSelector:
+                        description: LanIDSelector selects reference to a Lan to retrieve
+                          its lanId
+                        properties:
+                          matchControllerRef:
+                            description: MatchControllerRef ensures an object with
+                              the same controller reference as the selecting object
+                              is selected.
+                            type: boolean
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: MatchLabels ensures an object with matching
+                              labels is selected.
+                            type: object
+                        type: object
+                    type: object
                   name:
                     description: The name of the Application Load Balancer.
                     type: string
-                  targetLan:
+                  targetLanConfig:
                     description: ID of the balanced private target LAN (outbound).
-                    format: int32
-                    type: integer
+                      Lan ID can be set directly or via reference.
+                    properties:
+                      lanId:
+                        description: LanID is the ID of the Lan on which the resource
+                          will be created. It needs to be provided via directly or
+                          via reference.
+                        type: string
+                      lanIdRef:
+                        description: LanIDRef references to a Lan to retrieve its
+                          ID
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      lanIdSelector:
+                        description: LanIDSelector selects reference to a Lan to retrieve
+                          its lanId
+                        properties:
+                          matchControllerRef:
+                            description: MatchControllerRef ensures an object with
+                              the same controller reference as the selecting object
+                              is selected.
+                            type: boolean
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: MatchLabels ensures an object with matching
+                              labels is selected.
+                            type: object
+                        type: object
+                    type: object
                 required:
                 - datacenterConfig
-                - listenerLan
+                - listenerLanConfig
                 - name
-                - targetLan
+                - targetLanConfig
                 type: object
               providerConfigRef:
                 default:

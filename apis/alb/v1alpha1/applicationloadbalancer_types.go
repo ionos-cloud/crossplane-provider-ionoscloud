@@ -27,6 +27,10 @@ import (
 
 // ApplicationLoadBalancerParameters are the observable fields of an ApplicationLoadBalancer.
 // Required fields in order to create an ApplicationLoadBalancer:
+// DatacenterConfig (via ID or via reference),
+// Name,
+// ListenerLanConfig (via ID or via reference),
+// TargetLanConfig (via ID or via reference).
 type ApplicationLoadBalancerParameters struct {
 	// A Datacenter, to which the user has access.
 	//
@@ -38,13 +42,15 @@ type ApplicationLoadBalancerParameters struct {
 	// +kubebuilder:validation:Required
 	Name string `json:"name"`
 	// ID of the listening (inbound) LAN.
+	// Lan ID can be set directly or via reference.
 	//
 	// +kubebuilder:validation:Required
-	ListenerLan int32 `json:"listenerLan"`
+	ListenerLanCfg LanConfig `json:"listenerLanConfig"`
 	// ID of the balanced private target LAN (outbound).
+	// Lan ID can be set directly or via reference.
 	//
 	// +kubebuilder:validation:Required
-	TargetLan int32 `json:"targetLan"`
+	TargetLanCfg LanConfig `json:"targetLanConfig"`
 	// Collection of the Application Load Balancer IP addresses.
 	// (Inbound and outbound) IPs of the listenerLan are customer-reserved public IPs for
 	// the public Load Balancers, and private IPs for the private Load Balancers.
@@ -80,6 +86,26 @@ type DatacenterConfig struct {
 	//
 	// +optional
 	DatacenterIDSelector *xpv1.Selector `json:"datacenterIdSelector,omitempty"`
+}
+
+// LanConfig is used by resources that need to link lans via id or via reference.
+type LanConfig struct {
+	// LanID is the ID of the Lan on which the resource will be created.
+	// It needs to be provided via directly or via reference.
+	//
+	// +immutable
+	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.Lan
+	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractLanID()
+	LanID string `json:"lanId,omitempty"`
+	// LanIDRef references to a Lan to retrieve its ID
+	//
+	// +optional
+	// +immutable
+	LanIDRef *xpv1.Reference `json:"lanIdRef,omitempty"`
+	// LanIDSelector selects reference to a Lan to retrieve its lanId
+	//
+	// +optional
+	LanIDSelector *xpv1.Selector `json:"lanIdSelector,omitempty"`
 }
 
 // IpsConfig is used by resources that need to link ips from ipblock via id or via reference
@@ -143,8 +169,8 @@ type ApplicationLoadBalancerStatus struct {
 // +kubebuilder:printcolumn:name="DATACENTER ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
 // +kubebuilder:printcolumn:name="APPLICATIONLOADBALANCER ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="APPLICATIONLOADBALANCER NAME",type="string",JSONPath=".spec.forProvider.name"
-// +kubebuilder:printcolumn:name="LISTENER LAN",priority=1,type="string",JSONPath=".spec.forProvider.listenerLan"
-// +kubebuilder:printcolumn:name="TARGET LAN",priority=1,type="string",JSONPath=".spec.forProvider.targetLan"
+// +kubebuilder:printcolumn:name="LISTENER LAN",priority=1,type="string",JSONPath=".spec.forProvider.listenerLanConfig.lanId"
+// +kubebuilder:printcolumn:name="TARGET LAN",priority=1,type="string",JSONPath=".spec.forProvider.targetLanConfig.lanId"
 // +kubebuilder:printcolumn:name="IPS",priority=1,type="string",JSONPath=".spec.forProvider.ipsConfig.ips"
 // +kubebuilder:printcolumn:name="LB PRIVATE IPS",priority=1,type="string",JSONPath=".spec.forProvider.lbPrivateIps"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
