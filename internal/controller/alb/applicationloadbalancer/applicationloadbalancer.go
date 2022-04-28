@@ -280,12 +280,12 @@ func (c *externalApplicationLoadBalancer) Delete(ctx context.Context, mg resourc
 }
 
 func (c *externalApplicationLoadBalancer) getIpsSet(ctx context.Context, cr *v1alpha1.ApplicationLoadBalancer) ([]string, error) {
-	if len(cr.Spec.ForProvider.IpsCfg.Ips) == 0 && len(cr.Spec.ForProvider.IpsCfg.IPBlockCfgs) == 0 {
+	if len(cr.Spec.ForProvider.IpsCfg.IPs) == 0 && len(cr.Spec.ForProvider.IpsCfg.IPBlockCfgs) == 0 {
 		return nil, nil
 	}
 	ips := make([]string, 0)
-	if len(cr.Spec.ForProvider.IpsCfg.Ips) > 0 {
-		ips = append(ips, cr.Spec.ForProvider.IpsCfg.Ips...)
+	if len(cr.Spec.ForProvider.IpsCfg.IPs) > 0 {
+		ips = append(ips, cr.Spec.ForProvider.IpsCfg.IPs...)
 	}
 	if len(cr.Spec.ForProvider.IpsCfg.IPBlockCfgs) > 0 {
 		for _, cfg := range cr.Spec.ForProvider.IpsCfg.IPBlockCfgs {

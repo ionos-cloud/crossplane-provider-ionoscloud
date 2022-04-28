@@ -61,7 +61,7 @@ type ApplicationLoadBalancerParameters struct {
 	//
 	// +optional
 	// +kubebuilder:validation:Optional
-	IpsCfg IpsConfig `json:"ipsConfig,omitempty"`
+	IpsCfg IPsConfig `json:"ipsConfig,omitempty"`
 	// Collection of private IP addresses with the subnet mask of the Application Load Balancer.
 	// IPs must contain valid a subnet mask.
 	// If no IP is provided, the system will generate an IP with /24 subnet.
@@ -112,12 +112,13 @@ type LanConfig struct {
 	LanIDSelector *xpv1.Selector `json:"lanIdSelector,omitempty"`
 }
 
-// IpsConfig is used by resources that need to link ips from ipblock via id or via reference
-// and using index. If no index is set, all IPs from the corresponding IPBlock will be assigned.
-// If both ips and ipblockConfigs fields will be set, the IPs assigned will be a sum of the two.
-type IpsConfig struct {
-	Ips         []string        `json:"ips,omitempty"`
-	IPBlockCfgs []IPBlockConfig `json:"ipblockConfigs,omitempty"`
+// IPsConfig is used by resources that need to link ips from IPBlock via id or via reference
+// and using index. Indexes start from 0, and multiple indexes can be set.
+// If no index is set, all IPs from the corresponding IPBlock will be assigned.
+// If both IPs and IPBlockConfigs fields are set, the sum from the both will be used.
+type IPsConfig struct {
+	IPs         []string        `json:"ips,omitempty"`
+	IPBlockCfgs []IPBlockConfig `json:"ipBlockConfigs,omitempty"`
 }
 
 // IPBlockConfig is used by resources that need to link ipblock via id or via reference.

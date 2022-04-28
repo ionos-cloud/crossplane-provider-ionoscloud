@@ -2,6 +2,7 @@ package ipblock
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
@@ -47,27 +48,31 @@ func (cp *APIClient) DeleteIPBlock(ctx context.Context, ipBlockID string) (*sdkg
 	return resp, err
 }
 
-// GetIPs based on ipBlockID and indexes. Indexes is an optional arg, if it is not provided, all IPs will be returned.
+// GetIPs based on ipBlockID and indexes (optional argument).
+// If indexes (0-indexes) are not set, all IPs will be returned.
 func (cp *APIClient) GetIPs(ctx context.Context, ipBlockID string, indexes ...int) ([]string, error) {
-	ipblockIds := make([]string, 0)
-	ipblock, _, err := cp.ComputeClient.IPBlocksApi.IpblocksFindById(ctx, ipBlockID).Depth(utils.DepthQueryParam).Execute()
+	ipBlockIds := make([]string, 0)
+	ipBlock, _, err := cp.ComputeClient.IPBlocksApi.IpblocksFindById(ctx, ipBlockID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
-	if properties, ok := ipblock.GetPropertiesOk(); ok && properties != nil {
+	if properties, ok := ipBlock.GetPropertiesOk(); ok && properties != nil {
 		if ipsOk, ok := properties.GetIpsOk(); ok && ipsOk != nil {
 			ips := *ipsOk
 			if len(indexes) == 0 {
-				ipblockIds = append(ipblockIds, ips...)
+				ipBlockIds = append(ipBlockIds, ips...)
 			}
 			for _, index := range indexes {
-				if index < len(ips) {
-					ipblockIds = append(ipblockIds, ips[index])
+				if index >= len(ips) {
+					return ipBlockIds, fmt.Errorf("error: index out of range. it must be less than %v", len(ips))
 				}
+				ipBlockIds = append(ipBlockIds, ips[index])
 			}
+			return ipBlockIds, nil
 		}
+		return nil, fmt.Errorf("error: getting ips from ipblock properties")
 	}
-	return ipblockIds, nil
+	return nil, fmt.Errorf("error: getting properties from ipblock")
 }
 
 // GetAPIClient gets the APIClient
