@@ -45,6 +45,23 @@ type IPBlockParameters struct {
 	Size int32 `json:"size"`
 }
 
+// IPsConfig is used by resources that need to link ips from IPBlock via id or via reference
+// and using index. Indexes start from 0, and multiple indexes can be set.
+// If no index is set, all IPs from the corresponding IPBlock will be assigned.
+// If both IPs and IPBlockConfigs fields are set, the sum from the both will be used.
+type IPsConfig struct {
+	IPs         []string        `json:"ips,omitempty"`
+	IPBlockCfgs []IPBlockConfig `json:"ipBlockConfigs,omitempty"`
+}
+
+// IPConfig is used by resources that need to link ips from IPBlock via id or via reference
+// and using index. Indexes start from 0, and only one index must be set.
+// If both IPs and IPBlockConfigs fields are set, only ip will be used.
+type IPConfig struct {
+	IP         string        `json:"ip,omitempty"`
+	IPBlockCfg IPBlockConfig `json:"ipBlockConfig,omitempty"`
+}
+
 // IPBlockConfig is used by resources that need to link IPBlock via id or via reference.
 type IPBlockConfig struct {
 	// NicID is the ID of the IPBlock on which the resource will be created.
