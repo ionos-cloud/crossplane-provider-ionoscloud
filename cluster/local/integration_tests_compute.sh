@@ -20,7 +20,7 @@ spec:
   forProvider:
     name: exampleIpBlock
     size: 2
-    location: us/las
+    location: de/txl
   providerConfigRef:
     name: example
 EOF
@@ -46,7 +46,7 @@ spec:
   forProvider:
     name: exampleIpBlockUpdate
     size: 2
-    location: us/las
+    location: de/txl
   providerConfigRef:
     name: example
 EOF
@@ -73,7 +73,7 @@ spec:
   forProvider:
     name: exampleIpBlockUpdate
     size: 2
-    location: us/las
+    location: de/txl
   providerConfigRef:
     name: example
 EOF
