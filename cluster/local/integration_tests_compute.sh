@@ -442,8 +442,8 @@ spec:
     name: exampleNic
     dhcp: false
     ipsConfig:
-      ipblockConfigs:
-        - ipblockIdRef:
+      ipBlockConfigs:
+        - ipBlockIdRef:
             name: example
           indexes: [ 0 ]
     datacenterConfig:
