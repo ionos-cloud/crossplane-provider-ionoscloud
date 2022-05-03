@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.0-alpha.3] (upcoming release)
+
+- **Enhancements**:
+    - Added and updated documentation. See [docs](docs/README.md)
+    - Added example for Compositions and Claims. See [example](docs/RESOURCES.md#compositions-and-claims)
+- **Breaking Changes**:
+    - updated `spec.forProvider.ips` field from **Nic Managed Resource** to `spec.forProvider.ipsConfig` being able to
+      set IPs directly or via references and indexes of the IPBlocks
+
 ## [0.1.0-alpha.2] (March 2022)
 
 - **Features**:
@@ -10,7 +19,7 @@
       values;
     - Added references (using [crossplane-tools](https://github.com/crossplane/crossplane-tools)) on CRDs to be able to
       reference a resource dependency by name.
-    - Debug Mode: see [Provider Logs](README.md#debug-mode)
+    - Debug Mode: see [Provider Logs](docs/README.md#debug-mode)
       using [ControllerConfig](examples/provider/debug-config.yaml)
 - **Enhancements**:
     - Existing CRDs updated:
