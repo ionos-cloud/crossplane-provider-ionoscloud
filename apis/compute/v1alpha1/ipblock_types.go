@@ -48,9 +48,14 @@ type IPBlockParameters struct {
 // IPsConfig is used by resources that need to link ips from IPBlock via id or via reference
 // and using index. Indexes start from 0, and multiple indexes can be set.
 // If no index is set, all IPs from the corresponding IPBlock will be assigned.
-// If both IPs and IPBlockConfigs fields are set, the sum from the both will be used.
+// If both IPs and IPBlockConfigs fields are set, only ips will be used.
 type IPsConfig struct {
-	IPs         []string        `json:"ips,omitempty"`
+	// Public IPS to be assigned to the resource. IPs can be set directly or via reference to IPBlock.
+	// If both IPs and IPBlockConfigs fields are set, the default is IPs and only the ips field will be used.
+	IPs []string `json:"ips,omitempty"`
+	// IPBlockConfigs contain references to IPBlocks, pointing to specific IPs from the IPBlock using indexes.
+	// If both IPs and IPBlockConfigs fields are set, the default is IPs and only the ips field will be used.
+	// If no indexes are set for an IPBlock reference, all IPs from that IPBlock will be used.
 	IPBlockCfgs []IPBlockConfig `json:"ipBlockConfigs,omitempty"`
 }
 
@@ -58,7 +63,11 @@ type IPsConfig struct {
 // and using index. Indexes start from 0, and only one index must be set.
 // If both IPs and IPBlockConfigs fields are set, only ip will be used.
 type IPConfig struct {
-	IP         string        `json:"ip,omitempty"`
+	// Public IP to be assigned to the resource. IP can be set directly or via reference to IPBlock.
+	// If both IP and IPBlockConfig fields are set, the default is IP and only the ip field will be used.
+	IP string `json:"ip,omitempty"`
+	// IPBlockConfig contains reference to IPBlock, pointing to a specific IP from the IPBlock using index.
+	// If both IP and IPBlockConfig fields are set, the default is IP and only the ip field will be used.
 	IPBlockCfg IPBlockConfig `json:"ipBlockConfig,omitempty"`
 }
 

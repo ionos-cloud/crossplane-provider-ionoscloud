@@ -71,7 +71,9 @@ spec:
 # - ServerConfig (via ID or reference),
 # - LanConfig (via ID or reference),
 # - DHCP.
-# IPs can be set directly and via ipblocks references and indexes.
+# IPs can be set directly or via ipBlocks references and indexes.
+# If both ips and ipBlockConfigs fields are set, only the ips
+# field will be used.
 # If no ips are set, API will automatically set one.
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Nic
@@ -88,9 +90,6 @@ spec:
           indexes: [ 1 ]
         - ipBlockIdRef:
             name: example
-    #      ips:
-    #        - 162.222.200.10
-    #        - 162.222.200.11
     #    mac:
     #    firewallActive: true
     firewallType: INGRESS

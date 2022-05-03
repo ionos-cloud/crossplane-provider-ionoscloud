@@ -146,6 +146,12 @@ spec:
                       field.
                     properties:
                       ipBlockConfigs:
+                        description: IPBlockConfigs contain references to IPBlocks,
+                          pointing to specific IPs from the IPBlock using indexes.
+                          If both IPs and IPBlockConfigs fields are set, the default
+                          is IPs and only the ips field will be used. If no indexes
+                          are set for an IPBlock reference, all IPs from that IPBlock
+                          will be used.
                         items:
                           description: IPBlockConfig is used by resources that need
                             to link IPBlock via id or via reference.
@@ -192,6 +198,10 @@ spec:
                           type: object
                         type: array
                       ips:
+                        description: Public IPS to be assigned to the resource. IPs
+                          can be set directly or via reference to IPBlock. If both
+                          IPs and IPBlockConfigs fields are set, the default is IPs
+                          and only the ips field will be used.
                         items:
                           type: string
                         type: array

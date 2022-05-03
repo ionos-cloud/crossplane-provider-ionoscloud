@@ -282,14 +282,17 @@ func (c *externalNic) Delete(ctx context.Context, mg resource.Managed) error {
 	return nil
 }
 
+// getIpsSet will return ips set by the user on ips or ipsConfig fields of the spec.
+// If both fields are set, only the ips field will be considered by the Crossplane
+// Provider IONOS Cloud.
 func (c *externalNic) getIpsSet(ctx context.Context, cr *v1alpha1.Nic) ([]string, error) {
 	if len(cr.Spec.ForProvider.IpsCfg.IPs) == 0 && len(cr.Spec.ForProvider.IpsCfg.IPBlockCfgs) == 0 {
 		return nil, nil
 	}
-	ips := make([]string, 0)
 	if len(cr.Spec.ForProvider.IpsCfg.IPs) > 0 {
-		ips = append(ips, cr.Spec.ForProvider.IpsCfg.IPs...)
+		return cr.Spec.ForProvider.IpsCfg.IPs, nil
 	}
+	ips := make([]string, 0)
 	if len(cr.Spec.ForProvider.IpsCfg.IPBlockCfgs) > 0 {
 		for _, cfg := range cr.Spec.ForProvider.IpsCfg.IPBlockCfgs {
 			ipsCfg, err := c.ipblockService.GetIPs(ctx, cfg.IPBlockID, cfg.Indexes...)
