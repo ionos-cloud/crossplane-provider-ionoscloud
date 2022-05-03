@@ -31,6 +31,7 @@ func IsEmptyValue(v reflect.Value) bool {
 }
 
 // IsEqStringSlices will return true if the slices are equal
+// (having the same length, and the same value at the same index)
 func IsEqStringSlices(first, second []string) bool {
 	if len(first) != len(second) {
 		return false
@@ -66,8 +67,9 @@ func IsStringInSlice(input []string, specific string) bool {
 	return false
 }
 
-// ContainsStringSlices will return true if the second slice string
-// contains string of the first slice string. Same length
+// ContainsStringSlices will return true if the slices
+// have the same length and the same elements, even if
+// they are located at different indexes.
 func ContainsStringSlices(first, second []string) bool {
 	if len(first) != len(second) {
 		return false
