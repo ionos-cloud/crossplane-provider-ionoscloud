@@ -5,7 +5,7 @@ metadata:
 spec:
   forProvider:
     name: exampleIpBlock
-    size: 3
+    size: 2
     location: de/txl
   providerConfigRef:
     name: example
@@ -70,6 +70,6 @@ spec:
       ipBlockConfigs:
         - ipBlockIdRef:
             name: example
-          indexes: [ 0, 2 ]
+          indexes: [ 0 ]
   providerConfigRef:
     name: example

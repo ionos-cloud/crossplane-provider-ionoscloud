@@ -19,7 +19,6 @@ package applicationloadbalancer
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -141,17 +140,12 @@ func (c *externalApplicationLoadBalancer) Observe(ctx context.Context, mg resour
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
-	observed, resp, err := c.service.GetApplicationLoadBalancer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, meta.GetExternalName(cr))
+	observed, _, err := c.service.GetApplicationLoadBalancer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, meta.GetExternalName(cr))
 	if err != nil {
-		if resp != nil && resp.Response != nil && resp.StatusCode == http.StatusNotFound {
-			return managed.ExternalObservation{}, nil
-		}
 		return managed.ExternalObservation{}, fmt.Errorf("failed to get application load balancer by id. err: %w", err)
 	}
-
 	current := cr.Spec.ForProvider.DeepCopy()
 	applicationloadbalancer.LateInitializer(&cr.Spec.ForProvider, &observed)
-
 	cr.Status.AtProvider.ApplicationLoadBalancerID = meta.GetExternalName(cr)
 	if observed.HasMetadata() {
 		if observed.Metadata.HasState() {
@@ -177,7 +171,7 @@ func (c *externalApplicationLoadBalancer) Observe(ctx context.Context, mg resour
 	// Resolve IPs
 	ips, err := c.getIpsSet(ctx, cr)
 	if err != nil {
-		return managed.ExternalObservation{}, fmt.Errorf("failed to get ips: %w", err)
+		return managed.ExternalObservation{ResourceExists: true}, fmt.Errorf("failed to get ips: %w", err)
 	}
 	return managed.ExternalObservation{
 		ResourceExists:          true,
@@ -213,9 +207,6 @@ func (c *externalApplicationLoadBalancer) Create(ctx context.Context, mg resourc
 			retErr = fmt.Errorf("%w API Response Status: %v", retErr, apiResponse.Status)
 		}
 		return creation, retErr
-	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return managed.ExternalCreation{}, err
 	}
 
 	// Set External Name
