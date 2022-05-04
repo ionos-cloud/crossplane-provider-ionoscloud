@@ -31,6 +31,7 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -133,7 +134,7 @@ func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (
 	}
 
 	// External Name of the CR is the IPFailover IP
-	if cr.Status.AtProvider.IP == "" {
+	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
 	instance, apiResponse, err := c.service.GetLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
@@ -142,9 +143,13 @@ func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (
 		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 
+	ipSetByUser, err := c.getIPSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalObservation{}, fmt.Errorf("failed to get ip: %w", err)
+	}
 	cr.Status.AtProvider.State = *instance.Metadata.State
-	if lan.IsIPFailoverPresent(cr, instance) {
-		cr.Status.AtProvider.IP = cr.Spec.ForProvider.IPCfg.IP
+	if lan.IsIPFailoverPresent(cr, instance, ipSetByUser) {
+		cr.Status.AtProvider.IP = ipSetByUser
 		cr.SetConditions(xpv1.Available())
 	} else {
 		cr.SetConditions(xpv1.Unavailable())
@@ -152,7 +157,7 @@ func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (
 
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  lan.IsIPFailoverUpToDate(cr, instance),
+		ResourceUpToDate:  lan.IsIPFailoverUpToDate(cr, instance, ipSetByUser),
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
 }
@@ -169,17 +174,16 @@ func (c *externalIPFailover) Create(ctx context.Context, mg resource.Managed) (m
 		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
 		return managed.ExternalCreation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
-	if lan.IsIPFailoverPresent(cr, instance) {
-		return managed.ExternalCreation{}, nil
-	}
-
 	ip, err := c.getIPSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("failed to get ip: %w", err)
 	}
-	cr.Spec.ForProvider.IPCfg.IP = ip
+	if lan.IsIPFailoverPresent(cr, instance, ip) {
+		return managed.ExternalCreation{}, nil
+	}
+
 	// Generate IPFailover Input
-	instanceInput, err := lan.GenerateCreateIPFailoverInput(cr, instance.Properties)
+	instanceInput, err := lan.GenerateCreateIPFailoverInput(cr, instance.Properties, ip)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -195,7 +199,8 @@ func (c *externalIPFailover) Create(ctx context.Context, mg resource.Managed) (m
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.IP = cr.Spec.ForProvider.IPCfg.IP
+	meta.SetExternalName(cr, ip)
+	creation.ExternalNameAssigned = true
 	return creation, nil
 }
 
@@ -210,16 +215,15 @@ func (c *externalIPFailover) Update(ctx context.Context, mg resource.Managed) (m
 		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
 		return managed.ExternalUpdate{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
-	if lan.IsIPFailoverPresent(cr, instance) {
-		return managed.ExternalUpdate{}, nil
-	}
-
 	ip, err := c.getIPSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, fmt.Errorf("failed to get ip: %w", err)
 	}
-	cr.Spec.ForProvider.IPCfg.IP = ip
-	instanceInput, err := lan.GenerateUpdateIPFailoverInput(cr, instance.Properties)
+	if lan.IsIPFailoverPresent(cr, instance, ip) {
+		return managed.ExternalUpdate{}, nil
+	}
+
+	instanceInput, err := lan.GenerateUpdateIPFailoverInput(cr, instance.Properties, ip)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
@@ -248,7 +252,11 @@ func (c *externalIPFailover) Delete(ctx context.Context, mg resource.Managed) er
 		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
 		return compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
-	if !lan.IsIPFailoverPresent(cr, instance) || cr.Status.AtProvider.State == compute.DESTROYING {
+	ip, err := c.getIPSet(ctx, cr)
+	if err != nil {
+		return fmt.Errorf("failed to get ip: %w", err)
+	}
+	if !lan.IsIPFailoverPresent(cr, instance, ip) || cr.Status.AtProvider.State == compute.DESTROYING {
 		cr.Status.AtProvider.IP = ""
 		return nil
 	}

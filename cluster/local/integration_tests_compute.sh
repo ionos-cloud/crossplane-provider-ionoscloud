@@ -549,7 +549,7 @@ function ipfailover_tests() {
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPFailover
 metadata:
-  name: exampleipfailover
+  name: example
 spec:
   forProvider:
     ipConfig:
@@ -562,10 +562,10 @@ spec:
         name: example
     lanConfig:
       lanIdRef:
-        name: examplelan
+        name: example
     nicConfig:
       nicIdRef:
-        name: examplenic
+        name: example
   providerConfigRef:
     name: example
 EOF
@@ -574,8 +574,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for ipfailover CR to be ready & synced"
-  kubectl wait --for=condition=ready ipfailovers/exampleipfailover --timeout 120s
-  kubectl wait --for=condition=synced ipfailovers/exampleipfailover --timeout 120s
+  kubectl wait --for=condition=ready ipfailovers/example --timeout 120s
+  kubectl wait --for=condition=synced ipfailovers/example --timeout 120s
 
   echo_step "get ipfailover CR"
   kubectl get ipfailovers
@@ -586,7 +586,7 @@ EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPFailover
 metadata:
-  name: exampleipfailover
+  name: example
 spec:
   forProvider:
     ipConfig:
@@ -599,10 +599,10 @@ spec:
         name: example
     lanConfig:
       lanIdRef:
-        name: examplelan
+        name: example
     nicConfig:
       nicIdRef:
-        name: examplenic
+        name: example
   providerConfigRef:
     name: example
 EOF
@@ -611,8 +611,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for ipfailover CR to be ready & synced"
-  kubectl wait --for=condition=ready ipfailovers/exampleipfailover --timeout 120s
-  kubectl wait --for=condition=synced ipfailovers/exampleipfailover --timeout 120s
+  kubectl wait --for=condition=ready ipfailovers/example --timeout 120s
+  kubectl wait --for=condition=synced ipfailovers/example --timeout 120s
 }
 
 function ipfailover_tests_cleanup() {
@@ -621,7 +621,7 @@ function ipfailover_tests_cleanup() {
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPFailover
 metadata:
-  name: exampleipfailover
+  name: example
 spec:
   forProvider:
     ipConfig:
@@ -634,10 +634,10 @@ spec:
         name: example
     lanConfig:
       lanIdRef:
-        name: examplelan
+        name: example
     nicConfig:
       nicIdRef:
-        name: examplenic
+        name: example
   providerConfigRef:
     name: example
 EOF
@@ -647,5 +647,5 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
   echo_step "wait for deletion ipfailover CR"
-  kubectl wait --for=delete ipfailovers/exampleipfailover
+  kubectl wait --for=delete ipfailovers/example
 }
