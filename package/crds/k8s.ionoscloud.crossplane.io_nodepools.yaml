@@ -82,7 +82,8 @@ spec:
                   Required fields in order to create a K8s NodePool: ClusterConfig,
                   Name, DatacenterConfig, NodeCount, CoresCount, RAMSize, AvailabilityZone,
                   StorageType, StorageSize. Note: If the NodePool is part of a Private
-                  K8s Cluster, it is required to set gatewayIp.'
+                  K8s Cluster, it is required to set gatewayIpConfig, setting ip directly
+                  or via reference and index.'
                 properties:
                   annotations:
                     additionalProperties:
@@ -202,11 +203,57 @@ spec:
                             type: object
                         type: object
                     type: object
-                  gatewayIp:
+                  gatewayIpConfig:
                     description: Public IP address for the gateway performing source
                       NAT for the NodePool's nodes belonging to a private cluster.
                       Required only if the node pool belongs to a private cluster.
-                    type: string
+                    properties:
+                      ip:
+                        type: string
+                      ipBlockConfig:
+                        description: IPBlockConfig - used by resources that need to
+                          link IPBlock via id or via reference to get one single IP.
+                        properties:
+                          index:
+                            description: Index is referring to the IP index retrieved
+                              from the IPBlock. Index is starting from 0.
+                            type: integer
+                          ipBlockId:
+                            description: NicID is the ID of the IPBlock on which the
+                              resource will be created. It needs to be provided via
+                              directly or via reference.
+                            format: uuid
+                            type: string
+                          ipBlockIdRef:
+                            description: IPBlockIDRef references to a IPBlock to retrieve
+                              its ID
+                            properties:
+                              name:
+                                description: Name of the referenced object.
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          ipBlockIdSelector:
+                            description: IPBlockIDSelector selects reference to a
+                              IPBlock to retrieve its nicId
+                            properties:
+                              matchControllerRef:
+                                description: MatchControllerRef ensures an object
+                                  with the same controller reference as the selecting
+                                  object is selected.
+                                type: boolean
+                              matchLabels:
+                                additionalProperties:
+                                  type: string
+                                description: MatchLabels ensures an object with matching
+                                  labels is selected.
+                                type: object
+                            type: object
+                        required:
+                        - index
+                        type: object
+                    type: object
                   k8sVersion:
                     description: The Kubernetes version the NodePool is running. This
                       imposes restrictions on what Kubernetes versions can be run
@@ -303,16 +350,68 @@ spec:
                     description: The number of nodes that make up the node pool.
                     format: int32
                     type: integer
-                  publicIps:
+                  publicIpsConfigs:
                     description: Optional array of reserved public IP addresses to
                       be used by the nodes. IPs must be from same location as the
                       Datacenter used for the NodePool. The array must contain one
                       more IP than the maximum possible number of nodes (nodeCount+1
                       for fixed number of nodes or maxNodeCount+1 when auto-scaling
-                      is used). The extra IP is used when the nodes are rebuilt.
-                    items:
-                      type: string
-                    type: array
+                      is used). The extra IP is used when the nodes are rebuilt. IPs
+                      can be set directly or via reference and indexes.
+                    properties:
+                      ips:
+                        items:
+                          type: string
+                        type: array
+                      ipsBlockConfigs:
+                        items:
+                          description: IPsBlockConfig - used by resources that need
+                            to link IPBlock via id or via reference to get multiple
+                            IPs.
+                          properties:
+                            indexes:
+                              description: Indexes are referring to the IPs indexes
+                                retrieved from the IPBlock. Indexes are starting from
+                                0. If no index is set, all IPs from the corresponding
+                                IPBlock will be assigned.
+                              items:
+                                type: integer
+                              type: array
+                            ipBlockId:
+                              description: NicID is the ID of the IPBlock on which
+                                the resource will be created. It needs to be provided
+                                via directly or via reference.
+                              format: uuid
+                              type: string
+                            ipBlockIdRef:
+                              description: IPBlockIDRef references to a IPBlock to
+                                retrieve its ID
+                              properties:
+                                name:
+                                  description: Name of the referenced object.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            ipBlockIdSelector:
+                              description: IPBlockIDSelector selects reference to
+                                a IPBlock to retrieve its nicId
+                              properties:
+                                matchControllerRef:
+                                  description: MatchControllerRef ensures an object
+                                    with the same controller reference as the selecting
+                                    object is selected.
+                                  type: boolean
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  description: MatchLabels ensures an object with
+                                    matching labels is selected.
+                                  type: object
+                              type: object
+                          type: object
+                        type: array
+                    type: object
                   ramSize:
                     description: The RAM size for the node. Must be set in multiples
                       of 1024 MB, with minimum size is of 2048 MB.
@@ -396,6 +495,12 @@ spec:
                   NodePoolId:
                     type: string
                   availableUpgradeVersions:
+                    items:
+                      type: string
+                    type: array
+                  gatewayIp:
+                    type: string
+                  publicIps:
                     items:
                       type: string
                     type: array

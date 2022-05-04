@@ -19,6 +19,7 @@ package k8snodepool
 import (
 	"context"
 	"fmt"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -121,6 +122,7 @@ func (c *connectorNodePool) Connect(ctx context.Context, mg resource.Managed) (m
 		service:           &k8snodepool.APIClient{IonosServices: svc},
 		clusterService:    &k8scluster.APIClient{IonosServices: svc},
 		datacenterService: &datacenter.APIClient{IonosServices: svc},
+		ipBlockService:    &ipblock.APIClient{IonosServices: svc},
 		log:               c.log,
 	}, nil
 }
@@ -133,6 +135,7 @@ type externalNodePool struct {
 	service           k8snodepool.Client
 	clusterService    k8scluster.Client
 	datacenterService datacenter.Client
+	ipBlockService    ipblock.Client
 	log               logging.Logger
 }
 
@@ -171,9 +174,17 @@ func (c *externalNodePool) Observe(ctx context.Context, mg resource.Managed) (ma
 		cr.SetConditions(xpv1.Unavailable())
 	}
 
+	publicIps, err := c.getPublicIPsSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalObservation{}, fmt.Errorf("failed to get public IPs: %w", err)
+	}
+	gatewayIp, err := c.getGatewayIPSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalObservation{}, fmt.Errorf("failed to get gateway IP: %w", err)
+	}
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        k8snodepool.IsK8sNodePoolUpToDate(cr, observed),
+		ResourceUpToDate:        k8snodepool.IsK8sNodePoolUpToDate(cr, observed, publicIps, gatewayIp),
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 		ConnectionDetails:       managed.ConnectionDetails{},
 	}, nil
@@ -210,7 +221,15 @@ func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (man
 			cr.Spec.ForProvider.CPUFamily = cpuFamilies[0]
 		}
 	}
-	instanceInput, err := k8snodepool.GenerateCreateK8sNodePoolInput(cr)
+	publicIps, err := c.getPublicIPsSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("failed to get public IPs: %w", err)
+	}
+	gatewayIp, err := c.getGatewayIPSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("failed to get gateway IP: %w", err)
+	}
+	instanceInput, err := k8snodepool.GenerateCreateK8sNodePoolInput(cr, publicIps, gatewayIp)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -246,7 +265,11 @@ func (c *externalNodePool) Update(ctx context.Context, mg resource.Managed) (man
 		return managed.ExternalUpdate{}, nil
 	}
 
-	instanceInput, err := k8snodepool.GenerateUpdateK8sNodePoolInput(cr)
+	publicIps, err := c.getPublicIPsSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("failed to get public IPs: %w", err)
+	}
+	instanceInput, err := k8snodepool.GenerateUpdateK8sNodePoolInput(cr, publicIps)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
@@ -282,4 +305,51 @@ func (c *externalNodePool) Delete(ctx context.Context, mg resource.Managed) erro
 		return compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	return nil
+}
+
+// getPublicIPsSet will return Public IPs set by the user on ips or ipsConfig fields of the spec.
+// If both fields are set, only the ips field will be considered by the Crossplane
+// Provider IONOS Cloud.
+func (c *externalNodePool) getPublicIPsSet(ctx context.Context, cr *v1alpha1.NodePool) ([]string, error) {
+	if len(cr.Spec.ForProvider.PublicIPsCfg.IPs) == 0 && len(cr.Spec.ForProvider.PublicIPsCfg.IPBlockCfgs) == 0 {
+		return nil, nil
+	}
+	if len(cr.Spec.ForProvider.PublicIPsCfg.IPs) > 0 {
+		return cr.Spec.ForProvider.PublicIPsCfg.IPs, nil
+	}
+	ips := make([]string, 0)
+	if len(cr.Spec.ForProvider.PublicIPsCfg.IPBlockCfgs) > 0 {
+		for _, cfg := range cr.Spec.ForProvider.PublicIPsCfg.IPBlockCfgs {
+			ipsCfg, err := c.ipBlockService.GetIPs(ctx, cfg.IPBlockID, cfg.Indexes...)
+			if err != nil {
+				return nil, err
+			}
+			ips = append(ips, ipsCfg...)
+		}
+	}
+	return ips, nil
+}
+
+// getGatewayIPSet will return ip set by the user on ip or ipConfig fields of the spec.
+// If both fields are set, only the ip field will be considered by the Crossplane
+// Provider IONOS Cloud.
+func (c *externalNodePool) getGatewayIPSet(ctx context.Context, cr *v1alpha1.NodePool) (string, error) {
+	if cr.Spec.ForProvider.GatewayIPCfg.IP == "" && cr.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.IPBlockID == "" {
+		return "", nil
+	}
+	if cr.Spec.ForProvider.GatewayIPCfg.IP != "" {
+		return cr.Spec.ForProvider.GatewayIPCfg.IP, nil
+	}
+	if cr.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.IPBlockID != "" {
+		ipsCfg, err := c.ipBlockService.GetIPs(ctx, cr.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.IPBlockID, cr.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.Index)
+		if err != nil {
+			return "", err
+		}
+		if len(ipsCfg) != 1 {
+			return "", fmt.Errorf("error getting IP with index %v from IPBlock %v",
+				cr.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.Index, cr.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.IPBlockID)
+		}
+		return ipsCfg[0], nil
+	}
+	return "", fmt.Errorf("error getting IP set")
 }
