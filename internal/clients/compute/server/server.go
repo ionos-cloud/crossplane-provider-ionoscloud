@@ -133,8 +133,13 @@ func LateInitializer(in *v1alpha1.ServerParameters, sg *sdkgo.Server) {
 	if sg == nil {
 		return
 	}
-	// Add Boot CD-ROM ID to the Spec, if it was updated via other tool (e.g. DCD)
+	// Add options to the Spec, if they were updated by the API
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
+		if cpuFamilyOk, ok := propertiesOk.GetCpuFamilyOk(); ok && cpuFamilyOk != nil {
+			if utils.IsEmptyValue(reflect.ValueOf(in.CPUFamily)) {
+				in.CPUFamily = *cpuFamilyOk
+			}
+		}
 		if bootCdromOk, ok := propertiesOk.GetBootCdromOk(); ok && bootCdromOk != nil {
 			if utils.IsEmptyValue(reflect.ValueOf(in.BootCdromID)) {
 				in.BootCdromID = *bootCdromOk.Id
@@ -266,8 +271,13 @@ func LateInitializerCube(in *v1alpha1.CubeServerProperties, sg *sdkgo.Server) {
 	if sg == nil {
 		return
 	}
-	// Add Template ID to the Spec, if it was updated via other tool (e.g. DCD)
+	// Add options to the Spec, if they were updated by the API
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
+		if cpuFamilyOk, ok := propertiesOk.GetCpuFamilyOk(); ok && cpuFamilyOk != nil {
+			if utils.IsEmptyValue(reflect.ValueOf(in.CPUFamily)) {
+				in.CPUFamily = *cpuFamilyOk
+			}
+		}
 		if templateUUIDOk, ok := propertiesOk.GetTemplateUuidOk(); ok && templateUUIDOk != nil {
 			if utils.IsEmptyValue(reflect.ValueOf(in.Template.TemplateID)) {
 				in.Template.TemplateID = *templateUUIDOk
