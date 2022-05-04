@@ -133,7 +133,7 @@ func LateInitializer(in *v1alpha1.ServerParameters, sg *sdkgo.Server) {
 	if sg == nil {
 		return
 	}
-	// Add options to the Spec, if it was updated by the API
+	// Add options to the Spec, if they were updated by the API
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
 		if cpuFamilyOk, ok := propertiesOk.GetCpuFamilyOk(); ok && cpuFamilyOk != nil {
 			if utils.IsEmptyValue(reflect.ValueOf(in.CPUFamily)) {
@@ -271,7 +271,7 @@ func LateInitializerCube(in *v1alpha1.CubeServerProperties, sg *sdkgo.Server) {
 	if sg == nil {
 		return
 	}
-	// Add options to the Spec, if it was updated by the API
+	// Add options to the Spec, if they were updated by the API
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
 		if cpuFamilyOk, ok := propertiesOk.GetCpuFamilyOk(); ok && cpuFamilyOk != nil {
 			if utils.IsEmptyValue(reflect.ValueOf(in.CPUFamily)) {
