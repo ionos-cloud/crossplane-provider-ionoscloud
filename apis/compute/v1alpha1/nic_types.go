@@ -58,9 +58,12 @@ type NicParameters struct {
 	// Collection of IP addresses, assigned to the NIC.
 	// Explicitly assigned public IPs need to come from reserved IP blocks.
 	// Passing value null or empty array will assign an IP address automatically.
+	// The IPs can be set directly or using reference to the existing IPBlocks and indexes.
+	// If no indexes are set, all IPs from the corresponding IPBlock will be assigned.
+	// All IPs set on the Nic will be displayed on the status's ips field.
 	//
 	// +kubebuilder:validation:Optional
-	Ips []string `json:"ips,omitempty"`
+	IpsCfg IPsConfigs `json:"ipsConfigs,omitempty"`
 	// Indicates if the NIC will reserve an IP using DHCP.
 	//
 	// +kubebuilder:validation:Required
@@ -100,9 +103,10 @@ type NicConfig struct {
 
 // NicObservation are the observable fields of a Nic.
 type NicObservation struct {
-	NicID    string `json:"nicId,omitempty"`
-	VolumeID string `json:"volumeId,omitempty"`
-	State    string `json:"state,omitempty"`
+	NicID    string   `json:"nicId,omitempty"`
+	VolumeID string   `json:"volumeId,omitempty"`
+	IPs      []string `json:"ips,omitempty"`
+	State    string   `json:"state,omitempty"`
 }
 
 // A NicSpec defines the desired state of a Nic.
@@ -126,7 +130,7 @@ type NicStatus struct {
 // +kubebuilder:printcolumn:name="SERVER ID",type="string",JSONPath=".spec.forProvider.serverConfig.serverId"
 // +kubebuilder:printcolumn:name="LAN ID",type="string",JSONPath=".spec.forProvider.lanConfig.lanId"
 // +kubebuilder:printcolumn:name="NIC ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
-// +kubebuilder:printcolumn:name="IPS",priority=1,type="string",JSONPath=".spec.forProvider.ips"
+// +kubebuilder:printcolumn:name="IPS",priority=1,type="string",JSONPath=".status.atProvider.ips"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
