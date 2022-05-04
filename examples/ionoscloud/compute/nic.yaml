@@ -16,8 +16,8 @@ spec:
   forProvider:
     name: exampleNic
     dhcp: false
-    ipsConfig:
-      ipBlockConfigs:
+    ipsConfigs:
+      ipsBlockConfigs:
         - ipBlockIdRef:
             name: exampleipblock
           indexes: [ 1 ]

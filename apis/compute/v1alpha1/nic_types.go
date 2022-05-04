@@ -63,7 +63,7 @@ type NicParameters struct {
 	// All IPs set on the Nic will be displayed on the status's ips field.
 	//
 	// +kubebuilder:validation:Optional
-	IpsCfg IPsConfig `json:"ipsConfig,omitempty"`
+	IpsCfg IPsConfigs `json:"ipsConfigs,omitempty"`
 	// Indicates if the NIC will reserve an IP using DHCP.
 	//
 	// +kubebuilder:validation:Required

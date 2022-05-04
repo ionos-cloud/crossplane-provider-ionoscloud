@@ -45,34 +45,18 @@ type IPBlockParameters struct {
 	Size int32 `json:"size"`
 }
 
-// IPsConfig is used by resources that need to link ips from IPBlock via id or via reference
+// IPsConfigs - used by resources that need to link multiple IPs from IPBlock via id or via reference
 // and using index. Indexes start from 0, and multiple indexes can be set.
 // If no index is set, all IPs from the corresponding IPBlock will be assigned.
-// If both IPs and IPBlockConfigs fields are set, only ips will be used.
-type IPsConfig struct {
-	// Public IPS to be assigned to the resource. IPs can be set directly or via reference to IPBlock.
-	// If both IPs and IPBlockConfigs fields are set, the default is IPs and only the ips field will be used.
-	IPs []string `json:"ips,omitempty"`
-	// IPBlockConfigs contain references to IPBlocks, pointing to specific IPs from the IPBlock using indexes.
-	// If both IPs and IPBlockConfigs fields are set, the default is IPs and only the ips field will be used.
-	// If no indexes are set for an IPBlock reference, all IPs from that IPBlock will be used.
-	IPBlockCfgs []IPBlockConfig `json:"ipBlockConfigs,omitempty"`
+// If both IPs and IPBlockConfigs fields are set, only ips will be considered.
+type IPsConfigs struct {
+	IPs         []string         `json:"ips,omitempty"`
+	IPBlockCfgs []IPsBlockConfig `json:"ipsBlockConfigs,omitempty"`
 }
 
-// IPConfig is used by resources that need to link ips from IPBlock via id or via reference
-// and using index. Indexes start from 0, and only one index must be set.
-// If both IPs and IPBlockConfigs fields are set, only ip will be used.
-type IPConfig struct {
-	// Public IP to be assigned to the resource. IP can be set directly or via reference to IPBlock.
-	// If both IP and IPBlockConfig fields are set, the default is IP and only the ip field will be used.
-	IP string `json:"ip,omitempty"`
-	// IPBlockConfig contains reference to IPBlock, pointing to a specific IP from the IPBlock using index.
-	// If both IP and IPBlockConfig fields are set, the default is IP and only the ip field will be used.
-	IPBlockCfg IPBlockConfig `json:"ipBlockConfig,omitempty"`
-}
-
-// IPBlockConfig is used by resources that need to link IPBlock via id or via reference.
-type IPBlockConfig struct {
+// IPsBlockConfig - used by resources that need to link IPBlock via id or via reference
+// to get multiple IPs.
+type IPsBlockConfig struct {
 	// NicID is the ID of the IPBlock on which the resource will be created.
 	// It needs to be provided via directly or via reference.
 	//
@@ -91,10 +75,46 @@ type IPBlockConfig struct {
 	// +optional
 	IPBlockIDSelector *xpv1.Selector `json:"ipBlockIdSelector,omitempty"`
 	// Indexes are referring to the IPs indexes retrieved from the IPBlock.
-	// Indexes are starting from 0.
+	// Indexes are starting from 0. If no index is set, all IPs from the
+	// corresponding IPBlock will be assigned.
 	//
 	// +optional
 	Indexes []int `json:"indexes,omitempty"`
+}
+
+// IPConfig is used by resources that need to link ips from IPBlock via id or via reference
+// and using index. Indexes start from 0, and only one index must be set.
+// If both IPs and IPBlockConfigs fields are set, only ip will be used.
+type IPConfig struct {
+	IP         string        `json:"ip,omitempty"`
+	IPBlockCfg IPBlockConfig `json:"ipBlockConfig,omitempty"`
+}
+
+// IPBlockConfig - used by resources that need to link IPBlock via id or via reference
+// to get one single IP.
+type IPBlockConfig struct {
+	// NicID is the ID of the IPBlock on which the resource will be created.
+	// It needs to be provided via directly or via reference.
+	//
+	// +immutable
+	// +kubebuilder:validation:Format=uuid
+	// +crossplane:generate:reference:type=IPBlock
+	// +crossplane:generate:reference:extractor=ExtractIPBlockID()
+	IPBlockID string `json:"ipBlockId,omitempty"`
+	// IPBlockIDRef references to a IPBlock to retrieve its ID
+	//
+	// +optional
+	// +immutable
+	IPBlockIDRef *xpv1.Reference `json:"ipBlockIdRef,omitempty"`
+	// IPBlockIDSelector selects reference to a IPBlock to retrieve its nicId
+	//
+	// +optional
+	IPBlockIDSelector *xpv1.Selector `json:"ipBlockIdSelector,omitempty"`
+	// Index is referring to the IP index retrieved from the IPBlock.
+	// Index is starting from 0.
+	//
+	// +kubebuilder:validation:Required
+	Index int `json:"index"`
 }
 
 // IPBlockObservation are the observable fields of a IPBlock.

@@ -441,8 +441,8 @@ spec:
   forProvider:
     name: exampleNic
     dhcp: false
-    ipsConfig:
-      ipBlockConfigs:
+    ipsConfigs:
+      ipsBlockConfigs:
         - ipBlockIdRef:
             name: example
           indexes: [ 0 ]
