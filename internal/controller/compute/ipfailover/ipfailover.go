@@ -39,6 +39,7 @@ import (
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/lan"
 )
 
@@ -112,7 +113,7 @@ func (c *connectorIPFailover) Connect(ctx context.Context, mg resource.Managed) 
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
-	return &externalIPFailover{service: &lan.APIClient{IonosServices: svc}, log: c.log}, nil
+	return &externalIPFailover{service: &lan.APIClient{IonosServices: svc}, ipBlockService: &ipblock.APIClient{IonosServices: svc}, log: c.log}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -120,8 +121,9 @@ func (c *connectorIPFailover) Connect(ctx context.Context, mg resource.Managed) 
 type externalIPFailover struct {
 	// A 'client' used to connect to the externalIPFailover resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service lan.Client
-	log     logging.Logger
+	service        lan.Client
+	ipBlockService ipblock.Client
+	log            logging.Logger
 }
 
 func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -142,7 +144,7 @@ func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (
 
 	cr.Status.AtProvider.State = *instance.Metadata.State
 	if lan.IsIPFailoverPresent(cr, instance) {
-		cr.Status.AtProvider.IP = cr.Spec.ForProvider.IP
+		cr.Status.AtProvider.IP = cr.Spec.ForProvider.IPCfg.IP
 		cr.SetConditions(xpv1.Available())
 	} else {
 		cr.SetConditions(xpv1.Unavailable())
@@ -171,6 +173,11 @@ func (c *externalIPFailover) Create(ctx context.Context, mg resource.Managed) (m
 		return managed.ExternalCreation{}, nil
 	}
 
+	ip, err := c.getIPSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("failed to get ip: %w", err)
+	}
+	cr.Spec.ForProvider.IPCfg.IP = ip
 	// Generate IPFailover Input
 	instanceInput, err := lan.GenerateCreateIPFailoverInput(cr, instance.Properties)
 	if err != nil {
@@ -188,7 +195,7 @@ func (c *externalIPFailover) Create(ctx context.Context, mg resource.Managed) (m
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.IP = cr.Spec.ForProvider.IP
+	cr.Status.AtProvider.IP = cr.Spec.ForProvider.IPCfg.IP
 	return creation, nil
 }
 
@@ -207,6 +214,11 @@ func (c *externalIPFailover) Update(ctx context.Context, mg resource.Managed) (m
 		return managed.ExternalUpdate{}, nil
 	}
 
+	ip, err := c.getIPSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("failed to get ip: %w", err)
+	}
+	cr.Spec.ForProvider.IPCfg.IP = ip
 	instanceInput, err := lan.GenerateUpdateIPFailoverInput(cr, instance.Properties)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
@@ -256,4 +268,25 @@ func (c *externalIPFailover) Delete(ctx context.Context, mg resource.Managed) er
 		return err
 	}
 	return nil
+}
+
+// getIPSet will return ip set by the user on ip or ipConfig fields of the spec.
+// If both fields are set, only the ip field will be considered by the Crossplane
+// Provider IONOS Cloud.
+func (c *externalIPFailover) getIPSet(ctx context.Context, cr *v1alpha1.IPFailover) (string, error) {
+	if cr.Spec.ForProvider.IPCfg.IP != "" {
+		return cr.Spec.ForProvider.IPCfg.IP, nil
+	}
+	if cr.Spec.ForProvider.IPCfg.IPBlockCfg.IPBlockID != "" {
+		ipsCfg, err := c.ipBlockService.GetIPs(ctx, cr.Spec.ForProvider.IPCfg.IPBlockCfg.IPBlockID, cr.Spec.ForProvider.IPCfg.IPBlockCfg.Index)
+		if err != nil {
+			return "", err
+		}
+		if len(ipsCfg) != 1 {
+			return "", fmt.Errorf("error getting IP with index %v from IPBlock %v",
+				cr.Spec.ForProvider.IPCfg.IPBlockCfg.Index, cr.Spec.ForProvider.IPCfg.IPBlockCfg.IPBlockID)
+		}
+		return ipsCfg[0], nil
+	}
+	return "", fmt.Errorf("error getting IP set")
 }

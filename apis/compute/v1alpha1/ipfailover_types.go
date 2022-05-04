@@ -30,7 +30,7 @@ import (
 // DatacenterConfig,
 // LanConfig (LAN resource must be a public LAN),
 // NicConfig,
-// IP.
+// IPConfig.
 type IPFailoverParameters struct {
 	// DatacenterConfig contains information about the datacenter resource
 	// on which the resource will be created
@@ -47,10 +47,12 @@ type IPFailoverParameters struct {
 	//
 	// +kubebuilder:validation:Required
 	NicCfg NicConfig `json:"nicConfig"`
-	// IP must be the public IP for which the group is responsible for
+	// IPConfig must have a public IP for which the group is responsible for.
+	// IP can be set directly, using ipConfig.ip or via reference and index.
+	// If both ip and ipBlockConfig is set, only ip field will be considered.
 	//
 	// +kubebuilder:validation:Required
-	IP string `json:"ip"`
+	IPCfg IPConfig `json:"ipConfig"`
 }
 
 // IPFailoverObservation are the observable fields of a IPFailover.
