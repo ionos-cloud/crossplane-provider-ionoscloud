@@ -27,7 +27,11 @@ spec:
     availabilityZone: AUTO
     storageType: HDD
     storageSize: 10
-    #    gatewayIp:
+    #    gatewayIpConfig:
+    #      ipBlockConfig:
+    #        ipBlockIdRef:
+    #          name: example
+    #        index: 0
     #    lans:
     #      - lanConfig:
     #          lanIdRef:
@@ -43,6 +47,10 @@ spec:
     #      key: "value"
     #    annotations:
     #      key: "value"
+    #    publicIpsConfigs:
+    #      ipsBlockConfigs:
+    #        - ipBlockIdRef:
+    #            name: example
     datacenterConfig:
       datacenterIdRef:
         name: example
