@@ -2,6 +2,9 @@
 
 ## [0.1.0-alpha.3] (upcoming release)
 
+- **Breaking Changes**:
+    - updated `spec.forProvider.ip` field from **IPFailover Managed Resource** to `spec.forProvider.ipConfig` being able
+      to set the required IP directly or via reference and index to an IPBlock
 - **Enhancements**:
     - Added and updated documentation. See [docs](docs/README.md)
     - Added example for Compositions and Claims. See [example](docs/RESOURCES.md#compositions-and-claims)
