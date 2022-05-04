@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.0-alpha.3] (upcoming release)
+
+- **Enhancements**:
+    - Added and updated documentation. See [docs](docs/README.md)
+    - Added example for Compositions and Claims. See [example](docs/RESOURCES.md#compositions-and-claims)
+- **Fixes**:
+    - fixed late initialization for **Server** and **CubeServer** Managed Resources if the CPU Family is not set by the
+      user, but by the API
+
 ## [0.1.0-alpha.2] (March 2022)
 
 - **Features**:
@@ -10,7 +19,7 @@
       values;
     - Added references (using [crossplane-tools](https://github.com/crossplane/crossplane-tools)) on CRDs to be able to
       reference a resource dependency by name.
-    - Debug Mode: see [Provider Logs](README.md#debug-mode)
+    - Debug Mode: see [Provider Logs](docs/README.md#debug-mode)
       using [ControllerConfig](examples/provider/debug-config.yaml)
 - **Enhancements**:
     - Existing CRDs updated:
