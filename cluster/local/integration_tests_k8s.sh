@@ -79,7 +79,7 @@ function k8s_nodepool_tests() {
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
-  name: exampleipblock
+  name: exampleipblockk8s
 spec:
   forProvider:
     name: exampleIpBlock
@@ -140,7 +140,7 @@ spec:
     publicIpsConfigs:
       ipsBlockConfigs:
         - ipBlockIdRef:
-            name: exampleipblock
+            name: exampleipblockk8s
           indexes: [0, 1]
     datacenterConfig:
       datacenterIdRef:
@@ -169,7 +169,7 @@ function k8s_nodepool_tests_cleanup() {
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
-  name: exampleipblock
+  name: exampleipblockk8s
 spec:
   forProvider:
     name: exampleIpBlock
@@ -230,7 +230,7 @@ spec:
     publicIpsConfigs:
       ipsBlockConfigs:
         - ipBlockIdRef:
-            name: example
+            name: exampleipblockk8s
     datacenterConfig:
       datacenterIdRef:
         name: exampledatacenterk8s
