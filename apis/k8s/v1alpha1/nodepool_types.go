@@ -302,7 +302,7 @@ type IPBlockConfig struct {
 
 // NodePoolObservation are the observable fields of a NodePool.
 type NodePoolObservation struct {
-	NodePoolID               string   `json:"NodePoolId,omitempty"`
+	NodePoolID               string   `json:"nodePoolId,omitempty"`
 	State                    string   `json:"state,omitempty"`
 	PublicIPs                []string `json:"publicIps,omitempty"`
 	GatewayIP                string   `json:"gatewayIp,omitempty"`

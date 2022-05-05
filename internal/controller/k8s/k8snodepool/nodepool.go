@@ -19,7 +19,6 @@ package k8snodepool
 import (
 	"context"
 	"fmt"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -43,6 +42,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/datacenter"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s/k8scluster"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s/k8snodepool"
@@ -178,19 +178,19 @@ func (c *externalNodePool) Observe(ctx context.Context, mg resource.Managed) (ma
 	if err != nil {
 		return managed.ExternalObservation{}, fmt.Errorf("failed to get public IPs: %w", err)
 	}
-	gatewayIp, err := c.getGatewayIPSet(ctx, cr)
+	gatewayIP, err := c.getGatewayIPSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalObservation{}, fmt.Errorf("failed to get gateway IP: %w", err)
 	}
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        k8snodepool.IsK8sNodePoolUpToDate(cr, observed, publicIps, gatewayIp),
+		ResourceUpToDate:        k8snodepool.IsK8sNodePoolUpToDate(cr, observed, publicIps, gatewayIP),
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 		ConnectionDetails:       managed.ConnectionDetails{},
 	}, nil
 }
 
-func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { //nolint:gocyclo
 	cr, ok := mg.(*v1alpha1.NodePool)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotK8sNodePool)
@@ -221,15 +221,15 @@ func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (man
 			cr.Spec.ForProvider.CPUFamily = cpuFamilies[0]
 		}
 	}
-	publicIps, err := c.getPublicIPsSet(ctx, cr)
+	publicIPs, err := c.getPublicIPsSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("failed to get public IPs: %w", err)
 	}
-	gatewayIp, err := c.getGatewayIPSet(ctx, cr)
+	gatewayIP, err := c.getGatewayIPSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("failed to get gateway IP: %w", err)
 	}
-	instanceInput, err := k8snodepool.GenerateCreateK8sNodePoolInput(cr, publicIps, gatewayIp)
+	instanceInput, err := k8snodepool.GenerateCreateK8sNodePoolInput(cr, publicIPs, gatewayIP)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -265,11 +265,11 @@ func (c *externalNodePool) Update(ctx context.Context, mg resource.Managed) (man
 		return managed.ExternalUpdate{}, nil
 	}
 
-	publicIps, err := c.getPublicIPsSet(ctx, cr)
+	publicIPs, err := c.getPublicIPsSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, fmt.Errorf("failed to get public IPs: %w", err)
 	}
-	instanceInput, err := k8snodepool.GenerateUpdateK8sNodePoolInput(cr, publicIps)
+	instanceInput, err := k8snodepool.GenerateUpdateK8sNodePoolInput(cr, publicIPs)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}

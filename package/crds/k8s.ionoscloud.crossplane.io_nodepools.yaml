@@ -492,13 +492,13 @@ spec:
               atProvider:
                 description: NodePoolObservation are the observable fields of a NodePool.
                 properties:
-                  NodePoolId:
-                    type: string
                   availableUpgradeVersions:
                     items:
                       type: string
                     type: array
                   gatewayIp:
+                    type: string
+                  nodePoolId:
                     type: string
                   publicIps:
                     items:
