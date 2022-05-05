@@ -31,7 +31,6 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -133,8 +132,9 @@ func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (
 		return managed.ExternalObservation{}, errors.New(errNotIPFailover)
 	}
 
-	// External Name of the CR is the IPFailover IP
-	if meta.GetExternalName(cr) == "" {
+	// Use Status property instead of external name
+	// since the IP can be updated, external name - no.
+	if cr.Status.AtProvider.IP == "" {
 		return managed.ExternalObservation{}, nil
 	}
 	instance, apiResponse, err := c.service.GetLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
@@ -198,9 +198,7 @@ func (c *externalIPFailover) Create(ctx context.Context, mg resource.Managed) (m
 		return creation, err
 	}
 
-	// Set External Name
-	meta.SetExternalName(cr, ip)
-	creation.ExternalNameAssigned = true
+	cr.Status.AtProvider.IP = ip
 	return creation, nil
 }
 
@@ -252,17 +250,11 @@ func (c *externalIPFailover) Delete(ctx context.Context, mg resource.Managed) er
 		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
 		return compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
-	ip, err := c.getIPSet(ctx, cr)
-	if err != nil {
-		return fmt.Errorf("failed to get ip: %w", err)
-	}
-	if !lan.IsIPFailoverPresent(cr, instance, ip) || cr.Status.AtProvider.State == compute.DESTROYING {
+	if !lan.IsIPFailoverPresent(cr, instance, cr.Status.AtProvider.IP) || cr.Status.AtProvider.State == compute.DESTROYING {
 		cr.Status.AtProvider.IP = ""
 		return nil
 	}
-
-	// Generate IPFailover Input to Remove
-	instanceInput, err := lan.GenerateRemoveIPFailoverInput(cr, instance.Properties)
+	instanceInput, err := lan.GenerateRemoveIPFailoverInput(instance.Properties, cr.Status.AtProvider.IP)
 	if err != nil {
 		return err
 	}

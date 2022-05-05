@@ -159,8 +159,8 @@ func GenerateUpdateIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanPr
 	return &instanceUpdateInput, nil
 }
 
-// GenerateRemoveIPFailoverInput returns sdkgo.LanProperties based on the CR spec and current LanProperties
-func GenerateRemoveIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanProperties) (*sdkgo.LanProperties, error) {
+// GenerateRemoveIPFailoverInput returns sdkgo.LanProperties based on the IP and current LanProperties
+func GenerateRemoveIPFailoverInput(current *sdkgo.LanProperties, ip string) (*sdkgo.LanProperties, error) {
 	var instanceRemoveInput sdkgo.LanProperties
 	if current == nil {
 		return nil, fmt.Errorf("error: input properties must not be nil")
@@ -169,7 +169,7 @@ func GenerateRemoveIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanPr
 		setIPFailovers := make([]sdkgo.IPFailover, 0)
 		for _, ipFailover := range *ipFailoversOk {
 			if ipFailover.HasIp() {
-				if *ipFailover.Ip != cr.Spec.ForProvider.IPCfg.IP {
+				if *ipFailover.Ip != ip {
 					setIPFailovers = append(setIPFailovers, ipFailover)
 				}
 			}
