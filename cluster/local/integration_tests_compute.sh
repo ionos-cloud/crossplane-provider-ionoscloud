@@ -533,3 +533,116 @@ EOF
   echo_step "wait for deletion nic CR"
   kubectl wait --for=delete nics/example
 }
+
+## FirewallRule CR Tests
+function firewallrule_tests() {
+  echo_step "deploy a firewallrule CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: FirewallRule
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleFirewallRule
+    protocol: ANY
+    type: INGRESS
+    sourceIpConfig:
+      ipBlockConfig:
+        ipBlockIdRef:
+          name: example
+        index: 0
+    targetIpConfig:
+      ipBlockConfig:
+        ipBlockIdRef:
+          name: example
+        index: 1
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    serverConfig:
+      serverIdRef:
+        name: example
+    nicConfig:
+      nicIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for firewallrule CR to be ready & synced"
+  kubectl wait --for=condition=ready firewallrules/example --timeout 120s
+  kubectl wait --for=condition=synced firewallrules/example --timeout 120s
+
+  echo_step "get firewallrule CR"
+  kubectl get firewallrules
+
+  echo_step "update firewallrule CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: FirewallRule
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleFirewallRule
+    protocol: ANY
+    type: INGRESS
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    serverConfig:
+      serverIdRef:
+        name: example
+    nicConfig:
+      nicIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for firewallrule CR to be ready & synced"
+  kubectl wait --for=condition=ready firewallrules/example --timeout 120s
+  kubectl wait --for=condition=synced firewallrules/example --timeout 120s
+}
+
+function firewallrule_tests_cleanup() {
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: FirewallRule
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleFirewallRule
+    protocol: ANY
+    type: INGRESS
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    serverConfig:
+      serverIdRef:
+        name: example
+    nicConfig:
+      nicIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo_step "uninstalling firewallrule CR"
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
+
+  echo_step "wait for deletion firewallrule CR"
+  kubectl wait --for=delete firewallrule/example
+}

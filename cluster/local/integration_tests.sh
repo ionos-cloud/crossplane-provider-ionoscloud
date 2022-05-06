@@ -164,6 +164,8 @@ if [ "$TEST_COMPUTE" = true ]; then
   server_tests
   echo_step "--- nic tests ---"
   nic_tests
+  echo_step "--- firewallrule tests ---"
+  firewallrule_tests
 fi
 
 if [ "$TEST_DBAAS" = true ]; then
@@ -183,6 +185,8 @@ echo_step "--- CLEANING UP ---"
 echo_step "-------------------"
 
 if [ "$TEST_COMPUTE" = true ]; then
+  echo_step "--- cleanup firewallrule tests ---"
+  firewallrule_tests_cleanup
   echo_step "--- cleanup nic tests ---"
   nic_tests_cleanup
   echo_step "--- cleanup lan tests ---"
