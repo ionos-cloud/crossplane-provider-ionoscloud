@@ -4,6 +4,18 @@
 # ! Before applying this file, make sure to add reserved
 # ips to the Nic CR and to the IPFailover CR.
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
+metadata:
+  name: exampleipblock
+spec:
+  forProvider:
+    name: exampleIpBlock
+    size: 2
+    location: us/las
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: example
@@ -75,8 +87,10 @@ spec:
   forProvider:
     name: exampleNic
     dhcp: false
-    ips:
-      -
+    ipsConfigs:
+      ipsBlockConfigs:
+        - ipBlockIdRef:
+            name: exampleipblock
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -98,6 +112,16 @@ spec:
     name: exampleFirewallRule
     protocol: ANY
     type: INGRESS
+    sourceIpConfig:
+      ipBlockConfig:
+        ipBlockIdRef:
+          name: exampleipblock
+        index: 0
+    targetIpConfig:
+      ipBlockConfig:
+        ipBlockIdRef:
+          name: exampleipblock
+        index: 1
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -110,21 +134,21 @@ spec:
   providerConfigRef:
     name: example
 ---
-apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: IPFailover
-metadata:
-  name: exampleipfailover
-spec:
-  forProvider:
-    ip:
-    datacenterConfig:
-      datacenterIdRef:
-        name: example
-    lanConfig:
-      lanIdRef:
-        name: examplelan
-    nicConfig:
-      nicIdRef:
-        name: examplenic
-  providerConfigRef:
-    name: example
+#apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+#kind: IPFailover
+#metadata:
+#  name: exampleipfailover
+#spec:
+#  forProvider:
+#    ip:
+#    datacenterConfig:
+#      datacenterIdRef:
+#        name: example
+#    lanConfig:
+#      lanIdRef:
+#        name: examplelan
+#    nicConfig:
+#      nicIdRef:
+#        name: examplenic
+#  providerConfigRef:
+#    name: example
