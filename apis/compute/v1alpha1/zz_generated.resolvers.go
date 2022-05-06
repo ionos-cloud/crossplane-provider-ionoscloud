@@ -279,6 +279,25 @@ func (mg *Nic) ResolveReferences(ctx context.Context, c client.Reader) error {
 	mg.Spec.ForProvider.LanCfg.LanID = rsp.ResolvedValue
 	mg.Spec.ForProvider.LanCfg.LanIDRef = rsp.ResolvedReference
 
+	for i4 := 0; i4 < len(mg.Spec.ForProvider.IpsCfg.IPBlockCfgs); i4++ {
+		rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+			CurrentValue: mg.Spec.ForProvider.IpsCfg.IPBlockCfgs[i4].IPBlockID,
+			Extract:      ExtractIPBlockID(),
+			Reference:    mg.Spec.ForProvider.IpsCfg.IPBlockCfgs[i4].IPBlockIDRef,
+			Selector:     mg.Spec.ForProvider.IpsCfg.IPBlockCfgs[i4].IPBlockIDSelector,
+			To: reference.To{
+				List:    &IPBlockList{},
+				Managed: &IPBlock{},
+			},
+		})
+		if err != nil {
+			return errors.Wrap(err, "mg.Spec.ForProvider.IpsCfg.IPBlockCfgs[i4].IPBlockID")
+		}
+		mg.Spec.ForProvider.IpsCfg.IPBlockCfgs[i4].IPBlockID = rsp.ResolvedValue
+		mg.Spec.ForProvider.IpsCfg.IPBlockCfgs[i4].IPBlockIDRef = rsp.ResolvedReference
+
+	}
+
 	return nil
 }
 
