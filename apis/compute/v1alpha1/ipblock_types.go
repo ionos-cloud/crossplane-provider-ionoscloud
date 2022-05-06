@@ -86,6 +86,7 @@ type IPsBlockConfig struct {
 // and using index. Indexes start from 0, and only one index must be set.
 // If both IPs and IPBlockConfigs fields are set, only ip will be used.
 type IPConfig struct {
+	// +kubebuilder:validation:Pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
 	IP         string        `json:"ip,omitempty"`
 	IPBlockCfg IPBlockConfig `json:"ipBlockConfig,omitempty"`
 }
