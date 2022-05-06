@@ -99,8 +99,14 @@ func GenerateUpdateFirewallRuleInput(cr *v1alpha1.FirewallRule, sourceIP, target
 	if !utils.IsEmptyValue(reflect.ValueOf(sourceIP)) {
 		instanceUpdateInput.SetSourceIp(sourceIP)
 	}
+	if utils.IsEmptyValue(reflect.ValueOf(sourceIP)) && !utils.IsEmptyValue(reflect.ValueOf(cr.Status.AtProvider.SourceIP)) {
+		instanceUpdateInput.SourceIp = nil
+	}
 	if !utils.IsEmptyValue(reflect.ValueOf(targetIP)) {
 		instanceUpdateInput.SetTargetIp(targetIP)
+	}
+	if utils.IsEmptyValue(reflect.ValueOf(targetIP)) && !utils.IsEmptyValue(reflect.ValueOf(cr.Status.AtProvider.TargetIP)) {
+		instanceUpdateInput.TargetIp = nil
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.IcmpCode)) {
 		instanceUpdateInput.SetIcmpType(cr.Spec.ForProvider.IcmpCode)

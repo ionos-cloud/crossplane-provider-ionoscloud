@@ -150,9 +150,13 @@ func (c *externalFirewallRule) Observe(ctx context.Context, mg resource.Managed)
 	if observed.HasProperties() {
 		if observed.Properties.HasSourceIp() {
 			cr.Status.AtProvider.SourceIP = *observed.Properties.SourceIp
+		} else {
+			cr.Status.AtProvider.SourceIP = ""
 		}
 		if observed.Properties.HasTargetIp() {
 			cr.Status.AtProvider.TargetIP = *observed.Properties.TargetIp
+		} else {
+			cr.Status.AtProvider.TargetIP = ""
 		}
 	}
 	if observed.HasMetadata() {
@@ -305,7 +309,9 @@ func (c *externalFirewallRule) getTargetIPSet(ctx context.Context, cr *v1alpha1.
 		}
 		return ipsCfg[0], nil
 	}
-	return "", fmt.Errorf("error getting target IP set")
+	// return nil if nothing is set,
+	// since TargetIP can be empty
+	return "", nil
 }
 
 // getSourceIPSet will return the SourceIP set by the user on sourceIpConfig.ip or
@@ -327,5 +333,7 @@ func (c *externalFirewallRule) getSourceIPSet(ctx context.Context, cr *v1alpha1.
 		}
 		return ipsCfg[0], nil
 	}
-	return "", fmt.Errorf("error getting source IP set")
+	// return nil if nothing is set,
+	// since SourceIP can be empty
+	return "", nil
 }
