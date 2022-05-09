@@ -445,7 +445,6 @@ spec:
       ipsBlockConfigs:
         - ipBlockIdRef:
             name: example
-          indexes: [ 0 ]
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -481,6 +480,10 @@ spec:
     name: exampleNic
     dhcp: true
     firewallActive: true
+    ipsConfigs:
+      ipsBlockConfigs:
+        - ipBlockIdRef:
+            name: example
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -513,6 +516,10 @@ spec:
   forProvider:
     name: exampleNic
     dhcp: false
+    ipsConfigs:
+      ipsBlockConfigs:
+        - ipBlockIdRef:
+            name: example
     datacenterConfig:
       datacenterIdRef:
         name: example
