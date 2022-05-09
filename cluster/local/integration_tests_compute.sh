@@ -478,7 +478,7 @@ metadata:
 spec:
   forProvider:
     name: exampleNic
-    dhcp: true
+    dhcp: false
     firewallActive: true
     ipsConfigs:
       ipsBlockConfigs:
