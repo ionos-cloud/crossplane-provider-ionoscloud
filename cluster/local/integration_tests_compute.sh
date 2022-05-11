@@ -467,7 +467,7 @@ EOF
   kubectl wait --for=condition=synced nics/example --timeout 120s
 
   echo_step "get nic CR"
-  kubectl get nics -o json
+  kubectl get nics
 }
 
 function nic_tests_cleanup() {
