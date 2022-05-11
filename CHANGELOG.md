@@ -5,11 +5,14 @@
 - **Breaking Changes**:
     - updated `spec.forProvider.ips` field from **Nic Managed Resource** to `spec.forProvider.ipsConfigs` being able to
       set IPs directly or via references and indexes of the IPBlocks
-- **Breaking Changes**:
-    - updated `spec.forProvider.ips` field from **Nic Managed Resource** to `spec.forProvider.ipsConfigs` being able to
-      set IPs directly or via references and indexes of the IPBlocks 
     - updated `spec.forProvider.ip` field from **IPFailover Managed Resource** to `spec.forProvider.ipConfig` being able
       to set the required IP directly or via reference and index to an IPBlock
+    - updated `spec.forProvider.sourceIp` field from **FirewallRule Managed Resource**
+      to `spec.forProvider.sourceIpConfig` being able to set the required IP directly or via reference and index to an
+      IPBlock
+    - updated `spec.forProvider.targetIp` field from **FirewallRule Managed Resource**
+      to `spec.forProvider.targetIpConfig` being able to set the required IP directly or via reference and index to an
+      IPBlock
 - **Enhancements**:
     - Added and updated documentation. See [docs](docs/README.md)
     - Added example for Compositions and Claims. See [example](docs/RESOURCES.md#compositions-and-claims)
