@@ -294,7 +294,10 @@ func (c *externalNic) getIpsSet(ctx context.Context, cr *v1alpha1.Nic) ([]string
 	}
 	ips := make([]string, 0)
 	if len(cr.Spec.ForProvider.IpsCfg.IPBlockCfgs) > 0 {
-		for _, cfg := range cr.Spec.ForProvider.IpsCfg.IPBlockCfgs {
+		for i, cfg := range cr.Spec.ForProvider.IpsCfg.IPBlockCfgs {
+			if cfg.IPBlockID == "" {
+				return nil, fmt.Errorf("error resolving references for ipblock at index: %v", i)
+			}
 			ipsCfg, err := c.ipblockService.GetIPs(ctx, cfg.IPBlockID, cfg.Indexes...)
 			if err != nil {
 				return nil, err
