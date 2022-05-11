@@ -19,7 +19,6 @@ metadata:
 spec:
   forProvider:
     name: exampleK8sCluster
-    public: true
     maintenanceWindow:
       dayOfTheWeek: Monday
       time: "23:40:58Z"
