@@ -618,3 +618,112 @@ EOF
   echo_step "wait for deletion firewallrule CR"
   kubectl wait --for=delete firewallrule/example
 }
+
+## IPFailover CR Tests
+function ipfailover_tests() {
+  echo_step "deploy a ipfailover CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPFailover
+metadata:
+  name: example
+spec:
+  forProvider:
+    ipConfig:
+      ipBlockConfig:
+        ipBlockIdRef:
+          name: example
+        index: 0
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    lanConfig:
+      lanIdRef:
+        name: example
+    nicConfig:
+      nicIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for ipfailover CR to be ready & synced"
+  kubectl wait --for=condition=ready ipfailovers/example --timeout 120s
+  kubectl wait --for=condition=synced ipfailovers/example --timeout 120s
+
+  echo_step "get ipfailover CR"
+  kubectl get ipfailovers
+
+  echo_step "update ipfailover CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPFailover
+metadata:
+  name: example
+spec:
+  forProvider:
+    ipConfig:
+      ipBlockConfig:
+        ipBlockIdRef:
+          name: example
+        index: 1
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    lanConfig:
+      lanIdRef:
+        name: example
+    nicConfig:
+      nicIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for ipfailover CR to be ready & synced"
+  kubectl wait --for=condition=ready ipfailovers/example --timeout 120s
+  kubectl wait --for=condition=synced ipfailovers/example --timeout 120s
+}
+
+function ipfailover_tests_cleanup() {
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPFailover
+metadata:
+  name: example
+spec:
+  forProvider:
+    ipConfig:
+      ipBlockConfig:
+        ipBlockIdRef:
+          name: example
+        index: 1
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    lanConfig:
+      lanIdRef:
+        name: example
+    nicConfig:
+      nicIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo_step "uninstalling ipfailover CR"
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
+
+  echo_step "wait for deletion ipfailover CR"
+  kubectl wait --for=delete ipfailovers/example
+}
