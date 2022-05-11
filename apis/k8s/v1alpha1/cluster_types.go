@@ -26,9 +26,8 @@ import (
 )
 
 // ClusterParameters are the observable fields of a Cluster.
-// Required fields in order to create a K8s Cluster:
-// Name,
-// Public.
+// Required fields in order to create a K8s Public Cluster:
+// Name.
 type ClusterParameters struct {
 	// A Kubernetes cluster name. Valid Kubernetes cluster name must be 63 characters or less and must be empty
 	// or begin and end with an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
@@ -46,12 +45,6 @@ type ClusterParameters struct {
 	//
 	// +kubebuilder:validation:Optional
 	MaintenanceWindow MaintenanceWindow `json:"maintenanceWindow,omitempty"`
-	// The indicator if the cluster is public or private.
-	// Be aware that setting it to false is currently in beta phase.
-	//
-	// +immutable
-	// +kubebuilder:validation:Required
-	Public bool `json:"public"`
 	// Access to the K8s API server is restricted to these CIDRs. Traffic, internal to the cluster, is not affected by this restriction.
 	// If no allow-list is specified, access is not restricted.
 	// If an IP without subnet mask is provided, the default value is used: 32 for IPv4 and 128 for IPv6.
