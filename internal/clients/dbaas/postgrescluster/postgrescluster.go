@@ -58,7 +58,7 @@ func GenerateCreateClusterInput(cr *v1alpha1.PostgresCluster) (*ionoscloud.Creat
 			StorageSize:         &cr.Spec.ForProvider.StorageSize,
 			StorageType:         (*ionoscloud.StorageType)(&cr.Spec.ForProvider.StorageType),
 			Connections:         clusterConnections(cr.Spec.ForProvider.Connections),
-			Location:            (*ionoscloud.Location)(&cr.Spec.ForProvider.Location),
+			Location:            &cr.Spec.ForProvider.Location,
 			DisplayName:         &cr.Spec.ForProvider.DisplayName,
 			Credentials:         clusterCredentials(cr.Spec.ForProvider.Credentials),
 			SynchronizationMode: (*ionoscloud.SynchronizationMode)(&cr.Spec.ForProvider.SynchronizationMode),
@@ -73,6 +73,9 @@ func GenerateCreateClusterInput(cr *v1alpha1.PostgresCluster) (*ionoscloud.Creat
 	}
 	if window := clusterMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
 		instanceCreateInput.Properties.SetMaintenanceWindow(*window)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.BackupLocation)) {
+		instanceCreateInput.Properties.SetBackupLocation(cr.Spec.ForProvider.BackupLocation)
 	}
 	return &instanceCreateInput, err
 }
