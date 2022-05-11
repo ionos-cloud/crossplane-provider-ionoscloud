@@ -70,9 +70,9 @@ func (cp *APIClient) GetIPs(ctx context.Context, ipBlockID string, indexes ...in
 			}
 			return ipBlockIds, nil
 		}
-		return nil, fmt.Errorf("error: getting ips from ipblock properties")
+		return nil, fmt.Errorf("error: getting ips from ipblock properties: %v", ipBlockID)
 	}
-	return nil, fmt.Errorf("error: getting properties from ipblock")
+	return nil, fmt.Errorf("error: getting properties from ipblock: %v", ipBlockID)
 }
 
 // GetAPIClient gets the APIClient

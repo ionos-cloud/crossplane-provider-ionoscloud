@@ -2,6 +2,12 @@
 
 ## [0.1.0-alpha.3] (upcoming release)
 
+- **Breaking Changes**:
+    - updated `spec.forProvider.ips` field from **Nic Managed Resource** to `spec.forProvider.ipsConfigs` being able to
+      set IPs directly or via references and indexes of the IPBlocks
+    - updated `spec.forProvider.publicIps` field from **K8s NodePool Managed Resource**
+      to `spec.forProvider.publicIpsConfigs` being able to set IPs directly or via references and indexes of the
+      IPBlocks
 - **Enhancements**:
     - Added and updated documentation. See [docs](docs/README.md)
     - Added example for Compositions and Claims. See [example](docs/RESOURCES.md#compositions-and-claims)

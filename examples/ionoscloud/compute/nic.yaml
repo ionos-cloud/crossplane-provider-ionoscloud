@@ -4,6 +4,10 @@
 # - ServerConfig (via ID or reference),
 # - LanConfig (via ID or reference),
 # - DHCP.
+# IPs can be set directly or via ipBlocks references and indexes.
+# If both ips and ipBlockConfigs fields are set, only the ips
+# field will be used.
+# If no ips are set, API will automatically set one.
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Nic
 metadata:
@@ -12,9 +16,13 @@ spec:
   forProvider:
     name: exampleNic
     dhcp: false
-    #    ips:
-    #      - 162.222.200.10
-    #      - 162.222.200.11
+    ipsConfigs:
+      ipsBlockConfigs:
+        - ipBlockIdRef:
+            name: exampleipblock
+          indexes: [ 1 ]
+        - ipBlockIdRef:
+            name: example
     #    mac:
     #    firewallActive: true
     firewallType: INGRESS
