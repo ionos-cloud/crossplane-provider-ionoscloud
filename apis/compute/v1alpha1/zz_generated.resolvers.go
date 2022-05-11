@@ -163,6 +163,22 @@ func (mg *IPFailover) ResolveReferences(ctx context.Context, c client.Reader) er
 	mg.Spec.ForProvider.NicCfg.NicID = rsp.ResolvedValue
 	mg.Spec.ForProvider.NicCfg.NicIDRef = rsp.ResolvedReference
 
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.IPCfg.IPBlockCfg.IPBlockID,
+		Extract:      ExtractIPBlockID(),
+		Reference:    mg.Spec.ForProvider.IPCfg.IPBlockCfg.IPBlockIDRef,
+		Selector:     mg.Spec.ForProvider.IPCfg.IPBlockCfg.IPBlockIDSelector,
+		To: reference.To{
+			List:    &IPBlockList{},
+			Managed: &IPBlock{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.IPCfg.IPBlockCfg.IPBlockID")
+	}
+	mg.Spec.ForProvider.IPCfg.IPBlockCfg.IPBlockID = rsp.ResolvedValue
+	mg.Spec.ForProvider.IPCfg.IPBlockCfg.IPBlockIDRef = rsp.ResolvedReference
+
 	return nil
 }
 

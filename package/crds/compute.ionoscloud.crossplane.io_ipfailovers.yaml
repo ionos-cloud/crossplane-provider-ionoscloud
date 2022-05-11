@@ -75,7 +75,7 @@ spec:
               forProvider:
                 description: 'IPFailoverParameters are the observable fields of a
                   IPFailover. Required values when creating a IPFailover: DatacenterConfig,
-                  LanConfig (LAN resource must be a public LAN), NicConfig, IP.'
+                  LanConfig (LAN resource must be a public LAN), NicConfig, IPConfig.'
                 properties:
                   datacenterConfig:
                     description: DatacenterConfig contains information about the datacenter
@@ -114,10 +114,58 @@ spec:
                             type: object
                         type: object
                     type: object
-                  ip:
-                    description: IP must be the public IP for which the group is responsible
-                      for
-                    type: string
+                  ipConfig:
+                    description: IPConfig must have a public IP for which the group
+                      is responsible for. IP can be set directly, using ipConfig.ip
+                      or via reference and index. If both ip and ipBlockConfig is
+                      set, only ip field will be considered.
+                    properties:
+                      ip:
+                        type: string
+                      ipBlockConfig:
+                        description: IPBlockConfig - used by resources that need to
+                          link IPBlock via id or via reference to get one single IP.
+                        properties:
+                          index:
+                            description: Index is referring to the IP index retrieved
+                              from the IPBlock. Index is starting from 0.
+                            type: integer
+                          ipBlockId:
+                            description: NicID is the ID of the IPBlock on which the
+                              resource will be created. It needs to be provided via
+                              directly or via reference.
+                            format: uuid
+                            type: string
+                          ipBlockIdRef:
+                            description: IPBlockIDRef references to a IPBlock to retrieve
+                              its ID
+                            properties:
+                              name:
+                                description: Name of the referenced object.
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          ipBlockIdSelector:
+                            description: IPBlockIDSelector selects reference to a
+                              IPBlock to retrieve its nicId
+                            properties:
+                              matchControllerRef:
+                                description: MatchControllerRef ensures an object
+                                  with the same controller reference as the selecting
+                                  object is selected.
+                                type: boolean
+                              matchLabels:
+                                additionalProperties:
+                                  type: string
+                                description: MatchLabels ensures an object with matching
+                                  labels is selected.
+                                type: object
+                            type: object
+                        required:
+                        - index
+                        type: object
+                    type: object
                   lanConfig:
                     description: LanConfig contains information about the lan resource
                       on which the resource will be created
@@ -193,7 +241,7 @@ spec:
                     type: object
                 required:
                 - datacenterConfig
-                - ip
+                - ipConfig
                 - lanConfig
                 - nicConfig
                 type: object
