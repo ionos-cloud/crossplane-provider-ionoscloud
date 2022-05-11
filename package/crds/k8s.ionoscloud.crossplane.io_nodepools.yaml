@@ -81,8 +81,7 @@ spec:
                 description: 'NodePoolParameters are the observable fields of a NodePool.
                   Required fields in order to create a K8s NodePool: ClusterConfig,
                   Name, DatacenterConfig, NodeCount, CoresCount, RAMSize, AvailabilityZone,
-                  StorageType, StorageSize. Note: If the NodePool is part of a Private
-                  K8s Cluster, it is required to set gatewayIp.'
+                  StorageType, StorageSize.'
                 properties:
                   annotations:
                     additionalProperties:
@@ -202,11 +201,6 @@ spec:
                             type: object
                         type: object
                     type: object
-                  gatewayIp:
-                    description: Public IP address for the gateway performing source
-                      NAT for the NodePool's nodes belonging to a private cluster.
-                      Required only if the node pool belongs to a private cluster.
-                    type: string
                   k8sVersion:
                     description: The Kubernetes version the NodePool is running. This
                       imposes restrictions on what Kubernetes versions can be run
