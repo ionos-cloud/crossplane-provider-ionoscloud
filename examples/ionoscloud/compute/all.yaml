@@ -1,7 +1,7 @@
-# Use this file to create an IPBlock CR, a Datacenter CR, a Volume CR,
-# a Server CR, a Lan CR, a Nic CR, a FirewallRule CR
-# and an IPFailover CR.
-# ! Before applying this file, make sure to check the specifications.
+# Use this file to create a IPBlock CR, a Datacenter CR,
+# a Volume CR, a Server CR, a Lan CR, a Nic CR,
+# a FirewallRule CR and an IPFailover CR.
+# ! Before applying this file, make sure to check values set.
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
