@@ -60,7 +60,10 @@ type ClusterParameters struct {
 	//
 	// +kubebuilder:validation:Required
 	StorageSize int32 `json:"storageSize"`
-	// +kubebuilder:validation:Enum=HDD;SSD;SSD Standard;SSD Premium;DAS;ISO
+	// The storage type used in your cluster.
+	// Value "SSD" is deprecated. Use the equivalent "SSD Premium" instead.
+	//
+	// +kubebuilder:validation:Enum=HDD;SSD;SSD Standard;SSD Premium
 	// +kubebuilder:validation:Required
 	StorageType string `json:"storageType"`
 	// +kubebuilder:validation:MaxItems=1
@@ -75,6 +78,11 @@ type ClusterParameters struct {
 	// +kubebuilder:validation:Enum=de/fra;us/las;us/ewr;de/txl;gb/lhr;es/vit
 	// +kubebuilder:validation:Required
 	Location string `json:"location"`
+	// The S3 location where the backups will be stored.
+	//
+	// +immutable
+	// +kubebuilder:validation:Enum=de;eu-south-2;eu-central-2
+	BackupLocation string `json:"backupLocation,omitempty"`
 	// The friendly name of your cluster.
 	//
 	// +kubebuilder:validation:Required

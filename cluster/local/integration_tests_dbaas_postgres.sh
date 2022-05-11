@@ -58,6 +58,7 @@ spec:
       username: test
       password: test12345
     location: de/txl
+    backupLocation: de
     instances: 1
     cores: 2
     ram: 2048
@@ -101,6 +102,7 @@ spec:
       username: test
       password: test12345
     location: de/txl
+    backupLocation: de
     instances: 1
     cores: 2
     ram: 2048
@@ -168,6 +170,7 @@ spec:
       username: test
       password: test12345
     location: de/txl
+    backupLocation: de
     instances: 1
     cores: 2
     ram: 2048
