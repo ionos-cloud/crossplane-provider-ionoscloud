@@ -129,7 +129,10 @@ metadata:
   name: exampleipfailover
 spec:
   forProvider:
-    ip:
+    ipBlockConfig:
+      ipBlockIdRef:
+        name: exampleipblock
+      index: 0
     datacenterConfig:
       datacenterIdRef:
         name: example
