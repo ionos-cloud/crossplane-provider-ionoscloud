@@ -20,7 +20,7 @@ spec:
   forProvider:
     name: exampleIpBlock
     size: 2
-    location: us/las
+    location: de/txl
   providerConfigRef:
     name: example
 EOF
@@ -46,7 +46,7 @@ spec:
   forProvider:
     name: exampleIpBlockUpdate
     size: 2
-    location: us/las
+    location: de/txl
   providerConfigRef:
     name: example
 EOF
@@ -73,7 +73,7 @@ spec:
   forProvider:
     name: exampleIpBlockUpdate
     size: 2
-    location: us/las
+    location: de/txl
   providerConfigRef:
     name: example
 EOF
@@ -441,6 +441,10 @@ spec:
   forProvider:
     name: exampleNic
     dhcp: false
+    ipsConfigs:
+      ipsBlockConfigs:
+        - ipBlockIdRef:
+            name: example
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -458,43 +462,12 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for nic CR to be ready & synced"
+  sleep 10s
   kubectl wait --for=condition=ready nics/example --timeout 120s
   kubectl wait --for=condition=synced nics/example --timeout 120s
 
   echo_step "get nic CR"
   kubectl get nics
-
-  echo_step "update nic CR"
-  INSTALL_RESOURCE_YAML="$(
-    cat <<EOF
-apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: Nic
-metadata:
-  name: example
-spec:
-  forProvider:
-    name: exampleNic
-    dhcp: true
-    firewallActive: true
-    datacenterConfig:
-      datacenterIdRef:
-        name: example
-    serverConfig:
-      serverIdRef:
-        name: example
-    lanConfig:
-      lanIdRef:
-        name: example
-  providerConfigRef:
-    name: example
-EOF
-  )"
-
-  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
-
-  echo_step "waiting for nic CR to be ready & synced"
-  kubectl wait --for=condition=ready nics/example --timeout 120s
-  kubectl wait --for=condition=synced nics/example --timeout 120s
 }
 
 function nic_tests_cleanup() {
@@ -508,6 +481,10 @@ spec:
   forProvider:
     name: exampleNic
     dhcp: false
+    ipsConfigs:
+      ipsBlockConfigs:
+        - ipBlockIdRef:
+            name: example
     datacenterConfig:
       datacenterIdRef:
         name: example

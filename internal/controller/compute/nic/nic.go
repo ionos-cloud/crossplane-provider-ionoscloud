@@ -41,6 +41,7 @@ import (
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/nic"
 )
 
@@ -114,7 +115,7 @@ func (c *connectorNic) Connect(ctx context.Context, mg resource.Managed) (manage
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
-	return &externalNic{service: &nic.APIClient{IonosServices: svc}, log: c.log}, nil
+	return &externalNic{service: &nic.APIClient{IonosServices: svc}, ipblockService: &ipblock.APIClient{IonosServices: svc}, log: c.log}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -122,11 +123,16 @@ func (c *connectorNic) Connect(ctx context.Context, mg resource.Managed) (manage
 type externalNic struct {
 	// A 'client' used to connect to the externalNic resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service nic.Client
-	log     logging.Logger
+	service        nic.Client
+	ipblockService ipblock.Client
+	log            logging.Logger
 }
 
-func (c *externalNic) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+// Keep old value of Nic's IPs to correctly handle the update.
+// The user can set an IP and after that to unset it.
+var oldIPsNic []string
+
+func (c *externalNic) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint: gocyclo
 	cr, ok := mg.(*v1alpha1.Nic)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotNic)
@@ -147,7 +153,16 @@ func (c *externalNic) Observe(ctx context.Context, mg resource.Managed) (managed
 	nic.LateInitializer(&cr.Spec.ForProvider, &instance)
 
 	cr.Status.AtProvider.NicID = meta.GetExternalName(cr)
-	cr.Status.AtProvider.State = *instance.Metadata.State
+	if instance.HasMetadata() {
+		if instance.Metadata.HasState() {
+			cr.Status.AtProvider.State = *instance.Metadata.State
+		}
+	}
+	if instance.HasProperties() {
+		if instance.Properties.HasIps() {
+			cr.Status.AtProvider.IPs = *instance.Properties.Ips
+		}
+	}
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
 	switch cr.Status.AtProvider.State {
@@ -161,9 +176,14 @@ func (c *externalNic) Observe(ctx context.Context, mg resource.Managed) (managed
 		cr.SetConditions(xpv1.Unavailable())
 	}
 
+	// Resolve IPs
+	ips, err := c.getIpsSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalObservation{}, fmt.Errorf("failed to get ips: %w", err)
+	}
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        nic.IsNicUpToDate(cr, instance),
+		ResourceUpToDate:        nic.IsNicUpToDate(cr, instance, ips, oldIPsNic),
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}, nil
@@ -179,7 +199,13 @@ func (c *externalNic) Create(ctx context.Context, mg resource.Managed) (managed.
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
-	instanceInput, err := nic.GenerateCreateNicInput(cr)
+
+	ips, err := c.getIpsSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("failed to get ips: %w", err)
+	}
+	oldIPsNic = ips
+	instanceInput, err := nic.GenerateCreateNicInput(cr, ips)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -211,7 +237,12 @@ func (c *externalNic) Update(ctx context.Context, mg resource.Managed) (managed.
 		return managed.ExternalUpdate{}, nil
 	}
 
-	instanceInput, err := nic.GenerateUpdateNicInput(cr)
+	ips, err := c.getIpsSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("failed to get ips: %w", err)
+	}
+	oldIPsNic = ips
+	instanceInput, err := nic.GenerateUpdateNicInput(cr, ips)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
@@ -249,4 +280,30 @@ func (c *externalNic) Delete(ctx context.Context, mg resource.Managed) error {
 		return err
 	}
 	return nil
+}
+
+// getIpsSet will return ips set by the user on ips or ipsConfig fields of the spec.
+// If both fields are set, only the ips field will be considered by the Crossplane
+// Provider IONOS Cloud.
+func (c *externalNic) getIpsSet(ctx context.Context, cr *v1alpha1.Nic) ([]string, error) {
+	if len(cr.Spec.ForProvider.IpsCfg.IPs) == 0 && len(cr.Spec.ForProvider.IpsCfg.IPBlockCfgs) == 0 {
+		return nil, nil
+	}
+	if len(cr.Spec.ForProvider.IpsCfg.IPs) > 0 {
+		return cr.Spec.ForProvider.IpsCfg.IPs, nil
+	}
+	ips := make([]string, 0)
+	if len(cr.Spec.ForProvider.IpsCfg.IPBlockCfgs) > 0 {
+		for i, cfg := range cr.Spec.ForProvider.IpsCfg.IPBlockCfgs {
+			if cfg.IPBlockID == "" {
+				return nil, fmt.Errorf("error resolving references for ipblock at index: %v", i)
+			}
+			ipsCfg, err := c.ipblockService.GetIPs(ctx, cfg.IPBlockID, cfg.Indexes...)
+			if err != nil {
+				return nil, err
+			}
+			ips = append(ips, ipsCfg...)
+		}
+	}
+	return ips, nil
 }

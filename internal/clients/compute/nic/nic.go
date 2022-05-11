@@ -53,18 +53,12 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 }
 
 // LateInitializer fills the empty fields in *v1alpha1.NicParameters with
-// the values seen in sdkgo.Server.
+// the values seen in sdkgo.Nic.
 func LateInitializer(in *v1alpha1.NicParameters, sg *sdkgo.Nic) {
 	if sg == nil {
 		return
 	}
-	// Add IPS to the Spec, if it was set by the API
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
-		if ipsOk, ok := propertiesOk.GetIpsOk(); ok && ipsOk != nil {
-			if utils.IsEmptyValue(reflect.ValueOf(in.Ips)) {
-				in.Ips = *ipsOk
-			}
-		}
 		if firewallTypeOk, ok := propertiesOk.GetFirewallTypeOk(); ok && firewallTypeOk != nil {
 			if utils.IsEmptyValue(reflect.ValueOf(in.FirewallType)) {
 				in.FirewallType = *firewallTypeOk
@@ -74,7 +68,7 @@ func LateInitializer(in *v1alpha1.NicParameters, sg *sdkgo.Nic) {
 }
 
 // GenerateCreateNicInput returns sdkgo.Nic based on the CR spec
-func GenerateCreateNicInput(cr *v1alpha1.Nic) (*sdkgo.Nic, error) { // nolint:gocyclo
+func GenerateCreateNicInput(cr *v1alpha1.Nic, ips []string) (*sdkgo.Nic, error) { // nolint:gocyclo
 	lanID, err := safecast.Atoi32(cr.Spec.ForProvider.LanCfg.LanID)
 	if err != nil {
 		return nil, err
@@ -92,8 +86,8 @@ func GenerateCreateNicInput(cr *v1alpha1.Nic) (*sdkgo.Nic, error) { // nolint:go
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Mac)) {
 		instanceCreateInput.Properties.SetMac(cr.Spec.ForProvider.Mac)
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Ips)) {
-		instanceCreateInput.Properties.SetIps(cr.Spec.ForProvider.Ips)
+	if !utils.IsEmptyValue(reflect.ValueOf(ips)) {
+		instanceCreateInput.Properties.SetIps(ips)
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.FirewallType)) {
 		instanceCreateInput.Properties.SetFirewallType(cr.Spec.ForProvider.FirewallType)
@@ -102,7 +96,7 @@ func GenerateCreateNicInput(cr *v1alpha1.Nic) (*sdkgo.Nic, error) { // nolint:go
 }
 
 // GenerateUpdateNicInput returns sdkgo.NicProperties based on the CR spec modifications
-func GenerateUpdateNicInput(cr *v1alpha1.Nic) (*sdkgo.NicProperties, error) { // nolint:gocyclo
+func GenerateUpdateNicInput(cr *v1alpha1.Nic, ips []string) (*sdkgo.NicProperties, error) { // nolint:gocyclo
 	lanID, err := safecast.Atoi32(cr.Spec.ForProvider.LanCfg.LanID)
 	if err != nil {
 		return nil, err
@@ -118,8 +112,8 @@ func GenerateUpdateNicInput(cr *v1alpha1.Nic) (*sdkgo.NicProperties, error) { //
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Mac)) {
 		instanceUpdateInput.SetMac(cr.Spec.ForProvider.Mac)
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Ips)) {
-		instanceUpdateInput.SetIps(cr.Spec.ForProvider.Ips)
+	if !utils.IsEmptyValue(reflect.ValueOf(ips)) {
+		instanceUpdateInput.SetIps(ips)
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.FirewallType)) {
 		instanceUpdateInput.SetFirewallType(cr.Spec.ForProvider.FirewallType)
@@ -128,7 +122,7 @@ func GenerateUpdateNicInput(cr *v1alpha1.Nic) (*sdkgo.NicProperties, error) { //
 }
 
 // IsNicUpToDate returns true if the Nic is up-to-date or false if it does not
-func IsNicUpToDate(cr *v1alpha1.Nic, nic sdkgo.Nic) bool { // nolint:gocyclo
+func IsNicUpToDate(cr *v1alpha1.Nic, nic sdkgo.Nic, ips []string, oldIps []string) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && nic.Properties == nil:
 		return true
@@ -146,7 +140,11 @@ func IsNicUpToDate(cr *v1alpha1.Nic, nic sdkgo.Nic) bool { // nolint:gocyclo
 		return false
 	case nic.Properties.FirewallType != nil && *nic.Properties.FirewallType != cr.Spec.ForProvider.FirewallType:
 		return false
-	case nic.Properties.Ips != nil && !utils.IsEqStringSlices(*nic.Properties.Ips, cr.Spec.ForProvider.Ips):
+	case nic.Properties.Ips != nil && !utils.ContainsStringSlices(*nic.Properties.Ips, cr.Status.AtProvider.IPs):
+		return false
+	case len(ips) == 0 && utils.IsEqStringSlices(oldIps, cr.Status.AtProvider.IPs): // if no IP is set by the user, API sets automatically an IP
+		return false
+	case len(ips) != 0 && !utils.ContainsStringSlices(ips, cr.Status.AtProvider.IPs):
 		return false
 	default:
 		return true
