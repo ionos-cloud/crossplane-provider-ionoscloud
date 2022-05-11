@@ -5,6 +5,8 @@
 - **Enhancements**:
     - Added and updated documentation. See [docs](docs/README.md)
     - Added example for Compositions and Claims. See [example](docs/RESOURCES.md#compositions-and-claims)
+    - **DBaaS Postgres Cluster**:
+      - added new property `BackupLocation` for DBaaS Postgres Cluster Managed Resource
 - **Fixes**:
     - fixed late initialization for **Server** and **CubeServer** Managed Resources if the CPU Family is not set by the
       user, but by the API
