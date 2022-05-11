@@ -5,6 +5,8 @@
 - **Breaking Changes**:
     - updated `spec.forProvider.ips` field from **Nic Managed Resource** to `spec.forProvider.ipsConfigs` being able to
       set IPs directly or via references and indexes of the IPBlocks
+    - removed temporarily `spec.forProvider.public` field from **K8s Cluster Managed Resource**
+    - removed temporarily `spec.forProvider.gatewayIp` field from **K8s NodePool Managed Resource**
 - **Enhancements**:
     - Added and updated documentation. See [docs](docs/README.md)
     - Added example for Compositions and Claims. See [example](docs/RESOURCES.md#compositions-and-claims)
