@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/lan"
 	"time"
 
 	"k8s.io/client-go/util/workqueue"
@@ -29,7 +30,6 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/firewallrule"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/ipblock"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/ipfailover"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/lan"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/nic"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/volume"
@@ -41,13 +41,12 @@ import (
 
 // Setup creates all IONOS Cloud controllers with the supplied logger
 // and adds them to the supplied manager.
-func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter, poll time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter, poll, createGracePeriod time.Duration) error {
 	for _, setup := range []func(ctrl.Manager, logging.Logger, workqueue.RateLimiter, time.Duration) error{
 		datacenter.Setup,
 		server.Setup,
 		cubeserver.Setup,
 		volume.Setup,
-		lan.Setup,
 		nic.Setup,
 		firewallrule.Setup,
 		ipblock.Setup,
@@ -59,6 +58,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter, poll ti
 		if err := setup(mgr, l, wl, poll); err != nil {
 			return err
 		}
+	}
+	err := lan.Setup(mgr, l, wl, poll, createGracePeriod)
+	if err != nil {
+		return err
 	}
 	return config.Setup(mgr, l, wl)
 }
