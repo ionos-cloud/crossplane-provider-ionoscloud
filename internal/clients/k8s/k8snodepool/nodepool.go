@@ -180,6 +180,8 @@ func LateStatusInitializer(in *v1alpha1.NodePoolObservation, sg *sdkgo.Kubernete
 		}
 		if publicIPsOk, ok := propertiesOk.GetPublicIpsOk(); ok && publicIPsOk != nil {
 			in.PublicIPs = *publicIPsOk
+		} else {
+			in.PublicIPs = []string{}
 		}
 	}
 }

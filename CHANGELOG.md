@@ -15,9 +15,8 @@
       IPBlock
     - updated `spec.forProvider.targetIp` field from **FirewallRule Managed Resource**
       to `spec.forProvider.targetIpConfig` being able to set the required IP directly or via reference and index to an
-      IPBlock
-      to set the required IP directly or via reference and index to an IPBlock set IPs directly or via references and
-      indexes of the IPBlocks
+      IPBlock to set the required IP directly or via reference and index to an IPBlock set IPs directly or via
+      references and indexes of the IPBlocks
     - updated `spec.forProvider.publicIps` field from **K8s NodePool Managed Resource**
       to `spec.forProvider.publicIpsConfigs` being able to set IPs directly or via references and indexes of the
       IPBlocks

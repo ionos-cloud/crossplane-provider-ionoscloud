@@ -98,7 +98,6 @@ spec:
       ipsBlockConfigs:
         - ipBlockIdRef:
             name: examplek8s
-    #    gatewayIp:
     #    lans:
     #      - lanConfig:
     #          lanIdRef:
