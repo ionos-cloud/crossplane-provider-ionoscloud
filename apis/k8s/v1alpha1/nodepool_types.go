@@ -127,9 +127,10 @@ type NodePoolParameters struct {
 	// The array must contain one more IP than the maximum possible number of nodes
 	// (nodeCount+1 for fixed number of nodes or maxNodeCount+1 when auto-scaling is used).
 	// The extra IP is used when the nodes are rebuilt.
+	// IPs can be set directly or via reference and indexes.
 	//
 	// +kubebuilder:validation:Optional
-	PublicIPs []string `json:"publicIps,omitempty"`
+	PublicIPsCfg IPsConfigs `json:"publicIpsConfigs,omitempty"`
 }
 
 // KubernetesAutoScaling struct for KubernetesAutoScaling
@@ -217,10 +218,83 @@ type LanConfig struct {
 	LanIDSelector *xpv1.Selector `json:"lanIdSelector,omitempty"`
 }
 
+// IPsConfigs - used by resources that need to link multiple IPs from IPBlock via id or via reference
+// and using index. Indexes start from 0, and multiple indexes can be set.
+// If no index is set, all IPs from the corresponding IPBlock will be assigned.
+// If both IPs and IPBlockConfigs fields are set, only ips will be considered.
+type IPsConfigs struct {
+	IPs         []string         `json:"ips,omitempty"`
+	IPBlockCfgs []IPsBlockConfig `json:"ipsBlockConfigs,omitempty"`
+}
+
+// IPsBlockConfig - used by resources that need to link IPBlock via id or via reference
+// to get multiple IPs.
+type IPsBlockConfig struct {
+	// NicID is the ID of the IPBlock on which the resource will be created.
+	// It needs to be provided via directly or via reference.
+	//
+	// +immutable
+	// +kubebuilder:validation:Format=uuid
+	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.IPBlock
+	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractIPBlockID()
+	IPBlockID string `json:"ipBlockId,omitempty"`
+	// IPBlockIDRef references to a IPBlock to retrieve its ID
+	//
+	// +optional
+	// +immutable
+	IPBlockIDRef *xpv1.Reference `json:"ipBlockIdRef,omitempty"`
+	// IPBlockIDSelector selects reference to a IPBlock to retrieve its nicId
+	//
+	// +optional
+	IPBlockIDSelector *xpv1.Selector `json:"ipBlockIdSelector,omitempty"`
+	// Indexes are referring to the IPs indexes retrieved from the IPBlock.
+	// Indexes are starting from 0. If no index is set, all IPs from the
+	// corresponding IPBlock will be assigned.
+	//
+	// +optional
+	Indexes []int `json:"indexes,omitempty"`
+}
+
+// IPConfig is used by resources that need to link ips from IPBlock via id or via reference
+// and using index. Indexes start from 0, and only one index must be set.
+// If both IPs and IPBlockConfigs fields are set, only ip will be used.
+type IPConfig struct {
+	IP         string        `json:"ip,omitempty"`
+	IPBlockCfg IPBlockConfig `json:"ipBlockConfig,omitempty"`
+}
+
+// IPBlockConfig - used by resources that need to link IPBlock via id or via reference
+// to get one single IP.
+type IPBlockConfig struct {
+	// NicID is the ID of the IPBlock on which the resource will be created.
+	// It needs to be provided via directly or via reference.
+	//
+	// +immutable
+	// +kubebuilder:validation:Format=uuid
+	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.IPBlock
+	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractIPBlockID()
+	IPBlockID string `json:"ipBlockId,omitempty"`
+	// IPBlockIDRef references to a IPBlock to retrieve its ID
+	//
+	// +optional
+	// +immutable
+	IPBlockIDRef *xpv1.Reference `json:"ipBlockIdRef,omitempty"`
+	// IPBlockIDSelector selects reference to a IPBlock to retrieve its nicId
+	//
+	// +optional
+	IPBlockIDSelector *xpv1.Selector `json:"ipBlockIdSelector,omitempty"`
+	// Index is referring to the IP index retrieved from the IPBlock.
+	// Index is starting from 0.
+	//
+	// +kubebuilder:validation:Required
+	Index int `json:"index"`
+}
+
 // NodePoolObservation are the observable fields of a NodePool.
 type NodePoolObservation struct {
-	NodePoolID               string   `json:"NodePoolId,omitempty"`
+	NodePoolID               string   `json:"nodePoolId,omitempty"`
 	State                    string   `json:"state,omitempty"`
+	PublicIPs                []string `json:"publicIps,omitempty"`
 	AvailableUpgradeVersions []string `json:"availableUpgradeVersions,omitempty"`
 }
 

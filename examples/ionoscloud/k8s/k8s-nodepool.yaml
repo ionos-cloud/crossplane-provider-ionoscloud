@@ -40,6 +40,10 @@ spec:
     #      key: "value"
     #    annotations:
     #      key: "value"
+    #    publicIpsConfigs:
+    #      ipsBlockConfigs:
+    #        - ipBlockIdRef:
+    #            name: example
     datacenterConfig:
       datacenterIdRef:
         name: example
