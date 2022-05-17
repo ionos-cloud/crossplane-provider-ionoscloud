@@ -28,6 +28,7 @@
 - **Fixes**:
     - fixed late initialization for **Server** and **CubeServer** Managed Resources if the CPU Family is not set by the
       user, but by the API
+    - fixed bug on Kubernetes Cluster Resource creation, if the s3 buckets are not enabled on contract
 
 ## [0.1.0-alpha.2] (March 2022)
 
