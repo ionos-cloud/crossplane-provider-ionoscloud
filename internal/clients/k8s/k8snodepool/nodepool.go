@@ -85,9 +85,6 @@ func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool) (*sdkgo.KubernetesNod
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.PublicIPs)) {
 		instanceCreateInput.Properties.SetPublicIps(cr.Spec.ForProvider.PublicIPs)
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.GatewayIP)) {
-		instanceCreateInput.Properties.SetGatewayIp(cr.Spec.ForProvider.GatewayIP)
-	}
 	if window := nodepoolMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
 		instanceCreateInput.Properties.SetMaintenanceWindow(*window)
 	}
@@ -198,8 +195,6 @@ func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodeP
 	case nodepool.Properties.K8sVersion != nil && *nodepool.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
 		return false
 	case nodepool.Properties.NodeCount != nil && *nodepool.Properties.NodeCount != cr.Spec.ForProvider.NodeCount:
-		return false
-	case nodepool.Properties.GatewayIp != nil && *nodepool.Properties.GatewayIp != cr.Spec.ForProvider.GatewayIP:
 		return false
 	case nodepool.Properties.PublicIps != nil && !utils.ContainsStringSlices(*nodepool.Properties.PublicIps, cr.Spec.ForProvider.PublicIPs):
 		return false

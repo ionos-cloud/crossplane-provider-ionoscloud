@@ -82,6 +82,13 @@ spec:
                   ID or Reference, Lan ID and CIDR), Location (in sync with Datacenter),
                   DisplayName, Credentials, Synchronization Mode.'
                 properties:
+                  backupLocation:
+                    description: The S3 location where the backups will be stored.
+                    enum:
+                    - de
+                    - eu-south-2
+                    - eu-central-2
+                    type: string
                   connections:
                     items:
                       description: Connection Details about the network connection
@@ -249,13 +256,13 @@ spec:
                     format: int32
                     type: integer
                   storageType:
+                    description: The storage type used in your cluster. Value "SSD"
+                      is deprecated. Use the equivalent "SSD Premium" instead.
                     enum:
                     - HDD
                     - SSD
                     - SSD Standard
                     - SSD Premium
-                    - DAS
-                    - ISO
                     type: string
                   synchronizationMode:
                     description: SynchronizationMode Represents different modes of

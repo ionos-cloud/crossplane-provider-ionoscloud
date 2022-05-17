@@ -9,8 +9,6 @@
 # - AvailabilityZone,
 # - StorageType,
 # - StorageSize.
-# Note: If the NodePool is part of a Private K8s Cluster,
-# it is required to set gatewayIp field.
 apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: NodePool
 metadata:
@@ -27,7 +25,6 @@ spec:
     availabilityZone: AUTO
     storageType: HDD
     storageSize: 10
-    #    gatewayIp:
     #    lans:
     #      - lanConfig:
     #          lanIdRef:
