@@ -178,13 +178,9 @@ func (c *externalNodePool) Observe(ctx context.Context, mg resource.Managed) (ma
 	if err != nil {
 		return managed.ExternalObservation{}, fmt.Errorf("failed to get public IPs: %w", err)
 	}
-	gatewayIP, err := c.getGatewayIPSet(ctx, cr)
-	if err != nil {
-		return managed.ExternalObservation{}, fmt.Errorf("failed to get gateway IP: %w", err)
-	}
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        k8snodepool.IsK8sNodePoolUpToDate(cr, observed, publicIps, gatewayIP),
+		ResourceUpToDate:        k8snodepool.IsK8sNodePoolUpToDate(cr, observed, publicIps),
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 		ConnectionDetails:       managed.ConnectionDetails{},
 	}, nil
@@ -225,11 +221,7 @@ func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (man
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("failed to get public IPs: %w", err)
 	}
-	gatewayIP, err := c.getGatewayIPSet(ctx, cr)
-	if err != nil {
-		return managed.ExternalCreation{}, fmt.Errorf("failed to get gateway IP: %w", err)
-	}
-	instanceInput, err := k8snodepool.GenerateCreateK8sNodePoolInput(cr, publicIPs, gatewayIP)
+	instanceInput, err := k8snodepool.GenerateCreateK8sNodePoolInput(cr, publicIPs)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -328,28 +320,4 @@ func (c *externalNodePool) getPublicIPsSet(ctx context.Context, cr *v1alpha1.Nod
 		}
 	}
 	return ips, nil
-}
-
-// getGatewayIPSet will return ip set by the user on ip or ipConfig fields of the spec.
-// If both fields are set, only the ip field will be considered by the Crossplane
-// Provider IONOS Cloud.
-func (c *externalNodePool) getGatewayIPSet(ctx context.Context, cr *v1alpha1.NodePool) (string, error) {
-	if cr.Spec.ForProvider.GatewayIPCfg.IP == "" && cr.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.IPBlockID == "" {
-		return "", nil
-	}
-	if cr.Spec.ForProvider.GatewayIPCfg.IP != "" {
-		return cr.Spec.ForProvider.GatewayIPCfg.IP, nil
-	}
-	if cr.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.IPBlockID != "" {
-		ipsCfg, err := c.ipBlockService.GetIPs(ctx, cr.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.IPBlockID, cr.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.Index)
-		if err != nil {
-			return "", err
-		}
-		if len(ipsCfg) != 1 {
-			return "", fmt.Errorf("error getting IP with index %v from IPBlock %v",
-				cr.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.Index, cr.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.IPBlockID)
-		}
-		return ipsCfg[0], nil
-	}
-	return "", fmt.Errorf("error getting IP set")
 }

@@ -36,9 +36,6 @@ import (
 // AvailabilityZone,
 // StorageType,
 // StorageSize.
-// Note: If the NodePool is part of a Private K8s Cluster,
-// it is required to set gatewayIpConfig, setting ip
-// directly or via reference and index.
 type NodePoolParameters struct {
 	// The K8s Cluster on which the NodePool will be created
 	//
@@ -134,13 +131,6 @@ type NodePoolParameters struct {
 	//
 	// +kubebuilder:validation:Optional
 	PublicIPsCfg IPsConfigs `json:"publicIpsConfigs,omitempty"`
-	// Public IP address for the gateway performing source NAT for the NodePool's nodes
-	// belonging to a private cluster.
-	// Required only if the node pool belongs to a private cluster.
-	//
-	// +immutable
-	// +kubebuilder:validation:Optional
-	GatewayIPCfg IPConfig `json:"gatewayIpConfig,omitempty"`
 }
 
 // KubernetesAutoScaling struct for KubernetesAutoScaling
@@ -305,7 +295,6 @@ type NodePoolObservation struct {
 	NodePoolID               string   `json:"nodePoolId,omitempty"`
 	State                    string   `json:"state,omitempty"`
 	PublicIPs                []string `json:"publicIps,omitempty"`
-	GatewayIP                string   `json:"gatewayIp,omitempty"`
 	AvailableUpgradeVersions []string `json:"availableUpgradeVersions,omitempty"`
 }
 

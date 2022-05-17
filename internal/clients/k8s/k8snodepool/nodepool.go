@@ -53,7 +53,7 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 }
 
 // GenerateCreateK8sNodePoolInput returns sdkgo.KubernetesNodePoolForPost based on the CR spec
-func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIPs []string, gatewayIP string) (*sdkgo.KubernetesNodePoolForPost, error) {
+func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIPs []string) (*sdkgo.KubernetesNodePoolForPost, error) {
 	instanceCreateInput := sdkgo.KubernetesNodePoolForPost{
 		Properties: &sdkgo.KubernetesNodePoolPropertiesForPost{
 			Name:             &cr.Spec.ForProvider.Name,
@@ -84,9 +84,6 @@ func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIPs []string, g
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(publicIPs)) {
 		instanceCreateInput.Properties.SetPublicIps(publicIPs)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(gatewayIP)) {
-		instanceCreateInput.Properties.SetGatewayIp(gatewayIP)
 	}
 	if window := nodepoolMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
 		instanceCreateInput.Properties.SetMaintenanceWindow(*window)
@@ -184,14 +181,11 @@ func LateStatusInitializer(in *v1alpha1.NodePoolObservation, sg *sdkgo.Kubernete
 		if publicIPsOk, ok := propertiesOk.GetPublicIpsOk(); ok && publicIPsOk != nil {
 			in.PublicIPs = *publicIPsOk
 		}
-		if gatewayIPOk, ok := propertiesOk.GetGatewayIpOk(); ok && gatewayIPOk != nil {
-			in.GatewayIP = *gatewayIPOk
-		}
 	}
 }
 
 // IsK8sNodePoolUpToDate returns true if the NodePool is up-to-date or false if it does not
-func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodePool, publicIPs []string, gatewayIP string) bool { // nolint:gocyclo
+func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodePool, publicIPs []string) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && nodepool.Properties == nil:
 		return true
@@ -204,8 +198,6 @@ func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodeP
 	case nodepool.Properties.K8sVersion != nil && *nodepool.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
 		return false
 	case nodepool.Properties.NodeCount != nil && *nodepool.Properties.NodeCount != cr.Spec.ForProvider.NodeCount:
-		return false
-	case nodepool.Properties.GatewayIp != nil && *nodepool.Properties.GatewayIp != gatewayIP:
 		return false
 	case nodepool.Properties.PublicIps != nil && !utils.ContainsStringSlices(*nodepool.Properties.PublicIps, publicIPs):
 		return false

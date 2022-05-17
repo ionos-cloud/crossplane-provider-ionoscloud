@@ -41,6 +41,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/firewallrule"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 )
 
 const (
@@ -112,7 +113,10 @@ func (c *connectorFirewallRule) Connect(ctx context.Context, mg resource.Managed
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
-	return &externalFirewallRule{service: &firewallrule.APIClient{IonosServices: svc}, log: c.log}, nil
+	return &externalFirewallRule{
+		service:        &firewallrule.APIClient{IonosServices: svc},
+		ipBlockService: &ipblock.APIClient{IonosServices: svc},
+		log:            c.log}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -120,11 +124,12 @@ func (c *connectorFirewallRule) Connect(ctx context.Context, mg resource.Managed
 type externalFirewallRule struct {
 	// A 'client' used to connect to the externalFirewallRule resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service firewallrule.Client
-	log     logging.Logger
+	service        firewallrule.Client
+	ipBlockService ipblock.Client
+	log            logging.Logger
 }
 
-func (c *externalFirewallRule) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+func (c *externalFirewallRule) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { //nolint:gocyclo
 	cr, ok := mg.(*v1alpha1.FirewallRule)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotFirewallRule)
@@ -142,8 +147,24 @@ func (c *externalFirewallRule) Observe(ctx context.Context, mg resource.Managed)
 	}
 
 	cr.Status.AtProvider.FirewallRuleID = meta.GetExternalName(cr)
-	cr.Status.AtProvider.State = *observed.Metadata.State
-	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+	if observed.HasProperties() {
+		if observed.Properties.HasSourceIp() {
+			cr.Status.AtProvider.SourceIP = *observed.Properties.SourceIp
+		} else {
+			cr.Status.AtProvider.SourceIP = ""
+		}
+		if observed.Properties.HasTargetIp() {
+			cr.Status.AtProvider.TargetIP = *observed.Properties.TargetIp
+		} else {
+			cr.Status.AtProvider.TargetIP = ""
+		}
+	}
+	if observed.HasMetadata() {
+		if observed.Metadata.HasState() {
+			cr.Status.AtProvider.State = *observed.Metadata.State
+			c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+		}
+	}
 	// Set Ready condition based on State
 	switch cr.Status.AtProvider.State {
 	case compute.AVAILABLE, compute.ACTIVE:
@@ -155,10 +176,17 @@ func (c *externalFirewallRule) Observe(ctx context.Context, mg resource.Managed)
 	default:
 		cr.SetConditions(xpv1.Unavailable())
 	}
-
+	sourceIP, err := c.getSourceIPSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalObservation{}, fmt.Errorf("error getting sourceIP: %v", sourceIP)
+	}
+	targetIP, err := c.getTargetIPSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalObservation{}, fmt.Errorf("error getting targetIP: %v", targetIP)
+	}
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  firewallrule.IsFirewallRuleUpToDate(cr, observed),
+		ResourceUpToDate:  firewallrule.IsFirewallRuleUpToDate(cr, observed, sourceIP, targetIP),
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
 }
@@ -173,7 +201,15 @@ func (c *externalFirewallRule) Create(ctx context.Context, mg resource.Managed) 
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
-	instanceInput, err := firewallrule.GenerateCreateFirewallRuleInput(cr)
+	sourceIP, err := c.getSourceIPSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("error getting sourceIP: %v", sourceIP)
+	}
+	targetIP, err := c.getTargetIPSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("error getting targetIP: %v", targetIP)
+	}
+	instanceInput, err := firewallrule.GenerateCreateFirewallRuleInput(cr, sourceIP, targetIP)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -206,7 +242,15 @@ func (c *externalFirewallRule) Update(ctx context.Context, mg resource.Managed) 
 	}
 
 	firewallRuleID := cr.Status.AtProvider.FirewallRuleID
-	instanceInput, err := firewallrule.GenerateUpdateFirewallRuleInput(cr)
+	sourceIP, err := c.getSourceIPSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("error getting sourceIP: %v", sourceIP)
+	}
+	targetIP, err := c.getTargetIPSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("error getting targetIP: %v", targetIP)
+	}
+	instanceInput, err := firewallrule.GenerateUpdateFirewallRuleInput(cr, sourceIP, targetIP)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
@@ -244,4 +288,52 @@ func (c *externalFirewallRule) Delete(ctx context.Context, mg resource.Managed) 
 		return err
 	}
 	return nil
+}
+
+// getTargetIPSet will return the TargetIP set by the user on targetIpConfig.ip or
+// targetIpConfig.ipBlockConfig fields of the spec.
+// If both fields are set, only the targetIpConfig.ip field will be considered by
+// the Crossplane Provider IONOS Cloud.
+func (c *externalFirewallRule) getTargetIPSet(ctx context.Context, cr *v1alpha1.FirewallRule) (string, error) {
+	if cr.Spec.ForProvider.TargetIPCfg.IP != "" {
+		return cr.Spec.ForProvider.TargetIPCfg.IP, nil
+	}
+	if cr.Spec.ForProvider.TargetIPCfg.IPBlockCfg.IPBlockID != "" {
+		ipsCfg, err := c.ipBlockService.GetIPs(ctx, cr.Spec.ForProvider.TargetIPCfg.IPBlockCfg.IPBlockID, cr.Spec.ForProvider.TargetIPCfg.IPBlockCfg.Index)
+		if err != nil {
+			return "", err
+		}
+		if len(ipsCfg) != 1 {
+			return "", fmt.Errorf("error getting target IP with index %v from IPBlock %v",
+				cr.Spec.ForProvider.TargetIPCfg.IPBlockCfg.Index, cr.Spec.ForProvider.TargetIPCfg.IPBlockCfg.IPBlockID)
+		}
+		return ipsCfg[0], nil
+	}
+	// return nil if nothing is set,
+	// since TargetIP can be empty
+	return "", nil
+}
+
+// getSourceIPSet will return the SourceIP set by the user on sourceIpConfig.ip or
+// sourceIpConfig.ipBlockConfig fields of the spec.
+// If both fields are set, only the sourceIpConfig.ip field will be considered by
+// the Crossplane Provider IONOS Cloud.
+func (c *externalFirewallRule) getSourceIPSet(ctx context.Context, cr *v1alpha1.FirewallRule) (string, error) {
+	if cr.Spec.ForProvider.SourceIPCfg.IP != "" {
+		return cr.Spec.ForProvider.TargetIPCfg.IP, nil
+	}
+	if cr.Spec.ForProvider.SourceIPCfg.IPBlockCfg.IPBlockID != "" {
+		ipsCfg, err := c.ipBlockService.GetIPs(ctx, cr.Spec.ForProvider.SourceIPCfg.IPBlockCfg.IPBlockID, cr.Spec.ForProvider.SourceIPCfg.IPBlockCfg.Index)
+		if err != nil {
+			return "", err
+		}
+		if len(ipsCfg) != 1 {
+			return "", fmt.Errorf("error getting source IP with index %v from IPBlock %v",
+				cr.Spec.ForProvider.SourceIPCfg.IPBlockCfg.Index, cr.Spec.ForProvider.SourceIPCfg.IPBlockCfg.IPBlockID)
+		}
+		return ipsCfg[0], nil
+	}
+	// return nil if nothing is set,
+	// since SourceIP can be empty
+	return "", nil
 }

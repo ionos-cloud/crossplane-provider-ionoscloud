@@ -81,9 +81,7 @@ spec:
                 description: 'NodePoolParameters are the observable fields of a NodePool.
                   Required fields in order to create a K8s NodePool: ClusterConfig,
                   Name, DatacenterConfig, NodeCount, CoresCount, RAMSize, AvailabilityZone,
-                  StorageType, StorageSize. Note: If the NodePool is part of a Private
-                  K8s Cluster, it is required to set gatewayIpConfig, setting ip directly
-                  or via reference and index.'
+                  StorageType, StorageSize.'
                 properties:
                   annotations:
                     additionalProperties:
@@ -201,57 +199,6 @@ spec:
                             description: MatchLabels ensures an object with matching
                               labels is selected.
                             type: object
-                        type: object
-                    type: object
-                  gatewayIpConfig:
-                    description: Public IP address for the gateway performing source
-                      NAT for the NodePool's nodes belonging to a private cluster.
-                      Required only if the node pool belongs to a private cluster.
-                    properties:
-                      ip:
-                        type: string
-                      ipBlockConfig:
-                        description: IPBlockConfig - used by resources that need to
-                          link IPBlock via id or via reference to get one single IP.
-                        properties:
-                          index:
-                            description: Index is referring to the IP index retrieved
-                              from the IPBlock. Index is starting from 0.
-                            type: integer
-                          ipBlockId:
-                            description: NicID is the ID of the IPBlock on which the
-                              resource will be created. It needs to be provided via
-                              directly or via reference.
-                            format: uuid
-                            type: string
-                          ipBlockIdRef:
-                            description: IPBlockIDRef references to a IPBlock to retrieve
-                              its ID
-                            properties:
-                              name:
-                                description: Name of the referenced object.
-                                type: string
-                            required:
-                            - name
-                            type: object
-                          ipBlockIdSelector:
-                            description: IPBlockIDSelector selects reference to a
-                              IPBlock to retrieve its nicId
-                            properties:
-                              matchControllerRef:
-                                description: MatchControllerRef ensures an object
-                                  with the same controller reference as the selecting
-                                  object is selected.
-                                type: boolean
-                              matchLabels:
-                                additionalProperties:
-                                  type: string
-                                description: MatchLabels ensures an object with matching
-                                  labels is selected.
-                                type: object
-                            type: object
-                        required:
-                        - index
                         type: object
                     type: object
                   k8sVersion:
@@ -496,8 +443,6 @@ spec:
                     items:
                       type: string
                     type: array
-                  gatewayIp:
-                    type: string
                   nodePoolId:
                     type: string
                   publicIps:

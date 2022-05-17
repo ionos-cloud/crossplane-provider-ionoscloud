@@ -78,10 +78,12 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 
 // GenerateCreateK8sClusterInput returns sdkgo.KubernetesClusterForPost based on the CR spec
 func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClusterForPost, error) {
+	// For the moment, Kubernetes Cluster can only be public.
+	publicK8sCluster := true
 	instanceCreateInput := sdkgo.KubernetesClusterForPost{
 		Properties: &sdkgo.KubernetesClusterPropertiesForPost{
 			Name:   &cr.Spec.ForProvider.Name,
-			Public: &cr.Spec.ForProvider.Public,
+			Public: &publicK8sCluster,
 		},
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.K8sVersion)) {
@@ -181,8 +183,6 @@ func IsK8sClusterUpToDate(cr *v1alpha1.Cluster, cluster sdkgo.KubernetesCluster)
 	case cluster.Metadata.State != nil && *cluster.Metadata.State == "BUSY" || *cluster.Metadata.State == "DEPLOYING":
 		return true
 	case cluster.Properties.Name != nil && *cluster.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	case cluster.Properties.Public != nil && *cluster.Properties.Public != cr.Spec.ForProvider.Public:
 		return false
 	case cluster.Properties.K8sVersion != nil && *cluster.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
 		return false

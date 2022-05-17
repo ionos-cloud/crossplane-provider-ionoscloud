@@ -105,6 +105,38 @@ func (mg *FirewallRule) ResolveReferences(ctx context.Context, c client.Reader) 
 	mg.Spec.ForProvider.NicCfg.NicID = rsp.ResolvedValue
 	mg.Spec.ForProvider.NicCfg.NicIDRef = rsp.ResolvedReference
 
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.SourceIPCfg.IPBlockCfg.IPBlockID,
+		Extract:      ExtractIPBlockID(),
+		Reference:    mg.Spec.ForProvider.SourceIPCfg.IPBlockCfg.IPBlockIDRef,
+		Selector:     mg.Spec.ForProvider.SourceIPCfg.IPBlockCfg.IPBlockIDSelector,
+		To: reference.To{
+			List:    &IPBlockList{},
+			Managed: &IPBlock{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.SourceIPCfg.IPBlockCfg.IPBlockID")
+	}
+	mg.Spec.ForProvider.SourceIPCfg.IPBlockCfg.IPBlockID = rsp.ResolvedValue
+	mg.Spec.ForProvider.SourceIPCfg.IPBlockCfg.IPBlockIDRef = rsp.ResolvedReference
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.TargetIPCfg.IPBlockCfg.IPBlockID,
+		Extract:      ExtractIPBlockID(),
+		Reference:    mg.Spec.ForProvider.TargetIPCfg.IPBlockCfg.IPBlockIDRef,
+		Selector:     mg.Spec.ForProvider.TargetIPCfg.IPBlockCfg.IPBlockIDSelector,
+		To: reference.To{
+			List:    &IPBlockList{},
+			Managed: &IPBlock{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.TargetIPCfg.IPBlockCfg.IPBlockID")
+	}
+	mg.Spec.ForProvider.TargetIPCfg.IPBlockCfg.IPBlockID = rsp.ResolvedValue
+	mg.Spec.ForProvider.TargetIPCfg.IPBlockCfg.IPBlockIDRef = rsp.ResolvedReference
+
 	return nil
 }
 

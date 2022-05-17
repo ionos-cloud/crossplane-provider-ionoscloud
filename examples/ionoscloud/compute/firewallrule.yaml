@@ -14,12 +14,20 @@ spec:
     protocol: ANY
     type: INGRESS
     #    sourceMac:
-    #    sourceIp:
-    #    targetIp:
     #    icmpCode:
     #    icmpType:
     #    portRangeStart:
     #    portRangeEnd:
+    sourceIpConfig:
+      ipBlockConfig:
+        ipBlockIdRef:
+          name: example
+        index: 0
+    targetIpConfig:
+      ipBlockConfig:
+        ipBlockIdRef:
+          name: example
+        index: 1
     datacenterConfig:
       datacenterIdRef:
         name: example

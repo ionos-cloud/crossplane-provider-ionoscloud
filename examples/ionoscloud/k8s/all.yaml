@@ -29,8 +29,7 @@ spec:
     name: example
 ---
 # Required values for creating a K8s Cluster CR are:
-# - Name,
-# - Public.
+# - Name.
 apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: Cluster
 metadata:
@@ -38,8 +37,7 @@ metadata:
 spec:
   forProvider:
     name: exampleK8sCluster
-    public: true
-    #    k8sVersion: 1.22.6
+  #    k8sVersion: 1.22.6
   #    apiSubnetAllowList:
   #      -
   #    s3Buckets:
@@ -80,8 +78,6 @@ spec:
 # - AvailabilityZone,
 # - StorageType,
 # - StorageSize.
-# Note: If the NodePool is part of a Private K8s Cluster,
-# it is required to set gatewayIp field.
 apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: NodePool
 metadata:

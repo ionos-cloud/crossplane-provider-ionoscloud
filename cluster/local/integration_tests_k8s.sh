@@ -19,7 +19,6 @@ metadata:
 spec:
   forProvider:
     name: exampleK8sCluster
-    public: true
     maintenanceWindow:
       dayOfTheWeek: Monday
       time: "23:40:58Z"
@@ -50,7 +49,6 @@ metadata:
 spec:
   forProvider:
     name: exampleK8sClusterUpdate
-    public: true
     maintenanceWindow:
       dayOfTheWeek: Friday
       time: "23:40:58Z"
@@ -259,7 +257,6 @@ metadata:
 spec:
   forProvider:
     name: exampleK8sCluster
-    public: true
     maintenanceWindow:
       dayOfTheWeek: Friday
       time: "23:40:58Z"

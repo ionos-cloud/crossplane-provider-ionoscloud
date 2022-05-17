@@ -58,6 +58,7 @@ spec:
       username: test
       password: test12345
     location: de/txl
+    backupLocation: de
     instances: 1
     cores: 2
     ram: 2048
@@ -72,8 +73,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for dbaas postgres cluster CR to be ready & synced"
-  kubectl wait --for=condition=ready postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=900s
-  kubectl wait --for=condition=synced postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=900s
+  kubectl wait --for=condition=ready postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=1800s
+  kubectl wait --for=condition=synced postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=1800s
 
   echo_step "get dbaas postgres cluster CR"
   kubectl get postgresclusters.dbaas.ionoscloud.crossplane.io -o wide
@@ -101,6 +102,7 @@ spec:
       username: test
       password: test12345
     location: de/txl
+    backupLocation: de
     instances: 1
     cores: 2
     ram: 2048
@@ -115,8 +117,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for dbaas postgres cluster CR to be ready & synced"
-  kubectl wait --for=condition=ready postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=300s
-  kubectl wait --for=condition=synced postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=300s
+  kubectl wait --for=condition=ready postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=1800s
+  kubectl wait --for=condition=synced postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=1800s
 }
 
 function dbaas_postgres_cluster_tests_cleanup() {
@@ -168,6 +170,7 @@ spec:
       username: test
       password: test12345
     location: de/txl
+    backupLocation: de
     instances: 1
     cores: 2
     ram: 2048
@@ -183,5 +186,5 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
   echo_step "wait for deletion dbaas postgres cluster CR"
-  kubectl wait --for=delete postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=300s
+  kubectl wait --for=delete postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=900s
 }

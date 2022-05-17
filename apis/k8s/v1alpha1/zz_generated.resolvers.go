@@ -100,21 +100,6 @@ func (mg *NodePool) ResolveReferences(ctx context.Context, c client.Reader) erro
 		mg.Spec.ForProvider.PublicIPsCfg.IPBlockCfgs[i4].IPBlockIDRef = rsp.ResolvedReference
 
 	}
-	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
-		CurrentValue: mg.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.IPBlockID,
-		Extract:      v1alpha1.ExtractIPBlockID(),
-		Reference:    mg.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.IPBlockIDRef,
-		Selector:     mg.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.IPBlockIDSelector,
-		To: reference.To{
-			List:    &v1alpha1.IPBlockList{},
-			Managed: &v1alpha1.IPBlock{},
-		},
-	})
-	if err != nil {
-		return errors.Wrap(err, "mg.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.IPBlockID")
-	}
-	mg.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.IPBlockID = rsp.ResolvedValue
-	mg.Spec.ForProvider.GatewayIPCfg.IPBlockCfg.IPBlockIDRef = rsp.ResolvedReference
 
 	return nil
 }
