@@ -105,11 +105,13 @@ func GenerateUpdateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClust
 		Properties: &sdkgo.KubernetesClusterPropertiesForPut{
 			Name:               &cr.Spec.ForProvider.Name,
 			ApiSubnetAllowList: apiSubnetAllowList(cr.Spec.ForProvider.APISubnetAllowList),
-			S3Buckets:          s3Buckets(cr.Spec.ForProvider.S3Buckets),
 		},
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.K8sVersion)) {
 		instanceUpdateInput.Properties.SetK8sVersion(cr.Spec.ForProvider.K8sVersion)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.S3Buckets)) {
+		instanceUpdateInput.Properties.SetS3Buckets(*s3Buckets(cr.Spec.ForProvider.S3Buckets))
 	}
 	if window := clusterMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
 		instanceUpdateInput.Properties.SetMaintenanceWindow(*window)
