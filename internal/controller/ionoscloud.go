@@ -42,7 +42,7 @@ import (
 // Setup creates all IONOS Cloud controllers with the supplied logger
 // and adds them to the supplied manager.
 func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter, poll, createGracePeriod time.Duration) error {
-	for _, setup := range []func(ctrl.Manager, logging.Logger, workqueue.RateLimiter, time.Duration) error{
+	for _, setup := range []func(ctrl.Manager, logging.Logger, workqueue.RateLimiter, time.Duration, time.Duration) error{
 		datacenter.Setup,
 		server.Setup,
 		cubeserver.Setup,
@@ -54,14 +54,11 @@ func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter, poll, c
 		k8scluster.Setup,
 		k8snodepool.Setup,
 		postgrescluster.Setup,
+		lan.Setup,
 	} {
-		if err := setup(mgr, l, wl, poll); err != nil {
+		if err := setup(mgr, l, wl, poll, createGracePeriod); err != nil {
 			return err
 		}
-	}
-	err := lan.Setup(mgr, l, wl, poll, createGracePeriod)
-	if err != nil {
-		return err
 	}
 	return config.Setup(mgr, l, wl)
 }
