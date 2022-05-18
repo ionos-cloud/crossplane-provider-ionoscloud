@@ -166,6 +166,8 @@ GetResource:
 	if observed.HasProperties() {
 		if observed.Properties.HasIps() {
 			cr.Status.AtProvider.PublicIPs = *observed.Properties.Ips
+		} else {
+			cr.Status.AtProvider.PublicIPs = []string{}
 		}
 	}
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
@@ -180,7 +182,7 @@ GetResource:
 		cr.SetConditions(xpv1.Unavailable())
 	}
 	// Resolve IPs
-	ips, err := c.getIpsSet(ctx, cr)
+	ips, err := c.getIPsSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalObservation{ResourceExists: true}, fmt.Errorf("failed to get ips: %w", err)
 	}
@@ -202,7 +204,7 @@ func (c *externalApplicationLoadBalancer) Create(ctx context.Context, mg resourc
 	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
 		return managed.ExternalCreation{}, nil
 	}
-	ips, err := c.getIpsSet(ctx, cr)
+	ips, err := c.getIPsSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("failed to get ips: %w", err)
 	}
@@ -236,7 +238,7 @@ func (c *externalApplicationLoadBalancer) Update(ctx context.Context, mg resourc
 		return managed.ExternalUpdate{}, nil
 	}
 
-	ips, err := c.getIpsSet(ctx, cr)
+	ips, err := c.getIPsSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, fmt.Errorf("failed to get ips: %w", err)
 	}
@@ -289,14 +291,14 @@ func (c *externalApplicationLoadBalancer) Delete(ctx context.Context, mg resourc
 	return nil
 }
 
-func (c *externalApplicationLoadBalancer) getIpsSet(ctx context.Context, cr *v1alpha1.ApplicationLoadBalancer) ([]string, error) {
+func (c *externalApplicationLoadBalancer) getIPsSet(ctx context.Context, cr *v1alpha1.ApplicationLoadBalancer) ([]string, error) {
 	if len(cr.Spec.ForProvider.IpsCfg.IPs) == 0 && len(cr.Spec.ForProvider.IpsCfg.IPBlockCfgs) == 0 {
 		return nil, nil
 	}
-	ips := make([]string, 0)
 	if len(cr.Spec.ForProvider.IpsCfg.IPs) > 0 {
-		ips = append(ips, cr.Spec.ForProvider.IpsCfg.IPs...)
+		return cr.Spec.ForProvider.IpsCfg.IPs, nil
 	}
+	ips := make([]string, 0)
 	if len(cr.Spec.ForProvider.IpsCfg.IPBlockCfgs) > 0 {
 		for _, cfg := range cr.Spec.ForProvider.IpsCfg.IPBlockCfgs {
 			ipsCfg, err := c.ipblockService.GetIPs(ctx, cfg.IPBlockID, cfg.Indexes...)
