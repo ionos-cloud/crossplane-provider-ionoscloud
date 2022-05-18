@@ -19,7 +19,6 @@ metadata:
 spec:
   forProvider:
     name: exampleK8sCluster
-    public: true
     maintenanceWindow:
       dayOfTheWeek: Monday
       time: "23:40:58Z"
@@ -50,7 +49,6 @@ metadata:
 spec:
   forProvider:
     name: exampleK8sClusterUpdate
-    public: true
     maintenanceWindow:
       dayOfTheWeek: Friday
       time: "23:40:58Z"
@@ -77,6 +75,18 @@ function k8s_nodepool_tests() {
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
+metadata:
+  name: exampleipblockk8s
+spec:
+  forProvider:
+    name: exampleIpBlock
+    size: 3
+    location: us/las
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: exampledatacenterk8s
@@ -125,6 +135,11 @@ spec:
       testlabel: "valueLabelK8s"
     annotations:
       testannotation: "valueAnnotationK8s"
+    publicIpsConfigs:
+      ipsBlockConfigs:
+        - ipBlockIdRef:
+            name: exampleipblockk8s
+          indexes: [0, 1]
     datacenterConfig:
       datacenterIdRef:
         name: exampledatacenterk8s
@@ -150,6 +165,18 @@ function k8s_nodepool_tests_cleanup() {
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
+metadata:
+  name: exampleipblockk8s
+spec:
+  forProvider:
+    name: exampleIpBlock
+    size: 3
+    location: us/las
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: exampledatacenterk8s
@@ -198,6 +225,10 @@ spec:
       testlabel: "valueLabelK8s"
     annotations:
       testannotation: "valueAnnotationK8s"
+    publicIpsConfigs:
+      ipsBlockConfigs:
+        - ipBlockIdRef:
+            name: exampleipblockk8s
     datacenterConfig:
       datacenterIdRef:
         name: exampledatacenterk8s
@@ -226,7 +257,6 @@ metadata:
 spec:
   forProvider:
     name: exampleK8sCluster
-    public: true
     maintenanceWindow:
       dayOfTheWeek: Friday
       time: "23:40:58Z"

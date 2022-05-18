@@ -62,14 +62,16 @@ type FirewallRuleParameters struct {
 	SourceMac string `json:"sourceMac,omitempty"`
 	// Only traffic originating from the respective IPv4 address is allowed.
 	// Value null allows traffic from any IP address.
+	// SourceIP can be set directly or via reference to an IP Block and index.
 	//
-	// +kubebuilder:validation:Pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-	SourceIP string `json:"sourceIp,omitempty"`
+	// +kubebuilder:validation:Optional
+	SourceIPCfg IPConfig `json:"sourceIpConfig,omitempty"`
 	// If the target NIC has multiple IP addresses, only the traffic directed to the respective IP address of the NIC is allowed.
 	// Value null allows traffic to any target IP address.
+	// TargetIP can be set directly or via reference to an IP Block and index.
 	//
-	// +kubebuilder:validation:Pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-	TargetIP string `json:"targetIp,omitempty"`
+	// +kubebuilder:validation:Optional
+	TargetIPCfg IPConfig `json:"targetIpConfig,omitempty"`
 	// Defines the allowed code (from 0 to 254) if protocol ICMP is chosen. Value null allows all codes.
 	//
 	// +kubebuilder:validation:Minimum=0
@@ -123,6 +125,8 @@ type FirewallRuleConfig struct {
 // FirewallRuleObservation are the observable fields of a FirewallRule.
 type FirewallRuleObservation struct {
 	FirewallRuleID string `json:"firewallRuleId,omitempty"`
+	SourceIP       string `json:"sourceIp,omitempty"`
+	TargetIP       string `json:"targetIp,omitempty"`
 	State          string `json:"state,omitempty"`
 }
 

@@ -53,7 +53,7 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 }
 
 // GenerateCreateK8sNodePoolInput returns sdkgo.KubernetesNodePoolForPost based on the CR spec
-func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool) (*sdkgo.KubernetesNodePoolForPost, error) {
+func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIPs []string) (*sdkgo.KubernetesNodePoolForPost, error) {
 	instanceCreateInput := sdkgo.KubernetesNodePoolForPost{
 		Properties: &sdkgo.KubernetesNodePoolPropertiesForPost{
 			Name:             &cr.Spec.ForProvider.Name,
@@ -82,11 +82,8 @@ func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool) (*sdkgo.KubernetesNod
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Annotations)) {
 		instanceCreateInput.Properties.SetAnnotations(cr.Spec.ForProvider.Annotations)
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.PublicIPs)) {
-		instanceCreateInput.Properties.SetPublicIps(cr.Spec.ForProvider.PublicIPs)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.GatewayIP)) {
-		instanceCreateInput.Properties.SetGatewayIp(cr.Spec.ForProvider.GatewayIP)
+	if !utils.IsEmptyValue(reflect.ValueOf(publicIPs)) {
+		instanceCreateInput.Properties.SetPublicIps(publicIPs)
 	}
 	if window := nodepoolMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
 		instanceCreateInput.Properties.SetMaintenanceWindow(*window)
@@ -98,7 +95,7 @@ func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool) (*sdkgo.KubernetesNod
 }
 
 // GenerateUpdateK8sNodePoolInput returns sdkgo.KubernetesNodePoolForPut based on the CR spec modifications
-func GenerateUpdateK8sNodePoolInput(cr *v1alpha1.NodePool) (*sdkgo.KubernetesNodePoolForPut, error) {
+func GenerateUpdateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIps []string) (*sdkgo.KubernetesNodePoolForPut, error) {
 	instanceUpdateInput := sdkgo.KubernetesNodePoolForPut{
 		Properties: &sdkgo.KubernetesNodePoolPropertiesForPut{
 			NodeCount:  &cr.Spec.ForProvider.NodeCount,
@@ -121,8 +118,8 @@ func GenerateUpdateK8sNodePoolInput(cr *v1alpha1.NodePool) (*sdkgo.KubernetesNod
 	} else {
 		instanceUpdateInput.Properties.SetLabels(map[string]string{})
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.PublicIPs)) {
-		instanceUpdateInput.Properties.SetPublicIps(cr.Spec.ForProvider.PublicIPs)
+	if !utils.IsEmptyValue(reflect.ValueOf(publicIps)) {
+		instanceUpdateInput.Properties.SetPublicIps(publicIps)
 	} else {
 		instanceUpdateInput.Properties.SetPublicIps([]string{})
 	}
@@ -181,11 +178,16 @@ func LateStatusInitializer(in *v1alpha1.NodePoolObservation, sg *sdkgo.Kubernete
 		if availableUpgradeVersionsOk, ok := propertiesOk.GetAvailableUpgradeVersionsOk(); ok && availableUpgradeVersionsOk != nil {
 			in.AvailableUpgradeVersions = *availableUpgradeVersionsOk
 		}
+		if publicIPsOk, ok := propertiesOk.GetPublicIpsOk(); ok && publicIPsOk != nil {
+			in.PublicIPs = *publicIPsOk
+		} else {
+			in.PublicIPs = []string{}
+		}
 	}
 }
 
 // IsK8sNodePoolUpToDate returns true if the NodePool is up-to-date or false if it does not
-func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodePool) bool { // nolint:gocyclo
+func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodePool, publicIPs []string) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && nodepool.Properties == nil:
 		return true
@@ -199,9 +201,7 @@ func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodeP
 		return false
 	case nodepool.Properties.NodeCount != nil && *nodepool.Properties.NodeCount != cr.Spec.ForProvider.NodeCount:
 		return false
-	case nodepool.Properties.GatewayIp != nil && *nodepool.Properties.GatewayIp != cr.Spec.ForProvider.GatewayIP:
-		return false
-	case nodepool.Properties.PublicIps != nil && !utils.IsEqStringSlices(*nodepool.Properties.PublicIps, cr.Spec.ForProvider.PublicIPs):
+	case nodepool.Properties.PublicIps != nil && !utils.ContainsStringSlices(*nodepool.Properties.PublicIps, publicIPs):
 		return false
 	case nodepool.Properties.Labels != nil && !utils.IsEqStringMaps(*nodepool.Properties.Labels, cr.Spec.ForProvider.Labels):
 		return false

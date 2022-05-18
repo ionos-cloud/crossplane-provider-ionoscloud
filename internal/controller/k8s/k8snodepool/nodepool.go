@@ -42,6 +42,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/datacenter"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s/k8scluster"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s/k8snodepool"
@@ -121,6 +122,7 @@ func (c *connectorNodePool) Connect(ctx context.Context, mg resource.Managed) (m
 		service:           &k8snodepool.APIClient{IonosServices: svc},
 		clusterService:    &k8scluster.APIClient{IonosServices: svc},
 		datacenterService: &datacenter.APIClient{IonosServices: svc},
+		ipBlockService:    &ipblock.APIClient{IonosServices: svc},
 		log:               c.log,
 	}, nil
 }
@@ -133,6 +135,7 @@ type externalNodePool struct {
 	service           k8snodepool.Client
 	clusterService    k8scluster.Client
 	datacenterService datacenter.Client
+	ipBlockService    ipblock.Client
 	log               logging.Logger
 }
 
@@ -171,15 +174,19 @@ func (c *externalNodePool) Observe(ctx context.Context, mg resource.Managed) (ma
 		cr.SetConditions(xpv1.Unavailable())
 	}
 
+	publicIps, err := c.getPublicIPsSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalObservation{}, fmt.Errorf("failed to get public IPs: %w", err)
+	}
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        k8snodepool.IsK8sNodePoolUpToDate(cr, observed),
+		ResourceUpToDate:        k8snodepool.IsK8sNodePoolUpToDate(cr, observed, publicIps),
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 		ConnectionDetails:       managed.ConnectionDetails{},
 	}, nil
 }
 
-func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { //nolint:gocyclo
 	cr, ok := mg.(*v1alpha1.NodePool)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotK8sNodePool)
@@ -210,7 +217,11 @@ func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (man
 			cr.Spec.ForProvider.CPUFamily = cpuFamilies[0]
 		}
 	}
-	instanceInput, err := k8snodepool.GenerateCreateK8sNodePoolInput(cr)
+	publicIPs, err := c.getPublicIPsSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("failed to get public IPs: %w", err)
+	}
+	instanceInput, err := k8snodepool.GenerateCreateK8sNodePoolInput(cr, publicIPs)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -246,7 +257,11 @@ func (c *externalNodePool) Update(ctx context.Context, mg resource.Managed) (man
 		return managed.ExternalUpdate{}, nil
 	}
 
-	instanceInput, err := k8snodepool.GenerateUpdateK8sNodePoolInput(cr)
+	publicIPs, err := c.getPublicIPsSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("failed to get public IPs: %w", err)
+	}
+	instanceInput, err := k8snodepool.GenerateUpdateK8sNodePoolInput(cr, publicIPs)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
@@ -282,4 +297,27 @@ func (c *externalNodePool) Delete(ctx context.Context, mg resource.Managed) erro
 		return compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	return nil
+}
+
+// getPublicIPsSet will return Public IPs set by the user on ips or ipsConfig fields of the spec.
+// If both fields are set, only the ips field will be considered by the Crossplane
+// Provider IONOS Cloud.
+func (c *externalNodePool) getPublicIPsSet(ctx context.Context, cr *v1alpha1.NodePool) ([]string, error) {
+	if len(cr.Spec.ForProvider.PublicIPsCfg.IPs) == 0 && len(cr.Spec.ForProvider.PublicIPsCfg.IPBlockCfgs) == 0 {
+		return nil, nil
+	}
+	if len(cr.Spec.ForProvider.PublicIPsCfg.IPs) > 0 {
+		return cr.Spec.ForProvider.PublicIPsCfg.IPs, nil
+	}
+	ips := make([]string, 0)
+	if len(cr.Spec.ForProvider.PublicIPsCfg.IPBlockCfgs) > 0 {
+		for _, cfg := range cr.Spec.ForProvider.PublicIPsCfg.IPBlockCfgs {
+			ipsCfg, err := c.ipBlockService.GetIPs(ctx, cfg.IPBlockID, cfg.Indexes...)
+			if err != nil {
+				return nil, err
+			}
+			ips = append(ips, ipsCfg...)
+		}
+	}
+	return ips, nil
 }

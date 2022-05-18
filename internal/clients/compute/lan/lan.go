@@ -105,7 +105,7 @@ func IsLanUpToDate(cr *v1alpha1.Lan, lan sdkgo.Lan) bool { // nolint:gocyclo
 }
 
 // GenerateCreateIPFailoverInput returns sdkgo.LanProperties based on the CR spec and current LanProperties
-func GenerateCreateIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanProperties) (*sdkgo.LanProperties, error) {
+func GenerateCreateIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanProperties, ip string) (*sdkgo.LanProperties, error) {
 	var instanceCreateInput sdkgo.LanProperties
 	if current == nil {
 		return nil, fmt.Errorf("error: input properties must not be nil")
@@ -113,14 +113,14 @@ func GenerateCreateIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanPr
 	if ipFailoversOk, ok := current.GetIpFailoverOk(); ok && ipFailoversOk != nil && len(*ipFailoversOk) > 0 {
 		ipFailovers := *ipFailoversOk
 		ipFailovers = append(ipFailovers, sdkgo.IPFailover{
-			Ip:      &cr.Spec.ForProvider.IP,
+			Ip:      &ip,
 			NicUuid: &cr.Spec.ForProvider.NicCfg.NicID,
 		})
 		instanceCreateInput.SetIpFailover(ipFailovers)
 	} else {
 		instanceCreateInput.SetIpFailover([]sdkgo.IPFailover{
 			{
-				Ip:      &cr.Spec.ForProvider.IP,
+				Ip:      &ip,
 				NicUuid: &cr.Spec.ForProvider.NicCfg.NicID,
 			},
 		})
@@ -129,7 +129,7 @@ func GenerateCreateIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanPr
 }
 
 // GenerateUpdateIPFailoverInput returns sdkgo.LanProperties based on the CR spec and current LanProperties
-func GenerateUpdateIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanProperties) (*sdkgo.LanProperties, error) {
+func GenerateUpdateIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanProperties, ip string) (*sdkgo.LanProperties, error) {
 	var instanceUpdateInput sdkgo.LanProperties
 	if current == nil {
 		return nil, fmt.Errorf("error: input properties must not be nil")
@@ -140,7 +140,7 @@ func GenerateUpdateIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanPr
 			if ipFailover.HasIp() {
 				// Get and Update IPFailover based on External Name
 				if *ipFailover.Ip == cr.Status.AtProvider.IP {
-					ipFailover.SetIp(cr.Spec.ForProvider.IP)
+					ipFailover.SetIp(ip)
 					ipFailover.SetNicUuid(cr.Spec.ForProvider.NicCfg.NicID)
 				}
 				setIPFailovers = append(setIPFailovers, ipFailover)
@@ -151,7 +151,7 @@ func GenerateUpdateIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanPr
 		// Note: If the lan was not correctly updated, create the IPFailover again
 		instanceUpdateInput.SetIpFailover([]sdkgo.IPFailover{
 			{
-				Ip:      &cr.Spec.ForProvider.IP,
+				Ip:      &ip,
 				NicUuid: &cr.Spec.ForProvider.NicCfg.NicID,
 			},
 		})
@@ -159,8 +159,8 @@ func GenerateUpdateIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanPr
 	return &instanceUpdateInput, nil
 }
 
-// GenerateRemoveIPFailoverInput returns sdkgo.LanProperties based on the CR spec and current LanProperties
-func GenerateRemoveIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanProperties) (*sdkgo.LanProperties, error) {
+// GenerateRemoveIPFailoverInput returns sdkgo.LanProperties based on the IP and current LanProperties
+func GenerateRemoveIPFailoverInput(current *sdkgo.LanProperties, ip string) (*sdkgo.LanProperties, error) {
 	var instanceRemoveInput sdkgo.LanProperties
 	if current == nil {
 		return nil, fmt.Errorf("error: input properties must not be nil")
@@ -169,7 +169,7 @@ func GenerateRemoveIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanPr
 		setIPFailovers := make([]sdkgo.IPFailover, 0)
 		for _, ipFailover := range *ipFailoversOk {
 			if ipFailover.HasIp() {
-				if *ipFailover.Ip != cr.Spec.ForProvider.IP {
+				if *ipFailover.Ip != ip {
 					setIPFailovers = append(setIPFailovers, ipFailover)
 				}
 			}
@@ -180,7 +180,7 @@ func GenerateRemoveIPFailoverInput(cr *v1alpha1.IPFailover, current *sdkgo.LanPr
 }
 
 // IsIPFailoverUpToDate returns true if the IPFailover is up-to-date or false if it does not
-func IsIPFailoverUpToDate(cr *v1alpha1.IPFailover, lan sdkgo.Lan) bool { // nolint:gocyclo
+func IsIPFailoverUpToDate(cr *v1alpha1.IPFailover, lan sdkgo.Lan, ipSetByUser string) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && lan.Properties == nil:
 		return true
@@ -190,9 +190,9 @@ func IsIPFailoverUpToDate(cr *v1alpha1.IPFailover, lan sdkgo.Lan) bool { // noli
 		return false
 	case lan.Metadata.State != nil && *lan.Metadata.State == "BUSY":
 		return true
-	case cr.Status.AtProvider.IP != cr.Spec.ForProvider.IP:
+	case cr.Status.AtProvider.IP != ipSetByUser:
 		return false
-	case IsIPFailoverPresent(cr, lan):
+	case IsIPFailoverPresent(cr, lan, ipSetByUser):
 		return true
 	default:
 		return false
@@ -200,12 +200,12 @@ func IsIPFailoverUpToDate(cr *v1alpha1.IPFailover, lan sdkgo.Lan) bool { // noli
 }
 
 // IsIPFailoverPresent returns true if the IPFailover exists in the specified Lan
-func IsIPFailoverPresent(cr *v1alpha1.IPFailover, lan sdkgo.Lan) bool { // nolint:gocyclo
+func IsIPFailoverPresent(cr *v1alpha1.IPFailover, lan sdkgo.Lan, ip string) bool { // nolint:gocyclo
 	if propertiesOk, ok := lan.GetPropertiesOk(); ok && propertiesOk != nil {
 		if ipFailoversOk, ok := propertiesOk.GetIpFailoverOk(); ok && ipFailoversOk != nil && len(*ipFailoversOk) > 0 {
 			for _, ipFailover := range *ipFailoversOk {
 				if ipFailover.HasIp() && ipFailover.HasNicUuid() {
-					if *ipFailover.Ip == cr.Spec.ForProvider.IP && *ipFailover.NicUuid == cr.Spec.ForProvider.NicCfg.NicID {
+					if *ipFailover.Ip == ip && *ipFailover.NicUuid == cr.Spec.ForProvider.NicCfg.NicID {
 						return true
 					}
 				}

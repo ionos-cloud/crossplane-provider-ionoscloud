@@ -1,10 +1,25 @@
 # Use this file to create Datacenter, Lan and K8s Cluster, K8s NodePool CRs.
 # Required values for creating a Datacenter CR are:
+# - Size,
+# - Location.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
+metadata:
+  name: examplek8s
+spec:
+  forProvider:
+    name: exampleIpBlock
+    size: 3
+    location: us/las
+  providerConfigRef:
+    name: example
+---
+# Required values for creating a Datacenter CR are:
 # - Location.
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
-  name: example
+  name: examplek8s
 spec:
   forProvider:
     name: exampleDatacenter
@@ -14,17 +29,15 @@ spec:
     name: example
 ---
 # Required values for creating a K8s Cluster CR are:
-# - Name,
-# - Public.
+# - Name.
 apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: Cluster
 metadata:
-  name: example
+  name: examplek8s
 spec:
   forProvider:
     name: exampleK8sCluster
-    public: false
-    #    k8sVersion: 1.22.6
+  #    k8sVersion: 1.22.6
   #    apiSubnetAllowList:
   #      -
   #    s3Buckets:
@@ -44,14 +57,14 @@ spec:
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
-  name: examplelan
+  name: examplek8s
 spec:
   forProvider:
     name: exampleLan
     public: false
     datacenterConfig:
       datacenterIdRef:
-        name: example
+        name: examplek8s
   providerConfigRef:
     name: example
 ---
@@ -65,12 +78,10 @@ spec:
 # - AvailabilityZone,
 # - StorageType,
 # - StorageSize.
-# Note: If the NodePool is part of a Private K8s Cluster,
-# it is required to set gatewayIp field.
 apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: NodePool
 metadata:
-  name: example
+  name: examplek8s
 spec:
   forProvider:
     name: exampleK8sNodepool
@@ -83,7 +94,10 @@ spec:
     availabilityZone: AUTO
     storageType: HDD
     storageSize: 10
-    #    gatewayIp:
+    publicIpsConfigs:
+      ipsBlockConfigs:
+        - ipBlockIdRef:
+            name: examplek8s
     #    lans:
     #      - lanConfig:
     #          lanIdRef:
@@ -101,9 +115,9 @@ spec:
     #      key: "value"
     datacenterConfig:
       datacenterIdRef:
-        name: example
+        name: examplek8s
     clusterConfig:
       clusterIdRef:
-        name: example
+        name: examplek8s
   providerConfigRef:
     name: example
