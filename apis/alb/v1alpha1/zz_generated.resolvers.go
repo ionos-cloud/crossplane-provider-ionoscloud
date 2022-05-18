@@ -101,3 +101,61 @@ func (mg *ApplicationLoadBalancer) ResolveReferences(ctx context.Context, c clie
 
 	return nil
 }
+
+// ResolveReferences of this ForwardingRule.
+func (mg *ForwardingRule) ResolveReferences(ctx context.Context, c client.Reader) error {
+	r := reference.NewAPIResolver(c, mg)
+
+	var rsp reference.ResolutionResponse
+	var err error
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.DatacenterCfg.DatacenterID,
+		Extract:      v1alpha1.ExtractDatacenterID(),
+		Reference:    mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef,
+		Selector:     mg.Spec.ForProvider.DatacenterCfg.DatacenterIDSelector,
+		To: reference.To{
+			List:    &v1alpha1.DatacenterList{},
+			Managed: &v1alpha1.Datacenter{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.DatacenterCfg.DatacenterID")
+	}
+	mg.Spec.ForProvider.DatacenterCfg.DatacenterID = rsp.ResolvedValue
+	mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef = rsp.ResolvedReference
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.ALBCfg.ApplicationLoadBalancerID,
+		Extract:      ExtractApplicationLoadBalancerID(),
+		Reference:    mg.Spec.ForProvider.ALBCfg.ApplicationLoadBalancerIDRef,
+		Selector:     mg.Spec.ForProvider.ALBCfg.ApplicationLoadBalancerIDSelector,
+		To: reference.To{
+			List:    &ApplicationLoadBalancerList{},
+			Managed: &ApplicationLoadBalancer{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.ALBCfg.ApplicationLoadBalancerID")
+	}
+	mg.Spec.ForProvider.ALBCfg.ApplicationLoadBalancerID = rsp.ResolvedValue
+	mg.Spec.ForProvider.ALBCfg.ApplicationLoadBalancerIDRef = rsp.ResolvedReference
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.ListenerIP.IPBlockCfg.IPBlockID,
+		Extract:      v1alpha1.ExtractIPBlockID(),
+		Reference:    mg.Spec.ForProvider.ListenerIP.IPBlockCfg.IPBlockIDRef,
+		Selector:     mg.Spec.ForProvider.ListenerIP.IPBlockCfg.IPBlockIDSelector,
+		To: reference.To{
+			List:    &v1alpha1.IPBlockList{},
+			Managed: &v1alpha1.IPBlock{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.ListenerIP.IPBlockCfg.IPBlockID")
+	}
+	mg.Spec.ForProvider.ListenerIP.IPBlockCfg.IPBlockID = rsp.ResolvedValue
+	mg.Spec.ForProvider.ListenerIP.IPBlockCfg.IPBlockIDRef = rsp.ResolvedReference
+
+	return nil
+}
