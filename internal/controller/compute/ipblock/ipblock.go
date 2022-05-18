@@ -196,7 +196,6 @@ func (c *externalIPBlock) Create(ctx context.Context, mg resource.Managed) (mana
 	// Set External Name
 	cr.Status.AtProvider.IPBlockID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
-	creation.ExternalNameAssigned = true
 	return creation, nil
 }
 

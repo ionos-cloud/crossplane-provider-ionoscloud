@@ -191,7 +191,6 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 	// Set External Name
 	cr.Status.AtProvider.VolumeID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
-	creation.ExternalNameAssigned = true
 	return creation, nil
 }
 

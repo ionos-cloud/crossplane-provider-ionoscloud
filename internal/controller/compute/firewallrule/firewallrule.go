@@ -193,7 +193,6 @@ func (c *externalFirewallRule) Create(ctx context.Context, mg resource.Managed) 
 	// Set External Name
 	cr.Status.AtProvider.FirewallRuleID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
-	creation.ExternalNameAssigned = true
 	return creation, nil
 }
 

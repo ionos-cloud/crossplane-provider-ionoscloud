@@ -225,7 +225,6 @@ func (c *externalNic) Create(ctx context.Context, mg resource.Managed) (managed.
 	// Set External Name
 	cr.Status.AtProvider.NicID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
-	creation.ExternalNameAssigned = true
 	return creation, nil
 }
 

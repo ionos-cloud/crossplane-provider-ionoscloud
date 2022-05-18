@@ -201,7 +201,6 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 	// Set External Name
 	cr.Status.AtProvider.ClusterID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
-	creation.ExternalNameAssigned = true
 	return creation, nil
 }
 

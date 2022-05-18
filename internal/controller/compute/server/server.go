@@ -199,7 +199,6 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	// Set External Name
 	cr.Status.AtProvider.ServerID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
-	creation.ExternalNameAssigned = true
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
 		c.log.Debug("Attaching Volume...")
 		_, apiResponse, err = c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,

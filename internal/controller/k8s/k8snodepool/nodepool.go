@@ -226,7 +226,6 @@ func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (man
 	// Set External Name
 	cr.Status.AtProvider.NodePoolID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
-	creation.ExternalNameAssigned = true
 	return creation, nil
 }
 
