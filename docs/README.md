@@ -142,8 +142,6 @@ metadata:
   name: provider-ionos
 spec:
   package: ghcr.io/ionos-cloud/crossplane-provider-ionoscloud:latest
-  packagePullSecrets:
-    - name: package-pull
 EOF
 ```
 
@@ -202,8 +200,6 @@ spec:
   package: ghcr.io/ionos-cloud/crossplane-provider-ionoscloud:latest
   controllerConfigRef:
     name: debug-config
-  packagePullSecrets:
-    - name: package-pull
 EOF
 ```
 
