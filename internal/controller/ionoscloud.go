@@ -17,7 +17,6 @@ limitations under the License.
 package controller
 
 import (
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/lan"
 	"time"
 
 	"k8s.io/client-go/util/workqueue"
@@ -30,6 +29,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/firewallrule"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/ipblock"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/ipfailover"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/lan"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/nic"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/volume"

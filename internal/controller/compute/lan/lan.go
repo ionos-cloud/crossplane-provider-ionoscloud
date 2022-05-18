@@ -192,7 +192,6 @@ func (c *externalLan) Create(ctx context.Context, mg resource.Managed) (managed.
 	// Set External Name
 	cr.Status.AtProvider.LanID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
-	creation.ExternalNameAssigned = true
 	return creation, nil
 }
 

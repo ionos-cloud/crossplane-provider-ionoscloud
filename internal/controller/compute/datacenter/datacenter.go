@@ -193,7 +193,6 @@ func (c *externalDatacenter) Create(ctx context.Context, mg resource.Managed) (m
 	// Set External Name
 	cr.Status.AtProvider.DatacenterID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
-	creation.ExternalNameAssigned = true
 	return creation, nil
 }
 
