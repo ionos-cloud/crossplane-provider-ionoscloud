@@ -61,7 +61,7 @@ type ApplicationLoadBalancerParameters struct {
 	//
 	// +optional
 	// +kubebuilder:validation:Optional
-	IpsCfg IPsConfig `json:"ipsConfig,omitempty"`
+	IpsCfg IPsConfigs `json:"ipsConfig,omitempty"`
 	// Collection of private IP addresses with the subnet mask of the Application Load Balancer.
 	// IPs must contain valid a subnet mask.
 	// If no IP is provided, the system will generate an IP with /24 subnet.
@@ -112,17 +112,18 @@ type LanConfig struct {
 	LanIDSelector *xpv1.Selector `json:"lanIdSelector,omitempty"`
 }
 
-// IPsConfig is used by resources that need to link ips from IPBlock via id or via reference
+// IPsConfigs - used by resources that need to link multiple IPs from IPBlock via id or via reference
 // and using index. Indexes start from 0, and multiple indexes can be set.
 // If no index is set, all IPs from the corresponding IPBlock will be assigned.
-// If both IPs and IPBlockConfigs fields are set, the sum from the both will be used.
-type IPsConfig struct {
-	IPs         []string        `json:"ips,omitempty"`
-	IPBlockCfgs []IPBlockConfig `json:"ipBlockConfigs,omitempty"`
+// If both IPs and IPBlockConfigs fields are set, only ips will be considered.
+type IPsConfigs struct {
+	IPs         []string         `json:"ips,omitempty"`
+	IPBlockCfgs []IPsBlockConfig `json:"ipsBlockConfigs,omitempty"`
 }
 
-// IPBlockConfig is used by resources that need to link ipblock via id or via reference.
-type IPBlockConfig struct {
+// IPsBlockConfig - used by resources that need to link IPBlock via id or via reference
+// to get multiple IPs.
+type IPsBlockConfig struct {
 	// NicID is the ID of the IPBlock on which the resource will be created.
 	// It needs to be provided via directly or via reference.
 	//
@@ -141,6 +142,8 @@ type IPBlockConfig struct {
 	// +optional
 	IPBlockIDSelector *xpv1.Selector `json:"ipBlockIdSelector,omitempty"`
 	// Indexes are referring to the IPs indexes retrieved from the IPBlock.
+	// Indexes are starting from 0. If no index is set, all IPs from the
+	// corresponding IPBlock will be assigned.
 	//
 	// +optional
 	Indexes []int `json:"indexes,omitempty"`
