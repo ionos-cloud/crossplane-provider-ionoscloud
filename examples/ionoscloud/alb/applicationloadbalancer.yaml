@@ -66,10 +66,10 @@ spec:
     listenerLanConfig:
       lanIdRef:
         name: examplelan
-    ipsConfig:
-      ipBlockConfigs:
-        - ipBlockIdRef:
-            name: example
-          indexes: [ 0 ]
+#    ipsConfig:
+#      ipsBlockConfigs:
+#        - ipBlockIdRef:
+#            name: example
+#          indexes: [ 0 ]
   providerConfigRef:
     name: example

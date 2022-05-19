@@ -182,10 +182,7 @@ GetResource:
 		cr.SetConditions(xpv1.Unavailable())
 	}
 	// Resolve IPs
-	ips, err := c.getIPsSet(ctx, cr)
-	if err != nil {
-		return managed.ExternalObservation{ResourceExists: true}, fmt.Errorf("failed to get ips: %w", err)
-	}
+	ips, _ := c.getIPsSet(ctx, cr)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
 		ResourceUpToDate:        applicationloadbalancer.IsApplicationLoadBalancerUpToDate(cr, observed, ips),
