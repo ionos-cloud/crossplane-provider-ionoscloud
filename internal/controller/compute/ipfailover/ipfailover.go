@@ -19,7 +19,6 @@ package ipfailover
 import (
 	"context"
 	"fmt"
-	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"time"
 
 	"github.com/pkg/errors"
@@ -32,6 +31,7 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
