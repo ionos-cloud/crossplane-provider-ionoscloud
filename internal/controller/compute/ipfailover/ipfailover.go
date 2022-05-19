@@ -19,6 +19,7 @@ package ipfailover
 import (
 	"context"
 	"fmt"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"time"
 
 	"github.com/pkg/errors"
@@ -133,11 +134,6 @@ func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (
 		return managed.ExternalObservation{}, errors.New(errNotIPFailover)
 	}
 
-	// Use Status property instead of external name
-	// since the IP can be updated, external name - no.
-	if cr.Status.AtProvider.IP == "" {
-		return managed.ExternalObservation{}, nil
-	}
 	instance, apiResponse, err := c.service.GetLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
@@ -199,7 +195,7 @@ func (c *externalIPFailover) Create(ctx context.Context, mg resource.Managed) (m
 		return creation, err
 	}
 
-	cr.Status.AtProvider.IP = ip
+	meta.SetExternalName(cr, cr.Name)
 	return creation, nil
 }
 
