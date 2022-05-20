@@ -38,7 +38,7 @@ func main() {
 		syncInterval      = app.Flag("sync", "Controller manager sync interval such as 300ms, 1.5h, or 2h45m").Short('s').Default("1h").Duration()
 		pollInterval      = app.Flag("poll", "Poll interval controls how often an individual resource should be checked for changes.").Default("1m").Duration()
 		leaderElection    = app.Flag("leader-election", "Use leader election for the controller manager.").Short('l').Default("false").Envar("LEADER_ELECTION").Bool()
-		createGracePeriod = app.Flag("create-grace-period", "Grace period for creation of LAN resources.").Default("1m").Duration()
+		createGracePeriod = app.Flag("create-grace-period", "Grace period for creation of IONOS Cloud resources.").Default("1m").Duration()
 	)
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 
