@@ -31,6 +31,7 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -53,7 +54,7 @@ const (
 )
 
 // Setup adds a controller that reconciles IPFailover managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration, creationGracePeriod time.Duration) error {
 	name := managed.ControllerName(v1alpha1.IPFailoverGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -71,6 +72,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll ti
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
 			managed.WithPollInterval(poll),
+			managed.WithCreationGracePeriod(creationGracePeriod),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
@@ -132,11 +134,6 @@ func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (
 		return managed.ExternalObservation{}, errors.New(errNotIPFailover)
 	}
 
-	// Use Status property instead of external name
-	// since the IP can be updated, external name - no.
-	if cr.Status.AtProvider.IP == "" {
-		return managed.ExternalObservation{}, nil
-	}
 	instance, apiResponse, err := c.service.GetLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
@@ -198,7 +195,7 @@ func (c *externalIPFailover) Create(ctx context.Context, mg resource.Managed) (m
 		return creation, err
 	}
 
-	cr.Status.AtProvider.IP = ip
+	meta.SetExternalName(cr, cr.Name)
 	return creation, nil
 }
 
