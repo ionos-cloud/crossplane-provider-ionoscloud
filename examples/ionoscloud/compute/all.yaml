@@ -111,6 +111,16 @@ spec:
     name: exampleFirewallRule
     protocol: ANY
     type: INGRESS
+    sourceIpConfig:
+      ipBlockConfig:
+        ipBlockIdRef:
+          name: exampleipblock
+        index: 0
+    targetIpConfig:
+      ipBlockConfig:
+        ipBlockIdRef:
+          name: exampleipblock
+        index: 1
     datacenterConfig:
       datacenterIdRef:
         name: example

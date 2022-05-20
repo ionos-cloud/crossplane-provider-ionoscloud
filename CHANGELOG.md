@@ -4,20 +4,31 @@
 
 - **Breaking Changes**:
     - updated `spec.forProvider.ips` field from **Nic Managed Resource** to `spec.forProvider.ipsConfigs` being able to
-      set IPs directly or via references and indexes of the IPBlocks 
-    - updated `spec.forProvider.ip` field from **IPFailover Managed Resource** to `spec.forProvider.ipConfig` being able
-      to set the required IP directly or via reference and index to an IPBlock
       set IPs directly or via references and indexes of the IPBlocks
+    - updated `spec.forProvider.ip` field from **IPFailover Managed Resource** to `spec.forProvider.ipConfig` being able
+      to set the required IP directly or via reference and index to an IPBlock set IPs directly or via references and
+      indexes of the IPBlocks
     - removed temporarily `spec.forProvider.public` field from **K8s Cluster Managed Resource**
     - removed temporarily `spec.forProvider.gatewayIp` field from **K8s NodePool Managed Resource**
+    - updated `spec.forProvider.sourceIp` field from **FirewallRule Managed Resource**
+      to `spec.forProvider.sourceIpConfig` being able to set the required IP directly or via reference and index to an
+      IPBlock
+    - updated `spec.forProvider.targetIp` field from **FirewallRule Managed Resource**
+      to `spec.forProvider.targetIpConfig` being able to set the required IP directly or via reference and index to an
+      IPBlock to set the required IP directly or via reference and index to an IPBlock set IPs directly or via
+      references and indexes of the IPBlocks
+    - updated `spec.forProvider.publicIps` field from **K8s NodePool Managed Resource**
+      to `spec.forProvider.publicIpsConfigs` being able to set IPs directly or via references and indexes of the
+      IPBlocks
 - **Enhancements**:
     - Added and updated documentation. See [docs](docs/README.md)
     - Added example for Compositions and Claims. See [example](docs/RESOURCES.md#compositions-and-claims)
     - **DBaaS Postgres Cluster**:
-      - added new property `BackupLocation` for DBaaS Postgres Cluster Managed Resource
+        - added new property `BackupLocation` for DBaaS Postgres Cluster Managed Resource
 - **Fixes**:
     - fixed late initialization for **Server** and **CubeServer** Managed Resources if the CPU Family is not set by the
       user, but by the API
+    - fixed bug on Kubernetes Cluster Resource creation, if the s3 buckets are not enabled on contract
 
 ## [0.1.0-alpha.2] (March 2022)
 

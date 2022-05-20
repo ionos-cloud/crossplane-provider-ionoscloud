@@ -52,7 +52,7 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 }
 
 // GenerateCreateFirewallRuleInput returns sdkgo.FirewallRule based on the CR spec
-func GenerateCreateFirewallRuleInput(cr *v1alpha1.FirewallRule) (*sdkgo.FirewallRule, error) { // nolint:gocyclo
+func GenerateCreateFirewallRuleInput(cr *v1alpha1.FirewallRule, sourceIP, targetIP string) (*sdkgo.FirewallRule, error) { // nolint:gocyclo
 	instanceCreateInput := sdkgo.FirewallRule{
 		Properties: &sdkgo.FirewallruleProperties{
 			Protocol: &cr.Spec.ForProvider.Protocol,
@@ -64,11 +64,11 @@ func GenerateCreateFirewallRuleInput(cr *v1alpha1.FirewallRule) (*sdkgo.Firewall
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.SourceMac)) {
 		instanceCreateInput.Properties.SetSourceMac(cr.Spec.ForProvider.SourceMac)
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.SourceIP)) {
-		instanceCreateInput.Properties.SetSourceIp(cr.Spec.ForProvider.SourceIP)
+	if !utils.IsEmptyValue(reflect.ValueOf(sourceIP)) {
+		instanceCreateInput.Properties.SetSourceIp(sourceIP)
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.TargetIP)) {
-		instanceCreateInput.Properties.SetTargetIp(cr.Spec.ForProvider.TargetIP)
+	if !utils.IsEmptyValue(reflect.ValueOf(targetIP)) {
+		instanceCreateInput.Properties.SetTargetIp(targetIP)
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.IcmpCode)) {
 		instanceCreateInput.Properties.SetIcmpType(cr.Spec.ForProvider.IcmpCode)
@@ -89,18 +89,24 @@ func GenerateCreateFirewallRuleInput(cr *v1alpha1.FirewallRule) (*sdkgo.Firewall
 }
 
 // GenerateUpdateFirewallRuleInput returns sdkgo.FirewallRuleProperties based on the CR spec modifications
-func GenerateUpdateFirewallRuleInput(cr *v1alpha1.FirewallRule) (*sdkgo.FirewallruleProperties, error) { // nolint:gocyclo
+func GenerateUpdateFirewallRuleInput(cr *v1alpha1.FirewallRule, sourceIP, targetIP string) (*sdkgo.FirewallruleProperties, error) { // nolint:gocyclo
 	instanceUpdateInput := sdkgo.FirewallruleProperties{
 		Name: &cr.Spec.ForProvider.Name,
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.SourceMac)) {
 		instanceUpdateInput.SetSourceMac(cr.Spec.ForProvider.SourceMac)
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.SourceIP)) {
-		instanceUpdateInput.SetSourceIp(cr.Spec.ForProvider.SourceIP)
+	if !utils.IsEmptyValue(reflect.ValueOf(sourceIP)) {
+		instanceUpdateInput.SetSourceIp(sourceIP)
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.TargetIP)) {
-		instanceUpdateInput.SetTargetIp(cr.Spec.ForProvider.TargetIP)
+	if utils.IsEmptyValue(reflect.ValueOf(sourceIP)) && !utils.IsEmptyValue(reflect.ValueOf(cr.Status.AtProvider.SourceIP)) {
+		instanceUpdateInput.SourceIp = nil
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(targetIP)) {
+		instanceUpdateInput.SetTargetIp(targetIP)
+	}
+	if utils.IsEmptyValue(reflect.ValueOf(targetIP)) && !utils.IsEmptyValue(reflect.ValueOf(cr.Status.AtProvider.TargetIP)) {
+		instanceUpdateInput.TargetIp = nil
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.IcmpCode)) {
 		instanceUpdateInput.SetIcmpType(cr.Spec.ForProvider.IcmpCode)
@@ -121,7 +127,7 @@ func GenerateUpdateFirewallRuleInput(cr *v1alpha1.FirewallRule) (*sdkgo.Firewall
 }
 
 // IsFirewallRuleUpToDate returns true if the FirewallRule is up-to-date or false if it does not
-func IsFirewallRuleUpToDate(cr *v1alpha1.FirewallRule, firewallRule sdkgo.FirewallRule) bool { // nolint:gocyclo
+func IsFirewallRuleUpToDate(cr *v1alpha1.FirewallRule, firewallRule sdkgo.FirewallRule, sourceIP, targetIP string) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && firewallRule.Properties == nil:
 		return true
@@ -135,9 +141,13 @@ func IsFirewallRuleUpToDate(cr *v1alpha1.FirewallRule, firewallRule sdkgo.Firewa
 		return false
 	case firewallRule.Properties.SourceMac != nil && *firewallRule.Properties.SourceMac != cr.Spec.ForProvider.SourceMac:
 		return false
-	case firewallRule.Properties.SourceIp != nil && *firewallRule.Properties.SourceIp != cr.Spec.ForProvider.SourceIP:
+	case firewallRule.Properties.SourceIp != nil && *firewallRule.Properties.SourceIp != sourceIP:
 		return false
-	case firewallRule.Properties.TargetIp != nil && *firewallRule.Properties.TargetIp != cr.Spec.ForProvider.TargetIP:
+	case sourceIP != cr.Status.AtProvider.SourceIP:
+		return false
+	case firewallRule.Properties.TargetIp != nil && *firewallRule.Properties.TargetIp != targetIP:
+		return false
+	case targetIP != cr.Status.AtProvider.TargetIP:
 		return false
 	case firewallRule.Properties.IcmpCode != nil && *firewallRule.Properties.IcmpCode != cr.Spec.ForProvider.IcmpCode:
 		return false
