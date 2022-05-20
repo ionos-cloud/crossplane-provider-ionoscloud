@@ -30,11 +30,9 @@ spec:
       type: string
     - jsonPath: .spec.forProvider.name
       name: DATACENTER NAME
-      priority: 1
       type: string
     - jsonPath: .spec.forProvider.location
       name: LOCATION
-      priority: 1
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE
@@ -80,17 +78,11 @@ spec:
                       production.
                     type: string
                   location:
-                    description: The physical location where the datacenter will be
-                      created. This will be where all of your servers live. Property
+                    description: 'The physical location where the datacenter will
+                      be created. This will be where all of your servers live. Property
                       cannot be modified after datacenter creation (disallowed in
-                      update requests).
-                    enum:
-                    - de/fra
-                    - us/las
-                    - us/ewr
-                    - de/txl
-                    - gb/lhr
-                    - es/vit
+                      update requests). Location can have the following values: de/fra,
+                      us/las, us/ewr, de/txl, gb/lhr, es/vit.'
                     type: string
                   name:
                     description: The name of the  resource.

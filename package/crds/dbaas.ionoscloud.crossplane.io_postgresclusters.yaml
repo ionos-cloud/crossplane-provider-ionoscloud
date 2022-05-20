@@ -221,16 +221,11 @@ spec:
                     format: int32
                     type: integer
                   location:
-                    description: Location The physical location where the cluster
+                    description: 'Location The physical location where the cluster
                       will be created. This will be where all of your instances live.
-                      Property cannot be modified after datacenter creation.
-                    enum:
-                    - de/fra
-                    - us/las
-                    - us/ewr
-                    - de/txl
-                    - gb/lhr
-                    - es/vit
+                      Property cannot be modified after datacenter creation. Location
+                      can have the following values: de/fra, us/las, us/ewr, de/txl,
+                      gb/lhr, es/vit.'
                     type: string
                   maintenanceWindow:
                     description: MaintenanceWindow A weekly 4 hour-long window, during
