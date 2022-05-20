@@ -150,7 +150,7 @@ type FirewallRuleStatus struct {
 // +kubebuilder:printcolumn:name="DATACENTER ID",priority=1,type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
 // +kubebuilder:printcolumn:name="SERVER ID",priority=1,type="string",JSONPath=".spec.forProvider.serverConfig.serverId"
 // +kubebuilder:printcolumn:name="NIC ID",type="string",JSONPath=".spec.forProvider.nicConfig.nicId"
-// +kubebuilder:printcolumn:name="FIREWALL RULE ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
+// +kubebuilder:printcolumn:name="FIREWALLRULE ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status

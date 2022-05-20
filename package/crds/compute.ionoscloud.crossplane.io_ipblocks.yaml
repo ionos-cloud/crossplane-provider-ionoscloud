@@ -37,7 +37,6 @@ spec:
       type: string
     - jsonPath: .spec.forProvider.location
       name: LOCATION
-      priority: 1
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE
@@ -79,15 +78,10 @@ spec:
                   Required values when creating an IPBlock: Location, Size.'
                 properties:
                   location:
-                    description: Location of that IP block. Property cannot be modified
-                      after it is created (disallowed in update requests).
-                    enum:
-                    - de/fra
-                    - us/las
-                    - us/ewr
-                    - de/txl
-                    - gb/lhr
-                    - es/vit
+                    description: 'Location of that IP block. Property cannot be modified
+                      after it is created (disallowed in update requests). Location
+                      can have the following values: de/fra, us/las, us/ewr, de/txl,
+                      gb/lhr, es/vit.'
                     type: string
                   name:
                     description: The name of the  resource.

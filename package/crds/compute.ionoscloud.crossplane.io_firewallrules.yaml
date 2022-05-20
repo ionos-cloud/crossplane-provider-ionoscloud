@@ -37,7 +37,7 @@ spec:
       name: NIC ID
       type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
-      name: FIREWALL RULE ID
+      name: FIREWALLRULE ID
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE
