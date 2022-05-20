@@ -50,6 +50,8 @@ type IPFailoverParameters struct {
 	// IPConfig must have a public IP for which the group is responsible for.
 	// IP can be set directly, using ipConfig.ip or via reference and index.
 	// If both ip and ipBlockConfig is set, only ip field will be considered.
+	// It is recommended to use ip field instead of ipBlockConfig field if
+	// the ipBlock contains multiple ips.
 	//
 	// +kubebuilder:validation:Required
 	IPCfg IPConfig `json:"ipConfig"`
@@ -82,7 +84,7 @@ type IPFailoverStatus struct {
 // +kubebuilder:printcolumn:name="LAN ID",type="string",JSONPath=".spec.forProvider.lanConfig.lanId"
 // +kubebuilder:printcolumn:name="NIC ID",type="string",JSONPath=".spec.forProvider.nicConfig.nicId"
 // +kubebuilder:printcolumn:name="IP",type="string",JSONPath=".status.atProvider.ip"
-// +kubebuilder:printcolumn:name="LAN STATE",type="string",JSONPath=".status.atProvider.state"
+// +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
