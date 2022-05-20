@@ -38,7 +38,7 @@ spec:
       name: IP
       type: string
     - jsonPath: .status.atProvider.state
-      name: LAN STATE
+      name: STATE
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: AGE
@@ -118,7 +118,9 @@ spec:
                     description: IPConfig must have a public IP for which the group
                       is responsible for. IP can be set directly, using ipConfig.ip
                       or via reference and index. If both ip and ipBlockConfig is
-                      set, only ip field will be considered.
+                      set, only ip field will be considered. It is recommended to
+                      use ip field instead of ipBlockConfig field if the ipBlock contains
+                      multiple ips.
                     properties:
                       ip:
                         pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$

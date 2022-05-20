@@ -19,6 +19,7 @@ package ipfailover
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -31,6 +32,7 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -53,7 +55,7 @@ const (
 )
 
 // Setup adds a controller that reconciles IPFailover managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration, creationGracePeriod time.Duration) error {
 	name := managed.ControllerName(v1alpha1.IPFailoverGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -71,6 +73,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll ti
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
 			managed.WithPollInterval(poll),
+			managed.WithCreationGracePeriod(creationGracePeriod),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
@@ -126,38 +129,58 @@ type externalIPFailover struct {
 	log            logging.Logger
 }
 
-func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+var (
+	available ipFailoverState = "AVAILABLE"
+	creating  ipFailoverState = "CREATING"
+	updating  ipFailoverState = "UPDATING"
+	deleting  ipFailoverState = "DELETING"
+)
+
+type ipFailoverState string
+
+func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
 	cr, ok := mg.(*v1alpha1.IPFailover)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotIPFailover)
 	}
 
-	// Use Status property instead of external name
-	// since the IP can be updated, external name - no.
-	if cr.Status.AtProvider.IP == "" {
+	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
-	instance, apiResponse, err := c.service.GetLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
+	// Observe IPFailovers present on specified Lan
+	instanceIPFailovers, err := c.service.GetLanIPFailovers(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
 	if err != nil {
-		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
-		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+		if cr.Status.AtProvider.State == string(deleting) || strings.Contains(err.Error(), "404 Not Found") {
+			return managed.ExternalObservation{}, nil
+		}
+		return managed.ExternalObservation{}, fmt.Errorf("failed to get lan ipfailovers by id. error: %w", err)
 	}
-
 	ipSetByUser, err := c.getIPSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalObservation{}, fmt.Errorf("failed to get ip: %w", err)
 	}
-	cr.Status.AtProvider.State = *instance.Metadata.State
-	if lan.IsIPFailoverPresent(cr, instance, ipSetByUser) {
+	// Check if the IP Failover is created and present
+	if lan.IsIPFailoverPresent(instanceIPFailovers, ipSetByUser, cr.Spec.ForProvider.NicCfg.NicID) {
 		cr.Status.AtProvider.IP = ipSetByUser
+		cr.Status.AtProvider.State = string(available)
+	}
+	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+	// Set Ready condition based on State
+	switch cr.Status.AtProvider.State {
+	case string(available):
 		cr.SetConditions(xpv1.Available())
-	} else {
+	case string(creating), string(updating):
+		cr.SetConditions(xpv1.Creating())
+	case string(deleting):
+		cr.SetConditions(xpv1.Deleting())
+		return managed.ExternalObservation{}, nil
+	default:
 		cr.SetConditions(xpv1.Unavailable())
 	}
 
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  lan.IsIPFailoverUpToDate(cr, instance, ipSetByUser),
+		ResourceUpToDate:  lan.IsIPFailoverUpToDate(cr, instanceIPFailovers, ipSetByUser),
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
 }
@@ -169,37 +192,35 @@ func (c *externalIPFailover) Create(ctx context.Context, mg resource.Managed) (m
 	}
 
 	cr.SetConditions(xpv1.Creating())
-	instance, apiResponse, err := c.service.GetLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
-	if err != nil {
-		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
-		return managed.ExternalCreation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+	instanceIPFailovers, err := c.service.GetLanIPFailovers(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
+	if err != nil && instanceIPFailovers != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("failed to get lan ipfailovers by id. error: %w", err)
 	}
-	ip, err := c.getIPSet(ctx, cr)
+	ipSetByUser, err := c.getIPSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("failed to get ip: %w", err)
 	}
-	if lan.IsIPFailoverPresent(cr, instance, ip) {
+	if lan.IsIPFailoverPresent(instanceIPFailovers, ipSetByUser, cr.Spec.ForProvider.NicCfg.NicID) {
 		return managed.ExternalCreation{}, nil
 	}
-
-	// Generate IPFailover Input
-	instanceInput, err := lan.GenerateCreateIPFailoverInput(cr, instance.Properties, ip)
+	instanceInput, err := lan.GenerateCreateIPFailoverInput(instanceIPFailovers, ipSetByUser, cr.Spec.ForProvider.NicCfg.NicID)
 	if err != nil {
-		return managed.ExternalCreation{}, err
+		return managed.ExternalCreation{}, fmt.Errorf("failed to generate input for ipfailover creation: %w", err)
 	}
-	// Create IPFailover
-	_, apiResponse, err = c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID, *instanceInput)
-	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
+	// Create IPFailover - Update Lan with the new IP Failover
+	_, apiResponse, err := c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to update lan to create ipfailover. error: %w", err)
-		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalCreation{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return creation, err
+		return managed.ExternalCreation{}, fmt.Errorf("failed waiting for request on creating ipfailover: %w", err)
 	}
 
-	cr.Status.AtProvider.IP = ip
-	return creation, nil
+	cr.Status.AtProvider.IP = ipSetByUser
+	cr.Status.AtProvider.State = string(creating)
+	meta.SetExternalName(cr, cr.ObjectMeta.Name)
+	return managed.ExternalCreation{}, nil
 }
 
 func (c *externalIPFailover) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
@@ -207,33 +228,37 @@ func (c *externalIPFailover) Update(ctx context.Context, mg resource.Managed) (m
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotIPFailover)
 	}
-
-	instance, apiResponse, err := c.service.GetLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
-	if err != nil {
-		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
-		return managed.ExternalUpdate{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
-	}
-	ip, err := c.getIPSet(ctx, cr)
-	if err != nil {
-		return managed.ExternalUpdate{}, fmt.Errorf("failed to get ip: %w", err)
-	}
-	if lan.IsIPFailoverPresent(cr, instance, ip) {
+	if cr.Status.AtProvider.State == string(updating) {
 		return managed.ExternalUpdate{}, nil
 	}
 
-	instanceInput, err := lan.GenerateUpdateIPFailoverInput(cr, instance.Properties, ip)
-	if err != nil {
-		return managed.ExternalUpdate{}, err
+	instanceIPFailovers, err := c.service.GetLanIPFailovers(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
+	if err != nil && instanceIPFailovers != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("failed to get lan ipfailovers by id. error: %w", err)
 	}
-	// Update IPFailover
-	_, apiResponse, err = c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID, *instanceInput)
+	ipSetByUser, err := c.getIPSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("failed to get ip: %w", err)
+	}
+	if lan.IsIPFailoverPresent(instanceIPFailovers, ipSetByUser, cr.Spec.ForProvider.NicCfg.NicID) {
+		return managed.ExternalUpdate{}, nil
+	}
+	instanceInput, err := lan.GenerateUpdateIPFailoverInput(instanceIPFailovers, ipSetByUser, cr.Status.AtProvider.IP, cr.Spec.ForProvider.NicCfg.NicID)
+	if err != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("failed to generate input for ipfailover update: %w", err)
+	}
+	// Update IPFailover - Update Lan with the new ipfailover, replacing the old one
+	_, apiResponse, err := c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to update lan to update ipfailover. error: %w", err)
 		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return managed.ExternalUpdate{}, err
+		return managed.ExternalUpdate{}, fmt.Errorf("failed to wait for request on updating ipfailover: %w", err)
 	}
+
+	cr.Status.AtProvider.IP = ipSetByUser
+	cr.Status.AtProvider.State = string(updating)
 	return managed.ExternalUpdate{}, nil
 }
 
@@ -244,29 +269,34 @@ func (c *externalIPFailover) Delete(ctx context.Context, mg resource.Managed) er
 	}
 
 	cr.SetConditions(xpv1.Deleting())
-	// Get Lan
-	instance, apiResponse, err := c.service.GetLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
-	if err != nil {
-		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
-	}
-	if !lan.IsIPFailoverPresent(cr, instance, cr.Status.AtProvider.IP) || cr.Status.AtProvider.State == compute.DESTROYING {
-		cr.Status.AtProvider.IP = ""
+	if cr.Status.AtProvider.State == string(deleting) {
 		return nil
 	}
-	instanceInput, err := lan.GenerateRemoveIPFailoverInput(instance.Properties, cr.Status.AtProvider.IP)
+	instanceIPFailovers, err := c.service.GetLanIPFailovers(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
 	if err != nil {
-		return err
+		if strings.Contains(err.Error(), "404 Not Found") {
+			return nil
+		}
+		return fmt.Errorf("failed to get lan ipfailovers. error: %w", err)
 	}
-	// Remove IPFailover
-	_, apiResponse, err = c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID, *instanceInput)
+	if !lan.IsIPFailoverPresent(instanceIPFailovers, cr.Status.AtProvider.IP, cr.Spec.ForProvider.NicCfg.NicID) {
+		return nil
+	}
+	instanceInput, err := lan.GenerateRemoveIPFailoverInput(instanceIPFailovers, cr.Status.AtProvider.IP)
+	if err != nil {
+		return fmt.Errorf("failed to generate input for ipfailover deletion: %w", err)
+	}
+	// Remove IPFailover - Update Lan with the new ipfailovers - without the one needed to be deleted
+	_, apiResponse, err := c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to update lan to remove ipfailover. error: %w", err)
 		return compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return err
+		return fmt.Errorf("failed to wait for request on removing ipfailover: %w", err)
 	}
+
+	cr.Status.AtProvider.State = string(deleting)
 	return nil
 }
 
