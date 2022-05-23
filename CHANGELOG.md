@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.0-beta.1] (upcoming release)
+## [1.0.0-beta.1] (May 2022)
 
 **First release of the Crossplane Provider IONOS Cloud!** 🎉
 
