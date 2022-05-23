@@ -119,20 +119,6 @@ struct: `--from-literal=credentials="{\"host_url\":\"${IONOS_API_URL}\"}"`
 
 **6. Install Crossplane Provider IONOS Cloud**
 
-Create an Image Pull Secret with your credentials, to be able to pull the Crossplane provider packages from the GitHub
-registry. You can export environment variables for GitHub access using:
-
-```bash
-export GITHUB_USERNAME=xxx
-export GITHUB_PERSONAL_ACCESSTOKEN=xxx
-```
-
-Create Secret:
-
-```bash
-kubectl create secret --namespace crossplane-system docker-registry package-pull --docker-server ghcr.io --docker-username $GITHUB_USERNAME --docker-password $GITHUB_PERSONAL_ACCESSTOKEN
-```
-
 Install Crossplane Provider IONOS Cloud:
 
 ```bash
