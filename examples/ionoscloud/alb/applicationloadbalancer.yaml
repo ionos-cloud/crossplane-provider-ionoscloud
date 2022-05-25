@@ -66,10 +66,33 @@ spec:
     listenerLanConfig:
       lanIdRef:
         name: examplelan
-#    ipsConfig:
-#      ipsBlockConfigs:
-#        - ipBlockIdRef:
-#            name: example
-#          indexes: [ 0 ]
+    ipsConfig:
+      ipsBlockConfigs:
+        - ipBlockIdRef:
+            name: example
+          indexes: [ 0 ]
+  providerConfigRef:
+    name: example
+---
+apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
+kind: ForwardingRule
+metadata:
+  name: examplefwd
+spec:
+  forProvider:
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    applicationLoadBalancerConfig:
+      applicationLoadBalancerIdRef:
+        name: examplealb
+    name: exampleFwdRule
+    protocol: HTTP
+    listenerIpConfig:
+      ipBlockConfig:
+        ipBlockIdRef:
+          name: example
+        index: 0
+    listenerPort: 80
   providerConfigRef:
     name: example

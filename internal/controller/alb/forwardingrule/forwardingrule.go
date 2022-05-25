@@ -208,7 +208,6 @@ func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed
 	// Set External Name
 	cr.Status.AtProvider.ForwardingRuleID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
-	creation.ExternalNameAssigned = true
 	return creation, nil
 }
 

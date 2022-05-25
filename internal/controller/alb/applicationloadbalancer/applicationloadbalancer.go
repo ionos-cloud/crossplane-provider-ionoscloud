@@ -76,7 +76,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 				log:   l}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
-			managed.WithCreationGracePeriod(createGracePeriod),
+			managed.WithCreationGracePeriod(5*time.Minute),
 			managed.WithPollInterval(poll),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
@@ -199,6 +199,9 @@ func (c *externalApplicationLoadBalancer) Create(ctx context.Context, mg resourc
 	}
 
 	cr.SetConditions(xpv1.Creating())
+	if meta.GetExternalName(cr) != "" {
+		return managed.ExternalCreation{}, nil
+	}
 	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
 		return managed.ExternalCreation{}, nil
 	}
@@ -223,7 +226,6 @@ func (c *externalApplicationLoadBalancer) Create(ctx context.Context, mg resourc
 	// Set External Name
 	cr.Status.AtProvider.ApplicationLoadBalancerID = *instance.Id
 	meta.SetExternalName(cr, *instance.Id)
-	creation.ExternalNameAssigned = true
 	return creation, nil
 }
 
