@@ -25,6 +25,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/alb/applicationloadbalancer"
+	albforwardingrule "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/alb/forwardingrule"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/cubeserver"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/datacenter"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/firewallrule"
@@ -57,6 +58,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter, poll ti
 		k8snodepool.Setup,
 		postgrescluster.Setup,
 		applicationloadbalancer.Setup,
+		albforwardingrule.Setup,
 	} {
 		if err := setup(mgr, l, wl, poll); err != nil {
 			return err
