@@ -8,7 +8,3 @@ spec:
   # for Crossplane Provider IONOS Cloud controller pod:
   # controllerConfigRef:
   #  name: debug-config
-  # The Github Package is private. Use packagePullSecrets to be able to pull it from ghcr.io:
-  # kubectl create secret --namespace crossplane-system docker-registry package-pull --docker-server ghcr.io --docker-username $GITHUB_USERNAME --docker-password $GITHUB_PERSONAL_ACCESSTOKEN
-  packagePullSecrets:
-    - name: package-pull

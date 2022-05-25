@@ -58,7 +58,7 @@ const (
 )
 
 // Setup adds a controller that reconciles ForwardingRule managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, createGracePeriod time.Duration) error {
 	name := managed.ControllerName(v1alpha1.ForwardingRuleGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -75,6 +75,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll ti
 				log:   l}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
+			managed.WithCreationGracePeriod(createGracePeriod),
 			managed.WithPollInterval(poll),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))

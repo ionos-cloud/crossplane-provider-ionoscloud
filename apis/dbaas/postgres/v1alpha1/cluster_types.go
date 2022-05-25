@@ -73,9 +73,9 @@ type ClusterParameters struct {
 	// Location The physical location where the cluster will be created.
 	// This will be where all of your instances live.
 	// Property cannot be modified after datacenter creation.
+	// Location can have the following values: de/fra, us/las, us/ewr, de/txl, gb/lhr, es/vit.
 	//
 	// +immutable
-	// +kubebuilder:validation:Enum=de/fra;us/las;us/ewr;de/txl;gb/lhr;es/vit
 	// +kubebuilder:validation:Required
 	Location string `json:"location"`
 	// The S3 location where the backups will be stored.

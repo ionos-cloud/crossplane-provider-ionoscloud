@@ -33,7 +33,6 @@ spec:
       type: string
     - jsonPath: .spec.forProvider.name
       name: LAN NAME
-      priority: 1
       type: string
     - jsonPath: .spec.forProvider.public
       name: PUBLIC

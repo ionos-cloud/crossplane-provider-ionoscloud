@@ -33,9 +33,9 @@ type IPBlockParameters struct {
 	// The name of the  resource.
 	Name string `json:"name,omitempty"`
 	// Location of that IP block. Property cannot be modified after it is created (disallowed in update requests).
+	// Location can have the following values: de/fra, us/las, us/ewr, de/txl, gb/lhr, es/vit.
 	//
 	// +immutable
-	// +kubebuilder:validation:Enum=de/fra;us/las;us/ewr;de/txl;gb/lhr;es/vit
 	// +kubebuilder:validation:Required
 	Location string `json:"location"`
 	// The size of the IP block.
@@ -145,7 +145,7 @@ type IPBlockStatus struct {
 // +kubebuilder:printcolumn:name="IPBLOCK ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="IPS",type="string",JSONPath=".status.atProvider.ips"
 // +kubebuilder:printcolumn:name="NAME",priority=1,type="string",JSONPath=".spec.forProvider.name"
-// +kubebuilder:printcolumn:name="LOCATION",priority=1,type="string",JSONPath=".spec.forProvider.location"
+// +kubebuilder:printcolumn:name="LOCATION",type="string",JSONPath=".spec.forProvider.location"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status

@@ -3,7 +3,7 @@ module github.com/ionos-cloud/crossplane-provider-ionoscloud
 go 1.17
 
 require (
-	github.com/crossplane/crossplane-runtime v0.15.0
+	github.com/crossplane/crossplane-runtime v0.15.1
 	github.com/crossplane/crossplane-tools v0.0.0-20220106150503-21c1d7761d68
 	github.com/google/go-cmp v0.5.6
 	github.com/ionos-cloud/sdk-go-dbaas-postgres v1.0.3

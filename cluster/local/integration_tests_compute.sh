@@ -288,7 +288,7 @@ EOF
   echo_step "get server CR"
   kubectl get servers
 
-  echo_step "update server CR and detach volume"
+  echo_step "update server CR"
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
@@ -297,13 +297,16 @@ metadata:
   name: example
 spec:
   forProvider:
-    name: exampleServer
+    name: exampleServerUpdate
     cores: 4
     ram: 2048
     availabilityZone: AUTO
     cpuFamily: INTEL_SKYLAKE
     datacenterConfig:
       datacenterIdRef:
+        name: example
+    volumeConfig:
+      volumeIdRef:
         name: example
   providerConfigRef:
     name: example
@@ -326,13 +329,16 @@ metadata:
   name: example
 spec:
   forProvider:
-    name: exampleServer
+    name: exampleServerUpdate
     cores: 4
     ram: 2048
     availabilityZone: AUTO
     cpuFamily: INTEL_SKYLAKE
     datacenterConfig:
       datacenterIdRef:
+        name: example
+    volumeConfig:
+      volumeIdRef:
         name: example
   providerConfigRef:
     name: example
