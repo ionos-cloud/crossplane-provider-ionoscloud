@@ -166,8 +166,8 @@ func getHTTPRules(httpRules []v1alpha1.ApplicationLoadBalancerHTTPRule) []sdkgo.
 			Name: &rule.Name,
 			Type: &rule.Type,
 		}
-		if !utils.IsEmptyValue(reflect.ValueOf(rule.TargetGroupID)) {
-			httpRule.SetTargetGroup(rule.TargetGroupID)
+		if !utils.IsEmptyValue(reflect.ValueOf(rule.TargetGroupCfg.TargetGroupID)) {
+			httpRule.SetTargetGroup(rule.TargetGroupCfg.TargetGroupID)
 		}
 		if !utils.IsEmptyValue(reflect.ValueOf(rule.DropQuery)) {
 			httpRule.SetDropQuery(rule.DropQuery)
