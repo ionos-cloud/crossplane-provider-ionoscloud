@@ -132,29 +132,29 @@ func IsForwardingRuleUpToDate(cr *v1alpha1.ForwardingRule, forwardingRule sdkgo.
 		return false
 	case forwardingRule.Properties.ClientTimeout != nil && *forwardingRule.Properties.ClientTimeout != cr.Spec.ForProvider.ClientTimeout:
 		return false
-	case forwardingRule.Properties.ServerCertificates != nil && utils.ContainsStringSlices(*forwardingRule.Properties.ServerCertificates, cr.Spec.ForProvider.ServerCertificatesIDs):
-		return false
-	case forwardingRule.Properties.HttpRules != nil && isForwardingRuleHTTPRuleUpToDate(getHTTPRules(cr.Spec.ForProvider.HTTPRules), *forwardingRule.Properties.HttpRules):
-		return false
+	// case forwardingRule.Properties.ServerCertificates != nil && utils.ContainsStringSlices(*forwardingRule.Properties.ServerCertificates, cr.Spec.ForProvider.ServerCertificatesIDs):
+	//	return false
+	// case forwardingRule.Properties.HttpRules != nil && isForwardingRuleHTTPRuleUpToDate(getHTTPRules(cr.Spec.ForProvider.HTTPRules), *forwardingRule.Properties.HttpRules):
+	//	return false
 	default:
 		return true
 	}
 }
 
-func isForwardingRuleHTTPRuleUpToDate(setHTTPRules, currentHTTPRules []sdkgo.ApplicationLoadBalancerHttpRule) bool {
-	if len(setHTTPRules) != len(currentHTTPRules) {
-		return false
-	}
-	for i := 0; i < len(setHTTPRules); i++ {
-		switch {
-		case *setHTTPRules[i].Name != *currentHTTPRules[i].Name:
-			return false
-		case *setHTTPRules[i].Type != *currentHTTPRules[i].Type:
-			return false
-		}
-	}
-	return true
-}
+// func isForwardingRuleHTTPRuleUpToDate(setHTTPRules, currentHTTPRules []sdkgo.ApplicationLoadBalancerHttpRule) bool {
+//	if len(setHTTPRules) != len(currentHTTPRules) {
+//		return false
+//	}
+//	for i := 0; i < len(setHTTPRules); i++ {
+//		switch {
+//		case *setHTTPRules[i].Name != *currentHTTPRules[i].Name:
+//			return false
+//		case *setHTTPRules[i].Type != *currentHTTPRules[i].Type:
+//			return false
+//		}
+//	}
+//	return true
+// }
 
 func getHTTPRules(httpRules []v1alpha1.ApplicationLoadBalancerHTTPRule) []sdkgo.ApplicationLoadBalancerHttpRule {
 	if len(httpRules) == 0 {

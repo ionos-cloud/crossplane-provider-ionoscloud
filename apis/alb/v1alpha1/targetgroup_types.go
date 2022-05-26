@@ -56,7 +56,7 @@ type TargetGroupParameters struct {
 	// HTTP health check properties for target group
 	//
 	// +kubebuilder:validation:Optional
-	HttpHealthCheck TargetGroupHttpHealthCheck `json:"httpHealthCheck,omitempty"`
+	HTTPHealthCheck TargetGroupHTTPHealthCheck `json:"httpHealthCheck,omitempty"`
 }
 
 // TargetGroupTarget struct for TargetGroupTarget
@@ -112,11 +112,11 @@ type TargetGroupHealthCheck struct {
 	Retries int32 `json:"retries,omitempty"`
 }
 
-// TargetGroupHttpHealthCheck struct for TargetGroupHttpHealthCheck
+// TargetGroupHTTPHealthCheck struct for TargetGroupHttpHealthCheck
 // Required fields in order to create an TargetGroupTarget:
 // Response,
 // MatchType.
-type TargetGroupHttpHealthCheck struct {
+type TargetGroupHTTPHealthCheck struct {
 	// The path (destination URL) for the HTTP health check request; the default is /.
 	//
 	// +kubebuilder:validation:Optional
