@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 )
@@ -73,6 +74,10 @@ func IsStringInSlice(input []string, specific string) bool {
 func ContainsStringSlices(first, second []string) bool {
 	if len(first) != len(second) {
 		return false
+	}
+	if len(first) == 0 {
+		fmt.Println("aici len e zero")
+		return true
 	}
 	for _, v := range first {
 		if !ContainsStringInSlice(second, v) {

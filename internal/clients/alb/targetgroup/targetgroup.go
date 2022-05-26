@@ -67,12 +67,12 @@ func GenerateCreateTargetGroupInput(cr *v1alpha1.TargetGroup) (*sdkgo.TargetGrou
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Targets)) {
 		instanceCreateInput.Properties.SetTargets(getTargets(cr.Spec.ForProvider.Targets))
 	}
-	// if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.HealthCheck)) {
-	//	instanceCreateInput.Properties.SetHealthCheck(cr.Spec.ForProvider.HealthCheck)
-	// }
-	// if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.HttpHealthCheck)) {
-	//	instanceCreateInput.Properties.SetHttpHealthCheck(cr.Spec.ForProvider.HttpHealthCheck)
-	// }
+	if utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.HealthCheck)) {
+		instanceCreateInput.Properties.HealthCheck = nil
+	}
+	if utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.HTTPHealthCheck)) {
+		instanceCreateInput.Properties.HttpHealthCheck = nil
+	}
 	return &instanceCreateInput, nil
 }
 
@@ -88,12 +88,12 @@ func GenerateUpdateTargetGroupInput(cr *v1alpha1.TargetGroup) (*sdkgo.TargetGrou
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Targets)) {
 		instanceUpdateInput.Properties.SetTargets(getTargets(cr.Spec.ForProvider.Targets))
 	}
-	// if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.HealthCheck)) {
-	//	instanceUpdateInput.Properties.SetHealthCheck(cr.Spec.ForProvider.HealthCheck)
-	// }
-	// if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.HttpHealthCheck)) {
-	//	instanceUpdateInput.Properties.SetHttpHealthCheck(cr.Spec.ForProvider.HttpHealthCheck)
-	// }
+	if utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.HealthCheck)) {
+		instanceUpdateInput.Properties.HealthCheck = nil
+	}
+	if utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.HTTPHealthCheck)) {
+		instanceUpdateInput.Properties.HttpHealthCheck = nil
+	}
 	return &instanceUpdateInput, nil
 }
 
@@ -142,15 +142,11 @@ func getTargets(targetGroupTargets []v1alpha1.TargetGroupTarget) []sdkgo.TargetG
 	targets := make([]sdkgo.TargetGroupTarget, 0)
 	for _, targetGroupTarget := range targetGroupTargets {
 		httpRule := sdkgo.TargetGroupTarget{
-			Ip:     &targetGroupTarget.IPCfg.IP,
-			Port:   &targetGroupTarget.Port,
-			Weight: &targetGroupTarget.Weight,
-		}
-		if !utils.IsEmptyValue(reflect.ValueOf(targetGroupTarget.HealthCheckEnabled)) {
-			httpRule.SetHealthCheckEnabled(targetGroupTarget.HealthCheckEnabled)
-		}
-		if !utils.IsEmptyValue(reflect.ValueOf(targetGroupTarget.MaintenanceEnabled)) {
-			httpRule.SetMaintenanceEnabled(targetGroupTarget.MaintenanceEnabled)
+			Ip:                 &targetGroupTarget.IP,
+			Port:               &targetGroupTarget.Port,
+			Weight:             &targetGroupTarget.Weight,
+			HealthCheckEnabled: &targetGroupTarget.HealthCheckEnabled,
+			MaintenanceEnabled: &targetGroupTarget.MaintenanceEnabled,
 		}
 		targets = append(targets, httpRule)
 	}

@@ -117,9 +117,7 @@ spec:
                     description: HTTP health check properties for target group
                     properties:
                       matchType:
-                        enum:
-                        - STATUS_CODE
-                        - RESPONSE_BODY
+                        description: //////+kubebuilder:validation:Enum=STATUS_CODE;RESPONSE_BODY
                         type: string
                       method:
                         description: The method for the HTTP health check.
@@ -144,9 +142,6 @@ spec:
                         description: The response returned by the request, depending
                           on the match type.
                         type: string
-                    required:
-                    - matchType
-                    - response
                     type: object
                   name:
                     description: The name of the target group.
@@ -168,60 +163,11 @@ spec:
                             periodic health check TCP connection attempts; when turned
                             off, the target is considered always available. The health
                             check only consists of a connection attempt to the address
-                            and port of the target. Default is True.
+                            and port of the target.
                           type: boolean
-                        ipConfig:
+                        ip:
                           description: The IP of the balanced target VM.
-                          properties:
-                            ip:
-                              pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
-                              type: string
-                            ipBlockConfig:
-                              description: IPBlockConfig - used by resources that
-                                need to link IPBlock via id or via reference to get
-                                one single IP.
-                              properties:
-                                index:
-                                  description: Index is referring to the IP index
-                                    retrieved from the IPBlock. Index is starting
-                                    from 0.
-                                  type: integer
-                                ipBlockId:
-                                  description: NicID is the ID of the IPBlock on which
-                                    the resource will be created. It needs to be provided
-                                    via directly or via reference.
-                                  format: uuid
-                                  type: string
-                                ipBlockIdRef:
-                                  description: IPBlockIDRef references to a IPBlock
-                                    to retrieve its ID
-                                  properties:
-                                    name:
-                                      description: Name of the referenced object.
-                                      type: string
-                                  required:
-                                  - name
-                                  type: object
-                                ipBlockIdSelector:
-                                  description: IPBlockIDSelector selects reference
-                                    to a IPBlock to retrieve its nicId
-                                  properties:
-                                    matchControllerRef:
-                                      description: MatchControllerRef ensures an object
-                                        with the same controller reference as the
-                                        selecting object is selected.
-                                      type: boolean
-                                    matchLabels:
-                                      additionalProperties:
-                                        type: string
-                                      description: MatchLabels ensures an object with
-                                        matching labels is selected.
-                                      type: object
-                                  type: object
-                              required:
-                              - index
-                              type: object
-                          type: object
+                          type: string
                         maintenanceEnabled:
                           description: Maintenance mode prevents the target from receiving
                             balanced traffic.
@@ -243,7 +189,7 @@ spec:
                           format: int32
                           type: integer
                       required:
-                      - ipConfig
+                      - ip
                       - port
                       - weight
                       type: object

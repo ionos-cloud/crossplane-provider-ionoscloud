@@ -183,6 +183,9 @@ func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed
 	}
 
 	cr.SetConditions(xpv1.Creating())
+	if meta.GetExternalName(cr) != "" {
+		return managed.ExternalCreation{}, nil
+	}
 	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
 		return managed.ExternalCreation{}, nil
 	}

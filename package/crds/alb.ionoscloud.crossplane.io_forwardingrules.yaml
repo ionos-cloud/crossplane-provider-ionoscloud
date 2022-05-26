@@ -269,18 +269,18 @@ spec:
                           - 599
                           format: int32
                           type: integer
-                        targetGroupId:
+                        targetGroupConfig:
                           description: The ID of the target group; mandatory and only
                             valid for FORWARD actions. The ID can be set directly
                             or via reference.
                           properties:
-                            applicationLoadBalancerId:
+                            targetGroupId:
                               description: TargetGroupID is the ID of the TargetGroup
                                 on which the resource should have access. It needs
                                 to be provided via directly or via reference.
                               format: uuid
                               type: string
-                            applicationLoadBalancerIdRef:
+                            targetGroupIdRef:
                               description: TargetGroupIDRef references to a Datacenter
                                 to retrieve its ID
                               properties:
@@ -290,7 +290,7 @@ spec:
                               required:
                               - name
                               type: object
-                            applicationLoadBalancerIdSelector:
+                            targetGroupIdSelector:
                               description: TargetGroupIDSelector selects reference
                                 to a Datacenter to retrieve its datacenterId
                               properties:

@@ -68,7 +68,7 @@ type TargetGroupTarget struct {
 	// The IP of the balanced target VM.
 	//
 	// +kubebuilder:validation:Required
-	IPCfg IPConfig `json:"ipConfig"`
+	IP string `json:"ip"`
 	// The port of the balanced target service; valid range is 1 to 65535.
 	//
 	// +kubebuilder:validation:Required
@@ -83,7 +83,6 @@ type TargetGroupTarget struct {
 	// Makes the target available only if it accepts periodic health check TCP connection attempts;
 	// when turned off, the target is considered always available.
 	// The health check only consists of a connection attempt to the address and port of the target.
-	// Default is True.
 	//
 	// +kubebuilder:validation:Optional
 	HealthCheckEnabled bool `json:"healthCheckEnabled,omitempty"`
@@ -127,12 +126,12 @@ type TargetGroupHTTPHealthCheck struct {
 	// +kubebuilder:validation:Enum=HEAD;PUT;POST;GET;TRACE;PATCH;OPTIONS
 	Method string `json:"method,omitempty"`
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=STATUS_CODE;RESPONSE_BODY
-	MatchType string `json:"matchType"`
+	// //////+kubebuilder:validation:Enum=STATUS_CODE;RESPONSE_BODY
+	MatchType string `json:"matchType,omitempty"`
 	// The response returned by the request, depending on the match type.
 	//
 	// +kubebuilder:validation:Required
-	Response string `json:"response"`
+	Response string `json:"response,omitempty"`
 	// +kubebuilder:validation:Optional
 	Regex bool `json:"regex,omitempty"`
 	// +kubebuilder:validation:Optional
@@ -148,16 +147,16 @@ type TargetGroupConfig struct {
 	// +kubebuilder:validation:Format=uuid
 	// +crossplane:generate:reference:type=TargetGroup
 	// +crossplane:generate:reference:extractor=ExtractTargetGroupID()
-	TargetGroupID string `json:"applicationLoadBalancerId,omitempty"`
+	TargetGroupID string `json:"targetGroupId,omitempty"`
 	// TargetGroupIDRef references to a Datacenter to retrieve its ID
 	//
 	// +optional
 	// +immutable
-	TargetGroupIDRef *xpv1.Reference `json:"applicationLoadBalancerIdRef,omitempty"`
+	TargetGroupIDRef *xpv1.Reference `json:"targetGroupIdRef,omitempty"`
 	// TargetGroupIDSelector selects reference to a Datacenter to retrieve its datacenterId
 	//
 	// +optional
-	TargetGroupIDSelector *xpv1.Selector `json:"applicationLoadBalancerIdSelector,omitempty"`
+	TargetGroupIDSelector *xpv1.Selector `json:"targetGroupIdSelector,omitempty"`
 }
 
 // TargetGroupObservation are the observable fields of an TargetGroup.

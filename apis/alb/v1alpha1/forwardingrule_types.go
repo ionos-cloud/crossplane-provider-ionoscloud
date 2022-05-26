@@ -103,7 +103,7 @@ type ApplicationLoadBalancerHTTPRule struct {
 	// The ID can be set directly or via reference.
 	//
 	// +kubebuilder:validation:Optional
-	TargetGroupCfg TargetGroupConfig `json:"targetGroupId,omitempty"`
+	TargetGroupCfg TargetGroupConfig `json:"targetGroupConfig,omitempty"`
 	// Default is false; valid only for REDIRECT actions.
 	//
 	// +kubebuilder:validation:Optional
