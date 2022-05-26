@@ -1,3 +1,10 @@
+[![CI](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/workflows/CI/badge.svg)](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/actions)
+[![CI Daily](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/actions/workflows/ci-daily.yml/badge.svg)](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/actions)
+[![Gitter](https://img.shields.io/gitter/room/ionos-cloud/sdk-general)](https://gitter.im/ionos-cloud/sdk-general)
+[![Release](https://img.shields.io/github/v/release/ionos-cloud/crossplane-provider-ionoscloud.svg)](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/releases/latest)
+[![Release Date](https://img.shields.io/github/release-date/ionos-cloud/crossplane-provider-ionoscloud.svg)](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/releases/latest)
+[![Go](https://img.shields.io/github/go-mod/go-version/ionos-cloud/crossplane-provider-ionoscloud.svg)](https://github.com/ionos-cloud/crossplane-provider-ionoscloud)
+
 ![Alt text](.github/IONOS.CLOUD.BLU.svg?sanitize=true&raw=true "Title")
 
 # Crossplane Provider IONOS Cloud
