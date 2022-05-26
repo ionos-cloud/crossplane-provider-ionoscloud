@@ -21,3 +21,17 @@ func ExtractApplicationLoadBalancerID() reference.ExtractValueFn {
 		return meta.GetExternalName(res)
 	}
 }
+
+// ExtractTargetGroupID returns the externalName of a referenced TargetGroup.
+func ExtractTargetGroupID() reference.ExtractValueFn {
+	return func(mg resource.Managed) string {
+		res, ok := mg.(*TargetGroup)
+		if !ok {
+			return defaultStringValue
+		}
+		if meta.GetExternalName(res) == res.Name {
+			return defaultStringValue
+		}
+		return meta.GetExternalName(res)
+	}
+}

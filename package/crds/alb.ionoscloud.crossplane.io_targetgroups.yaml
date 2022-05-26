@@ -1,0 +1,362 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.6.2
+  creationTimestamp: null
+  name: targetgroups.alb.ionoscloud.crossplane.io
+spec:
+  group: alb.ionoscloud.crossplane.io
+  names:
+    categories:
+    - crossplane
+    - managed
+    - ionoscloud
+    kind: TargetGroup
+    listKind: TargetGroupList
+    plural: targetgroups
+    singular: targetgroup
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: READY
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Synced')].status
+      name: SYNCED
+      type: string
+    - jsonPath: .metadata.annotations.crossplane\.io/external-name
+      name: TARGETGROUP ID
+      type: string
+    - jsonPath: .spec.forProvider.name
+      name: TARGETGROUP NAME
+      type: string
+    - jsonPath: .spec.forProvider.protocol
+      name: PROTOCOL
+      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.algorithm
+      name: ALGORITHM
+      priority: 1
+      type: string
+    - jsonPath: .status.atProvider.targetIps
+      name: TARGET IPS
+      priority: 1
+      type: string
+    - jsonPath: .status.atProvider.state
+      name: STATE
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: An TargetGroup is an example API type.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: TargetGroupSpec defines the desired state of an TargetGroup.
+            properties:
+              deletionPolicy:
+                default: Delete
+                description: DeletionPolicy specifies what will happen to the underlying
+                  external when this managed resource is deleted - either "Delete"
+                  or "Orphan" the external resource.
+                enum:
+                - Orphan
+                - Delete
+                type: string
+              forProvider:
+                description: 'TargetGroupParameters are the observable fields of an
+                  TargetGroup. Required fields in order to create an TargetGroup:
+                  Name, Algorithm, Protocol.'
+                properties:
+                  algorithm:
+                    description: Balancing algorithm
+                    enum:
+                    - ROUND_ROBIN
+                    - LEAST_CONNECTION
+                    - RANDOM
+                    - SOURCE_IP
+                    type: string
+                  healthCheck:
+                    description: Health check properties for target group
+                    properties:
+                      checkInterval:
+                        description: The interval in milliseconds between consecutive
+                          health checks; default is 2000.
+                        format: int32
+                        type: integer
+                      checkTimeout:
+                        description: The maximum time in milliseconds to wait for
+                          a target to respond to a check. For target VMs with 'Check
+                          Interval' set, the lesser of the two  values is used once
+                          the TCP connection is established.
+                        format: int32
+                        type: integer
+                      retries:
+                        description: The maximum number of attempts to reconnect to
+                          a target after a connection failure. Valid range is 0 to
+                          65535, and default is three reconnection attempts.
+                        format: int32
+                        type: integer
+                    type: object
+                  httpHealthCheck:
+                    description: HTTP health check properties for target group
+                    properties:
+                      matchType:
+                        enum:
+                        - STATUS_CODE
+                        - RESPONSE_BODY
+                        type: string
+                      method:
+                        description: The method for the HTTP health check.
+                        enum:
+                        - HEAD
+                        - PUT
+                        - POST
+                        - GET
+                        - TRACE
+                        - PATCH
+                        - OPTIONS
+                        type: string
+                      negate:
+                        type: boolean
+                      path:
+                        description: The path (destination URL) for the HTTP health
+                          check request; the default is /.
+                        type: string
+                      regex:
+                        type: boolean
+                      response:
+                        description: The response returned by the request, depending
+                          on the match type.
+                        type: string
+                    required:
+                    - matchType
+                    - response
+                    type: object
+                  name:
+                    description: The name of the target group.
+                    type: string
+                  protocol:
+                    description: Balancing protocol
+                    enum:
+                    - HTTP
+                    type: string
+                  targets:
+                    description: Array of items in the collection.
+                    items:
+                      description: 'TargetGroupTarget struct for TargetGroupTarget
+                        Required fields in order to create an TargetGroupTarget: IPConfig,
+                        Port, Weight.'
+                      properties:
+                        healthCheckEnabled:
+                          description: Makes the target available only if it accepts
+                            periodic health check TCP connection attempts; when turned
+                            off, the target is considered always available. The health
+                            check only consists of a connection attempt to the address
+                            and port of the target. Default is True.
+                          type: boolean
+                        ipConfig:
+                          description: The IP of the balanced target VM.
+                          properties:
+                            ip:
+                              pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
+                              type: string
+                            ipBlockConfig:
+                              description: IPBlockConfig - used by resources that
+                                need to link IPBlock via id or via reference to get
+                                one single IP.
+                              properties:
+                                index:
+                                  description: Index is referring to the IP index
+                                    retrieved from the IPBlock. Index is starting
+                                    from 0.
+                                  type: integer
+                                ipBlockId:
+                                  description: NicID is the ID of the IPBlock on which
+                                    the resource will be created. It needs to be provided
+                                    via directly or via reference.
+                                  format: uuid
+                                  type: string
+                                ipBlockIdRef:
+                                  description: IPBlockIDRef references to a IPBlock
+                                    to retrieve its ID
+                                  properties:
+                                    name:
+                                      description: Name of the referenced object.
+                                      type: string
+                                  required:
+                                  - name
+                                  type: object
+                                ipBlockIdSelector:
+                                  description: IPBlockIDSelector selects reference
+                                    to a IPBlock to retrieve its nicId
+                                  properties:
+                                    matchControllerRef:
+                                      description: MatchControllerRef ensures an object
+                                        with the same controller reference as the
+                                        selecting object is selected.
+                                      type: boolean
+                                    matchLabels:
+                                      additionalProperties:
+                                        type: string
+                                      description: MatchLabels ensures an object with
+                                        matching labels is selected.
+                                      type: object
+                                  type: object
+                              required:
+                              - index
+                              type: object
+                          type: object
+                        maintenanceEnabled:
+                          description: Maintenance mode prevents the target from receiving
+                            balanced traffic.
+                          type: boolean
+                        port:
+                          description: The port of the balanced target service; valid
+                            range is 1 to 65535.
+                          format: int32
+                          type: integer
+                        weight:
+                          description: Traffic is distributed in proportion to target
+                            weight, relative to the combined weight of all targets.
+                            A target with higher weight receives a greater share of
+                            traffic. Valid range is 0 to 256 and default is 1; targets
+                            with weight of 0 do not participate in load balancing
+                            but still accept persistent connections. It is best use
+                            values in the middle of the range to leave room for later
+                            adjustments.
+                          format: int32
+                          type: integer
+                      required:
+                      - ipConfig
+                      - port
+                      - weight
+                      type: object
+                    type: array
+                required:
+                - algorithm
+                - name
+                - protocol
+                type: object
+              providerConfigRef:
+                default:
+                  name: default
+                description: ProviderConfigReference specifies how the provider that
+                  will be used to create, observe, update, and delete this managed
+                  resource should be configured.
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                required:
+                - name
+                type: object
+              providerRef:
+                description: 'ProviderReference specifies the provider that will be
+                  used to create, observe, update, and delete this managed resource.
+                  Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`'
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                required:
+                - name
+                type: object
+              writeConnectionSecretToRef:
+                description: WriteConnectionSecretToReference specifies the namespace
+                  and name of a Secret to which any connection details for this managed
+                  resource should be written. Connection details frequently include
+                  the endpoint, username, and password required to connect to the
+                  managed resource.
+                properties:
+                  name:
+                    description: Name of the secret.
+                    type: string
+                  namespace:
+                    description: Namespace of the secret.
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+            required:
+            - forProvider
+            type: object
+          status:
+            description: TargetGroupStatus represents the observed state of an TargetGroup.
+            properties:
+              atProvider:
+                description: TargetGroupObservation are the observable fields of an
+                  TargetGroup.
+                properties:
+                  state:
+                    type: string
+                  targetGroupId:
+                    type: string
+                  targetIps:
+                    items:
+                      type: string
+                    type: array
+                type: object
+              conditions:
+                description: Conditions of the resource.
+                items:
+                  description: A Condition that may apply to a resource.
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime is the last time this condition
+                        transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A Message containing details about this condition's
+                        last transition from one status to another, if any.
+                      type: string
+                    reason:
+                      description: A Reason for this condition's last transition from
+                        one status to another.
+                      type: string
+                    status:
+                      description: Status of this condition; is it currently True,
+                        False, or Unknown?
+                      type: string
+                    type:
+                      description: Type of this condition. At most one of each condition
+                        type may apply to a resource at any point in time.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

@@ -157,5 +157,53 @@ func (mg *ForwardingRule) ResolveReferences(ctx context.Context, c client.Reader
 	mg.Spec.ForProvider.ListenerIP.IPBlockCfg.IPBlockID = rsp.ResolvedValue
 	mg.Spec.ForProvider.ListenerIP.IPBlockCfg.IPBlockIDRef = rsp.ResolvedReference
 
+	for i3 := 0; i3 < len(mg.Spec.ForProvider.HTTPRules); i3++ {
+		rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+			CurrentValue: mg.Spec.ForProvider.HTTPRules[i3].TargetGroupCfg.TargetGroupID,
+			Extract:      ExtractTargetGroupID(),
+			Reference:    mg.Spec.ForProvider.HTTPRules[i3].TargetGroupCfg.TargetGroupIDRef,
+			Selector:     mg.Spec.ForProvider.HTTPRules[i3].TargetGroupCfg.TargetGroupIDSelector,
+			To: reference.To{
+				List:    &TargetGroupList{},
+				Managed: &TargetGroup{},
+			},
+		})
+		if err != nil {
+			return errors.Wrap(err, "mg.Spec.ForProvider.HTTPRules[i3].TargetGroupCfg.TargetGroupID")
+		}
+		mg.Spec.ForProvider.HTTPRules[i3].TargetGroupCfg.TargetGroupID = rsp.ResolvedValue
+		mg.Spec.ForProvider.HTTPRules[i3].TargetGroupCfg.TargetGroupIDRef = rsp.ResolvedReference
+
+	}
+
+	return nil
+}
+
+// ResolveReferences of this TargetGroup.
+func (mg *TargetGroup) ResolveReferences(ctx context.Context, c client.Reader) error {
+	r := reference.NewAPIResolver(c, mg)
+
+	var rsp reference.ResolutionResponse
+	var err error
+
+	for i3 := 0; i3 < len(mg.Spec.ForProvider.Targets); i3++ {
+		rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+			CurrentValue: mg.Spec.ForProvider.Targets[i3].IPCfg.IPBlockCfg.IPBlockID,
+			Extract:      v1alpha1.ExtractIPBlockID(),
+			Reference:    mg.Spec.ForProvider.Targets[i3].IPCfg.IPBlockCfg.IPBlockIDRef,
+			Selector:     mg.Spec.ForProvider.Targets[i3].IPCfg.IPBlockCfg.IPBlockIDSelector,
+			To: reference.To{
+				List:    &v1alpha1.IPBlockList{},
+				Managed: &v1alpha1.IPBlock{},
+			},
+		})
+		if err != nil {
+			return errors.Wrap(err, "mg.Spec.ForProvider.Targets[i3].IPCfg.IPBlockCfg.IPBlockID")
+		}
+		mg.Spec.ForProvider.Targets[i3].IPCfg.IPBlockCfg.IPBlockID = rsp.ResolvedValue
+		mg.Spec.ForProvider.Targets[i3].IPCfg.IPBlockCfg.IPBlockIDRef = rsp.ResolvedReference
+
+	}
+
 	return nil
 }

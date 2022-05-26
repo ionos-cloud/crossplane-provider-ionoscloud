@@ -83,6 +83,12 @@ type ForwardingRuleParameters struct {
 }
 
 // ApplicationLoadBalancerHTTPRule struct for Application Load Balancer HTTP Rule
+// Required fields in order to create an ApplicationLoadBalancerHTTPRule:
+// Name,
+// Type,
+// TargetGroup (via ID or via reference) - required only for FORWARD actions.
+// Location - required only for REDIRECT actions.
+// ResponseMessage - required only for STATIC actions.
 type ApplicationLoadBalancerHTTPRule struct {
 	// The unique name of the Application Load Balancer HTTP rule.
 	//
@@ -94,9 +100,10 @@ type ApplicationLoadBalancerHTTPRule struct {
 	// +kubebuilder:validation:Enum=FORWARD;STATIC;REDIRECT
 	Type string `json:"type"`
 	// The ID of the target group; mandatory and only valid for FORWARD actions.
+	// The ID can be set directly or via reference.
 	//
 	// +kubebuilder:validation:Optional
-	TargetGroupID string `json:"targetGroupId,omitempty"`
+	TargetGroupCfg TargetGroupConfig `json:"targetGroupId,omitempty"`
 	// Default is false; valid only for REDIRECT actions.
 	//
 	// +kubebuilder:validation:Optional
@@ -129,6 +136,9 @@ type ApplicationLoadBalancerHTTPRule struct {
 }
 
 // ApplicationLoadBalancerHTTPRuleCondition struct for Application Load Balancer HTTP Rule Condition
+// Required fields in order to create an ApplicationLoadBalancerHTTPRuleCondition:
+// Type,
+// Condition.
 type ApplicationLoadBalancerHTTPRuleCondition struct {
 	// Type of the HTTP rule condition.
 	//

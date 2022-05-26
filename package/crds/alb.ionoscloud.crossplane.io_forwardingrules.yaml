@@ -174,16 +174,22 @@ spec:
                       The relative order of Forward-type rules is also preserved during
                       the processing.
                     items:
-                      description: ApplicationLoadBalancerHTTPRule struct for Application
-                        Load Balancer HTTP Rule
+                      description: 'ApplicationLoadBalancerHTTPRule struct for Application
+                        Load Balancer HTTP Rule Required fields in order to create
+                        an ApplicationLoadBalancerHTTPRule: Name, Type, TargetGroup
+                        (via ID or via reference) - required only for FORWARD actions.
+                        Location - required only for REDIRECT actions. ResponseMessage
+                        - required only for STATIC actions.'
                       properties:
                         conditions:
                           description: An array of items in the collection. The action
                             is only performed if each and every condition is met;
                             if no conditions are set, the rule will always be performed.
                           items:
-                            description: ApplicationLoadBalancerHTTPRuleCondition
+                            description: 'ApplicationLoadBalancerHTTPRuleCondition
                               struct for Application Load Balancer HTTP Rule Condition
+                              Required fields in order to create an ApplicationLoadBalancerHTTPRuleCondition:
+                              Type, Condition.'
                             properties:
                               condition:
                                 description: Matching rule for the HTTP rule condition
@@ -265,8 +271,42 @@ spec:
                           type: integer
                         targetGroupId:
                           description: The ID of the target group; mandatory and only
-                            valid for FORWARD actions.
-                          type: string
+                            valid for FORWARD actions. The ID can be set directly
+                            or via reference.
+                          properties:
+                            applicationLoadBalancerId:
+                              description: TargetGroupID is the ID of the TargetGroup
+                                on which the resource should have access. It needs
+                                to be provided via directly or via reference.
+                              format: uuid
+                              type: string
+                            applicationLoadBalancerIdRef:
+                              description: TargetGroupIDRef references to a Datacenter
+                                to retrieve its ID
+                              properties:
+                                name:
+                                  description: Name of the referenced object.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            applicationLoadBalancerIdSelector:
+                              description: TargetGroupIDSelector selects reference
+                                to a Datacenter to retrieve its datacenterId
+                              properties:
+                                matchControllerRef:
+                                  description: MatchControllerRef ensures an object
+                                    with the same controller reference as the selecting
+                                    object is selected.
+                                  type: boolean
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  description: MatchLabels ensures an object with
+                                    matching labels is selected.
+                                  type: object
+                              type: object
+                          type: object
                         type:
                           description: Type of the HTTP rule.
                           enum:
