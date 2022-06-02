@@ -24,7 +24,7 @@
     - Added references to resources in order to solve dependencies (using [crossplane-tools](https://github.com/crossplane/crossplane-tools));
     - Added support to set IPs fields automatically using references to IPBlock and indexes for NICs, IPFailover, FirewallRule, NodePools; 
 - **Documentation**:
-  - Added [step-by-step guide](examples/example.md) for installing a DBaaS Postgres Cluster using Crossplane Provider IONOS Cloud;
-  - Added overview of Managed Resources and Cloud Services Resources supported. See [here](docs/RESOURCES.md);
-  - Added examples of configuration files for creating resources. See [examples](examples);
-  - Added example for Compositions and Claims. See [example](docs/RESOURCES.md#compositions-and-claims).
+  - Added [step-by-step guide](../examples/example.md) for installing a DBaaS Postgres Cluster using Crossplane Provider IONOS Cloud;
+  - Added overview of Managed Resources and Cloud Services Resources supported. See [here](RESOURCES.md);
+  - Added examples of configuration files for creating resources. See [examples](../examples);
+  - Added example for Compositions and Claims. See [example](RESOURCES.md#compositions-and-claims).
