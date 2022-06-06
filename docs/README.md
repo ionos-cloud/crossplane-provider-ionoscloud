@@ -1,25 +1,5 @@
 # Crossplane Provider IONOS Cloud
 
-## Table of Contents
-
-1. [Overview](#overview)
-2. [Getting Started and Documentation](#getting-started-and-documentation)
-3. [Prerequisities](#prerequisities)
-4. [Authentication on IONOS Cloud](#authentication-on-ionos-cloud)
-    1. [Environment Variables](#environment-variables)
-    2. [Create Provider Secret](#create-provider-secret)
-    3. [Configure the Provider](#configure-the-provider)
-5. [Installation](#installation)
-    1. [Create an Image Pull Secret](#create-an-image-pull-secret)
-    2. [Install Provider](#install-provider)
-    3. [Check installation](#check-installation)
-6. [Provision Resources on IONOS Cloud](#provision-resources-on-ionos-cloud)
-7. [Debug Mode](#debug-mode)
-    1. [Provider Logs](#provider-logs)
-8. [Testing](#testing)
-9. [Releases](#releases)
-10. [Conclusion](#conclusion)
-
 ## Overview
 
 Crossplane Provider for IONOS Cloud gives the ability to manage IONOS Cloud infrastructure directly from Kubernetes.
