@@ -33,8 +33,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for k8s cluster CR to be ready & synced"
-  kubectl wait --for=condition=ready clusters.k8s/examplek8s --timeout=15m
-  kubectl wait --for=condition=synced clusters.k8s/examplek8s --timeout=10m
+  kubectl wait --for=condition=ready clusters.k8s/examplek8s --timeout=30m
+  kubectl wait --for=condition=synced clusters.k8s/examplek8s --timeout=30m
 
   echo_step "get k8s cluster CR"
   kubectl get clusters.k8s
@@ -65,8 +65,8 @@ EOF
   echo_step "waiting for k8s cluster CR to be ready & synced"
   # sleep 10 seconds
   sleep 10
-  kubectl wait --for=condition=ready clusters.k8s/examplek8s --timeout=10m
-  kubectl wait --for=condition=synced clusters.k8s/examplek8s --timeout=10m
+  kubectl wait --for=condition=ready clusters.k8s/examplek8s --timeout=15m
+  kubectl wait --for=condition=synced clusters.k8s/examplek8s --timeout=15m
 }
 
 ## K8s NodePool CR Tests
