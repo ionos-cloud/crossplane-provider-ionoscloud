@@ -7,7 +7,7 @@ require (
 	github.com/crossplane/crossplane-tools v0.0.0-20220106150503-21c1d7761d68
 	github.com/google/go-cmp v0.5.6
 	github.com/ionos-cloud/sdk-go-dbaas-postgres v1.0.3
-	github.com/ionos-cloud/sdk-go/v6 v6.0.1
+	github.com/ionos-cloud/sdk-go/v6 v6.0.4
 	github.com/pkg/errors v0.9.1
 	github.com/rung/go-safecast v1.0.1
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6

@@ -78,12 +78,9 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 
 // GenerateCreateK8sClusterInput returns sdkgo.KubernetesClusterForPost based on the CR spec
 func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClusterForPost, error) {
-	// For the moment, Kubernetes Cluster can only be public.
-	publicK8sCluster := true
 	instanceCreateInput := sdkgo.KubernetesClusterForPost{
 		Properties: &sdkgo.KubernetesClusterPropertiesForPost{
-			Name:   &cr.Spec.ForProvider.Name,
-			Public: &publicK8sCluster,
+			Name: &cr.Spec.ForProvider.Name,
 		},
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.K8sVersion)) {
