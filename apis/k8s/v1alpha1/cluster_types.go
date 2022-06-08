@@ -122,7 +122,6 @@ type ClusterStatus struct {
 // +kubebuilder:printcolumn:name="CLUSTER ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="CLUSTER NAME",type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="K8S VERSION",priority=1,type="string",JSONPath=".spec.forProvider.k8sVersion"
-// +kubebuilder:printcolumn:name="PUBLIC",priority=1,type="string",JSONPath=".spec.forProvider.public"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
