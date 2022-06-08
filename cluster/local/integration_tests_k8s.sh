@@ -154,8 +154,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for k8s nodepool CR to be ready & synced"
-  kubectl wait --for=condition=ready nodepools.k8s/examplek8snodepool --timeout=15m
-  kubectl wait --for=condition=synced nodepools.k8s/examplek8snodepool --timeout=10m
+  kubectl wait --for=condition=ready nodepools.k8s/examplek8snodepool --timeout=30m
+  kubectl wait --for=condition=synced nodepools.k8s/examplek8snodepool --timeout=30m
 
   echo_step "get k8s nodepool CR"
   kubectl get nodepools.k8s
@@ -244,7 +244,7 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
   echo_step "wait for deletion k8s cluster CR"
-  kubectl wait --for=delete nodepools.k8s/examplek8snodepool --timeout=15m
+  kubectl wait --for=delete nodepools.k8s/examplek8snodepool --timeout=30m
 }
 
 function k8s_cluster_tests_cleanup() {
@@ -272,5 +272,5 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
   echo_step "wait for deletion k8s cluster CR"
-  kubectl wait --for=delete clusters.k8s/examplek8s --timeout=10m
+  kubectl wait --for=delete clusters.k8s/examplek8s --timeout=30m
 }
