@@ -25,6 +25,10 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
+// CPUFamilyAuto can be specified to actively instruct the provider to use any available CPU family for a
+// kubernetes NodePool
+const CPUFamilyAuto = "AUTO"
+
 // NodePoolParameters are the observable fields of a NodePool.
 // Required fields in order to create a K8s NodePool:
 // ClusterConfig,

@@ -209,7 +209,8 @@ func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (man
 
 	// Note: If the CPU Family is not set by the user, the Crossplane Provider IONOS Cloud
 	// will take the first CPU Family offered by the Datacenter CPU Architectures available
-	if cr.Spec.ForProvider.CPUFamily == "" {
+	// If the user specified explicitly AUTO the same behaviour is applied.
+	if cr.Spec.ForProvider.CPUFamily == "" || cr.Spec.ForProvider.CPUFamily == v1alpha1.CPUFamilyAuto {
 		cpuFamilies, err := c.datacenterService.GetCPUFamiliesForDatacenter(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID)
 		if err != nil {
 			return managed.ExternalCreation{}, fmt.Errorf("failed to get CPU Families AVAILABLE for datacenter. error: %w", err)
