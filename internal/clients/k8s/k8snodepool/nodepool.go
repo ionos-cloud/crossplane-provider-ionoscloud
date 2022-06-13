@@ -9,6 +9,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/compare"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
@@ -211,9 +212,7 @@ func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodeP
 		return false
 	case nodepool.Properties.AutoScaling != nil && nodepool.Properties.AutoScaling.MaxNodeCount != nil && *nodepool.Properties.AutoScaling.MaxNodeCount != cr.Spec.ForProvider.AutoScaling.MaxNodeCount:
 		return false
-	case nodepool.Properties.MaintenanceWindow != nil && nodepool.Properties.MaintenanceWindow.Time != nil && *nodepool.Properties.MaintenanceWindow.Time != cr.Spec.ForProvider.MaintenanceWindow.Time:
-		return false
-	case nodepool.Properties.MaintenanceWindow != nil && nodepool.Properties.MaintenanceWindow.DayOfTheWeek != nil && *nodepool.Properties.MaintenanceWindow.DayOfTheWeek != cr.Spec.ForProvider.MaintenanceWindow.DayOfTheWeek:
+	case !compare.EqualMaintananceWindow(cr.Spec.ForProvider.MaintenanceWindow, nodepool.Properties.MaintenanceWindow):
 		return false
 	case nodepool.Properties.Lans != nil && !isEqKubernetesNodePoolLans(cr.Spec.ForProvider.Lans, *nodepool.Properties.Lans):
 		return false
