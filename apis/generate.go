@@ -1,3 +1,4 @@
+//go:build generate
 // +build generate
 
 /*
@@ -20,7 +21,7 @@ limitations under the License.
 // https://github.com/golang/go/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module
 
 // Remove existing CRDs
-//go:generate rm -rf ../package/crds
+//go:generate rm -rf ../package/crds/*.yaml
 
 // Generate deepcopy methodsets and CRD manifests
 //go:generate go run -tags generate sigs.k8s.io/controller-tools/cmd/controller-gen object:headerFile=../hack/boilerplate.go.txt paths=./... crd:trivialVersions=true,allowDangerousTypes=true,crdVersions=v1 output:artifacts:config=../package/crds
