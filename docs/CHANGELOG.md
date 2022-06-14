@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.0-beta.2] (June 2022)
+
+- **Features**:
+  - Added `cpuFamily` field to the `status`
+    - Note: this update applies to Kubernetes NodePool, Compute Server and Compute Cube Server resources
+  - Added access to the CRDs in the repository
+- **Fixes**:
+  - Added correct categories to the `providerConfig` types
+  - Added fix for comparison on `mantenanceWindow` field, for timestamp ending in `Z` suffix
+    - Note: this update applies to Kubernetes Cluster, Kubernetes NodePool and DBaaS Postgres Cluster resources
+  - Removed late initialization by the provider for the `spec.cpuFamily` field, since the field is immutable - it will be displayed into the `status`
+    - Note: this update applies to Kubernetes NodePool, Compute Server and Compute Cube Server resources
+- **Dependency-update**:
+  - Updated SDK Go to [v6.0.4](https://github.com/ionos-cloud/sdk-go/releases/tag/v6.0.4)
+
 ## [1.0.0-beta.1] (May 2022)
 
 **First release of the Crossplane Provider IONOS Cloud!** 🎉
