@@ -127,9 +127,9 @@ func GenerateUpdateServerInput(cr *v1alpha1.Server) (*sdkgo.ServerProperties, er
 	return &instanceUpdateInput, nil
 }
 
-// LateInitializer fills the empty fields in *v1alpha1.ServerParameters with
+// LateStatusInitializer fills the empty fields in *v1alpha1.ServerParameters with
 // the values seen in sdkgo.Server.
-func LateInitializer(in *v1alpha1.ServerParameters, sg *sdkgo.Server) {
+func LateStatusInitializer(in *v1alpha1.ServerObservation, sg *sdkgo.Server) {
 	if sg == nil {
 		return
 	}
@@ -140,6 +140,17 @@ func LateInitializer(in *v1alpha1.ServerParameters, sg *sdkgo.Server) {
 				in.CPUFamily = *cpuFamilyOk
 			}
 		}
+	}
+}
+
+// LateInitializer fills the empty fields in *v1alpha1.ServerParameters with
+// the values seen in sdkgo.Server.
+func LateInitializer(in *v1alpha1.ServerParameters, sg *sdkgo.Server) {
+	if sg == nil {
+		return
+	}
+	// Add options to the Spec, if they were updated by the API
+	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
 		if bootCdromOk, ok := propertiesOk.GetBootCdromOk(); ok && bootCdromOk != nil {
 			if utils.IsEmptyValue(reflect.ValueOf(in.BootCdromID)) {
 				in.BootCdromID = *bootCdromOk.Id
@@ -273,11 +284,6 @@ func LateInitializerCube(in *v1alpha1.CubeServerProperties, sg *sdkgo.Server) {
 	}
 	// Add options to the Spec, if they were updated by the API
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
-		if cpuFamilyOk, ok := propertiesOk.GetCpuFamilyOk(); ok && cpuFamilyOk != nil {
-			if utils.IsEmptyValue(reflect.ValueOf(in.CPUFamily)) {
-				in.CPUFamily = *cpuFamilyOk
-			}
-		}
 		if templateUUIDOk, ok := propertiesOk.GetTemplateUuidOk(); ok && templateUUIDOk != nil {
 			if utils.IsEmptyValue(reflect.ValueOf(in.Template.TemplateID)) {
 				in.Template.TemplateID = *templateUUIDOk
