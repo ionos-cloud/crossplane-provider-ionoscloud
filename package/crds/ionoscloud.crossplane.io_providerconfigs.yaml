@@ -8,6 +8,10 @@ metadata:
 spec:
   group: ionoscloud.crossplane.io
   names:
+    categories:
+    - crossplane
+    - managed
+    - ionoscloud
     kind: ProviderConfig
     listKind: ProviderConfigList
     plural: providerconfigs
