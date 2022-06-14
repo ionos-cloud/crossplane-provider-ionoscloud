@@ -118,6 +118,9 @@ metadata:
   name: examplek8snodepool
 spec:
   forProvider:
+    maintenanceWindow:
+      dayOfTheWeek: Friday
+      time: "23:40:58"
     name: exampleK8sNodepool
     nodeCount: 1
     cpuFamily: AMD_OPTERON
