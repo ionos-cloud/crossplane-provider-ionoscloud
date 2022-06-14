@@ -4,9 +4,11 @@ import (
 	"strings"
 	"time"
 
+	ionosdbaas "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
+	dbaasv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/postgres/v1alpha1"
+	k8sv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
 )
 
 // EqualString returns if the strings are equal. An observed nil value is equal to ""
@@ -17,16 +19,30 @@ func EqualString(targetValue string, observedValue *string) bool {
 	return targetValue == *observedValue
 }
 
-// EqualMaintananceWindow returns true if the maintenance windows are equal
-func EqualMaintananceWindow(
-	targetValue v1alpha1.MaintenanceWindow,
-	observedValue *ionoscloud.KubernetesMaintenanceWindow,
-) bool {
+// EqualDayOfTheWeek returns if the string representation of the DayOfTheWeek are equal. An observed nil value is equal to ""
+func EqualDayOfTheWeek(targetValue string, observedValue *ionosdbaas.DayOfTheWeek) bool {
+	if observedValue == nil {
+		return targetValue == ""
+	}
+	return targetValue == string(*observedValue)
+}
+
+// EqualKubernetesMaintenanceWindow returns true if the maintenance windows are equal
+func EqualKubernetesMaintenanceWindow(targetValue k8sv1alpha1.MaintenanceWindow, observedValue *ionoscloud.KubernetesMaintenanceWindow) bool {
 	if observedValue == nil {
 		return targetValue.Time == "" && targetValue.DayOfTheWeek == ""
 	}
 	return EqualTimeString(targetValue.Time, observedValue.Time) &&
 		EqualString(targetValue.DayOfTheWeek, observedValue.DayOfTheWeek)
+}
+
+// EqualDatabaseMaintenanceWindow returns true if the maintenance windows are equal
+func EqualDatabaseMaintenanceWindow(targetValue dbaasv1alpha1.MaintenanceWindow, observedValue *ionosdbaas.MaintenanceWindow) bool {
+	if observedValue == nil {
+		return targetValue.Time == "" && targetValue.DayOfTheWeek == ""
+	}
+	return EqualTimeString(targetValue.Time, observedValue.Time) &&
+		EqualDayOfTheWeek(targetValue.DayOfTheWeek, observedValue.DayOfTheWeek)
 }
 
 // EqualTimeString compares the two given strings if they are represent the same point in time.

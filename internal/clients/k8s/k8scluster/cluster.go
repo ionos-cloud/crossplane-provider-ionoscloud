@@ -188,7 +188,7 @@ func IsK8sClusterUpToDate(cr *v1alpha1.Cluster, cluster sdkgo.KubernetesCluster)
 		return false
 	case cluster.Properties.ApiSubnetAllowList != nil && !utils.ContainsStringSlices(*cluster.Properties.ApiSubnetAllowList, cr.Spec.ForProvider.APISubnetAllowList):
 		return false
-	case !compare.EqualMaintananceWindow(cr.Spec.ForProvider.MaintenanceWindow, cluster.Properties.MaintenanceWindow):
+	case !compare.EqualKubernetesMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow, cluster.Properties.MaintenanceWindow):
 		return false
 	default:
 		return true

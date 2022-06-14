@@ -212,7 +212,7 @@ func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodeP
 		return false
 	case nodepool.Properties.AutoScaling != nil && nodepool.Properties.AutoScaling.MaxNodeCount != nil && *nodepool.Properties.AutoScaling.MaxNodeCount != cr.Spec.ForProvider.AutoScaling.MaxNodeCount:
 		return false
-	case !compare.EqualMaintananceWindow(cr.Spec.ForProvider.MaintenanceWindow, nodepool.Properties.MaintenanceWindow):
+	case !compare.EqualKubernetesMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow, nodepool.Properties.MaintenanceWindow):
 		return false
 	case nodepool.Properties.Lans != nil && !isEqKubernetesNodePoolLans(cr.Spec.ForProvider.Lans, *nodepool.Properties.Lans):
 		return false
