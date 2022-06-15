@@ -171,6 +171,7 @@ func equalTargetGroupTarget(target v1alpha1.TargetGroupTarget, targets []sdkgo.T
 		return false
 	}
 	for _, t := range targets {
+		// All properties are available post creation
 		if t.HasIp() && t.HasPort() && t.HasWeight() && t.HasMaintenanceEnabled() && t.HasHealthCheckEnabled() {
 			if *t.Ip == target.IP && *t.Port == target.Port && *t.Weight == target.Weight &&
 				*t.MaintenanceEnabled == target.MaintenanceEnabled && *t.HealthCheckEnabled == target.HealthCheckEnabled {
