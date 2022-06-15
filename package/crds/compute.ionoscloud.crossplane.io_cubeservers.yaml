@@ -257,6 +257,8 @@ spec:
               atProvider:
                 description: ServerObservation are the observable fields of a Server.
                 properties:
+                  cpuFamily:
+                    type: string
                   serverId:
                     type: string
                   state:

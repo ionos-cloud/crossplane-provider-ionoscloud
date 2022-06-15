@@ -155,6 +155,7 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	}
 	current := cr.Spec.ForProvider.DeepCopy()
 	server.LateInitializerCube(&cr.Spec.ForProvider, &instance)
+	server.LateStatusInitializer(&cr.Status.AtProvider, &instance)
 
 	cr.Status.AtProvider.ServerID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = *instance.Metadata.State

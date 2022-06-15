@@ -1,21 +1,5 @@
 # Crossplane Provider IONOS Cloud Managed Resources
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Provisioning Resources in IONOS Cloud](#provisioning-resources-in-ionos-cloud)
-    1. [Compute Engine Managed Resources](#compute-engine-managed-resources)
-    2. [Kubernetes Managed Resources](#kubernetes-managed-resources)
-    3. [DBaaS Postgres Managed Resources](#dbaas-postgres-managed-resources)
-3. [References](#references)
-4. [Compositions and Claims](#compositions-and-claims)
-    1. [Steps](#steps)
-        1. [Define Composite Resources](#define-composite-resources)
-        2. [Configure Compositions](#configure-compositions)
-        3. [Claim Composite Resources](#claim-composite-resources)
-    2. [Example](#example)
-    3. [More Details](#more-details)
-
 ## Introduction
 
 Crossplane Provider IONOS Cloud contains a Controller and Custom Resource Definitions(CRDs). The CRDs are defined in
@@ -38,8 +22,7 @@ Before using the following commands for resources, make sure to follow the next 
 
 ### Compute Engine Managed Resources
 
-<details >
-<summary title="Click to toggle">See Compute Engine Resources <b>Custom Resource Definitions</b></summary>
+#### Compute Engine Resources Custom Resource Definitions
 
 | RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION                       |
 |--------------------------|--------------------------------------------------|
@@ -52,10 +35,7 @@ Before using the following commands for resources, make sure to follow the next 
 | FirewallRules            | `firewallrules.compute.ionoscloud.crossplane.io` |
 | IPFailovers              | `ipfailovers.compute.ionoscloud.crossplane.io`   |
 
-</details>
-
-<details >
-<summary title="Click to toggle">See Compute Engine Resources CREATE/UPDATE <b>Custom Resources</b></summary>
+#### Compute Engine Resources CREATE/UPDATE Custom Resources
 
 | CUSTOM RESOURCE | CREATE/UPDATE                                                                         |
 |-----------------|---------------------------------------------------------------------------------------|
@@ -68,10 +48,7 @@ Before using the following commands for resources, make sure to follow the next 
 | FirewallRule    | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/firewallrule.yaml</pre> | 
 | IPFailover      | <pre lang="bash">kubectl apply -f examples/ionoscloud/compute/ipfailover.yaml</pre>   | 
 
-</details>
-
-<details >
-<summary title="Click to toggle">See Compute Engine Resources GET <b>Custom Resources</b></summary>
+#### Compute Engine Resources GET Custom Resources
 
 | CUSTOM RESOURCE | GET                                              | GET MORE DETAILS                                         |
 |-----------------|--------------------------------------------------|----------------------------------------------------------|
@@ -84,10 +61,7 @@ Before using the following commands for resources, make sure to follow the next 
 | FirewallRule    | <pre lang="bash">kubectl get firewallrules</pre> | <pre lang="bash">kubectl get firewallrules -o wide</pre> |
 | IPFailover      | <pre lang="bash">kubectl get ipfailovers</pre>   | <pre lang="bash">kubectl get ipfailovers -o wide</pre>   |
 
-</details>
-
-<details >
-<summary title="Click to toggle">See Compute Engine Resources DELETE <b>Custom Resources</b></summary>
+#### Compute Engine Resources DELETE Custom Resources
 
 | CUSTOM RESOURCE | DELETE                                                                                 |
 |-----------------|----------------------------------------------------------------------------------------|
@@ -99,8 +73,6 @@ Before using the following commands for resources, make sure to follow the next 
 | NIC             | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/nic.yaml</pre>          | 
 | FirewallRule    | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/firewallrule.yaml</pre> | 
 | IPFailover      | <pre lang="bash">kubectl delete -f examples/ionoscloud/compute/ipfailover.yaml</pre>   | 
-
-</details>
 
 Notes:
 
@@ -114,83 +86,59 @@ Notes:
 
 ### Kubernetes Managed Resources
 
-<details >
-<summary title="Click to toggle">See Kubernetes Resources <b>Custom Resource Definitions</b></summary>
+#### Kubernetes Resources Custom Resource Definitions
 
 | RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION               |
 |--------------------------|------------------------------------------|
 | K8s Clusters             | `clusters.k8s.ionoscloud.crossplane.io`  |
 | K8s NodePools            | `nodepools.k8s.ionoscloud.crossplane.io` |
 
-</details>
-
-<details >
-<summary title="Click to toggle">See Kubernetes Resources CREATE/UPDATE <b>Custom Resources</b></summary>
+#### Kubernetes Resources CREATE/UPDATE Custom Resources
 
 | CUSTOM RESOURCE | CREATE/UPDATE                                                                     |
 |-----------------|-----------------------------------------------------------------------------------|
 | K8s Cluster     | <pre lang="bash">kubectl apply -f examples/ionoscloud/k8s/k8s-cluster.yaml</pre>  | 
-| K8s NodePool    | <pre lang="bash">kubectl apply -f examples/ionoscloud/k8s/k8s-nodepool.yaml</pre> | 
+| K8s NodePool    | <pre lang="bash">kubectl apply -f examples/ionoscloud/k8s/k8s-nodepool.yaml</pre> |
 
-</details>
-
-<details >
-<summary title="Click to toggle">See Kubernetes Resources GET <b>Custom Resources</b></summary>
+#### Kubernetes Resources GET Custom Resources
 
 | CUSTOM RESOURCE | GET                                                                       | GET MORE DETAILS                                                                  |
 |-----------------|---------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
 | K8s Cluster     | <pre lang="bash">kubectl get clusters.k8s.ionoscloud.crossplane.io</pre>  | <pre lang="bash">kubectl get clusters.k8s.ionoscloud.crossplane.io -o wide</pre>  | 
-| K8s NodePool    | <pre lang="bash">kubectl get nodepools.k8s.ionoscloud.crossplane.io</pre> | <pre lang="bash">kubectl get nodepools.k8s.ionoscloud.crossplane.io -o wide</pre> | 
+| K8s NodePool    | <pre lang="bash">kubectl get nodepools.k8s.ionoscloud.crossplane.io</pre> | <pre lang="bash">kubectl get nodepools.k8s.ionoscloud.crossplane.io -o wide</pre> |
 
-</details>
-
-<details >
-<summary title="Click to toggle">See Kubernetes Resources DELETE <b>Custom Resources</b></summary>
+#### Kubernetes Resources DELETE Custom Resources
 
 | CUSTOM RESOURCE | DELETE                                                                             |
 |-----------------|------------------------------------------------------------------------------------|
 | K8s Cluster     | <pre lang="bash">kubectl delete -f examples/ionoscloud/k8s/k8s-cluster.yaml</pre>  | 
-| K8s NodePool    | <pre lang="bash">kubectl delete -f examples/ionoscloud/k8s/k8s-nodepool.yaml</pre> | 
-
-</details>
+| K8s NodePool    | <pre lang="bash">kubectl delete -f examples/ionoscloud/k8s/k8s-nodepool.yaml</pre> |
 
 ### DBaaS Postgres Managed Resources
 
-<details >
-<summary title="Click to toggle">See DBaaS Postgres Resources <b>Custom Resource Definitions</b></summary>
+#### DBaaS Postgres Resources Custom Resource Definitions
 
 | RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION                        |
 |--------------------------|---------------------------------------------------|
 | DBaaS Postgres Clusters  | `postgresclusters.dbaas.ionoscloud.crossplane.io` |
 
-</details>
-
-<details >
-<summary title="Click to toggle">See DBaaS Postgres Resources CREATE/UPDATE <b>Custom Resources</b> Commands</summary>
+#### DBaaS Postgres Resources CREATE/UPDATE Custom Resources Commands
 
 | RESOURCE               | CREATE/UPDATE                                                                           |
 |------------------------|-----------------------------------------------------------------------------------------|
 | DBaaS Postgres Cluster | <pre lang="bash">kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml</pre> |
 
-</details>
-
-<details >
-<summary title="Click to toggle">See DBaaS Postgres Resources GET <b>Custom Resources</b> Commands</summary>
+#### DBaaS Postgres Resources GET Custom Resources Commands
 
 | RESOURCE               | GET                                                 | GET MORE DETAILS                                            |
 |------------------------|-----------------------------------------------------|-------------------------------------------------------------|
 | DBaaS Postgres Cluster | <pre lang="bash">kubectl get postgresclusters</pre> | <pre lang="bash">kubectl get postgresclusters -o wide</pre> |
 
-</details>
+#### DBaaS Postgres Resources DELETE Custom Resources Commands
 
-<details >
-<summary title="Click to toggle">See DBaaS Postgres Resources DELETE <b>Custom Resources</b> Commands</summary>
-
-| RESOURCE               | CREATE/UPDATE                                                                            |
+| RESOURCE               | DELETE                                                                                   |
 |------------------------|------------------------------------------------------------------------------------------|
 | DBaaS Postgres Cluster | <pre lang="bash">kubectl delete -f examples/ionoscloud/dbaas/postgres-cluster.yaml</pre> |
-
-</details>
 
 ## References
 

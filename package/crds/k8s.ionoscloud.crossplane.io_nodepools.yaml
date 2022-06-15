@@ -443,6 +443,8 @@ spec:
                     items:
                       type: string
                     type: array
+                  cpuFamily:
+                    type: string
                   nodePoolId:
                     type: string
                   publicIps:

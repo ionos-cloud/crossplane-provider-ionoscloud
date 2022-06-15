@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/compare"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 
 	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
@@ -146,6 +147,8 @@ func IsClusterUpToDate(cr *v1alpha1.PostgresCluster, clusterResponse ionoscloud.
 	case clusterResponse.Properties.StorageSize != nil && *clusterResponse.Properties.StorageSize != cr.Spec.ForProvider.StorageSize:
 		return false
 	case clusterResponse.Properties.Connections != nil && !reflect.DeepEqual(*clusterResponse.Properties.Connections, cr.Spec.ForProvider.Connections):
+		return false
+	case !compare.EqualDatabaseMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow, clusterResponse.Properties.MaintenanceWindow):
 		return false
 	default:
 		return true

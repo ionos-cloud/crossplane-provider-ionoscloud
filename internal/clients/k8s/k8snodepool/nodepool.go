@@ -9,6 +9,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/compare"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
@@ -157,13 +158,6 @@ func LateInitializer(in *v1alpha1.NodePoolParameters, sg *sdkgo.KubernetesNodePo
 				in.K8sVersion = *versionOk
 			}
 		}
-		// Set the CPU Family set by the Crossplane Provider,
-		// if no CPU Family was provided, to be transparent to the user.
-		if cpuFamilyOk, ok := propertiesOk.GetCpuFamilyOk(); ok && cpuFamilyOk != nil {
-			if utils.IsEmptyValue(reflect.ValueOf(in.CPUFamily)) {
-				in.CPUFamily = *cpuFamilyOk
-			}
-		}
 	}
 }
 
@@ -183,7 +177,12 @@ func LateStatusInitializer(in *v1alpha1.NodePoolObservation, sg *sdkgo.Kubernete
 		} else {
 			in.PublicIPs = []string{}
 		}
+
+		if cpuFamilyOk, ok := propertiesOk.GetCpuFamilyOk(); ok && cpuFamilyOk != nil {
+			in.CPUFamily = *cpuFamilyOk
+		}
 	}
+
 }
 
 // IsK8sNodePoolUpToDate returns true if the NodePool is up-to-date or false if it does not
@@ -211,9 +210,7 @@ func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodeP
 		return false
 	case nodepool.Properties.AutoScaling != nil && nodepool.Properties.AutoScaling.MaxNodeCount != nil && *nodepool.Properties.AutoScaling.MaxNodeCount != cr.Spec.ForProvider.AutoScaling.MaxNodeCount:
 		return false
-	case nodepool.Properties.MaintenanceWindow != nil && nodepool.Properties.MaintenanceWindow.Time != nil && *nodepool.Properties.MaintenanceWindow.Time != cr.Spec.ForProvider.MaintenanceWindow.Time:
-		return false
-	case nodepool.Properties.MaintenanceWindow != nil && nodepool.Properties.MaintenanceWindow.DayOfTheWeek != nil && *nodepool.Properties.MaintenanceWindow.DayOfTheWeek != cr.Spec.ForProvider.MaintenanceWindow.DayOfTheWeek:
+	case !compare.EqualKubernetesMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow, nodepool.Properties.MaintenanceWindow):
 		return false
 	case nodepool.Properties.Lans != nil && !isEqKubernetesNodePoolLans(cr.Spec.ForProvider.Lans, *nodepool.Properties.Lans):
 		return false

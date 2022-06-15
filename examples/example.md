@@ -1,20 +1,5 @@
 # Crossplane Provider IONOS Cloud - Example (PoC)
 
-## Table of Contents
-
-1. [Overview](#overview)
-2. [Prerequisites](#prerequisites)
-3. [Setup Crossplane Provider IONOS Cloud](#setup-crossplane-provider-ionos-cloud)
-4. [Provision DBaaS Postgres Cluster](#provision-dbaas-postgres-cluster)
-    1. [Create Datacenter, Lan, Postgres Cluster CRs](#create-datacenter-lan-postgres-cluster-crs)
-    2. [Get Datacenter, Lan, Postgres Cluster CRs](#get-datacenter-lan-postgres-cluster-crs)
-    3. [Update Datacenter, Lan, Postgres Cluster CRs](#update-datacenter-lan-postgres-cluster-crs)
-    4. [Delete Datacenter, Lan, Postgres Cluster CRs](#delete-datacenter-lan-postgres-cluster-crs)
-    5. [Summary](#summary)
-5. [Cleanup](#cleanup)
-    1. [Uninstall the Provider](#uninstall-the-provider)
-    2. [Uninstall K8s Cluster](#uninstall-k8s-cluster)
-
 ## Overview
 
 Crossplane allows the user to manage infrastructure directly from Kubernetes. Crossplane extends a Kubernetes cluster to

@@ -10,8 +10,8 @@ spec:
   names:
     categories:
     - crossplane
-    - provider
-    - template
+    - managed
+    - ionoscloud
     kind: ProviderConfigUsage
     listKind: ProviderConfigUsageList
     plural: providerconfigusages

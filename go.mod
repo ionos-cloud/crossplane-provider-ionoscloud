@@ -7,10 +7,12 @@ require (
 	github.com/crossplane/crossplane-tools v0.0.0-20220106150503-21c1d7761d68
 	github.com/google/go-cmp v0.5.6
 	github.com/ionos-cloud/sdk-go-dbaas-postgres v1.0.3
-	github.com/ionos-cloud/sdk-go/v6 v6.0.1
+	github.com/ionos-cloud/sdk-go/v6 v6.0.4
 	github.com/pkg/errors v0.9.1
 	github.com/rung/go-safecast v1.0.1
+	github.com/stretchr/testify v1.7.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
+	k8s.io/apiextensions-apiserver v0.21.3
 	k8s.io/apimachinery v0.21.3
 	k8s.io/client-go v0.21.3
 	sigs.k8s.io/controller-runtime v0.9.6
@@ -45,6 +47,7 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.11.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.26.0 // indirect
@@ -71,7 +74,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	k8s.io/api v0.21.3 // indirect
-	k8s.io/apiextensions-apiserver v0.21.3 // indirect
 	k8s.io/component-base v0.21.3 // indirect
 	k8s.io/klog/v2 v2.8.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7 // indirect
