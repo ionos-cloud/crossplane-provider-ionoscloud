@@ -25,6 +25,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/pkg/errors"
+	"github.com/rung/go-safecast"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -182,11 +183,23 @@ GetResource:
 	default:
 		cr.SetConditions(xpv1.Unavailable())
 	}
-	// Resolve IPs
-	ips, _ := c.getIPsSet(ctx, cr)
+	// Resolve IPs and lan IDs
+	ips, err := c.getIPsSet(ctx, cr)
+	if err != nil {
+		return managed.ExternalObservation{}, err
+	}
+	listenerLanID, err := safecast.Atoi32(cr.Spec.ForProvider.ListenerLanCfg.LanID)
+	if err != nil {
+		return managed.ExternalObservation{}, err
+	}
+	targetLanID, err := safecast.Atoi32(cr.Spec.ForProvider.TargetLanCfg.LanID)
+	if err != nil {
+		return managed.ExternalObservation{}, err
+	}
+	// Check ExternalObservation
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        applicationloadbalancer.IsApplicationLoadBalancerUpToDate(cr, observed, ips),
+		ResourceUpToDate:        applicationloadbalancer.IsApplicationLoadBalancerUpToDate(cr, observed, listenerLanID, targetLanID, ips),
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}, nil
