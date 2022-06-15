@@ -146,33 +146,32 @@ func getHTTPRules(httpRules []v1alpha1.ApplicationLoadBalancerHTTPRule) []sdkgo.
 		return nil
 	}
 	applicationLoadBalancerHTTPRules := make([]sdkgo.ApplicationLoadBalancerHttpRule, 0)
-	for _, rule := range httpRules {
-		httpRule := sdkgo.ApplicationLoadBalancerHttpRule{
-			Name: &rule.Name,
-			Type: &rule.Type,
+	for i, rule := range httpRules {
+		applicationLoadBalancerHTTPRules[i] = sdkgo.ApplicationLoadBalancerHttpRule{
+			Name: sdkgo.PtrString(rule.Name),
+			Type: sdkgo.PtrString(rule.Type),
 		}
 		if !utils.IsEmptyValue(reflect.ValueOf(rule.TargetGroupCfg.TargetGroupID)) {
-			httpRule.SetTargetGroup(rule.TargetGroupCfg.TargetGroupID)
+			applicationLoadBalancerHTTPRules[i].SetTargetGroup(rule.TargetGroupCfg.TargetGroupID)
 		}
 		if !utils.IsEmptyValue(reflect.ValueOf(rule.DropQuery)) {
-			httpRule.SetDropQuery(rule.DropQuery)
+			applicationLoadBalancerHTTPRules[i].SetDropQuery(rule.DropQuery)
 		}
 		if !utils.IsEmptyValue(reflect.ValueOf(rule.Location)) {
-			httpRule.SetLocation(rule.Location)
+			applicationLoadBalancerHTTPRules[i].SetLocation(rule.Location)
 		}
 		if !utils.IsEmptyValue(reflect.ValueOf(rule.StatusCode)) {
-			httpRule.SetStatusCode(rule.StatusCode)
+			applicationLoadBalancerHTTPRules[i].SetStatusCode(rule.StatusCode)
 		}
 		if !utils.IsEmptyValue(reflect.ValueOf(rule.ResponseMessage)) {
-			httpRule.SetResponseMessage(rule.ResponseMessage)
+			applicationLoadBalancerHTTPRules[i].SetResponseMessage(rule.ResponseMessage)
 		}
 		if !utils.IsEmptyValue(reflect.ValueOf(rule.ContentType)) {
-			httpRule.SetContentType(rule.ContentType)
+			applicationLoadBalancerHTTPRules[i].SetContentType(rule.ContentType)
 		}
 		if !utils.IsEmptyValue(reflect.ValueOf(rule.Conditions)) {
-			httpRule.SetConditions(getHTTPRuleConditions(rule.Conditions))
+			applicationLoadBalancerHTTPRules[i].SetConditions(getHTTPRuleConditions(rule.Conditions))
 		}
-		applicationLoadBalancerHTTPRules = append(applicationLoadBalancerHTTPRules, httpRule)
 	}
 	return applicationLoadBalancerHTTPRules
 }
@@ -182,21 +181,18 @@ func getHTTPRuleConditions(conditions []v1alpha1.ApplicationLoadBalancerHTTPRule
 		return nil
 	}
 	httpRuleConditions := make([]sdkgo.ApplicationLoadBalancerHttpRuleCondition, 0)
-	for _, condition := range conditions {
-		httpRuleCondition := sdkgo.ApplicationLoadBalancerHttpRuleCondition{
-			Type:      &condition.Type,
-			Condition: &condition.Condition,
-		}
-		if !utils.IsEmptyValue(reflect.ValueOf(condition.Negate)) {
-			httpRuleCondition.SetNegate(condition.Negate)
+	for i, condition := range conditions {
+		httpRuleConditions[i] = sdkgo.ApplicationLoadBalancerHttpRuleCondition{
+			Type:      sdkgo.PtrString(condition.Type),
+			Condition: sdkgo.PtrString(condition.Condition),
+			Negate:    sdkgo.PtrBool(condition.Negate),
 		}
 		if !utils.IsEmptyValue(reflect.ValueOf(condition.Key)) {
-			httpRuleCondition.SetKey(condition.Key)
+			httpRuleConditions[i].SetKey(condition.Key)
 		}
 		if !utils.IsEmptyValue(reflect.ValueOf(condition.Value)) {
-			httpRuleCondition.SetValue(condition.Value)
+			httpRuleConditions[i].SetValue(condition.Value)
 		}
-		httpRuleConditions = append(httpRuleConditions, httpRuleCondition)
 	}
 	return httpRuleConditions
 }

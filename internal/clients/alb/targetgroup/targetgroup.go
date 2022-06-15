@@ -140,15 +140,14 @@ func getTargets(targetGroupTargets []v1alpha1.TargetGroupTarget) []sdkgo.TargetG
 		return nil
 	}
 	targets := make([]sdkgo.TargetGroupTarget, 0)
-	for _, targetGroupTarget := range targetGroupTargets {
-		httpRule := sdkgo.TargetGroupTarget{
-			Ip:                 &targetGroupTarget.IP,
-			Port:               &targetGroupTarget.Port,
-			Weight:             &targetGroupTarget.Weight,
-			HealthCheckEnabled: &targetGroupTarget.HealthCheckEnabled,
-			MaintenanceEnabled: &targetGroupTarget.MaintenanceEnabled,
+	for i, targetGroupTarget := range targetGroupTargets {
+		targets[i] = sdkgo.TargetGroupTarget{
+			Ip:                 sdkgo.PtrString(targetGroupTarget.IP),
+			Port:               sdkgo.PtrInt32(targetGroupTarget.Port),
+			Weight:             sdkgo.PtrInt32(targetGroupTarget.Weight),
+			HealthCheckEnabled: sdkgo.PtrBool(targetGroupTarget.HealthCheckEnabled),
+			MaintenanceEnabled: sdkgo.PtrBool(targetGroupTarget.MaintenanceEnabled),
 		}
-		targets = append(targets, httpRule)
 	}
 	return targets
 }
