@@ -33,7 +33,7 @@ const (
 var ionosAPIEndpoint string
 
 func init() {
-	ionosAPIEndpoint = os.Getenv(ionoscloud.IonosApiUrlEnvVar)
+	ionosAPIEndpoint = os.Getenv(sdkgo.IonosApiUrlEnvVar)
 }
 
 // IonosServices contains ionos clients
