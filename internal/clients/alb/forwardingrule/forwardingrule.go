@@ -145,7 +145,7 @@ func getHTTPRules(httpRules []v1alpha1.ApplicationLoadBalancerHTTPRule) []sdkgo.
 	if len(httpRules) == 0 {
 		return nil
 	}
-	applicationLoadBalancerHTTPRules := make([]sdkgo.ApplicationLoadBalancerHttpRule, 0)
+	applicationLoadBalancerHTTPRules := make([]sdkgo.ApplicationLoadBalancerHttpRule, len(httpRules))
 	for i, rule := range httpRules {
 		applicationLoadBalancerHTTPRules[i] = sdkgo.ApplicationLoadBalancerHttpRule{
 			Name: sdkgo.PtrString(rule.Name),
@@ -180,7 +180,7 @@ func getHTTPRuleConditions(conditions []v1alpha1.ApplicationLoadBalancerHTTPRule
 	if len(conditions) == 0 {
 		return nil
 	}
-	httpRuleConditions := make([]sdkgo.ApplicationLoadBalancerHttpRuleCondition, 0)
+	httpRuleConditions := make([]sdkgo.ApplicationLoadBalancerHttpRuleCondition, len(conditions))
 	for i, condition := range conditions {
 		httpRuleConditions[i] = sdkgo.ApplicationLoadBalancerHttpRuleCondition{
 			Type:      sdkgo.PtrString(condition.Type),

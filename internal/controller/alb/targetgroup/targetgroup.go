@@ -19,7 +19,6 @@ package targetgroup
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/pkg/errors"
@@ -37,14 +36,11 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
-	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
-
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/alb/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/alb/targetgroup"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 )
 
 const (
@@ -57,7 +53,7 @@ const (
 )
 
 // Setup adds a controller that reconciles TargetGroup managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, createGracePeriod time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration, creationGracePeriod time.Duration) error {
 	name := managed.ControllerName(v1alpha1.TargetGroupGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -74,7 +70,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 				log:   l}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
-			managed.WithCreationGracePeriod(createGracePeriod),
+			managed.WithCreationGracePeriod(creationGracePeriod),
 			managed.WithPollInterval(poll),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
@@ -118,7 +114,7 @@ func (c *connectorTargetGroup) Connect(ctx context.Context, mg resource.Managed)
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
-	return &externalTargetGroup{service: &targetgroup.APIClient{IonosServices: svc}, ipblockService: &ipblock.APIClient{IonosServices: svc}, log: c.log}, nil
+	return &externalTargetGroup{service: &targetgroup.APIClient{IonosServices: svc}, log: c.log}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -126,9 +122,8 @@ func (c *connectorTargetGroup) Connect(ctx context.Context, mg resource.Managed)
 type externalTargetGroup struct {
 	// A 'client' used to connect to the externalTargetGroup resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service        targetgroup.Client
-	ipblockService ipblock.Client
-	log            logging.Logger
+	service targetgroup.Client
+	log     logging.Logger
 }
 
 func (c *externalTargetGroup) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
@@ -142,25 +137,24 @@ func (c *externalTargetGroup) Observe(ctx context.Context, mg resource.Managed) 
 	}
 	observed, resp, err := c.service.GetTargetGroup(ctx, meta.GetExternalName(cr))
 	if err != nil {
-		if resp != nil && resp.Response != nil && resp.StatusCode == http.StatusNotFound {
-			return managed.ExternalObservation{}, nil
-		}
-		return managed.ExternalObservation{}, fmt.Errorf("failed to get target group by id. err: %w", err)
+		retErr := fmt.Errorf("failed to get target group by id. error: %w", err)
+		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(resp, retErr)
 	}
 	cr.Status.AtProvider.TargetGroupID = meta.GetExternalName(cr)
-	if observed.HasMetadata() {
-		if observed.Metadata.HasState() {
-			cr.Status.AtProvider.State = *observed.Metadata.State
-		}
-	}
+	// if observed.HasMetadata() {
+	//	if observed.Metadata.HasState() {
+	//		cr.Status.AtProvider.State = *observed.Metadata.State
+	//	}
+	// }
+	cr.Status.AtProvider.State = *observed.Metadata.State
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	switch cr.Status.AtProvider.State {
-	case string(ionoscloud.AVAILABLE):
+	case compute.AVAILABLE, compute.ACTIVE:
 		cr.SetConditions(xpv1.Available())
-	case string(ionoscloud.DESTROYING):
-		cr.SetConditions(xpv1.Deleting())
-	case string(ionoscloud.BUSY):
+	case compute.BUSY, compute.UPDATING:
 		cr.SetConditions(xpv1.Creating())
+	case compute.DESTROYING:
+		cr.SetConditions(xpv1.Deleting())
 	default:
 		cr.SetConditions(xpv1.Unavailable())
 	}
@@ -178,6 +172,9 @@ func (c *externalTargetGroup) Create(ctx context.Context, mg resource.Managed) (
 	}
 
 	cr.SetConditions(xpv1.Creating())
+	if cr.Status.AtProvider.State == compute.BUSY {
+		return managed.ExternalCreation{}, nil
+	}
 	instanceInput, err := targetgroup.GenerateCreateTargetGroupInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
@@ -185,11 +182,11 @@ func (c *externalTargetGroup) Create(ctx context.Context, mg resource.Managed) (
 	instance, apiResponse, err := c.service.CreateTargetGroup(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
-		retErr := fmt.Errorf("failed to create target group: %w", err)
-		if apiResponse != nil && apiResponse.Response != nil {
-			retErr = fmt.Errorf("%w API Response Status: %v", retErr, apiResponse.Status)
-		}
-		return creation, retErr
+		retErr := fmt.Errorf("failed to create target group. error: %w", err)
+		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
+	}
+	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+		return managed.ExternalCreation{}, err
 	}
 
 	// Set External Name
@@ -203,26 +200,19 @@ func (c *externalTargetGroup) Update(ctx context.Context, mg resource.Managed) (
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotTargetGroup)
 	}
-	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == compute.BUSY || cr.Status.AtProvider.State == compute.UPDATING {
 		return managed.ExternalUpdate{}, nil
 	}
 
 	instanceInput, err := targetgroup.GenerateUpdateTargetGroupInput(cr)
 	if err != nil {
-		return managed.ExternalUpdate{}, nil
+		return managed.ExternalUpdate{}, err
 	}
 	_, apiResponse, err := c.service.UpdateTargetGroup(ctx, cr.Status.AtProvider.TargetGroupID, *instanceInput)
 	if err != nil {
-		retErr := fmt.Errorf("failed to update target group: %w", err)
-		if apiResponse != nil && apiResponse.Response != nil {
-			retErr = fmt.Errorf("%w API Response Status: %v", retErr, apiResponse.Status)
-		}
-		return managed.ExternalUpdate{}, retErr
+		retErr := fmt.Errorf("failed to update target group. error: %w", err)
+		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
-	// This is a temporary solution until API requests for ALB are processed faster.
-	c.log.Debug("Waiting for request...")
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Minute)
-	defer cancel()
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalUpdate{}, err
 	}
@@ -236,19 +226,14 @@ func (c *externalTargetGroup) Delete(ctx context.Context, mg resource.Managed) e
 	}
 
 	cr.SetConditions(xpv1.Deleting())
-	if cr.Status.AtProvider.State == string(ionoscloud.DESTROYING) || cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == compute.DESTROYING {
 		return nil
 	}
-
 	apiResponse, err := c.service.DeleteTargetGroup(ctx, cr.Status.AtProvider.TargetGroupID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete target group. error: %w", err)
 		return compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
-	// This is a temporary solution until API requests for ALB are processed faster.
-	c.log.Debug("Waiting for request...")
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Minute)
-	defer cancel()
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err
 	}

@@ -137,18 +137,14 @@ func getTargets(targetGroupTargets []v1alpha1.TargetGroupTarget) []sdkgo.TargetG
 	if len(targetGroupTargets) == 0 {
 		return nil
 	}
-	targets := make([]sdkgo.TargetGroupTarget, 0)
+	targets := make([]sdkgo.TargetGroupTarget, len(targetGroupTargets))
 	for i, targetGroupTarget := range targetGroupTargets {
 		targets[i] = sdkgo.TargetGroupTarget{
-			Ip:     sdkgo.PtrString(targetGroupTarget.IP),
-			Port:   sdkgo.PtrInt32(targetGroupTarget.Port),
-			Weight: sdkgo.PtrInt32(targetGroupTarget.Weight),
-		}
-		if !utils.IsEmptyValue(reflect.ValueOf(targetGroupTarget.HealthCheckEnabled)) {
-			targets[i].SetHealthCheckEnabled(targetGroupTarget.HealthCheckEnabled)
-		}
-		if !utils.IsEmptyValue(reflect.ValueOf(targetGroupTarget.MaintenanceEnabled)) {
-			targets[i].SetMaintenanceEnabled(targetGroupTarget.MaintenanceEnabled)
+			Ip:                 sdkgo.PtrString(targetGroupTarget.IP),
+			Port:               sdkgo.PtrInt32(targetGroupTarget.Port),
+			Weight:             sdkgo.PtrInt32(targetGroupTarget.Weight),
+			HealthCheckEnabled: sdkgo.PtrBool(targetGroupTarget.HealthCheckEnabled),
+			MaintenanceEnabled: sdkgo.PtrBool(targetGroupTarget.MaintenanceEnabled),
 		}
 	}
 	return targets
