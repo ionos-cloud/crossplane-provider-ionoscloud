@@ -72,6 +72,22 @@ kubectl create secret generic --namespace crossplane-system example-provider-sec
 _Note_: You can overwrite the default IONOS Cloud API endpoint, by setting the following option in credentials
 struct: `credentials="{\"host_url\":\"${IONOS_API_URL}\"}"`.
 
+_Note_: You can also set the `IONOS_API_URL` environment variable in the `ControllerConfig` of the provider globally for all
+resources. The following snipped shows how to set it globally in the ControllerConfig:
+
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: pkg.crossplane.io/v1alpha1
+kind: ControllerConfig
+metadata:
+  name: overwrite-ionos-api-url
+spec:
+  env:
+    - name: IONOS_API_URL
+      value: "${IONOS_API_URL}"
+EOF
+```
+
 ### Configure the Provider
 
 We will create the following `ProviderConfig` to configure credentials for Crossplane Provider for IONOS Cloud:
@@ -93,22 +109,6 @@ EOF
 ```
 
 ## Installation
-
-### Create an Image Pull Secret
-
-Create an Image Pull Secret with your credentials, to be able to pull the Crossplane provider packages from the GitHub
-registry, since the images are currently private. You can export environment variables for GitHub access using:
-
-```bash
-export GITHUB_USERNAME=xxx
-export GITHUB_PERSONAL_ACCESSTOKEN=xxx
-```
-
-Create `Secret`:
-
-```bash
-kubectl create secret --namespace crossplane-system docker-registry package-pull --docker-server ghcr.io --docker-username $GITHUB_USERNAME --docker-password $GITHUB_PERSONAL_ACCESSTOKEN
-```
 
 ### Install Provider
 

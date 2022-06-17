@@ -32,8 +32,15 @@ const (
 // allow to set a default IONOS APIs for all clients via env variable.
 var ionosAPIEndpoint string
 
-func init() {
+// loadEnv is an indirection from the init function. The init function itself is not callable, but the loadEnv function.
+// This allows us to reset the env before and after each test.
+func loadEnv() {
 	ionosAPIEndpoint = os.Getenv(sdkgo.IonosApiUrlEnvVar)
+
+}
+
+func init() {
+	loadEnv()
 }
 
 // IonosServices contains ionos clients
