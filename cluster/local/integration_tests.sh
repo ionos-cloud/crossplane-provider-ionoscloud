@@ -47,7 +47,7 @@ PACKAGE_NAME="provider-ionoscloud"
 if [ "$skipcleanup" != true ]; then
   function cleanup() {
     export KUBECONFIG=
-#    "${KIND}" delete cluster --name="${K8S_CLUSTER}"
+    "${KIND}" delete cluster --name="${K8S_CLUSTER}"
   }
 
   trap cleanup EXIT
@@ -151,74 +151,74 @@ echo_step "--- INTEGRATION TESTS ---"
 echo_step "--- install Crossplane Provider IONOSCLOUD ---"
 install_provider
 
-#if [ "$TEST_COMPUTE" = true ]; then
-#  echo_step "--- ipblock tests ---"
-#  ipblock_tests
-#  echo_step "--- datacenter tests ---"
-#  datacenter_tests
-#  echo_step "--- lan tests ---"
-#  lan_tests
-#  echo_step "--- volume tests ---"
-#  volume_tests
-#  echo_step "--- server tests ---"
-#  server_tests
-#  echo_step "--- nic tests ---"
-#  nic_tests
-#  echo_step "--- firewallrule tests ---"
-#  firewallrule_tests
-#  echo_step "--- ipfailover tests ---"
-#  ipfailover_tests
-#fi
-#
-#if [ "$TEST_DBAAS" = true ]; then
-#  echo_step "--- dbaas postgres cluster tests ---"
-#  dbaas_postgres_cluster_tests
-#fi
-#
-#if [ "$TEST_K8S" = true ]; then
-#  echo_step "--- k8s cluster tests ---"
-#  k8s_cluster_tests
-#  echo_step "--- k8s nodepool tests ---"
-#  k8s_nodepool_tests
-#fi
-#
-#echo_step "-------------------"
-#echo_step "--- CLEANING UP ---"
-#echo_step "-------------------"
-#
-#if [ "$TEST_COMPUTE" = true ]; then
-#  echo_step "--- cleanup firewallrule tests ---"
-#  firewallrule_tests_cleanup
-#  echo_step "--- cleanup ipfailover tests ---"
-#  ipfailover_tests_cleanup
-#  echo_step "--- cleanup nic tests ---"
-#  nic_tests_cleanup
-#  echo_step "--- cleanup lan tests ---"
-#  lan_tests_cleanup
-#  echo_step "--- cleanup volume tests ---"
-#  volume_tests_cleanup
-#  echo_step "--- cleanup server tests ---"
-#  server_tests_cleanup
-#  echo_step "--- cleanup datacenter tests ---"
-#  datacenter_tests_cleanup
-#  echo_step "--- cleanup ipblock tests ---"
-#  ipblock_tests_cleanup
-#fi
-#
-#if [ "$TEST_DBAAS" = true ]; then
-#  echo_step "--- dbaas postgres cluster tests ---"
-#  dbaas_postgres_cluster_tests_cleanup
-#fi
-#
-#if [ "$TEST_K8S" = true ]; then
-#  echo_step "--- k8s nodepool tests ---"
-#  k8s_nodepool_tests_cleanup
-#  echo_step "--- k8s cluster tests ---"
-#  k8s_cluster_tests_cleanup
-#fi
-#
-## uninstalling Crossplane Provider IONOS Cloud
-#echo_step "--- uninstalling ${PROJECT_NAME} ---"
-#uninstall_provider
+if [ "$TEST_COMPUTE" = true ]; then
+  echo_step "--- ipblock tests ---"
+  ipblock_tests
+  echo_step "--- datacenter tests ---"
+  datacenter_tests
+  echo_step "--- lan tests ---"
+  lan_tests
+  echo_step "--- volume tests ---"
+  volume_tests
+  echo_step "--- server tests ---"
+  server_tests
+  echo_step "--- nic tests ---"
+  nic_tests
+  echo_step "--- firewallrule tests ---"
+  firewallrule_tests
+  echo_step "--- ipfailover tests ---"
+  ipfailover_tests
+fi
+
+if [ "$TEST_DBAAS" = true ]; then
+  echo_step "--- dbaas postgres cluster tests ---"
+  dbaas_postgres_cluster_tests
+fi
+
+if [ "$TEST_K8S" = true ]; then
+  echo_step "--- k8s cluster tests ---"
+  k8s_cluster_tests
+  echo_step "--- k8s nodepool tests ---"
+  k8s_nodepool_tests
+fi
+
+echo_step "-------------------"
+echo_step "--- CLEANING UP ---"
+echo_step "-------------------"
+
+if [ "$TEST_COMPUTE" = true ]; then
+  echo_step "--- cleanup firewallrule tests ---"
+  firewallrule_tests_cleanup
+  echo_step "--- cleanup ipfailover tests ---"
+  ipfailover_tests_cleanup
+  echo_step "--- cleanup nic tests ---"
+  nic_tests_cleanup
+  echo_step "--- cleanup lan tests ---"
+  lan_tests_cleanup
+  echo_step "--- cleanup volume tests ---"
+  volume_tests_cleanup
+  echo_step "--- cleanup server tests ---"
+  server_tests_cleanup
+  echo_step "--- cleanup datacenter tests ---"
+  datacenter_tests_cleanup
+  echo_step "--- cleanup ipblock tests ---"
+  ipblock_tests_cleanup
+fi
+
+if [ "$TEST_DBAAS" = true ]; then
+  echo_step "--- dbaas postgres cluster tests ---"
+  dbaas_postgres_cluster_tests_cleanup
+fi
+
+if [ "$TEST_K8S" = true ]; then
+  echo_step "--- k8s nodepool tests ---"
+  k8s_nodepool_tests_cleanup
+  echo_step "--- k8s cluster tests ---"
+  k8s_cluster_tests_cleanup
+fi
+
+# uninstalling Crossplane Provider IONOS Cloud
+echo_step "--- uninstalling ${PROJECT_NAME} ---"
+uninstall_provider
 
 echo_success "Integration tests succeeded!"
