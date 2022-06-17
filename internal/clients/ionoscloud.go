@@ -126,3 +126,19 @@ func ConnectForCRD(ctx context.Context, mg resource.Managed, client kubeclient.C
 	}
 	return svc, nil
 }
+
+// DataCenterElement is an ionos cloud API object with metadata
+type DataCenterElement interface {
+	GetMetadataOk() (*sdkgo.DatacenterElementMetadata, bool)
+}
+
+// GetDatacenterElementState fetches the state of the metadata of the DataCenterElement
+// If either the metadata is nil, or the state is nil, the empty string is returned
+func GetDatacenterElementState(object DataCenterElement) string {
+	if metadata, metadataOk := object.GetMetadataOk(); metadataOk {
+		if state, stateOk := metadata.GetStateOk(); stateOk {
+			return *state
+		}
+	}
+	return ""
+}

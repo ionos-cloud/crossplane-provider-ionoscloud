@@ -133,12 +133,10 @@ func (c *externalFirewallRule) Observe(ctx context.Context, mg resource.Managed)
 			cr.Status.AtProvider.TargetIP = ""
 		}
 	}
-	if observed.HasMetadata() {
-		if observed.Metadata.HasState() {
-			cr.Status.AtProvider.State = *observed.Metadata.State
-			c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
-		}
-	}
+	
+	cr.Status.AtProvider.State = clients.GetDatacenterElementState(&observed)
+	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+
 	// Set Ready condition based on State
 	switch cr.Status.AtProvider.State {
 	case compute.AVAILABLE, compute.ACTIVE:

@@ -130,11 +130,8 @@ func (c *externalNic) Observe(ctx context.Context, mg resource.Managed) (managed
 	nic.LateInitializer(&cr.Spec.ForProvider, &instance)
 
 	cr.Status.AtProvider.NicID = meta.GetExternalName(cr)
-	if instance.HasMetadata() {
-		if instance.Metadata.HasState() {
-			cr.Status.AtProvider.State = *instance.Metadata.State
-		}
-	}
+	cr.Status.AtProvider.State = clients.GetDatacenterElementState(&instance)
+
 	if instance.HasProperties() {
 		if instance.Properties.HasIps() {
 			cr.Status.AtProvider.IPs = *instance.Properties.Ips

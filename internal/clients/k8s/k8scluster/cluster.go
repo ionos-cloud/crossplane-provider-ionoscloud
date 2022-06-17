@@ -8,6 +8,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/compare"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
@@ -178,7 +179,7 @@ func IsK8sClusterUpToDate(cr *v1alpha1.Cluster, cluster sdkgo.KubernetesCluster)
 		return false
 	case cr != nil && cluster.Properties == nil:
 		return false
-	case cluster.Metadata.State != nil && *cluster.Metadata.State == "BUSY" || *cluster.Metadata.State == "DEPLOYING":
+	case cluster.Metadata != nil && cluster.Metadata.State != nil && (*cluster.Metadata.State == k8s.BUSY || *cluster.Metadata.State == k8s.DEPLOYING):
 		return true
 	case cluster.Properties.Name != nil && *cluster.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
