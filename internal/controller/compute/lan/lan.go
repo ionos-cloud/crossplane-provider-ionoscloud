@@ -53,7 +53,7 @@ const (
 )
 
 // Setup adds a controller that reconciles Lan managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, createGracePeriod time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, createGracePeriod, timeout time.Duration) error {
 	name := managed.ControllerName(v1alpha1.LanGroupKind)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -70,6 +70,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
 			managed.WithPollInterval(poll),
+			managed.WithTimeout(timeout),
 			managed.WithCreationGracePeriod(createGracePeriod),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))

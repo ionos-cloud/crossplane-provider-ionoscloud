@@ -58,7 +58,7 @@ const (
 )
 
 // Setup adds a controller that reconciles K8sNodePool managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration, creationGracePeriod time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
 	name := managed.ControllerName(v1alpha1.NodePoolGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -76,6 +76,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll ti
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
 			managed.WithPollInterval(poll),
+			managed.WithTimeout(timeout),
 			managed.WithCreationGracePeriod(creationGracePeriod),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
