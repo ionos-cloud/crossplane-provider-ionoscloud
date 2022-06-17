@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
@@ -27,6 +28,20 @@ const (
 	errGetCreds     = "cannot get credentials"
 	errNewClient    = "cannot create new Service"
 )
+
+// allow to set a default IONOS APIs for all clients via env variable.
+var ionosAPIEndpoint string
+
+// loadEnv is an indirection from the init function. The init function itself is not callable, but the loadEnv function.
+// This allows us to reset the env before and after each test.
+func loadEnv() {
+	ionosAPIEndpoint = os.Getenv(sdkgo.IonosApiUrlEnvVar)
+
+}
+
+func init() {
+	loadEnv()
+}
 
 // IonosServices contains ionos clients
 type IonosServices struct {
@@ -67,12 +82,17 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 		}
 	}
 
+	apiHostURL := creds.HostURL
+	if apiHostURL == "" && ionosAPIEndpoint != "" {
+		apiHostURL = ionosAPIEndpoint
+	}
+
 	// DBaaS Postgres Client
-	dbaasPostgresConfig := ionoscloud.NewConfiguration(creds.User, string(decodedPW), creds.Token, creds.HostURL)
+	dbaasPostgresConfig := ionoscloud.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
 	dbaasPostgresConfig.UserAgent = fmt.Sprintf("%v_%v", UserAgent, dbaasPostgresConfig.UserAgent)
 	dbaasPostgresClient := ionoscloud.NewAPIClient(dbaasPostgresConfig)
 	// Compute Engine Client
-	computeEngineConfig := sdkgo.NewConfiguration(creds.User, string(decodedPW), creds.Token, creds.HostURL)
+	computeEngineConfig := sdkgo.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
 	computeEngineConfig.UserAgent = fmt.Sprintf("%v_%v", UserAgent, computeEngineConfig.UserAgent)
 	computeEngineClient := sdkgo.NewAPIClient(computeEngineConfig)
 

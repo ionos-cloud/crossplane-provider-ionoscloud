@@ -216,7 +216,7 @@ func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (mana
 	clusterID := cr.Status.AtProvider.ClusterID
 	instanceInput, err := postgrescluster.GenerateUpdateClusterInput(cr)
 	if err != nil {
-		return managed.ExternalUpdate{}, nil
+		return managed.ExternalUpdate{}, err
 	}
 
 	_, apiResponse, err := c.service.UpdateCluster(ctx, clusterID, *instanceInput)
