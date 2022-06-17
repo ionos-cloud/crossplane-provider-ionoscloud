@@ -112,7 +112,7 @@ type TargetGroupHealthCheck struct {
 }
 
 // TargetGroupHTTPHealthCheck struct for TargetGroupHttpHealthCheck
-// Required fields in order to create an TargetGroupTarget:
+// Required fields in order to create an TargetGroupHttpHealthCheck:
 // Response,
 // MatchType.
 type TargetGroupHTTPHealthCheck struct {
@@ -126,12 +126,12 @@ type TargetGroupHTTPHealthCheck struct {
 	// +kubebuilder:validation:Enum=HEAD;PUT;POST;GET;TRACE;PATCH;OPTIONS
 	Method string `json:"method,omitempty"`
 	// +kubebuilder:validation:Required
-	// //////+kubebuilder:validation:Enum=STATUS_CODE;RESPONSE_BODY
-	MatchType string `json:"matchType,omitempty"`
+	// +kubebuilder:validation:Enum="";STATUS_CODE;RESPONSE_BODY
+	MatchType string `json:"matchType"`
 	// The response returned by the request, depending on the match type.
 	//
 	// +kubebuilder:validation:Required
-	Response string `json:"response,omitempty"`
+	Response string `json:"response"`
 	// +kubebuilder:validation:Optional
 	Regex bool `json:"regex,omitempty"`
 	// +kubebuilder:validation:Optional

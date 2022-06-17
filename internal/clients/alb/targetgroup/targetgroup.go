@@ -105,6 +105,41 @@ func GenerateUpdateTargetGroupInput(cr *v1alpha1.TargetGroup) (*sdkgo.TargetGrou
 	return &instanceUpdateInput, nil
 }
 
+// LateInitializer fills the empty fields in *v1alpha1.TargetGroupParameters with
+// the values seen in sdkgo.TargetGroup.
+func LateInitializer(in *v1alpha1.TargetGroupParameters, targetGroup *sdkgo.TargetGroup) { // nolint:gocyclo
+	if targetGroup == nil {
+		return
+	}
+	// Add Properties to the Spec, if they were set by the API
+	if propertiesOk, ok := targetGroup.GetPropertiesOk(); ok && propertiesOk != nil {
+		if healthCheckOk, ok := propertiesOk.GetHealthCheckOk(); ok && healthCheckOk != nil {
+			if checkIntervalOk, ok := healthCheckOk.GetCheckIntervalOk(); ok && checkIntervalOk != nil {
+				if utils.IsEmptyValue(reflect.ValueOf(in.HealthCheck.CheckInterval)) {
+					in.HealthCheck.CheckInterval = *checkIntervalOk
+				}
+			}
+			if retriesOk, ok := healthCheckOk.GetRetriesOk(); ok && retriesOk != nil {
+				if utils.IsEmptyValue(reflect.ValueOf(in.HealthCheck.Retries)) {
+					in.HealthCheck.Retries = *retriesOk
+				}
+			}
+		}
+		if httpHealthCheckOk, ok := propertiesOk.GetHttpHealthCheckOk(); ok && httpHealthCheckOk != nil {
+			if pathOk, ok := httpHealthCheckOk.GetPathOk(); ok && pathOk != nil {
+				if utils.IsEmptyValue(reflect.ValueOf(in.HTTPHealthCheck.Path)) {
+					in.HTTPHealthCheck.Path = *pathOk
+				}
+			}
+			if methodOk, ok := httpHealthCheckOk.GetMethodOk(); ok && methodOk != nil {
+				if utils.IsEmptyValue(reflect.ValueOf(in.HTTPHealthCheck.Method)) {
+					in.HTTPHealthCheck.Method = *methodOk
+				}
+			}
+		}
+	}
+}
+
 // IsTargetGroupUpToDate returns true if the TargetGroup is up-to-date or false if it does not
 func IsTargetGroupUpToDate(cr *v1alpha1.TargetGroup, targetGroup sdkgo.TargetGroup) bool { // nolint:gocyclo
 	switch {
@@ -122,11 +157,11 @@ func IsTargetGroupUpToDate(cr *v1alpha1.TargetGroup, targetGroup sdkgo.TargetGro
 		return false
 	case targetGroup.Properties.Algorithm != nil && *targetGroup.Properties.Algorithm != cr.Spec.ForProvider.Algorithm:
 		return false
-	case targetGroup.Properties.Targets != nil && !equalTargetGroupTargets(cr.Spec.ForProvider.Targets, *targetGroup.Properties.Targets):
+	case !equalTargetGroupTargets(cr.Spec.ForProvider.Targets, targetGroup.Properties.Targets):
 		return false
-	case targetGroup.Properties.HealthCheck != nil && !equalTargetGroupHealthCheck(cr.Spec.ForProvider.HealthCheck, *targetGroup.Properties.HealthCheck):
+	case !equalTargetGroupHealthCheck(cr.Spec.ForProvider.HealthCheck, targetGroup.Properties.HealthCheck):
 		return false
-	case targetGroup.Properties.HttpHealthCheck != nil && !equalTargetGroupHTTPHealthCheck(cr.Spec.ForProvider.HTTPHealthCheck, *targetGroup.Properties.HttpHealthCheck):
+	case !equalTargetGroupHTTPHealthCheck(cr.Spec.ForProvider.HTTPHealthCheck, targetGroup.Properties.HttpHealthCheck):
 		return false
 	default:
 		return true
@@ -150,12 +185,18 @@ func getTargets(targetGroupTargets []v1alpha1.TargetGroupTarget) []sdkgo.TargetG
 	return targets
 }
 
-func equalTargetGroupTargets(targetGroupTargets []v1alpha1.TargetGroupTarget, targets []sdkgo.TargetGroupTarget) bool {
-	if len(targetGroupTargets) != len(targets) {
+func equalTargetGroupTargets(targetGroupTargets []v1alpha1.TargetGroupTarget, targets *[]sdkgo.TargetGroupTarget) bool {
+	if targets == nil && len(targetGroupTargets) == 0 {
+		return true
+	}
+	if targets == nil && len(targetGroupTargets) != 0 {
+		return false
+	}
+	if len(*targets) != len(targetGroupTargets) {
 		return false
 	}
 	for _, target := range targetGroupTargets {
-		if !equalTargetGroupTarget(target, targets) {
+		if !equalTargetGroupTarget(target, *targets) {
 			return false
 		}
 	}
@@ -192,14 +233,16 @@ func getHealthCheck(healthCheck v1alpha1.TargetGroupHealthCheck) sdkgo.TargetGro
 	return targetHealthCheck
 }
 
-func equalTargetGroupHealthCheck(healthCheck v1alpha1.TargetGroupHealthCheck, targetHealthCheck sdkgo.TargetGroupHealthCheck) bool {
-	if targetHealthCheck.HasCheckInterval(); healthCheck.CheckInterval != *targetHealthCheck.CheckInterval {
+func equalTargetGroupHealthCheck(healthCheck v1alpha1.TargetGroupHealthCheck, targetHealthCheck *sdkgo.TargetGroupHealthCheck) bool {
+	if targetHealthCheck.HasCheckInterval() && healthCheck.CheckInterval != *targetHealthCheck.CheckInterval {
 		return false
 	}
-	if targetHealthCheck.HasCheckTimeout(); healthCheck.CheckTimeout != *targetHealthCheck.CheckTimeout {
+	if targetHealthCheck.HasRetries() && healthCheck.Retries != *targetHealthCheck.Retries {
 		return false
 	}
-	if targetHealthCheck.HasRetries(); healthCheck.Retries != *targetHealthCheck.Retries {
+	if targetHealthCheck.HasCheckTimeout() && healthCheck.CheckTimeout != *targetHealthCheck.CheckTimeout {
+		return false
+	} else if !utils.IsEmptyValue(reflect.ValueOf(healthCheck.CheckTimeout)) {
 		return false
 	}
 	return true
@@ -227,20 +270,27 @@ func getHTTPHealthCheck(httpHealthCheck v1alpha1.TargetGroupHTTPHealthCheck) sdk
 	return targetGroupHTTPHealthCheck
 }
 
-func equalTargetGroupHTTPHealthCheck(httpHealthCheck v1alpha1.TargetGroupHTTPHealthCheck, targetGroupHTTPHealthCheck sdkgo.TargetGroupHttpHealthCheck) bool {
-	if targetGroupHTTPHealthCheck.HasPath(); httpHealthCheck.Path != *targetGroupHTTPHealthCheck.Path {
+func equalTargetGroupHTTPHealthCheck(httpHealthCheck v1alpha1.TargetGroupHTTPHealthCheck, targetGroupHTTPHealthCheck *sdkgo.TargetGroupHttpHealthCheck) bool { //nolint: gocyclo
+	// MatchType and Response are required for HTTP Health Check
+	if targetGroupHTTPHealthCheck == nil && httpHealthCheck.MatchType != "" && httpHealthCheck.Response != "" {
 		return false
 	}
-	if targetGroupHTTPHealthCheck.HasMethod(); httpHealthCheck.Method != *targetGroupHTTPHealthCheck.Method {
+	if targetGroupHTTPHealthCheck.HasMatchType() && httpHealthCheck.MatchType != *targetGroupHTTPHealthCheck.MatchType {
 		return false
 	}
-	if targetGroupHTTPHealthCheck.HasMatchType(); httpHealthCheck.MatchType != *targetGroupHTTPHealthCheck.MatchType {
+	if targetGroupHTTPHealthCheck.HasResponse() && httpHealthCheck.Response != *targetGroupHTTPHealthCheck.Response {
 		return false
 	}
-	if targetGroupHTTPHealthCheck.HasResponse(); httpHealthCheck.Response != *targetGroupHTTPHealthCheck.Response {
+	if targetGroupHTTPHealthCheck.HasPath() && httpHealthCheck.Path != *targetGroupHTTPHealthCheck.Path {
 		return false
 	}
-	if targetGroupHTTPHealthCheck.HasRegex(); httpHealthCheck.Regex != *targetGroupHTTPHealthCheck.Regex {
+	if targetGroupHTTPHealthCheck.HasMethod() && httpHealthCheck.Method != *targetGroupHTTPHealthCheck.Method {
+		return false
+	}
+	if targetGroupHTTPHealthCheck.HasRegex() && httpHealthCheck.Regex != *targetGroupHTTPHealthCheck.Regex {
+		return false
+	}
+	if targetGroupHTTPHealthCheck.HasNegate() && httpHealthCheck.Negate != *targetGroupHTTPHealthCheck.Negate {
 		return false
 	}
 	return true

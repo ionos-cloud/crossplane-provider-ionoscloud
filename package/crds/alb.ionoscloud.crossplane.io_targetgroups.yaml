@@ -117,7 +117,10 @@ spec:
                     description: HTTP health check properties for target group
                     properties:
                       matchType:
-                        description: //////+kubebuilder:validation:Enum=STATUS_CODE;RESPONSE_BODY
+                        enum:
+                        - ""
+                        - STATUS_CODE
+                        - RESPONSE_BODY
                         type: string
                       method:
                         description: The method for the HTTP health check.
@@ -142,6 +145,9 @@ spec:
                         description: The response returned by the request, depending
                           on the match type.
                         type: string
+                    required:
+                    - matchType
+                    - response
                     type: object
                   name:
                     description: The name of the target group.

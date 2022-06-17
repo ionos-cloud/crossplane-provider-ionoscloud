@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
@@ -140,13 +141,14 @@ func (c *externalTargetGroup) Observe(ctx context.Context, mg resource.Managed) 
 		retErr := fmt.Errorf("failed to get target group by id. error: %w", err)
 		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(resp, retErr)
 	}
+	current := cr.Spec.ForProvider.DeepCopy()
+	targetgroup.LateInitializer(&cr.Spec.ForProvider, &observed)
 	cr.Status.AtProvider.TargetGroupID = meta.GetExternalName(cr)
-	// if observed.HasMetadata() {
-	//	if observed.Metadata.HasState() {
-	//		cr.Status.AtProvider.State = *observed.Metadata.State
-	//	}
-	// }
-	cr.Status.AtProvider.State = *observed.Metadata.State
+	if observed.HasMetadata() {
+		if observed.Metadata.HasState() {
+			cr.Status.AtProvider.State = *observed.Metadata.State
+		}
+	}
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	switch cr.Status.AtProvider.State {
 	case compute.AVAILABLE, compute.ACTIVE:
@@ -159,9 +161,10 @@ func (c *externalTargetGroup) Observe(ctx context.Context, mg resource.Managed) 
 		cr.SetConditions(xpv1.Unavailable())
 	}
 	return managed.ExternalObservation{
-		ResourceExists:    true,
-		ResourceUpToDate:  targetgroup.IsTargetGroupUpToDate(cr, observed),
-		ConnectionDetails: managed.ConnectionDetails{},
+		ResourceExists:          true,
+		ResourceUpToDate:        targetgroup.IsTargetGroupUpToDate(cr, observed),
+		ConnectionDetails:       managed.ConnectionDetails{},
+		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}, nil
 }
 
