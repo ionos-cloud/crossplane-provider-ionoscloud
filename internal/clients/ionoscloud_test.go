@@ -14,6 +14,9 @@ import (
 const (
 	expectedUserAgentCompute = "crossplane-provider-ionoscloud_ionos-cloud-sdk-go/v6.0.4"
 	expectedUserAgentDbaas   = "crossplane-provider-ionoscloud_ionos-cloud-sdk-go-dbaas-postgres/vv1.0.3"
+
+	hostnameFromSecret = "https://host"
+	hostnameFromEnv    = "http://host-from-env"
 )
 
 func setComputeDefaults(cfg *ionos.Configuration) {
@@ -64,12 +67,12 @@ func TestNewIonosClient(t *testing.T) {
 			name: "2fa token auth and host url",
 			args: args{data: []byte(`{"user": "username","password": "cGFzc3dvcmQ=", "token": "token", "host_url":"https://host"}`)},
 			wantComputeConfig: func() *ionos.Configuration {
-				cfg := ionos.NewConfiguration("username", "password", "token", "https://host")
+				cfg := ionos.NewConfiguration("username", "password", "token", hostnameFromSecret)
 				setComputeDefaults(cfg)
 				return cfg
 			}(),
 			wantDbaasConfig: func() *ionosdbaas.Configuration {
-				cfg := ionosdbaas.NewConfiguration("username", "password", "token", "https://host")
+				cfg := ionosdbaas.NewConfiguration("username", "password", "token", hostnameFromSecret)
 				setDbaaSDefaults(cfg)
 				return cfg
 			}(),
@@ -80,12 +83,12 @@ func TestNewIonosClient(t *testing.T) {
 			env:  map[string]string{"IONOS_API_URL": "http://host-from-env"},
 			args: args{data: []byte(`{"user": "username","password": "cGFzc3dvcmQ=", "token": "token"}`)},
 			wantComputeConfig: func() *ionos.Configuration {
-				cfg := ionos.NewConfiguration("username", "password", "token", "http://host-from-env")
+				cfg := ionos.NewConfiguration("username", "password", "token", hostnameFromEnv)
 				setComputeDefaults(cfg)
 				return cfg
 			}(),
 			wantDbaasConfig: func() *ionosdbaas.Configuration {
-				cfg := ionosdbaas.NewConfiguration("username", "password", "token", "http://host-from-env")
+				cfg := ionosdbaas.NewConfiguration("username", "password", "token", hostnameFromEnv)
 				setDbaaSDefaults(cfg)
 				return cfg
 			}(),
@@ -93,15 +96,15 @@ func TestNewIonosClient(t *testing.T) {
 		},
 		{
 			name: "2fa token auth dont overwrite secret specific with global host url",
-			env:  map[string]string{"IONOS_API_URL": "http://host-from-env"},
+			env:  map[string]string{"IONOS_API_URL": hostnameFromEnv},
 			args: args{data: []byte(`{"user": "username","password": "cGFzc3dvcmQ=", "token": "token", "host_url":"https://host"}`)},
 			wantComputeConfig: func() *ionos.Configuration {
-				cfg := ionos.NewConfiguration("username", "password", "token", "https://host")
+				cfg := ionos.NewConfiguration("username", "password", "token", hostnameFromSecret)
 				setComputeDefaults(cfg)
 				return cfg
 			}(),
 			wantDbaasConfig: func() *ionosdbaas.Configuration {
-				cfg := ionosdbaas.NewConfiguration("username", "password", "token", "https://host")
+				cfg := ionosdbaas.NewConfiguration("username", "password", "token", hostnameFromSecret)
 				setDbaaSDefaults(cfg)
 				return cfg
 			}(),
