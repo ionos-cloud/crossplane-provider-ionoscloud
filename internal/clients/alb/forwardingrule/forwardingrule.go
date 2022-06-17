@@ -134,7 +134,7 @@ func IsForwardingRuleUpToDate(cr *v1alpha1.ForwardingRule, forwardingRule sdkgo.
 		return false
 	case forwardingRule.Properties.ServerCertificates != nil && !utils.ContainsStringSlices(*forwardingRule.Properties.ServerCertificates, cr.Spec.ForProvider.ServerCertificatesIDs):
 		return false
-	case forwardingRule.Properties.HttpRules != nil && !equalHTTPRules(cr.Spec.ForProvider.HTTPRules, *forwardingRule.Properties.HttpRules):
+	case !equalHTTPRules(cr.Spec.ForProvider.HTTPRules, forwardingRule.Properties.HttpRules):
 		return false
 	default:
 		return true
@@ -197,12 +197,18 @@ func getHTTPRuleConditions(conditions []v1alpha1.ApplicationLoadBalancerHTTPRule
 	return httpRuleConditions
 }
 
-func equalHTTPRules(httpRules []v1alpha1.ApplicationLoadBalancerHTTPRule, albHTTPRules []sdkgo.ApplicationLoadBalancerHttpRule) bool {
-	if len(httpRules) != len(albHTTPRules) {
+func equalHTTPRules(httpRules []v1alpha1.ApplicationLoadBalancerHTTPRule, albHTTPRules *[]sdkgo.ApplicationLoadBalancerHttpRule) bool {
+	if albHTTPRules == nil && len(httpRules) == 0 {
+		return true
+	}
+	if albHTTPRules == nil && len(httpRules) != 0 {
+		return false
+	}
+	if len(httpRules) != len(*albHTTPRules) {
 		return false
 	}
 	for _, httpRule := range httpRules {
-		if !equalHTTPRule(httpRule, albHTTPRules) {
+		if !equalHTTPRule(httpRule, *albHTTPRules) {
 			return false
 		}
 	}
@@ -214,29 +220,29 @@ func equalHTTPRule(target v1alpha1.ApplicationLoadBalancerHTTPRule, targets []sd
 		return false
 	}
 	for _, t := range targets {
-		if t.HasName(); *t.Name == target.Name {
-			if t.HasType(); *t.Type != target.Type {
+		if t.HasName() && *t.Name == target.Name {
+			if t.HasType() && *t.Type != target.Type {
 				return false
 			}
-			if t.HasTargetGroup(); *t.TargetGroup != target.TargetGroupCfg.TargetGroupID {
+			if t.HasTargetGroup() && *t.TargetGroup != target.TargetGroupCfg.TargetGroupID {
 				return false
 			}
-			if t.HasDropQuery(); *t.DropQuery != target.DropQuery {
+			if t.HasDropQuery() && *t.DropQuery != target.DropQuery {
 				return false
 			}
-			if t.HasLocation(); *t.Location != target.Location {
+			if t.HasLocation() && *t.Location != target.Location {
 				return false
 			}
-			if t.HasStatusCode(); *t.StatusCode != target.StatusCode {
+			if t.HasStatusCode() && *t.StatusCode != target.StatusCode {
 				return false
 			}
-			if t.HasResponseMessage(); *t.ResponseMessage != target.ResponseMessage {
+			if t.HasResponseMessage() && *t.ResponseMessage != target.ResponseMessage {
 				return false
 			}
-			if t.HasContentType(); *t.ContentType != target.ContentType {
+			if t.HasContentType() && *t.ContentType != target.ContentType {
 				return false
 			}
-			if t.HasConditions(); !equalHTTPRuleConditions(target.Conditions, *t.Conditions) {
+			if !equalHTTPRuleConditions(target.Conditions, t.Conditions) {
 				return false
 			}
 			return true
@@ -245,12 +251,18 @@ func equalHTTPRule(target v1alpha1.ApplicationLoadBalancerHTTPRule, targets []sd
 	return false
 }
 
-func equalHTTPRuleConditions(httpRuleConditions []v1alpha1.ApplicationLoadBalancerHTTPRuleCondition, albHTTPRuleConditions []sdkgo.ApplicationLoadBalancerHttpRuleCondition) bool {
-	if len(httpRuleConditions) != len(albHTTPRuleConditions) {
+func equalHTTPRuleConditions(httpRuleConditions []v1alpha1.ApplicationLoadBalancerHTTPRuleCondition, albHTTPRuleConditions *[]sdkgo.ApplicationLoadBalancerHttpRuleCondition) bool {
+	if albHTTPRuleConditions == nil && len(httpRuleConditions) == 0 {
+		return true
+	}
+	if albHTTPRuleConditions == nil && len(httpRuleConditions) != 0 {
+		return false
+	}
+	if len(httpRuleConditions) != len(*albHTTPRuleConditions) {
 		return false
 	}
 	for _, httpRule := range httpRuleConditions {
-		if !equalHTTPRuleCondition(httpRule, albHTTPRuleConditions) {
+		if !equalHTTPRuleCondition(httpRule, *albHTTPRuleConditions) {
 			return false
 		}
 	}
@@ -265,13 +277,13 @@ func equalHTTPRuleCondition(condition v1alpha1.ApplicationLoadBalancerHTTPRuleCo
 		// Type and Condition are required
 		if ruleCondition.HasType() && ruleCondition.HasCondition() {
 			if *ruleCondition.Type == condition.Type && *ruleCondition.Condition == condition.Condition {
-				if ruleCondition.HasNegate(); *ruleCondition.Negate != condition.Negate {
+				if ruleCondition.HasNegate() && *ruleCondition.Negate != condition.Negate {
 					return false
 				}
-				if ruleCondition.HasKey(); *ruleCondition.Key != condition.Key {
+				if ruleCondition.HasKey() && *ruleCondition.Key != condition.Key {
 					return false
 				}
-				if ruleCondition.HasValue(); *ruleCondition.Value != condition.Value {
+				if ruleCondition.HasValue() && *ruleCondition.Value != condition.Value {
 					return false
 				}
 				return true
