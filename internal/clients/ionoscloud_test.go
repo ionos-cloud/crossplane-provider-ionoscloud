@@ -16,6 +16,16 @@ const (
 	expectedUserAgentDbaas   = "crossplane-provider-ionoscloud_ionos-cloud-sdk-go-dbaas-postgres/vv1.0.3"
 )
 
+func setComputeDefaults(cfg *ionos.Configuration) {
+	cfg.HTTPClient = http.DefaultClient
+	cfg.UserAgent = expectedUserAgentCompute
+}
+
+func setDbaaSDefaults(cfg *ionosdbaas.Configuration) {
+	cfg.HTTPClient = http.DefaultClient
+	cfg.UserAgent = expectedUserAgentDbaas
+}
+
 func TestNewIonosClient(t *testing.T) {
 
 	type args struct {
@@ -40,14 +50,12 @@ func TestNewIonosClient(t *testing.T) {
 			args: args{data: []byte(`{"user": "username","password": "cGFzc3dvcmQ="}`)},
 			wantComputeConfig: func() *ionos.Configuration {
 				cfg := ionos.NewConfiguration("username", "password", "", "")
-				cfg.HTTPClient = http.DefaultClient
-				cfg.UserAgent = expectedUserAgentCompute
+				setComputeDefaults(cfg)
 				return cfg
 			}(),
 			wantDbaasConfig: func() *ionosdbaas.Configuration {
 				cfg := ionosdbaas.NewConfiguration("username", "password", "", "")
-				cfg.HTTPClient = http.DefaultClient
-				cfg.UserAgent = expectedUserAgentDbaas
+				setDbaaSDefaults(cfg)
 				return cfg
 			}(),
 			wantErr: false,
@@ -57,14 +65,12 @@ func TestNewIonosClient(t *testing.T) {
 			args: args{data: []byte(`{"user": "username","password": "cGFzc3dvcmQ=", "token": "token", "host_url":"https://host"}`)},
 			wantComputeConfig: func() *ionos.Configuration {
 				cfg := ionos.NewConfiguration("username", "password", "token", "https://host")
-				cfg.HTTPClient = http.DefaultClient
-				cfg.UserAgent = expectedUserAgentCompute
+				setComputeDefaults(cfg)
 				return cfg
 			}(),
 			wantDbaasConfig: func() *ionosdbaas.Configuration {
 				cfg := ionosdbaas.NewConfiguration("username", "password", "token", "https://host")
-				cfg.HTTPClient = http.DefaultClient
-				cfg.UserAgent = expectedUserAgentDbaas
+				setDbaaSDefaults(cfg)
 				return cfg
 			}(),
 			wantErr: false,
@@ -75,14 +81,12 @@ func TestNewIonosClient(t *testing.T) {
 			args: args{data: []byte(`{"user": "username","password": "cGFzc3dvcmQ=", "token": "token"}`)},
 			wantComputeConfig: func() *ionos.Configuration {
 				cfg := ionos.NewConfiguration("username", "password", "token", "http://host-from-env")
-				cfg.HTTPClient = http.DefaultClient
-				cfg.UserAgent = expectedUserAgentCompute
+				setComputeDefaults(cfg)
 				return cfg
 			}(),
 			wantDbaasConfig: func() *ionosdbaas.Configuration {
 				cfg := ionosdbaas.NewConfiguration("username", "password", "token", "http://host-from-env")
-				cfg.HTTPClient = http.DefaultClient
-				cfg.UserAgent = expectedUserAgentDbaas
+				setDbaaSDefaults(cfg)
 				return cfg
 			}(),
 			wantErr: false,
@@ -93,14 +97,12 @@ func TestNewIonosClient(t *testing.T) {
 			args: args{data: []byte(`{"user": "username","password": "cGFzc3dvcmQ=", "token": "token", "host_url":"https://host"}`)},
 			wantComputeConfig: func() *ionos.Configuration {
 				cfg := ionos.NewConfiguration("username", "password", "token", "https://host")
-				cfg.HTTPClient = http.DefaultClient
-				cfg.UserAgent = expectedUserAgentCompute
+				setComputeDefaults(cfg)
 				return cfg
 			}(),
 			wantDbaasConfig: func() *ionosdbaas.Configuration {
 				cfg := ionosdbaas.NewConfiguration("username", "password", "token", "https://host")
-				cfg.HTTPClient = http.DefaultClient
-				cfg.UserAgent = expectedUserAgentDbaas
+				setDbaaSDefaults(cfg)
 				return cfg
 			}(),
 			wantErr: false,
