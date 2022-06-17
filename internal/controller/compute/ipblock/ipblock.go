@@ -239,7 +239,7 @@ func (c *externalIPBlock) Delete(ctx context.Context, mg resource.Managed) error
 	apiResponse, err := c.service.DeleteIPBlock(ctx, cr.Status.AtProvider.IPBlockID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete ipBlock. error: %w", err)
-		return compute.AddAPIResponseInfo(apiResponse, retErr)
+		return compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err

@@ -274,7 +274,7 @@ func (c *externalNic) Delete(ctx context.Context, mg resource.Managed) error {
 		cr.Spec.ForProvider.ServerCfg.ServerID, cr.Status.AtProvider.NicID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete nic. error: %w", err)
-		return compute.AddAPIResponseInfo(apiResponse, retErr)
+		return compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err
