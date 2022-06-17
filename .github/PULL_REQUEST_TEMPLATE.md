@@ -23,9 +23,9 @@ This PR adds:
 I have:
 
 - [ ] Add PR name as appropriate (e.g. `feat`/`fix`/`doc`/`test`/`refactor`)
-- [ ] Run `make reviewable` to ensure this PR is ready for review
-- [ ] Add or update tests
-- [ ] Add or update Documentation
+- [ ] Run `make reviewable` and `make crds.clean` to ensure the PR is ready for review
+- [ ] Add or update tests (if applicable)
+- [ ] Add or update Documentation (if applicable)
 - [ ] Update CHANGELOG.md (label: `upcoming release`)
 - [ ] Check Sonar Cloud Scan
 - [ ] Update Github or Jira Issue

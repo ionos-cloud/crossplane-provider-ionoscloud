@@ -224,7 +224,7 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	serverID := cr.Status.AtProvider.ServerID
 	instanceInput, err := server.GenerateUpdateCubeServerInput(cr)
 	if err != nil {
-		return managed.ExternalUpdate{}, nil
+		return managed.ExternalUpdate{}, err
 	}
 	_, apiResponse, err := c.service.UpdateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, serverID, *instanceInput)
 	update := managed.ExternalUpdate{ConnectionDetails: managed.ConnectionDetails{}}
@@ -237,7 +237,7 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	}
 	instanceVolumeInput, err := server.GenerateUpdateVolumeInput(cr)
 	if err != nil {
-		return update, nil
+		return update, err
 	}
 	_, apiResponse, err = c.serviceVolume.UpdateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.VolumeID, *instanceVolumeInput)
 	if err != nil {

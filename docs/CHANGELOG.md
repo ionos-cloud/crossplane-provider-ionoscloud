@@ -1,5 +1,10 @@
 # Changelog
 
+## upcoming release
+
+- **Features**:
+  - Allow to set a global IONOS_API_URL overwrite in the provider pod via environment variables
+
 ## [1.0.0-beta.2] (June 2022)
 
 - **Features**:
