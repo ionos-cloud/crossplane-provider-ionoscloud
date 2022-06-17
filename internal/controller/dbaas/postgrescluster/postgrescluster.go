@@ -241,6 +241,12 @@ func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error
 		return nil
 	}
 
-	err := c.service.DeleteCluster(ctx, cr.Status.AtProvider.ClusterID)
-	return errors.Wrap(err, "failed to delete postgres cluster")
+	apiResponse, err := c.service.DeleteCluster(ctx, cr.Status.AtProvider.ClusterID)
+	if err != nil {
+		if apiResponse != nil && apiResponse.Response != nil && apiResponse.StatusCode == http.StatusNotFound {
+			return nil
+		}
+		return fmt.Errorf("failed to delete postgres cluster. error: %w", err)
+	}
+	return nil
 }

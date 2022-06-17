@@ -22,7 +22,7 @@ type ClusterAPIClient struct {
 // ClusterClient is a wrapper around IONOS Service DBaaS Postgres Cluster methods
 type ClusterClient interface {
 	GetCluster(ctx context.Context, clusterID string) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
-	DeleteCluster(ctx context.Context, clusterID string) error
+	DeleteCluster(ctx context.Context, clusterID string) (*ionoscloud.APIResponse, error)
 	CreateCluster(ctx context.Context, cluster ionoscloud.CreateClusterRequest) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
 	UpdateCluster(ctx context.Context, clusterID string, cluster ionoscloud.PatchClusterRequest) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
 }
@@ -33,9 +33,9 @@ func (cp *ClusterAPIClient) GetCluster(ctx context.Context, clusterID string) (i
 }
 
 // DeleteCluster based on clusterID
-func (cp *ClusterAPIClient) DeleteCluster(ctx context.Context, clusterID string) error {
-	_, _, err := cp.DBaaSPostgresClient.ClustersApi.ClustersDelete(ctx, clusterID).Execute()
-	return err
+func (cp *ClusterAPIClient) DeleteCluster(ctx context.Context, clusterID string) (*ionoscloud.APIResponse, error) {
+	_, apiResponse, err := cp.DBaaSPostgresClient.ClustersApi.ClustersDelete(ctx, clusterID).Execute()
+	return apiResponse, err
 }
 
 // CreateCluster based on cluster properties
