@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	expectedUserAgentCompute = "crossplane-provider-ionoscloud_ionos-cloud-sdk-go/v6.0.4"
+	expectedUserAgentCompute = "crossplane-provider-ionoscloud_ionos-cloud-sdk-go/v6.1.0"
 	expectedUserAgentDbaas   = "crossplane-provider-ionoscloud_ionos-cloud-sdk-go-dbaas-postgres/vv1.0.3"
 
 	hostnameFromSecret = "https://host"
