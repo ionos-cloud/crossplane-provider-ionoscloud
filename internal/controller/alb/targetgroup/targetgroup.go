@@ -23,7 +23,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,14 +43,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 )
 
-const (
-	errNotTargetGroup = "managed resource is not a TargetGroup custom resource"
-	errTrackPCUsage   = "cannot track ProviderConfig usage"
-	errGetPC          = "cannot get ProviderConfig"
-	errGetCreds       = "cannot get credentials"
-
-	errNewClient = "cannot create new Service"
-)
+const errNotTargetGroup = "managed resource is not a TargetGroup custom resource"
 
 // Setup adds a controller that reconciles TargetGroup managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration, creationGracePeriod time.Duration) error {
@@ -95,27 +87,10 @@ func (c *connectorTargetGroup) Connect(ctx context.Context, mg resource.Managed)
 	if !ok {
 		return nil, errors.New(errNotTargetGroup)
 	}
-
-	if err := c.usage.Track(ctx, mg); err != nil {
-		return nil, errors.Wrap(err, errTrackPCUsage)
-	}
-
-	pc := &apisv1alpha1.ProviderConfig{}
-	if err := c.kube.Get(ctx, types.NamespacedName{Name: mg.GetProviderConfigReference().Name}, pc); err != nil {
-		return nil, errors.Wrap(err, errGetPC)
-	}
-
-	cd := pc.Spec.Credentials
-	data, err := resource.CommonCredentialExtractor(ctx, cd.Source, c.kube, cd.CommonCredentialSelectors)
-	if err != nil {
-		return nil, errors.Wrap(err, errGetCreds)
-	}
-
-	svc, err := clients.NewIonosClients(data)
-	if err != nil {
-		return nil, errors.Wrap(err, errNewClient)
-	}
-	return &externalTargetGroup{service: &targetgroup.APIClient{IonosServices: svc}, log: c.log}, nil
+	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
+	return &externalTargetGroup{
+		service: &targetgroup.APIClient{IonosServices: svc},
+		log:     c.log}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -235,7 +210,7 @@ func (c *externalTargetGroup) Delete(ctx context.Context, mg resource.Managed) e
 	apiResponse, err := c.service.DeleteTargetGroup(ctx, cr.Status.AtProvider.TargetGroupID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete target group. error: %w", err)
-		return compute.AddAPIResponseInfo(apiResponse, retErr)
+		return compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err

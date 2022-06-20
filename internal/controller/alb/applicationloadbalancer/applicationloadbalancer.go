@@ -26,7 +26,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rung/go-safecast"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,14 +49,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 )
 
-const (
-	errNotApplicationLoadBalancer = "managed resource is not a ApplicationLoadBalancer custom resource"
-	errTrackPCUsage               = "cannot track ProviderConfig usage"
-	errGetPC                      = "cannot get ProviderConfig"
-	errGetCreds                   = "cannot get credentials"
-
-	errNewClient = "cannot create new Service"
-)
+const errNotApplicationLoadBalancer = "managed resource is not a ApplicationLoadBalancer custom resource"
 
 // Setup adds a controller that reconciles ApplicationLoadBalancer managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod time.Duration) error {
@@ -101,27 +93,11 @@ func (c *connectorApplicationLoadBalancer) Connect(ctx context.Context, mg resou
 	if !ok {
 		return nil, errors.New(errNotApplicationLoadBalancer)
 	}
-
-	if err := c.usage.Track(ctx, mg); err != nil {
-		return nil, errors.Wrap(err, errTrackPCUsage)
-	}
-
-	pc := &apisv1alpha1.ProviderConfig{}
-	if err := c.kube.Get(ctx, types.NamespacedName{Name: mg.GetProviderConfigReference().Name}, pc); err != nil {
-		return nil, errors.Wrap(err, errGetPC)
-	}
-
-	cd := pc.Spec.Credentials
-	data, err := resource.CommonCredentialExtractor(ctx, cd.Source, c.kube, cd.CommonCredentialSelectors)
-	if err != nil {
-		return nil, errors.Wrap(err, errGetCreds)
-	}
-
-	svc, err := clients.NewIonosClients(data)
-	if err != nil {
-		return nil, errors.Wrap(err, errNewClient)
-	}
-	return &externalApplicationLoadBalancer{service: &applicationloadbalancer.APIClient{IonosServices: svc}, ipblockService: &ipblock.APIClient{IonosServices: svc}, log: c.log}, nil
+	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
+	return &externalApplicationLoadBalancer{
+		service:        &applicationloadbalancer.APIClient{IonosServices: svc},
+		ipBlockService: &ipblock.APIClient{IonosServices: svc},
+		log:            c.log}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -130,7 +106,7 @@ type externalApplicationLoadBalancer struct {
 	// A 'client' used to connect to the externalApplicationLoadBalancer resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
 	service        applicationloadbalancer.Client
-	ipblockService ipblock.Client
+	ipBlockService ipblock.Client
 	log            logging.Logger
 }
 
@@ -292,7 +268,7 @@ func (c *externalApplicationLoadBalancer) Delete(ctx context.Context, mg resourc
 	apiResponse, err := c.service.DeleteApplicationLoadBalancer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ApplicationLoadBalancerID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete application load balancer. error: %w", err)
-		return compute.AddAPIResponseInfo(apiResponse, retErr)
+		return compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 	// This is a temporary solution until API requests for ALB are processed faster.
 	c.log.Debug("Waiting for request...")
@@ -314,7 +290,7 @@ func (c *externalApplicationLoadBalancer) getIPsSet(ctx context.Context, cr *v1a
 	ips := make([]string, 0)
 	if len(cr.Spec.ForProvider.IpsCfg.IPBlockCfgs) > 0 {
 		for _, cfg := range cr.Spec.ForProvider.IpsCfg.IPBlockCfgs {
-			ipsCfg, err := c.ipblockService.GetIPs(ctx, cfg.IPBlockID, cfg.Indexes...)
+			ipsCfg, err := c.ipBlockService.GetIPs(ctx, cfg.IPBlockID, cfg.Indexes...)
 			if err != nil {
 				return nil, err
 			}

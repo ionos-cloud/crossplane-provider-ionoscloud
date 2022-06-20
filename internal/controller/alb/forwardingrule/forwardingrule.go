@@ -24,7 +24,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -48,14 +47,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 )
 
-const (
-	errNotForwardingRule = "managed resource is not a ApplicationLoadBalancer ForwardingRule custom resource"
-	errTrackPCUsage      = "cannot track ProviderConfig usage"
-	errGetPC             = "cannot get ProviderConfig"
-	errGetCreds          = "cannot get credentials"
-
-	errNewClient = "cannot create new Service"
-)
+const errNotForwardingRule = "managed resource is not a ApplicationLoadBalancer ForwardingRule custom resource"
 
 // Setup adds a controller that reconciles ForwardingRule managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod time.Duration) error {
@@ -99,27 +91,11 @@ func (c *connectorForwardingRule) Connect(ctx context.Context, mg resource.Manag
 	if !ok {
 		return nil, errors.New(errNotForwardingRule)
 	}
-
-	if err := c.usage.Track(ctx, mg); err != nil {
-		return nil, errors.Wrap(err, errTrackPCUsage)
-	}
-
-	pc := &apisv1alpha1.ProviderConfig{}
-	if err := c.kube.Get(ctx, types.NamespacedName{Name: mg.GetProviderConfigReference().Name}, pc); err != nil {
-		return nil, errors.Wrap(err, errGetPC)
-	}
-
-	cd := pc.Spec.Credentials
-	data, err := resource.CommonCredentialExtractor(ctx, cd.Source, c.kube, cd.CommonCredentialSelectors)
-	if err != nil {
-		return nil, errors.Wrap(err, errGetCreds)
-	}
-
-	svc, err := clients.NewIonosClients(data)
-	if err != nil {
-		return nil, errors.Wrap(err, errNewClient)
-	}
-	return &externalForwardingRule{service: &forwardingrule.APIClient{IonosServices: svc}, ipBlockService: &ipblock.APIClient{IonosServices: svc}, log: c.log}, nil
+	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
+	return &externalForwardingRule{
+		service:        &forwardingrule.APIClient{IonosServices: svc},
+		ipBlockService: &ipblock.APIClient{IonosServices: svc},
+		log:            c.log}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -265,7 +241,7 @@ func (c *externalForwardingRule) Delete(ctx context.Context, mg resource.Managed
 		cr.Spec.ForProvider.ALBCfg.ApplicationLoadBalancerID, cr.Status.AtProvider.ForwardingRuleID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete application load balancer forwarding rule. error: %w", err)
-		return compute.AddAPIResponseInfo(apiResponse, retErr)
+		return compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 	// This is a temporary solution until API requests for ALB are processed faster.
 	c.log.Debug("Waiting for request...")
