@@ -7,7 +7,7 @@ require (
 	github.com/crossplane/crossplane-tools v0.0.0-20220106150503-21c1d7761d68
 	github.com/google/go-cmp v0.5.6
 	github.com/ionos-cloud/sdk-go-dbaas-postgres v1.0.3
-	github.com/ionos-cloud/sdk-go/v6 v6.0.4
+	github.com/ionos-cloud/sdk-go/v6 v6.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/rung/go-safecast v1.0.1
 	github.com/stretchr/testify v1.7.0
@@ -81,5 +81,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
-
-replace github.com/ionos-cloud/sdk-go/v6 => ../v6/sdk-go
