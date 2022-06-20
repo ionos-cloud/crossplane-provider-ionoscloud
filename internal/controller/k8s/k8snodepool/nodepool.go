@@ -267,7 +267,7 @@ func (c *externalNodePool) Delete(ctx context.Context, mg resource.Managed) erro
 	apiResponse, err = c.service.DeleteK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, cr.Status.AtProvider.NodePoolID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete k8s nodepool. error: %w", err)
-		return compute.AddAPIResponseInfo(apiResponse, retErr)
+		return compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 	return nil
 }

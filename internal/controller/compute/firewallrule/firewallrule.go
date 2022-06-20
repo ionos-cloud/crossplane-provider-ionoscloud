@@ -255,7 +255,7 @@ func (c *externalFirewallRule) Delete(ctx context.Context, mg resource.Managed) 
 		cr.Spec.ForProvider.ServerCfg.ServerID, cr.Spec.ForProvider.NicCfg.NicID, cr.Status.AtProvider.FirewallRuleID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete firewallRule. error: %w", err)
-		return compute.AddAPIResponseInfo(apiResponse, retErr)
+		return compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err

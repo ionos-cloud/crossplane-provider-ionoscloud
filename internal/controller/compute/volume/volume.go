@@ -214,7 +214,7 @@ func (c *externalVolume) Delete(ctx context.Context, mg resource.Managed) error 
 	apiResponse, err := c.service.DeleteVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.VolumeID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete volume. error: %w", err)
-		return compute.AddAPIResponseInfo(apiResponse, retErr)
+		return compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err
