@@ -45,13 +45,7 @@ import (
 )
 
 const (
-	errNotK8sCluster   = "managed resource is not a K8s Cluster custom resource"
-	errClusterIDNotSet = "cluster id not yet set"
-	errTrackPCUsage    = "cannot track ProviderConfig usage"
-	errGetPC           = "cannot get ProviderConfig"
-	errGetCreds        = "cannot get credentials"
-
-	errNewClient = "cannot create new Service"
+	errNotK8sCluster = "managed resource is not a K8s Cluster custom resource"
 )
 
 // Setup adds a controller that reconciles K8sCluster managed resources.

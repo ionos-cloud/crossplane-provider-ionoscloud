@@ -9,7 +9,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
-func Test_isUpToDate(t *testing.T) {
+func TestIsUpToDate(t *testing.T) {
 	type args struct {
 		cr      *v1alpha1.Cluster
 		cluster ionoscloud.KubernetesCluster
