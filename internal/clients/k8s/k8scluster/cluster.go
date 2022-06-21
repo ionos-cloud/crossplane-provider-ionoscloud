@@ -79,7 +79,7 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 }
 
 // GenerateCreateK8sClusterInput returns sdkgo.KubernetesClusterForPost based on the CR spec
-func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClusterForPost, error) {
+func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) *sdkgo.KubernetesClusterForPost {
 	instanceCreateInput := sdkgo.KubernetesClusterForPost{
 		Properties: &sdkgo.KubernetesClusterPropertiesForPost{
 			Name: &cr.Spec.ForProvider.Name,
@@ -97,11 +97,11 @@ func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClust
 	if window := clusterMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
 		instanceCreateInput.Properties.SetMaintenanceWindow(*window)
 	}
-	return &instanceCreateInput, nil
+	return &instanceCreateInput
 }
 
 // GenerateUpdateK8sClusterInput returns sdkgo.KubernetesClusterForPut based on the CR spec modifications
-func GenerateUpdateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClusterForPut, error) {
+func GenerateUpdateK8sClusterInput(cr *v1alpha1.Cluster) *sdkgo.KubernetesClusterForPut {
 	instanceUpdateInput := sdkgo.KubernetesClusterForPut{
 		Properties: &sdkgo.KubernetesClusterPropertiesForPut{
 			Name:               &cr.Spec.ForProvider.Name,
@@ -117,7 +117,7 @@ func GenerateUpdateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClust
 	if window := clusterMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
 		instanceUpdateInput.Properties.SetMaintenanceWindow(*window)
 	}
-	return &instanceUpdateInput, nil
+	return &instanceUpdateInput
 }
 
 // LateInitializer fills the empty fields in *v1alpha1.ClusterParameters with

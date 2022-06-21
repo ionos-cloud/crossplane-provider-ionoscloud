@@ -46,7 +46,7 @@ import (
 // https://github.com/golang/go/wiki/TestComments
 // https://github.com/crossplane/crossplane/blob/master/CONTRIBUTING.md#contributing-code
 
-func Test_externalControlPlaneClient_Observe(t *testing.T) {
+func TestExternalControlPlaneClientObserve(t *testing.T) {
 	tests := []struct {
 		name                    string
 		setupControlPlaneClient func(client *k8scluster.MockClient)
@@ -357,7 +357,7 @@ func Test_externalControlPlaneClient_Observe(t *testing.T) {
 	}
 }
 
-func Test_externalControlPlaneClient_Delete(t *testing.T) {
+func TestExternalControlPlaneClientDelete(t *testing.T) {
 	tests := []struct {
 		name                    string
 		setupControlPlaneClient func(client *k8scluster.MockClient)
@@ -374,13 +374,7 @@ func Test_externalControlPlaneClient_Delete(t *testing.T) {
 		{
 			name: "Cluster does not exist",
 			setupControlPlaneClient: func(client *k8scluster.MockClient) {
-				client.EXPECT().GetK8sCluster(context.Background(), "cluster-id").Return(ionoscloud.KubernetesCluster{
-					Properties: nil,
-				}, &ionoscloud.APIResponse{
-					Response: &http.Response{
-						StatusCode: http.StatusNotFound,
-					},
-				}, errors.New("not found"))
+				client.EXPECT().HasActiveK8sNodePools(context.Background(), "cluster-id").Return(false, errors.New("not found"))
 			},
 			args: func() *v1alpha1.Cluster {
 				np := &v1alpha1.Cluster{
@@ -389,6 +383,7 @@ func Test_externalControlPlaneClient_Delete(t *testing.T) {
 							Name: "foo",
 						},
 					},
+					Status: v1alpha1.ClusterStatus{AtProvider: v1alpha1.ClusterObservation{ClusterID: "cluster-id"}},
 				}
 				meta.SetExternalName(np, "cluster-id")
 				return np
@@ -398,14 +393,8 @@ func Test_externalControlPlaneClient_Delete(t *testing.T) {
 		{
 			name: "Cluster delete",
 			setupControlPlaneClient: func(client *k8scluster.MockClient) {
-				get := client.EXPECT().
-					GetK8sCluster(context.Background(), "cluster-id").
-					Return(ionoscloud.KubernetesCluster{
-						Metadata: &ionoscloud.DatacenterElementMetadata{
-							State: utils.PointerString(k8s.ACTIVE),
-						},
-					}, nil, nil)
-				client.EXPECT().DeleteK8sCluster(context.Background(), "cluster-id").Return(nil).After(get)
+				nodepools := client.EXPECT().HasActiveK8sNodePools(context.Background(), "cluster-id").Return(false, nil)
+				client.EXPECT().DeleteK8sCluster(context.Background(), "cluster-id").Return(&ionoscloud.APIResponse{}, nil).After(nodepools)
 			},
 			args: func() *v1alpha1.Cluster {
 				np := &v1alpha1.Cluster{
@@ -414,6 +403,7 @@ func Test_externalControlPlaneClient_Delete(t *testing.T) {
 							Name: "foo",
 						},
 					},
+					Status: v1alpha1.ClusterStatus{AtProvider: v1alpha1.ClusterObservation{ClusterID: "cluster-id", State: "ACTIVE"}},
 				}
 				meta.SetExternalName(np, "cluster-id")
 				return np
@@ -423,17 +413,11 @@ func Test_externalControlPlaneClient_Delete(t *testing.T) {
 		{
 			name: "ionos API error",
 			setupControlPlaneClient: func(client *k8scluster.MockClient) {
-				get := client.EXPECT().
-					GetK8sCluster(context.Background(), "cluster-id").
-					Return(ionoscloud.KubernetesCluster{
-						Metadata: &ionoscloud.DatacenterElementMetadata{
-							State: utils.PointerString(k8s.ACTIVE),
-						},
-					}, nil, nil)
+				nodepools := client.EXPECT().HasActiveK8sNodePools(context.Background(), "cluster-id").Return(false, nil)
 				client.EXPECT().
 					DeleteK8sCluster(context.Background(), "cluster-id").
-					Return(errors.New("API error")).
-					After(get)
+					Return(&ionoscloud.APIResponse{}, errors.New("API error")).
+					After(nodepools)
 			},
 			args: func() *v1alpha1.Cluster {
 				np := &v1alpha1.Cluster{
@@ -442,6 +426,7 @@ func Test_externalControlPlaneClient_Delete(t *testing.T) {
 							Name: "foo",
 						},
 					},
+					Status: v1alpha1.ClusterStatus{AtProvider: v1alpha1.ClusterObservation{ClusterID: "cluster-id", State: "ACTIVE"}},
 				}
 				meta.SetExternalName(np, "cluster-id")
 				return np
@@ -459,6 +444,7 @@ func Test_externalControlPlaneClient_Delete(t *testing.T) {
 							Name: "foo",
 						},
 					},
+					Status: v1alpha1.ClusterStatus{AtProvider: v1alpha1.ClusterObservation{ClusterID: ""}},
 				}
 				meta.SetExternalName(np, "")
 				return np
@@ -468,11 +454,7 @@ func Test_externalControlPlaneClient_Delete(t *testing.T) {
 		{
 			name: "already destroying",
 			setupControlPlaneClient: func(client *k8scluster.MockClient) {
-				client.EXPECT().GetK8sCluster(context.Background(), "cluster-id").Return(ionoscloud.KubernetesCluster{
-					Metadata: &ionoscloud.DatacenterElementMetadata{
-						State: utils.PointerString(k8s.DESTROYING),
-					},
-				}, nil, nil)
+				client.EXPECT().HasActiveK8sNodePools(context.Background(), "cluster-id").Return(false, nil)
 			},
 			args: func() *v1alpha1.Cluster {
 				np := &v1alpha1.Cluster{
@@ -481,6 +463,26 @@ func Test_externalControlPlaneClient_Delete(t *testing.T) {
 							Name: "foo",
 						},
 					},
+					Status: v1alpha1.ClusterStatus{AtProvider: v1alpha1.ClusterObservation{ClusterID: "cluster-id", State: "DESTROYING"}},
+				}
+				meta.SetExternalName(np, "cluster-id")
+				return np
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "already terminated",
+			setupControlPlaneClient: func(client *k8scluster.MockClient) {
+				client.EXPECT().HasActiveK8sNodePools(context.Background(), "cluster-id").Return(false, nil)
+			},
+			args: func() *v1alpha1.Cluster {
+				np := &v1alpha1.Cluster{
+					Spec: v1alpha1.ClusterSpec{
+						ForProvider: v1alpha1.ClusterParameters{
+							Name: "foo",
+						},
+					},
+					Status: v1alpha1.ClusterStatus{AtProvider: v1alpha1.ClusterObservation{ClusterID: "cluster-id", State: "TERMINATED"}},
 				}
 				meta.SetExternalName(np, "cluster-id")
 				return np
@@ -490,33 +492,8 @@ func Test_externalControlPlaneClient_Delete(t *testing.T) {
 		{
 			name: "Cluster has nodepools",
 			setupControlPlaneClient: func(client *k8scluster.MockClient) {
-				client.EXPECT().GetK8sCluster(context.Background(), "cluster-id").Return(ionoscloud.KubernetesCluster{
-					Metadata: &ionoscloud.DatacenterElementMetadata{
-						State: utils.PointerString(k8s.DEPLOYING),
-					},
-					Properties: &ionoscloud.KubernetesClusterProperties{
-						Name:       utils.PointerString("node-pool-name"),
-						K8sVersion: utils.PointerString("1.22.33"),
-					},
-					Entities: &ionoscloud.KubernetesClusterEntities{
-						Nodepools: &ionoscloud.KubernetesNodePools{
-							Id:   utils.PointerString("nodepools-id"),
-							Type: nil,
-							Href: nil,
-							Items: &[]ionoscloud.KubernetesNodePool{
-								{
-									Id:       utils.PointerString("nodepool-id"),
-									Type:     nil,
-									Href:     nil,
-									Metadata: nil,
-									Properties: &ionoscloud.KubernetesNodePoolProperties{
-										Name: utils.PointerString("nodepool-name"),
-									},
-								},
-							},
-						},
-					},
-				}, nil, nil)
+				client.EXPECT().HasActiveK8sNodePools(context.Background(), "cluster-id").Return(true, nil)
+
 			},
 			args: func() *v1alpha1.Cluster {
 				np := &v1alpha1.Cluster{
@@ -526,6 +503,7 @@ func Test_externalControlPlaneClient_Delete(t *testing.T) {
 							K8sVersion: "1.33.44",
 						},
 					},
+					Status: v1alpha1.ClusterStatus{AtProvider: v1alpha1.ClusterObservation{ClusterID: "cluster-id", State: "DESTROYING"}},
 				}
 				meta.SetExternalName(np, "cluster-id")
 				return np
@@ -535,11 +513,7 @@ func Test_externalControlPlaneClient_Delete(t *testing.T) {
 		{
 			name: "still deploying",
 			setupControlPlaneClient: func(client *k8scluster.MockClient) {
-				client.EXPECT().GetK8sCluster(context.Background(), "cluster-id").Return(ionoscloud.KubernetesCluster{
-					Metadata: &ionoscloud.DatacenterElementMetadata{
-						State: utils.PointerString(k8s.DEPLOYING),
-					},
-				}, nil, nil)
+				client.EXPECT().HasActiveK8sNodePools(context.Background(), "cluster-id").Return(false, nil)
 			},
 			args: func() *v1alpha1.Cluster {
 				np := &v1alpha1.Cluster{
@@ -548,6 +522,7 @@ func Test_externalControlPlaneClient_Delete(t *testing.T) {
 							Name: "foo",
 						},
 					},
+					Status: v1alpha1.ClusterStatus{AtProvider: v1alpha1.ClusterObservation{ClusterID: "cluster-id", State: "DEPLOYING"}},
 				}
 				meta.SetExternalName(np, "cluster-id")
 				return np
@@ -575,7 +550,7 @@ func Test_externalControlPlaneClient_Delete(t *testing.T) {
 	}
 }
 
-func Test_externalControlPlaneClient_Create(t *testing.T) {
+func TestExternalControlPlaneClientCreate(t *testing.T) {
 
 	tests := []struct {
 		name                    string
@@ -595,6 +570,26 @@ func Test_externalControlPlaneClient_Create(t *testing.T) {
 				Type:   "Ready",
 				Status: "Unknown",
 			},
+		},
+		{
+			name:                    "Already deploying",
+			setupControlPlaneClient: func(client *k8scluster.MockClient) {},
+			args: func() *v1alpha1.Cluster {
+				np := &v1alpha1.Cluster{
+					Spec: v1alpha1.ClusterSpec{
+						ForProvider: v1alpha1.ClusterParameters{
+							Name:       "testCluster",
+							K8sVersion: "v1.22.33",
+						},
+					},
+					Status: v1alpha1.ClusterStatus{AtProvider: v1alpha1.ClusterObservation{State: "DEPLOYING"}},
+				}
+				return np
+			}(),
+			want:             managed.ExternalCreation{},
+			wantErr:          false,
+			wantExternalName: "",
+			wantCondition:    xpv1.Creating(),
 		},
 		{
 			name: "Cluster creation",
@@ -759,7 +754,7 @@ func (n clusterPutMatcher) String() string {
 	return mustMarshal(n.expected)
 }
 
-func Test_externalControlPlaneClient_Update(t *testing.T) {
+func TestExternalControlPlaneClientUpdate(t *testing.T) {
 
 	tests := []struct {
 		name                    string
@@ -775,6 +770,28 @@ func Test_externalControlPlaneClient_Update(t *testing.T) {
 			},
 			args:    &v1alpha1.NodePool{},
 			wantErr: true,
+			wantCondition: xpv1.Condition{
+				Type:   "Ready",
+				Status: "Unknown",
+			},
+		},
+		{
+			name: "Already updating",
+			setupControlPlaneClient: func(client *k8scluster.MockClient) {
+			},
+			args: func() *v1alpha1.Cluster {
+				np := &v1alpha1.Cluster{
+					Spec: v1alpha1.ClusterSpec{
+						ForProvider: v1alpha1.ClusterParameters{
+							Name:       "testCluster",
+							K8sVersion: "v1.22.33",
+						},
+					},
+					Status: v1alpha1.ClusterStatus{AtProvider: v1alpha1.ClusterObservation{State: "UPDATING"}},
+				}
+				return np
+			}(),
+			wantErr: false,
 			wantCondition: xpv1.Condition{
 				Type:   "Ready",
 				Status: "Unknown",
