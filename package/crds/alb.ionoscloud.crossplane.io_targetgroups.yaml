@@ -39,10 +39,6 @@ spec:
       name: ALGORITHM
       priority: 1
       type: string
-    - jsonPath: .status.atProvider.targetIps
-      name: TARGET IPS
-      priority: 1
-      type: string
     - jsonPath: .status.atProvider.state
       name: STATE
       type: string
@@ -260,10 +256,6 @@ spec:
                     type: string
                   targetGroupId:
                     type: string
-                  targetIps:
-                    items:
-                      type: string
-                    type: array
                 type: object
               conditions:
                 description: Conditions of the resource.

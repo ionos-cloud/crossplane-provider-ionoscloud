@@ -161,9 +161,8 @@ type TargetGroupConfig struct {
 
 // TargetGroupObservation are the observable fields of an TargetGroup.
 type TargetGroupObservation struct {
-	TargetGroupID string   `json:"targetGroupId,omitempty"`
-	TargetIPs     []string `json:"targetIps,omitempty"`
-	State         string   `json:"state,omitempty"`
+	TargetGroupID string `json:"targetGroupId,omitempty"`
+	State         string `json:"state,omitempty"`
 }
 
 // TargetGroupSpec defines the desired state of an TargetGroup.
@@ -187,7 +186,6 @@ type TargetGroupStatus struct {
 // +kubebuilder:printcolumn:name="TARGETGROUP NAME",type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="PROTOCOL",priority=1,type="string",JSONPath=".spec.forProvider.protocol"
 // +kubebuilder:printcolumn:name="ALGORITHM",priority=1,type="string",JSONPath=".spec.forProvider.algorithm"
-// +kubebuilder:printcolumn:name="TARGET IPS",priority=1,type="string",JSONPath=".status.atProvider.targetIps"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
