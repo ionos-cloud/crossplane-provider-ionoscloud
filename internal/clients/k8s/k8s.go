@@ -1,12 +1,14 @@
 package k8s
 
+import "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
+
 // States of K8s Resources
 const (
-	AVAILABLE  = "AVAILABLE"
-	BUSY       = "BUSY"
+	AVAILABLE  = compute.AVAILABLE
+	BUSY       = compute.BUSY
 	DEPLOYING  = "DEPLOYING"
-	ACTIVE     = "ACTIVE"
-	UPDATING   = "UPDATING"
-	DESTROYING = "DESTROYING"
+	ACTIVE     = compute.ACTIVE
+	UPDATING   = compute.UPDATING
+	DESTROYING = compute.DESTROYING
 	TERMINATED = "TERMINATED"
 )

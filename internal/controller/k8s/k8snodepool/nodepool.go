@@ -137,16 +137,7 @@ func (c *externalNodePool) Observe(ctx context.Context, mg resource.Managed) (ma
 	cr.Status.AtProvider.NodePoolID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
-	switch cr.Status.AtProvider.State {
-	case k8s.AVAILABLE, k8s.ACTIVE:
-		cr.SetConditions(xpv1.Available())
-	case k8s.DESTROYING, k8s.TERMINATED:
-		cr.SetConditions(xpv1.Deleting())
-	case k8s.BUSY, k8s.DEPLOYING, k8s.UPDATING:
-		cr.SetConditions(xpv1.Creating())
-	default:
-		cr.SetConditions(xpv1.Unavailable())
-	}
+	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
 	publicIps, err := c.getPublicIPsSet(ctx, cr)
 	if err != nil {

@@ -134,16 +134,7 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&instance)
 	c.log.Debug(fmt.Sprintf("Observing state %v...", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
-	switch cr.Status.AtProvider.State {
-	case compute.AVAILABLE, compute.ACTIVE:
-		cr.SetConditions(xpv1.Available())
-	case compute.BUSY, compute.UPDATING:
-		cr.SetConditions(xpv1.Creating())
-	case compute.DESTROYING:
-		cr.SetConditions(xpv1.Deleting())
-	default:
-		cr.SetConditions(xpv1.Unavailable())
-	}
+	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
 	return managed.ExternalObservation{
 		ResourceExists:          true,

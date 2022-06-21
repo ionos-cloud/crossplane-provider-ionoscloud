@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	sdkdbaas "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
@@ -15,6 +16,8 @@ import (
 	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
 )
 
 const (
@@ -163,4 +166,24 @@ func GetDBaaSResourceState(object DBaaSResource) sdkdbaas.State {
 		}
 	}
 	return ""
+}
+
+// ResourceWithState is a resource which allow to update the conditions
+type ResourceWithState interface {
+	SetConditions(c ...xpv1.Condition)
+}
+
+// UpdateCondition will update the condition of the given ResourceWithState to the given state. This
+// function implements the common mapping of ionos cloud states to crossplane conditions
+func UpdateCondition(cr ResourceWithState, state string) {
+	switch state {
+	case compute.AVAILABLE, compute.ACTIVE:
+		cr.SetConditions(xpv1.Available())
+	case compute.DESTROYING, k8s.TERMINATED:
+		cr.SetConditions(xpv1.Deleting())
+	case compute.BUSY, k8s.DEPLOYING, compute.UPDATING:
+		cr.SetConditions(xpv1.Creating())
+	default:
+		cr.SetConditions(xpv1.Unavailable())
+	}
 }
