@@ -133,7 +133,7 @@ func (c *externalFirewallRule) Observe(ctx context.Context, mg resource.Managed)
 			cr.Status.AtProvider.TargetIP = ""
 		}
 	}
-	
+
 	cr.Status.AtProvider.State = clients.GetDatacenterElementState(&observed)
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 
