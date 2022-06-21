@@ -5,6 +5,8 @@
 - **Features**:
   - Allow to set a global IONOS_API_URL overwrite in the provider pod via environment variables
 
+- **Tests** 
+  - Add unit tests for k8s cluster 
 ## [1.0.0-beta.2] (June 2022)
 
 - **Features**:
