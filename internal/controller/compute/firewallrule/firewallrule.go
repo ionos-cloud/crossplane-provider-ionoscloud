@@ -134,7 +134,7 @@ func (c *externalFirewallRule) Observe(ctx context.Context, mg resource.Managed)
 		}
 	}
 
-	cr.Status.AtProvider.State = clients.GetDatacenterElementState(&observed)
+	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 
 	// Set Ready condition based on State

@@ -129,7 +129,7 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 
 	// Set Ready condition based on State
 	cr.Status.AtProvider.ClusterID = meta.GetExternalName(cr)
-	cr.Status.AtProvider.State = clients.GetDatacenterElementState(&observed)
+	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
 	switch cr.Status.AtProvider.State {
 	case k8s.AVAILABLE, k8s.ACTIVE:
 		cr.SetConditions(xpv1.Available())

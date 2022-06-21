@@ -156,3 +156,112 @@ func TestNewIonosClient(t *testing.T) {
 		})
 	}
 }
+
+func TestGetCoreResourceState(t *testing.T) {
+
+	tests := []struct {
+		name string
+		args *testCoreResource
+		want string
+	}{
+		{
+			name: "nil test resource",
+			args: nil,
+			want: "",
+		},
+		{
+			name: "found nil metadata",
+			args: &testCoreResource{metadata: nil, found: true},
+			want: "",
+		},
+		{
+			name: "found metadata with nil state",
+			args: &testCoreResource{metadata: &ionos.DatacenterElementMetadata{State: nil}, found: true},
+			want: "",
+		},
+		{
+			name: "found metadata with state",
+			args: &testCoreResource{metadata: &ionos.DatacenterElementMetadata{State: ionos.PtrString("foo")}, found: true},
+			want: "foo",
+		},
+		{
+			name: "found metadata no metadata, but it's present",
+			args: &testCoreResource{metadata: &ionos.DatacenterElementMetadata{State: ionos.PtrString("foo")}, found: false},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, GetCoreResourceState(tt.args))
+		})
+	}
+}
+
+type testCoreResource struct {
+	metadata *ionos.DatacenterElementMetadata
+	found    bool
+}
+
+func (t *testCoreResource) GetMetadataOk() (*ionos.DatacenterElementMetadata, bool) {
+	if t == nil {
+		return nil, false
+	}
+	return t.metadata, t.found
+}
+
+func TestGetDBaaSResourceState(t *testing.T) {
+
+	ptrState := func(in string) *ionosdbaas.State {
+		state := ionosdbaas.State(in)
+		return &state
+	}
+
+	tests := []struct {
+		name string
+		args *testDbaaSResource
+		want ionosdbaas.State
+	}{
+		{
+			name: "nil test resource",
+			args: nil,
+			want: "",
+		},
+		{
+			name: "found nil metadata",
+			args: &testDbaaSResource{metadata: nil, found: true},
+			want: "",
+		},
+		{
+			name: "found metadata with nil state",
+			args: &testDbaaSResource{metadata: &ionosdbaas.Metadata{State: nil}, found: true},
+			want: "",
+		},
+		{
+			name: "found metadata with state",
+			args: &testDbaaSResource{metadata: &ionosdbaas.Metadata{State: ptrState("foo")}, found: true},
+			want: "foo",
+		},
+		{
+			name: "found metadata no metadata, but it's present",
+			args: &testDbaaSResource{metadata: &ionosdbaas.Metadata{State: ptrState("foo")}, found: false},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, GetDBaaSResourceState(tt.args))
+		})
+	}
+}
+
+type testDbaaSResource struct {
+	metadata *ionosdbaas.Metadata
+	found    bool
+}
+
+func (t *testDbaaSResource) GetMetadataOk() (*ionosdbaas.Metadata, bool) {
+	if t == nil {
+		return nil, false
+	}
+	return t.metadata, t.found
+}

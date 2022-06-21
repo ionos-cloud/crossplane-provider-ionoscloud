@@ -118,7 +118,7 @@ func (c *externalLan) Observe(ctx context.Context, mg resource.Managed) (managed
 
 	cr.Status.AtProvider.IPFailovers = lan.GetIPFailoverIPs(instance)
 	cr.Status.AtProvider.LanID = meta.GetExternalName(cr)
-	cr.Status.AtProvider.State = clients.GetDatacenterElementState(&instance)
+	cr.Status.AtProvider.State = clients.GetCoreResourceState(&instance)
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
 	switch cr.Status.AtProvider.State {

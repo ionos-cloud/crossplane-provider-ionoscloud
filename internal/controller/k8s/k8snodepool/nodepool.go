@@ -135,7 +135,7 @@ func (c *externalNodePool) Observe(ctx context.Context, mg resource.Managed) (ma
 
 	// Set Ready condition based on State
 	cr.Status.AtProvider.NodePoolID = meta.GetExternalName(cr)
-	cr.Status.AtProvider.State = clients.GetDatacenterElementState(&observed)
+	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	switch cr.Status.AtProvider.State {
 	case k8s.AVAILABLE, k8s.ACTIVE:
