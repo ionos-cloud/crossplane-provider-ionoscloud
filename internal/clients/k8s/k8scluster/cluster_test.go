@@ -6,7 +6,6 @@ import (
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 func TestIsUpToDate(t *testing.T) {
@@ -32,7 +31,7 @@ func TestIsUpToDate(t *testing.T) {
 			args: args{
 				cr: nil,
 				cluster: ionoscloud.KubernetesCluster{Properties: &ionoscloud.KubernetesClusterProperties{
-					K8sVersion: utils.PointerString("v1.2.3"),
+					K8sVersion: ionoscloud.PtrString("v1.2.3"),
 				}},
 			},
 			want: false,
@@ -62,10 +61,10 @@ func TestIsUpToDate(t *testing.T) {
 					},
 				},
 				cluster: ionoscloud.KubernetesCluster{Properties: &ionoscloud.KubernetesClusterProperties{
-					K8sVersion: utils.PointerString("v1.2.3"),
+					K8sVersion: ionoscloud.PtrString("v1.2.3"),
 					MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
-						DayOfTheWeek: utils.PointerString("Mon"),
-						Time:         utils.PointerString("15:24:30Z"),
+						DayOfTheWeek: ionoscloud.PtrString("Mon"),
+						Time:         ionoscloud.PtrString("15:24:30Z"),
 					},
 				}}},
 			want: true,
@@ -86,10 +85,10 @@ func TestIsUpToDate(t *testing.T) {
 					},
 				},
 				cluster: ionoscloud.KubernetesCluster{Properties: &ionoscloud.KubernetesClusterProperties{
-					K8sVersion: utils.PointerString("v1.2.3"),
+					K8sVersion: ionoscloud.PtrString("v1.2.3"),
 					MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
-						DayOfTheWeek: utils.PointerString("Mon"),
-						Time:         utils.PointerString("15:24:30Z"),
+						DayOfTheWeek: ionoscloud.PtrString("Mon"),
+						Time:         ionoscloud.PtrString("15:24:30Z"),
 					},
 				}}},
 			want: false,

@@ -229,7 +229,7 @@ func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error
 		apiResponse, err := c.service.DeleteK8sCluster(ctx, cr.Status.AtProvider.ClusterID)
 		if err != nil {
 			retErr := fmt.Errorf("failed to delete k8s cluster. error: %w", err)
-			return compute.AddAPIResponseInfo(apiResponse, retErr)
+			return compute.CheckAPIResponseInfo(apiResponse, retErr)
 		}
 	default:
 		return fmt.Errorf("resource needs to be in ACTIVE state to delete it, current state: %v", cr.Status.AtProvider.State)

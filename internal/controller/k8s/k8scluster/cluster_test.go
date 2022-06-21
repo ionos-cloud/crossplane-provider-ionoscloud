@@ -145,10 +145,10 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 			setupControlPlaneClient: func(client *k8scluster.MockClient) {
 				client.EXPECT().GetK8sCluster(context.Background(), "cluster-id").Return(ionoscloud.KubernetesCluster{
 					Properties: &ionoscloud.KubernetesClusterProperties{
-						Name: utils.PointerString("cluster-name"),
+						Name: ionoscloud.PtrString("cluster-name"),
 					},
 					Metadata: &ionoscloud.DatacenterElementMetadata{
-						State: utils.PointerString(k8s.ACTIVE),
+						State: ionoscloud.PtrString(k8s.ACTIVE),
 					},
 				}, nil, nil)
 				client.EXPECT().GetKubeConfig(context.Background(), "cluster-id").Return("kubeconfig-base64", nil, nil)
@@ -178,10 +178,10 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 			setupControlPlaneClient: func(client *k8scluster.MockClient) {
 				client.EXPECT().GetK8sCluster(context.Background(), "cluster-id").Return(ionoscloud.KubernetesCluster{
 					Properties: &ionoscloud.KubernetesClusterProperties{
-						Name: utils.PointerString("cluster-name"),
+						Name: ionoscloud.PtrString("cluster-name"),
 					},
 					Metadata: &ionoscloud.DatacenterElementMetadata{
-						State: utils.PointerString(k8s.DESTROYING),
+						State: ionoscloud.PtrString(k8s.DESTROYING),
 					},
 				}, nil, nil)
 				client.EXPECT().GetKubeConfig(context.Background(), "cluster-id").Return("kubeconfig-base64", nil, nil)
@@ -211,8 +211,8 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 			setupControlPlaneClient: func(client *k8scluster.MockClient) {
 				client.EXPECT().GetK8sCluster(context.Background(), "cluster-id").Return(ionoscloud.KubernetesCluster{
 					Properties: &ionoscloud.KubernetesClusterProperties{
-						Name:       utils.PointerString("node-pool-name"),
-						K8sVersion: utils.PointerString("1.22.33"),
+						Name:       ionoscloud.PtrString("node-pool-name"),
+						K8sVersion: ionoscloud.PtrString("1.22.33"),
 					},
 				}, nil, nil)
 				client.EXPECT().GetKubeConfig(context.Background(), "cluster-id").Return("kubeconfig-base64", nil, nil)
@@ -303,11 +303,11 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 			setupControlPlaneClient: func(client *k8scluster.MockClient) {
 				client.EXPECT().GetK8sCluster(context.Background(), "cluster-id").Return(ionoscloud.KubernetesCluster{
 					Metadata: &ionoscloud.DatacenterElementMetadata{
-						State: utils.PointerString(k8s.DEPLOYING),
+						State: ionoscloud.PtrString(k8s.DEPLOYING),
 					},
 					Properties: &ionoscloud.KubernetesClusterProperties{
-						Name:       utils.PointerString("node-pool-name"),
-						K8sVersion: utils.PointerString("1.22.33"),
+						Name:       ionoscloud.PtrString("node-pool-name"),
+						K8sVersion: ionoscloud.PtrString("1.22.33"),
 					}}, nil, nil)
 				client.EXPECT().
 					GetKubeConfig(context.Background(), "cluster-id").
@@ -596,12 +596,12 @@ func TestExternalControlPlaneClientCreate(t *testing.T) {
 			setupControlPlaneClient: func(client *k8scluster.MockClient) {
 				expectedCluster := ionoscloud.KubernetesClusterForPost{
 					Properties: &ionoscloud.KubernetesClusterPropertiesForPost{
-						Name:       utils.PointerString("testCluster"),
-						K8sVersion: utils.PointerString("v1.22.33"),
+						Name:       ionoscloud.PtrString("testCluster"),
+						K8sVersion: ionoscloud.PtrString("v1.22.33"),
 					},
 				}
 				returnedCluster := ionoscloud.KubernetesCluster{
-					Id: utils.PointerString("1234"),
+					Id: ionoscloud.PtrString("1234"),
 				}
 				client.EXPECT().
 					CreateK8sCluster(
@@ -860,11 +860,11 @@ func TestExternalControlPlaneClientUpdate(t *testing.T) {
 					gomock.GotFormatterAdapter(clusterGotFormatter{}, matchesClusterPut(ionoscloud.KubernetesClusterForPut{
 						Properties: &ionoscloud.KubernetesClusterPropertiesForPut{
 							ApiSubnetAllowList: &[]string{},
-							Name:               utils.PointerString("testCluster"),
-							K8sVersion:         utils.PointerString("v1.22.33"),
+							Name:               ionoscloud.PtrString("testCluster"),
+							K8sVersion:         ionoscloud.PtrString("v1.22.33"),
 							MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
-								DayOfTheWeek: utils.PointerString("Mon"),
-								Time:         utils.PointerString("15:24:30Z"),
+								DayOfTheWeek: ionoscloud.PtrString("Mon"),
+								Time:         ionoscloud.PtrString("15:24:30Z"),
 							},
 						},
 					})),
