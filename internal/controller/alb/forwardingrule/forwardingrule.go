@@ -50,7 +50,7 @@ import (
 const errNotForwardingRule = "managed resource is not a ApplicationLoadBalancer ForwardingRule custom resource"
 
 // Setup adds a controller that reconciles ForwardingRule managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
 	name := managed.ControllerName(v1alpha1.ForwardingRuleGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -69,6 +69,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 			managed.WithInitializers(),
 			managed.WithCreationGracePeriod(creationGracePeriod),
 			managed.WithPollInterval(poll),
+			managed.WithTimeout(timeout),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }

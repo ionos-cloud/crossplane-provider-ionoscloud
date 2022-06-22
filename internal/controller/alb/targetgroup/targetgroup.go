@@ -46,7 +46,7 @@ import (
 const errNotTargetGroup = "managed resource is not a TargetGroup custom resource"
 
 // Setup adds a controller that reconciles TargetGroup managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration, creationGracePeriod time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration, creationGracePeriod, timeout time.Duration) error {
 	name := managed.ControllerName(v1alpha1.TargetGroupGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -65,6 +65,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll ti
 			managed.WithInitializers(),
 			managed.WithCreationGracePeriod(creationGracePeriod),
 			managed.WithPollInterval(poll),
+			managed.WithTimeout(timeout),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
