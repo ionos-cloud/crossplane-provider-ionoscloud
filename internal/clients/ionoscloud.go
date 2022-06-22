@@ -7,14 +7,17 @@ import (
 	"fmt"
 	"os"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
+	sdkdbaas "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
 )
 
 const (
@@ -45,7 +48,7 @@ func init() {
 
 // IonosServices contains ionos clients
 type IonosServices struct {
-	DBaaSPostgresClient *ionoscloud.APIClient
+	DBaaSPostgresClient *sdkdbaas.APIClient
 	ComputeClient       *sdkgo.APIClient
 }
 
@@ -88,9 +91,9 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 	}
 
 	// DBaaS Postgres Client
-	dbaasPostgresConfig := ionoscloud.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
+	dbaasPostgresConfig := sdkdbaas.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
 	dbaasPostgresConfig.UserAgent = fmt.Sprintf("%v_%v", UserAgent, dbaasPostgresConfig.UserAgent)
-	dbaasPostgresClient := ionoscloud.NewAPIClient(dbaasPostgresConfig)
+	dbaasPostgresClient := sdkdbaas.NewAPIClient(dbaasPostgresConfig)
 	// Compute Engine Client
 	computeEngineConfig := sdkgo.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
 	computeEngineConfig.UserAgent = fmt.Sprintf("%v_%v", UserAgent, computeEngineConfig.UserAgent)
@@ -125,4 +128,62 @@ func ConnectForCRD(ctx context.Context, mg resource.Managed, client kubeclient.C
 		return nil, errors.Wrap(err, errNewClient)
 	}
 	return svc, nil
+}
+
+// CoreResource is an ionos cloud API object with metadata
+type CoreResource interface {
+	GetMetadataOk() (*sdkgo.DatacenterElementMetadata, bool)
+}
+
+// GetCoreResourceState fetches the state of the metadata of the CoreResource
+// If either the metadata is nil, or the state is nil, the empty string is returned
+func GetCoreResourceState(object CoreResource) string {
+	if metadata, metadataOk := object.GetMetadataOk(); metadataOk {
+		if state, stateOk := metadata.GetStateOk(); stateOk {
+			if state != nil {
+				return *state
+			}
+			return ""
+		}
+	}
+	return ""
+}
+
+// DBaaSResource is an dbaas cloud API object with metadata
+type DBaaSResource interface {
+	GetMetadataOk() (*sdkdbaas.Metadata, bool)
+}
+
+// GetDBaaSResourceState fetches the state of the metadata of the CoreResource
+// If either the metadata is nil, or the state is nil, the empty string is returned
+func GetDBaaSResourceState(object DBaaSResource) sdkdbaas.State {
+	if metadata, metadataOk := object.GetMetadataOk(); metadataOk {
+		if state, stateOk := metadata.GetStateOk(); stateOk {
+			if state != nil {
+				return *state
+			}
+			return ""
+		}
+	}
+	return ""
+}
+
+// ResourceWithState is a resource which allow to update the conditions
+type ResourceWithState interface {
+	SetConditions(c ...xpv1.Condition)
+}
+
+// UpdateCondition will update the condition of the given ResourceWithState to the given state. This
+// function implements the common mapping of ionos cloud states to crossplane conditions
+func UpdateCondition(cr ResourceWithState, state string) {
+	switch state {
+	case compute.AVAILABLE, compute.ACTIVE:
+		cr.SetConditions(xpv1.Available())
+	case compute.DESTROYING, k8s.TERMINATED:
+		cr.SetConditions(xpv1.Deleting())
+	case compute.BUSY, k8s.DEPLOYING, compute.UPDATING:
+		cr.SetConditions(xpv1.Creating())
+	default:
+		cr.SetConditions(xpv1.Unavailable())
+	}
 }

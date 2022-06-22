@@ -8,6 +8,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/compare"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
@@ -78,7 +79,7 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 }
 
 // GenerateCreateK8sClusterInput returns sdkgo.KubernetesClusterForPost based on the CR spec
-func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClusterForPost, error) {
+func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) *sdkgo.KubernetesClusterForPost {
 	instanceCreateInput := sdkgo.KubernetesClusterForPost{
 		Properties: &sdkgo.KubernetesClusterPropertiesForPost{
 			Name: &cr.Spec.ForProvider.Name,
@@ -96,11 +97,11 @@ func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClust
 	if window := clusterMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
 		instanceCreateInput.Properties.SetMaintenanceWindow(*window)
 	}
-	return &instanceCreateInput, nil
+	return &instanceCreateInput
 }
 
 // GenerateUpdateK8sClusterInput returns sdkgo.KubernetesClusterForPut based on the CR spec modifications
-func GenerateUpdateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClusterForPut, error) {
+func GenerateUpdateK8sClusterInput(cr *v1alpha1.Cluster) *sdkgo.KubernetesClusterForPut {
 	instanceUpdateInput := sdkgo.KubernetesClusterForPut{
 		Properties: &sdkgo.KubernetesClusterPropertiesForPut{
 			Name:               &cr.Spec.ForProvider.Name,
@@ -116,7 +117,7 @@ func GenerateUpdateK8sClusterInput(cr *v1alpha1.Cluster) (*sdkgo.KubernetesClust
 	if window := clusterMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
 		instanceUpdateInput.Properties.SetMaintenanceWindow(*window)
 	}
-	return &instanceUpdateInput, nil
+	return &instanceUpdateInput
 }
 
 // LateInitializer fills the empty fields in *v1alpha1.ClusterParameters with
@@ -178,7 +179,7 @@ func IsK8sClusterUpToDate(cr *v1alpha1.Cluster, cluster sdkgo.KubernetesCluster)
 		return false
 	case cr != nil && cluster.Properties == nil:
 		return false
-	case cluster.Metadata.State != nil && *cluster.Metadata.State == "BUSY" || *cluster.Metadata.State == "DEPLOYING":
+	case cluster.Metadata != nil && cluster.Metadata.State != nil && (*cluster.Metadata.State == k8s.BUSY || *cluster.Metadata.State == k8s.DEPLOYING):
 		return true
 	case cluster.Properties.Name != nil && *cluster.Properties.Name != cr.Spec.ForProvider.Name:
 		return false

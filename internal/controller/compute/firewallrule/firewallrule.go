@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,14 +43,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 )
 
-const (
-	errNotFirewallRule = "managed resource is not a FirewallRule custom resource"
-	errTrackPCUsage    = "cannot track ProviderConfig usage"
-	errGetPC           = "cannot get ProviderConfig"
-	errGetCreds        = "cannot get credentials"
-
-	errNewClient = "cannot create new Service"
-)
+const errNotFirewallRule = "managed resource is not a FirewallRule custom resource"
 
 // Setup adds a controller that reconciles FirewallRule managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
@@ -95,30 +87,11 @@ func (c *connectorFirewallRule) Connect(ctx context.Context, mg resource.Managed
 	if !ok {
 		return nil, errors.New(errNotFirewallRule)
 	}
-
-	if err := c.usage.Track(ctx, mg); err != nil {
-		return nil, errors.Wrap(err, errTrackPCUsage)
-	}
-
-	pc := &apisv1alpha1.ProviderConfig{}
-	if err := c.kube.Get(ctx, types.NamespacedName{Name: mg.GetProviderConfigReference().Name}, pc); err != nil {
-		return nil, errors.Wrap(err, errGetPC)
-	}
-
-	cd := pc.Spec.Credentials
-	data, err := resource.CommonCredentialExtractor(ctx, cd.Source, c.kube, cd.CommonCredentialSelectors)
-	if err != nil {
-		return nil, errors.Wrap(err, errGetCreds)
-	}
-
-	svc, err := clients.NewIonosClients(data)
-	if err != nil {
-		return nil, errors.Wrap(err, errNewClient)
-	}
+	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalFirewallRule{
 		service:        &firewallrule.APIClient{IonosServices: svc},
 		ipBlockService: &ipblock.APIClient{IonosServices: svc},
-		log:            c.log}, nil
+		log:            c.log}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -161,23 +134,13 @@ func (c *externalFirewallRule) Observe(ctx context.Context, mg resource.Managed)
 			cr.Status.AtProvider.TargetIP = ""
 		}
 	}
-	if observed.HasMetadata() {
-		if observed.Metadata.HasState() {
-			cr.Status.AtProvider.State = *observed.Metadata.State
-			c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
-		}
-	}
+
+	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
+	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+
 	// Set Ready condition based on State
-	switch cr.Status.AtProvider.State {
-	case compute.AVAILABLE, compute.ACTIVE:
-		cr.SetConditions(xpv1.Available())
-	case compute.BUSY, compute.UPDATING:
-		cr.SetConditions(xpv1.Creating())
-	case compute.DESTROYING:
-		cr.SetConditions(xpv1.Deleting())
-	default:
-		cr.SetConditions(xpv1.Unavailable())
-	}
+	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
+
 	sourceIP, err := c.getSourceIPSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalObservation{}, fmt.Errorf("error getting sourceIP: %v", sourceIP)
@@ -283,7 +246,7 @@ func (c *externalFirewallRule) Delete(ctx context.Context, mg resource.Managed) 
 		cr.Spec.ForProvider.ServerCfg.ServerID, cr.Spec.ForProvider.NicCfg.NicID, cr.Status.AtProvider.FirewallRuleID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete firewallRule. error: %w", err)
-		return compute.AddAPIResponseInfo(apiResponse, retErr)
+		return compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err

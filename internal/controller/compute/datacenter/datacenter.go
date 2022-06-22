@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,14 +42,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/datacenter"
 )
 
-const (
-	errNotDatacenter = "managed resource is not a Datacenter custom resource"
-	errTrackPCUsage  = "cannot track ProviderConfig usage"
-	errGetPC         = "cannot get ProviderConfig"
-	errGetCreds      = "cannot get credentials"
-
-	errNewClient = "cannot create new Service"
-)
+const errNotDatacenter = "managed resource is not a Datacenter custom resource"
 
 // Setup adds a controller that reconciles Datacenter managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
@@ -95,27 +87,10 @@ func (c *connectorDatacenter) Connect(ctx context.Context, mg resource.Managed) 
 	if !ok {
 		return nil, errors.New(errNotDatacenter)
 	}
-
-	if err := c.usage.Track(ctx, mg); err != nil {
-		return nil, errors.Wrap(err, errTrackPCUsage)
-	}
-
-	pc := &apisv1alpha1.ProviderConfig{}
-	if err := c.kube.Get(ctx, types.NamespacedName{Name: mg.GetProviderConfigReference().Name}, pc); err != nil {
-		return nil, errors.Wrap(err, errGetPC)
-	}
-
-	cd := pc.Spec.Credentials
-	data, err := resource.CommonCredentialExtractor(ctx, cd.Source, c.kube, cd.CommonCredentialSelectors)
-	if err != nil {
-		return nil, errors.Wrap(err, errGetCreds)
-	}
-
-	svc, err := clients.NewIonosClients(data)
-	if err != nil {
-		return nil, errors.Wrap(err, errNewClient)
-	}
-	return &externalDatacenter{service: &datacenter.APIClient{IonosServices: svc}, log: c.log}, nil
+	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
+	return &externalDatacenter{
+		service: &datacenter.APIClient{IonosServices: svc},
+		log:     c.log}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -144,20 +119,10 @@ func (c *externalDatacenter) Observe(ctx context.Context, mg resource.Managed) (
 	}
 
 	cr.Status.AtProvider.DatacenterID = meta.GetExternalName(cr)
-	cr.Status.AtProvider.State = *instance.Metadata.State
+	cr.Status.AtProvider.State = clients.GetCoreResourceState(&instance)
 	cr.Status.AtProvider.AvailableCPUFamilies, _ = c.service.GetCPUFamiliesForDatacenter(ctx, cr.Status.AtProvider.DatacenterID)
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
-	// Set Ready condition based on State
-	switch cr.Status.AtProvider.State {
-	case compute.AVAILABLE, compute.ACTIVE:
-		cr.SetConditions(xpv1.Available())
-	case compute.BUSY, compute.UPDATING:
-		cr.SetConditions(xpv1.Creating())
-	case compute.DESTROYING:
-		cr.SetConditions(xpv1.Deleting())
-	default:
-		cr.SetConditions(xpv1.Unavailable())
-	}
+	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
 	return managed.ExternalObservation{
 		ResourceExists:    true,
@@ -237,7 +202,7 @@ func (c *externalDatacenter) Delete(ctx context.Context, mg resource.Managed) er
 	apiResponse, err := c.service.DeleteDatacenter(ctx, cr.Status.AtProvider.DatacenterID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete datacenter. error: %w", err)
-		return compute.AddAPIResponseInfo(apiResponse, retErr)
+		return compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err
