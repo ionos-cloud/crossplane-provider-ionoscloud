@@ -45,7 +45,7 @@ import (
 const errNotVolume = "managed resource is not a Volume custom resource"
 
 // Setup adds a controller that reconciles Volume managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration, creationGracePeriod time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
 	name := managed.ControllerName(v1alpha1.VolumeGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -62,6 +62,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll ti
 				log:   l}),
 			managed.WithPollInterval(poll),
 			managed.WithCreationGracePeriod(creationGracePeriod),
+			managed.WithTimeout(timeout),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
