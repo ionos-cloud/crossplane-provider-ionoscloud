@@ -4,6 +4,7 @@
 
 - **Features**:
   - Allow to set a global IONOS_API_URL overwrite in the provider pod via environment variables
+  - Add timeout option for all the calls happening in the reconciliation functions
   
 - **Dependency-update**:
     - Updated sigs.k8s.io/controller-runtime to v0.12.1 

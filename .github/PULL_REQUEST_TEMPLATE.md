@@ -26,6 +26,6 @@ I have:
 - [ ] Run `make reviewable` and `make crds.clean` to ensure the PR is ready for review
 - [ ] Add or update tests (if applicable)
 - [ ] Add or update Documentation (if applicable)
-- [ ] Update CHANGELOG.md (label: `upcoming release`)
+- [ ] Update `docs/CHANGELOG.md` file (label: `upcoming release`)
 - [ ] Check Sonar Cloud Scan
 - [ ] Update Github or Jira Issue
