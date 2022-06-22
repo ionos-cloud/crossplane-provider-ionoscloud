@@ -44,7 +44,9 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s/k8scluster"
 )
 
-const errNotK8sCluster = "managed resource is not a K8s Cluster custom resource"
+const (
+	errNotK8sCluster = "managed resource is not a K8s Cluster custom resource"
+)
 
 // Setup adds a controller that reconciles K8sCluster managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration, creationGracePeriod time.Duration) error {
@@ -127,18 +129,8 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 
 	// Set Ready condition based on State
 	cr.Status.AtProvider.ClusterID = meta.GetExternalName(cr)
-	cr.Status.AtProvider.State = *observed.Metadata.State
-	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
-	switch cr.Status.AtProvider.State {
-	case k8s.AVAILABLE, k8s.ACTIVE:
-		cr.SetConditions(xpv1.Available())
-	case k8s.DESTROYING, k8s.TERMINATED:
-		cr.SetConditions(xpv1.Deleting())
-	case k8s.BUSY, k8s.DEPLOYING, k8s.UPDATING:
-		cr.SetConditions(xpv1.Creating())
-	default:
-		cr.SetConditions(xpv1.Unavailable())
-	}
+	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
+	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
 	if kubeconfig, _, err = c.service.GetKubeConfig(ctx, cr.Status.AtProvider.ClusterID); err != nil {
 		c.log.Info(fmt.Sprintf("failed to get connection details. error: %v", err))
@@ -164,10 +156,7 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 	if cr.Status.AtProvider.State == k8s.DEPLOYING {
 		return managed.ExternalCreation{}, nil
 	}
-	instanceInput, err := k8scluster.GenerateCreateK8sClusterInput(cr)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
+	instanceInput := k8scluster.GenerateCreateK8sClusterInput(cr)
 
 	instance, apiResponse, err := c.service.CreateK8sCluster(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
@@ -187,21 +176,18 @@ func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (mana
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotK8sCluster)
 	}
-	if cr.Status.AtProvider.State == compute.UPDATING {
+	if cr.Status.AtProvider.State == k8s.UPDATING {
 		return managed.ExternalUpdate{}, nil
 	}
-	if cr.Status.AtProvider.State != compute.ACTIVE {
+	if cr.Status.AtProvider.State != k8s.ACTIVE {
 		return managed.ExternalUpdate{}, fmt.Errorf("resource needs to be in ACTIVE state to update it, current state: %v", cr.Status.AtProvider.State)
 	}
 
-	instanceInput, err := k8scluster.GenerateUpdateK8sClusterInput(cr)
-	if err != nil {
-		return managed.ExternalUpdate{}, err
-	}
-	if _, _, err = c.service.UpdateK8sCluster(ctx, cr.Status.AtProvider.ClusterID, *instanceInput); err != nil {
+	instanceInput := k8scluster.GenerateUpdateK8sClusterInput(cr)
+	if _, _, err := c.service.UpdateK8sCluster(ctx, cr.Status.AtProvider.ClusterID, *instanceInput); err != nil {
 		return managed.ExternalUpdate{}, fmt.Errorf("failed to update k8s cluster. error: %w", err)
 	}
-	cr.Status.AtProvider.State = compute.UPDATING
+	cr.Status.AtProvider.State = k8s.UPDATING
 	return managed.ExternalUpdate{}, nil
 }
 
@@ -209,6 +195,10 @@ func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error
 	cr, ok := mg.(*v1alpha1.Cluster)
 	if !ok {
 		return errors.New(errNotK8sCluster)
+	}
+
+	if meta.GetExternalName(cr) == "" {
+		return nil
 	}
 
 	// Note: If the K8s Cluster still has NodePools, the API Request will fail.
@@ -221,16 +211,19 @@ func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error
 	}
 
 	cr.SetConditions(xpv1.Deleting())
-	if cr.Status.AtProvider.State == compute.DESTROYING || cr.Status.AtProvider.State == k8s.TERMINATED {
+	switch cr.Status.AtProvider.State {
+	case k8s.DESTROYING:
 		return nil
-	}
-	if cr.Status.AtProvider.State != compute.ACTIVE {
+	case k8s.TERMINATED:
+		return nil
+	case k8s.ACTIVE:
+		apiResponse, err := c.service.DeleteK8sCluster(ctx, cr.Status.AtProvider.ClusterID)
+		if err != nil {
+			retErr := fmt.Errorf("failed to delete k8s cluster. error: %w", err)
+			return compute.CheckAPIResponseInfo(apiResponse, retErr)
+		}
+	default:
 		return fmt.Errorf("resource needs to be in ACTIVE state to delete it, current state: %v", cr.Status.AtProvider.State)
-	}
-	apiResponse, err := c.service.DeleteK8sCluster(ctx, cr.Status.AtProvider.ClusterID)
-	if err != nil {
-		retErr := fmt.Errorf("failed to delete k8s cluster. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
 	return nil
 }

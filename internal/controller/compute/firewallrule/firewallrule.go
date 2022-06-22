@@ -133,23 +133,13 @@ func (c *externalFirewallRule) Observe(ctx context.Context, mg resource.Managed)
 			cr.Status.AtProvider.TargetIP = ""
 		}
 	}
-	if observed.HasMetadata() {
-		if observed.Metadata.HasState() {
-			cr.Status.AtProvider.State = *observed.Metadata.State
-			c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
-		}
-	}
+
+	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
+	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+
 	// Set Ready condition based on State
-	switch cr.Status.AtProvider.State {
-	case compute.AVAILABLE, compute.ACTIVE:
-		cr.SetConditions(xpv1.Available())
-	case compute.BUSY, compute.UPDATING:
-		cr.SetConditions(xpv1.Creating())
-	case compute.DESTROYING:
-		cr.SetConditions(xpv1.Deleting())
-	default:
-		cr.SetConditions(xpv1.Unavailable())
-	}
+	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
+
 	sourceIP, err := c.getSourceIPSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalObservation{}, fmt.Errorf("error getting sourceIP: %v", sourceIP)

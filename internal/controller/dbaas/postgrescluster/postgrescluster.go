@@ -127,18 +127,9 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 	postgrescluster.LateInitializer(&cr.Spec.ForProvider, &observed)
 
 	cr.Status.AtProvider.ClusterID = meta.GetExternalName(cr)
-	cr.Status.AtProvider.State = string(*observed.Metadata.State)
+	cr.Status.AtProvider.State = string(clients.GetDBaaSResourceState(&observed))
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
-	switch cr.Status.AtProvider.State {
-	case string(ionoscloud.AVAILABLE):
-		cr.SetConditions(xpv1.Available())
-	case string(ionoscloud.DESTROYING):
-		cr.SetConditions(xpv1.Deleting())
-	case string(ionoscloud.BUSY):
-		cr.SetConditions(xpv1.Creating())
-	default:
-		cr.SetConditions(xpv1.Unavailable())
-	}
+	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
 	return managed.ExternalObservation{
 		ResourceExists:          true,
