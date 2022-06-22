@@ -10,10 +10,10 @@ spec:
     name: exampleApplicationLoadBalancer
     targetLanConfig:
       lanIdRef:
-        name: example2
+        name: example
     listenerLanConfig:
       lanIdRef:
-        name: example1
+        name: examplelan
     ipsConfig:
       ipsBlockConfigs:
         - ipBlockIdRef:
