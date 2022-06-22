@@ -136,29 +136,12 @@ GetResource:
 	current := cr.Spec.ForProvider.DeepCopy()
 	applicationloadbalancer.LateInitializer(&cr.Spec.ForProvider, &observed)
 	cr.Status.AtProvider.ApplicationLoadBalancerID = meta.GetExternalName(cr)
-	if observed.HasMetadata() {
-		if observed.Metadata.HasState() {
-			cr.Status.AtProvider.State = *observed.Metadata.State
-		}
-	}
-	if observed.HasProperties() {
-		if observed.Properties.HasIps() {
-			cr.Status.AtProvider.PublicIPs = *observed.Properties.Ips
-		} else {
-			cr.Status.AtProvider.PublicIPs = []string{}
-		}
+	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
+	if observed.HasProperties() && observed.Properties.HasIps() {
+		cr.Status.AtProvider.PublicIPs = *observed.Properties.Ips
 	}
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
-	switch cr.Status.AtProvider.State {
-	case string(ionoscloud.AVAILABLE):
-		cr.SetConditions(xpv1.Available())
-	case string(ionoscloud.DESTROYING):
-		cr.SetConditions(xpv1.Deleting())
-	case string(ionoscloud.BUSY):
-		cr.SetConditions(xpv1.Creating())
-	default:
-		cr.SetConditions(xpv1.Unavailable())
-	}
+	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 	// Resolve IPs and lan IDs
 	ips, err := c.getIPsSet(ctx, cr)
 	if err != nil {

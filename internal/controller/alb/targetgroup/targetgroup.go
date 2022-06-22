@@ -119,22 +119,9 @@ func (c *externalTargetGroup) Observe(ctx context.Context, mg resource.Managed) 
 	current := cr.Spec.ForProvider.DeepCopy()
 	targetgroup.LateInitializer(&cr.Spec.ForProvider, &observed)
 	cr.Status.AtProvider.TargetGroupID = meta.GetExternalName(cr)
-	if observed.HasMetadata() {
-		if observed.Metadata.HasState() {
-			cr.Status.AtProvider.State = *observed.Metadata.State
-		}
-	}
+	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
-	switch cr.Status.AtProvider.State {
-	case compute.AVAILABLE, compute.ACTIVE:
-		cr.SetConditions(xpv1.Available())
-	case compute.BUSY, compute.UPDATING:
-		cr.SetConditions(xpv1.Creating())
-	case compute.DESTROYING:
-		cr.SetConditions(xpv1.Deleting())
-	default:
-		cr.SetConditions(xpv1.Unavailable())
-	}
+	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
 		ResourceUpToDate:        targetgroup.IsTargetGroupUpToDate(cr, observed),

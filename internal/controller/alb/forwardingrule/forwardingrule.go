@@ -126,22 +126,9 @@ func (c *externalForwardingRule) Observe(ctx context.Context, mg resource.Manage
 	current := cr.Spec.ForProvider.DeepCopy()
 	forwardingrule.LateInitializer(&cr.Spec.ForProvider, &observed)
 	cr.Status.AtProvider.ForwardingRuleID = meta.GetExternalName(cr)
-	if observed.HasMetadata() {
-		if observed.Metadata.HasState() {
-			cr.Status.AtProvider.State = *observed.Metadata.State
-		}
-	}
+	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
-	switch cr.Status.AtProvider.State {
-	case string(ionoscloud.AVAILABLE):
-		cr.SetConditions(xpv1.Available())
-	case string(ionoscloud.DESTROYING):
-		cr.SetConditions(xpv1.Deleting())
-	case string(ionoscloud.BUSY):
-		cr.SetConditions(xpv1.Creating())
-	default:
-		cr.SetConditions(xpv1.Unavailable())
-	}
+	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 	// Resolve IPs
 	listenerIP, err := c.getIPSet(ctx, cr)
 	if err != nil {
