@@ -127,19 +127,10 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	server.LateStatusInitializer(&cr.Status.AtProvider, &observed)
 
 	cr.Status.AtProvider.ServerID = meta.GetExternalName(cr)
-	cr.Status.AtProvider.State = *observed.Metadata.State
+	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
 
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
-	switch cr.Status.AtProvider.State {
-	case compute.AVAILABLE, compute.ACTIVE:
-		cr.SetConditions(xpv1.Available())
-	case compute.BUSY, compute.UPDATING:
-		cr.SetConditions(xpv1.Creating())
-	case compute.DESTROYING:
-		cr.SetConditions(xpv1.Deleting())
-	default:
-		cr.SetConditions(xpv1.Unavailable())
-	}
+	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
 	return managed.ExternalObservation{
 		ResourceExists:          true,

@@ -4,11 +4,16 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	ionosdbaas "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 	ionos "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
 )
 
 const (
@@ -153,6 +158,167 @@ func TestNewIonosClient(t *testing.T) {
 			} else {
 				assert.Nil(t, got)
 			}
+		})
+	}
+}
+
+func TestGetCoreResourceState(t *testing.T) {
+
+	tests := []struct {
+		name string
+		args *testCoreResource
+		want string
+	}{
+		{
+			name: "nil test resource",
+			args: nil,
+			want: "",
+		},
+		{
+			name: "found nil metadata",
+			args: &testCoreResource{metadata: nil, found: true},
+			want: "",
+		},
+		{
+			name: "found metadata with nil state",
+			args: &testCoreResource{metadata: &ionos.DatacenterElementMetadata{State: nil}, found: true},
+			want: "",
+		},
+		{
+			name: "found metadata with state",
+			args: &testCoreResource{metadata: &ionos.DatacenterElementMetadata{State: ionos.PtrString("foo")}, found: true},
+			want: "foo",
+		},
+		{
+			name: "found metadata no metadata, but it's present",
+			args: &testCoreResource{metadata: &ionos.DatacenterElementMetadata{State: ionos.PtrString("foo")}, found: false},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, GetCoreResourceState(tt.args))
+		})
+	}
+}
+
+type testCoreResource struct {
+	metadata *ionos.DatacenterElementMetadata
+	found    bool
+}
+
+func (t *testCoreResource) GetMetadataOk() (*ionos.DatacenterElementMetadata, bool) {
+	if t == nil {
+		return nil, false
+	}
+	return t.metadata, t.found
+}
+
+func TestGetDBaaSResourceState(t *testing.T) {
+
+	ptrState := func(in string) *ionosdbaas.State {
+		state := ionosdbaas.State(in)
+		return &state
+	}
+
+	tests := []struct {
+		name string
+		args *testDbaaSResource
+		want ionosdbaas.State
+	}{
+		{
+			name: "nil test resource",
+			args: nil,
+			want: "",
+		},
+		{
+			name: "found nil metadata",
+			args: &testDbaaSResource{metadata: nil, found: true},
+			want: "",
+		},
+		{
+			name: "found metadata with nil state",
+			args: &testDbaaSResource{metadata: &ionosdbaas.Metadata{State: nil}, found: true},
+			want: "",
+		},
+		{
+			name: "found metadata with state",
+			args: &testDbaaSResource{metadata: &ionosdbaas.Metadata{State: ptrState("foo")}, found: true},
+			want: "foo",
+		},
+		{
+			name: "found metadata no metadata, but it's present",
+			args: &testDbaaSResource{metadata: &ionosdbaas.Metadata{State: ptrState("foo")}, found: false},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, GetDBaaSResourceState(tt.args))
+		})
+	}
+}
+
+type testDbaaSResource struct {
+	metadata *ionosdbaas.Metadata
+	found    bool
+}
+
+func (t *testDbaaSResource) GetMetadataOk() (*ionosdbaas.Metadata, bool) {
+	if t == nil {
+		return nil, false
+	}
+	return t.metadata, t.found
+}
+
+type testConditionedResource struct {
+	t                 *testing.T
+	expectedCondition xpv1.Condition
+}
+
+func (t testConditionedResource) SetConditions(c ...xpv1.Condition) {
+	assert.Len(t.t, c, 1)
+	fixedTime := time.Now()
+	t.expectedCondition.LastTransitionTime.Time = fixedTime
+	c[0].LastTransitionTime.Time = fixedTime
+	assert.Equal(t.t, t.expectedCondition, c[0])
+}
+
+func TestUpdateCondition(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		states   []string
+		resource testConditionedResource
+	}{
+		{
+			name:     "creating",
+			states:   []string{compute.BUSY, k8s.BUSY, string(ionosdbaas.BUSY), k8s.DEPLOYING},
+			resource: testConditionedResource{expectedCondition: xpv1.Creating()},
+		},
+		{
+			name:     "destroying",
+			states:   []string{string(ionosdbaas.DESTROYING), k8s.DESTROYING, compute.DESTROYING, k8s.TERMINATED},
+			resource: testConditionedResource{expectedCondition: xpv1.Deleting()},
+		},
+		{
+			name:     "available",
+			states:   []string{string(ionosdbaas.AVAILABLE), compute.AVAILABLE, compute.ACTIVE, k8s.ACTIVE, k8s.AVAILABLE},
+			resource: testConditionedResource{expectedCondition: xpv1.Available()},
+		},
+		{
+			name:     "unavailable",
+			states:   []string{string(ionosdbaas.FAILED), string(ionosdbaas.UNKNOWN), "", "FOOBAR"},
+			resource: testConditionedResource{expectedCondition: xpv1.Unavailable()},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.resource.t = t
+			for _, state := range tt.states {
+				UpdateCondition(tt.resource, state)
+			}
+
 		})
 	}
 }

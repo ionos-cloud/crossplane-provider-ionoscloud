@@ -4,6 +4,13 @@
 
 - **Features**:
   - Allow to set a global IONOS_API_URL overwrite in the provider pod via environment variables
+  
+- **Dependency-update**:
+    - Updated sigs.k8s.io/controller-runtime to v0.12.1 
+    - Update k8s.io/client-go and k8s.io/api-machinery to v0.24.0
+  
+- **Tests** 
+  - Add unit tests for k8s cluster 
 
 ## [1.0.0-beta.2] (June 2022)
 
