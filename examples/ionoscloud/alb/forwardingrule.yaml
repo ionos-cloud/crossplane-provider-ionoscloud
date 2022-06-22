@@ -1,3 +1,11 @@
+# Use this file to create a ForwardingRule CR for ApplicationLoadBalancer.
+# Required values for creating a ForwardingRule CR are:
+# - DatacenterConfig (via ID or via reference),
+# - ApplicationLoadBalancerConfig (via ID or via reference),
+# - Name,
+# - Protocol,
+# - ListenerIPConfig (via ID or via reference),
+# - ListenerPort.
 apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: ForwardingRule
 metadata:

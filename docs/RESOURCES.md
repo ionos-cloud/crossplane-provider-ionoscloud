@@ -84,6 +84,47 @@ Notes:
   the resource automatically. Crossplane acts like it is the only source of truth for the resources provisioned via
   Managed Resources.
 
+### Application Load Balancer Managed Resources
+
+#### Application Load Balancer Resources Custom Resource Definitions
+
+| RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION                             |
+|--------------------------|--------------------------------------------------------|
+| ApplicationLoadBalancer  | `applicationloadbalancer.alb.ionoscloud.crossplane.io` |
+| ForwardingRule           | `forwardingrule.alb.ionoscloud.crossplane.io`          |
+| TargetGroup              | `targetgroup.alb.ionoscloud.crossplane.io`             |
+
+#### Application Load Balancer Resources CREATE/UPDATE Custom Resources
+
+| CUSTOM RESOURCE         | CREATE/UPDATE                                                                                |
+|-------------------------|----------------------------------------------------------------------------------------------|
+| ApplicationLoadBalancer | <pre lang="bash">kubectl apply -f examples/ionoscloud/alb/applicationloadbalancer.yaml</pre> | 
+| ForwardingRule          | <pre lang="bash">kubectl apply -f examples/ionoscloud/alb/forwardingrule.yaml</pre>          | 
+| TargetGroup             | <pre lang="bash">kubectl apply -f examples/ionoscloud/alb/targetgroup.yaml</pre>             |
+
+_Note_: Make sure to check the prerequisites needed for Application Load Balancer Resources. You can
+use `kubectl apply -y examples/ionoscloud/alb/all.yaml` in order to install the mentioned resources and the
+prerequisites.
+
+#### Application Load Balancer Resources GET Custom Resources
+
+| CUSTOM RESOURCE         | GET                                                         | GET MORE DETAILS                                                    |
+|-------------------------|-------------------------------------------------------------|---------------------------------------------------------------------|
+| ApplicationLoadBalancer | <pre lang="bash">kubectl get applicationloadbalancers</pre> | <pre lang="bash">kubectl get applicationloadbalancers -o wide</pre> |
+| ForwardingRule          | <pre lang="bash">kubectl get forwardingrules.alb</pre>      | <pre lang="bash">kubectl get forwardingrules.alb -o wide</pre>      |
+| TargetGroup             | <pre lang="bash">kubectl get targetgroups</pre>             | <pre lang="bash">kubectl get targetgroups -o wide</pre>             |
+
+#### Application Load Balancer Resources DELETE Custom Resources
+
+| CUSTOM RESOURCE         | DELETE                                                                                        |
+|-------------------------|-----------------------------------------------------------------------------------------------|
+| ApplicationLoadBalancer | <pre lang="bash">kubectl delete -f examples/ionoscloud/alb/applicationloadbalancer.yaml</pre> | 
+| ForwardingRule          | <pre lang="bash">kubectl delete -f examples/ionoscloud/alb/forwardingrule.yaml</pre>          | 
+| TargetGroup             | <pre lang="bash">kubectl delete -f examples/ionoscloud/alb/targetgroup.yaml</pre>             |
+
+_Note_: You can use `kubectl delete -y examples/ionoscloud/alb/all.yaml` in order to uninstall the mentioned resources
+and the prerequisites.
+
 ### Kubernetes Managed Resources
 
 #### Kubernetes Resources Custom Resource Definitions
