@@ -429,6 +429,40 @@ func TestExternalNodePoolDelete(t *testing.T) {
 			}(),
 			wantErr: true,
 		},
+		{
+			name: "Nodepool in FAILED state",
+			nodepoolMocker: nodepoolMocker{
+				setupNodePoolService: func(service *k8snodepool.MockClient) {
+					service.EXPECT().
+						DeleteK8sNodePool(context.Background(), testClusterID, testNodePoolID).
+						Return(nil, nil)
+				},
+				setupClusterService: clusterActiveService,
+			},
+			args: func() *v1alpha1.NodePool {
+				np := basicDeleteNodepool.DeepCopy()
+				np.Status.AtProvider.State = k8s.FAILED
+				return np
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "Nodepool in FAILED_TERMINATED state",
+			nodepoolMocker: nodepoolMocker{
+				setupNodePoolService: func(service *k8snodepool.MockClient) {
+					service.EXPECT().
+						DeleteK8sNodePool(context.Background(), testClusterID, testNodePoolID).
+						Return(nil, nil)
+				},
+				setupClusterService: clusterActiveService,
+			},
+			args: func() *v1alpha1.NodePool {
+				np := basicDeleteNodepool.DeepCopy()
+				np.Status.AtProvider.State = k8s.FAILED_DESTROYING
+				return np
+			}(),
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
