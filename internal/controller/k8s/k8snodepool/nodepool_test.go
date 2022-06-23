@@ -458,7 +458,7 @@ func TestExternalNodePoolDelete(t *testing.T) {
 			},
 			args: func() *v1alpha1.NodePool {
 				np := basicDeleteNodepool.DeepCopy()
-				np.Status.AtProvider.State = k8s.FAILED_DESTROYING
+				np.Status.AtProvider.State = k8s.FAILEDDESTROYING
 				return np
 			}(),
 			wantErr: false,
