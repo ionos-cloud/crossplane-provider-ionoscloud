@@ -1,5 +1,10 @@
 # Changelog
 
+## upcomming release
+
+- **Tests**:
+    - Added unit tests for k8s node pools
+
 ## [1.0.0-beta.3] (June 2022)
 
 - **Features**:
