@@ -54,7 +54,7 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 }
 
 // GenerateCreateK8sNodePoolInput returns sdkgo.KubernetesNodePoolForPost based on the CR spec
-func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIPs []string) (*sdkgo.KubernetesNodePoolForPost, error) {
+func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIPs []string) *sdkgo.KubernetesNodePoolForPost {
 	instanceCreateInput := sdkgo.KubernetesNodePoolForPost{
 		Properties: &sdkgo.KubernetesNodePoolPropertiesForPost{
 			Name:             &cr.Spec.ForProvider.Name,
@@ -92,11 +92,11 @@ func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIPs []string) (
 	if poolLans := kubernetesNodePoolLans(cr.Spec.ForProvider.Lans); poolLans != nil {
 		instanceCreateInput.Properties.SetLans(*poolLans)
 	}
-	return &instanceCreateInput, nil
+	return &instanceCreateInput
 }
 
 // GenerateUpdateK8sNodePoolInput returns sdkgo.KubernetesNodePoolForPut based on the CR spec modifications
-func GenerateUpdateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIps []string) (*sdkgo.KubernetesNodePoolForPut, error) {
+func GenerateUpdateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIps []string) *sdkgo.KubernetesNodePoolForPut {
 	instanceUpdateInput := sdkgo.KubernetesNodePoolForPut{
 		Properties: &sdkgo.KubernetesNodePoolPropertiesForPut{
 			NodeCount:  &cr.Spec.ForProvider.NodeCount,
@@ -130,7 +130,7 @@ func GenerateUpdateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIps []string) (
 	if poolLans := kubernetesNodePoolLans(cr.Spec.ForProvider.Lans); poolLans != nil {
 		instanceUpdateInput.Properties.SetLans(*poolLans)
 	}
-	return &instanceUpdateInput, nil
+	return &instanceUpdateInput
 }
 
 // LateInitializer fills the empty fields in *v1alpha1.NodePoolParameters with
@@ -194,7 +194,7 @@ func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodeP
 		return false
 	case cr != nil && nodepool.Properties == nil:
 		return false
-	case nodepool.Metadata.State != nil && *nodepool.Metadata.State == "BUSY" || *nodepool.Metadata.State == "DEPLOYING":
+	case nodepool.Metadata != nil && nodepool.Metadata.State != nil && (*nodepool.Metadata.State == "BUSY" || *nodepool.Metadata.State == "DEPLOYING"):
 		return true
 	case nodepool.Properties.K8sVersion != nil && *nodepool.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
 		return false
