@@ -55,7 +55,7 @@ type ForwardingRuleParameters struct {
 	// +kubebuilder:validation:Enum=HTTP
 	// +kubebuilder:validation:Required
 	Protocol string `json:"protocol"`
-	// Listening (inbound) IP
+	// Listening (inbound) IP. IP must be assigned to the listener NIC of the Application Load Balancer.
 	//
 	// +kubebuilder:validation:Required
 	ListenerIP IPConfig `json:"listenerIpConfig"`

@@ -320,7 +320,8 @@ spec:
                       type: object
                     type: array
                   listenerIpConfig:
-                    description: Listening (inbound) IP
+                    description: Listening (inbound) IP. IP must be assigned to the
+                      listener NIC of the Application Load Balancer.
                     properties:
                       ip:
                         pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$

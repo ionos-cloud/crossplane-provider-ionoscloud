@@ -272,18 +272,6 @@ EOF
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: Datacenter
-metadata:
-  name: example
-spec:
-  forProvider:
-    name: exampleDatacenter
-    location: de/txl
-    description: test
-  providerConfigRef:
-    name: example
----
-apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: examplelan
@@ -312,6 +300,18 @@ spec:
     name: example
 ---
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleDatacenter
+    location: de/txl
+    description: test
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
   name: example
@@ -329,7 +329,9 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
   echo_step "wait for deletion of prerequisites for application load balancer CR"
-  kubectl wait --for=delete datacenters.compute.ionoscloud.crossplane.io/example ipblocks.compute.ionoscloud.crossplane.io/example --timeout=30m
+  kubectl wait --for=delete lans.compute.ionoscloud.crossplane.io/example lans.compute.ionoscloud.crossplane.io/examplelan
+  kubectl wait --for=delete datacenters.compute.ionoscloud.crossplane.io/example
+  kubectl wait --for=delete ipblocks.compute.ionoscloud.crossplane.io/example
 }
 
 ## ForwardingRule CR Tests
