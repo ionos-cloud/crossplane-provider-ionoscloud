@@ -19,7 +19,6 @@ package applicationloadbalancer
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -120,19 +119,10 @@ func (c *externalApplicationLoadBalancer) Observe(ctx context.Context, mg resour
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
-	retry := 0
-
-GetResource:
 	observed, resp, err := c.service.GetApplicationLoadBalancer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, meta.GetExternalName(cr))
 	if err != nil {
-		if resp != nil && resp.Response != nil && resp.StatusCode == http.StatusNotFound {
-			if retry < 10 {
-				retry++
-				goto GetResource
-			}
-			return managed.ExternalObservation{}, nil
-		}
-		return managed.ExternalObservation{}, fmt.Errorf("failed to get application load balancer by id. err: %w", err)
+		retErr := fmt.Errorf("failed to get application load balancer by id. error: %w", err)
+		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(resp, retErr)
 	}
 	current := cr.Spec.ForProvider.DeepCopy()
 	applicationloadbalancer.LateInitializer(&cr.Spec.ForProvider, &observed)
@@ -228,10 +218,6 @@ func (c *externalApplicationLoadBalancer) Update(ctx context.Context, mg resourc
 		}
 		return managed.ExternalUpdate{}, retErr
 	}
-	// This is a temporary solution until API requests for ALB are processed faster.
-	c.log.Debug("Waiting for request...")
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Minute)
-	defer cancel()
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalUpdate{}, err
 	}
@@ -248,16 +234,11 @@ func (c *externalApplicationLoadBalancer) Delete(ctx context.Context, mg resourc
 	if cr.Status.AtProvider.State == string(ionoscloud.DESTROYING) || cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
 		return nil
 	}
-
 	apiResponse, err := c.service.DeleteApplicationLoadBalancer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ApplicationLoadBalancerID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete application load balancer. error: %w", err)
 		return compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
-	// This is a temporary solution until API requests for ALB are processed faster.
-	c.log.Debug("Waiting for request...")
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Minute)
-	defer cancel()
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err
 	}

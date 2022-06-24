@@ -206,10 +206,6 @@ func (c *externalForwardingRule) Update(ctx context.Context, mg resource.Managed
 		}
 		return managed.ExternalUpdate{}, retErr
 	}
-	// This is a temporary solution until API requests for ALB are processed faster.
-	c.log.Debug("Waiting for request...")
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Minute)
-	defer cancel()
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalUpdate{}, err
 	}
@@ -231,10 +227,6 @@ func (c *externalForwardingRule) Delete(ctx context.Context, mg resource.Managed
 		retErr := fmt.Errorf("failed to delete application load balancer forwarding rule. error: %w", err)
 		return compute.CheckAPIResponseInfo(apiResponse, retErr)
 	}
-	// This is a temporary solution until API requests for ALB are processed faster.
-	c.log.Debug("Waiting for request...")
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Minute)
-	defer cancel()
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err
 	}
