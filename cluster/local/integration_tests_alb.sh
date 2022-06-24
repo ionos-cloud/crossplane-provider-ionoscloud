@@ -237,18 +237,40 @@ EOF
 function alb_tests_cleanup() {
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
-apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: IPBlock
+apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
+kind: ApplicationLoadBalancer
 metadata:
   name: example
 spec:
   forProvider:
-    name: exampleIpBlock
-    size: 2
-    location: de/txl
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    name: exampleApplicationLoadBalancer
+    targetLanConfig:
+      lanIdRef:
+        name: example2
+    listenerLanConfig:
+      lanIdRef:
+        name: example1
+    ipsConfig:
+      ipsBlockConfigs:
+        - ipBlockIdRef:
+            name: example
+          indexes: [ 0 ]
   providerConfigRef:
     name: example
----
+EOF
+  )"
+
+  echo_step "uninstalling application load balancer CR"
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
+
+  echo_step "wait for deletion application load balancer CR"
+  kubectl wait --for=delete applicationloadbalancers.alb.ionoscloud.crossplane.io/example --timeout=30m
+
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
@@ -289,37 +311,25 @@ spec:
   providerConfigRef:
     name: example
 ---
-apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
-kind: ApplicationLoadBalancer
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
 metadata:
   name: example
 spec:
   forProvider:
-    datacenterConfig:
-      datacenterIdRef:
-        name: example
-    name: exampleApplicationLoadBalancer
-    targetLanConfig:
-      lanIdRef:
-        name: example2
-    listenerLanConfig:
-      lanIdRef:
-        name: example1
-    ipsConfig:
-      ipsBlockConfigs:
-        - ipBlockIdRef:
-            name: example
-          indexes: [ 0 ]
+    name: exampleIpBlock
+    size: 2
+    location: de/txl
   providerConfigRef:
     name: example
 EOF
   )"
 
-  echo_step "uninstalling application load balancer CR"
+  echo_step "uninstalling prerequisites for application load balancer CR"
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
-  echo_step "wait for deletion application load balancer CR"
-  kubectl wait --for=delete applicationloadbalancers.alb.ionoscloud.crossplane.io/example --timeout=30m
+  echo_step "wait for deletion of prerequisites for application load balancer CR"
+  kubectl wait --for=delete datacenters.compute.ionoscloud.crossplane.io/example ipblocks.compute.ionoscloud.crossplane.io/example --timeout=30m
 }
 
 ## ForwardingRule CR Tests

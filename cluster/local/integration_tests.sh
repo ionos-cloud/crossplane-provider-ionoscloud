@@ -229,12 +229,12 @@ if [ "$TEST_K8S" = true ]; then
 fi
 
 if [ "$TEST_ALB" = true ]; then
-  echo_step "--- target group tests ---"
-  targetgroup_tests_cleanup
-  echo_step "--- application load balancer tests ---"
-  alb_tests_cleanup
   echo_step "--- forwarding rule tests ---"
   forwardingrule_tests_cleanup
+  echo_step "--- application load balancer tests ---"
+  alb_tests_cleanup
+  echo_step "--- target group tests ---"
+  targetgroup_tests_cleanup
 fi
 
 # uninstalling Crossplane Provider IONOS Cloud
