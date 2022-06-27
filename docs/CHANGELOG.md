@@ -1,6 +1,6 @@
 # Changelog
 
-## upcomming release
+## [1.0.0-beta.4] (June 2022)
 
 - **Features**:
     - Added Managed Resources:
