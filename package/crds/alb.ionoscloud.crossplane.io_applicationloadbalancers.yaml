@@ -46,10 +46,6 @@ spec:
       name: IPS
       priority: 1
       type: string
-    - jsonPath: .spec.forProvider.lbPrivateIps
-      name: LB PRIVATE IPS
-      priority: 1
-      type: string
     - jsonPath: .status.atProvider.state
       name: STATE
       type: string

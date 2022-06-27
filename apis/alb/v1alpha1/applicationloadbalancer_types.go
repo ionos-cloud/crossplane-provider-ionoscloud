@@ -124,7 +124,6 @@ type ApplicationLoadBalancerStatus struct {
 // +kubebuilder:printcolumn:name="LISTENER LAN",priority=1,type="string",JSONPath=".spec.forProvider.listenerLanConfig.lanId"
 // +kubebuilder:printcolumn:name="TARGET LAN",priority=1,type="string",JSONPath=".spec.forProvider.targetLanConfig.lanId"
 // +kubebuilder:printcolumn:name="IPS",priority=1,type="string",JSONPath=".status.atProvider.publicIps"
-// +kubebuilder:printcolumn:name="LB PRIVATE IPS",priority=1,type="string",JSONPath=".spec.forProvider.lbPrivateIps"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
