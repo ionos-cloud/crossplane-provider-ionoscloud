@@ -10,6 +10,8 @@
             - TargetGroup.
 - **Tests**:
     - Added unit tests for k8s node pools
+- **Dependency-update**:
+    - Updated SDK Go to [v6.1.0](https://github.com/ionos-cloud/sdk-go/releases/tag/v6.1.0)
 
 ## [1.0.0-beta.3] (June 2022)
 

@@ -162,6 +162,8 @@ func (c *externalApplicationLoadBalancer) Create(ctx context.Context, mg resourc
 	}
 
 	cr.SetConditions(xpv1.Creating())
+	// Check external name in order to avoid duplicates,
+	// since the creation requests take longer than other resources.
 	if meta.GetExternalName(cr) != "" {
 		return managed.ExternalCreation{}, nil
 	}
