@@ -27,6 +27,7 @@ import (
 
 // LanParameters are the observable fields of a Lan.
 // Required values when creating a Lan:
+// DatacenterConfig,
 // Public.
 type LanParameters struct {
 	// DatacenterConfig contains information about the datacenter resource

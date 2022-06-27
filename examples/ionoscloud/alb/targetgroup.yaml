@@ -1,0 +1,23 @@
+# Use this file to create a TargetGroup CR for ApplicationLoadBalancer.
+# Required values for creating a TargetGroup CR are:
+# - Name,
+# - Protocol,
+# - Algorithm.
+apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
+kind: TargetGroup
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleTargetGroup
+    algorithm: ROUND_ROBIN
+    protocol: HTTP
+    targets:
+      - ip: 10.0.2.19
+        port: 80
+        weight: 1
+      - ip: 10.0.2.20
+        port: 80
+        weight: 1
+  providerConfigRef:
+    name: example
