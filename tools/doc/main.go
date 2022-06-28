@@ -40,8 +40,14 @@ func writeContent(w io.Writer) error {
 		getOverview(buf, mustGetCRDs[i])
 		getUsage(buf, mustGetCRDs[i])
 		getProperties(buf, mustGetCRDs[i])
-		getDefinition(buf, mustGetCRDs[i])
-		getInstance(buf, mustGetCRDs[i])
+		err := getDefinition(buf, mustGetCRDs[i])
+		if err != nil {
+			return err
+		}
+		err = getInstance(buf, mustGetCRDs[i])
+		if err != nil {
+			return err
+		}
 	}
 	_, err := buf.WriteTo(w)
 	return err
@@ -85,13 +91,20 @@ func getProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefiniti
 			}
 		}
 		if !utils.IsEmptyValue(reflect.ValueOf(value.Default)) {
-			buf.WriteString("	* default: " + value.Default.String() + "\n")
+			buf.WriteString("	* default: " + string(value.Default.Raw) + "\n")
 		}
 		if !utils.IsEmptyValue(reflect.ValueOf(value.Format)) {
 			buf.WriteString("	* format: " + value.Format + "\n")
 		}
 		if !utils.IsEmptyValue(reflect.ValueOf(value.Pattern)) {
 			buf.WriteString("	* pattern: " + value.Pattern + "\n")
+		}
+		if !utils.IsEmptyValue(reflect.ValueOf(value.Enum)) {
+			var possibleValues string
+			for _, v := range value.Enum {
+				possibleValues = possibleValues + string(v.Raw) + ";"
+			}
+			buf.WriteString("	* possible values: " + strings.TrimRight(possibleValues, ";") + "\n")
 		}
 		// Check all validations added on apis_types
 	}
@@ -104,28 +117,36 @@ func getProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefiniti
 	buf.WriteString("\n")
 }
 
-func getDefinition(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
+func getDefinition(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error {
 	if buf == nil {
-		return
+		return fmt.Errorf("error getting definition file path, buffer must be different than nil")
 	}
-	path, _ := getDefinitionFilePath(crd)
+	path, err := getDefinitionFilePath(crd)
+	if err != nil {
+		return err
+	}
 	if path != "" {
 		buf.WriteString("## Resource Definition\n\n")
 		buf.WriteString("The corresponding resource definition can be found [here](" + crossplaneProviderGithubUrl + path + ").\n")
 		buf.WriteString("\n")
 	}
+	return nil
 }
 
-func getInstance(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
+func getInstance(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error {
 	if buf == nil {
-		return
+		return fmt.Errorf("error getting instance example file path, buffer must be different than nil")
 	}
-	path, _ := getExampleFilePath(crd)
+	path, err := getExampleFilePath(crd)
+	if err != nil {
+		return err
+	}
 	if path != "" {
 		buf.WriteString("## Resource Instance Example\n\n")
 		buf.WriteString("An example of a resource instance can be found [here](" + crossplaneProviderGithubUrl + path + ").\n")
 		buf.WriteString("\n")
 	}
+	return nil
 }
 
 func getUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
@@ -136,21 +157,21 @@ func getUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
 	if path != "" {
 		buf.WriteString("## Usage\n\n")
 		buf.WriteString("In order to manage resources on IONOS Cloud using Crossplane Provider, you need to have Crossplane Provider for IONOS Cloud installed into a Kubernetes Cluster, as a prerequisite. For a step-by-step guide, check the following [link](" + guideGithubUrl + ").\n\n")
-		buf.WriteString("Please clone the repository for easier access to the example files.\n\n")
+		buf.WriteString("It is recommended to clone the repository for easier access to the example files.\n\n")
 		buf.WriteString("### Create\n\n")
-		buf.WriteString("Use the following command to create an instance. Before applying the file, make sure to check the properties defined in the `spec.forProvider` fields:\n\n")
+		buf.WriteString("Use the following command to create a resource instance. Before applying the file, check the properties defined in the `spec.forProvider` fields:\n\n")
 		buf.WriteString("```\n")
 		buf.WriteString("kubectl apply -f " + path + "\n")
 		buf.WriteString("```\n\n")
 		buf.WriteString("_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n")
 		buf.WriteString("### Update\n\n")
-		buf.WriteString("Use the following command to update an instance. Before applying the file, make sure you have updated the properties defined in the `spec.forProvider` fields:\n\n")
+		buf.WriteString("Use the following command to update an instance. Before applying the file, update the properties defined in the `spec.forProvider` fields:\n\n")
 		buf.WriteString("```\n")
 		buf.WriteString("kubectl apply -f " + path + "\n")
 		buf.WriteString("```\n\n")
 		buf.WriteString("_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n")
 		buf.WriteString("### Wait\n\n")
-		buf.WriteString("Use the following command to wait for the resources to be ready and synced. Update the `<instance-name>` accordingly:\n\n")
+		buf.WriteString("Use the following commands to wait for resources to be ready and synced. Update the `<instance-name>` accordingly:\n\n")
 		buf.WriteString("```\n")
 		buf.WriteString("kubectl wait --for=condition=ready " + crd.Spec.Names.Plural + "." + crd.Spec.Group + "/<instance-name>\n")
 		buf.WriteString("kubectl wait --for=condition=synced " + crd.Spec.Names.Plural + "." + crd.Spec.Group + "/<instance-name>\n")
@@ -160,7 +181,7 @@ func getUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
 		buf.WriteString("```\n")
 		buf.WriteString("kubectl get " + crd.Spec.Names.Plural + "." + crd.Spec.Group + "\n")
 		buf.WriteString("```\n\n")
-		buf.WriteString("Use the following command to get a list of the existing instances with more details:\n\n")
+		buf.WriteString("Use the following command to get a list of the existing instances with more details displayed:\n\n")
 		buf.WriteString("```\n")
 		buf.WriteString("kubectl get " + crd.Spec.Names.Plural + "." + crd.Spec.Group + " -o wide\n")
 		buf.WriteString("```\n\n")
@@ -169,7 +190,7 @@ func getUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
 		buf.WriteString("kubectl get " + crd.Spec.Names.Plural + "." + crd.Spec.Group + " -o json\n")
 		buf.WriteString("```\n\n")
 		buf.WriteString("### Delete\n\n")
-		buf.WriteString("Use the following command to delete the instances created above:\n\n")
+		buf.WriteString("Use the following command to destroy the resources created by applying the file:\n\n")
 		buf.WriteString("```\n")
 		buf.WriteString("kubectl delete -f " + path + "\n")
 		buf.WriteString("```\n\n")
@@ -180,8 +201,7 @@ func getUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
 
 func getDefinitionFilePath(crd apiextensionsv1.CustomResourceDefinition) (string, error) {
 	filePath := fmt.Sprintf("%s%s_%s.yaml", definitionsDirectoryPath, crd.Spec.Group, crd.Spec.Names.Plural)
-	_, err := os.ReadFile(filePath)
-	if err != nil {
+	if _, err := yamlFileExists(filePath); err != nil {
 		return "", err
 	}
 	return filePath, nil
@@ -193,11 +213,20 @@ func getExampleFilePath(crd apiextensionsv1.CustomResourceDefinition) (string, e
 		return "", err
 	}
 	filePath := fmt.Sprintf("%s%s/%s.yaml", examplesDirectoryPath, svc, crd.Spec.Names.Singular)
-	_, err = os.ReadFile(filePath)
-	if err != nil {
+	if _, err = yamlFileExists(filePath); err != nil {
 		return "", err
 	}
 	return filePath, nil
+}
+
+func yamlFileExists(filePath string) (bool, error) {
+	if !strings.HasSuffix(filePath, ".yaml") && !strings.HasSuffix(filePath, ".yml") {
+		return false, fmt.Errorf("error: not a valid path to a YAML file")
+	}
+	if _, err := os.ReadFile(filePath); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func getServiceFromGroup(crd apiextensionsv1.CustomResourceDefinition) (string, error) {

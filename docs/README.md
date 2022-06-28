@@ -25,7 +25,7 @@ For getting started with Crossplane Provider for IONOS Cloud, check out this
 step-by-step [guide](../examples/example.md) which provides details about the provisioning of a Postgres Cluster in
 IONOS Cloud.
 
-## Prerequisities
+## Prerequisites
 
 To use the Crossplane Provider IONOS Cloud you will need an IONOS Cloud account, the same account you may use
 with [DCD](https://dcd.ionos.com/latest/) or other config management tools.
