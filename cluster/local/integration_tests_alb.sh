@@ -15,10 +15,10 @@ function targetgroup_tests() {
 apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: TargetGroup
 metadata:
-  name: example
+  name: examplealb
 spec:
   forProvider:
-    name: exampleTargetGroup
+    name: exampleTargetGroupALB
     algorithm: ROUND_ROBIN
     protocol: HTTP
     targets:
@@ -36,8 +36,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for target group CR to be ready & synced"
-  kubectl wait --for=condition=ready targetgroups.alb.ionoscloud.crossplane.io/example
-  kubectl wait --for=condition=synced targetgroups.alb.ionoscloud.crossplane.io/example
+  kubectl wait --for=condition=ready targetgroups.alb.ionoscloud.crossplane.io/examplealb
+  kubectl wait --for=condition=synced targetgroups.alb.ionoscloud.crossplane.io/examplealb
 
   echo_step "get target group CR"
   kubectl get targetgroups.alb.ionoscloud.crossplane.io
@@ -49,10 +49,10 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: TargetGroup
 metadata:
-  name: example
+  name: examplealb
 spec:
   forProvider:
-    name: exampleTargetGroupUpdated
+    name: exampleTargetGroupALBUpdated
     algorithm: ROUND_ROBIN
     protocol: HTTP
     targets:
@@ -67,8 +67,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for target group CR to be ready & synced"
-  kubectl wait --for=condition=ready targetgroups.alb.ionoscloud.crossplane.io/example
-  kubectl wait --for=condition=synced targetgroups.alb.ionoscloud.crossplane.io/example
+  kubectl wait --for=condition=ready targetgroups.alb.ionoscloud.crossplane.io/examplealb
+  kubectl wait --for=condition=synced targetgroups.alb.ionoscloud.crossplane.io/examplealb
 }
 
 function targetgroup_tests_cleanup() {
@@ -77,10 +77,10 @@ function targetgroup_tests_cleanup() {
 apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: TargetGroup
 metadata:
-  name: example
+  name: examplealb
 spec:
   forProvider:
-    name: exampleTargetGroupUpdated
+    name: exampleTargetGroupALBUpdated
     algorithm: ROUND_ROBIN
     protocol: HTTP
     targets:
@@ -96,7 +96,7 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
   echo_step "wait for deletion target group CR"
-  kubectl wait --for=delete targetgroups.alb.ionoscloud.crossplane.io/example
+  kubectl wait --for=delete targetgroups.alb.ionoscloud.crossplane.io/examplealb
 }
 
 ## ApplicationLoadBalancer CR Tests
@@ -107,10 +107,10 @@ function alb_tests() {
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
-  name: example
+  name: examplealb
 spec:
   forProvider:
-    name: exampleIpBlock
+    name: exampleIpBlockALB
     size: 2
     location: de/txl
   providerConfigRef:
@@ -119,10 +119,10 @@ spec:
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
-  name: example
+  name: examplealb
 spec:
   forProvider:
-    name: exampleDatacenter
+    name: exampleDatacenterALB
     location: de/txl
     description: test
   providerConfigRef:
@@ -131,51 +131,51 @@ spec:
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
-  name: examplelan
+  name: examplelanalb
 spec:
   forProvider:
-    name: exampleLan
+    name: examplePublicLanALB
     public: true
     datacenterConfig:
       datacenterIdRef:
-        name: example
+        name: examplealb
   providerConfigRef:
     name: example
 ---
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
-  name: example
+  name: examplealb
 spec:
   forProvider:
-    name: exampleLan
+    name: examplePrivateLanALB
     public: false
     datacenterConfig:
       datacenterIdRef:
-        name: example
+        name: examplealb
   providerConfigRef:
     name: example
 ---
 apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: ApplicationLoadBalancer
 metadata:
-  name: example
+  name: examplealb
 spec:
   forProvider:
     datacenterConfig:
       datacenterIdRef:
-        name: example
+        name: examplealb
     name: exampleApplicationLoadBalancer
     targetLanConfig:
       lanIdRef:
-        name: example
+        name: examplealb
     listenerLanConfig:
       lanIdRef:
-        name: examplelan
+        name: examplelanalb
     ipsConfig:
       ipsBlockConfigs:
         - ipBlockIdRef:
-            name: example
+            name: examplealb
           indexes: [ 0 ]
   providerConfigRef:
     name: example
@@ -185,12 +185,12 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for prerequisities to be ready & synced"
-  kubectl wait --for=condition=ready ipblocks.compute.ionoscloud.crossplane.io/example datacenters.compute.ionoscloud.crossplane.io/example lans.compute.ionoscloud.crossplane.io/example lans.compute.ionoscloud.crossplane.io/examplelan
-  kubectl wait --for=condition=synced ipblocks.compute.ionoscloud.crossplane.io/example datacenters.compute.ionoscloud.crossplane.io/example lans.compute.ionoscloud.crossplane.io/example lans.compute.ionoscloud.crossplane.io/examplelan
+  kubectl wait --for=condition=ready ipblocks.compute.ionoscloud.crossplane.io/examplealb datacenters.compute.ionoscloud.crossplane.io/examplealb lans.compute.ionoscloud.crossplane.io/examplealb lans.compute.ionoscloud.crossplane.io/examplelanalb
+  kubectl wait --for=condition=synced ipblocks.compute.ionoscloud.crossplane.io/examplealb datacenters.compute.ionoscloud.crossplane.io/examplealb lans.compute.ionoscloud.crossplane.io/examplealb lans.compute.ionoscloud.crossplane.io/examplelanalb
 
   echo_step "waiting for application load balancer CR to be ready & synced"
-  kubectl wait --for=condition=ready applicationloadbalancers.alb.ionoscloud.crossplane.io/example --timeout=30m
-  kubectl wait --for=condition=synced applicationloadbalancers.alb.ionoscloud.crossplane.io/example --timeout=30m
+  kubectl wait --for=condition=ready applicationloadbalancers.alb.ionoscloud.crossplane.io/examplealb --timeout=30m
+  kubectl wait --for=condition=synced applicationloadbalancers.alb.ionoscloud.crossplane.io/examplealb --timeout=30m
 
   echo_step "get application load balancer CR"
   kubectl get applicationloadbalancers.alb.ionoscloud.crossplane.io -o wide
@@ -201,23 +201,23 @@ EOF
 apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: ApplicationLoadBalancer
 metadata:
-  name: example
+  name: examplealb
 spec:
   forProvider:
     datacenterConfig:
       datacenterIdRef:
-        name: example
+        name: examplealb
     name: exampleApplicationLoadBalancerUpdated
     targetLanConfig:
       lanIdRef:
-        name: example
+        name: examplealb
     listenerLanConfig:
       lanIdRef:
-        name: examplelan
+        name: examplelanalb
     ipsConfig:
       ipsBlockConfigs:
         - ipBlockIdRef:
-            name: example
+            name: examplealb
           indexes: [ 0 ]
   providerConfigRef:
     name: example
@@ -227,8 +227,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for application load balancer CR to be ready & synced"
-  kubectl wait --for=condition=ready applicationloadbalancers.alb.ionoscloud.crossplane.io/example --timeout=30m
-  kubectl wait --for=condition=synced applicationloadbalancers.alb.ionoscloud.crossplane.io/example --timeout=30m
+  kubectl wait --for=condition=ready applicationloadbalancers.alb.ionoscloud.crossplane.io/examplealb --timeout=30m
+  kubectl wait --for=condition=synced applicationloadbalancers.alb.ionoscloud.crossplane.io/examplealb --timeout=30m
 
   echo_step "get updated application load balancer CR"
   kubectl get applicationloadbalancers.alb.ionoscloud.crossplane.io -o wide
@@ -240,23 +240,23 @@ function alb_tests_cleanup() {
 apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: ApplicationLoadBalancer
 metadata:
-  name: example
+  name: examplealb
 spec:
   forProvider:
     datacenterConfig:
       datacenterIdRef:
-        name: example
+        name: examplealb
     name: exampleApplicationLoadBalancer
     targetLanConfig:
       lanIdRef:
-        name: example2
+        name: examplealb
     listenerLanConfig:
       lanIdRef:
-        name: example1
+        name: examplelanalb
     ipsConfig:
       ipsBlockConfigs:
         - ipBlockIdRef:
-            name: example
+            name: examplealb
           indexes: [ 0 ]
   providerConfigRef:
     name: example
@@ -267,45 +267,45 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
   echo_step "wait for deletion application load balancer CR"
-  kubectl wait --for=delete applicationloadbalancers.alb.ionoscloud.crossplane.io/example --timeout=30m
+  kubectl wait --for=delete applicationloadbalancers.alb.ionoscloud.crossplane.io/examplealb --timeout=30m
 
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
-  name: examplelan
+  name: examplelanalb
 spec:
   forProvider:
-    name: exampleLan
+    name: examplePublicLanALB
     public: true
     datacenterConfig:
       datacenterIdRef:
-        name: example
+        name: examplealb
   providerConfigRef:
     name: example
 ---
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
-  name: example
+  name: examplealb
 spec:
   forProvider:
-    name: exampleLan
+    name: examplePrivateLanALB
     public: false
     datacenterConfig:
       datacenterIdRef:
-        name: example
+        name: examplealb
   providerConfigRef:
     name: example
 ---
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
-  name: example
+  name: examplealb
 spec:
   forProvider:
-    name: exampleDatacenter
+    name: exampleDatacenterALB
     location: de/txl
     description: test
   providerConfigRef:
@@ -314,10 +314,10 @@ spec:
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
-  name: example
+  name: examplealb
 spec:
   forProvider:
-    name: exampleIpBlock
+    name: exampleIpBlockALB
     size: 2
     location: de/txl
   providerConfigRef:
@@ -329,9 +329,9 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
   echo_step "wait for deletion of prerequisites for application load balancer CR"
-  kubectl wait --for=delete lans.compute.ionoscloud.crossplane.io/example lans.compute.ionoscloud.crossplane.io/examplelan
-  kubectl wait --for=delete datacenters.compute.ionoscloud.crossplane.io/example
-  kubectl wait --for=delete ipblocks.compute.ionoscloud.crossplane.io/example
+  kubectl wait --for=delete lans.compute.ionoscloud.crossplane.io/examplealb lans.compute.ionoscloud.crossplane.io/examplelanalb
+  kubectl wait --for=delete datacenters.compute.ionoscloud.crossplane.io/examplealb
+  kubectl wait --for=delete ipblocks.compute.ionoscloud.crossplane.io/examplealb
 }
 
 ## ForwardingRule CR Tests
@@ -342,21 +342,21 @@ function forwardingrule_tests() {
 apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: ForwardingRule
 metadata:
-  name: example
+  name: examplealb
 spec:
   forProvider:
     datacenterConfig:
       datacenterIdRef:
-        name: example
+        name: examplealb
     applicationLoadBalancerConfig:
       applicationLoadBalancerIdRef:
-        name: example
+        name: examplealb
     name: exampleForwardingRuleALB
     protocol: HTTP
     listenerIpConfig:
       ipBlockConfig:
         ipBlockIdRef:
-          name: example
+          name: examplealb
         index: 0
     listenerPort: 80
     httpRules:
@@ -364,7 +364,7 @@ spec:
         type: FORWARD
         targetGroupConfig:
           targetGroupIdRef:
-            name: example
+            name: examplealb
         conditions:
           - type: QUERY
             condition: ENDS_WITH
@@ -400,8 +400,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for forwarding rule CR to be ready & synced"
-  kubectl wait --for=condition=ready forwardingrules.alb.ionoscloud.crossplane.io/example --timeout=30m
-  kubectl wait --for=condition=synced forwardingrules.alb.ionoscloud.crossplane.io/example --timeout=30m
+  kubectl wait --for=condition=ready forwardingrules.alb.ionoscloud.crossplane.io/examplealb --timeout=30m
+  kubectl wait --for=condition=synced forwardingrules.alb.ionoscloud.crossplane.io/examplealb --timeout=30m
 
   echo_step "get forwarding rule CR"
   kubectl get forwardingrules.alb.ionoscloud.crossplane.io
@@ -412,21 +412,21 @@ EOF
 apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: ForwardingRule
 metadata:
-  name: example
+  name: examplealb
 spec:
   forProvider:
     datacenterConfig:
       datacenterIdRef:
-        name: example
+        name: examplealb
     applicationLoadBalancerConfig:
       applicationLoadBalancerIdRef:
-        name: example
+        name: examplealb
     name: exampleForwardingRuleALB
     protocol: HTTP
     listenerIpConfig:
       ipBlockConfig:
         ipBlockIdRef:
-          name: example
+          name: examplealb
         index: 0
     listenerPort: 80
     httpRules:
@@ -449,8 +449,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for forwarding rule CR to be ready & synced"
-  kubectl wait --for=condition=ready forwardingrules.alb.ionoscloud.crossplane.io/example --timeout=30m
-  kubectl wait --for=condition=synced forwardingrules.alb.ionoscloud.crossplane.io/example --timeout=30m
+  kubectl wait --for=condition=ready forwardingrules.alb.ionoscloud.crossplane.io/examplealb --timeout=30m
+  kubectl wait --for=condition=synced forwardingrules.alb.ionoscloud.crossplane.io/examplealb --timeout=30m
 }
 
 function forwardingrule_tests_cleanup() {
@@ -459,21 +459,21 @@ function forwardingrule_tests_cleanup() {
 apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: ForwardingRule
 metadata:
-  name: example
+  name: examplealb
 spec:
   forProvider:
     datacenterConfig:
       datacenterIdRef:
-        name: example
+        name: examplealb
     applicationLoadBalancerConfig:
       applicationLoadBalancerIdRef:
-        name: example
+        name: examplealb
     name: exampleForwardingRuleALB
     protocol: HTTP
     listenerIpConfig:
       ipBlockConfig:
         ipBlockIdRef:
-          name: example
+          name: examplealb
         index: 0
     listenerPort: 80
     httpRules:
@@ -497,5 +497,5 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
   echo_step "wait for deletion forwarding rule CR"
-  kubectl wait --for=delete forwardingrules.alb.ionoscloud.crossplane.io/example --timeout=30m
+  kubectl wait --for=delete forwardingrules.alb.ionoscloud.crossplane.io/examplealb --timeout=30m
 }
