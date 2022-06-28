@@ -6,7 +6,7 @@ import (
 )
 
 // DepthQueryParam is used in GET requests in Cloud API
-const DepthQueryParam = int32(5)
+const DepthQueryParam = int32(1)
 
 // IsEmptyValue checks if a value is empty or not.
 //nolint

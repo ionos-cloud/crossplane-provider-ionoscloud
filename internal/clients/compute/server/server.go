@@ -34,7 +34,8 @@ type Client interface {
 
 // GetServer based on datacenterID and serverID
 func (cp *APIClient) GetServer(ctx context.Context, datacenterID, serverID string) (sdkgo.Server, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.ServersApi.DatacentersServersFindById(ctx, datacenterID, serverID).Depth(utils.DepthQueryParam).Execute()
+	// Use depth=2 to make sure the Managed Resource Server has access to server's entities
+	return cp.ComputeClient.ServersApi.DatacentersServersFindById(ctx, datacenterID, serverID).Depth(int32(2)).Execute()
 }
 
 // CreateServer based on Server properties
