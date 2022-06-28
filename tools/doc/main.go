@@ -15,12 +15,13 @@ import (
 
 const (
 	crossplaneProviderGithubUrl = "https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/"
+	guideGithubUrl              = "https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples/example.md"
 	examplesDirectoryPath       = "examples/ionoscloud/"
 	definitionsDirectoryPath    = "package/crds/"
 )
 
 func main() {
-	f, err := os.Create("test.md")
+	f, err := os.Create("docs/compute/cubeserver.md")
 	if err != nil {
 		panic(err)
 	}
@@ -37,10 +38,10 @@ func writeContent(w io.Writer) error {
 	for i := 0; i < 1; i++ {
 		buf.WriteString("# " + mustGetCRDs[i].Spec.Names.Kind + " Managed Resource\n\n")
 		getOverview(buf, mustGetCRDs[i])
+		getUsage(buf, mustGetCRDs[i])
 		getProperties(buf, mustGetCRDs[i])
 		getDefinition(buf, mustGetCRDs[i])
 		getInstance(buf, mustGetCRDs[i])
-		getUsage(buf, mustGetCRDs[i])
 	}
 	_, err := buf.WriteTo(w)
 	return err
@@ -51,10 +52,10 @@ func getOverview(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition
 		return
 	}
 	buf.WriteString("## Overview\n\n")
-	buf.WriteString("* Resource Name: " + crd.Spec.Names.Kind + "\n")
-	buf.WriteString("* Resource Group: " + crd.Spec.Group + "\n")
-	buf.WriteString("* Resource Version: " + crd.Spec.Versions[0].Name + "\n")
-	buf.WriteString("* Resource Scope: " + string(crd.Spec.Scope) + "\n\n")
+	buf.WriteString("* Resource Name: `" + crd.Spec.Names.Kind + "`\n")
+	buf.WriteString("* Resource Group: `" + crd.Spec.Group + "`\n")
+	buf.WriteString("* Resource Version: `" + crd.Spec.Versions[0].Name + "`\n")
+	buf.WriteString("* Resource Scope: `" + string(crd.Spec.Scope) + "`\n\n")
 }
 
 func getProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
@@ -62,27 +63,24 @@ func getProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefiniti
 		return
 	}
 	buf.WriteString("## Properties\n\n")
-	buf.WriteString("The user can set the following properties in order to configure the IONOS Cloud Resource:\n\n")
+	buf.WriteString("In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:\n\n")
 	for key, value := range crd.Spec.Versions[0].Schema.OpenAPIV3Schema.Properties["spec"].Properties["forProvider"].Properties {
-		buf.WriteString("* `" + key + "`\n")
+		buf.WriteString("* `" + key + "` (" + value.Type + ")\n")
 		if !utils.IsEmptyValue(reflect.ValueOf(value.Description)) {
 			buf.WriteString("	* description: " + value.Description + "\n")
 		}
-		if !utils.IsEmptyValue(reflect.ValueOf(value.Type)) {
-			buf.WriteString("	* type: " + value.Type + "\n")
-			if value.Type == "object" {
-				buf.WriteString("	* properties:\n")
-				for keyProperty, valueProperty := range value.Properties {
-					buf.WriteString("		* `" + keyProperty + "`\n")
-					if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Description)) {
-						buf.WriteString("			* description: " + valueProperty.Description + "\n")
-					}
+		if value.Type == "object" {
+			buf.WriteString("	* properties:\n")
+			for keyProperty, valueProperty := range value.Properties {
+				buf.WriteString("		* `" + keyProperty + "` (" + valueProperty.Type + ")\n")
+				if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Description)) {
+					buf.WriteString("			* description: " + valueProperty.Description + "\n")
 				}
-				if !utils.IsEmptyValue(reflect.ValueOf(value.Required)) {
-					buf.WriteString("	* required properties:\n")
-					for _, valueProperty := range value.Required {
-						buf.WriteString("		* `" + valueProperty + "`\n")
-					}
+			}
+			if !utils.IsEmptyValue(reflect.ValueOf(value.Required)) {
+				buf.WriteString("	* required properties:\n")
+				for _, valueProperty := range value.Required {
+					buf.WriteString("		* `" + valueProperty + "`\n")
 				}
 			}
 		}
@@ -98,7 +96,7 @@ func getProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefiniti
 		// Check all validations added on apis_types
 	}
 	buf.WriteString("\n")
-	buf.WriteString("### Required Properties\n")
+	buf.WriteString("### Required Properties\n\n")
 	buf.WriteString("The user needs to set the following properties in order to configure the IONOS Cloud Resource:\n\n")
 	for _, requiredValue := range crd.Spec.Versions[0].Schema.OpenAPIV3Schema.Properties["spec"].Properties["forProvider"].Required {
 		buf.WriteString("* `" + requiredValue + "`\n")
@@ -124,8 +122,8 @@ func getInstance(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition
 	}
 	path, _ := getExampleFilePath(crd)
 	if path != "" {
-		buf.WriteString("## Resource\n\n")
-		buf.WriteString("An example for a resource instance can be found [here](" + crossplaneProviderGithubUrl + path + ").\n")
+		buf.WriteString("## Resource Instance Example\n\n")
+		buf.WriteString("An example of a resource instance can be found [here](" + crossplaneProviderGithubUrl + path + ").\n")
 		buf.WriteString("\n")
 	}
 }
@@ -137,23 +135,45 @@ func getUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
 	path, _ := getExampleFilePath(crd)
 	if path != "" {
 		buf.WriteString("## Usage\n\n")
-		buf.WriteString("### Create/Update\n\n")
-		buf.WriteString("The following command should be run from the root of the `crossplane-provider-ionoscloud` directory. Before applying the file, make sure to check the properties defined in the `spec.forProvider` fields:\n\n")
+		buf.WriteString("In order to manage resources on IONOS Cloud using Crossplane Provider, you need to have Crossplane Provider for IONOS Cloud installed into a Kubernetes Cluster, as a prerequisite. For a step-by-step guide, check the following [link](" + guideGithubUrl + ").\n\n")
+		buf.WriteString("Please clone the repository for easier access to the example files.\n\n")
+		buf.WriteString("### Create\n\n")
+		buf.WriteString("Use the following command to create an instance. Before applying the file, make sure to check the properties defined in the `spec.forProvider` fields:\n\n")
 		buf.WriteString("```\n")
 		buf.WriteString("kubectl apply -f " + path + "\n")
+		buf.WriteString("```\n\n")
+		buf.WriteString("_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n")
+		buf.WriteString("### Update\n\n")
+		buf.WriteString("Use the following command to update an instance. Before applying the file, make sure you have updated the properties defined in the `spec.forProvider` fields:\n\n")
 		buf.WriteString("```\n")
-		buf.WriteString("\n")
+		buf.WriteString("kubectl apply -f " + path + "\n")
+		buf.WriteString("```\n\n")
+		buf.WriteString("_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n")
+		buf.WriteString("### Wait\n\n")
+		buf.WriteString("Use the following command to wait for the resources to be ready and synced. Update the `<instance-name>` accordingly:\n\n")
+		buf.WriteString("```\n")
+		buf.WriteString("kubectl wait --for=condition=ready " + crd.Spec.Names.Plural + "." + crd.Spec.Group + "/<instance-name>\n")
+		buf.WriteString("kubectl wait --for=condition=synced " + crd.Spec.Names.Plural + "." + crd.Spec.Group + "/<instance-name>\n")
+		buf.WriteString("```\n\n")
 		buf.WriteString("### Get\n\n")
+		buf.WriteString("Use the following command to get a list of the existing instances:\n\n")
 		buf.WriteString("```\n")
 		buf.WriteString("kubectl get " + crd.Spec.Names.Plural + "." + crd.Spec.Group + "\n")
+		buf.WriteString("```\n\n")
+		buf.WriteString("Use the following command to get a list of the existing instances with more details:\n\n")
 		buf.WriteString("```\n")
-		buf.WriteString("\n")
+		buf.WriteString("kubectl get " + crd.Spec.Names.Plural + "." + crd.Spec.Group + " -o wide\n")
+		buf.WriteString("```\n\n")
+		buf.WriteString("Use the following command to get a list of the existing instances in JSON format:\n\n")
+		buf.WriteString("```\n")
+		buf.WriteString("kubectl get " + crd.Spec.Names.Plural + "." + crd.Spec.Group + " -o json\n")
+		buf.WriteString("```\n\n")
 		buf.WriteString("### Delete\n\n")
+		buf.WriteString("Use the following command to delete the instances created above:\n\n")
 		buf.WriteString("```\n")
 		buf.WriteString("kubectl delete -f " + path + "\n")
 		buf.WriteString("```\n\n")
-		buf.WriteString("**Note**: the commands presented should be run from the root of the `crossplane-provider-ionoscloud` directory. " +
-			"Please clone the repository for easier access.")
+		buf.WriteString("_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n")
 		buf.WriteString("\n")
 	}
 }
