@@ -103,10 +103,10 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `datacenterIdSelector` (object)
 			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
 			* properties:
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
 * `name` (string)
 	* description: The name of the  resource.
 * `template` (object)
@@ -120,8 +120,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `volume` (object)
 	* description: DasVolumeProperties contains properties for the DAS volume attached to the Cube Server
 	* properties:
-		* `image` (string)
-			* description: Image or snapshot ID to be used as template for this volume. Make sure the image selected is compatible with the datacenter's location. Note: when creating a volume, set image, image alias, or licence type
 		* `imageAlias` (string)
 			* description: Note: when creating a volume, set image, image alias, or licence type
 		* `imagePassword` (string)
@@ -136,6 +134,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `bus` (string)
 			* description: The bus type of the volume.
 			* possible values: "VIRTIO";"IDE";"UNKNOWN"
+		* `image` (string)
+			* description: Image or snapshot ID to be used as template for this volume. Make sure the image selected is compatible with the datacenter's location. Note: when creating a volume, set image, image alias, or licence type
 	* required properties:
 		* `bus`
 		* `name`

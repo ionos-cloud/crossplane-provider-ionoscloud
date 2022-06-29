@@ -108,6 +108,11 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `ipBlockConfig` (object)
 			* description: IPBlockConfig - used by resources that need to link IPBlock via id or via reference to get one single IP.
 			* properties:
+				* `index` (integer)
+					* description: Index is referring to the IP index retrieved from the IPBlock. Index is starting from 0.
+				* `ipBlockId` (string)
+					* description: NicID is the ID of the IPBlock on which the resource will be created. It needs to be provided via directly or via reference.
+					* format: uuid
 				* `ipBlockIdRef` (object)
 					* description: IPBlockIDRef references to a IPBlock to retrieve its ID
 					* properties:
@@ -122,16 +127,13 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 						* `matchLabels` (object)
 							* description: MatchLabels ensures an object with matching labels is selected.
-				* `index` (integer)
-					* description: Index is referring to the IP index retrieved from the IPBlock. Index is starting from 0.
-				* `ipBlockId` (string)
-					* description: NicID is the ID of the IPBlock on which the resource will be created. It needs to be provided via directly or via reference.
-					* format: uuid
 			* required properties:
 				* `index`
 * `lanConfig` (object)
 	* description: LanConfig contains information about the lan resource on which the resource will be created
 	* properties:
+		* `lanId` (string)
+			* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
 		* `lanIdRef` (object)
 			* description: LanIDRef references to a Lan to retrieve its ID
 			* properties:
@@ -142,15 +144,20 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `lanIdSelector` (object)
 			* description: LanIDSelector selects reference to a Lan to retrieve its lanId
 			* properties:
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+* `nicConfig` (object)
+	* description: NicConfig contains information about the nic resource on which the resource will be created
+	* properties:
+		* `nicIdSelector` (object)
+			* description: NicIDSelector selects reference to a Nic to retrieve its nicId
+			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
-		* `lanId` (string)
-			* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
-* `nicConfig` (object)
-	* description: NicConfig contains information about the nic resource on which the resource will be created
-	* properties:
 		* `nicId` (string)
 			* description: NicID is the ID of the Nic on which the resource will be created. It needs to be provided via directly or via reference.
 			* format: uuid
@@ -161,13 +168,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: Name of the referenced object.
 			* required properties:
 				* `name`
-		* `nicIdSelector` (object)
-			* description: NicIDSelector selects reference to a Nic to retrieve its nicId
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
 
 ### Required Properties
 

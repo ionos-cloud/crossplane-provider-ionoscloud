@@ -22,7 +22,9 @@ const (
 	ionoscloudServiceName     = "ionoscloud"
 )
 
-// NOTE: Make sure to check the exceptions list below and to create a new directory after integrating a new service into Crossplane Provider IONOS Cloud!
+// NOTES:
+// 1. Make sure to check the exceptions list below and to create a new directory after integrating a new service into Crossplane Provider IONOS Cloud!
+// 2. You can easily generate documentation automatically using `make docs.update` target.
 
 // This tool expects that the examples files provided are in the <service-name> directory, under the name <resource-name>.yaml
 // The <service-name> is taken from the Managed Resource Spec Group (e.g.: group=k8s.ionoscloud.crossplane.io -> service-name=k8s).
@@ -43,7 +45,7 @@ func main() {
 		os.Exit(1)
 	}
 	if _, err := os.Stat(dir); err != nil {
-		fmt.Printf("Error getting directory: %v\n", err)
+		fmt.Printf("error getting directory: %v\n", err)
 		os.Exit(1)
 	}
 	if !strings.HasSuffix(dir, "/") {

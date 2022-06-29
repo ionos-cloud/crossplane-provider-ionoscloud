@@ -80,74 +80,14 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `datacenterConfig` (object)
-	* description: DatacenterConfig contains information about the datacenter resource on which the resource will be created
-	* properties:
-		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `datacenterIdRef` (object)
-			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-			* required properties:
-				* `name`
-		* `datacenterIdSelector` (object)
-			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-* `nicConfig` (object)
-	* description: NicConfig contains information about the nic resource on which the resource will be created
-	* properties:
-		* `nicId` (string)
-			* description: NicID is the ID of the Nic on which the resource will be created. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `nicIdRef` (object)
-			* description: NicIDRef references to a Nic to retrieve its ID
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-			* required properties:
-				* `name`
-		* `nicIdSelector` (object)
-			* description: NicIDSelector selects reference to a Nic to retrieve its nicId
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-* `portRangeStart` (integer)
-	* description: Defines the start range of the allowed port (from 1 to 65534) if protocol TCP or UDP is chosen. Leave portRangeStart and portRangeEnd value null to allow all ports.
-	* format: int32
-	* minimum: 1.000000
-	* maximum: 65534.000000
-* `protocol` (string)
-	* description: The protocol for the rule. Property cannot be modified after it is created (disallowed in update requests).
-	* possible values: "TCP";"UDP";"ICMP";"ANY"
-* `sourceMac` (string)
-	* description: Only traffic originating from the respective MAC address is allowed. Valid format: aa:bb:cc:dd:ee:ff. Value null allows traffic from any MAC address.
-	* pattern: ^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$
-* `icmpCode` (integer)
-	* description: Defines the allowed code (from 0 to 254) if protocol ICMP is chosen. Value null allows all codes.
-	* format: int32
-	* minimum: 0.000000
-	* maximum: 254.000000
 * `icmpType` (integer)
 	* description: Defines the allowed type (from 0 to 254) if the protocol ICMP is chosen. Value null allows all types.
 	* format: int32
 	* minimum: 0.000000
 	* maximum: 254.000000
-* `name` (string)
-	* description: The name of the  resource.
-* `portRangeEnd` (integer)
-	* description: Defines the end range of the allowed port (from 1 to 65534) if the protocol TCP or UDP is chosen. Leave portRangeStart and portRangeEnd null to allow all ports.
-	* format: int32
-	* minimum: 1.000000
-	* maximum: 65534.000000
+* `protocol` (string)
+	* description: The protocol for the rule. Property cannot be modified after it is created (disallowed in update requests).
+	* possible values: "TCP";"UDP";"ICMP";"ANY"
 * `serverConfig` (object)
 	* description: ServerConfig contains information about the server resource on which the resource will be created
 	* properties:
@@ -168,6 +108,61 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
+* `sourceMac` (string)
+	* description: Only traffic originating from the respective MAC address is allowed. Valid format: aa:bb:cc:dd:ee:ff. Value null allows traffic from any MAC address.
+	* pattern: ^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$
+* `datacenterConfig` (object)
+	* description: DatacenterConfig contains information about the datacenter resource on which the resource will be created
+	* properties:
+		* `datacenterId` (string)
+			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
+		* `datacenterIdRef` (object)
+			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+			* required properties:
+				* `name`
+		* `datacenterIdSelector` (object)
+			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+* `name` (string)
+	* description: The name of the  resource.
+* `nicConfig` (object)
+	* description: NicConfig contains information about the nic resource on which the resource will be created
+	* properties:
+		* `nicId` (string)
+			* description: NicID is the ID of the Nic on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
+		* `nicIdRef` (object)
+			* description: NicIDRef references to a Nic to retrieve its ID
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+			* required properties:
+				* `name`
+		* `nicIdSelector` (object)
+			* description: NicIDSelector selects reference to a Nic to retrieve its nicId
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+* `portRangeEnd` (integer)
+	* description: Defines the end range of the allowed port (from 1 to 65534) if the protocol TCP or UDP is chosen. Leave portRangeStart and portRangeEnd null to allow all ports.
+	* format: int32
+	* minimum: 1.000000
+	* maximum: 65534.000000
+* `portRangeStart` (integer)
+	* description: Defines the start range of the allowed port (from 1 to 65534) if protocol TCP or UDP is chosen. Leave portRangeStart and portRangeEnd value null to allow all ports.
+	* format: int32
+	* minimum: 1.000000
+	* maximum: 65534.000000
 * `sourceIpConfig` (object)
 	* description: Only traffic originating from the respective IPv4 address is allowed. Value null allows traffic from any IP address. SourceIP can be set directly or via reference to an IP Block and index.
 	* properties:
@@ -191,15 +186,17 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 				* `ipBlockIdSelector` (object)
 					* description: IPBlockIDSelector selects reference to a IPBlock to retrieve its nicId
 					* properties:
-						* `matchControllerRef` (boolean)
-							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 						* `matchLabels` (object)
 							* description: MatchLabels ensures an object with matching labels is selected.
+						* `matchControllerRef` (boolean)
+							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 			* required properties:
 				* `index`
 * `targetIpConfig` (object)
 	* description: If the target NIC has multiple IP addresses, only the traffic directed to the respective IP address of the NIC is allowed. Value null allows traffic to any target IP address. TargetIP can be set directly or via reference to an IP Block and index.
 	* properties:
+		* `ip` (string)
+			* pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
 		* `ipBlockConfig` (object)
 			* description: IPBlockConfig - used by resources that need to link IPBlock via id or via reference to get one single IP.
 			* properties:
@@ -224,11 +221,14 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 							* description: MatchLabels ensures an object with matching labels is selected.
 			* required properties:
 				* `index`
-		* `ip` (string)
-			* pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
 * `type` (string)
 	* description: The type of the firewall rule. If not specified, the default INGRESS value is used.
 	* possible values: "INGRESS";"EGRESS"
+* `icmpCode` (integer)
+	* description: Defines the allowed code (from 0 to 254) if protocol ICMP is chosen. Value null allows all codes.
+	* format: int32
+	* minimum: 0.000000
+	* maximum: 254.000000
 
 ### Required Properties
 

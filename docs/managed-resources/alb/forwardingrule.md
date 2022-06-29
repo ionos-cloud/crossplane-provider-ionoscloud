@@ -82,6 +82,68 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 
 * `name` (string)
 	* description: The name of the Application Load Balancer Forwarding Rule.
+* `clientTimeout` (integer)
+	* description: The maximum time in milliseconds to wait for the client to acknowledge or send data; default is 50,000 (50 seconds).
+	* format: int32
+* `datacenterConfig` (object)
+	* description: A Datacenter, to which the user has access, to provision the ApplicationLoadBalancer in.
+	* properties:
+		* `datacenterId` (string)
+			* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
+			* format: uuid
+		* `datacenterIdRef` (object)
+			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+			* required properties:
+				* `name`
+		* `datacenterIdSelector` (object)
+			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+* `httpRules` (array)
+	* description: An array of items in the collection. The original order of rules is preserved during processing, except for Forward-type rules are processed after the rules with other action defined. The relative order of Forward-type rules is also preserved during the processing.
+* `listenerIpConfig` (object)
+	* description: Listening (inbound) IP. IP must be assigned to the listener NIC of the Application Load Balancer.
+	* properties:
+		* `ip` (string)
+			* pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
+		* `ipBlockConfig` (object)
+			* description: IPBlockConfig - used by resources that need to link IPBlock via id or via reference to get one single IP.
+			* properties:
+				* `index` (integer)
+					* description: Index is referring to the IP index retrieved from the IPBlock. Index is starting from 0.
+				* `ipBlockId` (string)
+					* description: NicID is the ID of the IPBlock on which the resource will be created. It needs to be provided via directly or via reference.
+					* format: uuid
+				* `ipBlockIdRef` (object)
+					* description: IPBlockIDRef references to a IPBlock to retrieve its ID
+					* properties:
+						* `name` (string)
+							* description: Name of the referenced object.
+					* required properties:
+						* `name`
+				* `ipBlockIdSelector` (object)
+					* description: IPBlockIDSelector selects reference to a IPBlock to retrieve its nicId
+					* properties:
+						* `matchControllerRef` (boolean)
+							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+						* `matchLabels` (object)
+							* description: MatchLabels ensures an object with matching labels is selected.
+			* required properties:
+				* `index`
+* `listenerPort` (integer)
+	* description: Listening (inbound) port number; valid range is 1 to 65535.
+	* format: int32
+	* minimum: 1.000000
+	* maximum: 65535.000000
+* `protocol` (string)
+	* description: Balancing protocol
+	* possible values: "HTTP"
 * `serverCertificatesIds` (array)
 	* description: Array of items in the collection.
 * `applicationLoadBalancerConfig` (object)
@@ -104,68 +166,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
-* `datacenterConfig` (object)
-	* description: A Datacenter, to which the user has access, to provision the ApplicationLoadBalancer in.
-	* properties:
-		* `datacenterIdSelector` (object)
-			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `datacenterIdRef` (object)
-			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-			* required properties:
-				* `name`
-* `listenerIpConfig` (object)
-	* description: Listening (inbound) IP. IP must be assigned to the listener NIC of the Application Load Balancer.
-	* properties:
-		* `ip` (string)
-			* pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
-		* `ipBlockConfig` (object)
-			* description: IPBlockConfig - used by resources that need to link IPBlock via id or via reference to get one single IP.
-			* properties:
-				* `ipBlockIdRef` (object)
-					* description: IPBlockIDRef references to a IPBlock to retrieve its ID
-					* properties:
-						* `name` (string)
-							* description: Name of the referenced object.
-					* required properties:
-						* `name`
-				* `ipBlockIdSelector` (object)
-					* description: IPBlockIDSelector selects reference to a IPBlock to retrieve its nicId
-					* properties:
-						* `matchControllerRef` (boolean)
-							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-						* `matchLabels` (object)
-							* description: MatchLabels ensures an object with matching labels is selected.
-				* `index` (integer)
-					* description: Index is referring to the IP index retrieved from the IPBlock. Index is starting from 0.
-				* `ipBlockId` (string)
-					* description: NicID is the ID of the IPBlock on which the resource will be created. It needs to be provided via directly or via reference.
-					* format: uuid
-			* required properties:
-				* `index`
-* `protocol` (string)
-	* description: Balancing protocol
-	* possible values: "HTTP"
-* `clientTimeout` (integer)
-	* description: The maximum time in milliseconds to wait for the client to acknowledge or send data; default is 50,000 (50 seconds).
-	* format: int32
-* `httpRules` (array)
-	* description: An array of items in the collection. The original order of rules is preserved during processing, except for Forward-type rules are processed after the rules with other action defined. The relative order of Forward-type rules is also preserved during the processing.
-* `listenerPort` (integer)
-	* description: Listening (inbound) port number; valid range is 1 to 65535.
-	* format: int32
-	* minimum: 1.000000
-	* maximum: 65535.000000
 
 ### Required Properties
 

@@ -80,37 +80,11 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `listenerLanConfig` (object)
-	* description: ID of the listening (inbound) LAN. Lan ID can be set directly or via reference.
-	* properties:
-		* `lanId` (string)
-			* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
-		* `lanIdRef` (object)
-			* description: LanIDRef references to a Lan to retrieve its ID
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-			* required properties:
-				* `name`
-		* `lanIdSelector` (object)
-			* description: LanIDSelector selects reference to a Lan to retrieve its lanId
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
 * `name` (string)
 	* description: The name of the Application Load Balancer.
 * `targetLanConfig` (object)
 	* description: ID of the balanced private target LAN (outbound). Lan ID can be set directly or via reference.
 	* properties:
-		* `lanIdSelector` (object)
-			* description: LanIDSelector selects reference to a Lan to retrieve its lanId
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
 		* `lanId` (string)
 			* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
 		* `lanIdRef` (object)
@@ -120,12 +94,16 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: Name of the referenced object.
 			* required properties:
 				* `name`
+		* `lanIdSelector` (object)
+			* description: LanIDSelector selects reference to a Lan to retrieve its lanId
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
 * `datacenterConfig` (object)
 	* description: A Datacenter, to which the user has access, to provision the ApplicationLoadBalancer in.
 	* properties:
-		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
-			* format: uuid
 		* `datacenterIdRef` (object)
 			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
 			* properties:
@@ -140,6 +118,9 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
+		* `datacenterId` (string)
+			* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
+			* format: uuid
 * `ipsConfig` (object)
 	* description: Collection of the Application Load Balancer IP addresses. (Inbound and outbound) IPs of the listenerLan are customer-reserved public IPs for the public Load Balancers, and private IPs for the private Load Balancers. The IPs can be set directly or using reference to the existing IPBlocks and indexes. If no indexes are set, all IPs from the corresponding IPBlock will be assigned. All IPs set on the Nic will be displayed on the status's ips field.
 	* properties:
@@ -147,6 +128,25 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `ipsBlockConfigs` (array)
 * `lbPrivateIps` (array)
 	* description: Collection of private IP addresses with the subnet mask of the Application Load Balancer. IPs must contain valid a subnet mask. If no IP is provided, the system will generate an IP with /24 subnet.
+* `listenerLanConfig` (object)
+	* description: ID of the listening (inbound) LAN. Lan ID can be set directly or via reference.
+	* properties:
+		* `lanIdRef` (object)
+			* description: LanIDRef references to a Lan to retrieve its ID
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+			* required properties:
+				* `name`
+		* `lanIdSelector` (object)
+			* description: LanIDSelector selects reference to a Lan to retrieve its lanId
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+		* `lanId` (string)
+			* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
 
 ### Required Properties
 

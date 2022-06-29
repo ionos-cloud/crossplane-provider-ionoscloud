@@ -80,12 +80,6 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `name` (string)
-	* description: The name of the  resource.
-* `pcc` (string)
-	* description: The unique identifier of the private Cross-Connect the LAN is connected to, if any.
-* `public` (boolean)
-	* description: This LAN faces the public Internet.
 * `datacenterConfig` (object)
 	* description: DatacenterConfig contains information about the datacenter resource on which the lan will be created
 	* properties:
@@ -106,6 +100,12 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
+* `name` (string)
+	* description: The name of the  resource.
+* `pcc` (string)
+	* description: The unique identifier of the private Cross-Connect the LAN is connected to, if any.
+* `public` (boolean)
+	* description: This LAN faces the public Internet.
 
 ### Required Properties
 
