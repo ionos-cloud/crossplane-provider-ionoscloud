@@ -25,7 +25,7 @@ const (
 // NOTE: Make sure to check the exceptions list below and to create a new directory after integrating a new service into Crossplane Provider IONOS Cloud!
 
 // This tool expects that the examples files provided are in the <service-name> directory, under the name <resource-name>.yaml
-// The <service-name> is taken from the Managed Resource Spec Group (e.g.: group=k8s.ionoscloud.crossplan.io -> service-name=k8s).
+// The <service-name> is taken from the Managed Resource Spec Group (e.g.: group=k8s.ionoscloud.crossplane.io -> service-name=k8s).
 // The <resource-name> is taken from the Managed Resource Spec Kind, using lower case (e.g.: kind=Cluster -> resource-name=cluster).
 // If the example file for a Managed Resource does not follow the template above, please define it in the next key-value collection.
 // Define here exceptions for the example filenames:
@@ -75,6 +75,9 @@ func writeContent(docsFolder string) error { // nolint: gocyclo
 			return err
 		}
 		kindName := mustGetCRDs[i].Spec.Names.Kind
+		buf.WriteString("---\n")
+		buf.WriteString("description: Manages " + kindName + " Resource on IONOS Cloud.\n")
+		buf.WriteString("---\n\n")
 		buf.WriteString("# " + kindName + " Managed Resource\n\n")
 		if err = getOverview(buf, mustGetCRDs[i]); err != nil {
 			return fmt.Errorf(errorPrinting, kindName, err)

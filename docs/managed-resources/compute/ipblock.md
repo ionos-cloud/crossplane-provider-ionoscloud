@@ -1,3 +1,7 @@
+---
+description: Manages IPBlock Resource on IONOS Cloud.
+---
+
 # IPBlock Managed Resource
 
 ## Overview

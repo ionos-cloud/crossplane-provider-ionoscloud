@@ -1,3 +1,7 @@
+---
+description: Manages Cluster Resource on IONOS Cloud.
+---
+
 # Cluster Managed Resource
 
 ## Overview
