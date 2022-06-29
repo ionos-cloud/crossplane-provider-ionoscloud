@@ -21,6 +21,8 @@ const (
 	ionoscloudServiceName             = "ionoscloud"
 )
 
+// NOTE: Make sure to check the exceptions list below and to create a new directory after integrating a new service into Crossplane Provider IONOS Cloud!
+
 // Define here exceptions for the example filenames:
 // <resource_name>.yaml
 var exceptionsFileNamesExamples = map[string]string{
