@@ -38,13 +38,13 @@ func writeContent(w io.Writer) error {
 	for i := 0; i < 1; i++ {
 		buf.WriteString("# " + mustGetCRDs[i].Spec.Names.Kind + " Managed Resource\n\n")
 		getOverview(buf, mustGetCRDs[i])
-		getUsage(buf, mustGetCRDs[i])
-		getProperties(buf, mustGetCRDs[i])
-		err := getDefinition(buf, mustGetCRDs[i])
+		writeUsage(buf, mustGetCRDs[i])
+		writeProperties(buf, mustGetCRDs[i])
+		err := writeDefinition(buf, mustGetCRDs[i])
 		if err != nil {
 			return err
 		}
-		err = getInstance(buf, mustGetCRDs[i])
+		err = writeInstanceExample(buf, mustGetCRDs[i])
 		if err != nil {
 			return err
 		}
@@ -64,49 +64,14 @@ func getOverview(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition
 	buf.WriteString("* Resource Scope: `" + string(crd.Spec.Scope) + "`\n\n")
 }
 
-func getProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
+func writeProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
 	if buf == nil {
 		return
 	}
 	buf.WriteString("## Properties\n\n")
 	buf.WriteString("In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:\n\n")
 	for key, value := range crd.Spec.Versions[0].Schema.OpenAPIV3Schema.Properties["spec"].Properties["forProvider"].Properties {
-		buf.WriteString("* `" + key + "` (" + value.Type + ")\n")
-		if !utils.IsEmptyValue(reflect.ValueOf(value.Description)) {
-			buf.WriteString("	* description: " + value.Description + "\n")
-		}
-		if value.Type == "object" {
-			buf.WriteString("	* properties:\n")
-			for keyProperty, valueProperty := range value.Properties {
-				buf.WriteString("		* `" + keyProperty + "` (" + valueProperty.Type + ")\n")
-				if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Description)) {
-					buf.WriteString("			* description: " + valueProperty.Description + "\n")
-				}
-			}
-			if !utils.IsEmptyValue(reflect.ValueOf(value.Required)) {
-				buf.WriteString("	* required properties:\n")
-				for _, valueProperty := range value.Required {
-					buf.WriteString("		* `" + valueProperty + "`\n")
-				}
-			}
-		}
-		if !utils.IsEmptyValue(reflect.ValueOf(value.Default)) {
-			buf.WriteString("	* default: " + string(value.Default.Raw) + "\n")
-		}
-		if !utils.IsEmptyValue(reflect.ValueOf(value.Format)) {
-			buf.WriteString("	* format: " + value.Format + "\n")
-		}
-		if !utils.IsEmptyValue(reflect.ValueOf(value.Pattern)) {
-			buf.WriteString("	* pattern: " + value.Pattern + "\n")
-		}
-		if !utils.IsEmptyValue(reflect.ValueOf(value.Enum)) {
-			var possibleValues string
-			for _, v := range value.Enum {
-				possibleValues = possibleValues + string(v.Raw) + ";"
-			}
-			buf.WriteString("	* possible values: " + strings.TrimRight(possibleValues, ";") + "\n")
-		}
-		// Check all validations added on apis_types
+		writePropertiesWithPrefix(buf, value, key, "")
 	}
 	buf.WriteString("\n")
 	buf.WriteString("### Required Properties\n\n")
@@ -117,7 +82,53 @@ func getProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefiniti
 	buf.WriteString("\n")
 }
 
-func getDefinition(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error {
+func writePropertiesWithPrefix(buf *bytes.Buffer, valueProperty apiextensionsv1.JSONSchemaProps, keyProperty, prefix string) {
+	buf.WriteString(prefix + "* `" + keyProperty + "` (" + valueProperty.Type + ")\n")
+	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Description)) {
+		buf.WriteString(prefix + "\t* description: " + valueProperty.Description + "\n")
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Default)) {
+		buf.WriteString(prefix + "\t* default: " + string(valueProperty.Default.Raw) + "\n")
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Format)) {
+		buf.WriteString(prefix + "\t* format: " + valueProperty.Format + "\n")
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Pattern)) {
+		buf.WriteString(prefix + "\t* pattern: " + valueProperty.Pattern + "\n")
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Enum)) {
+		var possibleValues string
+		for _, v := range valueProperty.Enum {
+			possibleValues = possibleValues + string(v.Raw) + ";"
+		}
+		buf.WriteString(prefix + "\t* possible values: " + strings.TrimRight(possibleValues, ";") + "\n")
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Minimum)) {
+		buf.WriteString(prefix + "\t* minimum: " + fmt.Sprintf("%f", *valueProperty.Minimum) + "\n")
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Maximum)) {
+		buf.WriteString(prefix + "\t* maximum: " + fmt.Sprintf("%f", *valueProperty.Maximum) + "\n")
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.MultipleOf)) {
+		buf.WriteString(prefix + "\t* multiple of: " + fmt.Sprintf("%f", *valueProperty.MultipleOf) + "\n")
+	}
+	if valueProperty.Type == "object" && len(valueProperty.Properties) > 0 {
+		buf.WriteString(prefix + "\t* properties:\n")
+		for keyPropertySec, valuePropertySec := range valueProperty.Properties {
+			newPrefix := prefix + "\t\t"
+			writePropertiesWithPrefix(buf, valuePropertySec, keyPropertySec, newPrefix)
+		}
+		if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Required)) {
+			buf.WriteString(prefix + "\t* required properties:\n")
+			for _, valuePropertyReq := range valueProperty.Required {
+				buf.WriteString(prefix + "\t\t* `" + valuePropertyReq + "`\n")
+			}
+		}
+	}
+	return
+}
+
+func writeDefinition(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error {
 	if buf == nil {
 		return fmt.Errorf("error getting definition file path, buffer must be different than nil")
 	}
@@ -133,7 +144,7 @@ func getDefinition(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefiniti
 	return nil
 }
 
-func getInstance(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error {
+func writeInstanceExample(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error {
 	if buf == nil {
 		return fmt.Errorf("error getting instance example file path, buffer must be different than nil")
 	}
@@ -149,7 +160,7 @@ func getInstance(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition
 	return nil
 }
 
-func getUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
+func writeUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
 	if buf == nil {
 		return
 	}
