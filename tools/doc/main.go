@@ -8,17 +8,18 @@ import (
 	"reflect"
 	"strings"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/package/crds"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
 const (
-	crossplaneProviderMasterGithubUrl = "https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/"
-	guideMasterGithubUrl              = "https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples/example.md"
-	examplesDirectoryPath             = "examples/ionoscloud"
-	definitionsDirectoryPath          = "package/crds"
-	ionoscloudServiceName             = "ionoscloud"
+	repositoryMasterGithubURL = "https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/"
+	guideMasterGithubURL      = "https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples/example.md"
+	examplesDirectoryPath     = "examples/ionoscloud"
+	definitionsDirectoryPath  = "package/crds"
+	ionoscloudServiceName     = "ionoscloud"
 )
 
 // NOTE: Make sure to check the exceptions list below and to create a new directory after integrating a new service into Crossplane Provider IONOS Cloud!
@@ -56,7 +57,9 @@ func main() {
 	fmt.Println("DONE!🎉")
 }
 
-func writeContent(docsFolder string) error {
+func writeContent(docsFolder string) error { // nolint: gocyclo
+	const errorPrinting = "resource: %s - error: %w"
+
 	buf := new(bytes.Buffer)
 	mustGetCRDs := crds.MustGetCRDs()
 	for i := 0; i < len(mustGetCRDs); i++ {
@@ -71,24 +74,25 @@ func writeContent(docsFolder string) error {
 		if err != nil {
 			return err
 		}
-		buf.WriteString("# " + mustGetCRDs[i].Spec.Names.Kind + " Managed Resource\n\n")
-		getOverview(buf, mustGetCRDs[i])
-		err = writeUsage(buf, mustGetCRDs[i])
-		if err != nil {
-			return err
+		kindName := mustGetCRDs[i].Spec.Names.Kind
+		buf.WriteString("# " + kindName + " Managed Resource\n\n")
+		if err = getOverview(buf, mustGetCRDs[i]); err != nil {
+			return fmt.Errorf(errorPrinting, kindName, err)
 		}
-		writeProperties(buf, mustGetCRDs[i])
-		err = writeDefinition(buf, mustGetCRDs[i])
-		if err != nil {
-			return err
+		if err = writeUsage(buf, mustGetCRDs[i]); err != nil {
+			return fmt.Errorf(errorPrinting, kindName, err)
 		}
-		err = writeInstanceExample(buf, mustGetCRDs[i])
-		if err != nil {
-			return err
+		if err = writeProperties(buf, mustGetCRDs[i]); err != nil {
+			return fmt.Errorf(errorPrinting, kindName, err)
 		}
-		_, err = buf.WriteTo(w)
-		if err != nil {
-			return err
+		if err = writeDefinition(buf, mustGetCRDs[i]); err != nil {
+			return fmt.Errorf(errorPrinting, kindName, err)
+		}
+		if err = writeInstanceExample(buf, mustGetCRDs[i]); err != nil {
+			return fmt.Errorf(errorPrinting, kindName, err)
+		}
+		if _, err = buf.WriteTo(w); err != nil {
+			return fmt.Errorf(errorPrinting, kindName, err)
 		}
 	}
 	return nil
@@ -104,36 +108,49 @@ func createOrUpdateFileForCRD(crd apiextensionsv1.CustomResourceDefinition, docs
 	return f, nil
 }
 
-func getOverview(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
+func getOverview(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error { // nolint: interfacer
 	if buf == nil {
-		return
+		return fmt.Errorf("error getting overview, buffer must be different than nil")
 	}
 	buf.WriteString("## Overview\n\n")
 	buf.WriteString("* Resource Name: `" + crd.Spec.Names.Kind + "`\n")
 	buf.WriteString("* Resource Group: `" + crd.Spec.Group + "`\n")
+	if len(crd.Spec.Versions) == 0 {
+		return fmt.Errorf("error: CRD must have at least one version in spec.Versions")
+	}
 	buf.WriteString("* Resource Version: `" + crd.Spec.Versions[0].Name + "`\n")
 	buf.WriteString("* Resource Scope: `" + string(crd.Spec.Scope) + "`\n\n")
+	return nil
 }
 
-func writeProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
+func writeProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error { // nolint: interfacer
+	const (
+		spec        = "spec"
+		forProvider = "forProvider"
+	)
 	if buf == nil {
-		return
+		return fmt.Errorf("error getting properties, buffer must be different than nil")
 	}
 	buf.WriteString("## Properties\n\n")
 	buf.WriteString("In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:\n\n")
-	for key, value := range crd.Spec.Versions[0].Schema.OpenAPIV3Schema.Properties["spec"].Properties["forProvider"].Properties {
+	if len(crd.Spec.Versions) == 0 {
+		return fmt.Errorf("error: CRD must have at least one version in spec.Versions")
+	}
+	propertiesCollection := crd.Spec.Versions[0].Schema.OpenAPIV3Schema.Properties[spec].Properties[forProvider]
+	for key, value := range propertiesCollection.Properties {
 		writePropertiesWithPrefix(buf, value, key, "")
 	}
 	buf.WriteString("\n")
 	buf.WriteString("### Required Properties\n\n")
 	buf.WriteString("The user needs to set the following properties in order to configure the IONOS Cloud Resource:\n\n")
-	for _, requiredValue := range crd.Spec.Versions[0].Schema.OpenAPIV3Schema.Properties["spec"].Properties["forProvider"].Required {
+	for _, requiredValue := range propertiesCollection.Required {
 		buf.WriteString("* `" + requiredValue + "`\n")
 	}
 	buf.WriteString("\n")
+	return nil
 }
 
-func writePropertiesWithPrefix(buf *bytes.Buffer, valueProperty apiextensionsv1.JSONSchemaProps, keyProperty, prefix string) {
+func writePropertiesWithPrefix(buf *bytes.Buffer, valueProperty apiextensionsv1.JSONSchemaProps, keyProperty, prefix string) { // nolint: interfacer,gocyclo
 	buf.WriteString(prefix + "* `" + keyProperty + "` (" + valueProperty.Type + ")\n")
 	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Description)) {
 		buf.WriteString(prefix + "\t* description: " + valueProperty.Description + "\n")
@@ -176,10 +193,9 @@ func writePropertiesWithPrefix(buf *bytes.Buffer, valueProperty apiextensionsv1.
 			}
 		}
 	}
-	return
 }
 
-func writeDefinition(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error {
+func writeDefinition(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error { // nolint: interfacer
 	if buf == nil {
 		return fmt.Errorf("error getting definition file path, buffer must be different than nil")
 	}
@@ -189,13 +205,12 @@ func writeDefinition(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefini
 	}
 	if path != "" {
 		buf.WriteString("## Resource Definition\n\n")
-		buf.WriteString("The corresponding resource definition can be found [here](" + crossplaneProviderMasterGithubUrl + path + ").\n")
-		buf.WriteString("\n")
+		buf.WriteString("The corresponding resource definition can be found [here](" + repositoryMasterGithubURL + path + ").\n\n")
 	}
 	return nil
 }
 
-func writeInstanceExample(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error {
+func writeInstanceExample(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error { // nolint: interfacer
 	if buf == nil {
 		return fmt.Errorf("error getting instance example file path, buffer must be different than nil")
 	}
@@ -205,13 +220,12 @@ func writeInstanceExample(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceD
 	}
 	if path != "" {
 		buf.WriteString("## Resource Instance Example\n\n")
-		buf.WriteString("An example of a resource instance can be found [here](" + crossplaneProviderMasterGithubUrl + path + ").\n")
-		buf.WriteString("\n")
+		buf.WriteString("An example of a resource instance can be found [here](" + repositoryMasterGithubURL + path + ").\n\n")
 	}
 	return nil
 }
 
-func writeUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error {
+func writeUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error { // nolint: interfacer
 	if buf == nil {
 		return fmt.Errorf("error getting usage, buffer must be different than nil")
 	}
@@ -221,20 +235,20 @@ func writeUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition)
 	}
 	if path != "" {
 		buf.WriteString("## Usage\n\n")
-		buf.WriteString("In order to manage resources on IONOS Cloud using Crossplane Provider, you need to have Crossplane Provider for IONOS Cloud installed into a Kubernetes Cluster, as a prerequisite. For a step-by-step guide, check the following [link](" + guideMasterGithubUrl + ").\n\n")
+		buf.WriteString("In order to manage resources on IONOS Cloud using Crossplane Provider, you need to have Crossplane Provider for IONOS Cloud installed into a Kubernetes Cluster, as a prerequisite. For a step-by-step guide, check the following [link](" + guideMasterGithubURL + ").\n\n")
 		buf.WriteString("It is recommended to clone the repository for easier access to the example files.\n\n")
 		buf.WriteString("### Create\n\n")
 		buf.WriteString("Use the following command to create a resource instance. Before applying the file, check the properties defined in the `spec.forProvider` fields:\n\n")
 		buf.WriteString("```\n")
 		buf.WriteString("kubectl apply -f " + path + "\n")
 		buf.WriteString("```\n\n")
-		buf.WriteString("_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n")
+		buf.WriteString("_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n\n")
 		buf.WriteString("### Update\n\n")
 		buf.WriteString("Use the following command to update an instance. Before applying the file, update the properties defined in the `spec.forProvider` fields:\n\n")
 		buf.WriteString("```\n")
 		buf.WriteString("kubectl apply -f " + path + "\n")
 		buf.WriteString("```\n\n")
-		buf.WriteString("_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n")
+		buf.WriteString("_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n\n")
 		buf.WriteString("### Wait\n\n")
 		buf.WriteString("Use the following commands to wait for resources to be ready and synced. Update the `<instance-name>` accordingly:\n\n")
 		buf.WriteString("```\n")
@@ -259,47 +273,59 @@ func writeUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition)
 		buf.WriteString("```\n")
 		buf.WriteString("kubectl delete -f " + path + "\n")
 		buf.WriteString("```\n\n")
-		buf.WriteString("_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n")
-		buf.WriteString("\n")
+		buf.WriteString("_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n\n")
 	}
 	return nil
 }
 
 func getDefinitionFilePath(crd apiextensionsv1.CustomResourceDefinition) (string, error) {
-	filePath := fmt.Sprintf("%s/%s_%s.yaml", definitionsDirectoryPath, crd.Spec.Group, crd.Spec.Names.Plural)
-	if _, err := yamlFileExists(filePath); err != nil {
+	const pathYamlDefinitionFilePrinting = "%s/%s_%s.yaml"
+
+	filePath := fmt.Sprintf(pathYamlDefinitionFilePrinting, definitionsDirectoryPath, crd.Spec.Group, crd.Spec.Names.Plural)
+	if err := yamlFileExists(filePath); err != nil {
 		return "", err
 	}
 	return filePath, nil
 }
 
 func getExampleFilePath(crd apiextensionsv1.CustomResourceDefinition) (string, error) {
+	const (
+		pathPathPrinting     = "%s/%s"
+		pathYamlNamePrinting = "%s.yaml"
+	)
+
 	var fileName string
+
 	svc, err := getServiceFromGroup(crd)
 	if err != nil {
 		return "", err
 	}
-	dirExample := fmt.Sprintf("%s/%s", examplesDirectoryPath, svc)
+	dirExample := fmt.Sprintf(pathPathPrinting, examplesDirectoryPath, svc)
 	if key, isPresent := exceptionsFileNamesExamples[strings.ToLower(crd.Spec.Names.Kind)]; isPresent {
 		fileName = key
 	} else {
-		fileName = fmt.Sprintf("%s.yaml", strings.ToLower(crd.Spec.Names.Kind))
+		fileName = fmt.Sprintf(pathYamlNamePrinting, strings.ToLower(crd.Spec.Names.Kind))
 	}
-	filePath := fmt.Sprintf("%s/%s", dirExample, fileName)
-	if _, err = yamlFileExists(filePath); err != nil {
+	filePath := fmt.Sprintf(pathPathPrinting, dirExample, fileName)
+	if err = yamlFileExists(filePath); err != nil {
 		return "", err
 	}
 	return filePath, nil
 }
 
-func yamlFileExists(filePath string) (bool, error) {
-	if !strings.HasSuffix(filePath, ".yaml") && !strings.HasSuffix(filePath, ".yml") {
-		return false, fmt.Errorf("error: not a valid path to a YAML file")
+func yamlFileExists(filePath string) error {
+	const (
+		yamlSuffix = ".yaml"
+		ymlSuffix  = ".yml"
+	)
+
+	if !strings.HasSuffix(filePath, yamlSuffix) && !strings.HasSuffix(filePath, ymlSuffix) {
+		return fmt.Errorf("error: not a valid path to a YAML file")
 	}
 	if _, err := os.ReadFile(filePath); err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
 
 func getServiceFromGroup(crd apiextensionsv1.CustomResourceDefinition) (string, error) {

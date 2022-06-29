@@ -22,6 +22,7 @@ kubectl apply -f examples/ionoscloud/compute/lan.yaml
 ```
 
 _Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.
+
 ### Update
 
 Use the following command to update an instance. Before applying the file, update the properties defined in the `spec.forProvider` fields:
@@ -31,6 +32,7 @@ kubectl apply -f examples/ionoscloud/compute/lan.yaml
 ```
 
 _Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.
+
 ### Wait
 
 Use the following commands to wait for resources to be ready and synced. Update the `<instance-name>` accordingly:
@@ -77,13 +79,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `datacenterConfig` (object)
 	* description: DatacenterConfig contains information about the datacenter resource on which the lan will be created
 	* properties:
-		* `datacenterIdSelector` (object)
-			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
 		* `datacenterId` (string)
 			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
 			* format: uuid
@@ -94,6 +89,13 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: Name of the referenced object.
 			* required properties:
 				* `name`
+		* `datacenterIdSelector` (object)
+			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
 * `name` (string)
 	* description: The name of the  resource.
 * `pcc` (string)

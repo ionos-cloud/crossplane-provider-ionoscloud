@@ -22,6 +22,7 @@ kubectl apply -f examples/ionoscloud/compute/ipblock.yaml
 ```
 
 _Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.
+
 ### Update
 
 Use the following command to update an instance. Before applying the file, update the properties defined in the `spec.forProvider` fields:
@@ -31,6 +32,7 @@ kubectl apply -f examples/ionoscloud/compute/ipblock.yaml
 ```
 
 _Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.
+
 ### Wait
 
 Use the following commands to wait for resources to be ready and synced. Update the `<instance-name>` accordingly:
