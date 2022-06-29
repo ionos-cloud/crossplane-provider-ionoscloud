@@ -1,0 +1,29 @@
+# Use this file to create an ApplicationLoadBalancer CR.
+# Required values for creating an ApplicationLoadBalancer CR are:
+# - DatacenterConfig (via ID or reference),
+# - Name,
+# - TargetLanConfig (via ID or reference),
+# - ListenerLanConfig (via ID or reference).
+apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
+kind: ApplicationLoadBalancer
+metadata:
+  name: example
+spec:
+  forProvider:
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    name: exampleApplicationLoadBalancer
+    targetLanConfig:
+      lanIdRef:
+        name: example
+    listenerLanConfig:
+      lanIdRef:
+        name: examplelan
+    ipsConfig:
+      ipsBlockConfigs:
+        - ipBlockIdRef:
+            name: example
+          indexes: [ 0 ]
+  providerConfigRef:
+    name: example

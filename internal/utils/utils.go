@@ -74,6 +74,9 @@ func ContainsStringSlices(first, second []string) bool {
 	if len(first) != len(second) {
 		return false
 	}
+	if len(first) == 0 {
+		return true
+	}
 	for _, v := range first {
 		if !ContainsStringInSlice(second, v) {
 			return false

@@ -1,0 +1,63 @@
+# Use this file to create a ForwardingRule CR for ApplicationLoadBalancer.
+# Required values for creating a ForwardingRule CR are:
+# - DatacenterConfig (via ID or via reference),
+# - ApplicationLoadBalancerConfig (via ID or via reference),
+# - Name,
+# - Protocol,
+# - ListenerIPConfig (via ID or via reference),
+# - ListenerPort.
+apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
+kind: ForwardingRule
+metadata:
+  name: example
+spec:
+  forProvider:
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    applicationLoadBalancerConfig:
+      applicationLoadBalancerIdRef:
+        name: example
+    name: exampleForwardingRuleALB
+    protocol: HTTP
+    listenerIpConfig:
+      ipBlockConfig:
+        ipBlockIdRef:
+          name: example
+        index: 0
+    listenerPort: 80
+    httpRules:
+      - name: exampleForwardHTTPRuleALB
+        type: FORWARD
+        targetGroupConfig:
+          targetGroupIdRef:
+            name: example
+        conditions:
+          - type: QUERY
+            condition: ENDS_WITH
+            negate: true
+            key: goto
+            value: onos
+      - name: exampleRedirectHTTPRuleALB
+        type: REDIRECT
+        dropQuery: true
+        location: "https://ionos.com"
+        statusCode: 301
+        conditions:
+          - type: QUERY
+            condition: ENDS_WITH
+            negate: false
+            key: goto
+            value: onos
+      - name: exampleStaticHTTPRuleALB
+        type: STATIC
+        responseMessage: "IONOS CLOUD"
+        contentType: "text/html"
+        statusCode: 503
+        conditions:
+          - type: PATH
+            condition: CONTAINS
+            negate: false
+            value: "example"
+  providerConfigRef:
+    name: example

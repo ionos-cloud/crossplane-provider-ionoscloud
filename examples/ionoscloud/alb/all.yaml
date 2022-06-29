@@ -1,0 +1,155 @@
+# Use this file to create a IPBlock CR, a Datacenter CR,
+# a Lan CR for a Public Lan and a Lan CR for a Private Lan,
+# an ApplicationLoadBalancer CR, a ForwardingRule CR and a TargetGroup CR.
+# ! Before applying this file, make sure to check values set.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleIpBlock
+    size: 2
+    location: de/txl
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleDatacenter
+    location: de/txl
+    description: test
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: examplelan
+spec:
+  forProvider:
+    name: exampleLan
+    public: true
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleLan
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
+apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
+kind: ApplicationLoadBalancer
+metadata:
+  name: example
+spec:
+  forProvider:
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    name: exampleApplicationLoadBalancer
+    targetLanConfig:
+      lanIdRef:
+        name: example
+    listenerLanConfig:
+      lanIdRef:
+        name: examplelan
+    ipsConfig:
+      ipsBlockConfigs:
+        - ipBlockIdRef:
+            name: example
+          indexes: [ 0 ]
+  providerConfigRef:
+    name: example
+
+---
+apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
+kind: ForwardingRule
+metadata:
+  name: examplefwd
+spec:
+  forProvider:
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    applicationLoadBalancerConfig:
+      applicationLoadBalancerIdRef:
+        name: example
+    name: exampleFwdRule
+    protocol: HTTP
+    listenerIpConfig:
+      ipBlockConfig:
+        ipBlockIdRef:
+          name: example
+        index: 0
+    listenerPort: 80
+    httpRules:
+      - name: exampleForwardHTTPRuleALB
+        type: FORWARD
+        targetGroupConfig:
+          targetGroupIdRef:
+            name: example
+        conditions:
+          - type: QUERY
+            condition: ENDS_WITH
+            negate: true
+            key: goto
+            value: onos
+      - name: exampleRedirectHTTPRuleALB
+        type: REDIRECT
+        dropQuery: true
+        location: "https://ionos.com"
+        statusCode: 301
+        conditions:
+          - type: QUERY
+            condition: ENDS_WITH
+            negate: true
+            key: goto
+            value: onos
+      - name: exampleStaticHTTPRuleALB
+        type: STATIC
+        responseMessage: "IONOS CLOUD"
+        contentType: "text/html"
+        statusCode: 503
+        conditions:
+          - type: PATH
+            condition: CONTAINS
+            negate: false
+            value: "example"
+  providerConfigRef:
+    name: example
+---
+apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
+kind: TargetGroup
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleTargetGroup
+    algorithm: ROUND_ROBIN
+    protocol: HTTP
+    targets:
+      - ip: 10.0.2.19
+        port: 80
+        weight: 1
+      - ip: 10.0.2.20
+        port: 80
+        weight: 2
+  providerConfigRef:
+    name: example

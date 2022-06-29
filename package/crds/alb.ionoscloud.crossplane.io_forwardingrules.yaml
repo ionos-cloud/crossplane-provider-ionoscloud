@@ -1,0 +1,507 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.6.2
+  creationTimestamp: null
+  name: forwardingrules.alb.ionoscloud.crossplane.io
+spec:
+  group: alb.ionoscloud.crossplane.io
+  names:
+    categories:
+    - crossplane
+    - managed
+    - ionoscloud
+    kind: ForwardingRule
+    listKind: ForwardingRuleList
+    plural: forwardingrules
+    singular: forwardingrule
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: READY
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Synced')].status
+      name: SYNCED
+      type: string
+    - jsonPath: .spec.forProvider.datacenterConfig.datacenterId
+      name: DATACENTER ID
+      type: string
+    - jsonPath: .spec.forProvider.applicationLoadBalancerConfig.applicationLoadBalancerId
+      name: APPLICATIONLOADBALANCER ID
+      type: string
+    - jsonPath: .metadata.annotations.crossplane\.io/external-name
+      name: FORWARDINGRULE ID
+      type: string
+    - jsonPath: .spec.forProvider.name
+      name: FORWARDINGRULE NAME
+      type: string
+    - jsonPath: .spec.forProvider.protocol
+      name: PROTOCOL
+      priority: 1
+      type: string
+    - jsonPath: .status.atProvider.listenerIp
+      name: LISTENER IP
+      priority: 1
+      type: string
+    - jsonPath: .status.atProvider.state
+      name: STATE
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: An ForwardingRule is an example API type.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ForwardingRuleSpec defines the desired state of an ApplicationLoadBalancer.
+            properties:
+              deletionPolicy:
+                default: Delete
+                description: DeletionPolicy specifies what will happen to the underlying
+                  external when this managed resource is deleted - either "Delete"
+                  or "Orphan" the external resource.
+                enum:
+                - Orphan
+                - Delete
+                type: string
+              forProvider:
+                description: 'ForwardingRuleParameters are the observable fields of
+                  an ApplicationLoadBalancerForwardingRule. Required fields in order
+                  to create an ApplicationLoadBalancerForwardingRule: DatacenterConfig
+                  (via ID or via reference), ApplicationLoadBalancerConfig (via ID
+                  or via reference), Name, Protocol, ListenerIPConfig (via ID or via
+                  reference), ListenerPort.'
+                properties:
+                  applicationLoadBalancerConfig:
+                    description: An ApplicationLoadBalancer, to which the user has
+                      access, to provision the Forwarding Rule in.
+                    properties:
+                      applicationLoadBalancerId:
+                        description: ApplicationLoadBalancerID is the ID of the ApplicationLoadBalancer
+                          on which the resource should have access. It needs to be
+                          provided via directly or via reference.
+                        format: uuid
+                        type: string
+                      applicationLoadBalancerIdRef:
+                        description: ApplicationLoadBalancerIDRef references to a
+                          Datacenter to retrieve its ID
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      applicationLoadBalancerIdSelector:
+                        description: ApplicationLoadBalancerIDSelector selects reference
+                          to a Datacenter to retrieve its datacenterId
+                        properties:
+                          matchControllerRef:
+                            description: MatchControllerRef ensures an object with
+                              the same controller reference as the selecting object
+                              is selected.
+                            type: boolean
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: MatchLabels ensures an object with matching
+                              labels is selected.
+                            type: object
+                        type: object
+                    type: object
+                  clientTimeout:
+                    description: The maximum time in milliseconds to wait for the
+                      client to acknowledge or send data; default is 50,000 (50 seconds).
+                    format: int32
+                    type: integer
+                  datacenterConfig:
+                    description: A Datacenter, to which the user has access, to provision
+                      the ApplicationLoadBalancer in.
+                    properties:
+                      datacenterId:
+                        description: DatacenterID is the ID of the Datacenter on which
+                          the resource should have access. It needs to be provided
+                          via directly or via reference.
+                        format: uuid
+                        type: string
+                      datacenterIdRef:
+                        description: DatacenterIDRef references to a Datacenter to
+                          retrieve its ID
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      datacenterIdSelector:
+                        description: DatacenterIDSelector selects reference to a Datacenter
+                          to retrieve its datacenterId
+                        properties:
+                          matchControllerRef:
+                            description: MatchControllerRef ensures an object with
+                              the same controller reference as the selecting object
+                              is selected.
+                            type: boolean
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: MatchLabels ensures an object with matching
+                              labels is selected.
+                            type: object
+                        type: object
+                    type: object
+                  httpRules:
+                    description: An array of items in the collection. The original
+                      order of rules is preserved during processing, except for Forward-type
+                      rules are processed after the rules with other action defined.
+                      The relative order of Forward-type rules is also preserved during
+                      the processing.
+                    items:
+                      description: 'ApplicationLoadBalancerHTTPRule struct for Application
+                        Load Balancer HTTP Rule Required fields in order to create
+                        an ApplicationLoadBalancerHTTPRule: Name, Type, TargetGroup
+                        (via ID or via reference) - required only for FORWARD actions.
+                        Location - required only for REDIRECT actions. ResponseMessage
+                        - required only for STATIC actions.'
+                      properties:
+                        conditions:
+                          description: An array of items in the collection. The action
+                            is only performed if each and every condition is met;
+                            if no conditions are set, the rule will always be performed.
+                          items:
+                            description: 'ApplicationLoadBalancerHTTPRuleCondition
+                              struct for Application Load Balancer HTTP Rule Condition
+                              Required fields in order to create an ApplicationLoadBalancerHTTPRuleCondition:
+                              Type, Condition.'
+                            properties:
+                              condition:
+                                description: Matching rule for the HTTP rule condition
+                                  attribute; Mandatory for HEADER, PATH, QUERY, METHOD,
+                                  HOST, and COOKIE types; Must be null when type is
+                                  SOURCE_IP.
+                                enum:
+                                - EXISTS
+                                - CONTAINS
+                                - EQUALS
+                                - MATCHES
+                                - STARTS_WITH
+                                - ENDS_WITH
+                                type: string
+                              key:
+                                description: Must be null when type is PATH, METHOD,
+                                  HOST, or SOURCE_IP. Key can only be set when type
+                                  is COOKIES, HEADER, or QUERY.
+                                type: string
+                              negate:
+                                description: Specifies whether the condition is negated
+                                  or not; the default is False.
+                                type: boolean
+                              type:
+                                description: Type of the HTTP rule condition.
+                                enum:
+                                - HEADER
+                                - PATH
+                                - QUERY
+                                - METHOD
+                                - HOST
+                                - COOKIE
+                                - SOURCE_IP
+                                type: string
+                              value:
+                                description: Mandatory for conditions CONTAINS, EQUALS,
+                                  MATCHES, STARTS_WITH, ENDS_WITH; Must be null when
+                                  condition is EXISTS; should be a valid CIDR if provided
+                                  and if type is SOURCE_IP.
+                                type: string
+                            required:
+                            - condition
+                            - type
+                            type: object
+                          type: array
+                        contentType:
+                          description: 'Valid only for STATIC actions. Example: text/html'
+                          type: string
+                        dropQuery:
+                          description: Default is false; valid only for REDIRECT actions.
+                          type: boolean
+                        location:
+                          description: 'The location for redirecting; mandatory and
+                            valid only for REDIRECT actions. Example: www.ionos.com'
+                          type: string
+                        name:
+                          description: The unique name of the Application Load Balancer
+                            HTTP rule.
+                          type: string
+                        responseMessage:
+                          description: The response message of the request; mandatory
+                            for STATIC actions.
+                          type: string
+                        statusCode:
+                          description: Valid only for REDIRECT and STATIC actions.
+                            For REDIRECT actions, default is 301 and possible values
+                            are 301, 302, 303, 307, and 308. For STATIC actions, default
+                            is 503 and valid range is 200 to 599.
+                          enum:
+                          - 301
+                          - 302
+                          - 303
+                          - 307
+                          - 308
+                          - 200
+                          - 503
+                          - 599
+                          format: int32
+                          type: integer
+                        targetGroupConfig:
+                          description: The ID of the target group; mandatory and only
+                            valid for FORWARD actions. The ID can be set directly
+                            or via reference.
+                          properties:
+                            targetGroupId:
+                              description: TargetGroupID is the ID of the TargetGroup
+                                on which the resource should have access. It needs
+                                to be provided via directly or via reference.
+                              format: uuid
+                              type: string
+                            targetGroupIdRef:
+                              description: TargetGroupIDRef references to a Datacenter
+                                to retrieve its ID
+                              properties:
+                                name:
+                                  description: Name of the referenced object.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            targetGroupIdSelector:
+                              description: TargetGroupIDSelector selects reference
+                                to a Datacenter to retrieve its datacenterId
+                              properties:
+                                matchControllerRef:
+                                  description: MatchControllerRef ensures an object
+                                    with the same controller reference as the selecting
+                                    object is selected.
+                                  type: boolean
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  description: MatchLabels ensures an object with
+                                    matching labels is selected.
+                                  type: object
+                              type: object
+                          type: object
+                        type:
+                          description: Type of the HTTP rule.
+                          enum:
+                          - FORWARD
+                          - STATIC
+                          - REDIRECT
+                          type: string
+                      required:
+                      - name
+                      - type
+                      type: object
+                    type: array
+                  listenerIpConfig:
+                    description: Listening (inbound) IP. IP must be assigned to the
+                      listener NIC of the Application Load Balancer.
+                    properties:
+                      ip:
+                        pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
+                        type: string
+                      ipBlockConfig:
+                        description: IPBlockConfig - used by resources that need to
+                          link IPBlock via id or via reference to get one single IP.
+                        properties:
+                          index:
+                            description: Index is referring to the IP index retrieved
+                              from the IPBlock. Index is starting from 0.
+                            type: integer
+                          ipBlockId:
+                            description: NicID is the ID of the IPBlock on which the
+                              resource will be created. It needs to be provided via
+                              directly or via reference.
+                            format: uuid
+                            type: string
+                          ipBlockIdRef:
+                            description: IPBlockIDRef references to a IPBlock to retrieve
+                              its ID
+                            properties:
+                              name:
+                                description: Name of the referenced object.
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          ipBlockIdSelector:
+                            description: IPBlockIDSelector selects reference to a
+                              IPBlock to retrieve its nicId
+                            properties:
+                              matchControllerRef:
+                                description: MatchControllerRef ensures an object
+                                  with the same controller reference as the selecting
+                                  object is selected.
+                                type: boolean
+                              matchLabels:
+                                additionalProperties:
+                                  type: string
+                                description: MatchLabels ensures an object with matching
+                                  labels is selected.
+                                type: object
+                            type: object
+                        required:
+                        - index
+                        type: object
+                    type: object
+                  listenerPort:
+                    description: Listening (inbound) port number; valid range is 1
+                      to 65535.
+                    format: int32
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
+                  name:
+                    description: The name of the Application Load Balancer Forwarding
+                      Rule.
+                    type: string
+                  protocol:
+                    description: Balancing protocol
+                    enum:
+                    - HTTP
+                    type: string
+                  serverCertificatesIds:
+                    description: Array of items in the collection.
+                    items:
+                      type: string
+                    type: array
+                required:
+                - applicationLoadBalancerConfig
+                - datacenterConfig
+                - listenerIpConfig
+                - listenerPort
+                - name
+                - protocol
+                type: object
+              providerConfigRef:
+                default:
+                  name: default
+                description: ProviderConfigReference specifies how the provider that
+                  will be used to create, observe, update, and delete this managed
+                  resource should be configured.
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                required:
+                - name
+                type: object
+              providerRef:
+                description: 'ProviderReference specifies the provider that will be
+                  used to create, observe, update, and delete this managed resource.
+                  Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`'
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                required:
+                - name
+                type: object
+              writeConnectionSecretToRef:
+                description: WriteConnectionSecretToReference specifies the namespace
+                  and name of a Secret to which any connection details for this managed
+                  resource should be written. Connection details frequently include
+                  the endpoint, username, and password required to connect to the
+                  managed resource.
+                properties:
+                  name:
+                    description: Name of the secret.
+                    type: string
+                  namespace:
+                    description: Namespace of the secret.
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+            required:
+            - forProvider
+            type: object
+          status:
+            description: ForwardingRuleStatus represents the observed state of an
+              ApplicationLoadBalancer.
+            properties:
+              atProvider:
+                description: ForwardingRuleObservation are the observable fields of
+                  an ApplicationLoadBalancerForwardingRule.
+                properties:
+                  forwardingRuleId:
+                    type: string
+                  listenerIp:
+                    type: string
+                  state:
+                    type: string
+                type: object
+              conditions:
+                description: Conditions of the resource.
+                items:
+                  description: A Condition that may apply to a resource.
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime is the last time this condition
+                        transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A Message containing details about this condition's
+                        last transition from one status to another, if any.
+                      type: string
+                    reason:
+                      description: A Reason for this condition's last transition from
+                        one status to another.
+                      type: string
+                    status:
+                      description: Status of this condition; is it currently True,
+                        False, or Unknown?
+                      type: string
+                    type:
+                      description: Type of this condition. At most one of each condition
+                        type may apply to a resource at any point in time.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

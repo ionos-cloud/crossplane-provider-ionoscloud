@@ -158,13 +158,8 @@ func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (man
 		return managed.ExternalCreation{}, errors.New(errNotK8sNodePool)
 	}
 
-	observedCluster, apiResponse, err := c.clusterService.GetK8sCluster(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID)
-	if err != nil {
-		retErr := fmt.Errorf("failed to get k8s cluster by id. error: %w", err)
-		return managed.ExternalCreation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
-	}
-	if *observedCluster.Metadata.State != k8s.ACTIVE {
-		return managed.ExternalCreation{}, fmt.Errorf("k8s cluster must be in ACTIVE state, current state: %v", *observedCluster.Metadata.State)
+	if err := c.ensureClusterIsActive(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID); err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("cluster must be active to create nodepool: %w", err)
 	}
 
 	cr.SetConditions(xpv1.Creating())
@@ -187,10 +182,7 @@ func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (man
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("failed to get public IPs: %w", err)
 	}
-	instanceInput, err := k8snodepool.GenerateCreateK8sNodePoolInput(cr, publicIPs)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
+	instanceInput := k8snodepool.GenerateCreateK8sNodePoolInput(cr, publicIPs)
 
 	instance, apiResponse, err := c.service.CreateK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
@@ -210,14 +202,11 @@ func (c *externalNodePool) Update(ctx context.Context, mg resource.Managed) (man
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotK8sNodePool)
 	}
-	observedCluster, apiResponse, err := c.clusterService.GetK8sCluster(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID)
-	if err != nil {
-		retErr := fmt.Errorf("failed to get k8s cluster by id. error: %w", err)
-		return managed.ExternalUpdate{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+
+	if err := c.ensureClusterIsActive(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID); err != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("cluster must be active to update nodepool: %w", err)
 	}
-	if *observedCluster.Metadata.State != k8s.ACTIVE {
-		return managed.ExternalUpdate{}, fmt.Errorf("k8s cluster must be in ACTIVE state, current state: %v", *observedCluster.Metadata.State)
-	}
+
 	if cr.Status.AtProvider.State == compute.UPDATING {
 		return managed.ExternalUpdate{}, nil
 	}
@@ -226,10 +215,7 @@ func (c *externalNodePool) Update(ctx context.Context, mg resource.Managed) (man
 	if err != nil {
 		return managed.ExternalUpdate{}, fmt.Errorf("failed to get public IPs: %w", err)
 	}
-	instanceInput, err := k8snodepool.GenerateUpdateK8sNodePoolInput(cr, publicIPs)
-	if err != nil {
-		return managed.ExternalUpdate{}, err
-	}
+	instanceInput := k8snodepool.GenerateUpdateK8sNodePoolInput(cr, publicIPs)
 	if _, _, err = c.service.UpdateK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, cr.Status.AtProvider.NodePoolID, *instanceInput); err != nil {
 		return managed.ExternalUpdate{}, fmt.Errorf("failed to update k8s nodepool. error: %w", err)
 	}
@@ -243,20 +229,26 @@ func (c *externalNodePool) Delete(ctx context.Context, mg resource.Managed) erro
 		return errors.New(errNotK8sNodePool)
 	}
 
-	observedCluster, apiResponse, err := c.clusterService.GetK8sCluster(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID)
-	if err != nil {
-		retErr := fmt.Errorf("failed to get k8s cluster by id. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
-	}
-	if *observedCluster.Metadata.State != k8s.ACTIVE {
-		return fmt.Errorf("k8s cluster must be in ACTIVE state, current state: %v", *observedCluster.Metadata.State)
-	}
-	cr.SetConditions(xpv1.Deleting())
-	if cr.Status.AtProvider.State == compute.DESTROYING || cr.Status.AtProvider.State == k8s.TERMINATED {
+	if cr.Status.AtProvider.NodePoolID == "" {
 		return nil
 	}
 
-	apiResponse, err = c.service.DeleteK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, cr.Status.AtProvider.NodePoolID)
+	if cr.Status.AtProvider.State == k8s.DESTROYING || cr.Status.AtProvider.State == k8s.TERMINATED {
+		cr.SetConditions(xpv1.Deleting())
+		return nil
+	}
+
+	if cr.Status.AtProvider.State == k8s.DEPLOYING {
+		return errors.New("can't delete nodepool in state DEPLOYING")
+	}
+
+	if err := c.ensureClusterIsActive(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID); err != nil {
+		return fmt.Errorf("cluster must be active to delete nodepool: %w", err)
+	}
+
+	cr.SetConditions(xpv1.Deleting())
+
+	apiResponse, err := c.service.DeleteK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, cr.Status.AtProvider.NodePoolID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete k8s nodepool. error: %w", err)
 		return compute.CheckAPIResponseInfo(apiResponse, retErr)
@@ -285,4 +277,16 @@ func (c *externalNodePool) getPublicIPsSet(ctx context.Context, cr *v1alpha1.Nod
 		}
 	}
 	return ips, nil
+}
+
+// ensureClusterIsActive returns an error if the cluster state is not found or the state of the cluster is not ACTIVE
+func (c *externalNodePool) ensureClusterIsActive(ctx context.Context, clusterID string) error {
+	observedCluster, _, err := c.clusterService.GetK8sCluster(ctx, clusterID)
+	if err != nil {
+		return fmt.Errorf("failed to get k8s cluster by id. error: %w", err)
+	}
+	if *observedCluster.Metadata.State != k8s.ACTIVE {
+		return fmt.Errorf("k8s cluster must be in ACTIVE state, current state: %v", *observedCluster.Metadata.State)
+	}
+	return nil
 }
