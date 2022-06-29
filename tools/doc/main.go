@@ -14,33 +14,65 @@ import (
 )
 
 const (
-	crossplaneProviderGithubUrl = "https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/"
-	guideGithubUrl              = "https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples/example.md"
-	examplesDirectoryPath       = "examples/ionoscloud/"
-	definitionsDirectoryPath    = "package/crds/"
+	crossplaneProviderMasterGithubUrl = "https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/"
+	guideMasterGithubUrl              = "https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples/example.md"
+	examplesDirectoryPath             = "examples/ionoscloud"
+	definitionsDirectoryPath          = "package/crds"
+	ionoscloudServiceName             = "ionoscloud"
 )
 
-func main() {
-	f, err := os.Create("docs/compute/cubeserver.md")
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-	err = writeContent(f)
-	if err != nil {
-		panic(err)
-	}
+// Define here exceptions for the example filenames:
+// <resource_name>.yaml
+var exceptionsFileNamesExamples = map[string]string{
+	"postgrescluster": "postgres-cluster.yaml",
+	"cluster":         "k8s-cluster.yaml",
+	"nodepool":        "k8s-nodepool.yaml",
 }
 
-func writeContent(w io.Writer) error {
+func main() {
+	dir := os.Getenv("DOCS_OUT")
+	if dir == "" {
+		fmt.Printf("DOCS_OUT environment variable not set.\n")
+		os.Exit(1)
+	}
+	if _, err := os.Stat(dir); err != nil {
+		fmt.Printf("Error getting directory: %v\n", err)
+		os.Exit(1)
+	}
+	if !strings.HasSuffix(dir, "/") {
+		dir += "/"
+	}
+	fmt.Printf("Generating documentation in %s directory...\n", dir)
+	err := writeContent(dir)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("DONE!🎉")
+}
+
+func writeContent(docsFolder string) error {
 	buf := new(bytes.Buffer)
 	mustGetCRDs := crds.MustGetCRDs()
-	for i := 0; i < 1; i++ {
+	for i := 0; i < len(mustGetCRDs); i++ {
+		serviceName, err := getServiceFromGroup(mustGetCRDs[i])
+		if err != nil {
+			return err
+		}
+		if serviceName == ionoscloudServiceName {
+			continue
+		}
+		w, err := createOrUpdateFileForCRD(mustGetCRDs[i], docsFolder+serviceName)
+		if err != nil {
+			return err
+		}
 		buf.WriteString("# " + mustGetCRDs[i].Spec.Names.Kind + " Managed Resource\n\n")
 		getOverview(buf, mustGetCRDs[i])
-		writeUsage(buf, mustGetCRDs[i])
+		err = writeUsage(buf, mustGetCRDs[i])
+		if err != nil {
+			return err
+		}
 		writeProperties(buf, mustGetCRDs[i])
-		err := writeDefinition(buf, mustGetCRDs[i])
+		err = writeDefinition(buf, mustGetCRDs[i])
 		if err != nil {
 			return err
 		}
@@ -48,9 +80,22 @@ func writeContent(w io.Writer) error {
 		if err != nil {
 			return err
 		}
+		_, err = buf.WriteTo(w)
+		if err != nil {
+			return err
+		}
 	}
-	_, err := buf.WriteTo(w)
-	return err
+	return nil
+}
+
+func createOrUpdateFileForCRD(crd apiextensionsv1.CustomResourceDefinition, docsFolder string) (io.Writer, error) {
+	resourceName := strings.ToLower(crd.Spec.Names.Kind)
+	filePath := fmt.Sprintf("%s/%s.md", docsFolder, resourceName)
+	f, err := os.Create(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return f, nil
 }
 
 func getOverview(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
@@ -138,7 +183,7 @@ func writeDefinition(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefini
 	}
 	if path != "" {
 		buf.WriteString("## Resource Definition\n\n")
-		buf.WriteString("The corresponding resource definition can be found [here](" + crossplaneProviderGithubUrl + path + ").\n")
+		buf.WriteString("The corresponding resource definition can be found [here](" + crossplaneProviderMasterGithubUrl + path + ").\n")
 		buf.WriteString("\n")
 	}
 	return nil
@@ -154,20 +199,23 @@ func writeInstanceExample(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceD
 	}
 	if path != "" {
 		buf.WriteString("## Resource Instance Example\n\n")
-		buf.WriteString("An example of a resource instance can be found [here](" + crossplaneProviderGithubUrl + path + ").\n")
+		buf.WriteString("An example of a resource instance can be found [here](" + crossplaneProviderMasterGithubUrl + path + ").\n")
 		buf.WriteString("\n")
 	}
 	return nil
 }
 
-func writeUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
+func writeUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error {
 	if buf == nil {
-		return
+		return fmt.Errorf("error getting usage, buffer must be different than nil")
 	}
-	path, _ := getExampleFilePath(crd)
+	path, err := getExampleFilePath(crd)
+	if err != nil {
+		return err
+	}
 	if path != "" {
 		buf.WriteString("## Usage\n\n")
-		buf.WriteString("In order to manage resources on IONOS Cloud using Crossplane Provider, you need to have Crossplane Provider for IONOS Cloud installed into a Kubernetes Cluster, as a prerequisite. For a step-by-step guide, check the following [link](" + guideGithubUrl + ").\n\n")
+		buf.WriteString("In order to manage resources on IONOS Cloud using Crossplane Provider, you need to have Crossplane Provider for IONOS Cloud installed into a Kubernetes Cluster, as a prerequisite. For a step-by-step guide, check the following [link](" + guideMasterGithubUrl + ").\n\n")
 		buf.WriteString("It is recommended to clone the repository for easier access to the example files.\n\n")
 		buf.WriteString("### Create\n\n")
 		buf.WriteString("Use the following command to create a resource instance. Before applying the file, check the properties defined in the `spec.forProvider` fields:\n\n")
@@ -208,10 +256,11 @@ func writeUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition)
 		buf.WriteString("_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n")
 		buf.WriteString("\n")
 	}
+	return nil
 }
 
 func getDefinitionFilePath(crd apiextensionsv1.CustomResourceDefinition) (string, error) {
-	filePath := fmt.Sprintf("%s%s_%s.yaml", definitionsDirectoryPath, crd.Spec.Group, crd.Spec.Names.Plural)
+	filePath := fmt.Sprintf("%s/%s_%s.yaml", definitionsDirectoryPath, crd.Spec.Group, crd.Spec.Names.Plural)
 	if _, err := yamlFileExists(filePath); err != nil {
 		return "", err
 	}
@@ -219,11 +268,18 @@ func getDefinitionFilePath(crd apiextensionsv1.CustomResourceDefinition) (string
 }
 
 func getExampleFilePath(crd apiextensionsv1.CustomResourceDefinition) (string, error) {
+	var fileName string
 	svc, err := getServiceFromGroup(crd)
 	if err != nil {
 		return "", err
 	}
-	filePath := fmt.Sprintf("%s%s/%s.yaml", examplesDirectoryPath, svc, crd.Spec.Names.Singular)
+	dirExample := fmt.Sprintf("%s/%s", examplesDirectoryPath, svc)
+	if key, isPresent := exceptionsFileNamesExamples[strings.ToLower(crd.Spec.Names.Kind)]; isPresent {
+		fileName = key
+	} else {
+		fileName = fmt.Sprintf("%s.yaml", strings.ToLower(crd.Spec.Names.Kind))
+	}
+	filePath := fmt.Sprintf("%s/%s", dirExample, fileName)
 	if _, err = yamlFileExists(filePath); err != nil {
 		return "", err
 	}
