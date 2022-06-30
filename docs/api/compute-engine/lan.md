@@ -80,23 +80,21 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `public` (boolean)
-	* description: This LAN faces the public Internet.
 * `datacenterConfig` (object)
-	* description: DatacenterConfig contains information about the datacenter resource on which the lan will be created
+	* description: DatacenterConfig contains information about the datacenter resource on which the lan will be created.
 	* properties:
 		* `datacenterId` (string)
 			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
 			* format: uuid
 		* `datacenterIdRef` (object)
-			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
+			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
 			* properties:
 				* `name` (string)
 					* description: Name of the referenced object.
 			* required properties:
 				* `name`
 		* `datacenterIdSelector` (object)
-			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
+			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
@@ -106,6 +104,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* description: The name of the  resource.
 * `pcc` (string)
 	* description: The unique identifier of the private Cross-Connect the LAN is connected to, if any.
+* `public` (boolean)
+	* description: This LAN faces the public Internet.
 
 ### Required Properties
 

@@ -80,33 +80,6 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `availabilityZone` (string)
-	* description: The availability zone in which the server should be provisioned.
-	* default: "AUTO"
-	* possible values: "AUTO";"ZONE_1";"ZONE_2"
-* `cpuFamily` (string)
-	* description: CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions; available CPU architectures can be retrieved from the datacenter resource.
-	* possible values: "AMD_OPTERON";"INTEL_SKYLAKE";"INTEL_XEON"
-* `datacenterConfig` (object)
-	* description: DatacenterConfig contains information about the datacenter resource on which the server will be created
-	* properties:
-		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `datacenterIdRef` (object)
-			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-			* required properties:
-				* `name`
-		* `datacenterIdSelector` (object)
-			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
 * `name` (string)
 	* description: The name of the  resource.
 * `template` (object)
@@ -118,16 +91,14 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* description: The ID of the  template.
 			* format: uuid
 * `volume` (object)
-	* description: DasVolumeProperties contains properties for the DAS volume attached to the Cube Server
+	* description: DasVolumeProperties contains properties for the DAS volume attached to the Cube Server.
 	* properties:
-		* `image` (string)
-			* description: Image or snapshot ID to be used as template for this volume. Make sure the image selected is compatible with the datacenter's location. Note: when creating a volume, set image, image alias, or licence type
 		* `imageAlias` (string)
-			* description: Note: when creating a volume, set image, image alias, or licence type
+			* description: Image Alias to be used for this volume. Note: when creating a volume - set image, image alias, or licence type.
 		* `imagePassword` (string)
 			* description: Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests. Password rules allows all characters from a-z, A-Z, 0-9.
 		* `licenceType` (string)
-			* description: OS type for this volume. Note: when creating a volume, set image, image alias, or licence type
+			* description: OS type for this volume. Note: when creating a volume - set image, image alias, or licence type.
 			* possible values: "UNKNOWN";"WINDOWS";"WINDOWS2016";"WINDOWS2022";"LINUX";"OTHER"
 		* `name` (string)
 			* description: The name of the DAS Volume.
@@ -136,9 +107,38 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `bus` (string)
 			* description: The bus type of the volume.
 			* possible values: "VIRTIO";"IDE";"UNKNOWN"
+		* `image` (string)
+			* description: Image or snapshot ID to be used as template for this volume. Make sure the image selected is compatible with the datacenter's location. Note: when creating a volume - set image, image alias, or licence type.
 	* required properties:
 		* `bus`
 		* `name`
+* `availabilityZone` (string)
+	* description: The availability zone in which the server should be provisioned.
+	* default: "AUTO"
+	* possible values: "AUTO";"ZONE_1";"ZONE_2"
+* `cpuFamily` (string)
+	* description: CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions; available CPU architectures can be retrieved from the datacenter resource.
+	* possible values: "AMD_OPTERON";"INTEL_SKYLAKE";"INTEL_XEON"
+* `datacenterConfig` (object)
+	* description: DatacenterConfig contains information about the datacenter resource on which the server will be created.
+	* properties:
+		* `datacenterIdRef` (object)
+			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+			* required properties:
+				* `name`
+		* `datacenterIdSelector` (object)
+			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+		* `datacenterId` (string)
+			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
 
 ### Required Properties
 

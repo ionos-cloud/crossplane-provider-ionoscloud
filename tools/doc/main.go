@@ -128,7 +128,7 @@ func createOrUpdateFileForCRD(crd apiextensionsv1.CustomResourceDefinition, docs
 	if _, err := os.ReadDir(dirPath); err != nil {
 		// If the directory does not exist yet, create it with the 0775 permissions.
 		if strings.Contains(err.Error(), "no such file or directory") {
-			if err = os.MkdirAll(dirPath, 0775); err != nil {
+			if err = os.MkdirAll(dirPath, 0750); err != nil {
 				return nil, fmt.Errorf("error creating directory %s: %w", dirPath, err)
 			}
 		} else {

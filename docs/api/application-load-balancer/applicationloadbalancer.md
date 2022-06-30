@@ -80,52 +80,27 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `datacenterConfig` (object)
-	* description: A Datacenter, to which the user has access, to provision the ApplicationLoadBalancer in.
-	* properties:
-		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `datacenterIdRef` (object)
-			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-			* required properties:
-				* `name`
-		* `datacenterIdSelector` (object)
-			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-* `ipsConfig` (object)
-	* description: Collection of the Application Load Balancer IP addresses. (Inbound and outbound) IPs of the listenerLan are customer-reserved public IPs for the public Load Balancers, and private IPs for the private Load Balancers. The IPs can be set directly or using reference to the existing IPBlocks and indexes. If no indexes are set, all IPs from the corresponding IPBlock will be assigned. All IPs set on the Nic will be displayed on the status's ips field.
-	* properties:
-		* `ips` (array)
-		* `ipsBlockConfigs` (array)
 * `lbPrivateIps` (array)
 	* description: Collection of private IP addresses with the subnet mask of the Application Load Balancer. IPs must contain valid a subnet mask. If no IP is provided, the system will generate an IP with /24 subnet.
 * `listenerLanConfig` (object)
 	* description: ID of the listening (inbound) LAN. Lan ID can be set directly or via reference.
 	* properties:
+		* `lanId` (string)
+			* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
 		* `lanIdRef` (object)
-			* description: LanIDRef references to a Lan to retrieve its ID
+			* description: LanIDRef references to a Lan to retrieve its ID.
 			* properties:
 				* `name` (string)
 					* description: Name of the referenced object.
 			* required properties:
 				* `name`
 		* `lanIdSelector` (object)
-			* description: LanIDSelector selects reference to a Lan to retrieve its lanId
+			* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
-		* `lanId` (string)
-			* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
 * `name` (string)
 	* description: The name of the Application Load Balancer.
 * `targetLanConfig` (object)
@@ -134,19 +109,46 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `lanId` (string)
 			* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
 		* `lanIdRef` (object)
-			* description: LanIDRef references to a Lan to retrieve its ID
+			* description: LanIDRef references to a Lan to retrieve its ID.
 			* properties:
 				* `name` (string)
 					* description: Name of the referenced object.
 			* required properties:
 				* `name`
 		* `lanIdSelector` (object)
-			* description: LanIDSelector selects reference to a Lan to retrieve its lanId
+			* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
+* `datacenterConfig` (object)
+	* description: A Datacenter, to which the user has access, to provision the ApplicationLoadBalancer in.
+	* properties:
+		* `datacenterId` (string)
+			* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
+			* format: uuid
+		* `datacenterIdRef` (object)
+			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+			* required properties:
+				* `name`
+		* `datacenterIdSelector` (object)
+			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
+			* properties:
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+* `ipsConfig` (object)
+	* description: Collection of the Application Load Balancer IP addresses. (Inbound and outbound) IPs of the listenerLan are customer-reserved public IPs for the public Load Balancers, and private IPs for the private Load Balancers. The IPs can be set directly or using reference to the existing IPBlocks and indexes. If no indexes are set, all IPs from the corresponding IPBlock will be assigned. All IPs set on the Nic will be displayed on the status's ips field.
+	* properties:
+		* `ips` (array)
+			* description: Use IPs to set specific IPs to the resource. If both IPs and IPsBlockConfigs are set, only `ips` field will be considered.
+		* `ipsBlockConfigs` (array)
+			* description: Use IpsBlockConfigs to reference existing IPBlocks, and to mention the indexes for the IPs. Indexes start from 0, and multiple indexes can be set. If no index is set, all IPs from the corresponding IPBlock will be assigned to the resource.
 
 ### Required Properties
 

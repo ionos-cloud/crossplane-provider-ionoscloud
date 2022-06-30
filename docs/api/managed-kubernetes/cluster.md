@@ -93,7 +93,7 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `name` (string)
 	* description: A Kubernetes cluster name. Valid Kubernetes cluster name must be 63 characters or less and must be empty or begin and end with an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
 * `s3Buckets` (array)
-	* description: List of S3 bucket configured for K8s usage. For now it contains only an S3 bucket used to store K8s API audit logs
+	* description: List of S3 bucket configured for K8s usage. For now, it contains only an S3 bucket used to store K8s API audit logs.
 
 ### Required Properties
 

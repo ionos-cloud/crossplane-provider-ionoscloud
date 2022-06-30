@@ -80,8 +80,6 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `annotations` (object)
-	* description: Map of annotations attached to NodePool.
 * `datacenterConfig` (object)
 	* description: A Datacenter, to which the user has access.
 	* properties:
@@ -89,85 +87,19 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
 			* format: uuid
 		* `datacenterIdRef` (object)
-			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
+			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
 			* properties:
 				* `name` (string)
 					* description: Name of the referenced object.
 			* required properties:
 				* `name`
 		* `datacenterIdSelector` (object)
-			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
+			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
-* `k8sVersion` (string)
-	* description: The Kubernetes version the NodePool is running. This imposes restrictions on what Kubernetes versions can be run in a cluster's NodePools. Additionally, not all Kubernetes versions are viable upgrade targets for all prior versions.
-* `name` (string)
-	* description: A Kubernetes node pool name. Valid Kubernetes node pool name must be 63 characters or less and must be empty or begin and end with an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
-* `ramSize` (integer)
-	* description: The RAM size for the node. Must be set in multiples of 1024 MB, with minimum size is of 2048 MB.
-	* format: int32
-	* minimum: 2048.000000
-	* multiple of: 1024.000000
-* `autoScaling` (object)
-	* description: property to be set when auto-scaling needs to be enabled for the NodePool. By default, auto-scaling is not enabled.
-	* properties:
-		* `maxNodeCount` (integer)
-			* description: The maximum number of worker nodes that the managed node pool can scale-out. Should be set together with 'minNodeCount'. Value for this attribute must be greater than equal to 1 and minNodeCount.
-			* format: int32
-			* minimum: 1.000000
-		* `minNodeCount` (integer)
-			* description: The minimum number of worker nodes that the managed node group can scale in. Should be set together with 'maxNodeCount'. Value for this attribute must be greater than equal to 1 and less than equal to maxNodeCount.
-			* format: int32
-			* minimum: 1.000000
-* `clusterConfig` (object)
-	* description: The K8s Cluster on which the NodePool will be created
-	* properties:
-		* `clusterIdSelector` (object)
-			* description: ClusterIDSelector selects reference to a Cluster to retrieve its clusterId
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-		* `clusterId` (string)
-			* description: ClusterID is the ID of the Cluster on which the resource will be created. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `clusterIdRef` (object)
-			* description: ClusterIDRef references to a Cluster to retrieve its ID
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-			* required properties:
-				* `name`
-* `coresCount` (integer)
-	* description: The number of cores for the node.
-	* format: int32
-* `nodeCount` (integer)
-	* description: The number of nodes that make up the node pool.
-	* format: int32
-* `storageSize` (integer)
-	* description: The size of the volume in GB. The size should be greater than 10GB.
-	* format: int32
-	* minimum: 10.000000
-* `storageType` (string)
-	* description: The type of hardware for the volume.
-	* possible values: "HDD";"SSD"
-* `availabilityZone` (string)
-	* description: The availability zone in which the target VM should be provisioned.
-	* possible values: "AUTO";"ZONE_1";"ZONE_2"
-* `lans` (array)
-	* description: Array of additional private LANs attached to worker nodes
-* `publicIpsConfigs` (object)
-	* description: Optional array of reserved public IP addresses to be used by the nodes. IPs must be from same location as the Datacenter used for the NodePool. The array must contain one more IP than the maximum possible number of nodes (nodeCount+1 for fixed number of nodes or maxNodeCount+1 when auto-scaling is used). The extra IP is used when the nodes are rebuilt. IPs can be set directly or via reference and indexes.
-	* properties:
-		* `ips` (array)
-		* `ipsBlockConfigs` (array)
-* `cpuFamily` (string)
-	* description: A valid CPU family name. If no CPUFamily is provided, it will be set the first CPUFamily supported by the location.
-	* possible values: "AMD_OPTERON";"INTEL_SKYLAKE";"INTEL_XEON"
 * `labels` (object)
 	* description: Map of labels attached to NodePool.
 * `maintenanceWindow` (object)
@@ -176,6 +108,76 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `dayOfTheWeek` (string)
 			* description: DayOfTheWeek The name of the week day.
 		* `time` (string)
+* `storageSize` (integer)
+	* description: The size of the volume in GB. The size should be greater than 10GB.
+	* format: int32
+	* minimum: 10.000000
+* `coresCount` (integer)
+	* description: The number of cores for the node.
+	* format: int32
+* `name` (string)
+	* description: A Kubernetes node pool name. Valid Kubernetes node pool name must be 63 characters or less and must be empty or begin and end with an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
+* `nodeCount` (integer)
+	* description: The number of nodes that make up the node pool.
+	* format: int32
+* `publicIpsConfigs` (object)
+	* description: Optional array of reserved public IP addresses to be used by the nodes. IPs must be from same location as the Datacenter used for the NodePool. The array must contain one more IP than the maximum possible number of nodes (nodeCount+1 for fixed number of nodes or maxNodeCount+1 when auto-scaling is used). The extra IP is used when the nodes are rebuilt. IPs can be set directly or via reference and indexes.
+	* properties:
+		* `ipsBlockConfigs` (array)
+			* description: Use IpsBlockConfigs to reference existing IPBlocks, and to mention the indexes for the IPs. Indexes start from 0, and multiple indexes can be set. If no index is set, all IPs from the corresponding IPBlock will be assigned to the resource.
+		* `ips` (array)
+			* description: Use IPs to set specific IPs to the resource. If both IPs and IPsBlockConfigs are set, only `ips` field will be considered.
+* `ramSize` (integer)
+	* description: The RAM size for the node. Must be set in multiples of 1024 MB, with minimum size is of 2048 MB.
+	* format: int32
+	* minimum: 2048.000000
+	* multiple of: 1024.000000
+* `storageType` (string)
+	* description: The type of hardware for the volume.
+	* possible values: "HDD";"SSD"
+* `cpuFamily` (string)
+	* description: A valid CPU family name. If no CPUFamily is provided, it will be set the first CPUFamily supported by the location.
+	* possible values: "AMD_OPTERON";"INTEL_SKYLAKE";"INTEL_XEON"
+* `k8sVersion` (string)
+	* description: The Kubernetes version the NodePool is running. This imposes restrictions on what Kubernetes versions can be run in a cluster's NodePools. Additionally, not all Kubernetes versions are viable upgrade targets for all prior versions.
+* `autoScaling` (object)
+	* description: property to be set when auto-scaling needs to be enabled for the NodePool. By default, auto-scaling is not enabled.
+	* properties:
+		* `minNodeCount` (integer)
+			* description: The minimum number of worker nodes that the managed node group can scale in. Should be set together with 'maxNodeCount'. Value for this attribute must be greater than equal to 1 and less than equal to maxNodeCount.
+			* format: int32
+			* minimum: 1.000000
+		* `maxNodeCount` (integer)
+			* description: The maximum number of worker nodes that the managed node pool can scale-out. Should be set together with 'minNodeCount'. Value for this attribute must be greater than equal to 1 and minNodeCount.
+			* format: int32
+			* minimum: 1.000000
+* `availabilityZone` (string)
+	* description: The availability zone in which the target VM should be provisioned.
+	* possible values: "AUTO";"ZONE_1";"ZONE_2"
+* `clusterConfig` (object)
+	* description: The K8s Cluster on which the NodePool will be created.
+	* properties:
+		* `clusterId` (string)
+			* description: ClusterID is the ID of the Cluster on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
+		* `clusterIdRef` (object)
+			* description: ClusterIDRef references to a Cluster to retrieve its ID.
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+			* required properties:
+				* `name`
+		* `clusterIdSelector` (object)
+			* description: ClusterIDSelector selects reference to a Cluster to retrieve its ClusterID.
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+* `lans` (array)
+	* description: Array of additional private LANs attached to worker nodes.
+* `annotations` (object)
+	* description: Map of annotations attached to NodePool.
 
 ### Required Properties
 

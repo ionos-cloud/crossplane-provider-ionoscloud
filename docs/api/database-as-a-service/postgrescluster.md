@@ -80,25 +80,11 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `backupLocation` (string)
-	* description: The S3 location where the backups will be stored.
-	* possible values: "de";"eu-south-2";"eu-central-2"
+* `connections` (array)
+	* description: Connection - details about the network connection (datacenter, lan, CIDR) for your cluster.
 * `cores` (integer)
 	* description: The number of CPU cores per instance.
 	* format: int32
-* `credentials` (object)
-	* description: DBUser Credentials for the database user to be created.
-	* properties:
-		* `password` (string)
-		* `username` (string)
-			* description: The username for the initial postgres user. Some system usernames are restricted (e.g. \"postgres\", \"admin\", \"standby\").
-	* required properties:
-		* `password`
-		* `username`
-* `storageSize` (integer)
-	* description: The amount of storage per instance in megabytes.
-	* format: int32
-* `connections` (array)
 * `fromBackup` (object)
 	* description: CreateRestoreRequest The restore request.
 	* properties:
@@ -108,31 +94,46 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* description: If this value is supplied as ISO 8601 timestamp, the backup will be replayed up until the given timestamp. If empty, the backup will be applied completely.
 	* required properties:
 		* `backupId`
-* `instances` (integer)
-	* description: The total number of instances in the cluster (one master and n-1 standbys).
-	* format: int32
 * `location` (string)
 	* description: Location The physical location where the cluster will be created. This will be where all of your instances live. Property cannot be modified after datacenter creation. Location can have the following values: de/fra, us/las, us/ewr, de/txl, gb/lhr, es/vit.
-* `maintenanceWindow` (object)
-	* description: MaintenanceWindow A weekly 4 hour-long window, during which maintenance might occur
-	* properties:
-		* `dayOfTheWeek` (string)
-			* description: DayOfTheWeek The name of the week day.
-		* `time` (string)
-* `storageType` (string)
-	* description: The storage type used in your cluster. Value "SSD" is deprecated. Use the equivalent "SSD Premium" instead.
-	* possible values: "HDD";"SSD";"SSD Standard";"SSD Premium"
-* `synchronizationMode` (string)
-	* description: SynchronizationMode Represents different modes of replication.
-	* possible values: "ASYNCHRONOUS";"STRICTLY_SYNCHRONOUS";"SYNCHRONOUS"
-* `displayName` (string)
-	* description: The friendly name of your cluster.
-* `postgresVersion` (string)
-	* description: The PostgreSQL version of your cluster.
 * `ram` (integer)
 	* description: The amount of memory per instance in megabytes. Has to be a multiple of 1024.
 	* format: int32
 	* multiple of: 1024.000000
+* `backupLocation` (string)
+	* description: The S3 location where the backups will be stored.
+	* possible values: "de";"eu-south-2";"eu-central-2"
+* `credentials` (object)
+	* description: DBUser Credentials for the database user to be created.
+	* properties:
+		* `password` (string)
+		* `username` (string)
+			* description: The username for the initial postgres user. Some system usernames are restricted (e.g. \"postgres\", \"admin\", \"standby\").
+	* required properties:
+		* `password`
+		* `username`
+* `storageType` (string)
+	* description: The storage type used in your cluster. Value "SSD" is deprecated. Use the equivalent "SSD Premium" instead.
+	* possible values: "HDD";"SSD";"SSD Standard";"SSD Premium"
+* `instances` (integer)
+	* description: The total number of instances in the cluster (one master and n-1 standbys).
+	* format: int32
+* `maintenanceWindow` (object)
+	* description: MaintenanceWindow A weekly 4 hour-long window, during which maintenance might occur.
+	* properties:
+		* `dayOfTheWeek` (string)
+			* description: DayOfTheWeek The name of the week day.
+		* `time` (string)
+* `displayName` (string)
+	* description: The friendly name of your cluster.
+* `postgresVersion` (string)
+	* description: The PostgreSQL version of your cluster.
+* `storageSize` (integer)
+	* description: The amount of storage per instance in megabytes.
+	* format: int32
+* `synchronizationMode` (string)
+	* description: SynchronizationMode Represents different modes of replication.
+	* possible values: "ASYNCHRONOUS";"STRICTLY_SYNCHRONOUS";"SYNCHRONOUS"
 
 ### Required Properties
 
