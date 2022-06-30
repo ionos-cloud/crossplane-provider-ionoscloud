@@ -261,6 +261,13 @@ func writeInstanceExample(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceD
 }
 
 func writeUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error { // nolint: interfacer
+	const (
+		noteCommandRecommendation = "_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n\n"
+		kubectlApplyCommand       = "```bash\nkubectl apply -f %s\n```\n\n"
+		kubectlWaitCommand        = "```bash\nkubectl wait --for=condition=%s %s.%s/<instance-name>\n```\n\n"
+		kubectlGetCommand         = "```bash\nkubectl get -f %s.%s\n```\n\n"
+		kubectlDeleteCommand      = "```bash\nkubectl delete -f %s\n```\n\n"
+	)
 	if buf == nil {
 		return fmt.Errorf("error getting usage, buffer must be different than nil")
 	}
@@ -274,41 +281,24 @@ func writeUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition)
 		buf.WriteString("It is recommended to clone the repository for easier access to the example files.\n\n")
 		buf.WriteString("### Create\n\n")
 		buf.WriteString("Use the following command to create a resource instance. Before applying the file, check the properties defined in the `spec.forProvider` fields:\n\n")
-		buf.WriteString("```\n")
-		buf.WriteString("kubectl apply -f " + path + "\n")
-		buf.WriteString("```\n\n")
-		buf.WriteString("_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n\n")
+		buf.WriteString(fmt.Sprintf(kubectlApplyCommand, path))
+		buf.WriteString(noteCommandRecommendation)
 		buf.WriteString("### Update\n\n")
 		buf.WriteString("Use the following command to update an instance. Before applying the file, update the properties defined in the `spec.forProvider` fields:\n\n")
-		buf.WriteString("```\n")
-		buf.WriteString("kubectl apply -f " + path + "\n")
-		buf.WriteString("```\n\n")
-		buf.WriteString("_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n\n")
+		buf.WriteString(fmt.Sprintf(kubectlApplyCommand, path))
+		buf.WriteString(noteCommandRecommendation)
 		buf.WriteString("### Wait\n\n")
 		buf.WriteString("Use the following commands to wait for resources to be ready and synced. Update the `<instance-name>` accordingly:\n\n")
-		buf.WriteString("```\n")
-		buf.WriteString("kubectl wait --for=condition=ready " + crd.Spec.Names.Plural + "." + crd.Spec.Group + "/<instance-name>\n")
-		buf.WriteString("kubectl wait --for=condition=synced " + crd.Spec.Names.Plural + "." + crd.Spec.Group + "/<instance-name>\n")
-		buf.WriteString("```\n\n")
+		buf.WriteString(fmt.Sprintf(kubectlWaitCommand, "ready", crd.Spec.Names.Plural, crd.Spec.Group))
+		buf.WriteString(fmt.Sprintf(kubectlWaitCommand, "synced", crd.Spec.Names.Plural, crd.Spec.Group))
 		buf.WriteString("### Get\n\n")
 		buf.WriteString("Use the following command to get a list of the existing instances:\n\n")
-		buf.WriteString("```\n")
-		buf.WriteString("kubectl get " + crd.Spec.Names.Plural + "." + crd.Spec.Group + "\n")
-		buf.WriteString("```\n\n")
-		buf.WriteString("Use the following command to get a list of the existing instances with more details displayed:\n\n")
-		buf.WriteString("```\n")
-		buf.WriteString("kubectl get " + crd.Spec.Names.Plural + "." + crd.Spec.Group + " -o wide\n")
-		buf.WriteString("```\n\n")
-		buf.WriteString("Use the following command to get a list of the existing instances in JSON format:\n\n")
-		buf.WriteString("```\n")
-		buf.WriteString("kubectl get " + crd.Spec.Names.Plural + "." + crd.Spec.Group + " -o json\n")
-		buf.WriteString("```\n\n")
+		buf.WriteString(fmt.Sprintf(kubectlGetCommand, crd.Spec.Names.Plural, crd.Spec.Group))
+		buf.WriteString("_Note_: Use options `--output wide`, `--output json` to get more information about the resource instances.\n\n")
 		buf.WriteString("### Delete\n\n")
 		buf.WriteString("Use the following command to destroy the resources created by applying the file:\n\n")
-		buf.WriteString("```\n")
-		buf.WriteString("kubectl delete -f " + path + "\n")
-		buf.WriteString("```\n\n")
-		buf.WriteString("_Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.\n\n")
+		buf.WriteString(fmt.Sprintf(kubectlDeleteCommand, path))
+		buf.WriteString(noteCommandRecommendation)
 	}
 	return nil
 }

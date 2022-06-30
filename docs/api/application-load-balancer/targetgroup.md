@@ -21,7 +21,7 @@ It is recommended to clone the repository for easier access to the example files
 
 Use the following command to create a resource instance. Before applying the file, check the properties defined in the `spec.forProvider` fields:
 
-```
+```bash
 kubectl apply -f examples/ionoscloud/alb/targetgroup.yaml
 ```
 
@@ -31,7 +31,7 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 Use the following command to update an instance. Before applying the file, update the properties defined in the `spec.forProvider` fields:
 
-```
+```bash
 kubectl apply -f examples/ionoscloud/alb/targetgroup.yaml
 ```
 
@@ -41,8 +41,11 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 Use the following commands to wait for resources to be ready and synced. Update the `<instance-name>` accordingly:
 
-```
+```bash
 kubectl wait --for=condition=ready targetgroups.alb.ionoscloud.crossplane.io/<instance-name>
+```
+
+```bash
 kubectl wait --for=condition=synced targetgroups.alb.ionoscloud.crossplane.io/<instance-name>
 ```
 
@@ -50,27 +53,17 @@ kubectl wait --for=condition=synced targetgroups.alb.ionoscloud.crossplane.io/<i
 
 Use the following command to get a list of the existing instances:
 
-```
-kubectl get targetgroups.alb.ionoscloud.crossplane.io
-```
-
-Use the following command to get a list of the existing instances with more details displayed:
-
-```
-kubectl get targetgroups.alb.ionoscloud.crossplane.io -o wide
+```bash
+kubectl get -f targetgroups.alb.ionoscloud.crossplane.io
 ```
 
-Use the following command to get a list of the existing instances in JSON format:
-
-```
-kubectl get targetgroups.alb.ionoscloud.crossplane.io -o json
-```
+_Note_: Use options `--output wide`, `--output json` to get more information about the resource instances.
 
 ### Delete
 
 Use the following command to destroy the resources created by applying the file:
 
-```
+```bash
 kubectl delete -f examples/ionoscloud/alb/targetgroup.yaml
 ```
 
@@ -80,6 +73,14 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
+* `protocol` (string)
+	* description: Balancing protocol.
+	* possible values: "HTTP"
+* `targets` (array)
+	* description: Array of items in the collection.
+* `algorithm` (string)
+	* description: Balancing algorithm.
+	* possible values: "ROUND_ROBIN";"LEAST_CONNECTION";"RANDOM";"SOURCE_IP"
 * `healthCheck` (object)
 	* description: Health check properties for target group.
 	* properties:
@@ -95,6 +96,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `httpHealthCheck` (object)
 	* description: HTTP health check properties for target group.
 	* properties:
+		* `path` (string)
+			* description: The path (destination URL) for the HTTP health check request; the default is `/`.
 		* `regex` (boolean)
 		* `response` (string)
 			* description: The response returned by the request, depending on the match type.
@@ -105,21 +108,11 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* description: The method for the HTTP health check.
 			* possible values: "HEAD";"PUT";"POST";"GET";"TRACE";"PATCH";"OPTIONS"
 		* `negate` (boolean)
-		* `path` (string)
-			* description: The path (destination URL) for the HTTP health check request; the default is `/`.
 	* required properties:
 		* `matchType`
 		* `response`
 * `name` (string)
 	* description: The name of the target group.
-* `protocol` (string)
-	* description: Balancing protocol.
-	* possible values: "HTTP"
-* `targets` (array)
-	* description: Array of items in the collection.
-* `algorithm` (string)
-	* description: Balancing algorithm.
-	* possible values: "ROUND_ROBIN";"LEAST_CONNECTION";"RANDOM";"SOURCE_IP"
 
 ### Required Properties
 

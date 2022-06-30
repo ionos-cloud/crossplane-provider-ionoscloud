@@ -21,7 +21,7 @@ It is recommended to clone the repository for easier access to the example files
 
 Use the following command to create a resource instance. Before applying the file, check the properties defined in the `spec.forProvider` fields:
 
-```
+```bash
 kubectl apply -f examples/ionoscloud/alb/applicationloadbalancer.yaml
 ```
 
@@ -31,7 +31,7 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 Use the following command to update an instance. Before applying the file, update the properties defined in the `spec.forProvider` fields:
 
-```
+```bash
 kubectl apply -f examples/ionoscloud/alb/applicationloadbalancer.yaml
 ```
 
@@ -41,8 +41,11 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 Use the following commands to wait for resources to be ready and synced. Update the `<instance-name>` accordingly:
 
-```
+```bash
 kubectl wait --for=condition=ready applicationloadbalancers.alb.ionoscloud.crossplane.io/<instance-name>
+```
+
+```bash
 kubectl wait --for=condition=synced applicationloadbalancers.alb.ionoscloud.crossplane.io/<instance-name>
 ```
 
@@ -50,27 +53,17 @@ kubectl wait --for=condition=synced applicationloadbalancers.alb.ionoscloud.cros
 
 Use the following command to get a list of the existing instances:
 
-```
-kubectl get applicationloadbalancers.alb.ionoscloud.crossplane.io
-```
-
-Use the following command to get a list of the existing instances with more details displayed:
-
-```
-kubectl get applicationloadbalancers.alb.ionoscloud.crossplane.io -o wide
+```bash
+kubectl get -f applicationloadbalancers.alb.ionoscloud.crossplane.io
 ```
 
-Use the following command to get a list of the existing instances in JSON format:
-
-```
-kubectl get applicationloadbalancers.alb.ionoscloud.crossplane.io -o json
-```
+_Note_: Use options `--output wide`, `--output json` to get more information about the resource instances.
 
 ### Delete
 
 Use the following command to destroy the resources created by applying the file:
 
-```
+```bash
 kubectl delete -f examples/ionoscloud/alb/applicationloadbalancer.yaml
 ```
 
@@ -118,16 +111,13 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `lanIdSelector` (object)
 			* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
 			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 * `datacenterConfig` (object)
 	* description: A Datacenter, to which the user has access, to provision the ApplicationLoadBalancer in.
 	* properties:
-		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
-			* format: uuid
 		* `datacenterIdRef` (object)
 			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
 			* properties:
@@ -142,6 +132,9 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+		* `datacenterId` (string)
+			* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
+			* format: uuid
 * `ipsConfig` (object)
 	* description: Collection of the Application Load Balancer IP addresses. (Inbound and outbound) IPs of the listenerLan are customer-reserved public IPs for the public Load Balancers, and private IPs for the private Load Balancers. The IPs can be set directly or using reference to the existing IPBlocks and indexes. If no indexes are set, all IPs from the corresponding IPBlock will be assigned. All IPs set on the Nic will be displayed on the status's ips field.
 	* properties:

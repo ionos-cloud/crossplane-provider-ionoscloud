@@ -21,7 +21,7 @@ It is recommended to clone the repository for easier access to the example files
 
 Use the following command to create a resource instance. Before applying the file, check the properties defined in the `spec.forProvider` fields:
 
-```
+```bash
 kubectl apply -f examples/ionoscloud/k8s/k8s-cluster.yaml
 ```
 
@@ -31,7 +31,7 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 Use the following command to update an instance. Before applying the file, update the properties defined in the `spec.forProvider` fields:
 
-```
+```bash
 kubectl apply -f examples/ionoscloud/k8s/k8s-cluster.yaml
 ```
 
@@ -41,8 +41,11 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 Use the following commands to wait for resources to be ready and synced. Update the `<instance-name>` accordingly:
 
-```
+```bash
 kubectl wait --for=condition=ready clusters.k8s.ionoscloud.crossplane.io/<instance-name>
+```
+
+```bash
 kubectl wait --for=condition=synced clusters.k8s.ionoscloud.crossplane.io/<instance-name>
 ```
 
@@ -50,27 +53,17 @@ kubectl wait --for=condition=synced clusters.k8s.ionoscloud.crossplane.io/<insta
 
 Use the following command to get a list of the existing instances:
 
-```
-kubectl get clusters.k8s.ionoscloud.crossplane.io
-```
-
-Use the following command to get a list of the existing instances with more details displayed:
-
-```
-kubectl get clusters.k8s.ionoscloud.crossplane.io -o wide
+```bash
+kubectl get -f clusters.k8s.ionoscloud.crossplane.io
 ```
 
-Use the following command to get a list of the existing instances in JSON format:
-
-```
-kubectl get clusters.k8s.ionoscloud.crossplane.io -o json
-```
+_Note_: Use options `--output wide`, `--output json` to get more information about the resource instances.
 
 ### Delete
 
 Use the following command to destroy the resources created by applying the file:
 
-```
+```bash
 kubectl delete -f examples/ionoscloud/k8s/k8s-cluster.yaml
 ```
 
