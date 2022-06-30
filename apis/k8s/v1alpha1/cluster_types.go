@@ -53,14 +53,14 @@ type ClusterParameters struct {
 	// +kubebuilder:validation:Optional
 	APISubnetAllowList []string `json:"apiSubnetAllowList,omitempty"`
 	// List of S3 bucket configured for K8s usage.
-	// For now it contains only an S3 bucket used to store K8s API audit logs
+	// For now, it contains only an S3 bucket used to store K8s API audit logs.
 	//
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:MaxItems=1
 	S3Buckets []S3Bucket `json:"s3Buckets,omitempty"`
 }
 
-// MaintenanceWindow A weekly window, during which maintenance might occur
+// MaintenanceWindow A weekly window, during which maintenance might occur.
 type MaintenanceWindow struct {
 	Time string `json:"time,omitempty"`
 	// DayOfTheWeek The name of the week day.
@@ -83,12 +83,12 @@ type ClusterConfig struct {
 	// +crossplane:generate:reference:type=Cluster
 	// +crossplane:generate:reference:extractor=ExtractClusterID()
 	ClusterID string `json:"clusterId,omitempty"`
-	// ClusterIDRef references to a Cluster to retrieve its ID
+	// ClusterIDRef references to a Cluster to retrieve its ID.
 	//
 	// +optional
 	// +immutable
 	ClusterIDRef *xpv1.Reference `json:"clusterIdRef,omitempty"`
-	// ClusterIDSelector selects reference to a Cluster to retrieve its clusterId
+	// ClusterIDSelector selects reference to a Cluster to retrieve its ClusterID.
 	//
 	// +optional
 	ClusterIDSelector *xpv1.Selector `json:"clusterIdSelector,omitempty"`

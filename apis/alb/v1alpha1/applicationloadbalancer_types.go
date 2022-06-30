@@ -81,12 +81,12 @@ type ApplicationLoadBalancerConfig struct {
 	// +crossplane:generate:reference:type=ApplicationLoadBalancer
 	// +crossplane:generate:reference:extractor=ExtractApplicationLoadBalancerID()
 	ApplicationLoadBalancerID string `json:"applicationLoadBalancerId,omitempty"`
-	// ApplicationLoadBalancerIDRef references to a Datacenter to retrieve its ID
+	// ApplicationLoadBalancerIDRef references to a Datacenter to retrieve its ID.
 	//
 	// +optional
 	// +immutable
 	ApplicationLoadBalancerIDRef *xpv1.Reference `json:"applicationLoadBalancerIdRef,omitempty"`
-	// ApplicationLoadBalancerIDSelector selects reference to a Datacenter to retrieve its datacenterId
+	// ApplicationLoadBalancerIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
 	//
 	// +optional
 	ApplicationLoadBalancerIDSelector *xpv1.Selector `json:"applicationLoadBalancerIdSelector,omitempty"`

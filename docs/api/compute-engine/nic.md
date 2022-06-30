@@ -80,6 +80,26 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
+* `datacenterConfig` (object)
+	* description: DatacenterConfig contains information about the datacenter resource on which the nic will be created
+	* properties:
+		* `datacenterIdRef` (object)
+			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+			* required properties:
+				* `name`
+		* `datacenterIdSelector` (object)
+			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+		* `datacenterId` (string)
+			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
 * `dhcp` (boolean)
 	* description: Indicates if the NIC will reserve an IP using DHCP.
 * `firewallActive` (boolean)
@@ -108,6 +128,11 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
+* `firewallType` (string)
+	* description: The type of firewall rules that will be allowed on the NIC. If not specified, the default INGRESS value is used.
+	* possible values: "BIDIRECTIONAL";"EGRESS";"INGRESS"
+* `mac` (string)
+	* description: The MAC address of the NIC.
 * `name` (string)
 	* description: The name of the  resource.
 * `serverConfig` (object)
@@ -130,31 +155,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
-* `datacenterConfig` (object)
-	* description: DatacenterConfig contains information about the datacenter resource on which the nic will be created
-	* properties:
-		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `datacenterIdRef` (object)
-			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-			* required properties:
-				* `name`
-		* `datacenterIdSelector` (object)
-			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-* `firewallType` (string)
-	* description: The type of firewall rules that will be allowed on the NIC. If not specified, the default INGRESS value is used.
-	* possible values: "BIDIRECTIONAL";"EGRESS";"INGRESS"
-* `mac` (string)
-	* description: The MAC address of the NIC.
 
 ### Required Properties
 

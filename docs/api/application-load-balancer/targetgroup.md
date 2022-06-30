@@ -80,8 +80,6 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `targets` (array)
-	* description: Array of items in the collection.
 * `algorithm` (string)
 	* description: Balancing algorithm
 	* possible values: "ROUND_ROBIN";"LEAST_CONNECTION";"RANDOM";"SOURCE_IP"
@@ -119,6 +117,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `protocol` (string)
 	* description: Balancing protocol
 	* possible values: "HTTP"
+* `targets` (array)
+	* description: Array of items in the collection.
 
 ### Required Properties
 

@@ -33,17 +33,17 @@ import (
 // Protocol.
 type FirewallRuleParameters struct {
 	// DatacenterConfig contains information about the datacenter resource
-	// on which the resource will be created
+	// on which the resource will be created.
 	//
 	// +kubebuilder:validation:Required
 	DatacenterCfg DatacenterConfig `json:"datacenterConfig"`
 	// ServerConfig contains information about the server resource
-	// on which the resource will be created
+	// on which the resource will be created.
 	//
 	// +kubebuilder:validation:Required
 	ServerCfg ServerConfig `json:"serverConfig"`
 	// NicConfig contains information about the nic resource
-	// on which the resource will be created
+	// on which the resource will be created.
 	//
 	// +kubebuilder:validation:Required
 	NicCfg NicConfig `json:"nicConfig"`
@@ -111,12 +111,12 @@ type FirewallRuleConfig struct {
 	// +crossplane:generate:reference:type=FirewallRule
 	// +crossplane:generate:reference:extractor=ExtractFirewallRuleID()
 	FirewallRuleID string `json:"firewallRuleId,omitempty"`
-	// FirewallRuleIDRef references to a FirewallRule to retrieve its ID
+	// FirewallRuleIDRef references to a FirewallRule to retrieve its ID.
 	//
 	// +optional
 	// +immutable
 	FirewallRuleIDRef *xpv1.Reference `json:"firewallRuleIdRef,omitempty"`
-	// FirewallRuleIDSelector selects reference to a FirewallRule to retrieve its firewallRuleId
+	// FirewallRuleIDSelector selects reference to a FirewallRule to retrieve its FirewallRuleID.
 	//
 	// +optional
 	FirewallRuleIDSelector *xpv1.Selector `json:"firewallRuleIdSelector,omitempty"`

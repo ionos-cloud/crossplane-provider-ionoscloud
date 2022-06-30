@@ -34,7 +34,7 @@ import (
 // Note: when using images, it is recommended to use SSH Keys or Image Password.
 type VolumeParameters struct {
 	// DatacenterConfig contains information about the datacenter resource
-	// on which the server will be created
+	// on which the server will be created.
 	//
 	// +kubebuilder:validation:Required
 	DatacenterCfg DatacenterConfig `json:"datacenterConfig"`
@@ -68,8 +68,10 @@ type VolumeParameters struct {
 	//
 	// +immutable
 	ImagePassword string `json:"imagePassword,omitempty"`
+	// Image Alias to be used for this volume.
+	// Note: when creating a volume - set image, image alias, or licence type.
+	//
 	// +immutable
-	// Note: when creating a volume, set image, image alias, or licence type
 	ImageAlias string `json:"imageAlias,omitempty"`
 	// Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key.
 	// This field may only be set in creation requests. When reading, it always returns null.
@@ -83,7 +85,7 @@ type VolumeParameters struct {
 	// +kubebuilder:default=VIRTIO
 	Bus string `json:"bus,omitempty"`
 	// OS type for this volume.
-	// Note: when creating a volume, set image, image alias, or licence type
+	// Note: when creating a volume - set image, image alias, or licence type.
 	//
 	// +immutable
 	// +kubebuilder:validation:Enum=UNKNOWN;WINDOWS;WINDOWS2016;WINDOWS2022;LINUX;OTHER
@@ -123,11 +125,11 @@ type VolumeConfig struct {
 	// +crossplane:generate:reference:type=Volume
 	// +crossplane:generate:reference:extractor=ExtractVolumeID()
 	VolumeID string `json:"volumeId,omitempty"`
-	// VolumeIDRef references to a Volume to retrieve its ID
+	// VolumeIDRef references to a Volume to retrieve its ID.
 	//
 	// +optional
 	VolumeIDRef *xpv1.Reference `json:"volumeIdRef,omitempty"`
-	// VolumeIDSelector selects reference to a Volume to retrieve its volumeId
+	// VolumeIDSelector selects reference to a Volume to retrieve its VolumeID.
 	//
 	// +optional
 	VolumeIDSelector *xpv1.Selector `json:"volumeIdSelector,omitempty"`
