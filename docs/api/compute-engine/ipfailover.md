@@ -73,26 +73,6 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `nicConfig` (object)
-	* description: NicConfig contains information about the nic resource on which the resource will be created.
-	* properties:
-		* `nicId` (string)
-			* description: NicID is the ID of the Nic on which the resource will be created. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `nicIdRef` (object)
-			* description: NicIDRef references to a Nic to retrieve its ID.
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-			* required properties:
-				* `name`
-		* `nicIdSelector` (object)
-			* description: NicIDSelector selects reference to a Nic to retrieve its NicID.
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
 * `datacenterConfig` (object)
 	* description: DatacenterConfig contains information about the datacenter resource on which the resource will be created.
 	* properties:
@@ -157,6 +137,26 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 				* `name`
 		* `lanIdSelector` (object)
 			* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+* `nicConfig` (object)
+	* description: NicConfig contains information about the nic resource on which the resource will be created.
+	* properties:
+		* `nicId` (string)
+			* description: NicID is the ID of the Nic on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
+		* `nicIdRef` (object)
+			* description: NicIDRef references to a Nic to retrieve its ID.
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+			* required properties:
+				* `name`
+		* `nicIdSelector` (object)
+			* description: NicIDSelector selects reference to a Nic to retrieve its NicID.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.

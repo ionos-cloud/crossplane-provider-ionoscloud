@@ -215,15 +215,38 @@ func writePropertiesWithPrefix(buf *bytes.Buffer, valueProperty apiextensionsv1.
 	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.MultipleOf)) {
 		buf.WriteString(prefix + "\t* multiple of: " + fmt.Sprintf("%f", *valueProperty.MultipleOf) + "\n")
 	}
-	if valueProperty.Type == "object" && len(valueProperty.Properties) > 0 {
-		buf.WriteString(prefix + "\t* properties:\n")
-		for keyPropertySec, valuePropertySec := range valueProperty.Properties {
-			newPrefix := prefix + "\t\t"
-			writePropertiesWithPrefix(buf, valuePropertySec, keyPropertySec, newPrefix)
+	writeObjectOrArrayTypeProperties(buf, valueProperty, prefix)
+}
+
+func writeObjectOrArrayTypeProperties(buf *bytes.Buffer, valueProperty apiextensionsv1.JSONSchemaProps, prefix string) { // nolint: interfacer
+	const (
+		objectType = "object"
+		arrayType  = "array"
+	)
+
+	if valueProperty.Type == objectType || valueProperty.Type == arrayType {
+		var (
+			allProperties      map[string]apiextensionsv1.JSONSchemaProps
+			requiredProperties []string
+		)
+		if valueProperty.Type == objectType {
+			allProperties = valueProperty.Properties
+			requiredProperties = valueProperty.Required
 		}
-		if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Required)) {
+		if valueProperty.Type == arrayType {
+			allProperties = valueProperty.Items.Schema.Properties
+			requiredProperties = valueProperty.Items.Schema.Required
+		}
+		if len(allProperties) > 0 {
+			buf.WriteString(prefix + "\t* properties:\n")
+			for keyPropertySec, valuePropertySec := range allProperties {
+				newPrefix := prefix + "\t\t"
+				writePropertiesWithPrefix(buf, valuePropertySec, keyPropertySec, newPrefix)
+			}
+		}
+		if len(requiredProperties) > 0 {
 			buf.WriteString(prefix + "\t* required properties:\n")
-			for _, valuePropertyReq := range valueProperty.Required {
+			for _, valuePropertyReq := range requiredProperties {
 				buf.WriteString(prefix + "\t\t* `" + valuePropertyReq + "`\n")
 			}
 		}

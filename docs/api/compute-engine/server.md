@@ -73,6 +73,10 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
+* `ram` (integer)
+	* description: The memory size for the server in MB, such as 2048. Size must be specified in multiples of 256 MB with a minimum of 256 MB. however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB, then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
+	* format: int32
+	* multiple of: 256.000000
 * `volumeConfig` (object)
 	* description: In order to attach a volume to the server, it is recommended to use VolumeConfig to set the existing volume (via id or via reference). To detach a volume from the server, update the CR spec by removing it. 
  VolumeConfig contains information about the existing volume resource which will be attached to the server and set as bootVolume
@@ -127,10 +131,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchLabels ensures an object with matching labels is selected.
 * `name` (string)
 	* description: The name of the  resource.
-* `ram` (integer)
-	* description: The memory size for the server in MB, such as 2048. Size must be specified in multiples of 256 MB with a minimum of 256 MB. however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB, then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
-	* format: int32
-	* multiple of: 256.000000
 
 ### Required Properties
 
