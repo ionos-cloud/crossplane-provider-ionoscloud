@@ -83,7 +83,7 @@ spec:
                 properties:
                   datacenterConfig:
                     description: DatacenterConfig contains information about the datacenter
-                      resource on which the lan will be created
+                      resource on which the lan will be created.
                     properties:
                       datacenterId:
                         description: DatacenterID is the ID of the Datacenter on which
@@ -93,7 +93,7 @@ spec:
                         type: string
                       datacenterIdRef:
                         description: DatacenterIDRef references to a Datacenter to
-                          retrieve its ID
+                          retrieve its ID.
                         properties:
                           name:
                             description: Name of the referenced object.
@@ -103,7 +103,7 @@ spec:
                         type: object
                       datacenterIdSelector:
                         description: DatacenterIDSelector selects reference to a Datacenter
-                          to retrieve its datacenterId
+                          to retrieve its DatacenterID.
                         properties:
                           matchControllerRef:
                             description: MatchControllerRef ensures an object with

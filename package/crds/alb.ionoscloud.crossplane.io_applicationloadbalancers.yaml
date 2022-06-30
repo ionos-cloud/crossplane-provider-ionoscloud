@@ -101,7 +101,7 @@ spec:
                         type: string
                       datacenterIdRef:
                         description: DatacenterIDRef references to a Datacenter to
-                          retrieve its ID
+                          retrieve its ID.
                         properties:
                           name:
                             description: Name of the referenced object.
@@ -111,7 +111,7 @@ spec:
                         type: object
                       datacenterIdSelector:
                         description: DatacenterIDSelector selects reference to a Datacenter
-                          to retrieve its datacenterId
+                          to retrieve its DatacenterID.
                         properties:
                           matchControllerRef:
                             description: MatchControllerRef ensures an object with
@@ -137,10 +137,18 @@ spec:
                       field.
                     properties:
                       ips:
+                        description: Use IPs to set specific IPs to the resource.
+                          If both IPs and IPsBlockConfigs are set, only `ips` field
+                          will be considered.
                         items:
                           type: string
                         type: array
                       ipsBlockConfigs:
+                        description: Use IpsBlockConfigs to reference existing IPBlocks,
+                          and to mention the indexes for the IPs. Indexes start from
+                          0, and multiple indexes can be set. If no index is set,
+                          all IPs from the corresponding IPBlock will be assigned
+                          to the resource.
                         items:
                           description: IPsBlockConfig - used by resources that need
                             to link IPBlock via id or via reference to get multiple
@@ -155,14 +163,14 @@ spec:
                                 type: integer
                               type: array
                             ipBlockId:
-                              description: NicID is the ID of the IPBlock on which
+                              description: IPBlockID is the ID of the IPBlock on which
                                 the resource will be created. It needs to be provided
                                 via directly or via reference.
                               format: uuid
                               type: string
                             ipBlockIdRef:
                               description: IPBlockIDRef references to a IPBlock to
-                                retrieve its ID
+                                retrieve its ID.
                               properties:
                                 name:
                                   description: Name of the referenced object.
@@ -172,7 +180,7 @@ spec:
                               type: object
                             ipBlockIdSelector:
                               description: IPBlockIDSelector selects reference to
-                                a IPBlock to retrieve its nicId
+                                a IPBlock to retrieve its IPBlockID.
                               properties:
                                 matchControllerRef:
                                   description: MatchControllerRef ensures an object
@@ -208,7 +216,7 @@ spec:
                         type: string
                       lanIdRef:
                         description: LanIDRef references to a Lan to retrieve its
-                          ID
+                          ID.
                         properties:
                           name:
                             description: Name of the referenced object.
@@ -218,7 +226,7 @@ spec:
                         type: object
                       lanIdSelector:
                         description: LanIDSelector selects reference to a Lan to retrieve
-                          its lanId
+                          its LanID.
                         properties:
                           matchControllerRef:
                             description: MatchControllerRef ensures an object with
@@ -247,7 +255,7 @@ spec:
                         type: string
                       lanIdRef:
                         description: LanIDRef references to a Lan to retrieve its
-                          ID
+                          ID.
                         properties:
                           name:
                             description: Name of the referenced object.
@@ -257,7 +265,7 @@ spec:
                         type: object
                       lanIdSelector:
                         description: LanIDSelector selects reference to a Lan to retrieve
-                          its lanId
+                          its LanID.
                         properties:
                           matchControllerRef:
                             description: MatchControllerRef ensures an object with

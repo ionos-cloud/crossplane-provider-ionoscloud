@@ -111,7 +111,7 @@ spec:
                     type: boolean
                   datacenterConfig:
                     description: DatacenterConfig contains information about the datacenter
-                      resource on which the server will be created
+                      resource on which the server will be created.
                     properties:
                       datacenterId:
                         description: DatacenterID is the ID of the Datacenter on which
@@ -121,7 +121,7 @@ spec:
                         type: string
                       datacenterIdRef:
                         description: DatacenterIDRef references to a Datacenter to
-                          retrieve its ID
+                          retrieve its ID.
                         properties:
                           name:
                             description: Name of the referenced object.
@@ -131,7 +131,7 @@ spec:
                         type: object
                       datacenterIdSelector:
                         description: DatacenterIDSelector selects reference to a Datacenter
-                          to retrieve its datacenterId
+                          to retrieve its DatacenterID.
                         properties:
                           matchControllerRef:
                             description: MatchControllerRef ensures an object with
@@ -160,8 +160,8 @@ spec:
                       image, image alias, or licence type'
                     type: string
                   imageAlias:
-                    description: 'Note: when creating a volume, set image, image alias,
-                      or licence type'
+                    description: 'Image Alias to be used for this volume. Note: when
+                      creating a volume - set image, image alias, or licence type.'
                     type: string
                   imagePassword:
                     description: Initial password to be set for installed OS. Works
@@ -170,8 +170,8 @@ spec:
                       0-9.
                     type: string
                   licenceType:
-                    description: 'OS type for this volume. Note: when creating a volume,
-                      set image, image alias, or licence type'
+                    description: 'OS type for this volume. Note: when creating a volume
+                      - set image, image alias, or licence type.'
                     enum:
                     - UNKNOWN
                     - WINDOWS
