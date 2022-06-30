@@ -80,33 +80,6 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `name` (string)
-	* description: The name of the Application Load Balancer Forwarding Rule.
-* `clientTimeout` (integer)
-	* description: The maximum time in milliseconds to wait for the client to acknowledge or send data; default is 50,000 (50 seconds).
-	* format: int32
-* `datacenterConfig` (object)
-	* description: A Datacenter, to which the user has access, to provision the ApplicationLoadBalancer in.
-	* properties:
-		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `datacenterIdRef` (object)
-			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-			* required properties:
-				* `name`
-		* `datacenterIdSelector` (object)
-			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-* `httpRules` (array)
-	* description: An array of items in the collection. The original order of rules is preserved during processing, except for Forward-type rules are processed after the rules with other action defined. The relative order of Forward-type rules is also preserved during the processing.
 * `listenerIpConfig` (object)
 	* description: Listening (inbound) IP. IP must be assigned to the listener NIC of the Application Load Balancer.
 	* properties:
@@ -136,14 +109,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 							* description: MatchLabels ensures an object with matching labels is selected.
 			* required properties:
 				* `index`
-* `listenerPort` (integer)
-	* description: Listening (inbound) port number; valid range is 1 to 65535.
-	* format: int32
-	* minimum: 1.000000
-	* maximum: 65535.000000
-* `protocol` (string)
-	* description: Balancing protocol
-	* possible values: "HTTP"
+* `name` (string)
+	* description: The name of the Application Load Balancer Forwarding Rule.
 * `serverCertificatesIds` (array)
 	* description: Array of items in the collection.
 * `applicationLoadBalancerConfig` (object)
@@ -166,6 +133,39 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
+* `clientTimeout` (integer)
+	* description: The maximum time in milliseconds to wait for the client to acknowledge or send data; default is 50,000 (50 seconds).
+	* format: int32
+* `datacenterConfig` (object)
+	* description: A Datacenter, to which the user has access, to provision the ApplicationLoadBalancer in.
+	* properties:
+		* `datacenterIdRef` (object)
+			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+			* required properties:
+				* `name`
+		* `datacenterIdSelector` (object)
+			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+		* `datacenterId` (string)
+			* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
+			* format: uuid
+* `httpRules` (array)
+	* description: An array of items in the collection. The original order of rules is preserved during processing, except for Forward-type rules are processed after the rules with other action defined. The relative order of Forward-type rules is also preserved during the processing.
+* `listenerPort` (integer)
+	* description: Listening (inbound) port number; valid range is 1 to 65535.
+	* format: int32
+	* minimum: 1.000000
+	* maximum: 65535.000000
+* `protocol` (string)
+	* description: Balancing protocol
+	* possible values: "HTTP"
 
 ### Required Properties
 

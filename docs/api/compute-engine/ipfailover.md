@@ -1,12 +1,12 @@
 ---
-description: Manages Nic Resource on IONOS Cloud.
+description: Manages IPFailover Resource on IONOS Cloud.
 ---
 
-# Nic Managed Resource
+# IPFailover Managed Resource
 
 ## Overview
 
-* Resource Name: `Nic`
+* Resource Name: `IPFailover`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`
 * Resource Scope: `Cluster`
@@ -22,7 +22,7 @@ It is recommended to clone the repository for easier access to the example files
 Use the following command to create a resource instance. Before applying the file, check the properties defined in the `spec.forProvider` fields:
 
 ```
-kubectl apply -f examples/ionoscloud/compute/nic.yaml
+kubectl apply -f examples/ionoscloud/compute/ipfailover.yaml
 ```
 
 _Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.
@@ -32,7 +32,7 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 Use the following command to update an instance. Before applying the file, update the properties defined in the `spec.forProvider` fields:
 
 ```
-kubectl apply -f examples/ionoscloud/compute/nic.yaml
+kubectl apply -f examples/ionoscloud/compute/ipfailover.yaml
 ```
 
 _Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.
@@ -42,8 +42,8 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 Use the following commands to wait for resources to be ready and synced. Update the `<instance-name>` accordingly:
 
 ```
-kubectl wait --for=condition=ready nics.compute.ionoscloud.crossplane.io/<instance-name>
-kubectl wait --for=condition=synced nics.compute.ionoscloud.crossplane.io/<instance-name>
+kubectl wait --for=condition=ready ipfailovers.compute.ionoscloud.crossplane.io/<instance-name>
+kubectl wait --for=condition=synced ipfailovers.compute.ionoscloud.crossplane.io/<instance-name>
 ```
 
 ### Get
@@ -51,19 +51,19 @@ kubectl wait --for=condition=synced nics.compute.ionoscloud.crossplane.io/<insta
 Use the following command to get a list of the existing instances:
 
 ```
-kubectl get nics.compute.ionoscloud.crossplane.io
+kubectl get ipfailovers.compute.ionoscloud.crossplane.io
 ```
 
 Use the following command to get a list of the existing instances with more details displayed:
 
 ```
-kubectl get nics.compute.ionoscloud.crossplane.io -o wide
+kubectl get ipfailovers.compute.ionoscloud.crossplane.io -o wide
 ```
 
 Use the following command to get a list of the existing instances in JSON format:
 
 ```
-kubectl get nics.compute.ionoscloud.crossplane.io -o json
+kubectl get ipfailovers.compute.ionoscloud.crossplane.io -o json
 ```
 
 ### Delete
@@ -71,7 +71,7 @@ kubectl get nics.compute.ionoscloud.crossplane.io -o json
 Use the following command to destroy the resources created by applying the file:
 
 ```
-kubectl delete -f examples/ionoscloud/compute/nic.yaml
+kubectl delete -f examples/ionoscloud/compute/ipfailover.yaml
 ```
 
 _Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.
@@ -81,8 +81,11 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
 * `datacenterConfig` (object)
-	* description: DatacenterConfig contains information about the datacenter resource on which the nic will be created
+	* description: DatacenterConfig contains information about the datacenter resource on which the resource will be created
 	* properties:
+		* `datacenterId` (string)
+			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
 		* `datacenterIdRef` (object)
 			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
 			* properties:
@@ -93,17 +96,41 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `datacenterIdSelector` (object)
 			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
 			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
-		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
-			* format: uuid
-* `firewallActive` (boolean)
-	* description: Activate or deactivate the firewall. By default, an active firewall without any defined rules will block all incoming network traffic except for the firewall rules that explicitly allows certain protocols, IP addresses and ports.
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+* `ipConfig` (object)
+	* description: IPConfig must have a public IP for which the group is responsible for. IP can be set directly, using ipConfig.ip or via reference and index. If both ip and ipBlockConfig is set, only ip field will be considered. It is recommended to use ip field instead of ipBlockConfig field if the ipBlock contains multiple ips.
+	* properties:
+		* `ip` (string)
+			* pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
+		* `ipBlockConfig` (object)
+			* description: IPBlockConfig - used by resources that need to link IPBlock via id or via reference to get one single IP.
+			* properties:
+				* `index` (integer)
+					* description: Index is referring to the IP index retrieved from the IPBlock. Index is starting from 0.
+				* `ipBlockId` (string)
+					* description: NicID is the ID of the IPBlock on which the resource will be created. It needs to be provided via directly or via reference.
+					* format: uuid
+				* `ipBlockIdRef` (object)
+					* description: IPBlockIDRef references to a IPBlock to retrieve its ID
+					* properties:
+						* `name` (string)
+							* description: Name of the referenced object.
+					* required properties:
+						* `name`
+				* `ipBlockIdSelector` (object)
+					* description: IPBlockIDSelector selects reference to a IPBlock to retrieve its nicId
+					* properties:
+						* `matchControllerRef` (boolean)
+							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+						* `matchLabels` (object)
+							* description: MatchLabels ensures an object with matching labels is selected.
+			* required properties:
+				* `index`
 * `lanConfig` (object)
-	* description: LanConfig contains information about the lan resource on which the nic will be on
+	* description: LanConfig contains information about the lan resource on which the resource will be created
 	* properties:
 		* `lanId` (string)
 			* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
@@ -121,55 +148,41 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
-* `dhcp` (boolean)
-	* description: Indicates if the NIC will reserve an IP using DHCP.
-* `firewallType` (string)
-	* description: The type of firewall rules that will be allowed on the NIC. If not specified, the default INGRESS value is used.
-	* possible values: "BIDIRECTIONAL";"EGRESS";"INGRESS"
-* `ipsConfigs` (object)
-	* description: Collection of IP addresses, assigned to the NIC. Explicitly assigned public IPs need to come from reserved IP blocks. Passing value null or empty array will assign an IP address automatically. The IPs can be set directly or using reference to the existing IPBlocks and indexes. If no indexes are set, all IPs from the corresponding IPBlock will be assigned. All IPs set on the Nic will be displayed on the status's ips field.
+* `nicConfig` (object)
+	* description: NicConfig contains information about the nic resource on which the resource will be created
 	* properties:
-		* `ips` (array)
-		* `ipsBlockConfigs` (array)
-* `mac` (string)
-	* description: The MAC address of the NIC.
-* `name` (string)
-	* description: The name of the  resource.
-* `serverConfig` (object)
-	* description: ServerConfig contains information about the server resource on which the nic will be created
-	* properties:
-		* `serverId` (string)
-			* description: ServerID is the ID of the Server on which the resource will be created. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `serverIdRef` (object)
-			* description: ServerIDRef references to a Server to retrieve its ID
+		* `nicIdRef` (object)
+			* description: NicIDRef references to a Nic to retrieve its ID
 			* properties:
 				* `name` (string)
 					* description: Name of the referenced object.
 			* required properties:
 				* `name`
-		* `serverIdSelector` (object)
-			* description: ServerIDSelector selects reference to a Server to retrieve its serverId
+		* `nicIdSelector` (object)
+			* description: NicIDSelector selects reference to a Nic to retrieve its nicId
 			* properties:
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+		* `nicId` (string)
+			* description: NicID is the ID of the Nic on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
 
 ### Required Properties
 
 The user needs to set the following properties in order to configure the IONOS Cloud Resource:
 
 * `datacenterConfig`
-* `dhcp`
+* `ipConfig`
 * `lanConfig`
-* `serverConfig`
+* `nicConfig`
 
 ## Resource Definition
 
-The corresponding resource definition can be found [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/package/crds/compute.ionoscloud.crossplane.io_nics.yaml).
+The corresponding resource definition can be found [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/package/crds/compute.ionoscloud.crossplane.io_ipfailovers.yaml).
 
 ## Resource Instance Example
 
-An example of a resource instance can be found [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples/ionoscloud/compute/nic.yaml).
+An example of a resource instance can be found [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples/ionoscloud/compute/ipfailover.yaml).
 

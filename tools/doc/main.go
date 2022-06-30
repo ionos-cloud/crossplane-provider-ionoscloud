@@ -22,23 +22,38 @@ const (
 	ionoscloudServiceName     = "ionoscloud"
 )
 
-// NOTES:
-// 1. Make sure to check the exceptions list below and to create a new directory after integrating a new service into Crossplane Provider IONOS Cloud!
-// 2. You can easily generate documentation automatically using `make docs.update` target.
+// NOTES - new integrating a new service into Crossplane Provider IONOS Cloud:
+// * Check the exceptionsFileNamesExamples collection below and create a new directory.
+// * Check the servicesAbbrevDirectoriesMap collection below and define the new service name.
+// * You can easily generate documentation automatically using `make docs.update` target.
 
-// This tool expects that the examples files provided are in the <service-name> directory, under the name <resource-name>.yaml
-// The <service-name> is taken from the Managed Resource Spec Group (e.g.: group=k8s.ionoscloud.crossplane.io -> service-name=k8s).
-// The <resource-name> is taken from the Managed Resource Spec Kind, using lower case (e.g.: kind=Cluster -> resource-name=cluster).
-// If the example file for a Managed Resource does not follow the template above, please define it in the next key-value collection.
-// Define here exceptions for the example filenames:
-// <resource_name>.yaml
-var exceptionsFileNamesExamples = map[string]string{
-	"postgrescluster": "postgres-cluster.yaml",
-	"cluster":         "k8s-cluster.yaml",
-	"nodepool":        "k8s-nodepool.yaml",
-}
+var (
+	// This tool expects that the examples files provided are in the <service-name> directory, under the name <resource-name>.yaml.
+	// The <service-name> is taken from the Managed Resource Spec Group (e.g.: group=k8s.ionoscloud.crossplane.io -> service-name=k8s).
+	// The <resource-name> is taken from the Managed Resource Spec Kind, using lower case (e.g.: kind=Cluster -> resource-name=cluster).
+	// If the example file for a Managed Resource does not follow the template above, please define it in the next key-value collection.
+	// Define here exceptions for the example filenames:
+	// <resource_name>.yaml
+	exceptionsFileNamesExamples = map[string]string{
+		"postgrescluster": "postgres-cluster.yaml",
+		"cluster":         "k8s-cluster.yaml",
+		"nodepool":        "k8s-nodepool.yaml",
+	}
+	// This tool adds the generated files provided in DOCS_OUT/<service-long-name> directory, under the name <resource-name>.md.
+	// The <resource-name> is taken from the Managed Resource Spec Kind, using lower case (e.g.: kind=Cluster -> resource-name=cluster).
+	// The <service-name> is taken from the Managed Resource Spec Group (e.g.: group=k8s.ionoscloud.crossplane.io -> service-name=k8s).
+	// The <service-long-name> is taken from the collection defined below, using the <service-name> key:
+	servicesAbbrevDirectoriesMap = map[string]string{
+		"alb":     "application-load-balancer",
+		"compute": "compute-engine",
+		"dbaas":   "database-as-a-service",
+		"k8s":     "managed-kubernetes",
+	}
+)
 
 func main() {
+	// DOCS_OUT - represents the absolute path to the directory where
+	// the tool will generate the documentation files.
 	dir := os.Getenv("DOCS_OUT")
 	if dir == "" {
 		fmt.Printf("DOCS_OUT environment variable not set.\n")
@@ -65,14 +80,14 @@ func writeContent(docsFolder string) error { // nolint: gocyclo
 	buf := new(bytes.Buffer)
 	mustGetCRDs := crds.MustGetCRDs()
 	for i := 0; i < len(mustGetCRDs); i++ {
-		serviceName, err := getServiceFromGroup(mustGetCRDs[i])
+		serviceName, err := getSvcShortNameFromGroup(mustGetCRDs[i])
 		if err != nil {
 			return err
 		}
 		if serviceName == ionoscloudServiceName {
 			continue
 		}
-		w, err := createOrUpdateFileForCRD(mustGetCRDs[i], docsFolder+serviceName)
+		w, err := createOrUpdateFileForCRD(mustGetCRDs[i], docsFolder, serviceName)
 		if err != nil {
 			return err
 		}
@@ -103,9 +118,17 @@ func writeContent(docsFolder string) error { // nolint: gocyclo
 	return nil
 }
 
-func createOrUpdateFileForCRD(crd apiextensionsv1.CustomResourceDefinition, docsFolder string) (io.Writer, error) {
+func createOrUpdateFileForCRD(crd apiextensionsv1.CustomResourceDefinition, docsFolder, serviceShortName string) (io.Writer, error) {
+	serviceLongDirName, ok := servicesAbbrevDirectoriesMap[serviceShortName]
+	if !ok {
+		return nil, fmt.Errorf("error when getting service directory name. please define the new service into the collection")
+	}
 	resourceName := strings.ToLower(crd.Spec.Names.Kind)
-	filePath := fmt.Sprintf("%s/%s.md", docsFolder, resourceName)
+	dirPath := fmt.Sprintf("%s%s", docsFolder, serviceLongDirName)
+	if _, err := os.ReadDir(dirPath); err != nil {
+		return nil, fmt.Errorf("error reading directory %s: %w", dirPath, err)
+	}
+	filePath := fmt.Sprintf("%s/%s.md", dirPath, resourceName)
 	f, err := os.Create(filePath)
 	if err != nil {
 		return nil, err
@@ -301,7 +324,7 @@ func getExampleFilePath(crd apiextensionsv1.CustomResourceDefinition) (string, e
 
 	var fileName string
 
-	svc, err := getServiceFromGroup(crd)
+	svc, err := getSvcShortNameFromGroup(crd)
 	if err != nil {
 		return "", err
 	}
@@ -333,7 +356,7 @@ func yamlFileExists(filePath string) error {
 	return nil
 }
 
-func getServiceFromGroup(crd apiextensionsv1.CustomResourceDefinition) (string, error) {
+func getSvcShortNameFromGroup(crd apiextensionsv1.CustomResourceDefinition) (string, error) {
 	groupSplit := strings.Split(crd.Spec.Group, ".")
 	if len(groupSplit) == 0 {
 		return "", fmt.Errorf("error getting service name from the specification group")

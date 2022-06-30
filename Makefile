@@ -36,7 +36,7 @@ IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-controller
 -include build/makelib/image.mk
 
 # Setup documentation
-DOCS_OUT?=$(shell pwd)/docs/managed-resources
+DOCS_OUT?=$(shell pwd)/docs/api
 
 .PHONY: docs.update
 docs.update:
