@@ -80,31 +80,10 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `datacenterConfig` (object)
-	* description: DatacenterConfig contains information about the datacenter resource on which the nic will be created
-	* properties:
-		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `datacenterIdRef` (object)
-			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-			* required properties:
-				* `name`
-		* `datacenterIdSelector` (object)
-			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
 * `dhcp` (boolean)
 	* description: Indicates if the NIC will reserve an IP using DHCP.
-* `firewallType` (string)
-	* description: The type of firewall rules that will be allowed on the NIC. If not specified, the default INGRESS value is used.
-	* possible values: "BIDIRECTIONAL";"EGRESS";"INGRESS"
+* `firewallActive` (boolean)
+	* description: Activate or deactivate the firewall. By default, an active firewall without any defined rules will block all incoming network traffic except for the firewall rules that explicitly allows certain protocols, IP addresses and ports.
 * `ipsConfigs` (object)
 	* description: Collection of IP addresses, assigned to the NIC. Explicitly assigned public IPs need to come from reserved IP blocks. Passing value null or empty array will assign an IP address automatically. The IPs can be set directly or using reference to the existing IPBlocks and indexes. If no indexes are set, all IPs from the corresponding IPBlock will be assigned. All IPs set on the Nic will be displayed on the status's ips field.
 	* properties:
@@ -134,6 +113,9 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `serverConfig` (object)
 	* description: ServerConfig contains information about the server resource on which the nic will be created
 	* properties:
+		* `serverId` (string)
+			* description: ServerID is the ID of the Server on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
 		* `serverIdRef` (object)
 			* description: ServerIDRef references to a Server to retrieve its ID
 			* properties:
@@ -148,11 +130,29 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
-		* `serverId` (string)
-			* description: ServerID is the ID of the Server on which the resource will be created. It needs to be provided via directly or via reference.
+* `datacenterConfig` (object)
+	* description: DatacenterConfig contains information about the datacenter resource on which the nic will be created
+	* properties:
+		* `datacenterId` (string)
+			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
 			* format: uuid
-* `firewallActive` (boolean)
-	* description: Activate or deactivate the firewall. By default, an active firewall without any defined rules will block all incoming network traffic except for the firewall rules that explicitly allows certain protocols, IP addresses and ports.
+		* `datacenterIdRef` (object)
+			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+			* required properties:
+				* `name`
+		* `datacenterIdSelector` (object)
+			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+* `firewallType` (string)
+	* description: The type of firewall rules that will be allowed on the NIC. If not specified, the default INGRESS value is used.
+	* possible values: "BIDIRECTIONAL";"EGRESS";"INGRESS"
 * `mac` (string)
 	* description: The MAC address of the NIC.
 

@@ -80,26 +80,6 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `datacenterConfig` (object)
-	* description: DatacenterConfig contains information about the datacenter resource on which the resource will be created
-	* properties:
-		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `datacenterIdRef` (object)
-			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-			* required properties:
-				* `name`
-		* `datacenterIdSelector` (object)
-			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
-			* properties:
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 * `ipConfig` (object)
 	* description: IPConfig must have a public IP for which the group is responsible for. IP can be set directly, using ipConfig.ip or via reference and index. If both ip and ipBlockConfig is set, only ip field will be considered. It is recommended to use ip field instead of ipBlockConfig field if the ipBlock contains multiple ips.
 	* properties:
@@ -151,6 +131,9 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `nicConfig` (object)
 	* description: NicConfig contains information about the nic resource on which the resource will be created
 	* properties:
+		* `nicId` (string)
+			* description: NicID is the ID of the Nic on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
 		* `nicIdRef` (object)
 			* description: NicIDRef references to a Nic to retrieve its ID
 			* properties:
@@ -161,13 +144,30 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `nicIdSelector` (object)
 			* description: NicIDSelector selects reference to a Nic to retrieve its nicId
 			* properties:
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-		* `nicId` (string)
-			* description: NicID is the ID of the Nic on which the resource will be created. It needs to be provided via directly or via reference.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+* `datacenterConfig` (object)
+	* description: DatacenterConfig contains information about the datacenter resource on which the resource will be created
+	* properties:
+		* `datacenterId` (string)
+			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
 			* format: uuid
+		* `datacenterIdRef` (object)
+			* description: DatacenterIDRef references to a Datacenter to retrieve its ID
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+			* required properties:
+				* `name`
+		* `datacenterIdSelector` (object)
+			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
 
 ### Required Properties
 

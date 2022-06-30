@@ -80,9 +80,6 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `cpuFamily` (string)
-	* description: CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions; available CPU architectures can be retrieved from the datacenter resource.
-	* possible values: "AMD_OPTERON";"INTEL_SKYLAKE";"INTEL_XEON"
 * `datacenterConfig` (object)
 	* description: DatacenterConfig contains information about the datacenter resource on which the server will be created
 	* properties:
@@ -126,10 +123,10 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `volumeIdSelector` (object)
 			* description: VolumeIDSelector selects reference to a Volume to retrieve its volumeId
 			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 * `availabilityZone` (string)
 	* description: The availability zone in which the server should be provisioned.
 	* default: "AUTO"
@@ -138,6 +135,9 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `cores` (integer)
 	* description: The total number of cores for the server.
 	* format: int32
+* `cpuFamily` (string)
+	* description: CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions; available CPU architectures can be retrieved from the datacenter resource.
+	* possible values: "AMD_OPTERON";"INTEL_SKYLAKE";"INTEL_XEON"
 
 ### Required Properties
 

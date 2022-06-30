@@ -23,8 +23,8 @@ const (
 )
 
 // NOTES - new integrating a new service into Crossplane Provider IONOS Cloud:
-// * Check the exceptionsFileNamesExamples collection below and create a new directory.
-// * Check the servicesAbbrevDirectoriesMap collection below and define the new service name.
+// * Check the exceptionsFileNamesExamples collection below in case the example is provided under a different name than <resource-name>.yaml.
+// * Check the servicesAbbrevDirectoriesMap collection below and define the new service's entire name to be used in directory naming (the directory can be created or not).
 // * You can easily generate documentation automatically using `make docs.update` target.
 
 var (
@@ -126,7 +126,14 @@ func createOrUpdateFileForCRD(crd apiextensionsv1.CustomResourceDefinition, docs
 	resourceName := strings.ToLower(crd.Spec.Names.Kind)
 	dirPath := fmt.Sprintf("%s%s", docsFolder, serviceLongDirName)
 	if _, err := os.ReadDir(dirPath); err != nil {
-		return nil, fmt.Errorf("error reading directory %s: %w", dirPath, err)
+		// If the directory does not exist yet, create it with the 0775 permissions.
+		if strings.Contains(err.Error(), "no such file or directory") {
+			if err = os.MkdirAll(dirPath, 0775); err != nil {
+				return nil, fmt.Errorf("error creating directory %s: %w", dirPath, err)
+			}
+		} else {
+			return nil, fmt.Errorf("error reading directory %s: %w", dirPath, err)
+		}
 	}
 	filePath := fmt.Sprintf("%s/%s.md", dirPath, resourceName)
 	f, err := os.Create(filePath)

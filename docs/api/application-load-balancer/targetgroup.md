@@ -100,17 +100,17 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `httpHealthCheck` (object)
 	* description: HTTP health check properties for target group
 	* properties:
+		* `path` (string)
+			* description: The path (destination URL) for the HTTP health check request; the default is /.
+		* `regex` (boolean)
+		* `response` (string)
+			* description: The response returned by the request, depending on the match type.
 		* `matchType` (string)
 			* possible values: "";"STATUS_CODE";"RESPONSE_BODY"
 		* `method` (string)
 			* description: The method for the HTTP health check.
 			* possible values: "HEAD";"PUT";"POST";"GET";"TRACE";"PATCH";"OPTIONS"
 		* `negate` (boolean)
-		* `path` (string)
-			* description: The path (destination URL) for the HTTP health check request; the default is /.
-		* `regex` (boolean)
-		* `response` (string)
-			* description: The response returned by the request, depending on the match type.
 	* required properties:
 		* `matchType`
 		* `response`
