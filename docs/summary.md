@@ -1,7 +1,6 @@
 # Table of contents
 
 * [Introduction](README.md)
-* [IONOS Cloud Resources](RESOURCES.md)
 * [Example Guide](../examples/example.md)
 * [Changelog](CHANGELOG.md)
 

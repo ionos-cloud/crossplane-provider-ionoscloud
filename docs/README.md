@@ -72,8 +72,8 @@ kubectl create secret generic --namespace crossplane-system example-provider-sec
 _Note_: You can overwrite the default IONOS Cloud API endpoint, by setting the following option in credentials
 struct: `credentials="{\"host_url\":\"${IONOS_API_URL}\"}"`.
 
-_Note_: You can also set the `IONOS_API_URL` environment variable in the `ControllerConfig` of the provider globally for all
-resources. The following snipped shows how to set it globally in the ControllerConfig:
+_Note_: You can also set the `IONOS_API_URL` environment variable in the `ControllerConfig` of the provider globally for
+all resources. The following snipped shows how to set it globally in the ControllerConfig:
 
 ```bash
 cat <<EOF | kubectl apply -f -
@@ -145,8 +145,126 @@ Now that you have the IONOS Cloud Provider configured, you can provision resourc
 Kubernetes Cluster, using Custom Resource Definitions(CRDs). All CRDs are _Cluster Scoped_ (not being created in only
 one specific namespace, but on the entire cluster).
 
-Check [here](RESOURCES.md) to see an up-to-date list of the CRDs and corresponding IONOS Cloud Resources that Crossplane
-Provider IONOS Cloud supports as Managed Resources.
+Check below to see an up-to-date list of the CRDs and corresponding IONOS Cloud Resources that Crossplane Provider IONOS
+Cloud supports as Managed Resources:
+
+### Compute Engine Managed Resources
+
+#### Compute Engine Resources Custom Resource Definitions
+
+| RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION                       |
+|--------------------------|--------------------------------------------------|
+| IPBlocks                 | `ipblocks.compute.ionoscloud.crossplane.io`      |
+| Datacenters              | `datacenters.compute.ionoscloud.crossplane.io`   |
+| Servers                  | `servers.compute.ionoscloud.crossplane.io`       |
+| Volumes                  | `volumes.compute.ionoscloud.crossplane.io`       |
+| Lans                     | `lans.compute.ionoscloud.crossplane.io`          |
+| NICs                     | `nics.compute.ionoscloud.crossplane.io`          |
+| FirewallRules            | `firewallrules.compute.ionoscloud.crossplane.io` |
+| IPFailovers              | `ipfailovers.compute.ionoscloud.crossplane.io`   |
+
+See more details [here](api/compute-engine).
+
+### Application Load Balancer Managed Resources
+
+#### Application Load Balancer Resources Custom Resource Definitions
+
+| RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION                             |
+|--------------------------|--------------------------------------------------------|
+| ApplicationLoadBalancer  | `applicationloadbalancer.alb.ionoscloud.crossplane.io` |
+| ForwardingRule           | `forwardingrule.alb.ionoscloud.crossplane.io`          |
+| TargetGroup              | `targetgroup.alb.ionoscloud.crossplane.io`             |
+
+See more details [here](api/application-load-balancer).
+
+### Kubernetes Managed Resources
+
+#### Kubernetes Resources Custom Resource Definitions
+
+| RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION               |
+|--------------------------|------------------------------------------|
+| K8s Clusters             | `clusters.k8s.ionoscloud.crossplane.io`  |
+| K8s NodePools            | `nodepools.k8s.ionoscloud.crossplane.io` |
+
+See more details [here](api/managed-kubernetes).
+
+### DBaaS Postgres Managed Resources
+
+#### DBaaS Postgres Resources Custom Resource Definitions
+
+| RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION                        |
+|--------------------------|---------------------------------------------------|
+| DBaaS Postgres Clusters  | `postgresclusters.dbaas.ionoscloud.crossplane.io` |
+
+See more details [here](api/database-as-a-service).
+
+## References
+
+References are used in order to reference other resources on which the new resources are dependent. Using referenced
+resources, the user can create for example, a datacenter and a lan using one command, without to manually update the lan
+CR specification file with the required datacenter ID.
+
+The references are resolved **only once**, when the resource is created, and the resolvers are generated
+using [crossplane-tools](https://github.com/crossplane/crossplane-tools).
+
+Example:
+
+```yaml
+datacenterConfig:
+  datacenterIdRef:
+    name: <datacenter_CR_name>
+```
+
+The user can set the datacenter ID directly, using:
+
+```yaml
+datacenterConfig:
+  datacenterId: <datacenter_ID>
+```
+
+_Note_: If both the `datacenterId` and the `datacenterIdRef` fields are set, the `datacenterId` value has priority.
+
+## Compositions and Claims
+
+Composite Resources are designed to help you build your own platform and mix-and-match schemas for different providers.
+You define the schema of your Composite Resource(XR) and teach Crossplane which Managed Resources(CRs or Custom
+Resources) it should create when someone creates the XR.
+
+### Steps
+
+#### Define Composite Resources
+
+First step is to define the `CompositeResourceDefinition` so that Crossplane knows which XRs you would like to create
+and what fields that XRs should have. In the example provided, this is done in
+the [definition file](../examples/composition/definition.yaml).
+
+#### Configure Compositions
+
+Next step is to teach Crossplane what to do when a Composite Resource is created. Compositions are linking an XR with
+one or multiple CRs (ipblocks, postgresclusters, nodepools, clusters, etc). Basically, the user controls the CRs for
+IONOS Cloud Resources via XRs: when an XR is created, updated or deleted, according to the Composition configured,
+Crossplane will create, update, or delete CRs. In the example provided, this is done in
+the [composition file](../examples/composition/composition.yaml).
+
+#### Claim Composite Resources
+
+After defining Composite Resources and configuring Compositions, the next step is to create Composite Resource Claims (
+aka claims). A difference between and XRs and claims is that claims are namespaced scoped, while XRs are cluster scoped.
+Also, an XR contains references to the CRs, while claim contains reference to the corresponding XR. In the example
+provided, a claim is defined in the [claim file](../examples/composition/claim.yaml), while an XR
+in [composite file](../examples/composition/composite.yaml).
+
+### Example
+
+An example for creating a Datacenter, a Kubernetes Cluster and a Kubernetes NodePool via Compositions and Claims can be
+found [here](../examples/composition).
+
+### More Details
+
+More details about Composite Resources can be found here:
+
+- [Composite Resources Concept](https://crossplane.io/docs/v1.7/concepts/composition.html)
+- [Composite Resources Reference](https://crossplane.io/docs/v1.7/reference/composition.html)
 
 ## Debug Mode
 
