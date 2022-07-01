@@ -279,7 +279,7 @@ See the following tables for DBaaS Postgres resources commands:
 
 </details>
 
-For an overview of all Managed Resources of Crossplane Provider IONOS Cloud, see [file](../docs/RESOURCES.md).
+For an overview of all Managed Resources of Crossplane Provider IONOS Cloud, see [file](../docs/README.md#provision-resources-on-ionos-cloud).
 
 ## Cleanup
 

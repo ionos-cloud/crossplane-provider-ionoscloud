@@ -66,6 +66,8 @@ type ClusterParameters struct {
 	// +kubebuilder:validation:Enum=HDD;SSD;SSD Standard;SSD Premium
 	// +kubebuilder:validation:Required
 	StorageType string `json:"storageType"`
+	// Connection - details about the network connection (datacenter, lan, CIDR) for your cluster.
+	//
 	// +kubebuilder:validation:MaxItems=1
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:Required
@@ -102,21 +104,21 @@ type ClusterParameters struct {
 
 // Connection Details about the network connection for your cluster.
 type Connection struct {
-	// DatacenterConfig contains information about the datacenter resource
+	// DatacenterConfig contains information about the datacenter resource.
 	//
 	// +kubebuilder:validation:Required
 	DatacenterCfg DatacenterConfig `json:"datacenterConfig"`
-	// LanConfig contains information about the lan resource
+	// LanConfig contains information about the lan resource.
 	//
 	// +kubebuilder:validation:Required
 	LanCfg LanConfig `json:"lanConfig"`
-	// The IP and subnet for your cluster. Note the following unavailable IP ranges: 10.233.64.0/18 10.233.0.0/18 10.233.114.0/24
+	// The IP and subnet for your cluster. Note: the following IP ranges are unavailable: 10.233.64.0/18 10.233.0.0/18 10.233.114.0/24.
 	//
 	// +kubebuilder:validation:Required
 	Cidr string `json:"cidr"`
 }
 
-// MaintenanceWindow A weekly 4 hour-long window, during which maintenance might occur
+// MaintenanceWindow A weekly 4 hour-long window, during which maintenance might occur.
 type MaintenanceWindow struct {
 	Time string `json:"time,omitempty"`
 	// DayOfTheWeek The name of the week day.
@@ -155,12 +157,12 @@ type DatacenterConfig struct {
 	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.Datacenter
 	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractDatacenterID()
 	DatacenterID string `json:"datacenterId,omitempty"`
-	// DatacenterIDRef references to a Datacenter to retrieve its ID
+	// DatacenterIDRef references to a Datacenter to retrieve its ID.
 	//
 	// +optional
 	// +immutable
 	DatacenterIDRef *xpv1.Reference `json:"datacenterIdRef,omitempty"`
-	// DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
+	// DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
 	//
 	// +optional
 	DatacenterIDSelector *xpv1.Selector `json:"datacenterIdSelector,omitempty"`
@@ -175,12 +177,12 @@ type LanConfig struct {
 	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.Lan
 	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractLanID()
 	LanID string `json:"lanId,omitempty"`
-	// LanIDRef references to a Lan to retrieve its ID
+	// LanIDRef references to a Lan to retrieve its ID.
 	//
 	// +optional
 	// +immutable
 	LanIDRef *xpv1.Reference `json:"lanIdRef,omitempty"`
-	// LanIDSelector selects reference to a Lan to retrieve its lanId
+	// LanIDSelector selects reference to a Lan to retrieve its LanID.
 	//
 	// +optional
 	LanIDSelector *xpv1.Selector `json:"lanIdSelector,omitempty"`

@@ -110,8 +110,8 @@ spec:
                       (-), underscores (_), dots (.), and alphanumerics between.
                     type: string
                   s3Buckets:
-                    description: List of S3 bucket configured for K8s usage. For now
-                      it contains only an S3 bucket used to store K8s API audit logs
+                    description: List of S3 bucket configured for K8s usage. For now,
+                      it contains only an S3 bucket used to store K8s API audit logs.
                     items:
                       description: S3Bucket configured for K8s usage.
                       properties:

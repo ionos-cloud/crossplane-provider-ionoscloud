@@ -1,5 +1,11 @@
 # Changelog
 
+## (upcoming release)
+
+- **Documentation**:
+    - Separated documentation per service
+    - Added support for generation of the documentation
+
 ## [1.0.0-beta.4] (June 2022)
 
 - **Features**:

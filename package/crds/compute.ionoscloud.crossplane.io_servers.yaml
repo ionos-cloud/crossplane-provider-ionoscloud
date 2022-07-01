@@ -106,7 +106,7 @@ spec:
                     type: string
                   datacenterConfig:
                     description: DatacenterConfig contains information about the datacenter
-                      resource on which the server will be created
+                      resource on which the server will be created.
                     properties:
                       datacenterId:
                         description: DatacenterID is the ID of the Datacenter on which
@@ -116,7 +116,7 @@ spec:
                         type: string
                       datacenterIdRef:
                         description: DatacenterIDRef references to a Datacenter to
-                          retrieve its ID
+                          retrieve its ID.
                         properties:
                           name:
                             description: Name of the referenced object.
@@ -126,7 +126,7 @@ spec:
                         type: object
                       datacenterIdSelector:
                         description: DatacenterIDSelector selects reference to a Datacenter
-                          to retrieve its datacenterId
+                          to retrieve its DatacenterID.
                         properties:
                           matchControllerRef:
                             description: MatchControllerRef ensures an object with
@@ -169,7 +169,7 @@ spec:
                         type: string
                       volumeIdRef:
                         description: VolumeIDRef references to a Volume to retrieve
-                          its ID
+                          its ID.
                         properties:
                           name:
                             description: Name of the referenced object.
@@ -179,7 +179,7 @@ spec:
                         type: object
                       volumeIdSelector:
                         description: VolumeIDSelector selects reference to a Volume
-                          to retrieve its volumeId
+                          to retrieve its VolumeID.
                         properties:
                           matchControllerRef:
                             description: MatchControllerRef ensures an object with

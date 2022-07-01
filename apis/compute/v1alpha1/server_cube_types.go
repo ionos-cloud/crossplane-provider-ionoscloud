@@ -32,7 +32,7 @@ import (
 // Volume Properties (Name, Bus, Licence Type or Image/Image Alias).
 type CubeServerProperties struct {
 	// DatacenterConfig contains information about the datacenter resource
-	// on which the server will be created
+	// on which the server will be created.
 	//
 	// +immutable
 	// +kubebuilder:validation:Required
@@ -54,7 +54,7 @@ type CubeServerProperties struct {
 	//
 	// +kubebuilder:validation:Enum=AMD_OPTERON;INTEL_SKYLAKE;INTEL_XEON
 	CPUFamily string `json:"cpuFamily,omitempty"`
-	// DasVolumeProperties contains properties for the DAS volume attached to the Cube Server
+	// DasVolumeProperties contains properties for the DAS volume attached to the Cube Server.
 	//
 	// +kubebuilder:validation:Required
 	DasVolumeProperties DasVolumeProperties `json:"volume"`
@@ -79,7 +79,7 @@ type DasVolumeProperties struct {
 	Bus string `json:"bus"`
 	// Image or snapshot ID to be used as template for this volume.
 	// Make sure the image selected is compatible with the datacenter's location.
-	// Note: when creating a volume, set image, image alias, or licence type
+	// Note: when creating a volume - set image, image alias, or licence type.
 	//
 	// +immutable
 	Image string `json:"image,omitempty"`
@@ -88,8 +88,10 @@ type DasVolumeProperties struct {
 	//
 	// +immutable
 	ImagePassword string `json:"imagePassword,omitempty"`
+	// Image Alias to be used for this volume.
+	// Note: when creating a volume - set image, image alias, or licence type.
+	//
 	// +immutable
-	// Note: when creating a volume, set image, image alias, or licence type
 	ImageAlias string `json:"imageAlias,omitempty"`
 	// Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key.
 	// This field may only be set in creation requests. When reading, it always returns null.
@@ -98,14 +100,14 @@ type DasVolumeProperties struct {
 	// +immutable
 	SSHKeys []string `json:"sshKeys,omitempty"`
 	// OS type for this volume.
-	// Note: when creating a volume, set image, image alias, or licence type
+	// Note: when creating a volume - set image, image alias, or licence type.
 	//
 	// +immutable
 	// +kubebuilder:validation:Enum=UNKNOWN;WINDOWS;WINDOWS2016;WINDOWS2022;LINUX;OTHER
 	LicenceType string `json:"licenceType,omitempty"`
 }
 
-// Template refers to the template used for cube servers
+// Template refers to the template used for cube servers.
 type Template struct {
 	// The name of the  resource.
 	Name string `json:"name,omitempty"`
