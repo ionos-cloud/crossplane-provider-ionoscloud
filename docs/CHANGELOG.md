@@ -7,7 +7,7 @@
         - _Managed Backup_:
             - BackupUnit.
     - Added reference support for BackupUnit in Volume Managed Resource:
-        - **Breaking-change**: `spec.forProvider.backupUnitConfig` is used instead of `spec.forProvider.backupunitId` field.
+        - **Breaking-change**: `spec.forProvider.backupunitId` field is renamed into `spec.forProvider.backupUnitConfig` (reference to a `backupunit` instance).
 - **Documentation**:
     - Separated documentation per service
     - Added support for generation of the documentation
