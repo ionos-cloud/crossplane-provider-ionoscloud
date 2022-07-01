@@ -188,6 +188,16 @@ See more details [here](api/application-load-balancer).
 
 See more details [here](api/managed-kubernetes).
 
+### Backup Managed Resources
+
+#### Backup Resources Custom Resource Definitions
+
+| RESOURCES IN IONOS CLOUD | CUSTOM RESOURCE DEFINITION                    |
+|--------------------------|-----------------------------------------------|
+| BackupUnit               | `backupunits.backup.ionoscloud.crossplane.io` |
+
+See more details [here](api/managed-backup).
+
 ### DBaaS Postgres Managed Resources
 
 #### DBaaS Postgres Resources Custom Resource Definitions

@@ -48,6 +48,7 @@ var (
 		"compute": "compute-engine",
 		"dbaas":   "database-as-a-service",
 		"k8s":     "managed-kubernetes",
+		"backup":  "managed-backup",
 	}
 )
 
