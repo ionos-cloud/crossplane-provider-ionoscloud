@@ -31,7 +31,7 @@ import (
 // Public.
 type LanParameters struct {
 	// DatacenterConfig contains information about the datacenter resource
-	// on which the lan will be created
+	// on which the lan will be created.
 	//
 	// +kubebuilder:validation:Required
 	DatacenterCfg DatacenterConfig `json:"datacenterConfig"`
@@ -58,12 +58,12 @@ type LanConfig struct {
 	// +crossplane:generate:reference:type=Lan
 	// +crossplane:generate:reference:extractor=ExtractLanID()
 	LanID string `json:"lanId,omitempty"`
-	// LanIDRef references to a Lan to retrieve its ID
+	// LanIDRef references to a Lan to retrieve its ID.
 	//
 	// +optional
 	// +immutable
 	LanIDRef *xpv1.Reference `json:"lanIdRef,omitempty"`
-	// LanIDSelector selects reference to a Lan to retrieve its lanId
+	// LanIDSelector selects reference to a Lan to retrieve its LanID.
 	//
 	// +optional
 	LanIDSelector *xpv1.Selector `json:"lanIdSelector,omitempty"`

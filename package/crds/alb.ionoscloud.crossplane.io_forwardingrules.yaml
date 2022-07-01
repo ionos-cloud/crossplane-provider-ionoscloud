@@ -100,7 +100,7 @@ spec:
                         type: string
                       applicationLoadBalancerIdRef:
                         description: ApplicationLoadBalancerIDRef references to a
-                          Datacenter to retrieve its ID
+                          Datacenter to retrieve its ID.
                         properties:
                           name:
                             description: Name of the referenced object.
@@ -110,7 +110,7 @@ spec:
                         type: object
                       applicationLoadBalancerIdSelector:
                         description: ApplicationLoadBalancerIDSelector selects reference
-                          to a Datacenter to retrieve its datacenterId
+                          to a Datacenter to retrieve its DatacenterID.
                         properties:
                           matchControllerRef:
                             description: MatchControllerRef ensures an object with
@@ -142,7 +142,7 @@ spec:
                         type: string
                       datacenterIdRef:
                         description: DatacenterIDRef references to a Datacenter to
-                          retrieve its ID
+                          retrieve its ID.
                         properties:
                           name:
                             description: Name of the referenced object.
@@ -152,7 +152,7 @@ spec:
                         type: object
                       datacenterIdSelector:
                         description: DatacenterIDSelector selects reference to a Datacenter
-                          to retrieve its datacenterId
+                          to retrieve its DatacenterID.
                         properties:
                           matchControllerRef:
                             description: MatchControllerRef ensures an object with
@@ -281,8 +281,8 @@ spec:
                               format: uuid
                               type: string
                             targetGroupIdRef:
-                              description: TargetGroupIDRef references to a Datacenter
-                                to retrieve its ID
+                              description: TargetGroupIDRef references to a TargetGroup
+                                to retrieve its ID.
                               properties:
                                 name:
                                   description: Name of the referenced object.
@@ -292,7 +292,7 @@ spec:
                               type: object
                             targetGroupIdSelector:
                               description: TargetGroupIDSelector selects reference
-                                to a Datacenter to retrieve its datacenterId
+                                to a TargetGroup to retrieve its TargetGroupID.
                               properties:
                                 matchControllerRef:
                                   description: MatchControllerRef ensures an object
@@ -324,25 +324,29 @@ spec:
                       listener NIC of the Application Load Balancer.
                     properties:
                       ip:
+                        description: Use IP to set specific IP to the resource. If
+                          both IP and IPBlockConfig are set, only `ip` field will
+                          be considered.
                         pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
                         type: string
                       ipBlockConfig:
-                        description: IPBlockConfig - used by resources that need to
-                          link IPBlock via id or via reference to get one single IP.
+                        description: Use IpBlockConfig to reference existing IPBlock,
+                          and to mention the index for the IP. Index starts from 0
+                          and it must be provided.
                         properties:
                           index:
                             description: Index is referring to the IP index retrieved
-                              from the IPBlock. Index is starting from 0.
+                              from the IPBlock. Index starts from 0.
                             type: integer
                           ipBlockId:
-                            description: NicID is the ID of the IPBlock on which the
-                              resource will be created. It needs to be provided via
-                              directly or via reference.
+                            description: IPBlockID is the ID of the IPBlock on which
+                              the resource will be created. It needs to be provided
+                              via directly or via reference.
                             format: uuid
                             type: string
                           ipBlockIdRef:
                             description: IPBlockIDRef references to a IPBlock to retrieve
-                              its ID
+                              its ID.
                             properties:
                               name:
                                 description: Name of the referenced object.
@@ -352,7 +356,7 @@ spec:
                             type: object
                           ipBlockIdSelector:
                             description: IPBlockIDSelector selects reference to a
-                              IPBlock to retrieve its nicId
+                              IPBlock to retrieve its IPBlockID.
                             properties:
                               matchControllerRef:
                                 description: MatchControllerRef ensures an object

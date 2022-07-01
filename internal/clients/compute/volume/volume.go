@@ -86,8 +86,8 @@ func GenerateCreateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.Volume, error) { // 
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.LicenceType)) {
 		instanceCreateInput.Properties.SetLicenceType(cr.Spec.ForProvider.LicenceType)
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.BackupunitID)) {
-		instanceCreateInput.Properties.SetBackupunitId(cr.Spec.ForProvider.BackupunitID)
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.BackupUnitCfg.BackupUnitID)) {
+		instanceCreateInput.Properties.SetBackupunitId(cr.Spec.ForProvider.BackupUnitCfg.BackupUnitID)
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.UserData)) {
 		instanceCreateInput.Properties.SetUserData(cr.Spec.ForProvider.UserData)

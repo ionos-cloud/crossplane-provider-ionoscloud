@@ -37,7 +37,7 @@ import (
 // StorageType,
 // StorageSize.
 type NodePoolParameters struct {
-	// The K8s Cluster on which the NodePool will be created
+	// The K8s Cluster on which the NodePool will be created.
 	//
 	// +immutable
 	// +kubebuilder:validation:Required
@@ -110,7 +110,7 @@ type NodePoolParameters struct {
 	//
 	// +kubebuilder:validation:Optional
 	AutoScaling KubernetesAutoScaling `json:"autoScaling,omitempty"`
-	// Array of additional private LANs attached to worker nodes
+	// Array of additional private LANs attached to worker nodes.
 	//
 	// +kubebuilder:validation:Optional
 	Lans []KubernetesNodePoolLan `json:"lans,omitempty"`
@@ -133,7 +133,7 @@ type NodePoolParameters struct {
 	PublicIPsCfg IPsConfigs `json:"publicIpsConfigs,omitempty"`
 }
 
-// KubernetesAutoScaling struct for KubernetesAutoScaling
+// KubernetesAutoScaling struct for KubernetesAutoScaling.
 type KubernetesAutoScaling struct {
 	// The minimum number of worker nodes that the managed node group can scale in.
 	// Should be set together with 'maxNodeCount'.
@@ -149,9 +149,9 @@ type KubernetesAutoScaling struct {
 	MaxNodeCount int32 `json:"maxNodeCount,omitempty"`
 }
 
-// KubernetesNodePoolLan struct for KubernetesNodePoolLan
+// KubernetesNodePoolLan struct for KubernetesNodePoolLan.
 type KubernetesNodePoolLan struct {
-	// The LAN of an existing private LAN at the related datacenter
+	// The LAN of an existing private LAN at the related datacenter.
 	//
 	// +kubebuilder:validation:Optional
 	LanCfg LanConfig `json:"lanConfig"`
@@ -159,13 +159,13 @@ type KubernetesNodePoolLan struct {
 	//
 	// +kubebuilder:validation:Optional
 	Dhcp bool `json:"dhcp,omitempty"`
-	// Array of additional LANs Routes attached to worker nodes
+	// Array of additional LANs Routes attached to worker nodes.
 	//
 	// +kubebuilder:validation:Optional
 	Routes []KubernetesNodePoolLanRoutes `json:"routes,omitempty"`
 }
 
-// KubernetesNodePoolLanRoutes struct for KubernetesNodePoolLanRoutes
+// KubernetesNodePoolLanRoutes struct for KubernetesNodePoolLanRoutes.
 type KubernetesNodePoolLanRoutes struct {
 	// IPv4 or IPv6 CIDR to be routed via the interface.
 	//
@@ -187,12 +187,12 @@ type DatacenterConfig struct {
 	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.Datacenter
 	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractDatacenterID()
 	DatacenterID string `json:"datacenterId,omitempty"`
-	// DatacenterIDRef references to a Datacenter to retrieve its ID
+	// DatacenterIDRef references to a Datacenter to retrieve its ID.
 	//
 	// +optional
 	// +immutable
 	DatacenterIDRef *xpv1.Reference `json:"datacenterIdRef,omitempty"`
-	// DatacenterIDSelector selects reference to a Datacenter to retrieve its datacenterId
+	// DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
 	//
 	// +optional
 	DatacenterIDSelector *xpv1.Selector `json:"datacenterIdSelector,omitempty"`
@@ -207,30 +207,32 @@ type LanConfig struct {
 	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.Lan
 	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractLanID()
 	LanID string `json:"lanId,omitempty"`
-	// LanIDRef references to a Lan to retrieve its ID
+	// LanIDRef references to a Lan to retrieve its ID.
 	//
 	// +optional
 	// +immutable
 	LanIDRef *xpv1.Reference `json:"lanIdRef,omitempty"`
-	// LanIDSelector selects reference to a Lan to retrieve its lanId
+	// LanIDSelector selects reference to a Lan to retrieve its LanID.
 	//
 	// +optional
 	LanIDSelector *xpv1.Selector `json:"lanIdSelector,omitempty"`
 }
 
-// IPsConfigs - used by resources that need to link multiple IPs from IPBlock via id or via reference
-// and using index. Indexes start from 0, and multiple indexes can be set.
-// If no index is set, all IPs from the corresponding IPBlock will be assigned.
-// If both IPs and IPBlockConfigs fields are set, only ips will be considered.
+// IPsConfigs - used by resources that need to link multiple IPs directly or from IPBlock via id or via reference.
 type IPsConfigs struct {
-	IPs         []string         `json:"ips,omitempty"`
+	// Use IPs to set specific IPs to the resource. If both IPs and IPsBlockConfigs are set,
+	// only `ips` field will be considered.
+	IPs []string `json:"ips,omitempty"`
+	// Use IpsBlockConfigs to reference existing IPBlocks, and to mention the indexes for the IPs.
+	// Indexes start from 0, and multiple indexes can be set. If no index is set, all IPs from the
+	// corresponding IPBlock will be assigned to the resource.
 	IPBlockCfgs []IPsBlockConfig `json:"ipsBlockConfigs,omitempty"`
 }
 
 // IPsBlockConfig - used by resources that need to link IPBlock via id or via reference
 // to get multiple IPs.
 type IPsBlockConfig struct {
-	// NicID is the ID of the IPBlock on which the resource will be created.
+	// IPBlockID is the ID of the IPBlock on which the resource will be created.
 	// It needs to be provided via directly or via reference.
 	//
 	// +immutable
@@ -238,12 +240,12 @@ type IPsBlockConfig struct {
 	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.IPBlock
 	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractIPBlockID()
 	IPBlockID string `json:"ipBlockId,omitempty"`
-	// IPBlockIDRef references to a IPBlock to retrieve its ID
+	// IPBlockIDRef references to a IPBlock to retrieve its ID.
 	//
 	// +optional
 	// +immutable
 	IPBlockIDRef *xpv1.Reference `json:"ipBlockIdRef,omitempty"`
-	// IPBlockIDSelector selects reference to a IPBlock to retrieve its nicId
+	// IPBlockIDSelector selects reference to a IPBlock to retrieve its IPBlockID.
 	//
 	// +optional
 	IPBlockIDSelector *xpv1.Selector `json:"ipBlockIdSelector,omitempty"`
@@ -255,18 +257,20 @@ type IPsBlockConfig struct {
 	Indexes []int `json:"indexes,omitempty"`
 }
 
-// IPConfig is used by resources that need to link ips from IPBlock via id or via reference
-// and using index. Indexes start from 0, and only one index must be set.
-// If both IPs and IPBlockConfigs fields are set, only ip will be used.
+// IPConfig is used by resources that need to link ip directly or from IPBlock via id or via reference.
 type IPConfig struct {
-	IP         string        `json:"ip,omitempty"`
+	// Use IP to set specific IP to the resource. If both IP and IPBlockConfig are set,
+	// only `ip` field will be considered.
+	IP string `json:"ip,omitempty"`
+	// Use IpBlockConfig to reference existing IPBlock, and to mention the index for the IP.
+	// Index starts from 0 and it must be provided.
 	IPBlockCfg IPBlockConfig `json:"ipBlockConfig,omitempty"`
 }
 
 // IPBlockConfig - used by resources that need to link IPBlock via id or via reference
 // to get one single IP.
 type IPBlockConfig struct {
-	// NicID is the ID of the IPBlock on which the resource will be created.
+	// IPBlockID is the ID of the IPBlock on which the resource will be created.
 	// It needs to be provided via directly or via reference.
 	//
 	// +immutable
@@ -274,12 +278,12 @@ type IPBlockConfig struct {
 	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.IPBlock
 	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractIPBlockID()
 	IPBlockID string `json:"ipBlockId,omitempty"`
-	// IPBlockIDRef references to a IPBlock to retrieve its ID
+	// IPBlockIDRef references to a IPBlock to retrieve its ID.
 	//
 	// +optional
 	// +immutable
 	IPBlockIDRef *xpv1.Reference `json:"ipBlockIdRef,omitempty"`
-	// IPBlockIDSelector selects reference to a IPBlock to retrieve its nicId
+	// IPBlockIDSelector selects reference to a IPBlock to retrieve its IPBlockID.
 	//
 	// +optional
 	IPBlockIDSelector *xpv1.Selector `json:"ipBlockIdSelector,omitempty"`

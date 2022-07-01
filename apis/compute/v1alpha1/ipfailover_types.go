@@ -33,17 +33,17 @@ import (
 // IPConfig.
 type IPFailoverParameters struct {
 	// DatacenterConfig contains information about the datacenter resource
-	// on which the resource will be created
+	// on which the resource will be created.
 	//
 	// +kubebuilder:validation:Required
 	DatacenterCfg DatacenterConfig `json:"datacenterConfig"`
 	// LanConfig contains information about the lan resource
-	// on which the resource will be created
+	// on which the resource will be created.
 	//
 	// +kubebuilder:validation:Required
 	LanCfg LanConfig `json:"lanConfig"`
 	// NicConfig contains information about the nic resource
-	// on which the resource will be created
+	// on which the resource will be created.
 	//
 	// +kubebuilder:validation:Required
 	NicCfg NicConfig `json:"nicConfig"`

@@ -90,18 +90,20 @@ spec:
                     - eu-central-2
                     type: string
                   connections:
+                    description: Connection - details about the network connection
+                      (datacenter, lan, CIDR) for your cluster.
                     items:
                       description: Connection Details about the network connection
                         for your cluster.
                       properties:
                         cidr:
-                          description: 'The IP and subnet for your cluster. Note the
-                            following unavailable IP ranges: 10.233.64.0/18 10.233.0.0/18
-                            10.233.114.0/24'
+                          description: 'The IP and subnet for your cluster. Note:
+                            the following IP ranges are unavailable: 10.233.64.0/18
+                            10.233.0.0/18 10.233.114.0/24.'
                           type: string
                         datacenterConfig:
                           description: DatacenterConfig contains information about
-                            the datacenter resource
+                            the datacenter resource.
                           properties:
                             datacenterId:
                               description: DatacenterID is the ID of the Datacenter
@@ -111,7 +113,7 @@ spec:
                               type: string
                             datacenterIdRef:
                               description: DatacenterIDRef references to a Datacenter
-                                to retrieve its ID
+                                to retrieve its ID.
                               properties:
                                 name:
                                   description: Name of the referenced object.
@@ -121,7 +123,7 @@ spec:
                               type: object
                             datacenterIdSelector:
                               description: DatacenterIDSelector selects reference
-                                to a Datacenter to retrieve its datacenterId
+                                to a Datacenter to retrieve its DatacenterID.
                               properties:
                                 matchControllerRef:
                                   description: MatchControllerRef ensures an object
@@ -138,7 +140,7 @@ spec:
                           type: object
                         lanConfig:
                           description: LanConfig contains information about the lan
-                            resource
+                            resource.
                           properties:
                             lanId:
                               description: LanID is the ID of the Lan on which the
@@ -147,7 +149,7 @@ spec:
                               type: string
                             lanIdRef:
                               description: LanIDRef references to a Lan to retrieve
-                                its ID
+                                its ID.
                               properties:
                                 name:
                                   description: Name of the referenced object.
@@ -157,7 +159,7 @@ spec:
                               type: object
                             lanIdSelector:
                               description: LanIDSelector selects reference to a Lan
-                                to retrieve its lanId
+                                to retrieve its LanID.
                               properties:
                                 matchControllerRef:
                                   description: MatchControllerRef ensures an object
@@ -229,7 +231,7 @@ spec:
                     type: string
                   maintenanceWindow:
                     description: MaintenanceWindow A weekly 4 hour-long window, during
-                      which maintenance might occur
+                      which maintenance might occur.
                     properties:
                       dayOfTheWeek:
                         description: DayOfTheWeek The name of the week day.

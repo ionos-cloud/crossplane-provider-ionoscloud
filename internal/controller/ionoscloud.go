@@ -27,6 +27,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/alb/applicationloadbalancer"
 	albforwardingrule "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/alb/forwardingrule"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/alb/targetgroup"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/backup/backupunit"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/cubeserver"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/datacenter"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/firewallrule"
@@ -61,6 +62,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter, poll, c
 		applicationloadbalancer.Setup,
 		albforwardingrule.Setup,
 		targetgroup.Setup,
+		backupunit.Setup,
 	} {
 		if err := setup(mgr, l, wl, poll, createGracePeriod, timeout); err != nil {
 			return err

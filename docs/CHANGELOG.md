@@ -1,5 +1,17 @@
 # Changelog
 
+## (upcoming release)
+
+- **Features**:
+    - Added Managed Resources:
+        - _Managed Backup_:
+            - BackupUnit.
+    - Added reference support for BackupUnit in Volume Managed Resource:
+        - **Breaking-change**: `spec.forProvider.backupunitId` field is renamed into `spec.forProvider.backupUnitConfig` (reference to a `backupunit` instance).
+- **Documentation**:
+    - Separated documentation per service
+    - Added support for generation of the documentation
+
 ## [1.0.0-beta.4] (June 2022)
 
 - **Features**:

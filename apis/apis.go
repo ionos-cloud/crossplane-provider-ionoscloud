@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	albv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/alb/v1alpha1"
+	backupv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/backup/v1alpha1"
 	computev1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	postgresv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/postgres/v1alpha1"
 	k8sv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
@@ -35,6 +36,7 @@ func init() {
 		computev1alpha1.SchemeBuilder.AddToScheme,
 		k8sv1alpha1.SchemeBuilder.AddToScheme,
 		albv1alpha1.SchemeBuilder.AddToScheme,
+		backupv1alpha1.SchemeBuilder.AddToScheme,
 	)
 }
 
