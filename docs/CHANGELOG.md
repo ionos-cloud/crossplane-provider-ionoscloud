@@ -2,6 +2,10 @@
 
 ## (upcoming release)
 
+- **Features**:
+    - Added Managed Resources:
+        - _Managed Backup_:
+            - BackupUnit.
 - **Documentation**:
     - Separated documentation per service
     - Added support for generation of the documentation
