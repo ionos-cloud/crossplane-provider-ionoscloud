@@ -118,7 +118,7 @@ spec:
                     - ZONE_2
                     type: string
                   clusterConfig:
-                    description: The K8s Cluster on which the NodePool will be created
+                    description: The K8s Cluster on which the NodePool will be created.
                     properties:
                       clusterId:
                         description: ClusterID is the ID of the Cluster on which the
@@ -128,7 +128,7 @@ spec:
                         type: string
                       clusterIdRef:
                         description: ClusterIDRef references to a Cluster to retrieve
-                          its ID
+                          its ID.
                         properties:
                           name:
                             description: Name of the referenced object.
@@ -138,7 +138,7 @@ spec:
                         type: object
                       clusterIdSelector:
                         description: ClusterIDSelector selects reference to a Cluster
-                          to retrieve its clusterId
+                          to retrieve its ClusterID.
                         properties:
                           matchControllerRef:
                             description: MatchControllerRef ensures an object with
@@ -176,7 +176,7 @@ spec:
                         type: string
                       datacenterIdRef:
                         description: DatacenterIDRef references to a Datacenter to
-                          retrieve its ID
+                          retrieve its ID.
                         properties:
                           name:
                             description: Name of the referenced object.
@@ -186,7 +186,7 @@ spec:
                         type: object
                       datacenterIdSelector:
                         description: DatacenterIDSelector selects reference to a Datacenter
-                          to retrieve its datacenterId
+                          to retrieve its DatacenterID.
                         properties:
                           matchControllerRef:
                             description: MatchControllerRef ensures an object with
@@ -214,9 +214,9 @@ spec:
                     type: object
                   lans:
                     description: Array of additional private LANs attached to worker
-                      nodes
+                      nodes.
                     items:
-                      description: KubernetesNodePoolLan struct for KubernetesNodePoolLan
+                      description: KubernetesNodePoolLan struct for KubernetesNodePoolLan.
                       properties:
                         dhcp:
                           description: Indicates if the Kubernetes NodePool LAN will
@@ -224,7 +224,7 @@ spec:
                           type: boolean
                         lanConfig:
                           description: The LAN of an existing private LAN at the related
-                            datacenter
+                            datacenter.
                           properties:
                             lanId:
                               description: LanID is the ID of the Lan on which the
@@ -233,7 +233,7 @@ spec:
                               type: string
                             lanIdRef:
                               description: LanIDRef references to a Lan to retrieve
-                                its ID
+                                its ID.
                               properties:
                                 name:
                                   description: Name of the referenced object.
@@ -243,7 +243,7 @@ spec:
                               type: object
                             lanIdSelector:
                               description: LanIDSelector selects reference to a Lan
-                                to retrieve its lanId
+                                to retrieve its LanID.
                               properties:
                                 matchControllerRef:
                                   description: MatchControllerRef ensures an object
@@ -260,9 +260,9 @@ spec:
                           type: object
                         routes:
                           description: Array of additional LANs Routes attached to
-                            worker nodes
+                            worker nodes.
                           items:
-                            description: KubernetesNodePoolLanRoutes struct for KubernetesNodePoolLanRoutes
+                            description: KubernetesNodePoolLanRoutes struct for KubernetesNodePoolLanRoutes.
                             properties:
                               gatewayIp:
                                 description: IPv4 or IPv6 Gateway IP for the route.
@@ -307,10 +307,18 @@ spec:
                       can be set directly or via reference and indexes.
                     properties:
                       ips:
+                        description: Use IPs to set specific IPs to the resource.
+                          If both IPs and IPsBlockConfigs are set, only `ips` field
+                          will be considered.
                         items:
                           type: string
                         type: array
                       ipsBlockConfigs:
+                        description: Use IpsBlockConfigs to reference existing IPBlocks,
+                          and to mention the indexes for the IPs. Indexes start from
+                          0, and multiple indexes can be set. If no index is set,
+                          all IPs from the corresponding IPBlock will be assigned
+                          to the resource.
                         items:
                           description: IPsBlockConfig - used by resources that need
                             to link IPBlock via id or via reference to get multiple
@@ -325,14 +333,14 @@ spec:
                                 type: integer
                               type: array
                             ipBlockId:
-                              description: NicID is the ID of the IPBlock on which
+                              description: IPBlockID is the ID of the IPBlock on which
                                 the resource will be created. It needs to be provided
                                 via directly or via reference.
                               format: uuid
                               type: string
                             ipBlockIdRef:
                               description: IPBlockIDRef references to a IPBlock to
-                                retrieve its ID
+                                retrieve its ID.
                               properties:
                                 name:
                                   description: Name of the referenced object.
@@ -342,7 +350,7 @@ spec:
                               type: object
                             ipBlockIdSelector:
                               description: IPBlockIDSelector selects reference to
-                                a IPBlock to retrieve its nicId
+                                a IPBlock to retrieve its IPBlockID.
                               properties:
                                 matchControllerRef:
                                   description: MatchControllerRef ensures an object

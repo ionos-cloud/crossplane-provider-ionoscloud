@@ -35,12 +35,12 @@ type TargetGroupParameters struct {
 	//
 	// +kubebuilder:validation:Required
 	Name string `json:"name"`
-	// Balancing algorithm
+	// Balancing algorithm.
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=ROUND_ROBIN;LEAST_CONNECTION;RANDOM;SOURCE_IP
 	Algorithm string `json:"algorithm"`
-	// Balancing protocol
+	// Balancing protocol.
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=HTTP
@@ -49,11 +49,11 @@ type TargetGroupParameters struct {
 	//
 	// +kubebuilder:validation:Optional
 	Targets []TargetGroupTarget `json:"targets,omitempty"`
-	// Health check properties for target group
+	// Health check properties for target group.
 	//
 	// +kubebuilder:validation:Optional
 	HealthCheck TargetGroupHealthCheck `json:"healthCheck,omitempty"`
-	// HTTP health check properties for target group
+	// HTTP health check properties for target group.
 	//
 	// +kubebuilder:validation:Optional
 	HTTPHealthCheck TargetGroupHTTPHealthCheck `json:"httpHealthCheck,omitempty"`
@@ -116,7 +116,7 @@ type TargetGroupHealthCheck struct {
 // Response,
 // MatchType.
 type TargetGroupHTTPHealthCheck struct {
-	// The path (destination URL) for the HTTP health check request; the default is /.
+	// The path (destination URL) for the HTTP health check request; the default is `/`.
 	//
 	// +kubebuilder:validation:Optional
 	Path string `json:"path,omitempty"`
@@ -125,6 +125,8 @@ type TargetGroupHTTPHealthCheck struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Enum=HEAD;PUT;POST;GET;TRACE;PATCH;OPTIONS
 	Method string `json:"method,omitempty"`
+	// The match type for the HTTP health check.
+	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum="";STATUS_CODE;RESPONSE_BODY
 	MatchType string `json:"matchType"`
@@ -148,12 +150,12 @@ type TargetGroupConfig struct {
 	// +crossplane:generate:reference:type=TargetGroup
 	// +crossplane:generate:reference:extractor=ExtractTargetGroupID()
 	TargetGroupID string `json:"targetGroupId,omitempty"`
-	// TargetGroupIDRef references to a Datacenter to retrieve its ID
+	// TargetGroupIDRef references to a TargetGroup to retrieve its ID.
 	//
 	// +optional
 	// +immutable
 	TargetGroupIDRef *xpv1.Reference `json:"targetGroupIdRef,omitempty"`
-	// TargetGroupIDSelector selects reference to a Datacenter to retrieve its datacenterId
+	// TargetGroupIDSelector selects reference to a TargetGroup to retrieve its TargetGroupID.
 	//
 	// +optional
 	TargetGroupIDSelector *xpv1.Selector `json:"targetGroupIdSelector,omitempty"`

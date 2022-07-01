@@ -32,7 +32,7 @@ import (
 // RAM.
 type ServerParameters struct {
 	// DatacenterConfig contains information about the datacenter resource
-	// on which the server will be created
+	// on which the server will be created.
 	//
 	// +kubebuilder:validation:Required
 	DatacenterCfg DatacenterConfig `json:"datacenterConfig"`
@@ -80,12 +80,12 @@ type ServerConfig struct {
 	// +crossplane:generate:reference:type=Server
 	// +crossplane:generate:reference:extractor=ExtractServerID()
 	ServerID string `json:"serverId,omitempty"`
-	// ServerIDRef references to a Server to retrieve its ID
+	// ServerIDRef references to a Server to retrieve its ID.
 	//
 	// +optional
 	// +immutable
 	ServerIDRef *xpv1.Reference `json:"serverIdRef,omitempty"`
-	// ServerIDSelector selects reference to a Server to retrieve its serverId
+	// ServerIDSelector selects reference to a Server to retrieve its ServerID.
 	//
 	// +optional
 	ServerIDSelector *xpv1.Selector `json:"serverIdSelector,omitempty"`

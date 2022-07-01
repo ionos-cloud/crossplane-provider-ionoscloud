@@ -45,19 +45,21 @@ type IPBlockParameters struct {
 	Size int32 `json:"size"`
 }
 
-// IPsConfigs - used by resources that need to link multiple IPs from IPBlock via id or via reference
-// and using index. Indexes start from 0, and multiple indexes can be set.
-// If no index is set, all IPs from the corresponding IPBlock will be assigned.
-// If both IPs and IPBlockConfigs fields are set, only ips will be considered.
+// IPsConfigs - used by resources that need to link multiple IPs directly or from IPBlock via id or via reference.
 type IPsConfigs struct {
-	IPs         []string         `json:"ips,omitempty"`
+	// Use IPs to set specific IPs to the resource. If both IPs and IPsBlockConfigs are set,
+	// only `ips` field will be considered.
+	IPs []string `json:"ips,omitempty"`
+	// Use IpsBlockConfigs to reference existing IPBlocks, and to mention the indexes for the IPs.
+	// Indexes start from 0, and multiple indexes can be set. If no index is set, all IPs from the
+	// corresponding IPBlock will be assigned to the resource.
 	IPBlockCfgs []IPsBlockConfig `json:"ipsBlockConfigs,omitempty"`
 }
 
 // IPsBlockConfig - used by resources that need to link IPBlock via id or via reference
 // to get multiple IPs.
 type IPsBlockConfig struct {
-	// NicID is the ID of the IPBlock on which the resource will be created.
+	// IPBlockID is the ID of the IPBlock on which the resource will be created.
 	// It needs to be provided via directly or via reference.
 	//
 	// +immutable
@@ -65,12 +67,12 @@ type IPsBlockConfig struct {
 	// +crossplane:generate:reference:type=IPBlock
 	// +crossplane:generate:reference:extractor=ExtractIPBlockID()
 	IPBlockID string `json:"ipBlockId,omitempty"`
-	// IPBlockIDRef references to a IPBlock to retrieve its ID
+	// IPBlockIDRef references to a IPBlock to retrieve its ID.
 	//
 	// +optional
 	// +immutable
 	IPBlockIDRef *xpv1.Reference `json:"ipBlockIdRef,omitempty"`
-	// IPBlockIDSelector selects reference to a IPBlock to retrieve its nicId
+	// IPBlockIDSelector selects reference to a IPBlock to retrieve its IPBlockID.
 	//
 	// +optional
 	IPBlockIDSelector *xpv1.Selector `json:"ipBlockIdSelector,omitempty"`
@@ -82,19 +84,22 @@ type IPsBlockConfig struct {
 	Indexes []int `json:"indexes,omitempty"`
 }
 
-// IPConfig is used by resources that need to link ips from IPBlock via id or via reference
-// and using index. Indexes start from 0, and only one index must be set.
-// If both IPs and IPBlockConfigs fields are set, only ip will be used.
+// IPConfig is used by resources that need to link ip directly or from IPBlock via id or via reference.
 type IPConfig struct {
+	// Use IP to set specific IP to the resource. If both IP and IPBlockConfig are set,
+	// only `ip` field will be considered.
+	//
 	// +kubebuilder:validation:Pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-	IP         string        `json:"ip,omitempty"`
+	IP string `json:"ip,omitempty"`
+	// Use IpBlockConfig to reference existing IPBlock, and to mention the index for the IP.
+	// Index starts from 0 and it must be provided.
 	IPBlockCfg IPBlockConfig `json:"ipBlockConfig,omitempty"`
 }
 
 // IPBlockConfig - used by resources that need to link IPBlock via id or via reference
 // to get one single IP.
 type IPBlockConfig struct {
-	// NicID is the ID of the IPBlock on which the resource will be created.
+	// IPBlockID is the ID of the IPBlock on which the resource will be created.
 	// It needs to be provided via directly or via reference.
 	//
 	// +immutable
@@ -102,12 +107,12 @@ type IPBlockConfig struct {
 	// +crossplane:generate:reference:type=IPBlock
 	// +crossplane:generate:reference:extractor=ExtractIPBlockID()
 	IPBlockID string `json:"ipBlockId,omitempty"`
-	// IPBlockIDRef references to a IPBlock to retrieve its ID
+	// IPBlockIDRef references to a IPBlock to retrieve its ID.
 	//
 	// +optional
 	// +immutable
 	IPBlockIDRef *xpv1.Reference `json:"ipBlockIdRef,omitempty"`
-	// IPBlockIDSelector selects reference to a IPBlock to retrieve its nicId
+	// IPBlockIDSelector selects reference to a IPBlock to retrieve its IPBlockID.
 	//
 	// +optional
 	IPBlockIDSelector *xpv1.Selector `json:"ipBlockIdSelector,omitempty"`

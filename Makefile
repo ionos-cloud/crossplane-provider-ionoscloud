@@ -35,6 +35,13 @@ PKG_PATH=$(REGISTRY)/$(ORG_NAME)/$(PKG_NAME)
 IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-controller
 -include build/makelib/image.mk
 
+# Setup documentation
+DOCS_OUT?=$(shell pwd)/docs/api
+
+.PHONY: docs.update
+docs.update:
+	@DOCS_OUT=${DOCS_OUT} go run tools/doc/main.go
+
 .PHONY: docker.list
 docker.list:
 	@docker image list

@@ -33,17 +33,17 @@ import (
 // DHCP.
 type NicParameters struct {
 	// DatacenterConfig contains information about the datacenter resource
-	// on which the nic will be created
+	// on which the nic will be created.
 	//
 	// +kubebuilder:validation:Required
 	DatacenterCfg DatacenterConfig `json:"datacenterConfig"`
 	// ServerConfig contains information about the server resource
-	// on which the nic will be created
+	// on which the nic will be created.
 	//
 	// +kubebuilder:validation:Required
 	ServerCfg ServerConfig `json:"serverConfig"`
 	// LanConfig contains information about the lan resource
-	// on which the nic will be on
+	// on which the nic will be on.
 	//
 	// +kubebuilder:validation:Required
 	LanCfg LanConfig `json:"lanConfig"`
@@ -90,12 +90,12 @@ type NicConfig struct {
 	// +crossplane:generate:reference:type=Nic
 	// +crossplane:generate:reference:extractor=ExtractNicID()
 	NicID string `json:"nicId,omitempty"`
-	// NicIDRef references to a Nic to retrieve its ID
+	// NicIDRef references to a Nic to retrieve its ID.
 	//
 	// +optional
 	// +immutable
 	NicIDRef *xpv1.Reference `json:"nicIdRef,omitempty"`
-	// NicIDSelector selects reference to a Nic to retrieve its nicId
+	// NicIDSelector selects reference to a Nic to retrieve its NicID.
 	//
 	// +optional
 	NicIDSelector *xpv1.Selector `json:"nicIdSelector,omitempty"`
