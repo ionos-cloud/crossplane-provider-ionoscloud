@@ -240,6 +240,9 @@ func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer, client *sdkgo.APICli
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.LicenceType)) {
 		dasVolumeInput.Properties.SetLicenceType(cr.Spec.ForProvider.DasVolumeProperties.LicenceType)
 	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.UserData)) {
+		dasVolumeInput.Properties.SetUserData(cr.Spec.ForProvider.DasVolumeProperties.UserData)
+	}
 
 	// Create Server Input
 	instanceCreateInput := sdkgo.Server{
