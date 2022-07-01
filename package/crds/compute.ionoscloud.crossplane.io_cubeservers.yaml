@@ -151,20 +151,45 @@ spec:
                     description: DasVolumeProperties contains properties for the DAS
                       volume attached to the Cube Server.
                     properties:
-                      backupUnit:
-                        description: The backup unit that the user has access to.
-                          The property is immutable and is only allowed to be set
-                          on creation of a new a volume. It is mandatory to provide
-                          either 'public image' or 'imageAlias' in conjunction with
-                          this property.
+                      backupUnitConfig:
+                        description: BackupUnitCfg contains information about the
+                          backup unit resource that the user has access to. The property
+                          is immutable and is only allowed to be set on creation of
+                          a new a volume. It is mandatory to provide either 'public
+                          image' or 'imageAlias' in conjunction with this property.
                         properties:
                           backupUnitId:
-                            description: The ID of the BackupUnit.
+                            description: BackupUnitID is the ID of the BackupUnit
+                              on which the resource will be created. It needs to be
+                              provided via directly or via reference.
                             format: uuid
                             type: string
-                          name:
-                            description: The name of the BackupUnit.
-                            type: string
+                          backupUnitIdRef:
+                            description: BackupUnitIDRef references to a BackupUnit
+                              to retrieve its ID.
+                            properties:
+                              name:
+                                description: Name of the referenced object.
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          backupUnitIdSelector:
+                            description: BackupUnitIDSelector selects reference to
+                              a BackupUnit to retrieve its BackupUnitID.
+                            properties:
+                              matchControllerRef:
+                                description: MatchControllerRef ensures an object
+                                  with the same controller reference as the selecting
+                                  object is selected.
+                                type: boolean
+                              matchLabels:
+                                additionalProperties:
+                                  type: string
+                                description: MatchLabels ensures an object with matching
+                                  labels is selected.
+                                type: object
+                            type: object
                         type: object
                       bus:
                         description: The bus type of the volume.
