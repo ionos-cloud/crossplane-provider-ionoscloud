@@ -22,6 +22,8 @@
     * [Volume](api/compute-engine/volume.md)
 * Database As a Service
     * [PostgresCluster](api/database-as-a-service/postgrescluster.md)
+* Managed Backup
+    * [BackupUnit](api/managed-backup/backupunit.md)
 * Managed Kubernetes
     * [Cluster](api/managed-kubernetes/cluster.md)
     * [NodePool](api/managed-kubernetes/nodepool.md)
