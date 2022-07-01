@@ -3,6 +3,7 @@ package backupunit
 import (
 	"context"
 	"fmt"
+
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/backup/v1alpha1"
@@ -17,12 +18,18 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service BackupUnit methods
 type Client interface {
+	GetBackupUnit(ctx context.Context, backupUnitID string) (sdkgo.BackupUnit, *sdkgo.APIResponse, error)
 	GetBackupUnits(ctx context.Context) (sdkgo.BackupUnits, *sdkgo.APIResponse, error)
 	GetBackupUnitIDByName(ctx context.Context, backupUnitName string) (string, error)
 	CreateBackupUnit(ctx context.Context, backupUnit sdkgo.BackupUnit) (sdkgo.BackupUnit, *sdkgo.APIResponse, error)
 	UpdateBackupUnit(ctx context.Context, backupUnitID string, backupUnit sdkgo.BackupUnitProperties) (sdkgo.BackupUnit, *sdkgo.APIResponse, error)
 	DeleteBackupUnit(ctx context.Context, backupUnitID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
+}
+
+// GetBackupUnit based on backupUnitID
+func (cp *APIClient) GetBackupUnit(ctx context.Context, backupUnitID string) (sdkgo.BackupUnit, *sdkgo.APIResponse, error) {
+	return cp.ComputeClient.BackupUnitsApi.BackupunitsFindById(ctx, backupUnitID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // GetBackupUnits returns all existing BackupUnits
