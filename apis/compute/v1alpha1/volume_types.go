@@ -114,6 +114,16 @@ type VolumeParameters struct {
 	UserData string `json:"userData,omitempty"`
 }
 
+// BackupUnit refers to a backup unit that the user has access to.
+type BackupUnit struct {
+	// The name of the BackupUnit.
+	Name string `json:"name,omitempty"`
+	// The ID of the BackupUnit.
+	//
+	// +kubebuilder:validation:Format=uuid
+	BackupUnitID string `json:"backupUnitId,omitempty"`
+}
+
 // VolumeConfig is used by resources that need to link volumes via id or via reference.
 type VolumeConfig struct {
 	// VolumeID is the ID of the Volume.

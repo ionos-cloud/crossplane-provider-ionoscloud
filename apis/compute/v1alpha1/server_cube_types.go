@@ -103,13 +103,25 @@ type DasVolumeProperties struct {
 	// +immutable
 	// +kubebuilder:validation:Enum=UNKNOWN;WINDOWS;WINDOWS2016;WINDOWS2022;LINUX;OTHER
 	LicenceType string `json:"licenceType,omitempty"`
+	// The backup unit that the user has access to.
+	// The property is immutable and is only allowed to be set on creation of a new a volume.
+	// It is mandatory to provide either 'public image' or 'imageAlias' in conjunction with this property.
+	//
+	// +immutable
+	BackupUnit BackupUnit `json:"backupUnit,omitempty"`
+	// The cloud-init configuration for the volume as base64 encoded string.
+	// The property is immutable and is only allowed to be set on creation of a new a volume.
+	// It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
+	//
+	// +immutable
+	UserData string `json:"userData,omitempty"`
 }
 
-// Template refers to the template used for cube servers
+// Template refers to the Template used for Cube Servers.
 type Template struct {
-	// The name of the  resource.
+	// The name of the Template from IONOS Cloud.
 	Name string `json:"name,omitempty"`
-	// The ID of the  template.
+	// The ID of the Template from IONOS Cloud.
 	//
 	// +kubebuilder:validation:Format=uuid
 	TemplateID string `json:"templateId,omitempty"`
