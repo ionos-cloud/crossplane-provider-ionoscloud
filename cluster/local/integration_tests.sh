@@ -9,6 +9,7 @@ source ./cluster/local/integration_tests_compute.sh
 source ./cluster/local/integration_tests_alb.sh
 source ./cluster/local/integration_tests_dbaas_postgres.sh
 source ./cluster/local/integration_tests_k8s.sh
+source ./cluster/local/integration_tests_backup.sh
 
 # ------------------------------
 projectdir="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
@@ -34,6 +35,7 @@ TEST_COMPUTE=${TEST_COMPUTE:-true}
 TEST_DBAAS=${TEST_DBAAS:-false}
 TEST_K8S=${TEST_K8S:-false}
 TEST_ALB=${TEST_ALB:-false}
+TEST_BACKUP=${TEST_BACKUP:-false}
 
 version_tag="$(cat ${projectdir}/_output/version)"
 # tag as latest version to load into kind cluster
@@ -193,6 +195,11 @@ if [ "$TEST_ALB" = true ]; then
   forwardingrule_tests
 fi
 
+if [ "$TEST_BACKUP" = true ]; then
+  echo_step "--- backupunit tests ---"
+  backupunit_tests
+fi
+
 echo_step "-------------------"
 echo_step "--- CLEANING UP ---"
 echo_step "-------------------"
@@ -235,6 +242,11 @@ if [ "$TEST_ALB" = true ]; then
   alb_tests_cleanup
   echo_step "--- target group tests ---"
   targetgroup_tests_cleanup
+fi
+
+if [ "$TEST_BACKUP" = true ]; then
+  echo_step "--- backupunit tests ---"
+  backupunit_tests_cleanup
 fi
 
 # uninstalling Crossplane Provider IONOS Cloud

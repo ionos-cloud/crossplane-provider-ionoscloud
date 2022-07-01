@@ -80,6 +80,8 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 	return cp.ComputeClient
 }
 
+var oldPassword string
+
 // GenerateCreateBackupUnitInput returns BackupUnit based on the CR spec
 func GenerateCreateBackupUnitInput(cr *v1alpha1.BackupUnit) (*sdkgo.BackupUnit, error) {
 	instanceCreateInput := sdkgo.BackupUnit{
@@ -89,6 +91,7 @@ func GenerateCreateBackupUnitInput(cr *v1alpha1.BackupUnit) (*sdkgo.BackupUnit, 
 			Email:    &cr.Spec.ForProvider.Email,
 		},
 	}
+	oldPassword = cr.Spec.ForProvider.Password
 	return &instanceCreateInput, nil
 }
 
@@ -98,6 +101,7 @@ func GenerateUpdateBackupUnitInput(cr *v1alpha1.BackupUnit) (*sdkgo.BackupUnitPr
 		Password: &cr.Spec.ForProvider.Password,
 		Email:    &cr.Spec.ForProvider.Email,
 	}
+	oldPassword = cr.Spec.ForProvider.Password
 	return &instanceUpdateInput, nil
 }
 
@@ -115,6 +119,8 @@ func IsBackupUnitUpToDate(cr *v1alpha1.BackupUnit, backupUnit sdkgo.BackupUnit) 
 	case backupUnit.Properties.Name != nil && *backupUnit.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
 	case backupUnit.Properties.Email != nil && *backupUnit.Properties.Email != cr.Spec.ForProvider.Email:
+		return false
+	case cr.Spec.ForProvider.Password != oldPassword:
 		return false
 	default:
 		return true

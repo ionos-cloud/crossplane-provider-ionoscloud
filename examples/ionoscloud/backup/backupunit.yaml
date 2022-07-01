@@ -1,0 +1,16 @@
+# Use this file to create an BackupUnit CR.
+# Required values for creating an BackupUnit CR are:
+# - Name,
+# - Email,
+# - Password.
+apiVersion: backup.ionoscloud.crossplane.io/v1alpha1
+kind: BackupUnit
+metadata:
+  name: example
+spec:
+  forProvider:
+    name: exampleBackupUnit
+    email:
+    password:
+  providerConfigRef:
+    name: example
