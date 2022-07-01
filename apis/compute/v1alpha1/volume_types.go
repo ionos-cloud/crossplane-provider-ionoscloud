@@ -102,12 +102,13 @@ type VolumeParameters struct {
 	DiscVirtioHotPlug bool `json:"discVirtioHotPlug,omitempty"`
 	// Hot-unplug capable Virt-IO drive (no reboot required). Not supported with Windows VMs.
 	DiscVirtioHotUnplug bool `json:"discVirtioHotUnplug,omitempty"`
-	// The ID of the backup unit that the user has access to.
+	// BackupUnitCfg contains information about the backup unit resource
+	// that the user has access to.
 	// The property is immutable and is only allowed to be set on creation of a new a volume.
 	// It is mandatory to provide either 'public image' or 'imageAlias' in conjunction with this property.
 	//
 	// +immutable
-	BackupunitID string `json:"backupunitId,omitempty"`
+	BackupUnitCfg BackupUnitConfig `json:"backupUnitConfig,omitempty"`
 	// The cloud-init configuration for the volume as base64 encoded string.
 	// The property is immutable and is only allowed to be set on creation of a new a volume.
 	// It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
@@ -133,6 +134,27 @@ type VolumeConfig struct {
 	//
 	// +optional
 	VolumeIDSelector *xpv1.Selector `json:"volumeIdSelector,omitempty"`
+}
+
+// BackupUnitConfig is used by resources that need to link backupUnits via id or via reference.
+type BackupUnitConfig struct {
+	// BackupUnitID is the ID of the BackupUnit on which the resource will be created.
+	// It needs to be provided via directly or via reference.
+	//
+	// +immutable
+	// +kubebuilder:validation:Format=uuid
+	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/backup/v1alpha1.BackupUnit
+	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/backup/v1alpha1.ExtractBackupUnitID()
+	BackupUnitID string `json:"backupUnitId,omitempty"`
+	// BackupUnitIDRef references to a BackupUnit to retrieve its ID.
+	//
+	// +optional
+	// +immutable
+	BackupUnitIDRef *xpv1.Reference `json:"backupUnitIdRef,omitempty"`
+	// BackupUnitIDSelector selects reference to a BackupUnit to retrieve its BackupUnitID.
+	//
+	// +optional
+	BackupUnitIDSelector *xpv1.Selector `json:"backupUnitIdSelector,omitempty"`
 }
 
 // VolumeObservation are the observable fields of a Volume.

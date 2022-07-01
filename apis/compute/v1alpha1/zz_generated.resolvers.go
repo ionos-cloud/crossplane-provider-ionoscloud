@@ -20,6 +20,7 @@ package v1alpha1
 import (
 	"context"
 	reference "github.com/crossplane/crossplane-runtime/pkg/reference"
+	v1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/backup/v1alpha1"
 	errors "github.com/pkg/errors"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -381,6 +382,22 @@ func (mg *Volume) ResolveReferences(ctx context.Context, c client.Reader) error 
 	}
 	mg.Spec.ForProvider.DatacenterCfg.DatacenterID = rsp.ResolvedValue
 	mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef = rsp.ResolvedReference
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.BackupUnitCfg.BackupUnitID,
+		Extract:      v1alpha1.ExtractBackupUnitID(),
+		Reference:    mg.Spec.ForProvider.BackupUnitCfg.BackupUnitIDRef,
+		Selector:     mg.Spec.ForProvider.BackupUnitCfg.BackupUnitIDSelector,
+		To: reference.To{
+			List:    &v1alpha1.BackupUnitList{},
+			Managed: &v1alpha1.BackupUnit{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.BackupUnitCfg.BackupUnitID")
+	}
+	mg.Spec.ForProvider.BackupUnitCfg.BackupUnitID = rsp.ResolvedValue
+	mg.Spec.ForProvider.BackupUnitCfg.BackupUnitIDRef = rsp.ResolvedReference
 
 	return nil
 }
