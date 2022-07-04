@@ -23,7 +23,7 @@ spec:
     #      imageAlias:
     #      imagePassword:
     #      image:
-    #      userData: # MUST BE IN BASE64 ENCODED!
+    #      userData: # MUST BE ENCODED IN BASE64!
     #      backupUnitConfig:
     #        backupUnitIdRef:
     #          name:
