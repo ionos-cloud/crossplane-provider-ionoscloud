@@ -195,9 +195,15 @@ func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer, templateID string) (
 	// Get DAS Volume Input
 	dasVolumeInput := sdkgo.Volume{
 		Properties: &sdkgo.VolumeProperties{
-			Name: &cr.Spec.ForProvider.DasVolumeProperties.Name,
-			Type: &volumeType,
-			Bus:  &cr.Spec.ForProvider.DasVolumeProperties.Bus,
+			Name:                &cr.Spec.ForProvider.DasVolumeProperties.Name,
+			Type:                &volumeType,
+			Bus:                 &cr.Spec.ForProvider.DasVolumeProperties.Bus,
+			CpuHotPlug:          &cr.Spec.ForProvider.DasVolumeProperties.CPUHotPlug,
+			RamHotPlug:          &cr.Spec.ForProvider.DasVolumeProperties.RAMHotPlug,
+			NicHotPlug:          &cr.Spec.ForProvider.DasVolumeProperties.NicHotPlug,
+			NicHotUnplug:        &cr.Spec.ForProvider.DasVolumeProperties.NicHotUnplug,
+			DiscVirtioHotPlug:   &cr.Spec.ForProvider.DasVolumeProperties.DiscVirtioHotPlug,
+			DiscVirtioHotUnplug: &cr.Spec.ForProvider.DasVolumeProperties.DiscVirtioHotUnplug,
 		},
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.Image)) {
@@ -250,10 +256,14 @@ func GenerateUpdateCubeServerInput(cr *v1alpha1.CubeServer) (*sdkgo.ServerProper
 // GenerateUpdateVolumeInput returns VolumeProperties based on the CR spec modifications
 func GenerateUpdateVolumeInput(cr *v1alpha1.CubeServer) (*sdkgo.VolumeProperties, error) {
 	instanceUpdateInput := sdkgo.VolumeProperties{
-		Name: &cr.Spec.ForProvider.DasVolumeProperties.Name,
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.Bus)) {
-		instanceUpdateInput.SetBus(cr.Spec.ForProvider.DasVolumeProperties.Bus)
+		Name:                &cr.Spec.ForProvider.DasVolumeProperties.Name,
+		Bus:                 &cr.Spec.ForProvider.DasVolumeProperties.Bus,
+		CpuHotPlug:          &cr.Spec.ForProvider.DasVolumeProperties.CPUHotPlug,
+		RamHotPlug:          &cr.Spec.ForProvider.DasVolumeProperties.RAMHotPlug,
+		NicHotPlug:          &cr.Spec.ForProvider.DasVolumeProperties.NicHotPlug,
+		NicHotUnplug:        &cr.Spec.ForProvider.DasVolumeProperties.NicHotUnplug,
+		DiscVirtioHotPlug:   &cr.Spec.ForProvider.DasVolumeProperties.DiscVirtioHotPlug,
+		DiscVirtioHotUnplug: &cr.Spec.ForProvider.DasVolumeProperties.DiscVirtioHotUnplug,
 	}
 	return &instanceUpdateInput, nil
 }
@@ -296,10 +306,28 @@ func IsCubeServerUpToDate(cr *v1alpha1.CubeServer, server sdkgo.Server) bool { /
 		items := *server.Entities.Volumes.Items
 		if len(items) > 0 {
 			if propertiesOk, ok := items[0].GetPropertiesOk(); ok && propertiesOk != nil {
-				if propertiesOk.Name != nil && *propertiesOk.Name != cr.Spec.ForProvider.DasVolumeProperties.Name {
+				if nameOk, ok := propertiesOk.GetNameOk(); ok && *nameOk != cr.Spec.ForProvider.DasVolumeProperties.Name {
 					return false
 				}
-				if propertiesOk.Bus != nil && *propertiesOk.Bus != cr.Spec.ForProvider.DasVolumeProperties.Bus {
+				if busOk, ok := propertiesOk.GetBusOk(); ok && *busOk != cr.Spec.ForProvider.DasVolumeProperties.Bus {
+					return false
+				}
+				if cpuHotPlugOk, ok := propertiesOk.GetCpuHotPlugOk(); ok && *cpuHotPlugOk != cr.Spec.ForProvider.DasVolumeProperties.CPUHotPlug {
+					return false
+				}
+				if ramHotPlugOk, ok := propertiesOk.GetRamHotPlugOk(); ok && *ramHotPlugOk != cr.Spec.ForProvider.DasVolumeProperties.RAMHotPlug {
+					return false
+				}
+				if nicHotPlugOk, ok := propertiesOk.GetNicHotPlugOk(); ok && *nicHotPlugOk != cr.Spec.ForProvider.DasVolumeProperties.NicHotPlug {
+					return false
+				}
+				if nicHotUnplugOk, ok := propertiesOk.GetNicHotUnplugOk(); ok && *nicHotUnplugOk != cr.Spec.ForProvider.DasVolumeProperties.NicHotUnplug {
+					return false
+				}
+				if discVirtioHotPlugOk, ok := propertiesOk.GetDiscVirtioHotPlugOk(); ok && *discVirtioHotPlugOk != cr.Spec.ForProvider.DasVolumeProperties.DiscVirtioHotPlug {
+					return false
+				}
+				if discVirtioHotUnplugOk, ok := propertiesOk.GetDiscVirtioHotUnplugOk(); ok && *discVirtioHotUnplugOk != cr.Spec.ForProvider.DasVolumeProperties.DiscVirtioHotUnplug {
 					return false
 				}
 			}

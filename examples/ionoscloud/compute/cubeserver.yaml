@@ -22,6 +22,11 @@ spec:
       licenceType: LINUX
     #      imageAlias:
     #      imagePassword:
+    #      image:
+    #      userData: # MUST BE IN BASE64 ENCODED!
+    #      backupUnitConfig:
+    #        backupUnitIdRef:
+    #          name:
     datacenterConfig:
       datacenterIdRef:
         name: example

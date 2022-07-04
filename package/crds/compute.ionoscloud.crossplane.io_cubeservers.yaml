@@ -198,6 +198,16 @@ spec:
                         - IDE
                         - UNKNOWN
                         type: string
+                      cpuHotPlug:
+                        description: Hot-plug capable CPU (no reboot required).
+                        type: boolean
+                      discVirtioHotPlug:
+                        description: Hot-plug capable Virt-IO drive (no reboot required).
+                        type: boolean
+                      discVirtioHotUnplug:
+                        description: Hot-unplug capable Virt-IO drive (no reboot required).
+                          Not supported with Windows VMs.
+                        type: boolean
                       image:
                         description: 'Image or snapshot ID to be used as template
                           for this volume. Make sure the image selected is compatible
@@ -229,6 +239,15 @@ spec:
                       name:
                         description: The name of the DAS Volume.
                         type: string
+                      nicHotPlug:
+                        description: Hot-plug capable NIC (no reboot required).
+                        type: boolean
+                      nicHotUnplug:
+                        description: Hot-unplug capable NIC (no reboot required).
+                        type: boolean
+                      ramHotPlug:
+                        description: Hot-plug capable RAM (no reboot required).
+                        type: boolean
                       sshKeys:
                         description: Public SSH keys are set on the image as authorized
                           keys for appropriate SSH login to the instance using the

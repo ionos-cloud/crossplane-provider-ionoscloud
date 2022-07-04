@@ -105,6 +105,18 @@ type DasVolumeProperties struct {
 	// +immutable
 	// +kubebuilder:validation:Enum=UNKNOWN;WINDOWS;WINDOWS2016;WINDOWS2022;LINUX;OTHER
 	LicenceType string `json:"licenceType,omitempty"`
+	// Hot-plug capable CPU (no reboot required).
+	CPUHotPlug bool `json:"cpuHotPlug,omitempty"`
+	// Hot-plug capable RAM (no reboot required).
+	RAMHotPlug bool `json:"ramHotPlug,omitempty"`
+	// Hot-plug capable NIC (no reboot required).
+	NicHotPlug bool `json:"nicHotPlug,omitempty"`
+	// Hot-unplug capable NIC (no reboot required).
+	NicHotUnplug bool `json:"nicHotUnplug,omitempty"`
+	// Hot-plug capable Virt-IO drive (no reboot required).
+	DiscVirtioHotPlug bool `json:"discVirtioHotPlug,omitempty"`
+	// Hot-unplug capable Virt-IO drive (no reboot required). Not supported with Windows VMs.
+	DiscVirtioHotUnplug bool `json:"discVirtioHotUnplug,omitempty"`
 	// BackupUnitCfg contains information about the backup unit resource
 	// that the user has access to.
 	// The property is immutable and is only allowed to be set on creation of a new a volume.
