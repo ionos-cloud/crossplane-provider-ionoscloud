@@ -41,6 +41,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/template"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/volume"
 )
 
@@ -91,9 +92,10 @@ func (c *connectorServer) Connect(ctx context.Context, mg resource.Managed) (man
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalServer{
-		service:       &server.APIClient{IonosServices: svc},
-		serviceVolume: &volume.APIClient{IonosServices: svc},
-		log:           c.log}, err
+		service:         &server.APIClient{IonosServices: svc},
+		serviceVolume:   &volume.APIClient{IonosServices: svc},
+		serviceTemplate: &template.APIClient{IonosServices: svc},
+		log:             c.log}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -101,9 +103,10 @@ func (c *connectorServer) Connect(ctx context.Context, mg resource.Managed) (man
 type externalServer struct {
 	// A 'client' used to connect to the externalServer resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service       server.Client
-	serviceVolume volume.Client
-	log           logging.Logger
+	service         server.Client
+	serviceVolume   volume.Client
+	serviceTemplate template.Client
+	log             logging.Logger
 }
 
 func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
@@ -155,8 +158,13 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
+	// Resolve TemplateID
+	templateID, err := getTemplateID(ctx, c, cr)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
 
-	instanceInput, err := server.GenerateCreateCubeServerInput(cr, c.service.GetAPIClient())
+	instanceInput, err := server.GenerateCreateCubeServerInput(cr, templateID)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -237,4 +245,15 @@ func (c *externalServer) Delete(ctx context.Context, mg resource.Managed) error 
 		return err
 	}
 	return nil
+}
+
+func getTemplateID(ctx context.Context, c *externalServer, cr *v1alpha1.CubeServer) (string, error) {
+	if cr.Spec.ForProvider.Template.TemplateID != "" {
+		return cr.Spec.ForProvider.Template.TemplateID, nil
+	} else if cr.Spec.ForProvider.Template.Name != "" {
+		if templateID, err := c.serviceTemplate.GetTemplateIDByName(ctx, cr.Spec.ForProvider.Template.Name); err == nil && templateID != "" {
+			return templateID, nil
+		}
+	}
+	return "", fmt.Errorf("error getting template ID")
 }

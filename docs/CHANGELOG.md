@@ -7,7 +7,11 @@
         - _Managed Backup_:
             - BackupUnit.
     - Added reference support for BackupUnit in Volume Managed Resource:
-        - **Breaking-change**: `spec.forProvider.backupunitId` field is renamed into `spec.forProvider.backupUnitConfig` (reference to a `backupunit` instance).
+        - **Breaking-change**: `spec.forProvider.backupunitId` field is renamed
+          into `spec.forProvider.backupUnitConfig` (reference to a `backupunit` instance).
+- **Fixes**:
+    - Added missing features for `CubeServer` Managed Resource:
+        - New fields: `spec.forProvider.backupUnitConfig`, `spec.forProvider.userData`
 - **Documentation**:
     - Separated documentation per service
     - Added support for generation of the documentation

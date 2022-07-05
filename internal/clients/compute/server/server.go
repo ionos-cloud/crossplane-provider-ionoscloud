@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
@@ -189,40 +188,22 @@ func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool { // nolint
 }
 
 // GenerateCreateCubeServerInput returns CreateServerRequest based on the CR spec
-func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer, client *sdkgo.APIClient) (*sdkgo.Server, error) { // nolint:gocyclo
-	// Cube Server needs a template ID in order to create a Volume
-	var templateID string
+func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer, templateID string) (*sdkgo.Server, error) { // nolint:gocyclo
 	// Cube Server has a DAS Volume attached to it
 	var volumeType = "DAS"
-
-	// Find the corresponding template ID
-	if utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Template.TemplateID)) {
-		if client != nil {
-			templates, _, err := client.TemplatesApi.TemplatesGet(context.TODO()).Filter("name", cr.Spec.ForProvider.Template.Name).Depth(1).Execute()
-			if err != nil {
-				return nil, err
-			}
-			if items, ok := templates.GetItemsOk(); ok && items != nil {
-				templatesItems := *items
-				if len(templatesItems) > 0 {
-					templateID = *templatesItems[0].Id
-				} else {
-					return nil, fmt.Errorf("error: no templates with the %v name found", cr.Spec.ForProvider.Template.Name)
-				}
-			}
-		} else {
-			return nil, fmt.Errorf("error: APIClient must not be nil")
-		}
-	} else {
-		templateID = cr.Spec.ForProvider.Template.TemplateID
-	}
 
 	// Get DAS Volume Input
 	dasVolumeInput := sdkgo.Volume{
 		Properties: &sdkgo.VolumeProperties{
-			Name: &cr.Spec.ForProvider.DasVolumeProperties.Name,
-			Type: &volumeType,
-			Bus:  &cr.Spec.ForProvider.DasVolumeProperties.Bus,
+			Name:                &cr.Spec.ForProvider.DasVolumeProperties.Name,
+			Type:                &volumeType,
+			Bus:                 &cr.Spec.ForProvider.DasVolumeProperties.Bus,
+			CpuHotPlug:          &cr.Spec.ForProvider.DasVolumeProperties.CPUHotPlug,
+			RamHotPlug:          &cr.Spec.ForProvider.DasVolumeProperties.RAMHotPlug,
+			NicHotPlug:          &cr.Spec.ForProvider.DasVolumeProperties.NicHotPlug,
+			NicHotUnplug:        &cr.Spec.ForProvider.DasVolumeProperties.NicHotUnplug,
+			DiscVirtioHotPlug:   &cr.Spec.ForProvider.DasVolumeProperties.DiscVirtioHotPlug,
+			DiscVirtioHotUnplug: &cr.Spec.ForProvider.DasVolumeProperties.DiscVirtioHotUnplug,
 		},
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.Image)) {
@@ -239,6 +220,12 @@ func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer, client *sdkgo.APICli
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.LicenceType)) {
 		dasVolumeInput.Properties.SetLicenceType(cr.Spec.ForProvider.DasVolumeProperties.LicenceType)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.BackupUnitCfg.BackupUnitID)) {
+		dasVolumeInput.Properties.SetBackupunitId(cr.Spec.ForProvider.DasVolumeProperties.BackupUnitCfg.BackupUnitID)
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.UserData)) {
+		dasVolumeInput.Properties.SetUserData(cr.Spec.ForProvider.DasVolumeProperties.UserData)
 	}
 
 	// Create Server Input
@@ -269,10 +256,14 @@ func GenerateUpdateCubeServerInput(cr *v1alpha1.CubeServer) (*sdkgo.ServerProper
 // GenerateUpdateVolumeInput returns VolumeProperties based on the CR spec modifications
 func GenerateUpdateVolumeInput(cr *v1alpha1.CubeServer) (*sdkgo.VolumeProperties, error) {
 	instanceUpdateInput := sdkgo.VolumeProperties{
-		Name: &cr.Spec.ForProvider.DasVolumeProperties.Name,
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.DasVolumeProperties.Bus)) {
-		instanceUpdateInput.SetBus(cr.Spec.ForProvider.DasVolumeProperties.Bus)
+		Name:                &cr.Spec.ForProvider.DasVolumeProperties.Name,
+		Bus:                 &cr.Spec.ForProvider.DasVolumeProperties.Bus,
+		CpuHotPlug:          &cr.Spec.ForProvider.DasVolumeProperties.CPUHotPlug,
+		RamHotPlug:          &cr.Spec.ForProvider.DasVolumeProperties.RAMHotPlug,
+		NicHotPlug:          &cr.Spec.ForProvider.DasVolumeProperties.NicHotPlug,
+		NicHotUnplug:        &cr.Spec.ForProvider.DasVolumeProperties.NicHotUnplug,
+		DiscVirtioHotPlug:   &cr.Spec.ForProvider.DasVolumeProperties.DiscVirtioHotPlug,
+		DiscVirtioHotUnplug: &cr.Spec.ForProvider.DasVolumeProperties.DiscVirtioHotUnplug,
 	}
 	return &instanceUpdateInput, nil
 }
@@ -315,10 +306,28 @@ func IsCubeServerUpToDate(cr *v1alpha1.CubeServer, server sdkgo.Server) bool { /
 		items := *server.Entities.Volumes.Items
 		if len(items) > 0 {
 			if propertiesOk, ok := items[0].GetPropertiesOk(); ok && propertiesOk != nil {
-				if propertiesOk.Name != nil && *propertiesOk.Name != cr.Spec.ForProvider.DasVolumeProperties.Name {
+				if nameOk, ok := propertiesOk.GetNameOk(); ok && *nameOk != cr.Spec.ForProvider.DasVolumeProperties.Name {
 					return false
 				}
-				if propertiesOk.Bus != nil && *propertiesOk.Bus != cr.Spec.ForProvider.DasVolumeProperties.Bus {
+				if busOk, ok := propertiesOk.GetBusOk(); ok && *busOk != cr.Spec.ForProvider.DasVolumeProperties.Bus {
+					return false
+				}
+				if cpuHotPlugOk, ok := propertiesOk.GetCpuHotPlugOk(); ok && *cpuHotPlugOk != cr.Spec.ForProvider.DasVolumeProperties.CPUHotPlug {
+					return false
+				}
+				if ramHotPlugOk, ok := propertiesOk.GetRamHotPlugOk(); ok && *ramHotPlugOk != cr.Spec.ForProvider.DasVolumeProperties.RAMHotPlug {
+					return false
+				}
+				if nicHotPlugOk, ok := propertiesOk.GetNicHotPlugOk(); ok && *nicHotPlugOk != cr.Spec.ForProvider.DasVolumeProperties.NicHotPlug {
+					return false
+				}
+				if nicHotUnplugOk, ok := propertiesOk.GetNicHotUnplugOk(); ok && *nicHotUnplugOk != cr.Spec.ForProvider.DasVolumeProperties.NicHotUnplug {
+					return false
+				}
+				if discVirtioHotPlugOk, ok := propertiesOk.GetDiscVirtioHotPlugOk(); ok && *discVirtioHotPlugOk != cr.Spec.ForProvider.DasVolumeProperties.DiscVirtioHotPlug {
+					return false
+				}
+				if discVirtioHotUnplugOk, ok := propertiesOk.GetDiscVirtioHotUnplugOk(); ok && *discVirtioHotUnplugOk != cr.Spec.ForProvider.DasVolumeProperties.DiscVirtioHotUnplug {
 					return false
 				}
 			}

@@ -25,7 +25,7 @@ I have:
 - [ ] Add PR name as appropriate (e.g. `feat`/`fix`/`doc`/`test`/`refactor`)
 - [ ] Run `make reviewable` and `make crds.clean` to ensure the PR is ready for review
 - [ ] Add or update tests (if applicable)
-- [ ] Add or update Documentation (if applicable)
+- [ ] Add or update Documentation using `make docs.update` (if applicable)
 - [ ] Update `docs/CHANGELOG.md` file (label: `upcoming release`)
 - [ ] Check Sonar Cloud Scan
 - [ ] Update Github or Jira Issue
