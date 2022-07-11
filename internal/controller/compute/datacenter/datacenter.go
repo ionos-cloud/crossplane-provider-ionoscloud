@@ -141,25 +141,42 @@ func (c *externalDatacenter) Create(ctx context.Context, mg resource.Managed) (m
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
+
+	// Datacenters should have unique names per account.
+	// Check if there are any existing datacenters with the same name.
+	// If there are multiple, an error will be returned.
+	instance, err := c.service.CheckDuplicateDatacenter(ctx, cr.Spec.ForProvider.Name, cr.Spec.ForProvider.Location)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	datacenterID, err := c.service.GetDatacenterID(instance)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	if datacenterID != "" {
+		// "Import" existing datacenter.
+		cr.Status.AtProvider.DatacenterID = datacenterID
+		meta.SetExternalName(cr, datacenterID)
+		return managed.ExternalCreation{}, nil
+	}
+
+	// Create new datacenter instance accordingly
+	// with the properties set.
 	instanceInput, err := datacenter.GenerateCreateDatacenterInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
-	instance, apiResponse, err := c.service.CreateDatacenter(ctx, *instanceInput)
-	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
+	newInstance, apiResponse, err := c.service.CreateDatacenter(ctx, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to create datacenter. error: %w", err)
-		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalCreation{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return creation, err
+		return managed.ExternalCreation{}, err
 	}
-
-	// Set External Name
-	cr.Status.AtProvider.DatacenterID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
-	return creation, nil
+	cr.Status.AtProvider.DatacenterID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
+	return managed.ExternalCreation{}, nil
 }
 
 func (c *externalDatacenter) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
