@@ -44,11 +44,6 @@ func (cp *APIClient) CheckDuplicateServer(ctx context.Context, datacenterID, ser
 	if itemsOk, ok := servers.GetItemsOk(); ok && itemsOk != nil {
 		for _, item := range *itemsOk {
 			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
-				if typeOk, ok := propertiesOk.GetTypeOk(); ok && typeOk != nil {
-					if *typeOk == serverCubeType {
-						continue
-					}
-				}
 				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
 					if *nameOk == serverName {
 						// After checking the name, check the immutable properties

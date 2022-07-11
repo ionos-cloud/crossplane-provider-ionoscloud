@@ -2,6 +2,7 @@ package volume
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
@@ -18,11 +19,51 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service Volume methods
 type Client interface {
+	CheckDuplicateVolume(ctx context.Context, datacenterID, volumeName string) (*sdkgo.Volume, error)
+	GetVolumeID(datacenter *sdkgo.Volume) (string, error)
 	GetVolume(ctx context.Context, datacenterID, volumeID string) (sdkgo.Volume, *sdkgo.APIResponse, error)
 	CreateVolume(ctx context.Context, datacenterID string, volume sdkgo.Volume) (sdkgo.Volume, *sdkgo.APIResponse, error)
 	UpdateVolume(ctx context.Context, datacenterID, volumeID string, volume sdkgo.VolumeProperties) (sdkgo.Volume, *sdkgo.APIResponse, error)
 	DeleteVolume(ctx context.Context, datacenterID, volumeID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
+}
+
+// CheckDuplicateVolume based on datacenterID, volumeName
+func (cp *APIClient) CheckDuplicateVolume(ctx context.Context, datacenterID, volumeName string) (*sdkgo.Volume, error) { // nolint: gocyclo
+	datacenters, _, err := cp.ComputeClient.VolumesApi.DatacentersVolumesGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
+	if err != nil {
+		return nil, err
+	}
+	matchedItems := make([]sdkgo.Volume, 0)
+	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+		for _, item := range *itemsOk {
+			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
+				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
+					if *nameOk == volumeName {
+						matchedItems = append(matchedItems, item)
+					}
+				}
+			}
+		}
+	}
+	if len(matchedItems) == 0 {
+		return nil, nil
+	}
+	if len(matchedItems) > 1 {
+		return nil, fmt.Errorf("error: found multiple volumes with the name %v", volumeName)
+	}
+	return &matchedItems[0], nil
+}
+
+// GetVolumeID based on volume
+func (cp *APIClient) GetVolumeID(volume *sdkgo.Volume) (string, error) {
+	if volume != nil {
+		if idOk, ok := volume.GetIdOk(); ok && idOk != nil {
+			return *idOk, nil
+		}
+		return "", fmt.Errorf("error: getting volume id")
+	}
+	return "", nil
 }
 
 // GetVolume based on datacenterID and volumeID

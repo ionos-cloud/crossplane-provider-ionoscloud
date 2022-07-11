@@ -18,7 +18,7 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service Datacenter methods
 type Client interface {
-	CheckDuplicateDatacenter(ctx context.Context, datacenterName, loacation string) (*sdkgo.Datacenter, error)
+	CheckDuplicateDatacenter(ctx context.Context, datacenterName, location string) (*sdkgo.Datacenter, error)
 	GetDatacenterID(datacenter *sdkgo.Datacenter) (string, error)
 	GetDatacenter(ctx context.Context, datacenterID string) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
 	CreateDatacenter(ctx context.Context, datacenter sdkgo.Datacenter) (sdkgo.Datacenter, *sdkgo.APIResponse, error)

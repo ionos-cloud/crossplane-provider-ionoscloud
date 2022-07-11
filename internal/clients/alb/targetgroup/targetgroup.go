@@ -2,6 +2,7 @@ package targetgroup
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
@@ -18,11 +19,51 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service TargetGroup methods
 type Client interface {
+	CheckDuplicateTargetGroup(ctx context.Context, targetGroupName string) (*sdkgo.TargetGroup, error)
+	GetTargetGroupID(targetGroup *sdkgo.TargetGroup) (string, error)
 	GetTargetGroup(ctx context.Context, targetGroupID string) (sdkgo.TargetGroup, *sdkgo.APIResponse, error)
 	CreateTargetGroup(ctx context.Context, targetGroup sdkgo.TargetGroup) (sdkgo.TargetGroup, *sdkgo.APIResponse, error)
 	UpdateTargetGroup(ctx context.Context, targetGroupID string, targetGroup sdkgo.TargetGroupPut) (sdkgo.TargetGroup, *sdkgo.APIResponse, error)
 	DeleteTargetGroup(ctx context.Context, targetGroupID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
+}
+
+// CheckDuplicateTargetGroup based on targetGroupName
+func (cp *APIClient) CheckDuplicateTargetGroup(ctx context.Context, targetGroupName string) (*sdkgo.TargetGroup, error) { // nolint: gocyclo
+	datacenters, _, err := cp.ComputeClient.TargetGroupsApi.TargetgroupsGet(ctx).Depth(utils.DepthQueryParam).Execute()
+	if err != nil {
+		return nil, err
+	}
+	matchedItems := make([]sdkgo.TargetGroup, 0)
+	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+		for _, item := range *itemsOk {
+			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
+				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
+					if *nameOk == targetGroupName {
+						matchedItems = append(matchedItems, item)
+					}
+				}
+			}
+		}
+	}
+	if len(matchedItems) == 0 {
+		return nil, nil
+	}
+	if len(matchedItems) > 1 {
+		return nil, fmt.Errorf("error: found multiple target groups with the name %v", targetGroupName)
+	}
+	return &matchedItems[0], nil
+}
+
+// GetTargetGroupID based on targetGroup
+func (cp *APIClient) GetTargetGroupID(targetGroup *sdkgo.TargetGroup) (string, error) {
+	if targetGroup != nil {
+		if idOk, ok := targetGroup.GetIdOk(); ok && idOk != nil {
+			return *idOk, nil
+		}
+		return "", fmt.Errorf("error: getting target group id")
+	}
+	return "", nil
 }
 
 // GetTargetGroup based on targetGroupID

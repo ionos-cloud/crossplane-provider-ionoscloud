@@ -2,6 +2,7 @@ package firewallrule
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
@@ -18,11 +19,58 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service FirewallRule methods
 type Client interface {
+	CheckDuplicateFirewallRule(ctx context.Context, datacenterID, serverID, nicID, firewallRuleName, protocol string) (*sdkgo.FirewallRule, error)
+	GetFirewallRuleID(firewallRule *sdkgo.FirewallRule) (string, error)
 	GetFirewallRule(ctx context.Context, datacenterID, serverID, nicID, firewallRuleID string) (sdkgo.FirewallRule, *sdkgo.APIResponse, error)
 	CreateFirewallRule(ctx context.Context, datacenterID, serverID, nicID string, firewallRule sdkgo.FirewallRule) (sdkgo.FirewallRule, *sdkgo.APIResponse, error)
 	UpdateFirewallRule(ctx context.Context, datacenterID, serverID, nicID, firewallRuleID string, firewallRule sdkgo.FirewallruleProperties) (sdkgo.FirewallRule, *sdkgo.APIResponse, error)
 	DeleteFirewallRule(ctx context.Context, datacenterID, serverID, nicID, firewallRuleID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
+}
+
+// CheckDuplicateFirewallRule based on firewallRuleName, and the immutable property protocol
+func (cp *APIClient) CheckDuplicateFirewallRule(ctx context.Context, datacenterID, serverID, nicID, firewallRuleName, protocol string) (*sdkgo.FirewallRule, error) { // nolint: gocyclo
+	datacenters, _, err := cp.ComputeClient.FirewallRulesApi.DatacentersServersNicsFirewallrulesGet(ctx, datacenterID, serverID, nicID).Depth(utils.DepthQueryParam).Execute()
+	if err != nil {
+		return nil, err
+	}
+	matchedItems := make([]sdkgo.FirewallRule, 0)
+	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+		for _, item := range *itemsOk {
+			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
+				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
+					if *nameOk == firewallRuleName {
+						// After checking the name, check the immutable properties
+						if protocolOk, ok := propertiesOk.GetProtocolOk(); ok && protocolOk != nil {
+							if *protocolOk == protocol {
+								matchedItems = append(matchedItems, item)
+							} else {
+								return nil, fmt.Errorf("error: found firewall rule with the name %v, but immutable property protocol %v", firewallRuleName, *protocolOk)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if len(matchedItems) == 0 {
+		return nil, nil
+	}
+	if len(matchedItems) > 1 {
+		return nil, fmt.Errorf("error: found multiple firewall rules with the name %v", firewallRuleName)
+	}
+	return &matchedItems[0], nil
+}
+
+// GetFirewallRuleID based on FirewallRule
+func (cp *APIClient) GetFirewallRuleID(firewallRule *sdkgo.FirewallRule) (string, error) {
+	if firewallRule != nil {
+		if idOk, ok := firewallRule.GetIdOk(); ok && idOk != nil {
+			return *idOk, nil
+		}
+		return "", fmt.Errorf("error: getting firewall rule id")
+	}
+	return "", nil
 }
 
 // GetFirewallRule based on firewallRuleID

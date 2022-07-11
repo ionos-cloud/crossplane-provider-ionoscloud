@@ -2,6 +2,7 @@ package postgrescluster
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -21,10 +22,57 @@ type ClusterAPIClient struct {
 
 // ClusterClient is a wrapper around IONOS Service DBaaS Postgres Cluster methods
 type ClusterClient interface {
+	CheckDuplicateCluster(ctx context.Context, clusterName, location string) (*ionoscloud.ClusterResponse, error)
+	GetClusterID(cluster *ionoscloud.ClusterResponse) (string, error)
 	GetCluster(ctx context.Context, clusterID string) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
 	DeleteCluster(ctx context.Context, clusterID string) (*ionoscloud.APIResponse, error)
 	CreateCluster(ctx context.Context, cluster ionoscloud.CreateClusterRequest) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
 	UpdateCluster(ctx context.Context, clusterID string, cluster ionoscloud.PatchClusterRequest) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
+}
+
+// CheckDuplicateCluster based on clusterName
+func (cp *ClusterAPIClient) CheckDuplicateCluster(ctx context.Context, clusterName, location string) (*ionoscloud.ClusterResponse, error) { // nolint: gocyclo
+	datacenters, _, err := cp.DBaaSPostgresClient.ClustersApi.ClustersGet(ctx).Execute()
+	if err != nil {
+		return nil, err
+	}
+	matchedItems := make([]ionoscloud.ClusterResponse, 0)
+	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+		for _, item := range *itemsOk {
+			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
+				if nameOk, ok := propertiesOk.GetDisplayNameOk(); ok && nameOk != nil {
+					if *nameOk == clusterName {
+						// After checking the name, check the immutable properties
+						if locationOk, ok := propertiesOk.GetLocationOk(); ok && locationOk != nil {
+							if *locationOk == location {
+								matchedItems = append(matchedItems, item)
+							} else {
+								return nil, fmt.Errorf("error: found cluster with the name %v, but immutable property location %v", clusterName, *locationOk)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if len(matchedItems) == 0 {
+		return nil, nil
+	}
+	if len(matchedItems) > 1 {
+		return nil, fmt.Errorf("error: found multiple clusters with the name %v", clusterName)
+	}
+	return &matchedItems[0], nil
+}
+
+// GetClusterID based on cluster
+func (cp *ClusterAPIClient) GetClusterID(cluster *ionoscloud.ClusterResponse) (string, error) {
+	if cluster != nil {
+		if idOk, ok := cluster.GetIdOk(); ok && idOk != nil {
+			return *idOk, nil
+		}
+		return "", fmt.Errorf("error: getting cluster id")
+	}
+	return "", nil
 }
 
 // GetCluster based on clusterID

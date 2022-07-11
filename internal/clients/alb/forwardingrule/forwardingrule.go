@@ -2,6 +2,7 @@ package forwardingrule
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
@@ -18,11 +19,51 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service ApplicationLoadBalancer methods
 type Client interface {
+	CheckDuplicateForwardingRule(ctx context.Context, datacenterID, applicationloadbalancerID, forwardingruleName string) (*sdkgo.ApplicationLoadBalancerForwardingRule, error)
+	GetForwardingRuleID(forwardingrule *sdkgo.ApplicationLoadBalancerForwardingRule) (string, error)
 	GetForwardingRule(ctx context.Context, datacenterID, applicationloadbalancerID, forwardingruleID string) (sdkgo.ApplicationLoadBalancerForwardingRule, *sdkgo.APIResponse, error)
 	CreateForwardingRule(ctx context.Context, datacenterID, applicationloadbalancerID string, forwardingrule sdkgo.ApplicationLoadBalancerForwardingRule) (sdkgo.ApplicationLoadBalancerForwardingRule, *sdkgo.APIResponse, error)
 	UpdateForwardingRule(ctx context.Context, datacenterID, applicationloadbalancerID, forwardingruleID string, forwardingrule sdkgo.ApplicationLoadBalancerForwardingRulePut) (sdkgo.ApplicationLoadBalancerForwardingRule, *sdkgo.APIResponse, error)
 	DeleteForwardingRule(ctx context.Context, datacenterID, applicationloadbalancerID, forwardingruleID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
+}
+
+// CheckDuplicateForwardingRule based on datacenterID, applicationloadbalancerName
+func (cp *APIClient) CheckDuplicateForwardingRule(ctx context.Context, datacenterID, applicationloadbalancerID, forwardingruleName string) (*sdkgo.ApplicationLoadBalancerForwardingRule, error) { // nolint: gocyclo
+	datacenters, _, err := cp.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersForwardingrulesGet(ctx, datacenterID, applicationloadbalancerID).Depth(utils.DepthQueryParam).Execute()
+	if err != nil {
+		return nil, err
+	}
+	matchedItems := make([]sdkgo.ApplicationLoadBalancerForwardingRule, 0)
+	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+		for _, item := range *itemsOk {
+			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
+				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
+					if *nameOk == forwardingruleName {
+						matchedItems = append(matchedItems, item)
+					}
+				}
+			}
+		}
+	}
+	if len(matchedItems) == 0 {
+		return nil, nil
+	}
+	if len(matchedItems) > 1 {
+		return nil, fmt.Errorf("error: found multiple forwardingrules with the name %v", forwardingruleName)
+	}
+	return &matchedItems[0], nil
+}
+
+// GetForwardingRuleID based on forwardingrule
+func (cp *APIClient) GetForwardingRuleID(forwardingrule *sdkgo.ApplicationLoadBalancerForwardingRule) (string, error) {
+	if forwardingrule != nil {
+		if idOk, ok := forwardingrule.GetIdOk(); ok && idOk != nil {
+			return *idOk, nil
+		}
+		return "", fmt.Errorf("error: getting forwardingrule id")
+	}
+	return "", nil
 }
 
 // GetForwardingRule based on datacenterID, applicationloadbalancerID, forwardingruleID

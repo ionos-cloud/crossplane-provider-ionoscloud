@@ -2,6 +2,7 @@ package k8snodepool
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"strconv"
 
@@ -20,11 +21,51 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service K8s Cluster methods
 type Client interface {
+	CheckDuplicateK8sNodePool(ctx context.Context, clusterID, nodepoolName string) (*sdkgo.KubernetesNodePool, error)
+	GetK8sNodePoolID(nodepool *sdkgo.KubernetesNodePool) (string, error)
 	GetK8sNodePool(ctx context.Context, clusterID, nodepoolID string) (sdkgo.KubernetesNodePool, *sdkgo.APIResponse, error)
 	CreateK8sNodePool(ctx context.Context, clusterID string, nodepool sdkgo.KubernetesNodePoolForPost) (sdkgo.KubernetesNodePool, *sdkgo.APIResponse, error)
 	UpdateK8sNodePool(ctx context.Context, clusterID, nodepoolID string, nodepool sdkgo.KubernetesNodePoolForPut) (sdkgo.KubernetesNodePool, *sdkgo.APIResponse, error)
 	DeleteK8sNodePool(ctx context.Context, clusterID, nodepoolID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
+}
+
+// CheckDuplicateK8sNodePool based on clusterID, nodepoolName
+func (cp *APIClient) CheckDuplicateK8sNodePool(ctx context.Context, clusterID, nodepoolName string) (*sdkgo.KubernetesNodePool, error) { // nolint: gocyclo
+	datacenters, _, err := cp.ComputeClient.KubernetesApi.K8sNodepoolsGet(ctx, clusterID).Execute()
+	if err != nil {
+		return nil, err
+	}
+	matchedItems := make([]sdkgo.KubernetesNodePool, 0)
+	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+		for _, item := range *itemsOk {
+			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
+				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
+					if *nameOk == nodepoolName {
+						matchedItems = append(matchedItems, item)
+					}
+				}
+			}
+		}
+	}
+	if len(matchedItems) == 0 {
+		return nil, nil
+	}
+	if len(matchedItems) > 1 {
+		return nil, fmt.Errorf("error: found multiple nodepools with the name %v", nodepoolName)
+	}
+	return &matchedItems[0], nil
+}
+
+// GetK8sNodePoolID based on nodepool
+func (cp *APIClient) GetK8sNodePoolID(nodepool *sdkgo.KubernetesNodePool) (string, error) {
+	if nodepool != nil {
+		if idOk, ok := nodepool.GetIdOk(); ok && idOk != nil {
+			return *idOk, nil
+		}
+		return "", fmt.Errorf("error: getting nodepool id")
+	}
+	return "", nil
 }
 
 // GetK8sNodePool based on clusterID, nodepoolID

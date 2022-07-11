@@ -36,18 +36,18 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // CheckDuplicateDatacenter mocks base method.
-func (m *MockClient) CheckDuplicateDatacenter(ctx context.Context, datacenterName, loacation string) (*ionoscloud.Datacenter, error) {
+func (m *MockClient) CheckDuplicateDatacenter(ctx context.Context, datacenterName, location string) (*ionoscloud.Datacenter, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckDuplicateDatacenter", ctx, datacenterName, loacation)
+	ret := m.ctrl.Call(m, "CheckDuplicateDatacenter", ctx, datacenterName, location)
 	ret0, _ := ret[0].(*ionoscloud.Datacenter)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CheckDuplicateDatacenter indicates an expected call of CheckDuplicateDatacenter.
-func (mr *MockClientMockRecorder) CheckDuplicateDatacenter(ctx, datacenterName, loacation interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) CheckDuplicateDatacenter(ctx, datacenterName, location interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckDuplicateDatacenter", reflect.TypeOf((*MockClient)(nil).CheckDuplicateDatacenter), ctx, datacenterName, loacation)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckDuplicateDatacenter", reflect.TypeOf((*MockClient)(nil).CheckDuplicateDatacenter), ctx, datacenterName, location)
 }
 
 // CreateDatacenter mocks base method.

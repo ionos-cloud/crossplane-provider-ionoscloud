@@ -19,12 +19,59 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service IPBlock methods
 type Client interface {
+	CheckDuplicateIPBlock(ctx context.Context, ipBlockName, location string) (*sdkgo.IpBlock, error)
+	GetIPBlockID(ipBlock *sdkgo.IpBlock) (string, error)
 	GetIPBlock(ctx context.Context, ipBlockID string) (sdkgo.IpBlock, *sdkgo.APIResponse, error)
 	CreateIPBlock(ctx context.Context, ipBlock sdkgo.IpBlock) (sdkgo.IpBlock, *sdkgo.APIResponse, error)
 	UpdateIPBlock(ctx context.Context, ipBlockID string, ipBlock sdkgo.IpBlockProperties) (sdkgo.IpBlock, *sdkgo.APIResponse, error)
 	DeleteIPBlock(ctx context.Context, ipBlockID string) (*sdkgo.APIResponse, error)
 	GetIPs(ctx context.Context, ipBlockID string, indexes ...int) ([]string, error)
 	GetAPIClient() *sdkgo.APIClient
+}
+
+// CheckDuplicateIPBlock based on ipBlockName, and the immutable property location
+func (cp *APIClient) CheckDuplicateIPBlock(ctx context.Context, ipBlockName, location string) (*sdkgo.IpBlock, error) { // nolint: gocyclo
+	datacenters, _, err := cp.ComputeClient.IPBlocksApi.IpblocksGet(ctx).Depth(utils.DepthQueryParam).Execute()
+	if err != nil {
+		return nil, err
+	}
+	matchedItems := make([]sdkgo.IpBlock, 0)
+	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+		for _, item := range *itemsOk {
+			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
+				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
+					if *nameOk == ipBlockName {
+						// After checking the name, check the immutable properties
+						if locationOk, ok := propertiesOk.GetLocationOk(); ok && locationOk != nil {
+							if *locationOk == location {
+								matchedItems = append(matchedItems, item)
+							} else {
+								return nil, fmt.Errorf("error: found ipblock with the name %v, but immutable property location %v", ipBlockName, *locationOk)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if len(matchedItems) == 0 {
+		return nil, nil
+	}
+	if len(matchedItems) > 1 {
+		return nil, fmt.Errorf("error: found multiple ipblocks with the name %v", ipBlockName)
+	}
+	return &matchedItems[0], nil
+}
+
+// GetIPBlockID based on ipBlock
+func (cp *APIClient) GetIPBlockID(ipBlock *sdkgo.IpBlock) (string, error) {
+	if ipBlock != nil {
+		if idOk, ok := ipBlock.GetIdOk(); ok && idOk != nil {
+			return *idOk, nil
+		}
+		return "", fmt.Errorf("error: getting ipblock id")
+	}
+	return "", nil
 }
 
 // GetIPBlock based on ipBlockID
