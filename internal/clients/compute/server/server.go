@@ -56,7 +56,7 @@ func (cp *APIClient) CheckDuplicateServer(ctx context.Context, datacenterID, ser
 							if cpuFamily == "" || cpuFamily == *cpuFamilyOk {
 								matchedItems = append(matchedItems, item)
 							} else {
-								return nil, fmt.Errorf("error: found server with the same name, but different immutable property cpuFamily")
+								return nil, fmt.Errorf("error: found server with the name %v, but immutable property cpuFamily %v", serverName, *cpuFamilyOk)
 							}
 						}
 					}
@@ -68,7 +68,7 @@ func (cp *APIClient) CheckDuplicateServer(ctx context.Context, datacenterID, ser
 		return nil, nil
 	}
 	if len(matchedItems) > 1 {
-		return nil, fmt.Errorf("error: found multiple servers with the same name")
+		return nil, fmt.Errorf("error: found multiple servers with the name %v", serverName)
 	}
 	return &matchedItems[0], nil
 }
