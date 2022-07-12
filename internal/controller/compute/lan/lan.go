@@ -141,12 +141,30 @@ func (c *externalLan) Create(ctx context.Context, mg resource.Managed) (managed.
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
+	// Lans should have unique names per datacenter.
+	// Check if there are any existing lans with the same name.
+	// If there are multiple, an error will be returned.
+	instance, err := c.service.CheckDuplicateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.Name)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	lanID, err := c.service.GetLanID(instance)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	if lanID != "" {
+		// "Import" existing lan.
+		cr.Status.AtProvider.LanID = lanID
+		meta.SetExternalName(cr, lanID)
+		return managed.ExternalCreation{}, nil
+	}
+
 	instanceInput, err := lan.GenerateCreateLanInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
 
-	instance, apiResponse, err := c.service.CreateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
+	newInstance, apiResponse, err := c.service.CreateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create lan. error: %w", err)
@@ -157,8 +175,8 @@ func (c *externalLan) Create(ctx context.Context, mg resource.Managed) (managed.
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.LanID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.LanID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

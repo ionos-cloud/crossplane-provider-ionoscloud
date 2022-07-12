@@ -163,7 +163,7 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalCreation{}, err
 	}
 	if serverID != "" {
-		// "Import" existing datacenter.
+		// "Import" existing server.
 		cr.Status.AtProvider.ServerID = serverID
 		meta.SetExternalName(cr, serverID)
 		return managed.ExternalCreation{}, nil

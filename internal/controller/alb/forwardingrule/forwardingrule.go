@@ -143,7 +143,7 @@ func (c *externalForwardingRule) Observe(ctx context.Context, mg resource.Manage
 	}, nil
 }
 
-func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint: gocyclo
 	cr, ok := mg.(*v1alpha1.ForwardingRule)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotForwardingRule)
@@ -158,6 +158,26 @@ func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed
 	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
 		return managed.ExternalCreation{}, nil
 	}
+
+	// ForwardingRules should have unique names per application load balancer.
+	// Check if there are any existing forwarding rules with the same name.
+	// If there are multiple, an error will be returned.
+	instance, err := c.service.CheckDuplicateForwardingRule(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+		cr.Spec.ForProvider.ALBCfg.ApplicationLoadBalancerID, cr.Spec.ForProvider.Name)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	forwardingRuleID, err := c.service.GetForwardingRuleID(instance)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	if forwardingRuleID != "" {
+		// "Import" existing server.
+		cr.Status.AtProvider.ForwardingRuleID = forwardingRuleID
+		meta.SetExternalName(cr, forwardingRuleID)
+		return managed.ExternalCreation{}, nil
+	}
+
 	listenerIP, err := c.getIPSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("failed to get listener ip: %w", err)
@@ -166,7 +186,7 @@ func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	instance, apiResponse, err := c.service.CreateForwardingRule(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+	newInstance, apiResponse, err := c.service.CreateForwardingRule(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 		cr.Spec.ForProvider.ALBCfg.ApplicationLoadBalancerID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
@@ -178,8 +198,8 @@ func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.ForwardingRuleID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.ForwardingRuleID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

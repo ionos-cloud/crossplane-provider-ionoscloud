@@ -155,7 +155,7 @@ func (c *externalApplicationLoadBalancer) Observe(ctx context.Context, mg resour
 	}, nil
 }
 
-func (c *externalApplicationLoadBalancer) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (c *externalApplicationLoadBalancer) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint: gocyclo
 	cr, ok := mg.(*v1alpha1.ApplicationLoadBalancer)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotApplicationLoadBalancer)
@@ -170,6 +170,25 @@ func (c *externalApplicationLoadBalancer) Create(ctx context.Context, mg resourc
 	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
 		return managed.ExternalCreation{}, nil
 	}
+
+	// ApplicationLoadBalancers should have unique names per datacenter.
+	// Check if there are any existing application load balancers with the same name.
+	// If there are multiple, an error will be returned.
+	instance, err := c.service.CheckDuplicateApplicationLoadBalancer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.Name)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	applicationLoadBalancerID, err := c.service.GetApplicationLoadBalancerID(instance)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	if applicationLoadBalancerID != "" {
+		// "Import" existing application load balancer.
+		cr.Status.AtProvider.ApplicationLoadBalancerID = applicationLoadBalancerID
+		meta.SetExternalName(cr, applicationLoadBalancerID)
+		return managed.ExternalCreation{}, nil
+	}
+
 	ips, err := c.getIPsSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("failed to get ips: %w", err)
@@ -178,7 +197,7 @@ func (c *externalApplicationLoadBalancer) Create(ctx context.Context, mg resourc
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	instance, apiResponse, err := c.service.CreateApplicationLoadBalancer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
+	newInstance, apiResponse, err := c.service.CreateApplicationLoadBalancer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create application load balancer: %w", err)
@@ -189,8 +208,8 @@ func (c *externalApplicationLoadBalancer) Create(ctx context.Context, mg resourc
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.ApplicationLoadBalancerID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.ApplicationLoadBalancerID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

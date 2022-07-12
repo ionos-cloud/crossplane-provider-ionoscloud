@@ -140,12 +140,31 @@ func (c *externalBackupUnit) Create(ctx context.Context, mg resource.Managed) (m
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
+
+	// BackupUnits should have unique names per account.
+	// Check if there are any existing backup units with the same name.
+	// If there are multiple, an error will be returned.
+	instance, err := c.service.CheckDuplicateBackupUnit(ctx, cr.Spec.ForProvider.Name)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	backupUnitID, err := c.service.GetBackupUnitID(instance)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	if backupUnitID != "" {
+		// "Import" existing datacenter.
+		cr.Status.AtProvider.BackupUnitID = backupUnitID
+		meta.SetExternalName(cr, backupUnitID)
+		return managed.ExternalCreation{}, nil
+	}
+
 	instanceInput, err := backupunit.GenerateCreateBackupUnitInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
 
-	instance, apiResponse, err := c.service.CreateBackupUnit(ctx, *instanceInput)
+	newInstance, apiResponse, err := c.service.CreateBackupUnit(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create backup unit. error: %w", err)
@@ -156,8 +175,8 @@ func (c *externalBackupUnit) Create(ctx context.Context, mg resource.Managed) (m
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.BackupUnitID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.BackupUnitID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

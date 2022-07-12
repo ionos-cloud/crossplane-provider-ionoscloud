@@ -166,6 +166,24 @@ func (c *externalNic) Create(ctx context.Context, mg resource.Managed) (managed.
 		return managed.ExternalCreation{}, nil
 	}
 
+	// NICs should have unique names per server.
+	// Check if there are any existing volumes with the same name.
+	// If there are multiple, an error will be returned.
+	instance, err := c.service.CheckDuplicateNic(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.ServerCfg.ServerID, cr.Spec.ForProvider.Name)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	nicID, err := c.service.GetNicID(instance)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	if nicID != "" {
+		// "Import" existing Nic.
+		cr.Status.AtProvider.NicID = nicID
+		meta.SetExternalName(cr, nicID)
+		return managed.ExternalCreation{}, nil
+	}
+
 	ips, err := c.getIpsSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("failed to get ips: %w", err)
@@ -176,7 +194,7 @@ func (c *externalNic) Create(ctx context.Context, mg resource.Managed) (managed.
 		return managed.ExternalCreation{}, err
 	}
 
-	instance, apiResponse, err := c.service.CreateNic(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+	newInstance, apiResponse, err := c.service.CreateNic(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 		cr.Spec.ForProvider.ServerCfg.ServerID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
@@ -188,8 +206,8 @@ func (c *externalNic) Create(ctx context.Context, mg resource.Managed) (managed.
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.NicID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.NicID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

@@ -145,12 +145,31 @@ func (c *externalIPBlock) Create(ctx context.Context, mg resource.Managed) (mana
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
+
+	// IPBlocks should have unique names per account.
+	// Check if there are any existing volumes with the same name.
+	// If there are multiple, an error will be returned.
+	instance, err := c.service.CheckDuplicateIPBlock(ctx, cr.Spec.ForProvider.Name, cr.Spec.ForProvider.Location)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	ipBlockID, err := c.service.GetIPBlockID(instance)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	if ipBlockID != "" {
+		// "Import" existing IPBlock.
+		cr.Status.AtProvider.IPBlockID = ipBlockID
+		meta.SetExternalName(cr, ipBlockID)
+		return managed.ExternalCreation{}, nil
+	}
+
 	instanceInput, err := ipblock.GenerateCreateIPBlockInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
 
-	instance, apiResponse, err := c.service.CreateIPBlock(ctx, *instanceInput)
+	newInstance, apiResponse, err := c.service.CreateIPBlock(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create ipBlock. error: %w", err)
@@ -161,8 +180,8 @@ func (c *externalIPBlock) Create(ctx context.Context, mg resource.Managed) (mana
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.IPBlockID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.IPBlockID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

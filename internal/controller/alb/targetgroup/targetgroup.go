@@ -141,11 +141,30 @@ func (c *externalTargetGroup) Create(ctx context.Context, mg resource.Managed) (
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
+
+	// TargetGroup should have unique names per account.
+	// Check if there are any existing target groups with the same name.
+	// If there are multiple, an error will be returned.
+	instance, err := c.service.CheckDuplicateTargetGroup(ctx, cr.Spec.ForProvider.Name)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	targetGroupID, err := c.service.GetTargetGroupID(instance)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	if targetGroupID != "" {
+		// "Import" existing target group.
+		cr.Status.AtProvider.TargetGroupID = targetGroupID
+		meta.SetExternalName(cr, targetGroupID)
+		return managed.ExternalCreation{}, nil
+	}
+
 	instanceInput, err := targetgroup.GenerateCreateTargetGroupInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	instance, apiResponse, err := c.service.CreateTargetGroup(ctx, *instanceInput)
+	newInstance, apiResponse, err := c.service.CreateTargetGroup(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create target group. error: %w", err)
@@ -156,8 +175,8 @@ func (c *externalTargetGroup) Create(ctx context.Context, mg resource.Managed) (
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.TargetGroupID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.TargetGroupID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

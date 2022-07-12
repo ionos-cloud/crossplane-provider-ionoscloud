@@ -158,6 +158,25 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
+
+	// Servers should have unique names per datacenter.
+	// Check if there are any existing servers with the same name.
+	// If there are multiple, an error will be returned.
+	instance, err := c.service.CheckDuplicateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.Name, cr.Spec.ForProvider.CPUFamily)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	serverID, err := c.service.GetServerID(instance)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	if serverID != "" {
+		// "Import" existing server.
+		cr.Status.AtProvider.ServerID = serverID
+		meta.SetExternalName(cr, serverID)
+		return managed.ExternalCreation{}, nil
+	}
+
 	// Resolve TemplateID
 	templateID, err := getTemplateID(ctx, c, cr)
 	if err != nil {
@@ -169,7 +188,7 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalCreation{}, err
 	}
 
-	instance, apiResponse, err := c.service.CreateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
+	newInstance, apiResponse, err := c.service.CreateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create cube server. error: %w", err)
@@ -180,8 +199,8 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.ServerID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.ServerID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

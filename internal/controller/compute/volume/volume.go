@@ -135,9 +135,26 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotVolume)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == compute.BUSY {
+		return managed.ExternalCreation{}, nil
+	}
+
+	// Volumes should have unique names per datacenter.
+	// Check if there are any existing volumes with the same name.
+	// If there are multiple, an error will be returned.
+	instance, err := c.service.CheckDuplicateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.Name)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	volumeID, err := c.service.GetVolumeID(instance)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	if volumeID != "" {
+		// "Import" existing volume.
+		cr.Status.AtProvider.VolumeID = volumeID
+		meta.SetExternalName(cr, volumeID)
 		return managed.ExternalCreation{}, nil
 	}
 
@@ -145,7 +162,7 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	instance, apiResponse, err := c.service.CreateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
+	newInstance, apiResponse, err := c.service.CreateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create volume. error: %w", err)
@@ -156,8 +173,8 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.VolumeID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.VolumeID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

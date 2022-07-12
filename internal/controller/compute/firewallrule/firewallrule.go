@@ -156,7 +156,7 @@ func (c *externalFirewallRule) Observe(ctx context.Context, mg resource.Managed)
 	}, nil
 }
 
-func (c *externalFirewallRule) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (c *externalFirewallRule) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint: gocyclo
 	cr, ok := mg.(*v1alpha1.FirewallRule)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotFirewallRule)
@@ -166,6 +166,26 @@ func (c *externalFirewallRule) Create(ctx context.Context, mg resource.Managed) 
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
+
+	// FirewallRules should have unique names per NIC.
+	// Check if there are any existing firewall rules with the same name.
+	// If there are multiple, an error will be returned.
+	instance, err := c.service.CheckDuplicateFirewallRule(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+		cr.Spec.ForProvider.ServerCfg.ServerID, cr.Spec.ForProvider.NicCfg.NicID, cr.Spec.ForProvider.Name, cr.Spec.ForProvider.Protocol)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	firewallRuleID, err := c.service.GetFirewallRuleID(instance)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	if firewallRuleID != "" {
+		// "Import" existing IPBlock.
+		cr.Status.AtProvider.FirewallRuleID = firewallRuleID
+		meta.SetExternalName(cr, firewallRuleID)
+		return managed.ExternalCreation{}, nil
+	}
+
 	sourceIP, err := c.getSourceIPSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("error getting sourceIP: %v", sourceIP)
@@ -179,7 +199,7 @@ func (c *externalFirewallRule) Create(ctx context.Context, mg resource.Managed) 
 		return managed.ExternalCreation{}, err
 	}
 
-	instance, apiResponse, err := c.service.CreateFirewallRule(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+	newInstance, apiResponse, err := c.service.CreateFirewallRule(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 		cr.Spec.ForProvider.ServerCfg.ServerID, cr.Spec.ForProvider.NicCfg.NicID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
@@ -191,8 +211,8 @@ func (c *externalFirewallRule) Create(ctx context.Context, mg resource.Managed) 
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.FirewallRuleID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.FirewallRuleID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

@@ -150,12 +150,30 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
 		return managed.ExternalCreation{}, nil
 	}
+
+	// Clusters should have unique names per account.
+	// Check if there are any existing clusters with the same name.
+	// If there are multiple, an error will be returned.
+	instance, err := c.service.CheckDuplicateCluster(ctx, cr.Spec.ForProvider.DisplayName, cr.Spec.ForProvider.Location)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	clusterID, err := c.service.GetClusterID(instance)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	if clusterID != "" {
+		// "Import" existing datacenter.
+		cr.Status.AtProvider.ClusterID = clusterID
+		meta.SetExternalName(cr, clusterID)
+		return managed.ExternalCreation{}, nil
+	}
+
 	instanceInput, err := postgrescluster.GenerateCreateClusterInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
-	instance, apiResponse, err := c.service.CreateCluster(ctx, *instanceInput)
+	newInstance, apiResponse, err := c.service.CreateCluster(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create postgres cluster: %w", err)
@@ -166,8 +184,8 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.ClusterID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.ClusterID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 
