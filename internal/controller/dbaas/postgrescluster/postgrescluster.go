@@ -20,10 +20,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
-
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -44,12 +42,13 @@ import (
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/dbaas/postgrescluster"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotCluster = "managed resource is not a Cluster custom resource"
 
 // Setup adds a controller that reconciles Cluster managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration, uniqueNamesEnable bool) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.PostgresClusterGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -64,12 +63,12 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 				kube:                 mgr.GetClient(),
 				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:                  l,
-				isUniqueNamesEnabled: uniqueNamesEnable}),
+				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
-			managed.WithPollInterval(poll),
-			managed.WithTimeout(timeout),
-			managed.WithCreationGracePeriod(creationGracePeriod),
+			managed.WithPollInterval(opts.GetPollInterval()),
+			managed.WithTimeout(opts.GetTimeout()),
+			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }

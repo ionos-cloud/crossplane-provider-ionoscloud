@@ -19,7 +19,6 @@ package volume
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/workqueue"
@@ -40,12 +39,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/volume"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotVolume = "managed resource is not a Volume custom resource"
 
 // Setup adds a controller that reconciles Volume managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration, uniqueNamesEnable bool) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.VolumeGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -60,10 +60,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 				kube:                 mgr.GetClient(),
 				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:                  l,
-				isUniqueNamesEnabled: uniqueNamesEnable}),
-			managed.WithPollInterval(poll),
-			managed.WithCreationGracePeriod(creationGracePeriod),
-			managed.WithTimeout(timeout),
+				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
+			managed.WithPollInterval(opts.GetPollInterval()),
+			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
+			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))

@@ -19,7 +19,6 @@ package targetgroup
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
@@ -41,12 +40,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/alb/targetgroup"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotTargetGroup = "managed resource is not a TargetGroup custom resource"
 
 // Setup adds a controller that reconciles TargetGroup managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration, creationGracePeriod, timeout time.Duration, uniqueNamesEnable bool) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.TargetGroupGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -61,12 +61,12 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll ti
 				kube:                 mgr.GetClient(),
 				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:                  l,
-				isUniqueNamesEnabled: uniqueNamesEnable}),
+				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
-			managed.WithCreationGracePeriod(creationGracePeriod),
-			managed.WithPollInterval(poll),
-			managed.WithTimeout(timeout),
+			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
+			managed.WithPollInterval(opts.GetPollInterval()),
+			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }

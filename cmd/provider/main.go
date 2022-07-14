@@ -29,6 +29,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 func main() {
@@ -67,6 +68,7 @@ func main() {
 
 	rl := ratelimiter.NewDefaultProviderRateLimiter(ratelimiter.DefaultProviderRPS)
 	kingpin.FatalIfError(apis.AddToScheme(mgr.GetScheme()), "Cannot add IONOS Cloud APIs to scheme")
-	kingpin.FatalIfError(controller.Setup(mgr, log, rl, *pollInterval, *createGracePeriod, *timeout, *uniqueNames), "Cannot setup IONOS Cloud controllers")
+	options := utils.NewConfigurationOptions(*pollInterval, *createGracePeriod, *timeout, *uniqueNames)
+	kingpin.FatalIfError(controller.Setup(mgr, log, rl, options), "Cannot setup IONOS Cloud controllers")
 	kingpin.FatalIfError(mgr.Start(ctrl.SetupSignalHandler()), "Cannot start controller manager")
 }

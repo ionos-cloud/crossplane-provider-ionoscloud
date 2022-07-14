@@ -19,7 +19,6 @@ package firewallrule
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/workqueue"
@@ -41,12 +40,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/firewallrule"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotFirewallRule = "managed resource is not a FirewallRule custom resource"
 
 // Setup adds a controller that reconciles FirewallRule managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration, uniqueNamesEnable bool) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.FirewallRuleGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -61,10 +61,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 				kube:                 mgr.GetClient(),
 				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:                  l,
-				isUniqueNamesEnabled: uniqueNamesEnable}),
-			managed.WithPollInterval(poll),
-			managed.WithCreationGracePeriod(creationGracePeriod),
-			managed.WithTimeout(timeout),
+				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
+			managed.WithPollInterval(opts.GetPollInterval()),
+			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
+			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))

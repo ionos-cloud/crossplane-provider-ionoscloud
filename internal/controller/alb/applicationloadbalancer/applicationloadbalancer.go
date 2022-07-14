@@ -19,10 +19,8 @@ package applicationloadbalancer
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
-
 	"github.com/pkg/errors"
 	"github.com/rung/go-safecast"
 	"k8s.io/client-go/util/workqueue"
@@ -46,12 +44,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/alb/applicationloadbalancer"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotApplicationLoadBalancer = "managed resource is not a ApplicationLoadBalancer custom resource"
 
 // Setup adds a controller that reconciles ApplicationLoadBalancer managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration, uniqueNamesEnable bool) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.ApplicationLoadBalancerGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -66,12 +65,12 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 				kube:                 mgr.GetClient(),
 				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:                  l,
-				isUniqueNamesEnabled: uniqueNamesEnable}),
+				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
-			managed.WithCreationGracePeriod(creationGracePeriod),
-			managed.WithPollInterval(poll),
-			managed.WithTimeout(timeout),
+			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
+			managed.WithPollInterval(opts.GetPollInterval()),
+			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
