@@ -152,23 +152,39 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotK8sCluster)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == k8s.DEPLOYING {
 		return managed.ExternalCreation{}, nil
 	}
-	instanceInput := k8scluster.GenerateCreateK8sClusterInput(cr)
 
-	instance, apiResponse, err := c.service.CreateK8sCluster(ctx, *instanceInput)
+	// Clusters should have unique names per account.
+	// Check if there are any existing clusters with the same name.
+	// If there are multiple, an error will be returned.
+	instance, err := c.service.CheckDuplicateK8sCluster(ctx, cr.Spec.ForProvider.Name)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	clusterID, err := c.service.GetK8sClusterID(instance)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	if clusterID != "" {
+		// "Import" existing cluster.
+		cr.Status.AtProvider.ClusterID = clusterID
+		meta.SetExternalName(cr, clusterID)
+		return managed.ExternalCreation{}, nil
+	}
+
+	instanceInput := k8scluster.GenerateCreateK8sClusterInput(cr)
+	newInstance, apiResponse, err := c.service.CreateK8sCluster(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create k8s cluster. error: %w", err)
 		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
-
 	// Set External Name
-	cr.Status.AtProvider.ClusterID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.ClusterID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

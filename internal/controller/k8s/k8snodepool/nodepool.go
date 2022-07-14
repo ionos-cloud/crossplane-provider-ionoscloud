@@ -167,6 +167,24 @@ func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (man
 		return managed.ExternalCreation{}, nil
 	}
 
+	// NodePools should have unique names per cluster.
+	// Check if there are any existing node pools with the same name.
+	// If there are multiple, an error will be returned.
+	instance, err := c.service.CheckDuplicateK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, cr.Spec.ForProvider.Name)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	nodePoolID, err := c.service.GetK8sNodePoolID(instance)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	if nodePoolID != "" {
+		// "Import" existing nodePool.
+		cr.Status.AtProvider.NodePoolID = nodePoolID
+		meta.SetExternalName(cr, nodePoolID)
+		return managed.ExternalCreation{}, nil
+	}
+
 	// Note: If the CPU Family is not set by the user, the Crossplane Provider IONOS Cloud
 	// will take the first CPU Family offered by the Datacenter CPU Architectures available
 	if cr.Spec.ForProvider.CPUFamily == "" {
@@ -184,7 +202,7 @@ func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (man
 	}
 	instanceInput := k8snodepool.GenerateCreateK8sNodePoolInput(cr, publicIPs)
 
-	instance, apiResponse, err := c.service.CreateK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, *instanceInput)
+	newInstance, apiResponse, err := c.service.CreateK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create k8s nodepool. error: %w", err)
@@ -192,8 +210,8 @@ func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (man
 	}
 
 	// Set External Name
-	cr.Status.AtProvider.NodePoolID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.NodePoolID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 
