@@ -46,7 +46,7 @@ import (
 const errNotIPBlock = "managed resource is not a IPBlock custom resource"
 
 // Setup adds a controller that reconciles IPBlock managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration, uniqueNamesEnable bool) error {
 	name := managed.ControllerName(v1alpha1.IPBlockGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -58,9 +58,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.IPBlockGroupVersionKind),
 			managed.WithExternalConnecter(&connectorIPBlock{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l}),
+				kube:                 mgr.GetClient(),
+				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:                  l,
+				isUniqueNamesEnabled: uniqueNamesEnable}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
 			managed.WithPollInterval(poll),
@@ -73,9 +74,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 // A connectorIPBlock is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorIPBlock struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Connect typically produces an ExternalClient by:
@@ -90,8 +92,9 @@ func (c *connectorIPBlock) Connect(ctx context.Context, mg resource.Managed) (ma
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalIPBlock{
-		service: &ipblock.APIClient{IonosServices: svc},
-		log:     c.log}, err
+		service:              &ipblock.APIClient{IonosServices: svc},
+		log:                  c.log,
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -99,8 +102,9 @@ func (c *connectorIPBlock) Connect(ctx context.Context, mg resource.Managed) (ma
 type externalIPBlock struct {
 	// A 'client' used to connect to the externalIPBlock resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service ipblock.Client
-	log     logging.Logger
+	service              ipblock.Client
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 func (c *externalIPBlock) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -140,35 +144,35 @@ func (c *externalIPBlock) Create(ctx context.Context, mg resource.Managed) (mana
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotIPBlock)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
 
-	// IPBlocks should have unique names per account.
-	// Check if there are any existing volumes with the same name.
-	// If there are multiple, an error will be returned.
-	instance, err := c.service.CheckDuplicateIPBlock(ctx, cr.Spec.ForProvider.Name, cr.Spec.ForProvider.Location)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
-	ipBlockID, err := c.service.GetIPBlockID(instance)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
-	if ipBlockID != "" {
-		// "Import" existing IPBlock.
-		cr.Status.AtProvider.IPBlockID = ipBlockID
-		meta.SetExternalName(cr, ipBlockID)
-		return managed.ExternalCreation{}, nil
+	if c.isUniqueNamesEnabled {
+		// IPBlocks should have unique names per account.
+		// Check if there are any existing volumes with the same name.
+		// If there are multiple, an error will be returned.
+		instance, err := c.service.CheckDuplicateIPBlock(ctx, cr.Spec.ForProvider.Name, cr.Spec.ForProvider.Location)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		ipBlockID, err := c.service.GetIPBlockID(instance)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if ipBlockID != "" {
+			// "Import" existing IPBlock.
+			cr.Status.AtProvider.IPBlockID = ipBlockID
+			meta.SetExternalName(cr, ipBlockID)
+			return managed.ExternalCreation{}, nil
+		}
 	}
 
 	instanceInput, err := ipblock.GenerateCreateIPBlockInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
 	newInstance, apiResponse, err := c.service.CreateIPBlock(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
@@ -178,7 +182,6 @@ func (c *externalIPBlock) Create(ctx context.Context, mg resource.Managed) (mana
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return creation, err
 	}
-
 	// Set External Name
 	cr.Status.AtProvider.IPBlockID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)

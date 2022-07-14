@@ -49,7 +49,7 @@ import (
 const errNotCluster = "managed resource is not a Cluster custom resource"
 
 // Setup adds a controller that reconciles Cluster managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration, uniqueNamesEnable bool) error {
 	name := managed.ControllerName(v1alpha1.PostgresClusterGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -61,9 +61,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.PostgresClusterGroupVersionKind),
 			managed.WithExternalConnecter(&connectorCluster{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l}),
+				kube:                 mgr.GetClient(),
+				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:                  l,
+				isUniqueNamesEnabled: uniqueNamesEnable}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
 			managed.WithPollInterval(poll),
@@ -76,9 +77,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 // A connectorCluster is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorCluster struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Connect typically produces an ExternalClient by:
@@ -93,8 +95,9 @@ func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (ma
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalCluster{
-		service: &postgrescluster.ClusterAPIClient{IonosServices: svc},
-		log:     c.log}, err
+		service:              &postgrescluster.ClusterAPIClient{IonosServices: svc},
+		log:                  c.log,
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -102,8 +105,9 @@ func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (ma
 type externalCluster struct {
 	// A 'client' used to connect to the externalCluster resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service postgrescluster.ClusterClient
-	log     logging.Logger
+	service              postgrescluster.ClusterClient
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
@@ -140,35 +144,35 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 	}, nil
 }
 
-func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint: gocyclo
 	cr, ok := mg.(*v1alpha1.PostgresCluster)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotCluster)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
 		return managed.ExternalCreation{}, nil
 	}
 
-	// Clusters should have unique names per account.
-	// Check if there are any existing clusters with the same name.
-	// If there are multiple, an error will be returned.
-	instance, err := c.service.CheckDuplicateCluster(ctx, cr.Spec.ForProvider.DisplayName, cr.Spec.ForProvider.Location)
-	if err != nil {
-		return managed.ExternalCreation{}, err
+	if c.isUniqueNamesEnabled {
+		// Clusters should have unique names per account.
+		// Check if there are any existing clusters with the same name.
+		// If there are multiple, an error will be returned.
+		instance, err := c.service.CheckDuplicateCluster(ctx, cr.Spec.ForProvider.DisplayName, cr.Spec.ForProvider.Location)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		clusterID, err := c.service.GetClusterID(instance)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if clusterID != "" {
+			// "Import" existing cluster.
+			cr.Status.AtProvider.ClusterID = clusterID
+			meta.SetExternalName(cr, clusterID)
+			return managed.ExternalCreation{}, nil
+		}
 	}
-	clusterID, err := c.service.GetClusterID(instance)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
-	if clusterID != "" {
-		// "Import" existing datacenter.
-		cr.Status.AtProvider.ClusterID = clusterID
-		meta.SetExternalName(cr, clusterID)
-		return managed.ExternalCreation{}, nil
-	}
-
 	instanceInput, err := postgrescluster.GenerateCreateClusterInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
@@ -182,7 +186,6 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 		}
 		return creation, retErr
 	}
-
 	// Set External Name
 	cr.Status.AtProvider.ClusterID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)

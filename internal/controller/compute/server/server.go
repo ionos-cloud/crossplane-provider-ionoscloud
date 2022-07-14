@@ -51,7 +51,7 @@ import (
 const errNotServer = "managed resource is not a Server custom resource"
 
 // Setup adds a controller that reconciles Server managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration, uniqueNamesEnable bool) error {
 	name := managed.ControllerName(v1alpha1.ServerGroupKind)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -62,9 +62,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.ServerGroupVersionKind),
 			managed.WithExternalConnecter(&connectorServer{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l}),
+				kube:                 mgr.GetClient(),
+				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:                  l,
+				isUniqueNamesEnabled: uniqueNamesEnable}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
 			managed.WithPollInterval(poll),
@@ -77,9 +78,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 // A connectorServer is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorServer struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Connect typically produces an ExternalClient by:
@@ -94,8 +96,9 @@ func (c *connectorServer) Connect(ctx context.Context, mg resource.Managed) (man
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalServer{
-		service: &server.APIClient{IonosServices: svc},
-		log:     c.log}, err
+		service:              &server.APIClient{IonosServices: svc},
+		log:                  c.log,
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -103,8 +106,9 @@ func (c *connectorServer) Connect(ctx context.Context, mg resource.Managed) (man
 type externalServer struct {
 	// A 'client' used to connect to the externalServer resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service server.Client
-	log     logging.Logger
+	service              server.Client
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -151,22 +155,25 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalCreation{}, nil
 	}
 
-	// Servers should have unique names per datacenter.
-	// Check if there are any existing servers with the same name.
-	// If there are multiple, an error will be returned.
-	instance, err := c.service.CheckDuplicateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.Name, cr.Spec.ForProvider.CPUFamily)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
-	serverID, err := c.service.GetServerID(instance)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
-	if serverID != "" {
-		// "Import" existing server.
-		cr.Status.AtProvider.ServerID = serverID
-		meta.SetExternalName(cr, serverID)
-		return managed.ExternalCreation{}, nil
+	if c.isUniqueNamesEnabled {
+		// Servers should have unique names per datacenter.
+		// Check if there are any existing servers with the same name.
+		// If there are multiple, an error will be returned.
+		instance, err := c.service.CheckDuplicateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+			cr.Spec.ForProvider.Name, cr.Spec.ForProvider.CPUFamily)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		serverID, err := c.service.GetServerID(instance)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if serverID != "" {
+			// "Import" existing server.
+			cr.Status.AtProvider.ServerID = serverID
+			meta.SetExternalName(cr, serverID)
+			return managed.ExternalCreation{}, nil
+		}
 	}
 
 	instanceInput, err := server.GenerateCreateServerInput(cr)
@@ -182,7 +189,6 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return creation, err
 	}
-
 	// Set External Name
 	cr.Status.AtProvider.ServerID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
@@ -200,7 +206,6 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		// Set Boot Volume ID
 		cr.Status.AtProvider.VolumeID = cr.Spec.ForProvider.VolumeCfg.VolumeID
 	}
-
 	return creation, nil
 }
 

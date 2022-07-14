@@ -46,7 +46,7 @@ import (
 const errNotFirewallRule = "managed resource is not a FirewallRule custom resource"
 
 // Setup adds a controller that reconciles FirewallRule managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration, uniqueNamesEnable bool) error {
 	name := managed.ControllerName(v1alpha1.FirewallRuleGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -58,9 +58,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.FirewallRuleGroupVersionKind),
 			managed.WithExternalConnecter(&connectorFirewallRule{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l}),
+				kube:                 mgr.GetClient(),
+				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:                  l,
+				isUniqueNamesEnabled: uniqueNamesEnable}),
 			managed.WithPollInterval(poll),
 			managed.WithCreationGracePeriod(creationGracePeriod),
 			managed.WithTimeout(timeout),
@@ -72,9 +73,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 // A connectorFirewallRule is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorFirewallRule struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Connect typically produces an ExternalClient by:
@@ -89,9 +91,10 @@ func (c *connectorFirewallRule) Connect(ctx context.Context, mg resource.Managed
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalFirewallRule{
-		service:        &firewallrule.APIClient{IonosServices: svc},
-		ipBlockService: &ipblock.APIClient{IonosServices: svc},
-		log:            c.log}, err
+		service:              &firewallrule.APIClient{IonosServices: svc},
+		ipBlockService:       &ipblock.APIClient{IonosServices: svc},
+		log:                  c.log,
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -99,9 +102,10 @@ func (c *connectorFirewallRule) Connect(ctx context.Context, mg resource.Managed
 type externalFirewallRule struct {
 	// A 'client' used to connect to the externalFirewallRule resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service        firewallrule.Client
-	ipBlockService ipblock.Client
-	log            logging.Logger
+	service              firewallrule.Client
+	ipBlockService       ipblock.Client
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 func (c *externalFirewallRule) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { //nolint:gocyclo
@@ -161,29 +165,30 @@ func (c *externalFirewallRule) Create(ctx context.Context, mg resource.Managed) 
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotFirewallRule)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
 
-	// FirewallRules should have unique names per NIC.
-	// Check if there are any existing firewall rules with the same name.
-	// If there are multiple, an error will be returned.
-	instance, err := c.service.CheckDuplicateFirewallRule(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
-		cr.Spec.ForProvider.ServerCfg.ServerID, cr.Spec.ForProvider.NicCfg.NicID, cr.Spec.ForProvider.Name, cr.Spec.ForProvider.Protocol)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
-	firewallRuleID, err := c.service.GetFirewallRuleID(instance)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
-	if firewallRuleID != "" {
-		// "Import" existing IPBlock.
-		cr.Status.AtProvider.FirewallRuleID = firewallRuleID
-		meta.SetExternalName(cr, firewallRuleID)
-		return managed.ExternalCreation{}, nil
+	if c.isUniqueNamesEnabled {
+		// FirewallRules should have unique names per NIC.
+		// Check if there are any existing firewall rules with the same name.
+		// If there are multiple, an error will be returned.
+		instance, err := c.service.CheckDuplicateFirewallRule(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+			cr.Spec.ForProvider.ServerCfg.ServerID, cr.Spec.ForProvider.NicCfg.NicID, cr.Spec.ForProvider.Name, cr.Spec.ForProvider.Protocol)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		firewallRuleID, err := c.service.GetFirewallRuleID(instance)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if firewallRuleID != "" {
+			// "Import" existing firewall rule.
+			cr.Status.AtProvider.FirewallRuleID = firewallRuleID
+			meta.SetExternalName(cr, firewallRuleID)
+			return managed.ExternalCreation{}, nil
+		}
 	}
 
 	sourceIP, err := c.getSourceIPSet(ctx, cr)
@@ -198,7 +203,6 @@ func (c *externalFirewallRule) Create(ctx context.Context, mg resource.Managed) 
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
 	newInstance, apiResponse, err := c.service.CreateFirewallRule(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 		cr.Spec.ForProvider.ServerCfg.ServerID, cr.Spec.ForProvider.NicCfg.NicID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
@@ -209,7 +213,6 @@ func (c *externalFirewallRule) Create(ctx context.Context, mg resource.Managed) 
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return creation, err
 	}
-
 	// Set External Name
 	cr.Status.AtProvider.FirewallRuleID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)

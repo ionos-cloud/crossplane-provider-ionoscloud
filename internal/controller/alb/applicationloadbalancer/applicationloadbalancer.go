@@ -51,7 +51,7 @@ import (
 const errNotApplicationLoadBalancer = "managed resource is not a ApplicationLoadBalancer custom resource"
 
 // Setup adds a controller that reconciles ApplicationLoadBalancer managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration, uniqueNamesEnable bool) error {
 	name := managed.ControllerName(v1alpha1.ApplicationLoadBalancerGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -63,9 +63,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.ApplicationLoadBalancerGroupVersionKind),
 			managed.WithExternalConnecter(&connectorApplicationLoadBalancer{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l}),
+				kube:                 mgr.GetClient(),
+				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:                  l,
+				isUniqueNamesEnabled: uniqueNamesEnable}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
 			managed.WithCreationGracePeriod(creationGracePeriod),
@@ -78,9 +79,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 // A connectorApplicationLoadBalancer is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorApplicationLoadBalancer struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Connect typically produces an ExternalClient by:
@@ -95,9 +97,10 @@ func (c *connectorApplicationLoadBalancer) Connect(ctx context.Context, mg resou
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalApplicationLoadBalancer{
-		service:        &applicationloadbalancer.APIClient{IonosServices: svc},
-		ipBlockService: &ipblock.APIClient{IonosServices: svc},
-		log:            c.log}, err
+		service:              &applicationloadbalancer.APIClient{IonosServices: svc},
+		ipBlockService:       &ipblock.APIClient{IonosServices: svc},
+		log:                  c.log,
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -105,9 +108,10 @@ func (c *connectorApplicationLoadBalancer) Connect(ctx context.Context, mg resou
 type externalApplicationLoadBalancer struct {
 	// A 'client' used to connect to the externalApplicationLoadBalancer resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service        applicationloadbalancer.Client
-	ipBlockService ipblock.Client
-	log            logging.Logger
+	service              applicationloadbalancer.Client
+	ipBlockService       ipblock.Client
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 func (c *externalApplicationLoadBalancer) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
@@ -160,7 +164,6 @@ func (c *externalApplicationLoadBalancer) Create(ctx context.Context, mg resourc
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotApplicationLoadBalancer)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	// Check external name in order to avoid duplicates,
 	// since the creation requests take longer than other resources.
@@ -171,22 +174,24 @@ func (c *externalApplicationLoadBalancer) Create(ctx context.Context, mg resourc
 		return managed.ExternalCreation{}, nil
 	}
 
-	// ApplicationLoadBalancers should have unique names per datacenter.
-	// Check if there are any existing application load balancers with the same name.
-	// If there are multiple, an error will be returned.
-	instance, err := c.service.CheckDuplicateApplicationLoadBalancer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.Name)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
-	applicationLoadBalancerID, err := c.service.GetApplicationLoadBalancerID(instance)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
-	if applicationLoadBalancerID != "" {
-		// "Import" existing application load balancer.
-		cr.Status.AtProvider.ApplicationLoadBalancerID = applicationLoadBalancerID
-		meta.SetExternalName(cr, applicationLoadBalancerID)
-		return managed.ExternalCreation{}, nil
+	if c.isUniqueNamesEnabled {
+		// ApplicationLoadBalancers should have unique names per datacenter.
+		// Check if there are any existing application load balancers with the same name.
+		// If there are multiple, an error will be returned.
+		instance, err := c.service.CheckDuplicateApplicationLoadBalancer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.Name)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		applicationLoadBalancerID, err := c.service.GetApplicationLoadBalancerID(instance)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if applicationLoadBalancerID != "" {
+			// "Import" existing application load balancer.
+			cr.Status.AtProvider.ApplicationLoadBalancerID = applicationLoadBalancerID
+			meta.SetExternalName(cr, applicationLoadBalancerID)
+			return managed.ExternalCreation{}, nil
+		}
 	}
 
 	ips, err := c.getIPsSet(ctx, cr)
@@ -206,7 +211,6 @@ func (c *externalApplicationLoadBalancer) Create(ctx context.Context, mg resourc
 		}
 		return creation, retErr
 	}
-
 	// Set External Name
 	cr.Status.AtProvider.ApplicationLoadBalancerID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
