@@ -47,7 +47,7 @@ func (cp *ClusterAPIClient) CheckDuplicateCluster(ctx context.Context, clusterNa
 							if *locationOk == location {
 								matchedItems = append(matchedItems, item)
 							} else {
-								return nil, fmt.Errorf("error: found cluster with the name %v, but immutable property location %v", clusterName, *locationOk)
+								return nil, fmt.Errorf("error: found cluster with the name %v, but immutable property location. expected: %v actual: %v", clusterName, location, *locationOk)
 							}
 						}
 					}

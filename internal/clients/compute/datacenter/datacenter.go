@@ -45,7 +45,7 @@ func (cp *APIClient) CheckDuplicateDatacenter(ctx context.Context, datacenterNam
 							if *locationOk == location {
 								matchedItems = append(matchedItems, item)
 							} else {
-								return nil, fmt.Errorf("error: found datacenter with the name %v, but immutable property location %v", datacenterName, *locationOk)
+								return nil, fmt.Errorf("error: found datacenter with the name %v, but immutable property location different. expected: %v actual: %v", datacenterName, location, *locationOk)
 							}
 						}
 					}

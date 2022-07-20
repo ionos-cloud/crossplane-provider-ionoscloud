@@ -45,7 +45,7 @@ func (cp *APIClient) CheckDuplicateFirewallRule(ctx context.Context, datacenterI
 							if *protocolOk == protocol {
 								matchedItems = append(matchedItems, item)
 							} else {
-								return nil, fmt.Errorf("error: found firewall rule with the name %v, but immutable property protocol %v", firewallRuleName, *protocolOk)
+								return nil, fmt.Errorf("error: found firewall rule with the name %v, but immutable property protocol different. expected: %v actual: %v", firewallRuleName, protocol, *protocolOk)
 							}
 						}
 					}
