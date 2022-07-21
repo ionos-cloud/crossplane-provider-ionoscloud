@@ -276,6 +276,40 @@ More details about Composite Resources can be found here:
 - [Composite Resources Concept](https://crossplane.io/docs/v1.7/concepts/composition.html)
 - [Composite Resources Reference](https://crossplane.io/docs/v1.7/reference/composition.html)
 
+## Name Uniqueness Support for IONOS Cloud Resources
+
+The Crossplane Provider IONOS Cloud has support for `--unique-names` flag, in order to enable name uniqueness support
+for IONOS Cloud Resources.
+
+You can create a `ControllerConfig`:
+
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: pkg.crossplane.io/v1alpha1
+kind: ControllerConfig
+metadata:
+  name: provider-config
+spec:
+  args:
+    - --unique-names
+EOF
+```
+
+And reference it from the `Provider`:
+
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-ionos
+spec:
+  package: ghcr.io/ionos-cloud/crossplane-provider-ionoscloud:latest
+  controllerConfigRef:
+    name: provider-config
+EOF
+```
+
 ## Debug Mode
 
 ### Provider Logs
