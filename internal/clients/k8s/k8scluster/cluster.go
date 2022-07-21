@@ -34,12 +34,12 @@ type Client interface {
 
 // CheckDuplicateK8sCluster based on clusterName
 func (cp *APIClient) CheckDuplicateK8sCluster(ctx context.Context, clusterName string) (*sdkgo.KubernetesCluster, error) { // nolint: gocyclo
-	datacenters, _, err := cp.ComputeClient.KubernetesApi.K8sGet(ctx).Execute()
+	kubernetesClusters, _, err := cp.ComputeClient.KubernetesApi.K8sGet(ctx).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
 	matchedItems := make([]sdkgo.KubernetesCluster, 0)
-	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+	if itemsOk, ok := kubernetesClusters.GetItemsOk(); ok && itemsOk != nil {
 		for _, item := range *itemsOk {
 			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
 				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {

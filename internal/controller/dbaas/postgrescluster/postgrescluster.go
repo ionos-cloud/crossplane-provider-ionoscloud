@@ -157,7 +157,8 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 		// Clusters should have unique names per account.
 		// Check if there are any existing clusters with the same name.
 		// If there are multiple, an error will be returned.
-		instance, err := c.service.CheckDuplicateCluster(ctx, cr.Spec.ForProvider.DisplayName, cr.Spec.ForProvider.Location)
+		instance, err := c.service.CheckDuplicateCluster(ctx, cr.Spec.ForProvider.DisplayName,
+			cr.Spec.ForProvider.Location, cr.Spec.ForProvider.StorageType)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}

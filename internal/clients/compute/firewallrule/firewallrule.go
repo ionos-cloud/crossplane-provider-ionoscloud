@@ -30,12 +30,12 @@ type Client interface {
 
 // CheckDuplicateFirewallRule based on firewallRuleName, and the immutable property protocol
 func (cp *APIClient) CheckDuplicateFirewallRule(ctx context.Context, datacenterID, serverID, nicID, firewallRuleName, protocol string) (*sdkgo.FirewallRule, error) { // nolint: gocyclo
-	datacenters, _, err := cp.ComputeClient.FirewallRulesApi.DatacentersServersNicsFirewallrulesGet(ctx, datacenterID, serverID, nicID).Depth(utils.DepthQueryParam).Execute()
+	firewallRules, _, err := cp.ComputeClient.FirewallRulesApi.DatacentersServersNicsFirewallrulesGet(ctx, datacenterID, serverID, nicID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
 	matchedItems := make([]sdkgo.FirewallRule, 0)
-	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+	if itemsOk, ok := firewallRules.GetItemsOk(); ok && itemsOk != nil {
 		for _, item := range *itemsOk {
 			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
 				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {

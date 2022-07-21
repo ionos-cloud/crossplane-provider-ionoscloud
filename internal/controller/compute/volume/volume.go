@@ -148,7 +148,9 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 		// Volumes should have unique names per datacenter.
 		// Check if there are any existing volumes with the same name.
 		// If there are multiple, an error will be returned.
-		instance, err := c.service.CheckDuplicateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.Name)
+		instance, err := c.service.CheckDuplicateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+			cr.Spec.ForProvider.Name, cr.Spec.ForProvider.Type, cr.Spec.ForProvider.AvailabilityZone,
+			cr.Spec.ForProvider.LicenceType, cr.Spec.ForProvider.Image)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}

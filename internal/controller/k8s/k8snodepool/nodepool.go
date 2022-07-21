@@ -172,7 +172,8 @@ func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (man
 		// NodePools should have unique names per cluster.
 		// Check if there are any existing node pools with the same name.
 		// If there are multiple, an error will be returned.
-		instance, err := c.service.CheckDuplicateK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, cr.Spec.ForProvider.Name)
+		instance, err := c.service.CheckDuplicateK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID,
+			cr.Spec.ForProvider.Name, cr)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}

@@ -31,12 +31,12 @@ type Client interface {
 
 // CheckDuplicateLan based on datacenterID, lanName
 func (cp *APIClient) CheckDuplicateLan(ctx context.Context, datacenterID, lanName string) (*sdkgo.Lan, error) { // nolint: gocyclo
-	datacenters, _, err := cp.ComputeClient.LANsApi.DatacentersLansGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
+	lans, _, err := cp.ComputeClient.LANsApi.DatacentersLansGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
 	matchedItems := make([]sdkgo.Lan, 0)
-	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+	if itemsOk, ok := lans.GetItemsOk(); ok && itemsOk != nil {
 		for _, item := range *itemsOk {
 			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
 				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {

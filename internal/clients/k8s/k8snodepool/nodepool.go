@@ -21,7 +21,7 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service K8s Cluster methods
 type Client interface {
-	CheckDuplicateK8sNodePool(ctx context.Context, clusterID, nodepoolName string) (*sdkgo.KubernetesNodePool, error)
+	CheckDuplicateK8sNodePool(ctx context.Context, clusterID, nodepoolName string, cr *v1alpha1.NodePool) (*sdkgo.KubernetesNodePool, error)
 	GetK8sNodePoolID(nodepool *sdkgo.KubernetesNodePool) (string, error)
 	GetK8sNodePool(ctx context.Context, clusterID, nodepoolID string) (sdkgo.KubernetesNodePool, *sdkgo.APIResponse, error)
 	CreateK8sNodePool(ctx context.Context, clusterID string, nodepool sdkgo.KubernetesNodePoolForPost) (sdkgo.KubernetesNodePool, *sdkgo.APIResponse, error)
@@ -31,17 +31,52 @@ type Client interface {
 }
 
 // CheckDuplicateK8sNodePool based on clusterID, nodepoolName
-func (cp *APIClient) CheckDuplicateK8sNodePool(ctx context.Context, clusterID, nodepoolName string) (*sdkgo.KubernetesNodePool, error) { // nolint: gocyclo
-	datacenters, _, err := cp.ComputeClient.KubernetesApi.K8sNodepoolsGet(ctx, clusterID).Execute()
+func (cp *APIClient) CheckDuplicateK8sNodePool(ctx context.Context, clusterID, nodepoolName string, cr *v1alpha1.NodePool) (*sdkgo.KubernetesNodePool, error) { // nolint: gocyclo
+	nodePools, _, err := cp.ComputeClient.KubernetesApi.K8sNodepoolsGet(ctx, clusterID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
 	matchedItems := make([]sdkgo.KubernetesNodePool, 0)
-	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+	if itemsOk, ok := nodePools.GetItemsOk(); ok && itemsOk != nil {
 		for _, item := range *itemsOk {
 			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
 				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
 					if *nameOk == nodepoolName {
+						if cpuFamilyOk, ok := propertiesOk.GetCpuFamilyOk(); ok && cpuFamilyOk != nil && cr.Spec.ForProvider.CPUFamily != "" {
+							if *cpuFamilyOk != cr.Spec.ForProvider.CPUFamily {
+								return nil, fmt.Errorf("error: found nodepool with the name %v, but immutable property cpu family different. expected: %v actual: %v", nodepoolName, cr.Spec.ForProvider.CPUFamily, *cpuFamilyOk)
+							}
+						}
+						if coresCountOk, ok := propertiesOk.GetCoresCountOk(); ok && coresCountOk != nil {
+							if *coresCountOk != cr.Spec.ForProvider.CoresCount {
+								return nil, fmt.Errorf("error: found nodepool with the name %v, but immutable property cores count different. expected: %v actual: %v", nodepoolName, cr.Spec.ForProvider.CoresCount, *coresCountOk)
+							}
+						}
+						if ramSizeOk, ok := propertiesOk.GetRamSizeOk(); ok && ramSizeOk != nil {
+							if *ramSizeOk != cr.Spec.ForProvider.RAMSize {
+								return nil, fmt.Errorf("error: found nodepool with the name %v, but immutable property ram size different. expected: %v actual: %v", nodepoolName, cr.Spec.ForProvider.RAMSize, *ramSizeOk)
+							}
+						}
+						if availabilityZoneOk, ok := propertiesOk.GetAvailabilityZoneOk(); ok && availabilityZoneOk != nil {
+							if *availabilityZoneOk != cr.Spec.ForProvider.AvailabilityZone {
+								return nil, fmt.Errorf("error: found nodepool with the name %v, but immutable property availability zone different. expected: %v actual: %v", nodepoolName, cr.Spec.ForProvider.AvailabilityZone, *availabilityZoneOk)
+							}
+						}
+						if storageTypeOk, ok := propertiesOk.GetStorageTypeOk(); ok && storageTypeOk != nil {
+							if *storageTypeOk != cr.Spec.ForProvider.StorageType {
+								return nil, fmt.Errorf("error: found nodepool with the name %v, but immutable property storage type different. expected: %v actual: %v", nodepoolName, cr.Spec.ForProvider.StorageType, *storageTypeOk)
+							}
+						}
+						if storageSizeOk, ok := propertiesOk.GetStorageSizeOk(); ok && storageSizeOk != nil {
+							if *storageSizeOk != cr.Spec.ForProvider.StorageSize {
+								return nil, fmt.Errorf("error: found nodepool with the name %v, but immutable property storage size different. expected: %v actual: %v", nodepoolName, cr.Spec.ForProvider.StorageSize, *storageSizeOk)
+							}
+						}
+						if datacenterIDOk, ok := propertiesOk.GetDatacenterIdOk(); ok && datacenterIDOk != nil {
+							if *datacenterIDOk != cr.Spec.ForProvider.DatacenterCfg.DatacenterID {
+								return nil, fmt.Errorf("error: found nodepool with the name %v, but immutable property datacenter id different. expected: %v actual: %v", nodepoolName, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *datacenterIDOk)
+							}
+						}
 						matchedItems = append(matchedItems, item)
 					}
 				}

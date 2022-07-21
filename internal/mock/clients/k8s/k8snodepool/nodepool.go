@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	v1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 )
 
@@ -36,18 +37,18 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // CheckDuplicateK8sNodePool mocks base method.
-func (m *MockClient) CheckDuplicateK8sNodePool(ctx context.Context, clusterID, nodepoolName string) (*ionoscloud.KubernetesNodePool, error) {
+func (m *MockClient) CheckDuplicateK8sNodePool(ctx context.Context, clusterID, nodepoolName string, cr *v1alpha1.NodePool) (*ionoscloud.KubernetesNodePool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckDuplicateK8sNodePool", ctx, clusterID, nodepoolName)
+	ret := m.ctrl.Call(m, "CheckDuplicateK8sNodePool", ctx, clusterID, nodepoolName, cr)
 	ret0, _ := ret[0].(*ionoscloud.KubernetesNodePool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CheckDuplicateK8sNodePool indicates an expected call of CheckDuplicateK8sNodePool.
-func (mr *MockClientMockRecorder) CheckDuplicateK8sNodePool(ctx, clusterID, nodepoolName interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) CheckDuplicateK8sNodePool(ctx, clusterID, nodepoolName, cr interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckDuplicateK8sNodePool", reflect.TypeOf((*MockClient)(nil).CheckDuplicateK8sNodePool), ctx, clusterID, nodepoolName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckDuplicateK8sNodePool", reflect.TypeOf((*MockClient)(nil).CheckDuplicateK8sNodePool), ctx, clusterID, nodepoolName, cr)
 }
 
 // CreateK8sNodePool mocks base method.

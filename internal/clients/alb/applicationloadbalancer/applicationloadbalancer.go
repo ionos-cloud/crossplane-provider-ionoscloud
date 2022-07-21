@@ -31,12 +31,12 @@ type Client interface {
 
 // CheckDuplicateApplicationLoadBalancer based on datacenterID, applicationloadbalancerName
 func (cp *APIClient) CheckDuplicateApplicationLoadBalancer(ctx context.Context, datacenterID, applicationloadbalancerName string) (*sdkgo.ApplicationLoadBalancer, error) { // nolint: gocyclo
-	datacenters, _, err := cp.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
+	applicationLoadBalancers, _, err := cp.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
 	matchedItems := make([]sdkgo.ApplicationLoadBalancer, 0)
-	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+	if itemsOk, ok := applicationLoadBalancers.GetItemsOk(); ok && itemsOk != nil {
 		for _, item := range *itemsOk {
 			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
 				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {

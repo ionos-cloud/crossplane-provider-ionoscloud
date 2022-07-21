@@ -19,7 +19,7 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service Volume methods
 type Client interface {
-	CheckDuplicateVolume(ctx context.Context, datacenterID, volumeName string) (*sdkgo.Volume, error)
+	CheckDuplicateVolume(ctx context.Context, datacenterID, volumeName, storageType, availabilityZone, licenceType, image string) (*sdkgo.Volume, error)
 	GetVolumeID(datacenter *sdkgo.Volume) (string, error)
 	GetVolume(ctx context.Context, datacenterID, volumeID string) (sdkgo.Volume, *sdkgo.APIResponse, error)
 	CreateVolume(ctx context.Context, datacenterID string, volume sdkgo.Volume) (sdkgo.Volume, *sdkgo.APIResponse, error)
@@ -29,17 +29,38 @@ type Client interface {
 }
 
 // CheckDuplicateVolume based on datacenterID, volumeName
-func (cp *APIClient) CheckDuplicateVolume(ctx context.Context, datacenterID, volumeName string) (*sdkgo.Volume, error) { // nolint: gocyclo
-	datacenters, _, err := cp.ComputeClient.VolumesApi.DatacentersVolumesGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
+func (cp *APIClient) CheckDuplicateVolume(ctx context.Context, datacenterID, volumeName, storageType, availabilityZone, licenceType, image string) (*sdkgo.Volume, error) { // nolint: gocyclo
+	volumes, _, err := cp.ComputeClient.VolumesApi.DatacentersVolumesGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
 	matchedItems := make([]sdkgo.Volume, 0)
-	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+	if itemsOk, ok := volumes.GetItemsOk(); ok && itemsOk != nil {
 		for _, item := range *itemsOk {
 			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
 				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
 					if *nameOk == volumeName {
+						// After checking the name, check the immutable properties
+						if typeOk, ok := propertiesOk.GetTypeOk(); ok && typeOk != nil {
+							if *typeOk != storageType {
+								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property type different. expected: %v actual: %v", volumeName, storageType, *typeOk)
+							}
+						}
+						if availabilityZoneOk, ok := propertiesOk.GetAvailabilityZoneOk(); ok && availabilityZoneOk != nil {
+							if *availabilityZoneOk != availabilityZone {
+								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property availability zone different. expected: %v actual: %v", volumeName, availabilityZone, *availabilityZoneOk)
+							}
+						}
+						if licenceTypeOk, ok := propertiesOk.GetLicenceTypeOk(); ok && licenceTypeOk != nil {
+							if *licenceTypeOk != licenceType {
+								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property licence type different. expected: %v actual: %v", volumeName, licenceType, *licenceTypeOk)
+							}
+						}
+						if imageOk, ok := propertiesOk.GetImageOk(); ok && imageOk != nil {
+							if *imageOk != image {
+								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property image different. expected: %v actual: %v", volumeName, image, *imageOk)
+							}
+						}
 						matchedItems = append(matchedItems, item)
 					}
 				}

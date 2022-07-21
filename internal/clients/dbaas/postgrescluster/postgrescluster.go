@@ -22,7 +22,7 @@ type ClusterAPIClient struct {
 
 // ClusterClient is a wrapper around IONOS Service DBaaS Postgres Cluster methods
 type ClusterClient interface {
-	CheckDuplicateCluster(ctx context.Context, clusterName, location string) (*ionoscloud.ClusterResponse, error)
+	CheckDuplicateCluster(ctx context.Context, clusterName, location, storageType string) (*ionoscloud.ClusterResponse, error)
 	GetClusterID(cluster *ionoscloud.ClusterResponse) (string, error)
 	GetCluster(ctx context.Context, clusterID string) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
 	DeleteCluster(ctx context.Context, clusterID string) (*ionoscloud.APIResponse, error)
@@ -31,25 +31,29 @@ type ClusterClient interface {
 }
 
 // CheckDuplicateCluster based on clusterName
-func (cp *ClusterAPIClient) CheckDuplicateCluster(ctx context.Context, clusterName, location string) (*ionoscloud.ClusterResponse, error) { // nolint: gocyclo
-	datacenters, _, err := cp.DBaaSPostgresClient.ClustersApi.ClustersGet(ctx).Execute()
+func (cp *ClusterAPIClient) CheckDuplicateCluster(ctx context.Context, clusterName, location, storageType string) (*ionoscloud.ClusterResponse, error) { // nolint: gocyclo
+	clusterList, _, err := cp.DBaaSPostgresClient.ClustersApi.ClustersGet(ctx).Execute()
 	if err != nil {
 		return nil, err
 	}
 	matchedItems := make([]ionoscloud.ClusterResponse, 0)
-	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+	if itemsOk, ok := clusterList.GetItemsOk(); ok && itemsOk != nil {
 		for _, item := range *itemsOk {
 			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
 				if nameOk, ok := propertiesOk.GetDisplayNameOk(); ok && nameOk != nil {
 					if *nameOk == clusterName {
 						// After checking the name, check the immutable properties
 						if locationOk, ok := propertiesOk.GetLocationOk(); ok && locationOk != nil {
-							if *locationOk == location {
-								matchedItems = append(matchedItems, item)
-							} else {
-								return nil, fmt.Errorf("error: found cluster with the name %v, but immutable property location. expected: %v actual: %v", clusterName, location, *locationOk)
+							if *locationOk != location {
+								return nil, fmt.Errorf("error: found cluster with the name %v, but immutable property location different. expected: %v actual: %v", clusterName, location, *locationOk)
 							}
 						}
+						if storageTypeOk, ok := propertiesOk.GetStorageTypeOk(); ok && storageTypeOk != nil {
+							if string(*storageTypeOk) != storageType {
+								return nil, fmt.Errorf("error: found cluster with the name %v, but immutable property storageType different. expected: %v actual: %v", clusterName, storageType, string(*storageTypeOk))
+							}
+						}
+						matchedItems = append(matchedItems, item)
 					}
 				}
 			}

@@ -31,12 +31,12 @@ type Client interface {
 
 // CheckDuplicateIPBlock based on ipBlockName, and the immutable property location
 func (cp *APIClient) CheckDuplicateIPBlock(ctx context.Context, ipBlockName, location string) (*sdkgo.IpBlock, error) { // nolint: gocyclo
-	datacenters, _, err := cp.ComputeClient.IPBlocksApi.IpblocksGet(ctx).Depth(utils.DepthQueryParam).Execute()
+	ipBlocks, _, err := cp.ComputeClient.IPBlocksApi.IpblocksGet(ctx).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
 	matchedItems := make([]sdkgo.IpBlock, 0)
-	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+	if itemsOk, ok := ipBlocks.GetItemsOk(); ok && itemsOk != nil {
 		for _, item := range *itemsOk {
 			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
 				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {

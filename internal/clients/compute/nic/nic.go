@@ -32,12 +32,12 @@ type Client interface {
 
 // CheckDuplicateNic based on datacenterID, serverID, nicName and the immutable property location
 func (cp *APIClient) CheckDuplicateNic(ctx context.Context, datacenterID, serverID, nicName string) (*sdkgo.Nic, error) { // nolint: gocyclo
-	datacenters, _, err := cp.ComputeClient.NetworkInterfacesApi.DatacentersServersNicsGet(ctx, datacenterID, serverID).Depth(utils.DepthQueryParam).Execute()
+	nics, _, err := cp.ComputeClient.NetworkInterfacesApi.DatacentersServersNicsGet(ctx, datacenterID, serverID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
 	matchedItems := make([]sdkgo.Nic, 0)
-	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+	if itemsOk, ok := nics.GetItemsOk(); ok && itemsOk != nil {
 		for _, item := range *itemsOk {
 			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
 				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {

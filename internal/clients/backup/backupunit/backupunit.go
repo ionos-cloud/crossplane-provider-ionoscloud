@@ -31,12 +31,12 @@ type Client interface {
 
 // CheckDuplicateBackupUnit based on backupUnitName
 func (cp *APIClient) CheckDuplicateBackupUnit(ctx context.Context, backupUnitName string) (*sdkgo.BackupUnit, error) { // nolint: gocyclo
-	datacenters, _, err := cp.ComputeClient.BackupUnitsApi.BackupunitsGet(ctx).Depth(utils.DepthQueryParam).Execute()
+	backupUnits, _, err := cp.ComputeClient.BackupUnitsApi.BackupunitsGet(ctx).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
 	matchedItems := make([]sdkgo.BackupUnit, 0)
-	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+	if itemsOk, ok := backupUnits.GetItemsOk(); ok && itemsOk != nil {
 		for _, item := range *itemsOk {
 			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
 				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {

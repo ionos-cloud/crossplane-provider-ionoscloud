@@ -30,12 +30,12 @@ type Client interface {
 
 // CheckDuplicateTargetGroup based on targetGroupName
 func (cp *APIClient) CheckDuplicateTargetGroup(ctx context.Context, targetGroupName string) (*sdkgo.TargetGroup, error) { // nolint: gocyclo
-	datacenters, _, err := cp.ComputeClient.TargetGroupsApi.TargetgroupsGet(ctx).Depth(utils.DepthQueryParam).Execute()
+	targetGroups, _, err := cp.ComputeClient.TargetGroupsApi.TargetgroupsGet(ctx).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
 	matchedItems := make([]sdkgo.TargetGroup, 0)
-	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+	if itemsOk, ok := targetGroups.GetItemsOk(); ok && itemsOk != nil {
 		for _, item := range *itemsOk {
 			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
 				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
