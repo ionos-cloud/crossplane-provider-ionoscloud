@@ -106,7 +106,7 @@ jobs:
       - name: Vendor Dependencies
         run: make vendor vendor.check
       - name: Build Helm Chart
-        run: make -j2 build VERSION=latest
+        run: make -j2 build VERSION=latest --debug
         env:
           BUILD_ARGS: "--load"
       #          Use only if the VERSION is not latest

@@ -156,6 +156,7 @@ echo_step "--- install Crossplane Provider IONOSCLOUD ---"
 install_provider
 
 if [ "$TEST_COMPUTE" = true ]; then
+  echo_step "--- COMPUTE ENGINE TESTS ---"
   echo_step "--- ipblock tests ---"
   ipblock_tests
   echo_step "--- datacenter tests ---"
@@ -172,39 +173,7 @@ if [ "$TEST_COMPUTE" = true ]; then
   firewallrule_tests
   echo_step "--- ipfailover tests ---"
   ipfailover_tests
-fi
-
-if [ "$TEST_DBAAS" = true ]; then
-  echo_step "--- dbaas postgres cluster tests ---"
-  dbaas_postgres_cluster_tests
-fi
-
-if [ "$TEST_K8S" = true ]; then
-  echo_step "--- k8s cluster tests ---"
-  k8s_cluster_tests
-  echo_step "--- k8s nodepool tests ---"
-  k8s_nodepool_tests
-fi
-
-if [ "$TEST_ALB" = true ]; then
-  echo_step "--- target group tests ---"
-  targetgroup_tests
-  echo_step "--- application load balancer tests ---"
-  alb_tests
-  echo_step "--- forwarding rule tests ---"
-  forwardingrule_tests
-fi
-
-if [ "$TEST_BACKUP" = true ]; then
-  echo_step "--- backupunit tests ---"
-  backupunit_tests
-fi
-
-echo_step "-------------------"
-echo_step "--- CLEANING UP ---"
-echo_step "-------------------"
-
-if [ "$TEST_COMPUTE" = true ]; then
+  echo_step "--- CLEANING UP COMPUTE ENGINE TESTS ---"
   echo_step "--- cleanup firewallrule tests ---"
   firewallrule_tests_cleanup
   echo_step "--- cleanup ipfailover tests ---"
@@ -224,11 +193,21 @@ if [ "$TEST_COMPUTE" = true ]; then
 fi
 
 if [ "$TEST_DBAAS" = true ]; then
+  echo_step "--- DBAAS POSTGRES TESTS ---"
+  echo_step "--- dbaas postgres cluster tests ---"
+  dbaas_postgres_cluster_tests
+  echo_step "--- CLEANING UP DBAAS POSTGRES TESTS ---"
   echo_step "--- dbaas postgres cluster tests ---"
   dbaas_postgres_cluster_tests_cleanup
 fi
 
 if [ "$TEST_K8S" = true ]; then
+  echo_step "--- K8S TESTS ---"
+  echo_step "--- k8s cluster tests ---"
+  k8s_cluster_tests
+  echo_step "--- k8s nodepool tests ---"
+  k8s_nodepool_tests
+  echo_step "--- CLEANING UP K8S TESTS ---"
   echo_step "--- k8s nodepool tests ---"
   k8s_nodepool_tests_cleanup
   echo_step "--- k8s cluster tests ---"
@@ -236,6 +215,14 @@ if [ "$TEST_K8S" = true ]; then
 fi
 
 if [ "$TEST_ALB" = true ]; then
+  echo_step "--- ALB TESTS ---"
+  echo_step "--- target group tests ---"
+  targetgroup_tests
+  echo_step "--- application load balancer tests ---"
+  alb_tests
+  echo_step "--- forwarding rule tests ---"
+  forwardingrule_tests
+  echo_step "--- CLEANING UP ALB TESTS---"
   echo_step "--- forwarding rule tests ---"
   forwardingrule_tests_cleanup
   echo_step "--- application load balancer tests ---"
@@ -245,9 +232,17 @@ if [ "$TEST_ALB" = true ]; then
 fi
 
 if [ "$TEST_BACKUP" = true ]; then
+  echo_step "--- BACKUP TESTS ---"
+  echo_step "--- backupunit tests ---"
+  backupunit_tests
+  echo_step "--- CLEANING UP BACKUP TESTS ---"
   echo_step "--- backupunit tests ---"
   backupunit_tests_cleanup
 fi
+
+echo_step "-------------------"
+echo_step "--- CLEANING UP ---"
+echo_step "-------------------"
 
 # uninstalling Crossplane Provider IONOS Cloud
 echo_step "--- uninstalling ${PROJECT_NAME} ---"
