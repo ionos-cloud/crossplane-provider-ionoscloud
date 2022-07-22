@@ -9,7 +9,7 @@ PLATFORMS ?= linux_amd64 linux_arm64
 # Setup Output
 -include build/makelib/output.mk
 
-# Setup Go
+# Setup Golang
 NPROCS ?= 1
 GO_TEST_PARALLEL := $(shell echo $$(( $(NPROCS) / 2 )))
 GO_STATIC_PACKAGES = $(GO_PROJECT)/cmd/provider

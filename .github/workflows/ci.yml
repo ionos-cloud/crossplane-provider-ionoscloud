@@ -58,10 +58,9 @@ jobs:
       - name: Vendor Dependencies
         run: make vendor vendor.check
       - name: Lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
           version: ${{ env.GOLANGCI_VERSION }}
-          skip-go-installation: true
 
   e2e-tests:
     runs-on: ubuntu-20.04
@@ -108,6 +107,8 @@ jobs:
       - name: Build Helm Chart
         run: make -j2 build VERSION=latest --debug
         env:
+          # We're using docker buildx, which doesn't actually load the images it
+          # builds by default. Specifying --load does so.
           BUILD_ARGS: "--load"
       #          Use only if the VERSION is not latest
       #      - name: Docker Images Tag
