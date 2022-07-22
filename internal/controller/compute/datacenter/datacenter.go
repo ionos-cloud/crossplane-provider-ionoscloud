@@ -19,7 +19,6 @@ package datacenter
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/workqueue"
@@ -40,12 +39,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/datacenter"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotDatacenter = "managed resource is not a Datacenter custom resource"
 
 // Setup adds a controller that reconciles Datacenter managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.DatacenterGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -57,14 +57,15 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.DatacenterGroupVersionKind),
 			managed.WithExternalConnecter(&connectorDatacenter{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l}),
+				kube:                 mgr.GetClient(),
+				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:                  l,
+				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
-			managed.WithPollInterval(poll),
-			managed.WithTimeout(timeout),
-			managed.WithCreationGracePeriod(creationGracePeriod),
+			managed.WithPollInterval(opts.GetPollInterval()),
+			managed.WithTimeout(opts.GetTimeout()),
+			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
@@ -72,9 +73,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 // A connectorDatacenter is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorDatacenter struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Connect typically produces an ExternalClient by:
@@ -89,8 +91,9 @@ func (c *connectorDatacenter) Connect(ctx context.Context, mg resource.Managed) 
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalDatacenter{
-		service: &datacenter.APIClient{IonosServices: svc},
-		log:     c.log}, err
+		service:              &datacenter.APIClient{IonosServices: svc},
+		log:                  c.log,
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -98,8 +101,9 @@ func (c *connectorDatacenter) Connect(ctx context.Context, mg resource.Managed) 
 type externalDatacenter struct {
 	// A 'client' used to connect to the externalDatacenter resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service datacenter.Client
-	log     logging.Logger
+	service              datacenter.Client
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 func (c *externalDatacenter) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -136,30 +140,48 @@ func (c *externalDatacenter) Create(ctx context.Context, mg resource.Managed) (m
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotDatacenter)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
+
+	if c.isUniqueNamesEnabled {
+		// Datacenters should have unique names per account.
+		// Check if there are any existing datacenters with the same name.
+		// If there are multiple, an error will be returned.
+		instance, err := c.service.CheckDuplicateDatacenter(ctx, cr.Spec.ForProvider.Name, cr.Spec.ForProvider.Location)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		datacenterID, err := c.service.GetDatacenterID(instance)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if datacenterID != "" {
+			// "Import" existing datacenter.
+			cr.Status.AtProvider.DatacenterID = datacenterID
+			meta.SetExternalName(cr, datacenterID)
+			return managed.ExternalCreation{}, nil
+		}
+	}
+
+	// Create new datacenter instance accordingly
+	// with the properties set.
 	instanceInput, err := datacenter.GenerateCreateDatacenterInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
-	instance, apiResponse, err := c.service.CreateDatacenter(ctx, *instanceInput)
-	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
+	newInstance, apiResponse, err := c.service.CreateDatacenter(ctx, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to create datacenter. error: %w", err)
-		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalCreation{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return creation, err
+		return managed.ExternalCreation{}, err
 	}
-
-	// Set External Name
-	cr.Status.AtProvider.DatacenterID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
-	return creation, nil
+	cr.Status.AtProvider.DatacenterID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
+	return managed.ExternalCreation{}, nil
 }
 
 func (c *externalDatacenter) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {

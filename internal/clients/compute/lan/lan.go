@@ -19,12 +19,52 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service Lan methods
 type Client interface {
+	CheckDuplicateLan(ctx context.Context, datacenterID, lanName string) (*sdkgo.Lan, error)
+	GetLanID(lan *sdkgo.Lan) (string, error)
 	GetLan(ctx context.Context, datacenterID, lanID string) (sdkgo.Lan, *sdkgo.APIResponse, error)
 	GetLanIPFailovers(ctx context.Context, datacenterID, lanID string) ([]sdkgo.IPFailover, error)
 	CreateLan(ctx context.Context, datacenterID string, lan sdkgo.LanPost) (sdkgo.LanPost, *sdkgo.APIResponse, error)
 	UpdateLan(ctx context.Context, datacenterID, lanID string, lan sdkgo.LanProperties) (sdkgo.Lan, *sdkgo.APIResponse, error)
 	DeleteLan(ctx context.Context, datacenterID, lanID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
+}
+
+// CheckDuplicateLan based on datacenterID, lanName
+func (cp *APIClient) CheckDuplicateLan(ctx context.Context, datacenterID, lanName string) (*sdkgo.Lan, error) { // nolint: gocyclo
+	lans, _, err := cp.ComputeClient.LANsApi.DatacentersLansGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
+	if err != nil {
+		return nil, err
+	}
+	matchedItems := make([]sdkgo.Lan, 0)
+	if itemsOk, ok := lans.GetItemsOk(); ok && itemsOk != nil {
+		for _, item := range *itemsOk {
+			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
+				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
+					if *nameOk == lanName {
+						matchedItems = append(matchedItems, item)
+					}
+				}
+			}
+		}
+	}
+	if len(matchedItems) == 0 {
+		return nil, nil
+	}
+	if len(matchedItems) > 1 {
+		return nil, fmt.Errorf("error: found multiple lans with the name %v", lanName)
+	}
+	return &matchedItems[0], nil
+}
+
+// GetLanID based on lan
+func (cp *APIClient) GetLanID(lan *sdkgo.Lan) (string, error) {
+	if lan != nil {
+		if idOk, ok := lan.GetIdOk(); ok && idOk != nil {
+			return *idOk, nil
+		}
+		return "", fmt.Errorf("error: getting lan id")
+	}
+	return "", nil
 }
 
 // GetLan based on datacenterID, lanID

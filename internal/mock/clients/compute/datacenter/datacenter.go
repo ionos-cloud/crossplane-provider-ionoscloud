@@ -35,6 +35,21 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
+// CheckDuplicateDatacenter mocks base method.
+func (m *MockClient) CheckDuplicateDatacenter(ctx context.Context, datacenterName, location string) (*ionoscloud.Datacenter, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckDuplicateDatacenter", ctx, datacenterName, location)
+	ret0, _ := ret[0].(*ionoscloud.Datacenter)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckDuplicateDatacenter indicates an expected call of CheckDuplicateDatacenter.
+func (mr *MockClientMockRecorder) CheckDuplicateDatacenter(ctx, datacenterName, location interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckDuplicateDatacenter", reflect.TypeOf((*MockClient)(nil).CheckDuplicateDatacenter), ctx, datacenterName, location)
+}
+
 // CreateDatacenter mocks base method.
 func (m *MockClient) CreateDatacenter(ctx context.Context, datacenter ionoscloud.Datacenter) (ionoscloud.Datacenter, *ionoscloud.APIResponse, error) {
 	m.ctrl.T.Helper()
@@ -109,6 +124,21 @@ func (m *MockClient) GetDatacenter(ctx context.Context, datacenterID string) (io
 func (mr *MockClientMockRecorder) GetDatacenter(ctx, datacenterID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDatacenter", reflect.TypeOf((*MockClient)(nil).GetDatacenter), ctx, datacenterID)
+}
+
+// GetDatacenterID mocks base method.
+func (m *MockClient) GetDatacenterID(datacenter *ionoscloud.Datacenter) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDatacenterID", datacenter)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDatacenterID indicates an expected call of GetDatacenterID.
+func (mr *MockClientMockRecorder) GetDatacenterID(datacenter interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDatacenterID", reflect.TypeOf((*MockClient)(nil).GetDatacenterID), datacenter)
 }
 
 // UpdateDatacenter mocks base method.

@@ -19,7 +19,6 @@ package cubeserver
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
@@ -43,12 +42,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/template"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/volume"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotCubeServer = "managed resource is not a Cube Server custom resource"
 
 // Setup adds a controller that reconciles Server managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.CubeServerGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -60,14 +60,15 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.CubeServerGroupVersionKind),
 			managed.WithExternalConnecter(&connectorServer{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l}),
+				kube:                 mgr.GetClient(),
+				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:                  l,
+				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
-			managed.WithPollInterval(poll),
-			managed.WithTimeout(timeout),
-			managed.WithCreationGracePeriod(creationGracePeriod),
+			managed.WithPollInterval(opts.GetPollInterval()),
+			managed.WithTimeout(opts.GetTimeout()),
+			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
@@ -75,9 +76,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 // A connectorServer is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorServer struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Connect typically produces an ExternalClient by:
@@ -92,10 +94,11 @@ func (c *connectorServer) Connect(ctx context.Context, mg resource.Managed) (man
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalServer{
-		service:         &server.APIClient{IonosServices: svc},
-		serviceVolume:   &volume.APIClient{IonosServices: svc},
-		serviceTemplate: &template.APIClient{IonosServices: svc},
-		log:             c.log}, err
+		service:              &server.APIClient{IonosServices: svc},
+		serviceVolume:        &volume.APIClient{IonosServices: svc},
+		serviceTemplate:      &template.APIClient{IonosServices: svc},
+		log:                  c.log,
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -103,10 +106,11 @@ func (c *connectorServer) Connect(ctx context.Context, mg resource.Managed) (man
 type externalServer struct {
 	// A 'client' used to connect to the externalServer resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service         server.Client
-	serviceVolume   volume.Client
-	serviceTemplate template.Client
-	log             logging.Logger
+	service              server.Client
+	serviceVolume        volume.Client
+	serviceTemplate      template.Client
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
@@ -148,28 +152,47 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	}, nil
 }
 
-func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint: gocyclo
 	cr, ok := mg.(*v1alpha1.CubeServer)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotCubeServer)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
+
+	if c.isUniqueNamesEnabled {
+		// Servers should have unique names per datacenter.
+		// Check if there are any existing servers with the same name.
+		// If there are multiple, an error will be returned.
+		instance, err := c.service.CheckDuplicateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.Name, cr.Spec.ForProvider.CPUFamily)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		serverID, err := c.service.GetServerID(instance)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if serverID != "" {
+			// "Import" existing server.
+			cr.Status.AtProvider.ServerID = serverID
+			meta.SetExternalName(cr, serverID)
+			return managed.ExternalCreation{}, nil
+		}
+	}
+
 	// Resolve TemplateID
 	templateID, err := getTemplateID(ctx, c, cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
+	// Create new cube server based on the properties set
 	instanceInput, err := server.GenerateCreateCubeServerInput(cr, templateID)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
-	instance, apiResponse, err := c.service.CreateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
+	newInstance, apiResponse, err := c.service.CreateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create cube server. error: %w", err)
@@ -178,10 +201,9 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return creation, err
 	}
-
 	// Set External Name
-	cr.Status.AtProvider.ServerID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.ServerID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

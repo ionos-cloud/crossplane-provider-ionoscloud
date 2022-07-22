@@ -35,6 +35,21 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
+// CheckDuplicateIPBlock mocks base method.
+func (m *MockClient) CheckDuplicateIPBlock(ctx context.Context, ipBlockName, location string) (*ionoscloud.IpBlock, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckDuplicateIPBlock", ctx, ipBlockName, location)
+	ret0, _ := ret[0].(*ionoscloud.IpBlock)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckDuplicateIPBlock indicates an expected call of CheckDuplicateIPBlock.
+func (mr *MockClientMockRecorder) CheckDuplicateIPBlock(ctx, ipBlockName, location interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckDuplicateIPBlock", reflect.TypeOf((*MockClient)(nil).CheckDuplicateIPBlock), ctx, ipBlockName, location)
+}
+
 // CreateIPBlock mocks base method.
 func (m *MockClient) CreateIPBlock(ctx context.Context, ipBlock ionoscloud.IpBlock) (ionoscloud.IpBlock, *ionoscloud.APIResponse, error) {
 	m.ctrl.T.Helper()
@@ -94,6 +109,21 @@ func (m *MockClient) GetIPBlock(ctx context.Context, ipBlockID string) (ionosclo
 func (mr *MockClientMockRecorder) GetIPBlock(ctx, ipBlockID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIPBlock", reflect.TypeOf((*MockClient)(nil).GetIPBlock), ctx, ipBlockID)
+}
+
+// GetIPBlockID mocks base method.
+func (m *MockClient) GetIPBlockID(ipBlock *ionoscloud.IpBlock) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIPBlockID", ipBlock)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetIPBlockID indicates an expected call of GetIPBlockID.
+func (mr *MockClientMockRecorder) GetIPBlockID(ipBlock interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIPBlockID", reflect.TypeOf((*MockClient)(nil).GetIPBlockID), ipBlock)
 }
 
 // GetIPs mocks base method.

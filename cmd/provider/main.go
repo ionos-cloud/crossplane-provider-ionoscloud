@@ -29,12 +29,14 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 func main() {
 	var (
 		app               = kingpin.New(filepath.Base(os.Args[0]), "IONOS Cloud support for Crossplane.").DefaultEnvars()
 		debug             = app.Flag("debug", "Run with debug logging.").Short('d').Bool()
+		uniqueNames       = app.Flag("unique-names", "Enable uniqueness name support for IONOS Cloud resources").Short('u').Bool()
 		syncInterval      = app.Flag("sync", "Controller manager sync interval such as 300ms, 1.5h, or 2h45m").Short('s').Default("1h").Duration()
 		pollInterval      = app.Flag("poll", "Poll interval controls how often an individual resource should be checked for changes.").Default("1m").Duration()
 		leaderElection    = app.Flag("leader-election", "Use leader election for the controller manager.").Short('l').Default("false").Envar("LEADER_ELECTION").Bool()
@@ -66,6 +68,7 @@ func main() {
 
 	rl := ratelimiter.NewDefaultProviderRateLimiter(ratelimiter.DefaultProviderRPS)
 	kingpin.FatalIfError(apis.AddToScheme(mgr.GetScheme()), "Cannot add IONOS Cloud APIs to scheme")
-	kingpin.FatalIfError(controller.Setup(mgr, log, rl, *pollInterval, *createGracePeriod, *timeout), "Cannot setup IONOS Cloud controllers")
+	options := utils.NewConfigurationOptions(*pollInterval, *createGracePeriod, *timeout, *uniqueNames)
+	kingpin.FatalIfError(controller.Setup(mgr, log, rl, options), "Cannot setup IONOS Cloud controllers")
 	kingpin.FatalIfError(mgr.Start(ctrl.SetupSignalHandler()), "Cannot start controller manager")
 }

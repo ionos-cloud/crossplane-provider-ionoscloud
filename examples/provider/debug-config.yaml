@@ -5,3 +5,5 @@ metadata:
 spec:
   args:
     - --debug
+    # In order to enable name uniqueness support for IONOS Cloud Resources, uncomment the next line:
+    # - --unique-names

@@ -35,6 +35,21 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
+// CheckDuplicateK8sCluster mocks base method.
+func (m *MockClient) CheckDuplicateK8sCluster(ctx context.Context, clusterName string) (*ionoscloud.KubernetesCluster, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckDuplicateK8sCluster", ctx, clusterName)
+	ret0, _ := ret[0].(*ionoscloud.KubernetesCluster)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckDuplicateK8sCluster indicates an expected call of CheckDuplicateK8sCluster.
+func (mr *MockClientMockRecorder) CheckDuplicateK8sCluster(ctx, clusterName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckDuplicateK8sCluster", reflect.TypeOf((*MockClient)(nil).CheckDuplicateK8sCluster), ctx, clusterName)
+}
+
 // CreateK8sCluster mocks base method.
 func (m *MockClient) CreateK8sCluster(ctx context.Context, cluster ionoscloud.KubernetesClusterForPost) (ionoscloud.KubernetesCluster, *ionoscloud.APIResponse, error) {
 	m.ctrl.T.Helper()
@@ -94,6 +109,21 @@ func (m *MockClient) GetK8sCluster(ctx context.Context, clusterID string) (ionos
 func (mr *MockClientMockRecorder) GetK8sCluster(ctx, clusterID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetK8sCluster", reflect.TypeOf((*MockClient)(nil).GetK8sCluster), ctx, clusterID)
+}
+
+// GetK8sClusterID mocks base method.
+func (m *MockClient) GetK8sClusterID(cluster *ionoscloud.KubernetesCluster) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetK8sClusterID", cluster)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetK8sClusterID indicates an expected call of GetK8sClusterID.
+func (mr *MockClientMockRecorder) GetK8sClusterID(cluster interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetK8sClusterID", reflect.TypeOf((*MockClient)(nil).GetK8sClusterID), cluster)
 }
 
 // GetKubeConfig mocks base method.

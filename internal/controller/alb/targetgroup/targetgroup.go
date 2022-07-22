@@ -19,7 +19,6 @@ package targetgroup
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
@@ -41,12 +40,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/alb/targetgroup"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotTargetGroup = "managed resource is not a TargetGroup custom resource"
 
 // Setup adds a controller that reconciles TargetGroup managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll time.Duration, creationGracePeriod, timeout time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.TargetGroupGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -58,14 +58,15 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll ti
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.TargetGroupGroupVersionKind),
 			managed.WithExternalConnecter(&connectorTargetGroup{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l}),
+				kube:                 mgr.GetClient(),
+				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:                  l,
+				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
-			managed.WithCreationGracePeriod(creationGracePeriod),
-			managed.WithPollInterval(poll),
-			managed.WithTimeout(timeout),
+			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
+			managed.WithPollInterval(opts.GetPollInterval()),
+			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
@@ -73,9 +74,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll ti
 // A connectorTargetGroup is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorTargetGroup struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Connect typically produces an ExternalClient by:
@@ -90,8 +92,9 @@ func (c *connectorTargetGroup) Connect(ctx context.Context, mg resource.Managed)
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalTargetGroup{
-		service: &targetgroup.APIClient{IonosServices: svc},
-		log:     c.log}, err
+		service:              &targetgroup.APIClient{IonosServices: svc},
+		log:                  c.log,
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -99,8 +102,9 @@ func (c *connectorTargetGroup) Connect(ctx context.Context, mg resource.Managed)
 type externalTargetGroup struct {
 	// A 'client' used to connect to the externalTargetGroup resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service targetgroup.Client
-	log     logging.Logger
+	service              targetgroup.Client
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 func (c *externalTargetGroup) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
@@ -136,16 +140,36 @@ func (c *externalTargetGroup) Create(ctx context.Context, mg resource.Managed) (
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotTargetGroup)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
+
+	if c.isUniqueNamesEnabled {
+		// TargetGroup should have unique names per account.
+		// Check if there are any existing target groups with the same name.
+		// If there are multiple, an error will be returned.
+		instance, err := c.service.CheckDuplicateTargetGroup(ctx, cr.Spec.ForProvider.Name)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		targetGroupID, err := c.service.GetTargetGroupID(instance)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if targetGroupID != "" {
+			// "Import" existing target group.
+			cr.Status.AtProvider.TargetGroupID = targetGroupID
+			meta.SetExternalName(cr, targetGroupID)
+			return managed.ExternalCreation{}, nil
+		}
+	}
+
 	instanceInput, err := targetgroup.GenerateCreateTargetGroupInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	instance, apiResponse, err := c.service.CreateTargetGroup(ctx, *instanceInput)
+	newInstance, apiResponse, err := c.service.CreateTargetGroup(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create target group. error: %w", err)
@@ -154,10 +178,9 @@ func (c *externalTargetGroup) Create(ctx context.Context, mg resource.Managed) (
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
 	// Set External Name
-	cr.Status.AtProvider.TargetGroupID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.TargetGroupID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

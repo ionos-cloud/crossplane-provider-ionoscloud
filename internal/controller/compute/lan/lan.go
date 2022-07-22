@@ -19,7 +19,6 @@ package lan
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/workqueue"
@@ -40,12 +39,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/lan"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotLan = "managed resource is not a Lan custom resource"
 
 // Setup adds a controller that reconciles Lan managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, createGracePeriod, timeout time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.LanGroupKind)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -56,14 +56,15 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.LanGroupVersionKind),
 			managed.WithExternalConnecter(&connectorLan{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l}),
+				kube:                 mgr.GetClient(),
+				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:                  l,
+				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
-			managed.WithPollInterval(poll),
-			managed.WithTimeout(timeout),
-			managed.WithCreationGracePeriod(createGracePeriod),
+			managed.WithPollInterval(opts.GetPollInterval()),
+			managed.WithTimeout(opts.GetTimeout()),
+			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
@@ -71,9 +72,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 // A connectorLan is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorLan struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Connect typically produces an ExternalClient by:
@@ -88,8 +90,9 @@ func (c *connectorLan) Connect(ctx context.Context, mg resource.Managed) (manage
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalLan{
-		service: &lan.APIClient{IonosServices: svc},
-		log:     c.log}, err
+		service:              &lan.APIClient{IonosServices: svc},
+		log:                  c.log,
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -97,8 +100,9 @@ func (c *connectorLan) Connect(ctx context.Context, mg resource.Managed) (manage
 type externalLan struct {
 	// A 'client' used to connect to the externalLan resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service lan.Client
-	log     logging.Logger
+	service              lan.Client
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 func (c *externalLan) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -136,17 +140,36 @@ func (c *externalLan) Create(ctx context.Context, mg resource.Managed) (managed.
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotLan)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
+
+	if c.isUniqueNamesEnabled {
+		// Lans should have unique names per datacenter.
+		// Check if there are any existing lans with the same name.
+		// If there are multiple, an error will be returned.
+		instance, err := c.service.CheckDuplicateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.Name)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		lanID, err := c.service.GetLanID(instance)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if lanID != "" {
+			// "Import" existing lan.
+			cr.Status.AtProvider.LanID = lanID
+			meta.SetExternalName(cr, lanID)
+			return managed.ExternalCreation{}, nil
+		}
+	}
+
 	instanceInput, err := lan.GenerateCreateLanInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
-	instance, apiResponse, err := c.service.CreateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
+	newInstance, apiResponse, err := c.service.CreateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create lan. error: %w", err)
@@ -155,10 +178,9 @@ func (c *externalLan) Create(ctx context.Context, mg resource.Managed) (managed.
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return creation, err
 	}
-
 	// Set External Name
-	cr.Status.AtProvider.LanID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.LanID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 
