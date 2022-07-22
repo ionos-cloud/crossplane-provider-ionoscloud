@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -14,24 +15,22 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/version"
 )
 
 const (
-	expectedUserAgentCompute = "crossplane-provider-ionoscloud_ionos-cloud-sdk-go/v6.1.0"
-	expectedUserAgentDbaas   = "crossplane-provider-ionoscloud_ionos-cloud-sdk-go-dbaas-postgres/vv1.0.3"
-
 	hostnameFromSecret = "https://host"
 	hostnameFromEnv    = "http://host-from-env"
 )
 
 func setComputeDefaults(cfg *ionos.Configuration) {
 	cfg.HTTPClient = http.DefaultClient
-	cfg.UserAgent = expectedUserAgentCompute
+	cfg.UserAgent = fmt.Sprintf("%v-%v_ionos-cloud-sdk-go/v%v", UserAgent, version.Version, ionos.Version)
 }
 
 func setDbaaSDefaults(cfg *ionosdbaas.Configuration) {
 	cfg.HTTPClient = http.DefaultClient
-	cfg.UserAgent = expectedUserAgentDbaas
+	cfg.UserAgent = fmt.Sprintf("%v-%v_ionos-cloud-sdk-go-dbaas-postgres/v%v", UserAgent, version.Version, ionosdbaas.Version)
 }
 
 func TestNewIonosClient(t *testing.T) {

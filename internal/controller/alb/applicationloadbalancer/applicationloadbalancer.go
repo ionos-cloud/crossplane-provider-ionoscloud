@@ -209,7 +209,7 @@ func (c *externalApplicationLoadBalancer) Update(ctx context.Context, mg resourc
 	}
 	instanceInput, err := applicationloadbalancer.GenerateUpdateApplicationLoadBalancerInput(cr, ips)
 	if err != nil {
-		return managed.ExternalUpdate{}, nil
+		return managed.ExternalUpdate{}, err
 	}
 	_, apiResponse, err := c.service.UpdateApplicationLoadBalancer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 		cr.Status.AtProvider.ApplicationLoadBalancerID, *instanceInput)
