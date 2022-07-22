@@ -61,7 +61,6 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           version: ${{ env.GOLANGCI_VERSION }}
-          skip-go-installation: true
 
   e2e-tests:
     runs-on: ubuntu-20.04
