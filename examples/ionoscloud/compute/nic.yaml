@@ -23,7 +23,6 @@ spec:
           indexes: [ 1 ]
         - ipBlockIdRef:
             name: example
-    #    mac:
     #    firewallActive: true
     firewallType: INGRESS
     datacenterConfig:
