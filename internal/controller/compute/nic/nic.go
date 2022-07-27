@@ -137,6 +137,9 @@ func (c *externalNic) Observe(ctx context.Context, mg resource.Managed) (managed
 		if instance.Properties.HasIps() {
 			cr.Status.AtProvider.IPs = *instance.Properties.Ips
 		}
+		if instance.Properties.HasMac() {
+			cr.Status.AtProvider.Mac = *instance.Properties.Mac
+		}
 	}
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	// Set Ready condition based on State

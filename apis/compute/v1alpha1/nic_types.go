@@ -51,10 +51,6 @@ type NicParameters struct {
 	//
 	// +kubebuilder:validation:Optional
 	Name string `json:"name,omitempty"`
-	// The MAC address of the NIC.
-	//
-	// +kubebuilder:validation:Optional
-	Mac string `json:"mac,omitempty"`
 	// Collection of IP addresses, assigned to the NIC.
 	// Explicitly assigned public IPs need to come from reserved IP blocks.
 	// Passing value null or empty array will assign an IP address automatically.
@@ -107,6 +103,7 @@ type NicObservation struct {
 	VolumeID string   `json:"volumeId,omitempty"`
 	IPs      []string `json:"ips,omitempty"`
 	State    string   `json:"state,omitempty"`
+	Mac      string   `json:"mac,omitempty"`
 }
 
 // A NicSpec defines the desired state of a Nic.

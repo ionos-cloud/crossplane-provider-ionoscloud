@@ -83,9 +83,6 @@ func GenerateCreateNicInput(cr *v1alpha1.Nic, ips []string) (*sdkgo.Nic, error) 
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Name)) {
 		instanceCreateInput.Properties.SetName(cr.Spec.ForProvider.Name)
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Mac)) {
-		instanceCreateInput.Properties.SetMac(cr.Spec.ForProvider.Mac)
-	}
 	if !utils.IsEmptyValue(reflect.ValueOf(ips)) {
 		instanceCreateInput.Properties.SetIps(ips)
 	}
@@ -108,9 +105,6 @@ func GenerateUpdateNicInput(cr *v1alpha1.Nic, ips []string) (*sdkgo.NicPropertie
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Name)) {
 		instanceUpdateInput.SetName(cr.Spec.ForProvider.Name)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Mac)) {
-		instanceUpdateInput.SetMac(cr.Spec.ForProvider.Mac)
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(ips)) {
 		instanceUpdateInput.SetIps(ips)
