@@ -2,6 +2,8 @@
 
 ## [1.0.0] (July 2022)
 
+- **Features**:
+    - Added `--unique-names` option support for name uniqueness for IONOS Cloud resources
 - **Fixes**:
     - Removed read-only field `mac` from `Nic` Managed Resource:
         - New field: `status.atProvider.mac`;
