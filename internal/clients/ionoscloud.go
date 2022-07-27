@@ -18,6 +18,7 @@ import (
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/version"
 )
 
 const (
@@ -92,11 +93,11 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 
 	// DBaaS Postgres Client
 	dbaasPostgresConfig := sdkdbaas.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
-	dbaasPostgresConfig.UserAgent = fmt.Sprintf("%v_%v", UserAgent, dbaasPostgresConfig.UserAgent)
+	dbaasPostgresConfig.UserAgent = fmt.Sprintf("%v/%v_%v", UserAgent, version.Version, dbaasPostgresConfig.UserAgent)
 	dbaasPostgresClient := sdkdbaas.NewAPIClient(dbaasPostgresConfig)
 	// Compute Engine Client
 	computeEngineConfig := sdkgo.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
-	computeEngineConfig.UserAgent = fmt.Sprintf("%v_%v", UserAgent, computeEngineConfig.UserAgent)
+	computeEngineConfig.UserAgent = fmt.Sprintf("%v/%v_%v", UserAgent, version.Version, computeEngineConfig.UserAgent)
 	computeEngineClient := sdkgo.NewAPIClient(computeEngineConfig)
 
 	return &IonosServices{

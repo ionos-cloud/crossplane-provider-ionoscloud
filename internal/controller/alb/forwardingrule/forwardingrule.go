@@ -197,7 +197,7 @@ func (c *externalForwardingRule) Update(ctx context.Context, mg resource.Managed
 	}
 	instanceInput, err := forwardingrule.GenerateUpdateForwardingRuleInput(cr, listenerIP)
 	if err != nil {
-		return managed.ExternalUpdate{}, nil
+		return managed.ExternalUpdate{}, err
 	}
 	_, apiResponse, err := c.service.UpdateForwardingRule(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 		cr.Spec.ForProvider.ALBCfg.ApplicationLoadBalancerID, cr.Status.AtProvider.ForwardingRuleID, *instanceInput)
