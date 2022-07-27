@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0] (July 2022)
+
+- **Features**:
+    - Added `--unique-names` option support for name uniqueness for IONOS Cloud resources
+- **Fixes**:
+    - Removed read-only field `mac` from `Nic` Managed Resource:
+        - New field: `status.atProvider.mac`;
+    - Updated User Agent for Crossplane Provider for IONOS Cloud to contain provider version;
+- **Documentation**:
+    - Updated documentation with the `--unique-names` option support.
+
 ## [1.0.0-beta.5] (July 2022)
 
 - **Features**:

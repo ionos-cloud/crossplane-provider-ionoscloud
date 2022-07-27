@@ -73,6 +73,13 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
+* `dhcp` (boolean)
+	* description: Indicates if the NIC will reserve an IP using DHCP.
+* `firewallActive` (boolean)
+	* description: Activate or deactivate the firewall. By default, an active firewall without any defined rules will block all incoming network traffic except for the firewall rules that explicitly allows certain protocols, IP addresses and ports.
+* `firewallType` (string)
+	* description: The type of firewall rules that will be allowed on the NIC. If not specified, the default INGRESS value is used.
+	* possible values: "BIDIRECTIONAL";"EGRESS";"INGRESS"
 * `ipsConfigs` (object)
 	* description: Collection of IP addresses, assigned to the NIC. Explicitly assigned public IPs need to come from reserved IP blocks. Passing value null or empty array will assign an IP address automatically. The IPs can be set directly or using reference to the existing IPBlocks and indexes. If no indexes are set, all IPs from the corresponding IPBlock will be assigned. All IPs set on the Nic will be displayed on the status's ips field.
 	* properties:
@@ -100,45 +107,9 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 							* description: MatchLabels ensures an object with matching labels is selected.
 				* `indexes` (array)
 					* description: Indexes are referring to the IPs indexes retrieved from the IPBlock. Indexes are starting from 0. If no index is set, all IPs from the corresponding IPBlock will be assigned.
-* `mac` (string)
-	* description: The MAC address of the NIC.
-* `name` (string)
-	* description: The name of the  resource.
-* `datacenterConfig` (object)
-	* description: DatacenterConfig contains information about the datacenter resource on which the nic will be created.
-	* properties:
-		* `datacenterIdSelector` (object)
-			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `datacenterIdRef` (object)
-			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-			* required properties:
-				* `name`
-* `firewallActive` (boolean)
-	* description: Activate or deactivate the firewall. By default, an active firewall without any defined rules will block all incoming network traffic except for the firewall rules that explicitly allows certain protocols, IP addresses and ports.
-* `firewallType` (string)
-	* description: The type of firewall rules that will be allowed on the NIC. If not specified, the default INGRESS value is used.
-	* possible values: "BIDIRECTIONAL";"EGRESS";"INGRESS"
 * `lanConfig` (object)
 	* description: LanConfig contains information about the lan resource on which the nic will be on.
 	* properties:
-		* `lanIdRef` (object)
-			* description: LanIDRef references to a Lan to retrieve its ID.
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-			* required properties:
-				* `name`
 		* `lanIdSelector` (object)
 			* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
 			* properties:
@@ -148,6 +119,15 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchLabels ensures an object with matching labels is selected.
 		* `lanId` (string)
 			* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
+		* `lanIdRef` (object)
+			* description: LanIDRef references to a Lan to retrieve its ID.
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+			* required properties:
+				* `name`
+* `name` (string)
+	* description: The name of the  resource.
 * `serverConfig` (object)
 	* description: ServerConfig contains information about the server resource on which the nic will be created.
 	* properties:
@@ -168,8 +148,26 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
-* `dhcp` (boolean)
-	* description: Indicates if the NIC will reserve an IP using DHCP.
+* `datacenterConfig` (object)
+	* description: DatacenterConfig contains information about the datacenter resource on which the nic will be created.
+	* properties:
+		* `datacenterId` (string)
+			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
+		* `datacenterIdRef` (object)
+			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+			* required properties:
+				* `name`
+		* `datacenterIdSelector` (object)
+			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
+			* properties:
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 
 ### Required Properties
 

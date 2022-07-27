@@ -242,9 +242,6 @@ spec:
                             type: object
                         type: object
                     type: object
-                  mac:
-                    description: The MAC address of the NIC.
-                    type: string
                   name:
                     description: The name of the  resource.
                     type: string
@@ -345,6 +342,8 @@ spec:
                     items:
                       type: string
                     type: array
+                  mac:
+                    type: string
                   nicId:
                     type: string
                   state:
