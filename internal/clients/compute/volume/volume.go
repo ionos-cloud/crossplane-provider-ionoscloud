@@ -48,15 +48,15 @@ func (cp *APIClient) CheckDuplicateVolume(ctx context.Context, datacenterID, vol
 						}
 						if availabilityZoneOk, ok := propertiesOk.GetAvailabilityZoneOk(); ok && availabilityZoneOk != nil {
 							if *availabilityZoneOk != availabilityZone {
-								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property availability zone different. expected: %v actual: %v", volumeName, availabilityZone, *availabilityZoneOk)
+								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property availabilityZone different. expected: %v actual: %v", volumeName, availabilityZone, *availabilityZoneOk)
 							}
 						}
-						if licenceTypeOk, ok := propertiesOk.GetLicenceTypeOk(); ok && licenceTypeOk != nil {
+						if licenceTypeOk, ok := propertiesOk.GetLicenceTypeOk(); ok && licenceTypeOk != nil && licenceType != "" {
 							if *licenceTypeOk != licenceType {
-								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property licence type different. expected: %v actual: %v", volumeName, licenceType, *licenceTypeOk)
+								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property licenceType different. expected: %v actual: %v", volumeName, licenceType, *licenceTypeOk)
 							}
 						}
-						if imageOk, ok := propertiesOk.GetImageOk(); ok && imageOk != nil {
+						if imageOk, ok := propertiesOk.GetImageOk(); ok && imageOk != nil && image != "" {
 							if *imageOk != image {
 								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property image different. expected: %v actual: %v", volumeName, image, *imageOk)
 							}

@@ -43,12 +43,11 @@ func (cp *APIClient) CheckDuplicateIPBlock(ctx context.Context, ipBlockName, loc
 					if *nameOk == ipBlockName {
 						// After checking the name, check the immutable properties
 						if locationOk, ok := propertiesOk.GetLocationOk(); ok && locationOk != nil {
-							if *locationOk == location {
-								matchedItems = append(matchedItems, item)
-							} else {
+							if *locationOk != location {
 								return nil, fmt.Errorf("error: found ipblock with the name %v, but immutable property location different. expected: %v actual: %v", ipBlockName, location, *locationOk)
 							}
 						}
+						matchedItems = append(matchedItems, item)
 					}
 				}
 			}

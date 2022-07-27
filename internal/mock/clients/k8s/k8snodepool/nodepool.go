@@ -37,18 +37,18 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // CheckDuplicateK8sNodePool mocks base method.
-func (m *MockClient) CheckDuplicateK8sNodePool(ctx context.Context, clusterID, nodepoolName string, cr *v1alpha1.NodePool) (*ionoscloud.KubernetesNodePool, error) {
+func (m *MockClient) CheckDuplicateK8sNodePool(ctx context.Context, clusterID, nodePoolName string, cr *v1alpha1.NodePool) (*ionoscloud.KubernetesNodePool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckDuplicateK8sNodePool", ctx, clusterID, nodepoolName, cr)
+	ret := m.ctrl.Call(m, "CheckDuplicateK8sNodePool", ctx, clusterID, nodePoolName, cr)
 	ret0, _ := ret[0].(*ionoscloud.KubernetesNodePool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CheckDuplicateK8sNodePool indicates an expected call of CheckDuplicateK8sNodePool.
-func (mr *MockClientMockRecorder) CheckDuplicateK8sNodePool(ctx, clusterID, nodepoolName, cr interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) CheckDuplicateK8sNodePool(ctx, clusterID, nodePoolName, cr interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckDuplicateK8sNodePool", reflect.TypeOf((*MockClient)(nil).CheckDuplicateK8sNodePool), ctx, clusterID, nodepoolName, cr)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckDuplicateK8sNodePool", reflect.TypeOf((*MockClient)(nil).CheckDuplicateK8sNodePool), ctx, clusterID, nodePoolName, cr)
 }
 
 // CreateK8sNodePool mocks base method.

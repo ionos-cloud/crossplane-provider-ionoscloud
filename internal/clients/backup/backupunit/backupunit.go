@@ -18,7 +18,7 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service BackupUnit methods
 type Client interface {
-	CheckDuplicateBackupUnit(ctx context.Context, backupUnitName string) (*sdkgo.BackupUnit, error)
+	CheckDuplicateBackupUnit(ctx context.Context, backupUnitName, email string) (*sdkgo.BackupUnit, error)
 	GetBackupUnitID(backupUnit *sdkgo.BackupUnit) (string, error)
 	GetBackupUnit(ctx context.Context, backupUnitID string) (sdkgo.BackupUnit, *sdkgo.APIResponse, error)
 	GetBackupUnits(ctx context.Context) (sdkgo.BackupUnits, *sdkgo.APIResponse, error)
@@ -30,7 +30,7 @@ type Client interface {
 }
 
 // CheckDuplicateBackupUnit based on backupUnitName
-func (cp *APIClient) CheckDuplicateBackupUnit(ctx context.Context, backupUnitName string) (*sdkgo.BackupUnit, error) { // nolint: gocyclo
+func (cp *APIClient) CheckDuplicateBackupUnit(ctx context.Context, backupUnitName, email string) (*sdkgo.BackupUnit, error) { // nolint: gocyclo
 	backupUnits, _, err := cp.ComputeClient.BackupUnitsApi.BackupunitsGet(ctx).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
@@ -41,6 +41,13 @@ func (cp *APIClient) CheckDuplicateBackupUnit(ctx context.Context, backupUnitNam
 			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
 				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
 					if *nameOk == backupUnitName {
+						// After checking the name, check properties
+						// Note: email is not an immutable property, but in terms of security, check this before updating it
+						if emailOk, ok := propertiesOk.GetEmailOk(); ok && emailOk != nil {
+							if *emailOk != email {
+								return nil, fmt.Errorf("error: found backup unit with the name %v, but property email different. expected: %v actual: %v", backupUnitName, email, *emailOk)
+							}
+						}
 						matchedItems = append(matchedItems, item)
 					}
 				}

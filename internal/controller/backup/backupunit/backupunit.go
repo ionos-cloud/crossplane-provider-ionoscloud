@@ -148,7 +148,7 @@ func (c *externalBackupUnit) Create(ctx context.Context, mg resource.Managed) (m
 		// BackupUnits should have unique names per account.
 		// Check if there are any existing backup units with the same name.
 		// If there are multiple, an error will be returned.
-		instance, err := c.service.CheckDuplicateBackupUnit(ctx, cr.Spec.ForProvider.Name)
+		instance, err := c.service.CheckDuplicateBackupUnit(ctx, cr.Spec.ForProvider.Name, cr.Spec.ForProvider.Email)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}

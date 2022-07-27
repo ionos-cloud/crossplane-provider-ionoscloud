@@ -51,7 +51,7 @@ func (cp *APIClient) CheckDuplicateServer(ctx context.Context, datacenterID, ser
 							if cpuFamily == "" || cpuFamily == *cpuFamilyOk {
 								matchedItems = append(matchedItems, item)
 							} else {
-								return nil, fmt.Errorf("error: found server with the name %v, but immutable property cpuFamily. expected: %v actual: %v", serverName, cpuFamily, *cpuFamilyOk)
+								return nil, fmt.Errorf("error: found server with the name %v, but immutable property cpuFamily different. expected: %v actual: %v", serverName, cpuFamily, *cpuFamilyOk)
 							}
 						}
 					}

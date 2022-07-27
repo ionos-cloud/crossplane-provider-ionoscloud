@@ -173,7 +173,8 @@ func (c *externalNic) Create(ctx context.Context, mg resource.Managed) (managed.
 		// NICs should have unique names per server.
 		// Check if there are any existing volumes with the same name.
 		// If there are multiple, an error will be returned.
-		instance, err := c.service.CheckDuplicateNic(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.ServerCfg.ServerID, cr.Spec.ForProvider.Name)
+		instance, err := c.service.CheckDuplicateNic(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+			cr.Spec.ForProvider.ServerCfg.ServerID, cr.Spec.ForProvider.Name)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}

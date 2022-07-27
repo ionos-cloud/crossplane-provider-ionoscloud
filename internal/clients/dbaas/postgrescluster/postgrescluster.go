@@ -22,7 +22,7 @@ type ClusterAPIClient struct {
 
 // ClusterClient is a wrapper around IONOS Service DBaaS Postgres Cluster methods
 type ClusterClient interface {
-	CheckDuplicateCluster(ctx context.Context, clusterName, location, storageType string) (*ionoscloud.ClusterResponse, error)
+	CheckDuplicateCluster(ctx context.Context, clusterName string, cr *v1alpha1.PostgresCluster) (*ionoscloud.ClusterResponse, error)
 	GetClusterID(cluster *ionoscloud.ClusterResponse) (string, error)
 	GetCluster(ctx context.Context, clusterID string) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
 	DeleteCluster(ctx context.Context, clusterID string) (*ionoscloud.APIResponse, error)
@@ -30,8 +30,8 @@ type ClusterClient interface {
 	UpdateCluster(ctx context.Context, clusterID string, cluster ionoscloud.PatchClusterRequest) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
 }
 
-// CheckDuplicateCluster based on clusterName
-func (cp *ClusterAPIClient) CheckDuplicateCluster(ctx context.Context, clusterName, location, storageType string) (*ionoscloud.ClusterResponse, error) { // nolint: gocyclo
+// CheckDuplicateCluster based on clusterName and on multiple properties from CR spec
+func (cp *ClusterAPIClient) CheckDuplicateCluster(ctx context.Context, clusterName string, cr *v1alpha1.PostgresCluster) (*ionoscloud.ClusterResponse, error) { // nolint: gocyclo
 	clusterList, _, err := cp.DBaaSPostgresClient.ClustersApi.ClustersGet(ctx).Execute()
 	if err != nil {
 		return nil, err
@@ -44,13 +44,23 @@ func (cp *ClusterAPIClient) CheckDuplicateCluster(ctx context.Context, clusterNa
 					if *nameOk == clusterName {
 						// After checking the name, check the immutable properties
 						if locationOk, ok := propertiesOk.GetLocationOk(); ok && locationOk != nil {
-							if *locationOk != location {
-								return nil, fmt.Errorf("error: found cluster with the name %v, but immutable property location different. expected: %v actual: %v", clusterName, location, *locationOk)
+							if *locationOk != cr.Spec.ForProvider.Location {
+								return nil, fmt.Errorf("error: found cluster with the name %v, but immutable property location different. expected: %v actual: %v", clusterName, cr.Spec.ForProvider.Location, *locationOk)
 							}
 						}
 						if storageTypeOk, ok := propertiesOk.GetStorageTypeOk(); ok && storageTypeOk != nil {
-							if string(*storageTypeOk) != storageType {
-								return nil, fmt.Errorf("error: found cluster with the name %v, but immutable property storageType different. expected: %v actual: %v", clusterName, storageType, string(*storageTypeOk))
+							if string(*storageTypeOk) != cr.Spec.ForProvider.StorageType {
+								return nil, fmt.Errorf("error: found cluster with the name %v, but immutable property storageType different. expected: %v actual: %v", clusterName, cr.Spec.ForProvider.StorageType, string(*storageTypeOk))
+							}
+						}
+						if backupLocationOk, ok := propertiesOk.GetBackupLocationOk(); ok && backupLocationOk != nil && cr.Spec.ForProvider.BackupLocation != "" {
+							if *backupLocationOk != cr.Spec.ForProvider.BackupLocation {
+								return nil, fmt.Errorf("error: found cluster with the name %v, but immutable property backupLocation different. expected: %v actual: %v", clusterName, cr.Spec.ForProvider.BackupLocation, *backupLocationOk)
+							}
+						}
+						if synchronizationModeOk, ok := propertiesOk.GetSynchronizationModeOk(); ok && synchronizationModeOk != nil {
+							if string(*synchronizationModeOk) != cr.Spec.ForProvider.SynchronizationMode {
+								return nil, fmt.Errorf("error: found cluster with the name %v, but immutable property synchronizationMode different. expected: %v actual: %v", clusterName, cr.Spec.ForProvider.SynchronizationMode, *synchronizationModeOk)
 							}
 						}
 						matchedItems = append(matchedItems, item)
