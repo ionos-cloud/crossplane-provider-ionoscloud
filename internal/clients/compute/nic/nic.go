@@ -169,6 +169,8 @@ func IsNicUpToDate(cr *v1alpha1.Nic, nic sdkgo.Nic, ips []string, oldIps []strin
 		return true
 	case nic.Properties.Name != nil && *nic.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
+	case nic.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
+		return false
 	case nic.Properties.Dhcp != nil && *nic.Properties.Dhcp != cr.Spec.ForProvider.Dhcp:
 		return false
 	case nic.Properties.FirewallActive != nil && *nic.Properties.FirewallActive != cr.Spec.ForProvider.FirewallActive:

@@ -186,6 +186,8 @@ func IsFirewallRuleUpToDate(cr *v1alpha1.FirewallRule, firewallRule sdkgo.Firewa
 		return true
 	case firewallRule.Properties.Name != nil && *firewallRule.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
+	case firewallRule.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
+		return false
 	case firewallRule.Properties.SourceMac != nil && *firewallRule.Properties.SourceMac != cr.Spec.ForProvider.SourceMac:
 		return false
 	case firewallRule.Properties.SourceIp != nil && *firewallRule.Properties.SourceIp != sourceIP:

@@ -152,6 +152,8 @@ func IsDatacenterUpToDate(cr *v1alpha1.Datacenter, datacenter sdkgo.Datacenter) 
 		return true
 	case datacenter.Properties.Name != nil && *datacenter.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
+	case datacenter.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
+		return false
 	case datacenter.Properties.Description != nil && *datacenter.Properties.Description != cr.Spec.ForProvider.Description:
 		return false
 	default:

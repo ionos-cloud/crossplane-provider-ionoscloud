@@ -198,6 +198,8 @@ func IsClusterUpToDate(cr *v1alpha1.PostgresCluster, clusterResponse ionoscloud.
 		return true
 	case clusterResponse.Properties.DisplayName != nil && *clusterResponse.Properties.DisplayName != cr.Spec.ForProvider.DisplayName:
 		return false
+	case clusterResponse.Properties.DisplayName == nil && cr.Spec.ForProvider.DisplayName != "":
+		return false
 	case clusterResponse.Properties.PostgresVersion != nil && *clusterResponse.Properties.PostgresVersion != cr.Spec.ForProvider.PostgresVersion:
 		return false
 	case clusterResponse.Properties.Instances != nil && *clusterResponse.Properties.Instances != cr.Spec.ForProvider.Instances:

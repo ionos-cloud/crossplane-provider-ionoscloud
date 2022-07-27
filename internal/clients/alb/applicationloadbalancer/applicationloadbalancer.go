@@ -172,6 +172,8 @@ func IsApplicationLoadBalancerUpToDate(cr *v1alpha1.ApplicationLoadBalancer, app
 		return true
 	case applicationloadbalancer.Properties.Name != nil && *applicationloadbalancer.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
+	case applicationloadbalancer.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
+		return false
 	case applicationloadbalancer.Properties.ListenerLan != nil && *applicationloadbalancer.Properties.ListenerLan != listenerLan:
 		return false
 	case applicationloadbalancer.Properties.TargetLan != nil && *applicationloadbalancer.Properties.TargetLan != targetLan:

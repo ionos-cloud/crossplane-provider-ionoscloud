@@ -165,6 +165,8 @@ func IsBackupUnitUpToDate(cr *v1alpha1.BackupUnit, backupUnit sdkgo.BackupUnit) 
 		return true
 	case backupUnit.Properties.Name != nil && *backupUnit.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
+	case backupUnit.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
+		return false
 	case backupUnit.Properties.Email != nil && *backupUnit.Properties.Email != cr.Spec.ForProvider.Email:
 		return false
 	case cr.Spec.ForProvider.Password != oldPassword:

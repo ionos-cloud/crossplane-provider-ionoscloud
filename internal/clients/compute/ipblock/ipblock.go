@@ -175,6 +175,8 @@ func IsIPBlockUpToDate(cr *v1alpha1.IPBlock, ipBlock sdkgo.IpBlock) bool { // no
 		return true
 	case ipBlock.Properties.Name != nil && *ipBlock.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
+	case ipBlock.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
+		return false
 	default:
 		return true
 	}
