@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	v1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 )
 
@@ -33,6 +34,21 @@ func NewMockClient(ctrl *gomock.Controller) *MockClient {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
+}
+
+// CheckDuplicateK8sNodePool mocks base method.
+func (m *MockClient) CheckDuplicateK8sNodePool(ctx context.Context, clusterID, nodePoolName string, cr *v1alpha1.NodePool) (*ionoscloud.KubernetesNodePool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckDuplicateK8sNodePool", ctx, clusterID, nodePoolName, cr)
+	ret0, _ := ret[0].(*ionoscloud.KubernetesNodePool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckDuplicateK8sNodePool indicates an expected call of CheckDuplicateK8sNodePool.
+func (mr *MockClientMockRecorder) CheckDuplicateK8sNodePool(ctx, clusterID, nodePoolName, cr interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckDuplicateK8sNodePool", reflect.TypeOf((*MockClient)(nil).CheckDuplicateK8sNodePool), ctx, clusterID, nodePoolName, cr)
 }
 
 // CreateK8sNodePool mocks base method.
@@ -94,6 +110,21 @@ func (m *MockClient) GetK8sNodePool(ctx context.Context, clusterID, nodepoolID s
 func (mr *MockClientMockRecorder) GetK8sNodePool(ctx, clusterID, nodepoolID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetK8sNodePool", reflect.TypeOf((*MockClient)(nil).GetK8sNodePool), ctx, clusterID, nodepoolID)
+}
+
+// GetK8sNodePoolID mocks base method.
+func (m *MockClient) GetK8sNodePoolID(nodepool *ionoscloud.KubernetesNodePool) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetK8sNodePoolID", nodepool)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetK8sNodePoolID indicates an expected call of GetK8sNodePoolID.
+func (mr *MockClientMockRecorder) GetK8sNodePoolID(nodepool interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetK8sNodePoolID", reflect.TypeOf((*MockClient)(nil).GetK8sNodePoolID), nodepool)
 }
 
 // UpdateK8sNodePool mocks base method.

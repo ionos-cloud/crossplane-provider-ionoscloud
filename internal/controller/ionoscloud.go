@@ -17,8 +17,6 @@ limitations under the License.
 package controller
 
 import (
-	"time"
-
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -41,12 +39,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgrescluster"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/k8s/k8scluster"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/k8s/k8snodepool"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 // Setup creates all IONOS Cloud controllers with the supplied logger
 // and adds them to the supplied manager.
-func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter, poll, createGracePeriod, timeout time.Duration) error {
-	for _, setup := range []func(ctrl.Manager, logging.Logger, workqueue.RateLimiter, time.Duration, time.Duration, time.Duration) error{
+func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter, options *utils.ConfigurationOptions) error {
+	for _, setup := range []func(ctrl.Manager, logging.Logger, workqueue.RateLimiter, *utils.ConfigurationOptions) error{
 		datacenter.Setup,
 		server.Setup,
 		cubeserver.Setup,
@@ -64,7 +63,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter, poll, c
 		targetgroup.Setup,
 		backupunit.Setup,
 	} {
-		if err := setup(mgr, l, wl, poll, createGracePeriod, timeout); err != nil {
+		if err := setup(mgr, l, wl, options); err != nil {
 			return err
 		}
 	}

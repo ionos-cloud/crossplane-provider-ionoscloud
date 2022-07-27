@@ -19,7 +19,6 @@ package volume
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/workqueue"
@@ -40,12 +39,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/volume"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotVolume = "managed resource is not a Volume custom resource"
 
 // Setup adds a controller that reconciles Volume managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.VolumeGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -57,12 +57,13 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.VolumeGroupVersionKind),
 			managed.WithExternalConnecter(&connectorVolume{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l}),
-			managed.WithPollInterval(poll),
-			managed.WithCreationGracePeriod(creationGracePeriod),
-			managed.WithTimeout(timeout),
+				kube:                 mgr.GetClient(),
+				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:                  l,
+				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
+			managed.WithPollInterval(opts.GetPollInterval()),
+			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
+			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
@@ -71,9 +72,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 // A connectorVolume is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorVolume struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Connect typically produces an ExternalClient by:
@@ -88,8 +90,9 @@ func (c *connectorVolume) Connect(ctx context.Context, mg resource.Managed) (man
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalVolume{
-		service: &volume.APIClient{IonosServices: svc},
-		log:     c.log}, err
+		service:              &volume.APIClient{IonosServices: svc},
+		log:                  c.log,
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -97,8 +100,9 @@ func (c *connectorVolume) Connect(ctx context.Context, mg resource.Managed) (man
 type externalVolume struct {
 	// A 'client' used to connect to the externalVolume resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service volume.Client
-	log     logging.Logger
+	service              volume.Client
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -135,17 +139,38 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotVolume)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
+	}
+
+	if c.isUniqueNamesEnabled {
+		// Volumes should have unique names per datacenter.
+		// Check if there are any existing volumes with the same name.
+		// If there are multiple, an error will be returned.
+		instance, err := c.service.CheckDuplicateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+			cr.Spec.ForProvider.Name, cr.Spec.ForProvider.Type, cr.Spec.ForProvider.AvailabilityZone,
+			cr.Spec.ForProvider.LicenceType, cr.Spec.ForProvider.Image)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		volumeID, err := c.service.GetVolumeID(instance)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if volumeID != "" {
+			// "Import" existing volume.
+			cr.Status.AtProvider.VolumeID = volumeID
+			meta.SetExternalName(cr, volumeID)
+			return managed.ExternalCreation{}, nil
+		}
 	}
 
 	instanceInput, err := volume.GenerateCreateVolumeInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	instance, apiResponse, err := c.service.CreateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
+	newInstance, apiResponse, err := c.service.CreateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create volume. error: %w", err)
@@ -154,10 +179,9 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return creation, err
 	}
-
 	// Set External Name
-	cr.Status.AtProvider.VolumeID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.VolumeID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

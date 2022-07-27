@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/workqueue"
@@ -42,12 +41,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/lan"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotIPFailover = "managed resource is not a IPFailover custom resource"
 
 // Setup adds a controller that reconciles IPFailover managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.IPFailoverGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -59,14 +59,15 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.IPFailoverGroupVersionKind),
 			managed.WithExternalConnecter(&connectorIPFailover{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l}),
+				kube:                 mgr.GetClient(),
+				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:                  l,
+				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
-			managed.WithPollInterval(poll),
-			managed.WithTimeout(timeout),
-			managed.WithCreationGracePeriod(creationGracePeriod),
+			managed.WithPollInterval(opts.GetPollInterval()),
+			managed.WithTimeout(opts.GetTimeout()),
+			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
@@ -74,9 +75,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 // A connectorIPFailover is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorIPFailover struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Connect typically produces an ExternalClient by:
@@ -91,9 +93,10 @@ func (c *connectorIPFailover) Connect(ctx context.Context, mg resource.Managed) 
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalIPFailover{
-		service:        &lan.APIClient{IonosServices: svc},
-		ipBlockService: &ipblock.APIClient{IonosServices: svc},
-		log:            c.log}, err
+		service:              &lan.APIClient{IonosServices: svc},
+		ipBlockService:       &ipblock.APIClient{IonosServices: svc},
+		log:                  c.log,
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -101,9 +104,10 @@ func (c *connectorIPFailover) Connect(ctx context.Context, mg resource.Managed) 
 type externalIPFailover struct {
 	// A 'client' used to connect to the externalIPFailover resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service        lan.Client
-	ipBlockService ipblock.Client
-	log            logging.Logger
+	service              lan.Client
+	ipBlockService       ipblock.Client
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 var (

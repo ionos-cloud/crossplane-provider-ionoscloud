@@ -2,6 +2,7 @@ package applicationloadbalancer
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
@@ -19,11 +20,51 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service ApplicationLoadBalancer methods
 type Client interface {
+	CheckDuplicateApplicationLoadBalancer(ctx context.Context, datacenterID, applicationloadbalancerName string) (*sdkgo.ApplicationLoadBalancer, error)
+	GetApplicationLoadBalancerID(applicationloadbalancer *sdkgo.ApplicationLoadBalancer) (string, error)
 	GetApplicationLoadBalancer(ctx context.Context, datacenterID, applicationloadbalancerID string) (sdkgo.ApplicationLoadBalancer, *sdkgo.APIResponse, error)
 	CreateApplicationLoadBalancer(ctx context.Context, datacenterID string, applicationloadbalancer sdkgo.ApplicationLoadBalancer) (sdkgo.ApplicationLoadBalancer, *sdkgo.APIResponse, error)
 	UpdateApplicationLoadBalancer(ctx context.Context, datacenterID, applicationloadbalancerID string, applicationloadbalancer sdkgo.ApplicationLoadBalancerProperties) (sdkgo.ApplicationLoadBalancer, *sdkgo.APIResponse, error)
 	DeleteApplicationLoadBalancer(ctx context.Context, datacenterID, applicationloadbalancerID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
+}
+
+// CheckDuplicateApplicationLoadBalancer based on datacenterID, applicationloadbalancerName
+func (cp *APIClient) CheckDuplicateApplicationLoadBalancer(ctx context.Context, datacenterID, applicationloadbalancerName string) (*sdkgo.ApplicationLoadBalancer, error) { // nolint: gocyclo
+	applicationLoadBalancers, _, err := cp.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
+	if err != nil {
+		return nil, err
+	}
+	matchedItems := make([]sdkgo.ApplicationLoadBalancer, 0)
+	if itemsOk, ok := applicationLoadBalancers.GetItemsOk(); ok && itemsOk != nil {
+		for _, item := range *itemsOk {
+			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
+				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
+					if *nameOk == applicationloadbalancerName {
+						matchedItems = append(matchedItems, item)
+					}
+				}
+			}
+		}
+	}
+	if len(matchedItems) == 0 {
+		return nil, nil
+	}
+	if len(matchedItems) > 1 {
+		return nil, fmt.Errorf("error: found multiple applicationloadbalancers with the name %v", applicationloadbalancerName)
+	}
+	return &matchedItems[0], nil
+}
+
+// GetApplicationLoadBalancerID based on applicationloadbalancer
+func (cp *APIClient) GetApplicationLoadBalancerID(applicationloadbalancer *sdkgo.ApplicationLoadBalancer) (string, error) {
+	if applicationloadbalancer != nil {
+		if idOk, ok := applicationloadbalancer.GetIdOk(); ok && idOk != nil {
+			return *idOk, nil
+		}
+		return "", fmt.Errorf("error: getting applicationloadbalancer id")
+	}
+	return "", nil
 }
 
 // GetApplicationLoadBalancer based on applicationloadbalancerID

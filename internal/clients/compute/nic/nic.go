@@ -2,6 +2,7 @@ package nic
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	"github.com/rung/go-safecast"
@@ -20,11 +21,51 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service Nic methods
 type Client interface {
+	CheckDuplicateNic(ctx context.Context, datacenterID, serverID, nicName string) (*sdkgo.Nic, error)
+	GetNicID(nic *sdkgo.Nic) (string, error)
 	GetNic(ctx context.Context, datacenterID, serverID, nicID string) (sdkgo.Nic, *sdkgo.APIResponse, error)
 	CreateNic(ctx context.Context, datacenterID, serverID string, nic sdkgo.Nic) (sdkgo.Nic, *sdkgo.APIResponse, error)
 	UpdateNic(ctx context.Context, datacenterID, serverID, nicID string, nicProperties sdkgo.NicProperties) (sdkgo.Nic, *sdkgo.APIResponse, error)
 	DeleteNic(ctx context.Context, datacenterID, serverID, nicID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
+}
+
+// CheckDuplicateNic based on datacenterID, serverID, nicName and the immutable property location
+func (cp *APIClient) CheckDuplicateNic(ctx context.Context, datacenterID, serverID, nicName string) (*sdkgo.Nic, error) { // nolint: gocyclo
+	nics, _, err := cp.ComputeClient.NetworkInterfacesApi.DatacentersServersNicsGet(ctx, datacenterID, serverID).Depth(utils.DepthQueryParam).Execute()
+	if err != nil {
+		return nil, err
+	}
+	matchedItems := make([]sdkgo.Nic, 0)
+	if itemsOk, ok := nics.GetItemsOk(); ok && itemsOk != nil {
+		for _, item := range *itemsOk {
+			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
+				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
+					if *nameOk == nicName {
+						matchedItems = append(matchedItems, item)
+					}
+				}
+			}
+		}
+	}
+	if len(matchedItems) == 0 {
+		return nil, nil
+	}
+	if len(matchedItems) > 1 {
+		return nil, fmt.Errorf("error: found multiple nics with the name %v", nicName)
+	}
+	return &matchedItems[0], nil
+}
+
+// GetNicID based on nic
+func (cp *APIClient) GetNicID(nic *sdkgo.Nic) (string, error) {
+	if nic != nil {
+		if idOk, ok := nic.GetIdOk(); ok && idOk != nil {
+			return *idOk, nil
+		}
+		return "", fmt.Errorf("error: getting nic id")
+	}
+	return "", nil
 }
 
 // GetNic based on datacenterID, serverID, nicID

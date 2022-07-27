@@ -19,7 +19,6 @@ package nic
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
@@ -42,12 +41,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/nic"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotNic = "managed resource is not a Nic custom resource"
 
 // Setup adds a controller that reconciles Nic managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.NicGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -59,14 +59,15 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.NicGroupVersionKind),
 			managed.WithExternalConnecter(&connectorNic{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l}),
+				kube:                 mgr.GetClient(),
+				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:                  l,
+				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
-			managed.WithPollInterval(poll),
-			managed.WithTimeout(timeout),
-			managed.WithCreationGracePeriod(creationGracePeriod),
+			managed.WithPollInterval(opts.GetPollInterval()),
+			managed.WithTimeout(opts.GetTimeout()),
+			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
@@ -74,9 +75,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 // A connectorNic is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorNic struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Connect typically produces an ExternalClient by:
@@ -91,9 +93,10 @@ func (c *connectorNic) Connect(ctx context.Context, mg resource.Managed) (manage
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalNic{
-		service:        &nic.APIClient{IonosServices: svc},
-		ipblockService: &ipblock.APIClient{IonosServices: svc},
-		log:            c.log}, err
+		service:              &nic.APIClient{IonosServices: svc},
+		ipBlockService:       &ipblock.APIClient{IonosServices: svc},
+		log:                  c.log,
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -101,9 +104,10 @@ func (c *connectorNic) Connect(ctx context.Context, mg resource.Managed) (manage
 type externalNic struct {
 	// A 'client' used to connect to the externalNic resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service        nic.Client
-	ipblockService ipblock.Client
-	log            logging.Logger
+	service              nic.Client
+	ipBlockService       ipblock.Client
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Keep old value of Nic's IPs to correctly handle the update.
@@ -155,15 +159,35 @@ func (c *externalNic) Observe(ctx context.Context, mg resource.Managed) (managed
 	}, nil
 }
 
-func (c *externalNic) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (c *externalNic) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint: gocyclo
 	cr, ok := mg.(*v1alpha1.Nic)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotNic)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
+	}
+
+	if c.isUniqueNamesEnabled {
+		// NICs should have unique names per server.
+		// Check if there are any existing volumes with the same name.
+		// If there are multiple, an error will be returned.
+		instance, err := c.service.CheckDuplicateNic(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+			cr.Spec.ForProvider.ServerCfg.ServerID, cr.Spec.ForProvider.Name)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		nicID, err := c.service.GetNicID(instance)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if nicID != "" {
+			// "Import" existing Nic.
+			cr.Status.AtProvider.NicID = nicID
+			meta.SetExternalName(cr, nicID)
+			return managed.ExternalCreation{}, nil
+		}
 	}
 
 	ips, err := c.getIpsSet(ctx, cr)
@@ -175,8 +199,7 @@ func (c *externalNic) Create(ctx context.Context, mg resource.Managed) (managed.
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
-	instance, apiResponse, err := c.service.CreateNic(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+	newInstance, apiResponse, err := c.service.CreateNic(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 		cr.Spec.ForProvider.ServerCfg.ServerID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
@@ -186,10 +209,9 @@ func (c *externalNic) Create(ctx context.Context, mg resource.Managed) (managed.
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return creation, err
 	}
-
 	// Set External Name
-	cr.Status.AtProvider.NicID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.NicID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 
@@ -263,7 +285,7 @@ func (c *externalNic) getIpsSet(ctx context.Context, cr *v1alpha1.Nic) ([]string
 			if cfg.IPBlockID == "" {
 				return nil, fmt.Errorf("error resolving references for ipblock at index: %v", i)
 			}
-			ipsCfg, err := c.ipblockService.GetIPs(ctx, cfg.IPBlockID, cfg.Indexes...)
+			ipsCfg, err := c.ipBlockService.GetIPs(ctx, cfg.IPBlockID, cfg.Indexes...)
 			if err != nil {
 				return nil, err
 			}

@@ -19,7 +19,6 @@ package backupunit
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/workqueue"
@@ -40,12 +39,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/backup/backupunit"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotBackupUnit = "managed resource is not a BackupUnit custom resource"
 
 // Setup adds a controller that reconciles BackupUnit managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.BackupUnitGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -57,14 +57,15 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.BackupUnitGroupVersionKind),
 			managed.WithExternalConnecter(&connectorBackupUnit{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l}),
+				kube:                 mgr.GetClient(),
+				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:                  l,
+				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
-			managed.WithPollInterval(poll),
-			managed.WithTimeout(timeout),
-			managed.WithCreationGracePeriod(creationGracePeriod),
+			managed.WithPollInterval(opts.GetPollInterval()),
+			managed.WithTimeout(opts.GetTimeout()),
+			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
@@ -72,9 +73,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 // A connectorBackupUnit is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorBackupUnit struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Connect typically produces an ExternalClient by:
@@ -89,8 +91,9 @@ func (c *connectorBackupUnit) Connect(ctx context.Context, mg resource.Managed) 
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalBackupUnit{
-		service: &backupunit.APIClient{IonosServices: svc},
-		log:     c.log}, err
+		service:              &backupunit.APIClient{IonosServices: svc},
+		log:                  c.log,
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -98,8 +101,9 @@ func (c *connectorBackupUnit) Connect(ctx context.Context, mg resource.Managed) 
 type externalBackupUnit struct {
 	// A 'client' used to connect to the externalBackupUnit resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service backupunit.Client
-	log     logging.Logger
+	service              backupunit.Client
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 func (c *externalBackupUnit) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -135,17 +139,36 @@ func (c *externalBackupUnit) Create(ctx context.Context, mg resource.Managed) (m
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotBackupUnit)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
+
+	if c.isUniqueNamesEnabled {
+		// BackupUnits should have unique names per account.
+		// Check if there are any existing backup units with the same name.
+		// If there are multiple, an error will be returned.
+		instance, err := c.service.CheckDuplicateBackupUnit(ctx, cr.Spec.ForProvider.Name, cr.Spec.ForProvider.Email)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		backupUnitID, err := c.service.GetBackupUnitID(instance)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if backupUnitID != "" {
+			// "Import" existing backup unit.
+			cr.Status.AtProvider.BackupUnitID = backupUnitID
+			meta.SetExternalName(cr, backupUnitID)
+			return managed.ExternalCreation{}, nil
+		}
+	}
+
 	instanceInput, err := backupunit.GenerateCreateBackupUnitInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
-	instance, apiResponse, err := c.service.CreateBackupUnit(ctx, *instanceInput)
+	newInstance, apiResponse, err := c.service.CreateBackupUnit(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create backup unit. error: %w", err)
@@ -154,10 +177,9 @@ func (c *externalBackupUnit) Create(ctx context.Context, mg resource.Managed) (m
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return creation, err
 	}
-
 	// Set External Name
-	cr.Status.AtProvider.BackupUnitID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.BackupUnitID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

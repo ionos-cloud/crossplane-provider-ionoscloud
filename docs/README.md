@@ -276,6 +276,47 @@ More details about Composite Resources can be found here:
 - [Composite Resources Concept](https://crossplane.io/docs/v1.7/concepts/composition.html)
 - [Composite Resources Reference](https://crossplane.io/docs/v1.7/reference/composition.html)
 
+## Name Uniqueness Support for IONOS Cloud Resources
+
+The Crossplane Provider IONOS Cloud has support for `--unique-names` flag, in order to enable name uniqueness support
+for IONOS Cloud Resources. If the `--unique-names` option is set, the Crossplane Provider for IONOS Cloud will check if
+a resource with the same name already exists. If multiple resources with the specified name are found, an error is
+thrown. If a single resource with the specified name is found, Crossplane Provider will perform an extra step and check
+if the immutable parameters are as expected. If the resource has the specified name, but different immutable parameters,
+an error is thrown. If no resource with the specified name is found, a new resource will be created.
+
+_Note_: Resources will have unique names at their level, e.g. k8s clusters will have unique name per account, k8s node
+pools will have unique name per k8s cluster.
+
+You can create a `ControllerConfig`:
+
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: pkg.crossplane.io/v1alpha1
+kind: ControllerConfig
+metadata:
+  name: provider-config
+spec:
+  args:
+    - --unique-names
+EOF
+```
+
+And reference it from the `Provider`:
+
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-ionos
+spec:
+  package: ghcr.io/ionos-cloud/crossplane-provider-ionoscloud:latest
+  controllerConfigRef:
+    name: provider-config
+EOF
+```
+
 ## Debug Mode
 
 ### Provider Logs

@@ -19,7 +19,6 @@ package k8snodepool
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
@@ -45,12 +44,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s/k8scluster"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s/k8snodepool"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotK8sNodePool = "managed resource is not a K8s NodePool custom resource"
 
 // Setup adds a controller that reconciles K8sNodePool managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.NodePoolGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -62,14 +62,15 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.NodePoolGroupVersionKind),
 			managed.WithExternalConnecter(&connectorNodePool{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l}),
+				kube:                 mgr.GetClient(),
+				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:                  l,
+				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
-			managed.WithPollInterval(poll),
-			managed.WithTimeout(timeout),
-			managed.WithCreationGracePeriod(creationGracePeriod),
+			managed.WithPollInterval(opts.GetPollInterval()),
+			managed.WithTimeout(opts.GetTimeout()),
+			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
@@ -77,9 +78,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 // A connectorK8sNodePool is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorNodePool struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Connect typically produces an ExternalClient by:
@@ -94,12 +96,12 @@ func (c *connectorNodePool) Connect(ctx context.Context, mg resource.Managed) (m
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalNodePool{
-		service:           &k8snodepool.APIClient{IonosServices: svc},
-		clusterService:    &k8scluster.APIClient{IonosServices: svc},
-		datacenterService: &datacenter.APIClient{IonosServices: svc},
-		ipBlockService:    &ipblock.APIClient{IonosServices: svc},
-		log:               c.log,
-	}, err
+		service:              &k8snodepool.APIClient{IonosServices: svc},
+		clusterService:       &k8scluster.APIClient{IonosServices: svc},
+		datacenterService:    &datacenter.APIClient{IonosServices: svc},
+		ipBlockService:       &ipblock.APIClient{IonosServices: svc},
+		log:                  c.log,
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -107,11 +109,12 @@ func (c *connectorNodePool) Connect(ctx context.Context, mg resource.Managed) (m
 type externalNodePool struct {
 	// A 'client' used to connect to the externalK8sNodePool resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service           k8snodepool.Client
-	clusterService    k8scluster.Client
-	datacenterService datacenter.Client
-	ipBlockService    ipblock.Client
-	log               logging.Logger
+	service              k8snodepool.Client
+	clusterService       k8scluster.Client
+	datacenterService    datacenter.Client
+	ipBlockService       ipblock.Client
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 func (c *externalNodePool) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -157,14 +160,33 @@ func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (man
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotK8sNodePool)
 	}
-
 	if err := c.ensureClusterIsActive(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID); err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("cluster must be active to create nodepool: %w", err)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == k8s.DEPLOYING {
 		return managed.ExternalCreation{}, nil
+	}
+
+	if c.isUniqueNamesEnabled {
+		// NodePools should have unique names per cluster.
+		// Check if there are any existing node pools with the same name.
+		// If there are multiple, an error will be returned.
+		instance, err := c.service.CheckDuplicateK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID,
+			cr.Spec.ForProvider.Name, cr)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		nodePoolID, err := c.service.GetK8sNodePoolID(instance)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if nodePoolID != "" {
+			// "Import" existing nodePool.
+			cr.Status.AtProvider.NodePoolID = nodePoolID
+			meta.SetExternalName(cr, nodePoolID)
+			return managed.ExternalCreation{}, nil
+		}
 	}
 
 	// Note: If the CPU Family is not set by the user, the Crossplane Provider IONOS Cloud
@@ -183,17 +205,15 @@ func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (man
 		return managed.ExternalCreation{}, fmt.Errorf("failed to get public IPs: %w", err)
 	}
 	instanceInput := k8snodepool.GenerateCreateK8sNodePoolInput(cr, publicIPs)
-
-	instance, apiResponse, err := c.service.CreateK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, *instanceInput)
+	newInstance, apiResponse, err := c.service.CreateK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create k8s nodepool. error: %w", err)
 		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
-
 	// Set External Name
-	cr.Status.AtProvider.NodePoolID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.NodePoolID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 

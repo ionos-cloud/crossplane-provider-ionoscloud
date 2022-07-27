@@ -2,6 +2,7 @@ package datacenter
 
 import (
 	"context"
+	"fmt"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
@@ -17,12 +18,58 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service Datacenter methods
 type Client interface {
+	CheckDuplicateDatacenter(ctx context.Context, datacenterName, location string) (*sdkgo.Datacenter, error)
+	GetDatacenterID(datacenter *sdkgo.Datacenter) (string, error)
 	GetDatacenter(ctx context.Context, datacenterID string) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
 	CreateDatacenter(ctx context.Context, datacenter sdkgo.Datacenter) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
 	UpdateDatacenter(ctx context.Context, datacenterID string, datacenter sdkgo.DatacenterProperties) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
 	DeleteDatacenter(ctx context.Context, datacenterID string) (*sdkgo.APIResponse, error)
 	GetCPUFamiliesForDatacenter(ctx context.Context, datacenterID string) ([]string, error)
 	GetAPIClient() *sdkgo.APIClient
+}
+
+// CheckDuplicateDatacenter based on datacenterName, and the immutable property location
+func (cp *APIClient) CheckDuplicateDatacenter(ctx context.Context, datacenterName, location string) (*sdkgo.Datacenter, error) { // nolint: gocyclo
+	datacenters, _, err := cp.ComputeClient.DataCentersApi.DatacentersGet(ctx).Depth(utils.DepthQueryParam).Execute()
+	if err != nil {
+		return nil, err
+	}
+	matchedItems := make([]sdkgo.Datacenter, 0)
+	if itemsOk, ok := datacenters.GetItemsOk(); ok && itemsOk != nil {
+		for _, item := range *itemsOk {
+			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
+				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
+					if *nameOk == datacenterName {
+						// After checking the name, check the immutable properties
+						if locationOk, ok := propertiesOk.GetLocationOk(); ok && locationOk != nil {
+							if *locationOk != location {
+								return nil, fmt.Errorf("error: found datacenter with the name %v, but immutable property location different. expected: %v actual: %v", datacenterName, location, *locationOk)
+							}
+						}
+						matchedItems = append(matchedItems, item)
+					}
+				}
+			}
+		}
+	}
+	if len(matchedItems) == 0 {
+		return nil, nil
+	}
+	if len(matchedItems) > 1 {
+		return nil, fmt.Errorf("error: found multiple datacenters with the name %v", datacenterName)
+	}
+	return &matchedItems[0], nil
+}
+
+// GetDatacenterID based on datacenter
+func (cp *APIClient) GetDatacenterID(datacenter *sdkgo.Datacenter) (string, error) {
+	if datacenter != nil {
+		if idOk, ok := datacenter.GetIdOk(); ok && idOk != nil {
+			return *idOk, nil
+		}
+		return "", fmt.Errorf("error: getting datacenter id")
+	}
+	return "", nil
 }
 
 // GetDatacenter based on datacenterID

@@ -19,10 +19,8 @@ package forwardingrule
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
-
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -45,12 +43,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/alb/forwardingrule"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotForwardingRule = "managed resource is not a ApplicationLoadBalancer ForwardingRule custom resource"
 
 // Setup adds a controller that reconciles ForwardingRule managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, creationGracePeriod, timeout time.Duration) error {
+func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.ForwardingRuleGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -62,14 +61,15 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.ForwardingRuleGroupVersionKind),
 			managed.WithExternalConnecter(&connectorForwardingRule{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l}),
+				kube:                 mgr.GetClient(),
+				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+				log:                  l,
+				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
-			managed.WithCreationGracePeriod(creationGracePeriod),
-			managed.WithPollInterval(poll),
-			managed.WithTimeout(timeout),
+			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
+			managed.WithPollInterval(opts.GetPollInterval()),
+			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithLogger(l.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
@@ -77,9 +77,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, poll, c
 // A connectorForwardingRule is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorForwardingRule struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 // Connect typically produces an ExternalClient by:
@@ -94,9 +95,10 @@ func (c *connectorForwardingRule) Connect(ctx context.Context, mg resource.Manag
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalForwardingRule{
-		service:        &forwardingrule.APIClient{IonosServices: svc},
-		ipBlockService: &ipblock.APIClient{IonosServices: svc},
-		log:            c.log}, err
+		service:              &forwardingrule.APIClient{IonosServices: svc},
+		ipBlockService:       &ipblock.APIClient{IonosServices: svc},
+		log:                  c.log,
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -104,9 +106,10 @@ func (c *connectorForwardingRule) Connect(ctx context.Context, mg resource.Manag
 type externalForwardingRule struct {
 	// A 'client' used to connect to the externalForwardingRule resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service        forwardingrule.Client
-	ipBlockService ipblock.Client
-	log            logging.Logger
+	service              forwardingrule.Client
+	ipBlockService       ipblock.Client
+	log                  logging.Logger
+	isUniqueNamesEnabled bool
 }
 
 func (c *externalForwardingRule) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
@@ -143,12 +146,11 @@ func (c *externalForwardingRule) Observe(ctx context.Context, mg resource.Manage
 	}, nil
 }
 
-func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint: gocyclo
 	cr, ok := mg.(*v1alpha1.ForwardingRule)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotForwardingRule)
 	}
-
 	cr.SetConditions(xpv1.Creating())
 	// Check external name in order to avoid duplicates,
 	// since the creation requests take longer than other resources.
@@ -158,6 +160,28 @@ func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed
 	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
 		return managed.ExternalCreation{}, nil
 	}
+
+	if c.isUniqueNamesEnabled {
+		// ForwardingRules should have unique names per application load balancer.
+		// Check if there are any existing forwarding rules with the same name.
+		// If there are multiple, an error will be returned.
+		instance, err := c.service.CheckDuplicateForwardingRule(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+			cr.Spec.ForProvider.ALBCfg.ApplicationLoadBalancerID, cr.Spec.ForProvider.Name)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		forwardingRuleID, err := c.service.GetForwardingRuleID(instance)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if forwardingRuleID != "" {
+			// "Import" existing forwarding rule.
+			cr.Status.AtProvider.ForwardingRuleID = forwardingRuleID
+			meta.SetExternalName(cr, forwardingRuleID)
+			return managed.ExternalCreation{}, nil
+		}
+	}
+
 	listenerIP, err := c.getIPSet(ctx, cr)
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("failed to get listener ip: %w", err)
@@ -166,7 +190,7 @@ func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	instance, apiResponse, err := c.service.CreateForwardingRule(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+	newInstance, apiResponse, err := c.service.CreateForwardingRule(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 		cr.Spec.ForProvider.ALBCfg.ApplicationLoadBalancerID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
@@ -176,10 +200,9 @@ func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed
 		}
 		return creation, retErr
 	}
-
 	// Set External Name
-	cr.Status.AtProvider.ForwardingRuleID = *instance.Id
-	meta.SetExternalName(cr, *instance.Id)
+	cr.Status.AtProvider.ForwardingRuleID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return creation, nil
 }
 
