@@ -279,7 +279,14 @@ More details about Composite Resources can be found here:
 ## Name Uniqueness Support for IONOS Cloud Resources
 
 The Crossplane Provider IONOS Cloud has support for `--unique-names` flag, in order to enable name uniqueness support
-for IONOS Cloud Resources.
+for IONOS Cloud Resources. If the `--unique-names` option is set, the Crossplane Provider for IONOS Cloud will check if
+a resource with the same name already exists. If multiple resources with the specified name are found, an error is
+thrown. If a single resource with the specified name is found, Crossplane Provider will perform an extra step and check
+if the immutable parameters are as expected. If the resource has the specified name, but different immutable parameters,
+an error is thrown. If no resource with the specified name is found, a new resource will be created.
+
+_Note_: Resources will have unique names at their level, e.g. k8s clusters will have unique name per account, k8s node
+pools will have unique name per k8s cluster.
 
 You can create a `ControllerConfig`:
 
