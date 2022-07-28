@@ -347,6 +347,8 @@ func IsCubeServerUpToDate(cr *v1alpha1.CubeServer, server sdkgo.Server) bool { /
 		return true
 	case server.Properties.Name != nil && *server.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
+	case server.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
+		return false
 	case server.Properties.BootVolume != nil && *server.Properties.BootVolume.Id != cr.Status.AtProvider.VolumeID:
 		return false
 	case cr.Status.AtProvider.VolumeID != "" && !server.Properties.HasBootVolume():
