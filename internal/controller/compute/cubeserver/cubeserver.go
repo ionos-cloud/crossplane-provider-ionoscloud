@@ -161,12 +161,17 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
-
+	// Resolve TemplateID
+	templateID, err := getTemplateID(ctx, c, cr)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
 	if c.isUniqueNamesEnabled {
 		// Servers should have unique names per datacenter.
 		// Check if there are any existing servers with the same name.
 		// If there are multiple, an error will be returned.
-		instance, err := c.service.CheckDuplicateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.Name, cr.Spec.ForProvider.CPUFamily)
+		instance, err := c.service.CheckDuplicateCubeServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+			cr.Spec.ForProvider.Name, templateID, cr.Spec.ForProvider.CPUFamily)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}
@@ -182,11 +187,6 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		}
 	}
 
-	// Resolve TemplateID
-	templateID, err := getTemplateID(ctx, c, cr)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
 	// Create new cube server based on the properties set
 	instanceInput, err := server.GenerateCreateCubeServerInput(cr, templateID)
 	if err != nil {
