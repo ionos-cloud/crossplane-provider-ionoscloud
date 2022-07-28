@@ -194,6 +194,8 @@ func IsVolumeUpToDate(cr *v1alpha1.Volume, volume *sdkgo.Volume) bool { // nolin
 		return true
 	case volume.Properties.Name != nil && *volume.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
+	case volume.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
+		return false
 	case volume.Properties.Size != nil && *volume.Properties.Size != cr.Spec.ForProvider.Size:
 		return false
 	case volume.Properties.CpuHotPlug != nil && *volume.Properties.CpuHotPlug != cr.Spec.ForProvider.CPUHotPlug:

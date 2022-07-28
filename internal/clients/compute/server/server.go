@@ -257,6 +257,8 @@ func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool { // nolint
 		return false
 	case server.Properties.Name != nil && cr.Spec.ForProvider.Name != *server.Properties.Name:
 		return false
+	case server.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
+		return false
 	case server.Properties.Cores != nil && cr.Spec.ForProvider.Cores != *server.Properties.Cores:
 		return false
 	case server.Properties.Ram != nil && cr.Spec.ForProvider.RAM != *server.Properties.Ram:
@@ -383,6 +385,8 @@ func IsCubeServerUpToDate(cr *v1alpha1.CubeServer, server sdkgo.Server) bool { /
 	case server.Metadata.State != nil && *server.Metadata.State == "BUSY":
 		return true
 	case server.Properties.Name != nil && *server.Properties.Name != cr.Spec.ForProvider.Name:
+		return false
+	case server.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
 		return false
 	case server.Properties.BootVolume != nil && *server.Properties.BootVolume.Id != cr.Status.AtProvider.VolumeID:
 		return false

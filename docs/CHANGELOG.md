@@ -3,9 +3,11 @@
 ## [1.0.0] (July 2022)
 
 - **Features**:
-    - Added `--unique-names` option support for name uniqueness for IONOS Cloud resources
+    - Added `--unique-names` option support for name uniqueness for IONOS Cloud resources;
+    - Added check for `spec.forProvider.name` field on `NodePool` K8s Managed Resource - for reconciliation loops;
+    - Added check for resources to be updated when name from IONOS Cloud is nil and `spec.forProvider.name` is not empty;
 - **Fixes**:
-    - Removed read-only field `mac` from `Nic` Managed Resource:
+    - Removed read-only field `mac` from `Nic` Compute Managed Resource:
         - New field: `status.atProvider.mac`;
     - Updated User Agent for Crossplane Provider for IONOS Cloud to contain provider version;
 - **Documentation**:

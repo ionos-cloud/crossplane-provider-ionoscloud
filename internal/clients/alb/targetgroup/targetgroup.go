@@ -194,6 +194,8 @@ func IsTargetGroupUpToDate(cr *v1alpha1.TargetGroup, targetGroup sdkgo.TargetGro
 		return true
 	case targetGroup.Properties.Name != nil && *targetGroup.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
+	case targetGroup.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
+		return false
 	case targetGroup.Properties.Protocol != nil && *targetGroup.Properties.Protocol != cr.Spec.ForProvider.Protocol:
 		return false
 	case targetGroup.Properties.Algorithm != nil && *targetGroup.Properties.Algorithm != cr.Spec.ForProvider.Algorithm:

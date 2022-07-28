@@ -26,9 +26,10 @@ import (
 )
 
 const (
-	testClusterID  = "cluster-id"
-	testNodePoolID = "nodepool-id"
-	testIPBlockID  = "ipblock-id"
+	testClusterID    = "cluster-id"
+	testNodePoolID   = "nodepool-id"
+	testIPBlockID    = "ipblock-id"
+	testNodePoolName = "node-pool-name"
 )
 
 func TestExternalNodePoolObserve(t *testing.T) {
@@ -36,6 +37,7 @@ func TestExternalNodePoolObserve(t *testing.T) {
 	basicObserveNodePool := &v1alpha1.NodePool{
 		Spec: v1alpha1.NodePoolSpec{
 			ForProvider: v1alpha1.NodePoolParameters{
+				Name:          testNodePoolName,
 				DatacenterCfg: v1alpha1.DatacenterConfig{DatacenterID: "12345"},
 				ClusterCfg: v1alpha1.ClusterConfig{
 					ClusterID: testClusterID,
@@ -86,7 +88,7 @@ func TestExternalNodePoolObserve(t *testing.T) {
 						GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
 						Return(ionoscloud.KubernetesNodePool{
 							Properties: &ionoscloud.KubernetesNodePoolProperties{
-								Name: ionoscloud.PtrString("node-pool-name"),
+								Name: ionoscloud.PtrString(testNodePoolName),
 							},
 						}, nil, nil)
 				},
@@ -153,7 +155,7 @@ func TestExternalNodePoolObserve(t *testing.T) {
 						GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
 						Return(ionoscloud.KubernetesNodePool{
 							Properties: &ionoscloud.KubernetesNodePoolProperties{
-								Name: ionoscloud.PtrString("node-pool-name"),
+								Name: ionoscloud.PtrString(testNodePoolName),
 							},
 						}, nil, nil)
 				},
@@ -176,7 +178,7 @@ func TestExternalNodePoolObserve(t *testing.T) {
 						GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
 						Return(ionoscloud.KubernetesNodePool{
 							Properties: &ionoscloud.KubernetesNodePoolProperties{
-								Name:      ionoscloud.PtrString("node-pool-name"),
+								Name:      ionoscloud.PtrString(testNodePoolName),
 								NodeCount: ionoscloud.PtrInt32(2),
 							},
 						}, nil, nil)
@@ -200,7 +202,7 @@ func TestExternalNodePoolObserve(t *testing.T) {
 						GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
 						Return(ionoscloud.KubernetesNodePool{
 							Properties: &ionoscloud.KubernetesNodePoolProperties{
-								Name: ionoscloud.PtrString("node-pool-name"),
+								Name: ionoscloud.PtrString(testNodePoolName),
 								Labels: &map[string]string{
 									"some": "old-label",
 								},
@@ -232,7 +234,7 @@ func TestExternalNodePoolObserve(t *testing.T) {
 						GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
 						Return(ionoscloud.KubernetesNodePool{
 							Properties: &ionoscloud.KubernetesNodePoolProperties{
-								Name: ionoscloud.PtrString("node-pool-name"),
+								Name: ionoscloud.PtrString(testNodePoolName),
 								Annotations: &map[string]string{
 									"some": "old-annotation",
 								},
@@ -299,7 +301,7 @@ func TestExternalNodePoolDelete(t *testing.T) {
 	basicDeleteNodepool := &v1alpha1.NodePool{
 		Spec: v1alpha1.NodePoolSpec{
 			ForProvider: v1alpha1.NodePoolParameters{
-				Name: "node-pool-name",
+				Name: testNodePoolName,
 				ClusterCfg: v1alpha1.ClusterConfig{
 					ClusterID: testClusterID,
 				},
@@ -855,7 +857,7 @@ func TestExternalNodePoolUpdate(t *testing.T) {
 	basicUpdateNodePool := &v1alpha1.NodePool{
 		Spec: v1alpha1.NodePoolSpec{
 			ForProvider: v1alpha1.NodePoolParameters{
-				Name: "node-pool-name",
+				Name: testNodePoolName,
 				ClusterCfg: v1alpha1.ClusterConfig{
 					ClusterID: testClusterID,
 				},

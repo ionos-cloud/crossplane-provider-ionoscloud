@@ -165,6 +165,8 @@ func IsForwardingRuleUpToDate(cr *v1alpha1.ForwardingRule, forwardingRule sdkgo.
 		return true
 	case forwardingRule.Properties.Name != nil && *forwardingRule.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
+	case forwardingRule.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
+		return false
 	case forwardingRule.Properties.Protocol != nil && *forwardingRule.Properties.Protocol != cr.Spec.ForProvider.Protocol:
 		return false
 	case forwardingRule.Properties.ListenerIp != nil && *forwardingRule.Properties.ListenerIp != listenerIP:
