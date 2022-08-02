@@ -1,4 +1,4 @@
-name: Cleanup workflow
+name: Cleanup Test Account
 
 on:
   schedule:
@@ -20,13 +20,14 @@ jobs:
       - name: Checking out crossplane provider
         uses: actions/checkout@v2
         with:
-          path: resources
+          submodules: true
       - name: Setup ionosctl
         run: |
           curl -sL https://github.com/ionos-cloud/ionosctl/releases/download/v${{ env.IONOSCTL_VERSION }}/ionosctl-${{ env.IONOSCTL_VERSION }}-linux-amd64.tar.gz | tar -xzv > /dev/null
           mv ionosctl /usr/local/bin
+          ionosctl version
       - name: Perform cleanup
-        working-directory: ./tools/scripts/cleanup
+        working-directory: tools/scripts/cleanup
         run: |
           ./delete-all-resources.sh &> output.log || true
           cat output.log
