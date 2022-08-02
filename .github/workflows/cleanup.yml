@@ -26,7 +26,7 @@ jobs:
           curl -sL https://github.com/ionos-cloud/ionosctl/releases/download/v${{ env.IONOSCTL_VERSION }}/ionosctl-${{ env.IONOSCTL_VERSION }}-linux-amd64.tar.gz | tar -xzv > /dev/null
           mv ionosctl /usr/local/bin
       - name: Perform cleanup
-        working-directory: ./tools/scripts/cleanup
+        working-directory: tools/scripts/cleanup
         run: |
           ./delete-all-resources.sh &> output.log || true
           cat output.log
