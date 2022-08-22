@@ -854,12 +854,12 @@ func TestExternalControlPlaneClientUpdate(t *testing.T) {
 			},
 		},
 		{
-			name: "API success",
+			name: "Empty APISubnetAllowList",
 			setupControlPlaneClient: func(client *k8scluster.MockClient) {
 				client.EXPECT().UpdateK8sCluster(context.Background(), "cluster-id",
 					gomock.GotFormatterAdapter(clusterGotFormatter{}, matchesClusterPut(ionoscloud.KubernetesClusterForPut{
 						Properties: &ionoscloud.KubernetesClusterPropertiesForPut{
-							ApiSubnetAllowList: &[]string{},
+							ApiSubnetAllowList: nil,
 							Name:               ionoscloud.PtrString("testCluster"),
 							K8sVersion:         ionoscloud.PtrString("v1.22.33"),
 							MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
@@ -875,8 +875,56 @@ func TestExternalControlPlaneClientUpdate(t *testing.T) {
 				np := &v1alpha1.Cluster{
 					Spec: v1alpha1.ClusterSpec{
 						ForProvider: v1alpha1.ClusterParameters{
-							Name:       "testCluster",
-							K8sVersion: "v1.22.33",
+							APISubnetAllowList: []string{},
+							Name:               "testCluster",
+							K8sVersion:         "v1.22.33",
+							MaintenanceWindow: v1alpha1.MaintenanceWindow{
+								Time:         "15:24:30Z",
+								DayOfTheWeek: "Mon",
+							},
+						},
+					},
+					Status: v1alpha1.ClusterStatus{
+						AtProvider: v1alpha1.ClusterObservation{
+							State:     k8s.ACTIVE,
+							ClusterID: "cluster-id",
+						},
+					},
+				}
+				meta.SetExternalName(np, "cluster-id")
+				return np
+			}(),
+			wantErr: false,
+			wantCondition: xpv1.Condition{
+				Type:   "Ready",
+				Status: "Unknown",
+			},
+		},
+		{
+			name: "API success",
+			setupControlPlaneClient: func(client *k8scluster.MockClient) {
+				client.EXPECT().UpdateK8sCluster(context.Background(), "cluster-id",
+					gomock.GotFormatterAdapter(clusterGotFormatter{}, matchesClusterPut(ionoscloud.KubernetesClusterForPut{
+						Properties: &ionoscloud.KubernetesClusterPropertiesForPut{
+							ApiSubnetAllowList: &[]string{"233.252.0.12"},
+							Name:               ionoscloud.PtrString("testCluster"),
+							K8sVersion:         ionoscloud.PtrString("v1.22.33"),
+							MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
+								DayOfTheWeek: ionoscloud.PtrString("Mon"),
+								Time:         ionoscloud.PtrString("15:24:30Z"),
+							},
+						},
+					})),
+				).
+					Return(ionoscloud.KubernetesCluster{}, nil, nil)
+			},
+			args: func() *v1alpha1.Cluster {
+				np := &v1alpha1.Cluster{
+					Spec: v1alpha1.ClusterSpec{
+						ForProvider: v1alpha1.ClusterParameters{
+							APISubnetAllowList: []string{"233.252.0.12"},
+							Name:               "testCluster",
+							K8sVersion:         "v1.22.33",
 							MaintenanceWindow: v1alpha1.MaintenanceWindow{
 								Time:         "15:24:30Z",
 								DayOfTheWeek: "Mon",
