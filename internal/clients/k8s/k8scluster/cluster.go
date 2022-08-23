@@ -145,9 +145,11 @@ func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) *sdkgo.KubernetesCluste
 func GenerateUpdateK8sClusterInput(cr *v1alpha1.Cluster) *sdkgo.KubernetesClusterForPut {
 	instanceUpdateInput := sdkgo.KubernetesClusterForPut{
 		Properties: &sdkgo.KubernetesClusterPropertiesForPut{
-			Name:               &cr.Spec.ForProvider.Name,
-			ApiSubnetAllowList: apiSubnetAllowList(cr.Spec.ForProvider.APISubnetAllowList),
+			Name: &cr.Spec.ForProvider.Name,
 		},
+	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.APISubnetAllowList)) {
+		instanceUpdateInput.Properties.ApiSubnetAllowList = apiSubnetAllowList(cr.Spec.ForProvider.APISubnetAllowList)
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.K8sVersion)) {
 		instanceUpdateInput.Properties.SetK8sVersion(cr.Spec.ForProvider.K8sVersion)
