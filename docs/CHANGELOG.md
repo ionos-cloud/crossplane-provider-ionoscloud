@@ -1,6 +1,6 @@
 # Changelog
 
-## upcoming release
+## [1.0.1] (September 2022)
 
 - **Fixes**:
   - Update `APISubnetAllowList` field on `Cluster` K8s Managed Resource only if it is not empty
