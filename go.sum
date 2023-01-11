@@ -148,6 +148,8 @@ github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ3
 github.com/creack/pty v1.1.11/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/crossplane/crossplane-runtime v0.15.1 h1:4l3iTMyrQRkt9U0P1oJ6M71JMFGcIq95agFu7OPrwRE=
 github.com/crossplane/crossplane-runtime v0.15.1/go.mod h1:XvktCTRFTkdP2jR2PecrvhsxzSO8XT3jHxTOk/k+NL8=
+github.com/crossplane/crossplane-runtime v0.18.0 h1:j1VxhKWp3iQKr1XNiMoBKmEvN2Z98E7rR0tyimu7dj4=
+github.com/crossplane/crossplane-runtime v0.18.0/go.mod h1:o9ExoilV6k2M3qzSFoRVX4phuww0mLmjs1WrDTvsR4s=
 github.com/crossplane/crossplane-tools v0.0.0-20220106150503-21c1d7761d68 h1:GNTOKyLNyLLJehBLnuCn5DPi/n/hGWhJQi7gwSzwZik=
 github.com/crossplane/crossplane-tools v0.0.0-20220106150503-21c1d7761d68/go.mod h1:xFf30hwHd5n0/a0D4ZomId8nxQTTjE0Hc1j4/rWxefc=
 github.com/dave/astrid v0.0.0-20170323122508-8c2895878b14/go.mod h1:Sth2QfxfATb/nW4EsrSi2KyJmbcniZ8TgTaji17D6ms=
@@ -1288,12 +1290,12 @@ sigs.k8s.io/controller-runtime v0.12.1/go.mod h1:BKhxlA4l7FPK4AQcsuL4X6vZeWnKDXe
 sigs.k8s.io/controller-tools v0.2.4/go.mod h1:m/ztfQNocGYBgTTCmFdnK94uVvgxeZeE3LtJvd/jIzA=
 sigs.k8s.io/controller-tools v0.6.2 h1:+Y8L0UsAugDipGRw8lrkPoAi6XqlQVZuf1DQHME3PgU=
 sigs.k8s.io/controller-tools v0.6.2/go.mod h1:oaeGpjXn6+ZSEIQkUe/+3I40PNiDYp9aeawbt3xTgJ8=
+sigs.k8s.io/controller-tools v0.8.0/go.mod h1:qE2DXhVOiEq5ijmINcFbqi9GZrrUjzB1TuJU0xa6eoY=
 sigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 h1:kDi4JBNAsJWfz1aEXhO8Jg87JJaPNLh5tIzYHgStQ9Y=
 sigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2/go.mod h1:B+TnT182UBxE84DiCz4CVE26eOSDAeYCpfDnC2kdKMY=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e/go.mod h1:wWxsB5ozmmv/SG7nM11ayaAW51xMvak/t1r0CSlcokI=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190817042607-6149e4549fca h1:6dsH6AYQWbyZmtttJNe8Gq1cXOeS1BdV3eW37zHilAQ=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190817042607-6149e4549fca/go.mod h1:IIgPezJWb76P0hotTxzDbWsMYB8APh18qZnxkomBpxA=
-sigs.k8s.io/structured-merge-diff/v4 v4.0.2/go.mod h1:bJZC9H9iH24zzfZ/41RGcq60oK1F7G282QMXDPYydCw=
 sigs.k8s.io/structured-merge-diff/v4 v4.0.2/go.mod h1:bJZC9H9iH24zzfZ/41RGcq60oK1F7G282QMXDPYydCw=
 sigs.k8s.io/structured-merge-diff/v4 v4.1.0/go.mod h1:bJZC9H9iH24zzfZ/41RGcq60oK1F7G282QMXDPYydCw=
 sigs.k8s.io/structured-merge-diff/v4 v4.1.2/go.mod h1:j/nl6xW8vLS49O8YvXW1ocPhZawJtm+Yrr7PPRQ0Vg4=

@@ -3,7 +3,7 @@ module github.com/ionos-cloud/crossplane-provider-ionoscloud
 go 1.17
 
 require (
-	github.com/crossplane/crossplane-runtime v0.15.1
+	github.com/crossplane/crossplane-runtime v0.18.0
 	github.com/crossplane/crossplane-tools v0.0.0-20220106150503-21c1d7761d68
 	github.com/go-logr/zapr v1.2.3
 	github.com/golang/mock v1.6.0
@@ -19,7 +19,7 @@ require (
 	k8s.io/apimachinery v0.24.0
 	k8s.io/client-go v0.24.0
 	sigs.k8s.io/controller-runtime v0.12.1
-	sigs.k8s.io/controller-tools v0.6.2
+	sigs.k8s.io/controller-tools v0.8.0
 )
 
 require (
