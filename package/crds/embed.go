@@ -8,6 +8,7 @@ import (
 )
 
 // content holds our CRDs. The embedding happens via the go build tool.
+//
 //go:embed *.yaml
 var crds embed.FS
 

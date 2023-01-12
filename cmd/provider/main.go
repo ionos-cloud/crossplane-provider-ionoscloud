@@ -32,6 +32,12 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
+const (
+	// defaultProviderRPS is the recommended default average requeues per
+	// second tolerated by a Crossplane provider.
+	defaultProviderRPS = 1
+)
+
 func main() {
 	var (
 		app               = kingpin.New(filepath.Base(os.Args[0]), "IONOS Cloud support for Crossplane.").DefaultEnvars()
@@ -66,7 +72,7 @@ func main() {
 	})
 	kingpin.FatalIfError(err, "Cannot create controller manager")
 
-	rl := ratelimiter.NewDefaultProviderRateLimiter(ratelimiter.DefaultProviderRPS)
+	rl := ratelimiter.NewGlobal(defaultProviderRPS)
 	kingpin.FatalIfError(apis.AddToScheme(mgr.GetScheme()), "Cannot add IONOS Cloud APIs to scheme")
 	options := utils.NewConfigurationOptions(*pollInterval, *createGracePeriod, *timeout, *uniqueNames)
 	kingpin.FatalIfError(controller.Setup(mgr, log, rl, options), "Cannot setup IONOS Cloud controllers")

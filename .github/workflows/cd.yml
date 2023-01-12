@@ -7,7 +7,7 @@ on:
 
 env:
   GO_VERSION: '1.18'
-  GOLANGCI_VERSION: 'v1.31'
+  GOLANGCI_VERSION: 'v1.50.1'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
 
 jobs:

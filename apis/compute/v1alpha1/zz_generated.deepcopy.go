@@ -32,7 +32,7 @@ func (in *BackupUnitConfig) DeepCopyInto(out *BackupUnitConfig) {
 	if in.BackupUnitIDRef != nil {
 		in, out := &in.BackupUnitIDRef, &out.BackupUnitIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.BackupUnitIDSelector != nil {
 		in, out := &in.BackupUnitIDSelector, &out.BackupUnitIDSelector
@@ -199,7 +199,7 @@ func (in *DatacenterConfig) DeepCopyInto(out *DatacenterConfig) {
 	if in.DatacenterIDRef != nil {
 		in, out := &in.DatacenterIDRef, &out.DatacenterIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.DatacenterIDSelector != nil {
 		in, out := &in.DatacenterIDSelector, &out.DatacenterIDSelector
@@ -352,7 +352,7 @@ func (in *FirewallRuleConfig) DeepCopyInto(out *FirewallRuleConfig) {
 	if in.FirewallRuleIDRef != nil {
 		in, out := &in.FirewallRuleIDRef, &out.FirewallRuleIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.FirewallRuleIDSelector != nil {
 		in, out := &in.FirewallRuleIDSelector, &out.FirewallRuleIDSelector
@@ -505,7 +505,7 @@ func (in *IPBlockConfig) DeepCopyInto(out *IPBlockConfig) {
 	if in.IPBlockIDRef != nil {
 		in, out := &in.IPBlockIDRef, &out.IPBlockIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.IPBlockIDSelector != nil {
 		in, out := &in.IPBlockIDSelector, &out.IPBlockIDSelector
@@ -774,7 +774,7 @@ func (in *IPsBlockConfig) DeepCopyInto(out *IPsBlockConfig) {
 	if in.IPBlockIDRef != nil {
 		in, out := &in.IPBlockIDRef, &out.IPBlockIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.IPBlockIDSelector != nil {
 		in, out := &in.IPBlockIDSelector, &out.IPBlockIDSelector
@@ -858,7 +858,7 @@ func (in *LanConfig) DeepCopyInto(out *LanConfig) {
 	if in.LanIDRef != nil {
 		in, out := &in.LanIDRef, &out.LanIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.LanIDSelector != nil {
 		in, out := &in.LanIDSelector, &out.LanIDSelector
@@ -1012,7 +1012,7 @@ func (in *NicConfig) DeepCopyInto(out *NicConfig) {
 	if in.NicIDRef != nil {
 		in, out := &in.NicIDRef, &out.NicIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.NicIDSelector != nil {
 		in, out := &in.NicIDSelector, &out.NicIDSelector
@@ -1169,7 +1169,7 @@ func (in *ServerConfig) DeepCopyInto(out *ServerConfig) {
 	if in.ServerIDRef != nil {
 		in, out := &in.ServerIDRef, &out.ServerIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.ServerIDSelector != nil {
 		in, out := &in.ServerIDSelector, &out.ServerIDSelector
@@ -1334,7 +1334,7 @@ func (in *VolumeConfig) DeepCopyInto(out *VolumeConfig) {
 	if in.VolumeIDRef != nil {
 		in, out := &in.VolumeIDRef, &out.VolumeIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.VolumeIDSelector != nil {
 		in, out := &in.VolumeIDSelector, &out.VolumeIDSelector
