@@ -307,7 +307,7 @@ func (c *externalFirewallRule) getTargetIPSet(ctx context.Context, cr *v1alpha1.
 // the Crossplane Provider IONOS Cloud.
 func (c *externalFirewallRule) getSourceIPSet(ctx context.Context, cr *v1alpha1.FirewallRule) (string, error) {
 	if cr.Spec.ForProvider.SourceIPCfg.IP != "" {
-		return cr.Spec.ForProvider.TargetIPCfg.IP, nil
+		return cr.Spec.ForProvider.SourceIPCfg.IP, nil
 	}
 	if cr.Spec.ForProvider.SourceIPCfg.IPBlockCfg.IPBlockID != "" {
 		ipsCfg, err := c.ipBlockService.GetIPs(ctx, cr.Spec.ForProvider.SourceIPCfg.IPBlockCfg.IPBlockID, cr.Spec.ForProvider.SourceIPCfg.IPBlockCfg.Index)
