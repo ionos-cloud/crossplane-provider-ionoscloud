@@ -390,10 +390,10 @@ spec:
                       and index.
                     properties:
                       ip:
-                        description: Use IP to set specific IP to the resource. If
-                          both IP and IPBlockConfig are set, only `ip` field will
-                          be considered.
-                        pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
+                        description: Use IP or CIDR to set specific IP or CIDR to
+                          the resource. If both IP and IPBlockConfig are set, only
+                          `ip` field will be considered.
+                        pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}(/([0-9]|[1-2][0-9]|3[0-2]))?$
                         type: string
                       ipBlockConfig:
                         description: Use IpBlockConfig to reference existing IPBlock,
@@ -508,10 +508,10 @@ spec:
                       and index.
                     properties:
                       ip:
-                        description: Use IP to set specific IP to the resource. If
-                          both IP and IPBlockConfig are set, only `ip` field will
-                          be considered.
-                        pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
+                        description: Use IP or CIDR to set specific IP or CIDR to
+                          the resource. If both IP and IPBlockConfig are set, only
+                          `ip` field will be considered.
+                        pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}(/([0-9]|[1-2][0-9]|3[0-2]))?$
                         type: string
                       ipBlockConfig:
                         description: Use IpBlockConfig to reference existing IPBlock,

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.2] (January 2023)
+
+- **Fixes**:
+    - Update `sourceIpConfig` and `targetIpConfig` `ip` fields on `FirewallRule` will also allow cidr to be set, not only ips
+
+
 ## [1.0.1] (September 2022)
 
 - **Fixes**:
