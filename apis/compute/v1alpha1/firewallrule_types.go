@@ -65,13 +65,13 @@ type FirewallRuleParameters struct {
 	// SourceIP can be set directly or via reference to an IP Block and index.
 	//
 	// +kubebuilder:validation:Optional
-	SourceIPCfg IPConfig `json:"sourceIpConfig,omitempty"`
+	SourceIPCfg FwIPConfig `json:"sourceIpConfig,omitempty"`
 	// If the target NIC has multiple IP addresses, only the traffic directed to the respective IP address of the NIC is allowed.
 	// Value null allows traffic to any target IP address.
 	// TargetIP can be set directly or via reference to an IP Block and index.
 	//
 	// +kubebuilder:validation:Optional
-	TargetIPCfg IPConfig `json:"targetIpConfig,omitempty"`
+	TargetIPCfg FwIPConfig `json:"targetIpConfig,omitempty"`
 	// Defines the allowed code (from 0 to 254) if protocol ICMP is chosen. Value null allows all codes.
 	//
 	// +kubebuilder:validation:Minimum=0
@@ -120,6 +120,18 @@ type FirewallRuleConfig struct {
 	//
 	// +optional
 	FirewallRuleIDSelector *xpv1.Selector `json:"firewallRuleIdSelector,omitempty"`
+}
+
+// FwIPConfig is used by firewallRule that needs to link ip directly or from IPBlock via id or via reference.
+type FwIPConfig struct {
+	// Use IP or CIDR to set specific IP or CIDR to the resource. If both IP and IPBlockConfig are set,
+	// only `ip` field will be considered.
+	//
+	// +kubebuilder:validation:Pattern="^([0-9]{1,3}\\.){3}[0-9]{1,3}(/([0-9]|[1-2][0-9]|3[0-2]))?$"
+	IP string `json:"ip,omitempty"`
+	// Use IpBlockConfig to reference existing IPBlock, and to mention the index for the IP.
+	// Index starts from 0 and it must be provided.
+	IPBlockCfg IPBlockConfig `json:"ipBlockConfig,omitempty"`
 }
 
 // FirewallRuleObservation are the observable fields of a FirewallRule.

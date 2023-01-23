@@ -525,12 +525,9 @@ spec:
   forProvider:
     name: exampleFirewallRule
     protocol: ANY
-    type: INGRESS
+    type: EGRESS
     sourceIpConfig:
-      ipBlockConfig:
-        ipBlockIdRef:
-          name: example
-        index: 0
+      ip: 192.168.42.2/31
     targetIpConfig:
       ipBlockConfig:
         ipBlockIdRef:
@@ -568,9 +565,13 @@ metadata:
   name: example
 spec:
   forProvider:
-    name: exampleFirewallRule
+    name: exampleFirewallRuleUpdated
     protocol: ANY
-    type: INGRESS
+    type: EGRESS
+    sourceIpConfig:
+      ip: 192.168.42.2/31
+    targetIpConfig:
+      ip: 192.168.24.3
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -601,9 +602,9 @@ metadata:
   name: example
 spec:
   forProvider:
-    name: exampleFirewallRule
+    name: exampleFirewallRuleUpdated
     protocol: ANY
-    type: INGRESS
+    type: EGRESS
     datacenterConfig:
       datacenterIdRef:
         name: example
