@@ -4,7 +4,8 @@
 
 - **Fixes**:
     - Update `sourceIpConfig` and `targetIpConfig` `ip` fields on `FirewallRule` will also allow cidr to be set, not only ips
-
+- **Dependency-update**:
+    - Updated dependencies for all libraries
 
 ## [1.0.1] (September 2022)
 
