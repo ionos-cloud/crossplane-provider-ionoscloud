@@ -59,7 +59,7 @@ func (in *ApplicationLoadBalancerConfig) DeepCopyInto(out *ApplicationLoadBalanc
 	if in.ApplicationLoadBalancerIDRef != nil {
 		in, out := &in.ApplicationLoadBalancerIDRef, &out.ApplicationLoadBalancerIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.ApplicationLoadBalancerIDSelector != nil {
 		in, out := &in.ApplicationLoadBalancerIDSelector, &out.ApplicationLoadBalancerIDSelector
@@ -240,7 +240,7 @@ func (in *DatacenterConfig) DeepCopyInto(out *DatacenterConfig) {
 	if in.DatacenterIDRef != nil {
 		in, out := &in.DatacenterIDRef, &out.DatacenterIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.DatacenterIDSelector != nil {
 		in, out := &in.DatacenterIDSelector, &out.DatacenterIDSelector
@@ -403,7 +403,7 @@ func (in *IPBlockConfig) DeepCopyInto(out *IPBlockConfig) {
 	if in.IPBlockIDRef != nil {
 		in, out := &in.IPBlockIDRef, &out.IPBlockIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.IPBlockIDSelector != nil {
 		in, out := &in.IPBlockIDSelector, &out.IPBlockIDSelector
@@ -444,7 +444,7 @@ func (in *IPsBlockConfig) DeepCopyInto(out *IPsBlockConfig) {
 	if in.IPBlockIDRef != nil {
 		in, out := &in.IPBlockIDRef, &out.IPBlockIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.IPBlockIDSelector != nil {
 		in, out := &in.IPBlockIDSelector, &out.IPBlockIDSelector
@@ -501,7 +501,7 @@ func (in *LanConfig) DeepCopyInto(out *LanConfig) {
 	if in.LanIDRef != nil {
 		in, out := &in.LanIDRef, &out.LanIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.LanIDSelector != nil {
 		in, out := &in.LanIDSelector, &out.LanIDSelector
@@ -553,7 +553,7 @@ func (in *TargetGroupConfig) DeepCopyInto(out *TargetGroupConfig) {
 	if in.TargetGroupIDRef != nil {
 		in, out := &in.TargetGroupIDRef, &out.TargetGroupIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.TargetGroupIDSelector != nil {
 		in, out := &in.TargetGroupIDSelector, &out.TargetGroupIDSelector

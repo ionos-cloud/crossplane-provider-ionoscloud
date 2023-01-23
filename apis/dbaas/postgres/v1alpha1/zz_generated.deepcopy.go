@@ -153,7 +153,7 @@ func (in *DatacenterConfig) DeepCopyInto(out *DatacenterConfig) {
 	if in.DatacenterIDRef != nil {
 		in, out := &in.DatacenterIDRef, &out.DatacenterIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.DatacenterIDSelector != nil {
 		in, out := &in.DatacenterIDSelector, &out.DatacenterIDSelector
@@ -178,7 +178,7 @@ func (in *LanConfig) DeepCopyInto(out *LanConfig) {
 	if in.LanIDRef != nil {
 		in, out := &in.LanIDRef, &out.LanIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.LanIDSelector != nil {
 		in, out := &in.LanIDSelector, &out.LanIDSelector

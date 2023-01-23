@@ -59,7 +59,7 @@ func (in *ClusterConfig) DeepCopyInto(out *ClusterConfig) {
 	if in.ClusterIDRef != nil {
 		in, out := &in.ClusterIDRef, &out.ClusterIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.ClusterIDSelector != nil {
 		in, out := &in.ClusterIDSelector, &out.ClusterIDSelector
@@ -201,7 +201,7 @@ func (in *DatacenterConfig) DeepCopyInto(out *DatacenterConfig) {
 	if in.DatacenterIDRef != nil {
 		in, out := &in.DatacenterIDRef, &out.DatacenterIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.DatacenterIDSelector != nil {
 		in, out := &in.DatacenterIDSelector, &out.DatacenterIDSelector
@@ -226,7 +226,7 @@ func (in *IPBlockConfig) DeepCopyInto(out *IPBlockConfig) {
 	if in.IPBlockIDRef != nil {
 		in, out := &in.IPBlockIDRef, &out.IPBlockIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.IPBlockIDSelector != nil {
 		in, out := &in.IPBlockIDSelector, &out.IPBlockIDSelector
@@ -267,7 +267,7 @@ func (in *IPsBlockConfig) DeepCopyInto(out *IPsBlockConfig) {
 	if in.IPBlockIDRef != nil {
 		in, out := &in.IPBlockIDRef, &out.IPBlockIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.IPBlockIDSelector != nil {
 		in, out := &in.IPBlockIDSelector, &out.IPBlockIDSelector
@@ -375,7 +375,7 @@ func (in *LanConfig) DeepCopyInto(out *LanConfig) {
 	if in.LanIDRef != nil {
 		in, out := &in.LanIDRef, &out.LanIDRef
 		*out = new(v1.Reference)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.LanIDSelector != nil {
 		in, out := &in.LanIDSelector, &out.LanIDSelector
