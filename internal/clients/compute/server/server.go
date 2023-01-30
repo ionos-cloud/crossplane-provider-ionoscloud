@@ -165,53 +165,41 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 }
 
 // GenerateCreateServerInput returns sdkgo.Server based on the CR spec
-func GenerateCreateServerInput(cr *v1alpha1.Server) (*sdkgo.Server, error) {
-	instanceCreateInput := sdkgo.Server{
-		Properties: &sdkgo.ServerProperties{
-			Name:  &cr.Spec.ForProvider.Name,
-			Cores: &cr.Spec.ForProvider.Cores,
-			Ram:   &cr.Spec.ForProvider.RAM,
-		},
+func GenerateCreateServerInput(cr *v1alpha1.Server) *sdkgo.Server {
+	properties := GenerateUpdateServerInput(cr)
+
+	return &sdkgo.Server{
+		Properties: properties,
 	}
-	// Set CPUFamily only if it is specified into the Spec.
-	// If not, the CPUFamily will be set corresponding with the datacenter's location
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.CPUFamily)) {
-		instanceCreateInput.Properties.SetCpuFamily(cr.Spec.ForProvider.CPUFamily)
-	}
-	// Set AvailabilityZone only if it is specified into the Spec.
-	// If not, the AvailabilityZone will be set to the default value by the API
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AvailabilityZone)) {
-		instanceCreateInput.Properties.SetAvailabilityZone(cr.Spec.ForProvider.AvailabilityZone)
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.BootCdromID)) {
-		instanceCreateInput.Properties.SetBootCdrom(sdkgo.ResourceReference{Id: &cr.Spec.ForProvider.BootCdromID})
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
-		instanceCreateInput.Properties.SetBootVolume(sdkgo.ResourceReference{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
-	}
-	return &instanceCreateInput, nil
 }
 
 // GenerateUpdateServerInput returns sdkgo.ServerProperties based on the CR spec modifications
-func GenerateUpdateServerInput(cr *v1alpha1.Server) (*sdkgo.ServerProperties, error) {
+func GenerateUpdateServerInput(cr *v1alpha1.Server) *sdkgo.ServerProperties {
 	instanceUpdateInput := sdkgo.ServerProperties{
 		Name:  &cr.Spec.ForProvider.Name,
 		Cores: &cr.Spec.ForProvider.Cores,
 		Ram:   &cr.Spec.ForProvider.RAM,
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.CPUFamily)) {
+	// Set CPUFamily only if it is specified into the Spec.
+	// If not, the CPUFamily will be set corresponding with the datacenter's location
+	if cr.Spec.ForProvider.CPUFamily != "" {
 		instanceUpdateInput.SetCpuFamily(cr.Spec.ForProvider.CPUFamily)
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AvailabilityZone)) {
+	// Set AvailabilityZone only if it is specified into the Spec.
+	// If not, the AvailabilityZone will be set to the default value by the API
+	if cr.Spec.ForProvider.AvailabilityZone != "" {
 		instanceUpdateInput.SetAvailabilityZone(cr.Spec.ForProvider.AvailabilityZone)
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.BootCdromID)) {
+	if cr.Spec.ForProvider.BootCdromID != "" {
 		instanceUpdateInput.SetBootCdrom(sdkgo.ResourceReference{Id: &cr.Spec.ForProvider.BootCdromID})
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
+	if cr.Spec.ForProvider.VolumeCfg.VolumeID != "" {
 		instanceUpdateInput.SetBootVolume(sdkgo.ResourceReference{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
 	}
-	return &instanceUpdateInput, nil
+	if cr.Spec.ForProvider.PlacementGroupID != "" {
+		instanceUpdateInput.SetPlacementGroupId(cr.Spec.ForProvider.PlacementGroupID)
+	}
+	return &instanceUpdateInput
 }
 
 // LateStatusInitializer fills the empty fields in *v1alpha1.ServerParameters with
@@ -267,9 +255,11 @@ func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool { // nolint
 		return false
 	case server.Properties.AvailabilityZone != nil && cr.Spec.ForProvider.AvailabilityZone != *server.Properties.AvailabilityZone:
 		return false
-	case server.Metadata.State != nil && *server.Metadata.State == "BUSY":
+	case server.Metadata != nil && server.Metadata.State != nil && *server.Metadata.State == sdkgo.Busy:
 		return true
 	case cr.Spec.ForProvider.VolumeCfg.VolumeID != cr.Status.AtProvider.VolumeID:
+		return false
+	case server.Properties.PlacementGroupId != nil && cr.Spec.ForProvider.PlacementGroupID != *server.Properties.PlacementGroupId:
 		return false
 	default:
 		return true
@@ -382,7 +372,7 @@ func IsCubeServerUpToDate(cr *v1alpha1.CubeServer, server sdkgo.Server) bool { /
 		return false
 	case cr != nil && server.Properties == nil:
 		return false
-	case server.Metadata.State != nil && *server.Metadata.State == "BUSY":
+	case server.Metadata.State != nil && *server.Metadata.State == sdkgo.Busy:
 		return true
 	case server.Properties.Name != nil && *server.Properties.Name != cr.Spec.ForProvider.Name:
 		return false

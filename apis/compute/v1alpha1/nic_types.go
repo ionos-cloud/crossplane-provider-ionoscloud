@@ -74,6 +74,11 @@ type NicParameters struct {
 	// +kubebuilder:validation:Enum=BIDIRECTIONAL;EGRESS;INGRESS
 	// +kubebuilder:validation:Optional
 	FirewallType string `json:"firewallType,omitempty"`
+
+	// The vnet ID that belongs to this NIC. Requires system privileges
+	//
+	// +kubebuilder:validation:Optional
+	Vnet string `json:"vnet,omitempty"`
 }
 
 // NicConfig is used by resources that need to link nic via id or via reference.

@@ -487,6 +487,10 @@ spec:
                             type: object
                         type: object
                     type: object
+                  vnet:
+                    description: The vnet ID that belongs to this NIC. Requires system
+                      privileges
+                    type: string
                 required:
                 - datacenterConfig
                 - dhcp

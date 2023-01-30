@@ -195,6 +195,10 @@ spec:
                   name:
                     description: The name of the  resource.
                     type: string
+                  placementGroupId:
+                    description: The placement group ID that belongs to this server.
+                      Requires system privileges
+                    type: string
                   ram:
                     description: The memory size for the server in MB, such as 2048.
                       Size must be specified in multiples of 256 MB with a minimum

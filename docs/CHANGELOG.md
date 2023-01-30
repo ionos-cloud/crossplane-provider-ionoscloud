@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.3] (February 2023)
+
+- **Features**:
+  - Add fields `vnet` to `nic` and `placementGroupId` to `server`. These are internally used fields, they can only be set if the account has special permissions granted
+- **Tests**:
+    - Added unit tests for server node nic
+- **Misc**:
+    - Refactor to increase readability and remove some duplicated code
+
 ## [1.0.2] (January 2023)
 
 - **Fixes**:
