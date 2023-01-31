@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
+
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
@@ -270,7 +272,7 @@ func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodeP
 		return false
 	case cr != nil && nodepool.Properties == nil:
 		return false
-	case nodepool.Metadata != nil && nodepool.Metadata.State != nil && (*nodepool.Metadata.State == "BUSY" || *nodepool.Metadata.State == "DEPLOYING"):
+	case nodepool.Metadata != nil && nodepool.Metadata.State != nil && (*nodepool.Metadata.State == k8s.BUSY || *nodepool.Metadata.State == k8s.DEPLOYING):
 		return true
 	case nodepool.Properties.Name != nil && *nodepool.Properties.Name != cr.Spec.ForProvider.Name:
 		return false

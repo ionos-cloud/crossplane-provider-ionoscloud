@@ -174,10 +174,7 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		}
 	}
 
-	instanceInput, err := server.GenerateCreateServerInput(cr)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
+	instanceInput := server.GenerateCreateServerInput(cr)
 	newInstance, apiResponse, err := c.service.CreateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
@@ -243,10 +240,7 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	cr.Status.AtProvider.VolumeID = cr.Spec.ForProvider.VolumeCfg.VolumeID
 
 	// Enterprise Server
-	instanceInput, err := server.GenerateUpdateServerInput(cr)
-	if err != nil {
-		return managed.ExternalUpdate{}, err
-	}
+	instanceInput := server.GenerateUpdateServerInput(cr)
 	_, apiResponse, err := c.service.UpdateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to update server. error: %w", err)

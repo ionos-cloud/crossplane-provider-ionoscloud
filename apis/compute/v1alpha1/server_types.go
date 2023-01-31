@@ -69,6 +69,11 @@ type ServerParameters struct {
 	// VolumeConfig contains information about the existing volume resource
 	// which will be attached to the server and set as bootVolume
 	VolumeCfg VolumeConfig `json:"volumeConfig,omitempty"`
+
+	// The placement group ID that belongs to this server. Requires system privileges
+	//
+	// +kubebuilder:validation:Optional
+	PlacementGroupID string `json:"placementGroupId,omitempty"`
 }
 
 // ServerConfig is used by resources that need to link servers via id or via reference.

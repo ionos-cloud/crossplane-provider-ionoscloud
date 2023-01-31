@@ -9,7 +9,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
 	github.com/ionos-cloud/sdk-go-dbaas-postgres v1.0.5
-	github.com/ionos-cloud/sdk-go/v6 v6.1.3
+	github.com/ionos-cloud/sdk-go/v6 v6.1.4
 	github.com/pkg/errors v0.9.1
 	github.com/rung/go-safecast v1.0.1
 	github.com/stretchr/testify v1.8.1
