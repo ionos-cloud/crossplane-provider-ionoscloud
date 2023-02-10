@@ -1,4 +1,7 @@
-# Changelog
+## [1.0.4] (February 2023)
+
+- **Documentation**:
+  - Add docs on how to enable pinning and debugging using env variables 
 
 ## [1.0.3] (February 2023)
 
