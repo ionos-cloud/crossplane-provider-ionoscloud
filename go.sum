@@ -256,6 +256,8 @@ github.com/ionos-cloud/sdk-go-dbaas-postgres v1.0.3 h1:ahzztBNJ1IcQL+hdzhek6234P
 github.com/ionos-cloud/sdk-go-dbaas-postgres v1.0.3/go.mod h1:87cFAQViqjorhuafmYIDCmCTr5GiaqDB7qr09K1gdOU=
 github.com/ionos-cloud/sdk-go-dbaas-postgres v1.0.5 h1:L+MpyPvhF3YHU6u6k7O3cDePMc9qX0BFGHvQnXaidAI=
 github.com/ionos-cloud/sdk-go-dbaas-postgres v1.0.5/go.mod h1:87cFAQViqjorhuafmYIDCmCTr5GiaqDB7qr09K1gdOU=
+github.com/ionos-cloud/sdk-go-dbaas-postgres v1.1.1 h1:ce/ViK3ZTyJXHDDMP4LHxtRXXgHcIvxJn/talGT0Zn0=
+github.com/ionos-cloud/sdk-go-dbaas-postgres v1.1.1/go.mod h1:hW3TPdwzS0iYjfY0gO6NJ7x+85wFW2rrZMxiwBhQmko=
 github.com/ionos-cloud/sdk-go/v6 v6.1.0 h1:0EZz5H+t6W23zHt6dgHYkKavr72/30O9nA97E3FZaS4=
 github.com/ionos-cloud/sdk-go/v6 v6.1.0/go.mod h1:Ox3W0iiEz0GHnfY9e5LmAxwklsxguuNFEUSu0gVRTME=
 github.com/ionos-cloud/sdk-go/v6 v6.1.3 h1:vb6yqdpiqaytvreM0bsn2pXw+1YDvEk2RKSmBAQvgDQ=
