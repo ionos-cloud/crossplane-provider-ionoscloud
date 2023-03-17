@@ -5,6 +5,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 
+	psql "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 )
 
@@ -33,7 +34,7 @@ func TestIsNicUpToDate(t *testing.T) {
 			args: args{
 				cr: nil,
 				Nic: ionoscloud.Nic{Properties: &ionoscloud.NicProperties{
-					Name: ionoscloud.PtrString("foo"),
+					Name: psql.ToPtr("foo"),
 				}},
 			},
 			want: false,
@@ -68,10 +69,10 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Name:           ionoscloud.PtrString("not empty"),
-						FirewallActive: ionoscloud.PtrBool(false),
-						FirewallType:   ionoscloud.PtrString("INGRESS"),
-						Vnet:           ionoscloud.PtrString("1"),
+						Name:           psql.ToPtr("not empty"),
+						FirewallActive: psql.ToPtr(false),
+						FirewallType:   psql.ToPtr("INGRESS"),
+						Vnet:           psql.ToPtr("1"),
 					}},
 			},
 			want: true,
@@ -91,10 +92,10 @@ func TestIsNicUpToDate(t *testing.T) {
 					},
 				},
 				Nic: ionoscloud.Nic{Properties: &ionoscloud.NicProperties{
-					Name:           ionoscloud.PtrString("not empty"),
-					FirewallActive: ionoscloud.PtrBool(true),
-					FirewallType:   ionoscloud.PtrString("EGRESS"),
-					Vnet:           ionoscloud.PtrString("2"),
+					Name:           psql.ToPtr("not empty"),
+					FirewallActive: psql.ToPtr(true),
+					FirewallType:   psql.ToPtr("EGRESS"),
+					Vnet:           psql.ToPtr("2"),
 				}},
 			},
 			want: false,
@@ -114,10 +115,10 @@ func TestIsNicUpToDate(t *testing.T) {
 					},
 				},
 				Nic: ionoscloud.Nic{Properties: &ionoscloud.NicProperties{
-					Name:           ionoscloud.PtrString("not empty"),
-					FirewallActive: ionoscloud.PtrBool(false),
-					FirewallType:   ionoscloud.PtrString("INGRESS"),
-					Vnet:           ionoscloud.PtrString("2"),
+					Name:           psql.ToPtr("not empty"),
+					FirewallActive: psql.ToPtr(false),
+					FirewallType:   psql.ToPtr("INGRESS"),
+					Vnet:           psql.ToPtr("2"),
 				}},
 			},
 			want: false,
@@ -135,10 +136,10 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 				Nic: ionoscloud.Nic{
 					Metadata: &ionoscloud.DatacenterElementMetadata{
-						State: ionoscloud.PtrString(ionoscloud.Busy),
+						State: psql.ToPtr(ionoscloud.Busy),
 					},
 					Properties: &ionoscloud.NicProperties{
-						Name: ionoscloud.PtrString("empty"),
+						Name: psql.ToPtr("empty"),
 					}},
 			},
 			want: true,
