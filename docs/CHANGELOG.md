@@ -1,3 +1,9 @@
+## [1.0.5] (May 2023)
+- **Fixes**:
+    - Updated validation logic to prevent constant updates on NICs, in case they are configured with DHCP=true
+    - Removed `oldIPsNic` package private variable, as it could cause race conditions with other NIC resources and doesn't seem to be required for the validation logic
+    - Removed checks which would always be true as the `AtProvider.IPs` will always be updated in the `Observe()` function
+
 ## [1.0.4] (February 2023)
 
 - **Documentation**:
