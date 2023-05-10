@@ -110,10 +110,6 @@ type externalNic struct {
 	isUniqueNamesEnabled bool
 }
 
-// Keep old value of Nic's IPs to correctly handle the update.
-// The user can set an IP and after that to unset it.
-var oldIPsNic []string
-
 func (c *externalNic) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint: gocyclo
 	cr, ok := mg.(*v1alpha1.Nic)
 	if !ok {
@@ -156,7 +152,7 @@ func (c *externalNic) Observe(ctx context.Context, mg resource.Managed) (managed
 	}
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        nic.IsNicUpToDate(cr, instance, ips, oldIPsNic),
+		ResourceUpToDate:        nic.IsNicUpToDate(cr, instance, ips),
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}, nil
@@ -197,7 +193,6 @@ func (c *externalNic) Create(ctx context.Context, mg resource.Managed) (managed.
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("failed to get ips: %w", err)
 	}
-	oldIPsNic = ips
 	instanceInput, err := nic.GenerateCreateNicInput(cr, ips)
 	if err != nil {
 		return managed.ExternalCreation{}, err
@@ -231,7 +226,6 @@ func (c *externalNic) Update(ctx context.Context, mg resource.Managed) (managed.
 	if err != nil {
 		return managed.ExternalUpdate{}, fmt.Errorf("failed to get ips: %w", err)
 	}
-	oldIPsNic = ips
 	instanceInput, err := nic.GenerateUpdateNicInput(cr, ips)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
