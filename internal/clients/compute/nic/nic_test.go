@@ -11,10 +11,9 @@ import (
 
 func TestIsNicUpToDate(t *testing.T) {
 	type args struct {
-		cr     *v1alpha1.Nic
-		Nic    ionoscloud.Nic
-		ips    []string
-		oldIps []string
+		cr  *v1alpha1.Nic
+		Nic ionoscloud.Nic
+		ips []string
 	}
 	tests := []struct {
 		name string
@@ -144,10 +143,74 @@ func TestIsNicUpToDate(t *testing.T) {
 			},
 			want: true,
 		},
+		{
+			name: "IPs different from previous IPs",
+			args: args{
+				cr: &v1alpha1.Nic{
+					Spec: v1alpha1.NicSpec{
+						ForProvider: v1alpha1.NicParameters{
+							Name: "empty",
+							IpsCfg: v1alpha1.IPsConfigs{
+								IPs: []string{
+									"10.10.10.10",
+									"10.10.10.11",
+								},
+							},
+						},
+					},
+					Status: v1alpha1.NicStatus{},
+				},
+				ips: []string{
+					"10.10.10.10",
+					"10.10.10.11",
+				},
+				Nic: ionoscloud.Nic{
+					Properties: &ionoscloud.NicProperties{
+						Name: psql.ToPtr("empty"),
+						Ips: &[]string{
+							"10.11.12.13",
+							"192.168.8.14",
+						},
+					}},
+			},
+			want: false,
+		},
+		{
+			name: "IPs equal",
+			args: args{
+				cr: &v1alpha1.Nic{
+					Spec: v1alpha1.NicSpec{
+						ForProvider: v1alpha1.NicParameters{
+							Name: "empty",
+							IpsCfg: v1alpha1.IPsConfigs{
+								IPs: []string{
+									"10.10.10.10",
+									"10.10.10.11",
+								},
+							},
+						},
+					},
+					Status: v1alpha1.NicStatus{},
+				},
+				ips: []string{
+					"10.10.10.10",
+					"10.10.10.11",
+				},
+				Nic: ionoscloud.Nic{
+					Properties: &ionoscloud.NicProperties{
+						Name: psql.ToPtr("empty"),
+						Ips: &[]string{
+							"10.10.10.10",
+							"10.10.10.11",
+						},
+					}},
+			},
+			want: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IsNicUpToDate(tt.args.cr, tt.args.Nic, tt.args.ips, tt.args.oldIps); got != tt.want {
+			if got := IsNicUpToDate(tt.args.cr, tt.args.Nic, tt.args.ips); got != tt.want {
 				t.Errorf("isNicUpToDate() = %v, want %v", got, tt.want)
 			}
 		})

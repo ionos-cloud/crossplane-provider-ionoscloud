@@ -148,7 +148,7 @@ func GenerateUpdateNicInput(cr *v1alpha1.Nic, ips []string) (*sdkgo.NicPropertie
 }
 
 // IsNicUpToDate returns true if the Nic is up-to-date or false if it does not
-func IsNicUpToDate(cr *v1alpha1.Nic, nic sdkgo.Nic, ips, oldIps []string) bool { // nolint:gocyclo
+func IsNicUpToDate(cr *v1alpha1.Nic, nic sdkgo.Nic, ips []string) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && nic.Properties == nil:
 		return true
@@ -170,11 +170,7 @@ func IsNicUpToDate(cr *v1alpha1.Nic, nic sdkgo.Nic, ips, oldIps []string) bool {
 		return false
 	case nic.Properties.Vnet != nil && *nic.Properties.Vnet != cr.Spec.ForProvider.Vnet:
 		return false
-	case nic.Properties.Ips != nil && !utils.ContainsStringSlices(*nic.Properties.Ips, cr.Status.AtProvider.IPs):
-		return false
-	case len(ips) == 0 && !utils.IsEqStringSlices(oldIps, cr.Status.AtProvider.IPs): // if no IP is set by the user, API sets automatically an IP
-		return false
-	case len(ips) != 0 && !utils.ContainsStringSlices(ips, cr.Status.AtProvider.IPs):
+	case len(ips) != 0 && nic.Properties.HasIps() && !utils.ContainsStringSlices(ips, *nic.Properties.Ips):
 		return false
 	default:
 		return true
