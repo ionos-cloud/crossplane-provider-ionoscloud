@@ -80,6 +80,7 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* description: DBUser Credentials for the database user to be created.
 	* properties:
 		* `password` (string)
+			* description: Minimum length of 10
 		* `username` (string)
 			* description: The username for the initial postgres user. Some system usernames are restricted (e.g. \"postgres\", \"admin\", \"standby\").
 	* required properties:
