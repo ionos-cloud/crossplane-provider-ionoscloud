@@ -56,7 +56,7 @@ spec:
         cidr: 192.168.1.100/24
     credentials:
       username: test
-      password: test12345
+      password: test123456
     location: de/txl
     backupLocation: de
     instances: 1
@@ -100,7 +100,7 @@ spec:
         cidr: 192.168.1.100/24
     credentials:
       username: test
-      password: test12345
+      password: test123456
     location: de/txl
     backupLocation: de
     instances: 1
@@ -168,7 +168,7 @@ spec:
         cidr: 192.168.1.100/24
     credentials:
       username: test
-      password: test12345
+      password: test123456
     location: de/txl
     backupLocation: de
     instances: 1

@@ -129,6 +129,7 @@ type MaintenanceWindow struct {
 type DBUser struct {
 	// The username for the initial postgres user.
 	// Some system usernames are restricted (e.g. \"postgres\", \"admin\", \"standby\").
+	// Password must have a minimum length o 10
 	//
 	// +kubebuilder:validation:Required
 	Username string `json:"username"`
