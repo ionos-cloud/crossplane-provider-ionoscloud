@@ -80,8 +80,17 @@ type BackupUnit struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   BackupUnitSpec   `json:"spec"`
-	Status BackupUnitStatus `json:"status,omitempty"`
+	Spec     BackupUnitSpec   `json:"spec"`
+	Status   BackupUnitStatus `json:"status,omitempty"`
+	Policies xpv1.ManagementPolicies
+}
+
+func (mg *BackupUnit) SetManagementPolicies(p xpv1.ManagementPolicies) {
+	mg.Policies = p
+}
+
+func (mg *BackupUnit) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Policies
 }
 
 // +kubebuilder:object:root=true

@@ -333,8 +333,17 @@ type NodePool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   NodePoolSpec   `json:"spec"`
-	Status NodePoolStatus `json:"status,omitempty"`
+	Spec     NodePoolSpec   `json:"spec"`
+	Status   NodePoolStatus `json:"status,omitempty"`
+	Policies xpv1.ManagementPolicies
+}
+
+func (mg *NodePool) SetManagementPolicies(p xpv1.ManagementPolicies) {
+	mg.Policies = p
+}
+
+func (mg *NodePool) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Policies
 }
 
 // +kubebuilder:object:root=true

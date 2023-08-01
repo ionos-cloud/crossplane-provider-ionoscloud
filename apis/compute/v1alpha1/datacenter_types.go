@@ -100,8 +100,17 @@ type Datacenter struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   DatacenterSpec   `json:"spec"`
-	Status DatacenterStatus `json:"status,omitempty"`
+	Spec     DatacenterSpec   `json:"spec"`
+	Status   DatacenterStatus `json:"status,omitempty"`
+	Policies xpv1.ManagementPolicies
+}
+
+func (mg *Datacenter) SetManagementPolicies(p xpv1.ManagementPolicies) {
+	mg.Policies = p
+}
+
+func (mg *Datacenter) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Policies
 }
 
 // +kubebuilder:object:root=true

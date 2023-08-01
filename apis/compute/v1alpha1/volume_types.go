@@ -192,8 +192,17 @@ type Volume struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VolumeSpec   `json:"spec"`
-	Status VolumeStatus `json:"status,omitempty"`
+	Spec     VolumeSpec   `json:"spec"`
+	Status   VolumeStatus `json:"status,omitempty"`
+	Policies xpv1.ManagementPolicies
+}
+
+func (mg *Volume) SetManagementPolicies(p xpv1.ManagementPolicies) {
+	mg.Policies = p
+}
+
+func (mg *Volume) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Policies
 }
 
 // +kubebuilder:object:root=true

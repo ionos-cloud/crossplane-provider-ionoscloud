@@ -132,8 +132,17 @@ type ApplicationLoadBalancer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ApplicationLoadBalancerSpec   `json:"spec"`
-	Status ApplicationLoadBalancerStatus `json:"status,omitempty"`
+	Spec     ApplicationLoadBalancerSpec   `json:"spec"`
+	Status   ApplicationLoadBalancerStatus `json:"status,omitempty"`
+	Policies xpv1.ManagementPolicies
+}
+
+func (mg *ApplicationLoadBalancer) SetManagementPolicies(p xpv1.ManagementPolicies) {
+	mg.Policies = p
+}
+
+func (mg *ApplicationLoadBalancer) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Policies
 }
 
 // +kubebuilder:object:root=true

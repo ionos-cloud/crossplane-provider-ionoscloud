@@ -171,8 +171,17 @@ type FirewallRule struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   FirewallRuleSpec   `json:"spec"`
-	Status FirewallRuleStatus `json:"status,omitempty"`
+	Spec     FirewallRuleSpec   `json:"spec"`
+	Status   FirewallRuleStatus `json:"status,omitempty"`
+	Policies xpv1.ManagementPolicies
+}
+
+func (mg *FirewallRule) SetManagementPolicies(p xpv1.ManagementPolicies) {
+	mg.Policies = p
+}
+
+func (mg *FirewallRule) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Policies
 }
 
 // +kubebuilder:object:root=true
