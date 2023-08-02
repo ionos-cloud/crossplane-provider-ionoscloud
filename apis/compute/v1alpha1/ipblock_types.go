@@ -164,10 +164,12 @@ type IPBlock struct {
 	Policies xpv1.ManagementPolicies
 }
 
+// SetManagementPolicies implement managed interface
 func (mg *IPBlock) SetManagementPolicies(p xpv1.ManagementPolicies) {
 	mg.Policies = p
 }
 
+// GetManagementPolicies implement managed interface
 func (mg *IPBlock) GetManagementPolicies() xpv1.ManagementPolicies {
 	return mg.Policies
 }

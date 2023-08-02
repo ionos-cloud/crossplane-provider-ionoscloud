@@ -146,10 +146,12 @@ type Nic struct {
 	Policies xpv1.ManagementPolicies
 }
 
+// SetManagementPolicies implement managed interface
 func (mg *Nic) SetManagementPolicies(p xpv1.ManagementPolicies) {
 	mg.Policies = p
 }
 
+// GetManagementPolicies implement managed interface
 func (mg *Nic) GetManagementPolicies() xpv1.ManagementPolicies {
 	return mg.Policies
 }

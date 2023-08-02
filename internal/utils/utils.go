@@ -9,7 +9,7 @@ import (
 const DepthQueryParam = int32(1)
 
 // IsEmptyValue checks if a value is empty or not.
-//nolint
+// nolint
 func IsEmptyValue(v reflect.Value) bool {
 	switch v.Kind() {
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
