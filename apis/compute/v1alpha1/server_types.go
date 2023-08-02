@@ -134,19 +134,19 @@ type Server struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec     ServerSpec   `json:"spec"`
-	Status   ServerStatus `json:"status,omitempty"`
-	Policies xpv1.ManagementPolicies
+	Spec               ServerSpec              `json:"spec"`
+	Status             ServerStatus            `json:"status,omitempty"`
+	ManagementPolicies xpv1.ManagementPolicies `json:"managementPolicies"`
 }
 
 // SetManagementPolicies implement managed interface
 func (mg *Server) SetManagementPolicies(p xpv1.ManagementPolicies) {
-	mg.Policies = p
+	mg.ManagementPolicies = p
 }
 
 // GetManagementPolicies implement managed interface
 func (mg *Server) GetManagementPolicies() xpv1.ManagementPolicies {
-	return mg.Policies
+	return mg.ManagementPolicies
 }
 
 // +kubebuilder:object:root=true
