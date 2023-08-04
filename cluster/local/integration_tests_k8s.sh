@@ -96,6 +96,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: exampledatacenterk8s
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleDatacenterK8sNodepool
