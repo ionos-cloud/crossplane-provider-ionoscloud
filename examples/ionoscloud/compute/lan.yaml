@@ -6,6 +6,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: examplelan
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleLan

@@ -12,6 +12,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Server
 metadata:
   name: exampleserver
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleServer

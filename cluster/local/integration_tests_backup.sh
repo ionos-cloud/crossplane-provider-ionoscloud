@@ -16,6 +16,8 @@ apiVersion: backup.ionoscloud.crossplane.io/v1alpha1
 kind: BackupUnit
 metadata:
   name: example
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleBackupUnit
@@ -42,6 +44,8 @@ apiVersion: backup.ionoscloud.crossplane.io/v1alpha1
 kind: BackupUnit
 metadata:
   name: example
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleBackupUnit
@@ -66,6 +70,8 @@ apiVersion: backup.ionoscloud.crossplane.io/v1alpha1
 kind: BackupUnit
 metadata:
   name: example
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleBackupUnit

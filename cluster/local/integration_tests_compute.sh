@@ -14,6 +14,8 @@ function ipblock_tests() {
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
+managementPolicies:
+  - '*'
 metadata:
   name: example
 spec:
@@ -42,6 +44,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
   name: example
+managementPolicies:
+  - '*'
 spec:
   forProvider:
     name: exampleIpBlockUpdate
@@ -69,6 +73,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
   name: example
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleIpBlockUpdate
@@ -95,6 +101,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: testdatacenter
@@ -120,6 +128,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: Test Datacenter CR
@@ -144,6 +154,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: Test Datacenter CR
@@ -170,6 +182,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Volume
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: exampletest
@@ -201,6 +215,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Volume
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: exampleVolume
@@ -230,6 +246,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Volume
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: exampleVolume
@@ -261,6 +279,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Server
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: exampletest
@@ -295,6 +315,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Server
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: exampleServerUpdate
@@ -327,6 +349,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Server
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: exampleServerUpdate
@@ -361,6 +385,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: exampletest
@@ -389,6 +415,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: exampletestLan
@@ -415,6 +443,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: exampletestLan
@@ -443,6 +473,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Nic
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: exampleNic
@@ -483,6 +515,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Nic
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: exampleNic
@@ -521,6 +555,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: FirewallRule
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: exampleFirewallRule
@@ -563,6 +599,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: FirewallRule
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: exampleFirewallRuleUpdated
@@ -600,6 +638,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: FirewallRule
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     name: exampleFirewallRuleUpdated
@@ -635,6 +675,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPFailover
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     ipConfig:
@@ -672,6 +714,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPFailover
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     ipConfig:
@@ -707,6 +751,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPFailover
 metadata:
   name: example
+managementPolicies: 
+  - "*"
 spec:
   forProvider:
     ipConfig:

@@ -16,6 +16,8 @@ apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: Cluster
 metadata:
   name: examplek8s
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleK8sCluster
@@ -46,6 +48,8 @@ apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: Cluster
 metadata:
   name: examplek8s
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleK8sClusterUpdate
@@ -78,6 +82,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
   name: exampleipblockk8s
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleIpBlock
@@ -102,6 +108,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: examplelank8s
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleLanK8sNodepool
@@ -116,6 +124,8 @@ apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: NodePool
 metadata:
   name: examplek8snodepool
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     maintenanceWindow:
@@ -171,6 +181,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
   name: exampleipblockk8s
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleIpBlock
@@ -183,6 +195,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: exampledatacenterk8s
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleDatacenterK8sNodepool
@@ -195,6 +209,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: examplelank8s
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleLanK8sNodepool
@@ -209,6 +225,8 @@ apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: NodePool
 metadata:
   name: examplek8snodepool
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleK8sNodepool
@@ -257,6 +275,8 @@ apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: Cluster
 metadata:
   name: examplek8s
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleK8sCluster
