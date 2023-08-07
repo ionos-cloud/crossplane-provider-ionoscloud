@@ -34,17 +34,17 @@ EOF
   echo_step "checking provider installation"
   echo_step "checking provider"
   kubectl get provider
-  sleep 5
+  sleep 20
 
   echo_step "checking providerrevision"
   kubectl get providerrevision
-  sleep 5
+  sleep 20
 
   echo_step "checking deployments"
   kubectl get deployments -n crossplane-system
   sleep 5
 
-  echo_step "waiting for provider to be installed"
+  echo_step "waiting for provider provider.pkg.crossplane.io/${PACKAGE_NAME} to be installed"
   kubectl wait "provider.pkg.crossplane.io/${PACKAGE_NAME}" --for=condition=healthy --timeout=360s
 
   echo_step "waiting for all pods in ${CROSSPLANE_NAMESPACE} namespace to be ready"
