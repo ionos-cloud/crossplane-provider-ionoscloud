@@ -9,7 +9,7 @@ on:
 
 env:
   GOLANGCI_VERSION: 'v1.53.3'
-  DOCKER_BUILDX_VERSION: 'v0.4.2'
+  DOCKER_BUILDX_VERSION: 'v0.11.2'
 
 jobs:
   detect-noop:
@@ -68,11 +68,11 @@ jobs:
     if: needs.detect-noop.outputs.noop != 'true'
     steps:
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
         with:
           platforms: all
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
         with:
           version: ${{ env.DOCKER_BUILDX_VERSION }}
           install: true
@@ -136,7 +136,7 @@ jobs:
           version: ${{ env.DOCKER_BUILDX_VERSION }}
           install: true
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Fetch History

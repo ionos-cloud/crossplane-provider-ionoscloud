@@ -44,7 +44,7 @@ EOF
   kubectl get deployments -n crossplane-system
   sleep 5
 
-  echo_step "waiting for provider provider.pkg.crossplane.io/${PACKAGE_NAME} to be installed"
+  echo_step "waiting for provider.pkg.crossplane.io/${PACKAGE_NAME} to be installed"
   kubectl wait "provider.pkg.crossplane.io/${PACKAGE_NAME}" --for=condition=healthy --timeout=360s
 
   echo_step "waiting for all pods in ${CROSSPLANE_NAMESPACE} namespace to be ready"
