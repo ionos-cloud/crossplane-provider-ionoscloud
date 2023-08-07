@@ -92,8 +92,19 @@ type IPFailover struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   IPFailoverSpec   `json:"spec"`
-	Status IPFailoverStatus `json:"status,omitempty"`
+	Spec               IPFailoverSpec          `json:"spec"`
+	Status             IPFailoverStatus        `json:"status,omitempty"`
+	ManagementPolicies xpv1.ManagementPolicies `json:"managementPolicies"`
+}
+
+// SetManagementPolicies implement managed interface
+func (mg *IPFailover) SetManagementPolicies(p xpv1.ManagementPolicies) {
+	mg.ManagementPolicies = p
+}
+
+// GetManagementPolicies implement managed interface
+func (mg *IPFailover) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.ManagementPolicies
 }
 
 // +kubebuilder:object:root=true

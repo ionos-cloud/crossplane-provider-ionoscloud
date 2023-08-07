@@ -16,6 +16,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: exampledbaas
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleDatacenter
@@ -28,6 +30,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: examplelandbaas
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleLan
@@ -42,6 +46,8 @@ apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
 kind: PostgresCluster
 metadata:
   name: example
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     displayName: testDBaaS
@@ -86,6 +92,8 @@ apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
 kind: PostgresCluster
 metadata:
   name: example
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     displayName: testDBaaSPostgres
@@ -128,6 +136,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: exampledbaas
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleDatacenter
@@ -140,6 +150,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: examplelandbaas
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     name: exampleLan
@@ -154,6 +166,8 @@ apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
 kind: PostgresCluster
 metadata:
   name: example
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     displayName: testDBaaS

@@ -8,6 +8,8 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPFailover
 metadata:
   name: exampleipfailover
+managementPolicies:
+  - "*"
 spec:
   forProvider:
     ipConfig:

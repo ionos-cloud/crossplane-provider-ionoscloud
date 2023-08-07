@@ -224,8 +224,19 @@ type PostgresCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ClusterSpec   `json:"spec"`
-	Status ClusterStatus `json:"status,omitempty"`
+	Spec               ClusterSpec             `json:"spec"`
+	Status             ClusterStatus           `json:"status,omitempty"`
+	ManagementPolicies xpv1.ManagementPolicies `json:"managementPolicies"`
+}
+
+// SetManagementPolicies implement managed interface
+func (mg *PostgresCluster) SetManagementPolicies(p xpv1.ManagementPolicies) {
+	mg.ManagementPolicies = p
+}
+
+// GetManagementPolicies implement managed interface
+func (mg *PostgresCluster) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.ManagementPolicies
 }
 
 // +kubebuilder:object:root=true

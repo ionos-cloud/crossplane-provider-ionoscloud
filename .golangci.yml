@@ -95,6 +95,8 @@ linters-settings:
     # Empty list by default. See https://github.com/go-critic/go-critic#usage -> section "Tags".
     enabled-tags:
       - performance
+    disabled-checks:
+      - preferFprint
 
     settings: # settings passed to gocritic
       captLocal: # must be valid enabled check name

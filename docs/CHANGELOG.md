@@ -1,3 +1,10 @@
+## [1.0.6] (August 2023)
+- **Features**:
+    - Update Crossplane-Runtime to latest version (v0.20.0). CRDs - now require `managementPolicies` to be defined
+    - Update golang to 1.19
+    - Update `build` submodule to latest version
+    - Update workflows to use latest versions
+
 ## [1.0.5] (May 2023)
 - **Fixes**:
     - Updated validation logic to prevent constant updates on NICs, in case they are configured with DHCP=true
