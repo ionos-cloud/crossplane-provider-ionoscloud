@@ -1,3 +1,8 @@
+## upcoming release
+
+- **Features**:
+    - k8s #116 enrich connection details with token,servername and server Url
+
 ## [1.0.6] (August 2023)
 - **Features**:
     - Update Crossplane-Runtime to latest version (v0.20.0). CRDs - now require `managementPolicies` to be defined
