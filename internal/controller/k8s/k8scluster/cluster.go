@@ -18,10 +18,12 @@ package k8scluster
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
+	clientApi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -141,12 +143,20 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 		c.log.Info(fmt.Sprintf("failed to get connection details. error: %v", err))
 	}
 
+	var clientkubeconfig clientApi.Config
+	if err := json.Unmarshal([]byte(kubeconfig), &clientkubeconfig); err != nil {
+		c.log.Info(fmt.Sprintf("failed to unmasrshal connection details. error: %v", err))
+	}
+
 	return managed.ExternalObservation{
 		ResourceExists:          true,
 		ResourceUpToDate:        k8scluster.IsK8sClusterUpToDate(cr, observed),
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 		ConnectionDetails: managed.ConnectionDetails{
 			"kubeconfig": []byte(kubeconfig),
+			"server":     []byte(clientkubeconfig.Clusters[mg.GetName()].Server),
+			"name":       []byte(mg.GetName()),
+			"token":      []byte(clientkubeconfig.AuthInfos["cluster-admin"].Token),
 		},
 	}, nil
 }
