@@ -61,8 +61,11 @@ spec:
             name: examplelandbaas
         cidr: 192.168.1.100/24
     credentials:
-      username: test
-      password: test123456
+      source : Secret
+      secretRef:
+        namespace: crossplane-system
+        name: psqlcreds
+        key: credentials
     location: de/txl
     backupLocation: de
     instances: 1
@@ -107,8 +110,11 @@ spec:
             name: examplelandbaas
         cidr: 192.168.1.100/24
     credentials:
-      username: test
-      password: test123456
+      source : Secret
+      secretRef:
+        namespace: crossplane-system
+        name: psqlcredsint
+        key: credentials
     location: de/txl
     backupLocation: de
     instances: 1
@@ -181,8 +187,11 @@ spec:
             name: examplelandbaas
         cidr: 192.168.1.100/24
     credentials:
-      username: test
-      password: test123456
+      source : Secret
+      secretRef:
+        namespace: crossplane-system
+        name: psqlcredsint
+        key: credentials
     location: de/txl
     backupLocation: de
     instances: 1

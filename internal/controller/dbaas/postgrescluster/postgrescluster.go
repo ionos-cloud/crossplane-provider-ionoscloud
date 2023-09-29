@@ -18,6 +18,7 @@ package postgrescluster
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -96,7 +97,9 @@ func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (ma
 	return &externalCluster{
 		service:              &postgrescluster.ClusterAPIClient{IonosServices: svc},
 		log:                  c.log,
-		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
+		isUniqueNamesEnabled: c.isUniqueNamesEnabled,
+		client:               c.kube}, err
+
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -105,6 +108,7 @@ type externalCluster struct {
 	// A 'client' used to connect to the externalCluster resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
 	service              postgrescluster.ClusterClient
+	client               client.Client
 	log                  logging.Logger
 	isUniqueNamesEnabled bool
 }
@@ -176,6 +180,23 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
+	// time to get the credentials from the secret
+	if instanceInput.Properties.Credentials.Password != nil || *instanceInput.Properties.Credentials.Password == "" {
+		data, err := resource.CommonCredentialExtractor(ctx, cr.Spec.ForProvider.Credentials.Source, c.client, cr.Spec.ForProvider.Credentials.CommonCredentialSelectors)
+		if err != nil {
+			return managed.ExternalCreation{}, errors.Wrap(err, "cannot get psql credentials")
+		}
+		creds := v1alpha1.DBUser{}
+		if err := json.Unmarshal(data, &creds); err != nil {
+			return managed.ExternalCreation{}, fmt.Errorf("failed to decode psql credentials: %w", err)
+		}
+		*instanceInput.Properties.Credentials.Username = creds.Username
+		*instanceInput.Properties.Credentials.Password = creds.Password
+	}
+	if (instanceInput.Properties.Credentials.Username == nil || *instanceInput.Properties.Credentials.Username == "") ||
+		(instanceInput.Properties.Credentials.Password == nil || *instanceInput.Properties.Credentials.Password == "") {
+		return managed.ExternalCreation{}, fmt.Errorf("need to provide credentials, either directly or from a secret")
+	}
 	newInstance, apiResponse, err := c.service.CreateCluster(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
@@ -185,6 +206,7 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 		}
 		return creation, retErr
 	}
+
 	// Set External Name
 	cr.Status.AtProvider.ClusterID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
