@@ -73,87 +73,6 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `lanConfig` (object)
-	* description: LanConfig contains information about the lan resource on which the nic will be on.
-	* properties:
-		* `lanId` (string)
-			* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
-		* `lanIdRef` (object)
-			* description: LanIDRef references to a Lan to retrieve its ID.
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-				* `policy` (object)
-					* description: Policies for referencing.
-					* properties:
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
-			* required properties:
-				* `name`
-		* `lanIdSelector` (object)
-			* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-				* `policy` (object)
-					* description: Policies for selection.
-					* properties:
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
-* `serverConfig` (object)
-	* description: ServerConfig contains information about the server resource on which the nic will be created.
-	* properties:
-		* `serverId` (string)
-			* description: ServerID is the ID of the Server on which the resource will be created. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `serverIdRef` (object)
-			* description: ServerIDRef references to a Server to retrieve its ID.
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-				* `policy` (object)
-					* description: Policies for referencing.
-					* properties:
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
-			* required properties:
-				* `name`
-		* `serverIdSelector` (object)
-			* description: ServerIDSelector selects reference to a Server to retrieve its ServerID.
-			* properties:
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-				* `policy` (object)
-					* description: Policies for selection.
-					* properties:
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-* `vnet` (string)
-	* description: The vnet ID that belongs to this NIC. Requires system privileges
 * `datacenterConfig` (object)
 	* description: DatacenterConfig contains information about the datacenter resource on which the nic will be created.
 	* properties:
@@ -180,24 +99,107 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `datacenterIdSelector` (object)
 			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
 			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
 					* description: Policies for selection.
 					* properties:
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-* `dhcp` (boolean)
-	* description: Indicates if the NIC will reserve an IP using DHCP.
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
 * `firewallActive` (boolean)
 	* description: Activate or deactivate the firewall. By default, an active firewall without any defined rules will block all incoming network traffic except for the firewall rules that explicitly allows certain protocols, IP addresses and ports.
+* `lanConfig` (object)
+	* description: LanConfig contains information about the lan resource on which the nic will be on.
+	* properties:
+		* `lanId` (string)
+			* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
+		* `lanIdRef` (object)
+			* description: LanIDRef references to a Lan to retrieve its ID.
+			* properties:
+				* `policy` (object)
+					* description: Policies for referencing.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
+				* `name` (string)
+					* description: Name of the referenced object.
+			* required properties:
+				* `name`
+		* `lanIdSelector` (object)
+			* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+				* `policy` (object)
+					* description: Policies for selection.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
+* `name` (string)
+	* description: The name of the  resource.
+* `serverConfig` (object)
+	* description: ServerConfig contains information about the server resource on which the nic will be created.
+	* properties:
+		* `serverId` (string)
+			* description: ServerID is the ID of the Server on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
+		* `serverIdRef` (object)
+			* description: ServerIDRef references to a Server to retrieve its ID.
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+				* `policy` (object)
+					* description: Policies for referencing.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
+			* required properties:
+				* `name`
+		* `serverIdSelector` (object)
+			* description: ServerIDSelector selects reference to a Server to retrieve its ServerID.
+			* properties:
+				* `policy` (object)
+					* description: Policies for selection.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+* `vnet` (string)
+	* description: The vnet ID that belongs to this NIC. Requires system privileges
+* `dhcp` (boolean)
+	* description: Indicates if the NIC will reserve an IP using DHCP.
 * `firewallType` (string)
 	* description: The type of firewall rules that will be allowed on the NIC. If not specified, the default INGRESS value is used.
 	* possible values: "BIDIRECTIONAL";"EGRESS";"INGRESS"
@@ -209,9 +211,16 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `ipsBlockConfigs` (array)
 			* description: Use IpsBlockConfigs to reference existing IPBlocks, and to mention the indexes for the IPs. Indexes start from 0, and multiple indexes can be set. If no index is set, all IPs from the corresponding IPBlock will be assigned to the resource.
 			* properties:
+				* `indexes` (array)
+					* description: Indexes are referring to the IPs indexes retrieved from the IPBlock. Indexes are starting from 0. If no index is set, all IPs from the corresponding IPBlock will be assigned.
+				* `ipBlockId` (string)
+					* description: IPBlockID is the ID of the IPBlock on which the resource will be created. It needs to be provided via directly or via reference.
+					* format: uuid
 				* `ipBlockIdRef` (object)
 					* description: IPBlockIDRef references to a IPBlock to retrieve its ID.
 					* properties:
+						* `name` (string)
+							* description: Name of the referenced object.
 						* `policy` (object)
 							* description: Policies for referencing.
 							* properties:
@@ -222,8 +231,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
-						* `name` (string)
-							* description: Name of the referenced object.
 					* required properties:
 						* `name`
 				* `ipBlockIdSelector` (object)
@@ -243,13 +250,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
-				* `indexes` (array)
-					* description: Indexes are referring to the IPs indexes retrieved from the IPBlock. Indexes are starting from 0. If no index is set, all IPs from the corresponding IPBlock will be assigned.
-				* `ipBlockId` (string)
-					* description: IPBlockID is the ID of the IPBlock on which the resource will be created. It needs to be provided via directly or via reference.
-					* format: uuid
-* `name` (string)
-	* description: The name of the  resource.
 
 ### Required Properties
 

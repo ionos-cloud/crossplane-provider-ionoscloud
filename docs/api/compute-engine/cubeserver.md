@@ -73,23 +73,24 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `template` (object)
-	* description: The ID or the name of the template for creating a CUBE server.
-	* properties:
-		* `name` (string)
-			* description: The name of the Template from IONOS Cloud.
-		* `templateId` (string)
-			* description: The ID of the Template from IONOS Cloud.
-			* format: uuid
 * `volume` (object)
 	* description: DasVolumeProperties contains properties for the DAS volume attached to the Cube Server.
 	* properties:
+		* `discVirtioHotUnplug` (boolean)
+			* description: Hot-unplug capable Virt-IO drive (no reboot required). Not supported with Windows VMs.
 		* `name` (string)
 			* description: The name of the DAS Volume.
-		* `nicHotUnplug` (boolean)
-			* description: Hot-unplug capable NIC (no reboot required).
-		* `ramHotPlug` (boolean)
-			* description: Hot-plug capable RAM (no reboot required).
+		* `nicHotPlug` (boolean)
+			* description: Hot-plug capable NIC (no reboot required).
+		* `cpuHotPlug` (boolean)
+			* description: Hot-plug capable CPU (no reboot required).
+		* `image` (string)
+			* description: Image or snapshot ID to be used as template for this volume. Make sure the image selected is compatible with the datacenter's location. Note: when creating a volume - set image, image alias, or licence type.
+		* `imageAlias` (string)
+			* description: Image Alias to be used for this volume. Note: when creating a volume - set image, image alias, or licence type.
+		* `licenceType` (string)
+			* description: OS type for this volume. Note: when creating a volume - set image, image alias, or licence type.
+			* possible values: "UNKNOWN";"WINDOWS";"WINDOWS2016";"WINDOWS2022";"LINUX";"OTHER"
 		* `backupUnitConfig` (object)
 			* description: BackupUnitCfg contains information about the backup unit resource that the user has access to. The property is immutable and is only allowed to be set on creation of a new a volume. It is mandatory to provide either 'public image' or 'imageAlias' in conjunction with this property.
 			* properties:
@@ -99,6 +100,16 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 				* `backupUnitIdRef` (object)
 					* description: BackupUnitIDRef references to a BackupUnit to retrieve its ID.
 					* properties:
+						* `policy` (object)
+							* description: Policies for referencing.
+							* properties:
+								* `resolution` (string)
+									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* default: "Required"
+									* possible values: "Required";"Optional"
+								* `resolve` (string)
+									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* possible values: "Always";"IfNotPresent"
 						* `name` (string)
 							* description: Name of the referenced object.
 					* required properties:
@@ -110,30 +121,31 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 						* `matchLabels` (object)
 							* description: MatchLabels ensures an object with matching labels is selected.
-		* `discVirtioHotPlug` (boolean)
-			* description: Hot-plug capable Virt-IO drive (no reboot required).
-		* `discVirtioHotUnplug` (boolean)
-			* description: Hot-unplug capable Virt-IO drive (no reboot required). Not supported with Windows VMs.
-		* `licenceType` (string)
-			* description: OS type for this volume. Note: when creating a volume - set image, image alias, or licence type.
-			* possible values: "UNKNOWN";"WINDOWS";"WINDOWS2016";"WINDOWS2022";"LINUX";"OTHER"
-		* `sshKeys` (array)
-			* description: Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key. This field may only be set in creation requests. When reading, it always returns null. SSH keys are only supported if a public Linux image is used for the volume creation.
-		* `cpuHotPlug` (boolean)
-			* description: Hot-plug capable CPU (no reboot required).
-		* `imagePassword` (string)
-			* description: Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests. Password rules allows all characters from a-z, A-Z, 0-9.
-		* `userData` (string)
-			* description: The cloud-init configuration for the volume as base64 encoded string. The property is immutable and is only allowed to be set on creation of a new a volume. It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
+						* `policy` (object)
+							* description: Policies for selection.
+							* properties:
+								* `resolution` (string)
+									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* default: "Required"
+									* possible values: "Required";"Optional"
+								* `resolve` (string)
+									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* possible values: "Always";"IfNotPresent"
 		* `bus` (string)
 			* description: The bus type of the volume.
 			* possible values: "VIRTIO";"IDE";"UNKNOWN"
-		* `image` (string)
-			* description: Image or snapshot ID to be used as template for this volume. Make sure the image selected is compatible with the datacenter's location. Note: when creating a volume - set image, image alias, or licence type.
-		* `imageAlias` (string)
-			* description: Image Alias to be used for this volume. Note: when creating a volume - set image, image alias, or licence type.
-		* `nicHotPlug` (boolean)
-			* description: Hot-plug capable NIC (no reboot required).
+		* `imagePassword` (string)
+			* description: Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests. Password rules allows all characters from a-z, A-Z, 0-9.
+		* `discVirtioHotPlug` (boolean)
+			* description: Hot-plug capable Virt-IO drive (no reboot required).
+		* `nicHotUnplug` (boolean)
+			* description: Hot-unplug capable NIC (no reboot required).
+		* `ramHotPlug` (boolean)
+			* description: Hot-plug capable RAM (no reboot required).
+		* `sshKeys` (array)
+			* description: Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key. This field may only be set in creation requests. When reading, it always returns null. SSH keys are only supported if a public Linux image is used for the volume creation.
+		* `userData` (string)
+			* description: The cloud-init configuration for the volume as base64 encoded string. The property is immutable and is only allowed to be set on creation of a new a volume. It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
 	* required properties:
 		* `bus`
 		* `name`
@@ -155,6 +167,16 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* properties:
 				* `name` (string)
 					* description: Name of the referenced object.
+				* `policy` (object)
+					* description: Policies for referencing.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
 		* `datacenterIdSelector` (object)
@@ -164,8 +186,26 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
+				* `policy` (object)
+					* description: Policies for selection.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
 * `name` (string)
 	* description: The name of the  resource.
+* `template` (object)
+	* description: The ID or the name of the template for creating a CUBE server.
+	* properties:
+		* `templateId` (string)
+			* description: The ID of the Template from IONOS Cloud.
+			* format: uuid
+		* `name` (string)
+			* description: The name of the Template from IONOS Cloud.
 
 ### Required Properties
 

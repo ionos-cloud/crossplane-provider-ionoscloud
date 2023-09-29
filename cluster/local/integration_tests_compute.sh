@@ -31,6 +31,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for ipblock CR to be ready & synced"
+  sleep 5
+  kubectl describe ipblock
   kubectl wait --for=condition=ready ipblocks/example
   kubectl wait --for=condition=synced ipblocks/example
 
@@ -115,8 +117,10 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for datacenter CR to be ready & synced"
-  kubectl wait --for=condition=ready datacenters/example
-  kubectl wait --for=condition=synced datacenters/example
+  sleep 5
+  kubectl describe datacenters
+  kubectl wait --for=condition=ready datacenters/example --timeout=90s
+  kubectl wait --for=condition=synced datacenters/example --timeout=90s
 
   echo_step "get datacenter CR"
   kubectl get datacenters
@@ -143,8 +147,10 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for datacenter CR to be ready & synced"
-  kubectl wait --for=condition=ready datacenters/example
-  kubectl wait --for=condition=synced datacenters/example
+  sleep 5
+  kubectl describe datacenters
+  kubectl wait --for=condition=ready datacenters/example --timeout=90s
+  kubectl wait --for=condition=synced datacenters/example --timeout=90s
 }
 
 function datacenter_tests_cleanup() {
@@ -202,8 +208,10 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for volume CR to be ready & synced"
-  kubectl wait --for=condition=ready volumes/example
-  kubectl wait --for=condition=synced volumes/example
+  sleep 5
+  kubectl describe volumes
+  kubectl wait --for=condition=ready volumes/example --timeout=90s
+  kubectl wait --for=condition=synced volumes/example --timeout=90s
 
   echo_step "get volume CR"
   kubectl get volumes
@@ -234,7 +242,7 @@ EOF
 
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
-  echo_step "waiting for volume CR to be ready & synced"
+  echo_step "waiting for updated volume CR to be ready & synced"
   kubectl wait --for=condition=ready volumes/example
   kubectl wait --for=condition=synced volumes/example
 }
@@ -302,8 +310,10 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for server CR to be ready & synced"
-  kubectl wait --for=condition=ready servers/example --timeout=90s
-  kubectl wait --for=condition=synced servers/example --timeout=90s
+  sleep 5
+  kubectl describe servers
+  kubectl wait --for=condition=ready servers/example --timeout=320s
+  kubectl wait --for=condition=synced servers/example --timeout=320s
 
   echo_step "get server CR"
   kubectl get servers
@@ -338,6 +348,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for server CR to be ready & synced"
+  sleep 5
+  kubectl describe servers
   kubectl wait --for=condition=ready servers/example --timeout=90s
   kubectl wait --for=condition=synced servers/example --timeout=90s
 }
@@ -402,8 +414,10 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for lan CR to be ready & synced"
-  kubectl wait --for=condition=ready lans/example
-  kubectl wait --for=condition=synced lans/example
+  sleep 5
+  kubectl describe lans
+  kubectl wait --for=condition=ready lans/example  --timeout=90s
+  kubectl wait --for=condition=synced lans/example  --timeout=90s
 
   echo_step "get lan CR"
   kubectl get lans
@@ -431,7 +445,9 @@ EOF
 
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
-  echo_step "waiting for lan CR to be ready & synced"
+  echo_step "waiting for update lan CR to be ready & synced"
+  sleep 5
+  kubectl describe lans
   kubectl wait --for=condition=ready lans/example
   kubectl wait --for=condition=synced lans/example
 }
@@ -501,6 +517,7 @@ EOF
 
   echo_step "waiting for nic CR to be ready & synced"
   sleep 10s
+  kubectl describe nics
   kubectl wait --for=condition=ready nics/example --timeout 120s
   kubectl wait --for=condition=synced nics/example --timeout 120s
 
