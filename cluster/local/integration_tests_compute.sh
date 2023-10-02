@@ -718,6 +718,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for ipfailover CR to be ready & synced"
+  sleep 10
+  kubectl describe ipfailovers
   kubectl wait --for=condition=ready ipfailovers/example --timeout 120s
   kubectl wait --for=condition=synced ipfailovers/example --timeout 120s
 
@@ -756,7 +758,7 @@ EOF
 
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
-  echo_step "waiting for ipfailover CR to be ready & synced"
+  echo_step "waiting for ipfailover CR after update to be ready & synced"
   kubectl wait --for=condition=ready ipfailovers/example --timeout 120s
   kubectl wait --for=condition=synced ipfailovers/example --timeout 120s
 }
