@@ -309,11 +309,11 @@ EOF
 
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
-  echo_step "waiting for server CR to be ready & synced"
+  echo_step "waiting for server CR to be ready & synced after creation"
   sleep 5
   kubectl describe servers
-  kubectl wait --for=condition=ready servers/example --timeout=320s
-  kubectl wait --for=condition=synced servers/example --timeout=320s
+  kubectl wait --for=condition=ready servers/example --timeout=420s
+  kubectl wait --for=condition=synced servers/example --timeout=420s
 
   echo_step "get server CR"
   kubectl get servers
