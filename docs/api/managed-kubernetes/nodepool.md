@@ -73,68 +73,12 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `clusterConfig` (object)
-	* description: The K8s Cluster on which the NodePool will be created.
-	* properties:
-		* `clusterId` (string)
-			* description: ClusterID is the ID of the Cluster on which the resource will be created. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `clusterIdRef` (object)
-			* description: ClusterIDRef references to a Cluster to retrieve its ID.
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-			* required properties:
-				* `name`
-		* `clusterIdSelector` (object)
-			* description: ClusterIDSelector selects reference to a Cluster to retrieve its ClusterID.
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-* `coresCount` (integer)
-	* description: The number of cores for the node.
-	* format: int32
-* `lans` (array)
-	* description: Array of additional private LANs attached to worker nodes.
-	* properties:
-		* `routes` (array)
-			* description: Array of additional LANs Routes attached to worker nodes.
-			* properties:
-				* `gatewayIp` (string)
-					* description: IPv4 or IPv6 Gateway IP for the route.
-				* `network` (string)
-					* description: IPv4 or IPv6 CIDR to be routed via the interface.
-		* `dhcp` (boolean)
-			* description: Indicates if the Kubernetes NodePool LAN will reserve an IP using DHCP.
-		* `lanConfig` (object)
-			* description: The LAN of an existing private LAN at the related datacenter.
-			* properties:
-				* `lanId` (string)
-					* description: LanID is the ID of the Lan on which the NodePool will connect to. It needs to be provided via directly or via reference.
-				* `lanIdRef` (object)
-					* description: LanIDRef references to a Lan to retrieve its ID.
-					* properties:
-						* `name` (string)
-							* description: Name of the referenced object.
-					* required properties:
-						* `name`
-				* `lanIdSelector` (object)
-					* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
-					* properties:
-						* `matchControllerRef` (boolean)
-							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-						* `matchLabels` (object)
-							* description: MatchLabels ensures an object with matching labels is selected.
 * `nodeCount` (integer)
 	* description: The number of nodes that make up the node pool.
 	* format: int32
 * `publicIpsConfigs` (object)
 	* description: Optional array of reserved public IP addresses to be used by the nodes. IPs must be from same location as the Datacenter used for the NodePool. The array must contain one more IP than the maximum possible number of nodes (nodeCount+1 for fixed number of nodes or maxNodeCount+1 when auto-scaling is used). The extra IP is used when the nodes are rebuilt. IPs can be set directly or via reference and indexes.
 	* properties:
-		* `ips` (array)
-			* description: Use IPs to set specific IPs to the resource. If both IPs and IPsBlockConfigs are set, only `ips` field will be considered.
 		* `ipsBlockConfigs` (array)
 			* description: Use IpsBlockConfigs to reference existing IPBlocks, and to mention the indexes for the IPs. Indexes start from 0, and multiple indexes can be set. If no index is set, all IPs from the corresponding IPBlock will be assigned to the resource.
 			* properties:
@@ -148,6 +92,16 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* properties:
 						* `name` (string)
 							* description: Name of the referenced object.
+						* `policy` (object)
+							* description: Policies for referencing.
+							* properties:
+								* `resolution` (string)
+									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* default: "Required"
+									* possible values: "Required";"Optional"
+								* `resolve` (string)
+									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* possible values: "Always";"IfNotPresent"
 					* required properties:
 						* `name`
 				* `ipBlockIdSelector` (object)
@@ -157,24 +111,26 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 						* `matchLabels` (object)
 							* description: MatchLabels ensures an object with matching labels is selected.
-* `availabilityZone` (string)
-	* description: The availability zone in which the target VM should be provisioned.
-	* possible values: "AUTO";"ZONE_1";"ZONE_2"
+						* `policy` (object)
+							* description: Policies for selection.
+							* properties:
+								* `resolution` (string)
+									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* default: "Required"
+									* possible values: "Required";"Optional"
+								* `resolve` (string)
+									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* possible values: "Always";"IfNotPresent"
+		* `ips` (array)
+			* description: Use IPs to set specific IPs to the resource. If both IPs and IPsBlockConfigs are set, only `ips` field will be considered.
 * `ramSize` (integer)
 	* description: The RAM size for the node. Must be set in multiples of 1024 MB, with minimum size is of 2048 MB.
 	* format: int32
 	* minimum: 2048.000000
 	* multiple of: 1024.000000
-* `storageSize` (integer)
-	* description: The size of the volume in GB. The size should be greater than 10GB.
-	* format: int32
-	* minimum: 10.000000
 * `storageType` (string)
 	* description: The type of hardware for the volume.
 	* possible values: "HDD";"SSD"
-* `cpuFamily` (string)
-	* description: A valid CPU family name. If no CPUFamily is provided, it will be set the first CPUFamily supported by the location.
-	* possible values: "AMD_OPTERON";"INTEL_SKYLAKE";"INTEL_XEON"
 * `autoScaling` (object)
 	* description: property to be set when auto-scaling needs to be enabled for the NodePool. By default, auto-scaling is not enabled.
 	* properties:
@@ -186,6 +142,64 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* description: The minimum number of worker nodes that the managed node group can scale in. Should be set together with 'maxNodeCount'. Value for this attribute must be greater than equal to 1 and less than equal to maxNodeCount.
 			* format: int32
 			* minimum: 1.000000
+* `clusterConfig` (object)
+	* description: The K8s Cluster on which the NodePool will be created.
+	* properties:
+		* `clusterId` (string)
+			* description: ClusterID is the ID of the Cluster on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
+		* `clusterIdRef` (object)
+			* description: ClusterIDRef references to a Cluster to retrieve its ID.
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+				* `policy` (object)
+					* description: Policies for referencing.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
+			* required properties:
+				* `name`
+		* `clusterIdSelector` (object)
+			* description: ClusterIDSelector selects reference to a Cluster to retrieve its ClusterID.
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+				* `policy` (object)
+					* description: Policies for selection.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
+* `k8sVersion` (string)
+	* description: The Kubernetes version the NodePool is running. This imposes restrictions on what Kubernetes versions can be run in a cluster's NodePools. Additionally, not all Kubernetes versions are viable upgrade targets for all prior versions.
+* `maintenanceWindow` (object)
+	* description: The maintenance window is used for updating the software on the NodePool's nodes and for upgrading the NodePool's K8s version. If no value is given, one is chosen dynamically, so there is no fixed default.
+	* properties:
+		* `dayOfTheWeek` (string)
+			* description: DayOfTheWeek The name of the week day.
+		* `time` (string)
+* `storageSize` (integer)
+	* description: The size of the volume in GB. The size should be greater than 10GB.
+	* format: int32
+	* minimum: 10.000000
+* `availabilityZone` (string)
+	* description: The availability zone in which the target VM should be provisioned.
+	* possible values: "AUTO";"ZONE_1";"ZONE_2"
+* `coresCount` (integer)
+	* description: The number of cores for the node.
+	* format: int32
 * `datacenterConfig` (object)
 	* description: A Datacenter, to which the user has access.
 	* properties:
@@ -197,6 +211,16 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* properties:
 				* `name` (string)
 					* description: Name of the referenced object.
+				* `policy` (object)
+					* description: Policies for referencing.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
 		* `datacenterIdSelector` (object)
@@ -206,20 +230,76 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
-* `k8sVersion` (string)
-	* description: The Kubernetes version the NodePool is running. This imposes restrictions on what Kubernetes versions can be run in a cluster's NodePools. Additionally, not all Kubernetes versions are viable upgrade targets for all prior versions.
-* `maintenanceWindow` (object)
-	* description: The maintenance window is used for updating the software on the NodePool's nodes and for upgrading the NodePool's K8s version. If no value is given, one is chosen dynamically, so there is no fixed default.
-	* properties:
-		* `dayOfTheWeek` (string)
-			* description: DayOfTheWeek The name of the week day.
-		* `time` (string)
-* `annotations` (object)
-	* description: Map of annotations attached to NodePool.
-* `name` (string)
-	* description: A Kubernetes node pool name. Valid Kubernetes node pool name must be 63 characters or less and must be empty or begin and end with an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
+				* `policy` (object)
+					* description: Policies for selection.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
 * `labels` (object)
 	* description: Map of labels attached to NodePool.
+* `annotations` (object)
+	* description: Map of annotations attached to NodePool.
+* `cpuFamily` (string)
+	* description: A valid CPU family name. If no CPUFamily is provided, it will be set the first CPUFamily supported by the location.
+	* possible values: "AMD_OPTERON";"INTEL_SKYLAKE";"INTEL_XEON"
+* `name` (string)
+	* description: A Kubernetes node pool name. Valid Kubernetes node pool name must be 63 characters or less and must be empty or begin and end with an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
+* `lans` (array)
+	* description: Array of additional private LANs attached to worker nodes.
+	* properties:
+		* `dhcp` (boolean)
+			* description: Indicates if the Kubernetes NodePool LAN will reserve an IP using DHCP.
+		* `lanConfig` (object)
+			* description: The LAN of an existing private LAN at the related datacenter.
+			* properties:
+				* `lanId` (string)
+					* description: LanID is the ID of the Lan on which the NodePool will connect to. It needs to be provided via directly or via reference.
+				* `lanIdRef` (object)
+					* description: LanIDRef references to a Lan to retrieve its ID.
+					* properties:
+						* `name` (string)
+							* description: Name of the referenced object.
+						* `policy` (object)
+							* description: Policies for referencing.
+							* properties:
+								* `resolution` (string)
+									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* default: "Required"
+									* possible values: "Required";"Optional"
+								* `resolve` (string)
+									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* possible values: "Always";"IfNotPresent"
+					* required properties:
+						* `name`
+				* `lanIdSelector` (object)
+					* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
+					* properties:
+						* `matchControllerRef` (boolean)
+							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+						* `matchLabels` (object)
+							* description: MatchLabels ensures an object with matching labels is selected.
+						* `policy` (object)
+							* description: Policies for selection.
+							* properties:
+								* `resolution` (string)
+									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* default: "Required"
+									* possible values: "Required";"Optional"
+								* `resolve` (string)
+									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* possible values: "Always";"IfNotPresent"
+		* `routes` (array)
+			* description: Array of additional LANs Routes attached to worker nodes.
+			* properties:
+				* `gatewayIp` (string)
+					* description: IPv4 or IPv6 Gateway IP for the route.
+				* `network` (string)
+					* description: IPv4 or IPv6 CIDR to be routed via the interface.
 
 ### Required Properties
 

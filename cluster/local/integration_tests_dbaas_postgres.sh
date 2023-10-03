@@ -9,6 +9,9 @@ set -e
 
 ## DBaaS Postgres Cluster CR Tests
 function dbaas_postgres_cluster_tests() {
+  echo_step "add psqlcreds secret"
+  "${KUBECTL}" create secret generic psqlcreds --namespace=crossplane-system --from-literal=credentials="{\"username\":\"testuser\",\"password\":\"thisshouldwork111\"}"
+
   echo_step "deploy a dbaas postgres cluster CR"
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
@@ -61,8 +64,11 @@ spec:
             name: examplelandbaas
         cidr: 192.168.1.100/24
     credentials:
-      username: test
-      password: test123456
+      source : Secret
+      secretRef:
+        namespace: crossplane-system
+        name: psqlcreds
+        key: credentials
     location: de/txl
     backupLocation: de
     instances: 1
@@ -107,8 +113,11 @@ spec:
             name: examplelandbaas
         cidr: 192.168.1.100/24
     credentials:
-      username: test
-      password: test123456
+      source : Secret
+      secretRef:
+        namespace: crossplane-system
+        name: psqlcreds
+        key: credentials
     location: de/txl
     backupLocation: de
     instances: 1
@@ -181,8 +190,11 @@ spec:
             name: examplelandbaas
         cidr: 192.168.1.100/24
     credentials:
-      username: test
-      password: test123456
+      source : Secret
+      secretRef:
+        namespace: crossplane-system
+        name: psqlcreds
+        key: credentials
     location: de/txl
     backupLocation: de
     instances: 1

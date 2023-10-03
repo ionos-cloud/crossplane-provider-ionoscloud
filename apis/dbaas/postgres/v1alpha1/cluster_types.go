@@ -91,6 +91,8 @@ type ClusterParameters struct {
 	DisplayName string `json:"displayName"`
 	// +kubebuilder:validation:Optional
 	MaintenanceWindow MaintenanceWindow `json:"maintenanceWindow,omitempty"`
+	// Database credentials - either set directly, or as secret/path/env
+	//
 	// +kubebuilder:validation:Required
 	Credentials DBUser `json:"credentials"`
 	// SynchronizationMode Represents different modes of replication.
@@ -131,10 +133,15 @@ type DBUser struct {
 	// Some system usernames are restricted (e.g. \"postgres\", \"admin\", \"standby\").
 	// Password must have a minimum length o 10
 	//
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	Username string `json:"username"`
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	Password string `json:"password"`
+	// Source of the provider credentials.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum=None;Secret;InjectedIdentity;Environment;Filesystem
+	Source                         xpv1.CredentialsSource `json:"source"`
+	xpv1.CommonCredentialSelectors `json:",inline"`
 }
 
 // CreateRestoreRequest The restore request.

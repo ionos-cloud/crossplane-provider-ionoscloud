@@ -73,6 +73,29 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
+* `httpHealthCheck` (object)
+	* description: HTTP health check properties for target group.
+	* properties:
+		* `negate` (boolean)
+		* `path` (string)
+			* description: The path (destination URL) for the HTTP health check request; the default is `/`.
+		* `regex` (boolean)
+		* `response` (string)
+			* description: The response returned by the request, depending on the match type.
+		* `matchType` (string)
+			* description: The match type for the HTTP health check.
+			* possible values: "";"STATUS_CODE";"RESPONSE_BODY"
+		* `method` (string)
+			* description: The method for the HTTP health check.
+			* possible values: "HEAD";"PUT";"POST";"GET";"TRACE";"PATCH";"OPTIONS"
+	* required properties:
+		* `matchType`
+		* `response`
+* `name` (string)
+	* description: The name of the target group.
+* `protocol` (string)
+	* description: Balancing protocol.
+	* possible values: "HTTP"
 * `targets` (array)
 	* description: Array of items in the collection.
 	* properties:
@@ -107,29 +130,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `retries` (integer)
 			* description: The maximum number of attempts to reconnect to a target after a connection failure. Valid range is 0 to 65535, and default is three reconnection attempts.
 			* format: int32
-* `httpHealthCheck` (object)
-	* description: HTTP health check properties for target group.
-	* properties:
-		* `matchType` (string)
-			* description: The match type for the HTTP health check.
-			* possible values: "";"STATUS_CODE";"RESPONSE_BODY"
-		* `method` (string)
-			* description: The method for the HTTP health check.
-			* possible values: "HEAD";"PUT";"POST";"GET";"TRACE";"PATCH";"OPTIONS"
-		* `negate` (boolean)
-		* `path` (string)
-			* description: The path (destination URL) for the HTTP health check request; the default is `/`.
-		* `regex` (boolean)
-		* `response` (string)
-			* description: The response returned by the request, depending on the match type.
-	* required properties:
-		* `matchType`
-		* `response`
-* `name` (string)
-	* description: The name of the target group.
-* `protocol` (string)
-	* description: Balancing protocol.
-	* possible values: "HTTP"
 
 ### Required Properties
 

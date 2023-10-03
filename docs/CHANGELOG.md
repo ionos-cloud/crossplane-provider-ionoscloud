@@ -1,3 +1,7 @@
+## [1.0.7] (October 2023)
+- **Features**:
+ - Option to provide postgres credentials via secret, env variable or path to file
+
 ## [1.0.6] (August 2023)
 - **Features**:
     - Update Crossplane-Runtime to latest version (v0.20.0). CRDs - now require `managementPolicies` to be defined
