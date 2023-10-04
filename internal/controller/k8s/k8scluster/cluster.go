@@ -20,14 +20,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
-	clientApi "k8s.io/client-go/tools/clientcmd/api"
+	v1 "k8s.io/client-go/tools/clientcmd/api/v1"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"strings"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
@@ -143,22 +143,32 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 		c.log.Info(fmt.Sprintf("failed to get connection details. error: %v", err))
 	}
 
-	var clientkubeconfig clientApi.Config
-	if err := json.Unmarshal([]byte(kubeconfig), &clientkubeconfig); err != nil {
-		c.log.Info(fmt.Sprintf("failed to unmasrshal connection details. error: %v", err))
-	}
-
 	return managed.ExternalObservation{
 		ResourceExists:          true,
 		ResourceUpToDate:        k8scluster.IsK8sClusterUpToDate(cr, observed),
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
-		ConnectionDetails: managed.ConnectionDetails{
-			"kubeconfig": []byte(kubeconfig),
-			"server":     []byte(clientkubeconfig.Clusters[mg.GetName()].Server),
-			"name":       []byte(mg.GetName()),
-			"token":      []byte(clientkubeconfig.AuthInfos["cluster-admin"].Token),
-		},
+		ConnectionDetails:       createKubernetesConnectionDetails(c, kubeconfig, mg),
 	}, nil
+}
+
+func createKubernetesConnectionDetails(c *externalCluster, kubeconfig string, mg resource.Managed) map[string][]byte {
+	var connectionConfig = map[string][]byte{
+		"kubeconfig": []byte(kubeconfig),
+		"server":     []byte(""),
+		"name":       []byte(""),
+		"token":      []byte(""),
+	}
+
+	var clientkubeconfig v1.Config
+	//ignoring the base64 error since we get the fields we need here.
+	if err := json.Unmarshal([]byte(kubeconfig), &clientkubeconfig); err != nil && !strings.Contains(err.Error(), "illegal base64 data at input byte") {
+		c.log.Info(fmt.Sprintf("failed to unmasrshal connection details. error: %v", err))
+	} else {
+		connectionConfig["server"] = []byte(clientkubeconfig.Clusters[0].Cluster.Server)
+		connectionConfig["name"] = []byte(mg.GetName())
+		connectionConfig["token"] = []byte(clientkubeconfig.AuthInfos[0].AuthInfo.Token)
+	}
+	return connectionConfig
 }
 
 func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {

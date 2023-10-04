@@ -84,6 +84,16 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* properties:
 				* `name` (string)
 					* description: Name of the referenced object.
+				* `policy` (object)
+					* description: Policies for referencing.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
 		* `datacenterIdSelector` (object)
@@ -93,6 +103,16 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
+				* `policy` (object)
+					* description: Policies for selection.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
 * `name` (string)
 	* description: The name of the  resource.
 * `pcc` (string)

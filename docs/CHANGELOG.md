@@ -1,7 +1,7 @@
-## upcoming release
-
+## [1.0.7] (October 2023)
 - **Features**:
-    - k8s #116 enrich connection details with token,servername and server Url
+ - Option to provide postgres credentials via secret, env variable or path to file
+ - k8s #116 enrich connection details with token,servername and server Url
 
 ## [1.0.6] (August 2023)
 - **Features**:
