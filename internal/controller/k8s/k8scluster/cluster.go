@@ -164,6 +164,7 @@ func createKubernetesConnectionDetails(c *externalCluster, kubeconfig string, mg
 		c.log.Info(fmt.Sprintf("failed to unmarshal connection details. error: %v", err))
 	} else {
 		connectionConfig["server"] = []byte(clientkubeconfig.Clusters[0].Cluster.Server)
+		connectionConfig["caData"] = clientkubeconfig.Clusters[0].Cluster.CertificateAuthorityData
 		connectionConfig["name"] = []byte(mg.GetName())
 		connectionConfig["token"] = []byte(clientkubeconfig.AuthInfos[0].AuthInfo.Token)
 	}

@@ -173,6 +173,7 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 					"kubeconfig": []byte(`{"apiVersion":"v1","kind":"Config","preferences":{},"current-context":"cluster-admin@exampleK8sCluster","clusters":[{"cluster":{"certificate-authority-data":"Y2FkYXRh","server":"https://domain.example"},"name":"exampleK8sCluster"}],"contexts":[{"context":{"cluster":"cluster-name","user":"cluster-admin"},"name":"cluster-admin@exampleK8sCluster"}],"users":[{"name":"cluster-admin","user":{"token":"bG9uZ3Rva2Vu"}}]}`),
 					"name":       []byte(""),
 					"server":     []byte("https://domain.example"),
+					"caData":     []byte("Y2FkYXRh"),
 					"token":      []byte("bG9uZ3Rva2Vu"),
 				},
 				Diff: "",
