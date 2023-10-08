@@ -1,0 +1,16 @@
+# Use this file to create a Datacenter CR.
+# Required values for creating a Datacenter CR are:
+# - Location.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: PrivateCrossConnect
+metadata:
+  name: examplePcc
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    name: exampleDatacenter
+    description: test
+#    secAuthProtection: true
+  providerConfigRef:
+    name: example

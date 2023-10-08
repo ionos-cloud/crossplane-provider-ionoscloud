@@ -118,7 +118,7 @@ func GenerateCreateLanInput(cr *v1alpha1.Lan) (*sdkgo.LanPost, error) {
 		instanceCreateInput.Properties.SetName(cr.Spec.ForProvider.Name)
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Pcc)) {
-		instanceCreateInput.Properties.SetPcc(cr.Spec.ForProvider.Pcc)
+		instanceCreateInput.Properties.SetPcc(cr.Spec.ForProvider.Pcc.PrivateCrossConnectID)
 	}
 	return &instanceCreateInput, nil
 }
@@ -132,7 +132,7 @@ func GenerateUpdateLanInput(cr *v1alpha1.Lan) (*sdkgo.LanProperties, error) {
 		instanceUpdateInput.SetName(cr.Spec.ForProvider.Name)
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Pcc)) {
-		instanceUpdateInput.SetPcc(cr.Spec.ForProvider.Pcc)
+		instanceUpdateInput.SetPcc(cr.Spec.ForProvider.Pcc.PrivateCrossConnectID)
 	}
 	return &instanceUpdateInput, nil
 }
@@ -154,7 +154,7 @@ func IsLanUpToDate(cr *v1alpha1.Lan, lan sdkgo.Lan) bool { // nolint:gocyclo
 		return false
 	case lan.Properties.Public != nil && *lan.Properties.Public != cr.Spec.ForProvider.Public:
 		return false
-	case lan.Properties.Pcc != nil && *lan.Properties.Pcc != cr.Spec.ForProvider.Pcc:
+	case lan.Properties.Pcc != nil && *lan.Properties.Pcc != cr.Spec.ForProvider.Pcc.PrivateCrossConnectID:
 		return false
 	default:
 		return true

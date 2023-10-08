@@ -254,6 +254,22 @@ func (mg *Lan) ResolveReferences(ctx context.Context, c client.Reader) error {
 	mg.Spec.ForProvider.DatacenterCfg.DatacenterID = rsp.ResolvedValue
 	mg.Spec.ForProvider.DatacenterCfg.DatacenterIDRef = rsp.ResolvedReference
 
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.Pcc.PrivateCrossConnectID,
+		Extract:      ExtractPrivateCrossConnectID(),
+		Reference:    mg.Spec.ForProvider.Pcc.PrivateCrossConnectIDRef,
+		Selector:     mg.Spec.ForProvider.Pcc.PrivateCrossConnectIDSelector,
+		To: reference.To{
+			List:    &PrivateCrossConnectList{},
+			Managed: &PrivateCrossConnect{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.Pcc.PrivateCrossConnectID")
+	}
+	mg.Spec.ForProvider.Pcc.PrivateCrossConnectID = rsp.ResolvedValue
+	mg.Spec.ForProvider.Pcc.PrivateCrossConnectIDRef = rsp.ResolvedReference
+
 	return nil
 }
 

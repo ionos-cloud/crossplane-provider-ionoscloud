@@ -91,3 +91,17 @@ func ExtractIPBlockID() reference.ExtractValueFn {
 		return meta.GetExternalName(res)
 	}
 }
+
+// ExtractPrivateCrossConnectID returns the externalName of a referenced PrivateCrossConnect.
+func ExtractPrivateCrossConnectID() reference.ExtractValueFn {
+	return func(mg resource.Managed) string {
+		res, ok := mg.(*PrivateCrossConnect)
+		if !ok {
+			return defaultStringValue
+		}
+		if meta.GetExternalName(res) == res.Name {
+			return defaultStringValue
+		}
+		return meta.GetExternalName(res)
+	}
+}
