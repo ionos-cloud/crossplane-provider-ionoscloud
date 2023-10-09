@@ -1,4 +1,4 @@
-package privateCrossConnect
+package pcc
 
 import (
 	"context"
@@ -16,7 +16,7 @@ type APIClient struct {
 	*clients.IonosServices
 }
 
-// Client is a wrapper around IONOS Service PrivateCrossConnect methods
+// Client is a wrapper around IONOS Service pcc methods
 type Client interface {
 	CheckDuplicatePrivateCrossConnect(ctx context.Context, privateCrossConnectName string) (*sdkgo.PrivateCrossConnect, error)
 	GetPrivateCrossConnectID(privateCrossConnect *sdkgo.PrivateCrossConnect) (string, error)
@@ -71,12 +71,12 @@ func (cp *APIClient) GetPrivateCrossConnect(ctx context.Context, privateCrossCon
 	return cp.ComputeClient.PrivateCrossConnectsApi.PccsFindById(ctx, privateCrossConnectID).Depth(utils.DepthQueryParam).Execute()
 }
 
-// CreatePrivateCrossConnect based on PrivateCrossConnect properties
+// CreatePrivateCrossConnect based on pcc properties
 func (cp *APIClient) CreatePrivateCrossConnect(ctx context.Context, privateCrossConnect sdkgo.PrivateCrossConnect) (sdkgo.PrivateCrossConnect, *sdkgo.APIResponse, error) {
 	return cp.ComputeClient.PrivateCrossConnectsApi.PccsPost(ctx).Pcc(privateCrossConnect).Execute()
 }
 
-// UpdatePrivateCrossConnect based on privateCrossConnectID and PrivateCrossConnect properties
+// UpdatePrivateCrossConnect based on privateCrossConnectID and pcc properties
 func (cp *APIClient) UpdatePrivateCrossConnect(ctx context.Context, privateCrossConnectID string, privateCrossConnect sdkgo.PrivateCrossConnectProperties) (sdkgo.PrivateCrossConnect, *sdkgo.APIResponse, error) {
 	return cp.ComputeClient.PrivateCrossConnectsApi.PccsPatch(ctx, privateCrossConnectID).Pcc(privateCrossConnect).Execute()
 }
@@ -92,8 +92,8 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 	return cp.ComputeClient
 }
 
-// GenerateCreatePrivateCrossConnectInput returns sdkgo.PrivateCrossConnect based on the CR spec
-func GenerateCreatePrivateCrossConnectInput(cr *v1alpha1.PrivateCrossConnect) (*sdkgo.PrivateCrossConnect, error) {
+// GenerateCreatePrivateCrossConnectInput returns sdkgo.pcc based on the CR spec
+func GenerateCreatePrivateCrossConnectInput(cr *v1alpha1.Pcc) (*sdkgo.PrivateCrossConnect, error) {
 	instanceCreateInput := sdkgo.PrivateCrossConnect{
 		Properties: &sdkgo.PrivateCrossConnectProperties{
 			Name:        &cr.Spec.ForProvider.Name,
@@ -104,7 +104,7 @@ func GenerateCreatePrivateCrossConnectInput(cr *v1alpha1.PrivateCrossConnect) (*
 }
 
 // GenerateUpdatePrivateCrossConnectInput returns sdkgo.PrivateCrossConnectProperties based on the CR spec modifications
-func GenerateUpdatePrivateCrossConnectInput(cr *v1alpha1.PrivateCrossConnect) (*sdkgo.PrivateCrossConnectProperties, error) {
+func GenerateUpdatePrivateCrossConnectInput(cr *v1alpha1.Pcc) (*sdkgo.PrivateCrossConnectProperties, error) {
 	instanceUpdateInput := sdkgo.PrivateCrossConnectProperties{
 		Name:        &cr.Spec.ForProvider.Name,
 		Description: &cr.Spec.ForProvider.Description,
@@ -112,8 +112,8 @@ func GenerateUpdatePrivateCrossConnectInput(cr *v1alpha1.PrivateCrossConnect) (*
 	return &instanceUpdateInput, nil
 }
 
-// IsPrivateCrossConnectUpToDate returns true if the PrivateCrossConnect is up-to-date or false if it does not
-func IsPrivateCrossConnectUpToDate(cr *v1alpha1.PrivateCrossConnect, privateCrossConnect sdkgo.PrivateCrossConnect) bool { // nolint:gocyclo
+// IsPrivateCrossConnectUpToDate returns true if the pcc is up-to-date or false if it does not
+func IsPrivateCrossConnectUpToDate(cr *v1alpha1.Pcc, privateCrossConnect sdkgo.PrivateCrossConnect) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && privateCrossConnect.Properties == nil:
 		return true

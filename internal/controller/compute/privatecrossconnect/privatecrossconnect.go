@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package privateCrossConnect
+package pcc
 
 import (
 	"context"
@@ -38,13 +38,13 @@ import (
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/privatecrossconnect"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/pcc"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
-const errNotPrivateCrossConnect = "managed resource is not a PrivateCrossConnect custom resource"
+const errNotPrivateCrossConnect = "managed resource is not a pcc custom resource"
 
-// Setup adds a controller that reconciles PrivateCrossConnect managed resources.
+// Setup adds a controller that reconciles pcc managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.PrivateCrossConnectGroupKind)
 
@@ -53,7 +53,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *u
 		WithOptions(controller.Options{
 			RateLimiter: ratelimiter.NewController(),
 		}).
-		For(&v1alpha1.PrivateCrossConnect{}).
+		For(&v1alpha1.Pcc{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.PrivateCrossConnectGroupVersionKind),
 			managed.WithExternalConnecter(&connectorPrivateCrossConnect{
@@ -85,13 +85,13 @@ type connectorPrivateCrossConnect struct {
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
 func (c *connectorPrivateCrossConnect) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	_, ok := mg.(*v1alpha1.PrivateCrossConnect)
+	_, ok := mg.(*v1alpha1.Pcc)
 	if !ok {
 		return nil, errors.New(errNotPrivateCrossConnect)
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalPrivateCrossConnect{
-		service:              &privateCrossConnect.APIClient{IonosServices: svc},
+		service:              &pcc.APIClient{IonosServices: svc},
 		log:                  c.log,
 		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
@@ -101,18 +101,18 @@ func (c *connectorPrivateCrossConnect) Connect(ctx context.Context, mg resource.
 type externalPrivateCrossConnect struct {
 	// A 'client' used to connect to the externalPrivateCrossConnect resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service              privateCrossConnect.Client
+	service              pcc.Client
 	log                  logging.Logger
 	isUniqueNamesEnabled bool
 }
 
 func (c *externalPrivateCrossConnect) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*v1alpha1.PrivateCrossConnect)
+	cr, ok := mg.(*v1alpha1.Pcc)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotPrivateCrossConnect)
 	}
 
-	// External Name of the CR is the PrivateCrossConnect ID
+	// External Name of the CR is the pcc ID
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
@@ -129,13 +129,13 @@ func (c *externalPrivateCrossConnect) Observe(ctx context.Context, mg resource.M
 
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  privateCrossConnect.IsPrivateCrossConnectUpToDate(cr, instance),
+		ResourceUpToDate:  pcc.IsPrivateCrossConnectUpToDate(cr, instance),
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
 }
 
 func (c *externalPrivateCrossConnect) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.PrivateCrossConnect)
+	cr, ok := mg.(*v1alpha1.Pcc)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotPrivateCrossConnect)
 	}
@@ -166,7 +166,7 @@ func (c *externalPrivateCrossConnect) Create(ctx context.Context, mg resource.Ma
 
 	// Create new privateCrossConnect instance accordingly
 	// with the properties set.
-	instanceInput, err := privateCrossConnect.GenerateCreatePrivateCrossConnectInput(cr)
+	instanceInput, err := pcc.GenerateCreatePrivateCrossConnectInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -184,7 +184,7 @@ func (c *externalPrivateCrossConnect) Create(ctx context.Context, mg resource.Ma
 }
 
 func (c *externalPrivateCrossConnect) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.PrivateCrossConnect)
+	cr, ok := mg.(*v1alpha1.Pcc)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotPrivateCrossConnect)
 	}
@@ -193,7 +193,7 @@ func (c *externalPrivateCrossConnect) Update(ctx context.Context, mg resource.Ma
 	}
 
 	privateCrossConnectID := cr.Status.AtProvider.PrivateCrossConnectID
-	instanceInput, err := privateCrossConnect.GenerateUpdatePrivateCrossConnectInput(cr)
+	instanceInput, err := pcc.GenerateUpdatePrivateCrossConnectInput(cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
@@ -210,7 +210,7 @@ func (c *externalPrivateCrossConnect) Update(ctx context.Context, mg resource.Ma
 }
 
 func (c *externalPrivateCrossConnect) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.PrivateCrossConnect)
+	cr, ok := mg.(*v1alpha1.Pcc)
 	if !ok {
 		return errors.New(errNotPrivateCrossConnect)
 	}

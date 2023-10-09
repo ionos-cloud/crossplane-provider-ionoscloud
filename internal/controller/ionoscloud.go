@@ -33,6 +33,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/ipfailover"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/lan"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/nic"
+	pcc "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/privatecrossconnect"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/volume"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/config"
@@ -47,6 +48,7 @@ import (
 func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter, options *utils.ConfigurationOptions) error {
 	for _, setup := range []func(ctrl.Manager, logging.Logger, workqueue.RateLimiter, *utils.ConfigurationOptions) error{
 		datacenter.Setup,
+		pcc.Setup,
 		server.Setup,
 		cubeserver.Setup,
 		volume.Setup,

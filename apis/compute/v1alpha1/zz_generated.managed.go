@@ -481,69 +481,69 @@ func (mg *Nic) SetWriteConnectionSecretToReference(r *xpv1.SecretReference) {
 	mg.Spec.WriteConnectionSecretToReference = r
 }
 
-// GetCondition of this PrivateCrossConnect.
-func (mg *PrivateCrossConnect) GetCondition(ct xpv1.ConditionType) xpv1.Condition {
+// GetCondition of this Pcc.
+func (mg *Pcc) GetCondition(ct xpv1.ConditionType) xpv1.Condition {
 	return mg.Status.GetCondition(ct)
 }
 
-// GetDeletionPolicy of this PrivateCrossConnect.
-func (mg *PrivateCrossConnect) GetDeletionPolicy() xpv1.DeletionPolicy {
+// GetDeletionPolicy of this Pcc.
+func (mg *Pcc) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
-// GetProviderConfigReference of this PrivateCrossConnect.
-func (mg *PrivateCrossConnect) GetProviderConfigReference() *xpv1.Reference {
+// GetProviderConfigReference of this Pcc.
+func (mg *Pcc) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
 }
 
 /*
-GetProviderReference of this PrivateCrossConnect.
+GetProviderReference of this Pcc.
 Deprecated: Use GetProviderConfigReference.
 */
-func (mg *PrivateCrossConnect) GetProviderReference() *xpv1.Reference {
+func (mg *Pcc) GetProviderReference() *xpv1.Reference {
 	return mg.Spec.ProviderReference
 }
 
-// GetPublishConnectionDetailsTo of this PrivateCrossConnect.
-func (mg *PrivateCrossConnect) GetPublishConnectionDetailsTo() *xpv1.PublishConnectionDetailsTo {
+// GetPublishConnectionDetailsTo of this Pcc.
+func (mg *Pcc) GetPublishConnectionDetailsTo() *xpv1.PublishConnectionDetailsTo {
 	return mg.Spec.PublishConnectionDetailsTo
 }
 
-// GetWriteConnectionSecretToReference of this PrivateCrossConnect.
-func (mg *PrivateCrossConnect) GetWriteConnectionSecretToReference() *xpv1.SecretReference {
+// GetWriteConnectionSecretToReference of this Pcc.
+func (mg *Pcc) GetWriteConnectionSecretToReference() *xpv1.SecretReference {
 	return mg.Spec.WriteConnectionSecretToReference
 }
 
-// SetConditions of this PrivateCrossConnect.
-func (mg *PrivateCrossConnect) SetConditions(c ...xpv1.Condition) {
+// SetConditions of this Pcc.
+func (mg *Pcc) SetConditions(c ...xpv1.Condition) {
 	mg.Status.SetConditions(c...)
 }
 
-// SetDeletionPolicy of this PrivateCrossConnect.
-func (mg *PrivateCrossConnect) SetDeletionPolicy(r xpv1.DeletionPolicy) {
+// SetDeletionPolicy of this Pcc.
+func (mg *Pcc) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
 }
 
-// SetProviderConfigReference of this PrivateCrossConnect.
-func (mg *PrivateCrossConnect) SetProviderConfigReference(r *xpv1.Reference) {
+// SetProviderConfigReference of this Pcc.
+func (mg *Pcc) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
 }
 
 /*
-SetProviderReference of this PrivateCrossConnect.
+SetProviderReference of this Pcc.
 Deprecated: Use SetProviderConfigReference.
 */
-func (mg *PrivateCrossConnect) SetProviderReference(r *xpv1.Reference) {
+func (mg *Pcc) SetProviderReference(r *xpv1.Reference) {
 	mg.Spec.ProviderReference = r
 }
 
-// SetPublishConnectionDetailsTo of this PrivateCrossConnect.
-func (mg *PrivateCrossConnect) SetPublishConnectionDetailsTo(r *xpv1.PublishConnectionDetailsTo) {
+// SetPublishConnectionDetailsTo of this Pcc.
+func (mg *Pcc) SetPublishConnectionDetailsTo(r *xpv1.PublishConnectionDetailsTo) {
 	mg.Spec.PublishConnectionDetailsTo = r
 }
 
-// SetWriteConnectionSecretToReference of this PrivateCrossConnect.
-func (mg *PrivateCrossConnect) SetWriteConnectionSecretToReference(r *xpv1.SecretReference) {
+// SetWriteConnectionSecretToReference of this Pcc.
+func (mg *Pcc) SetWriteConnectionSecretToReference(r *xpv1.SecretReference) {
 	mg.Spec.WriteConnectionSecretToReference = r
 }
 

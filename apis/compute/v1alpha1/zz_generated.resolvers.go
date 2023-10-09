@@ -256,12 +256,12 @@ func (mg *Lan) ResolveReferences(ctx context.Context, c client.Reader) error {
 
 	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
 		CurrentValue: mg.Spec.ForProvider.Pcc.PrivateCrossConnectID,
-		Extract:      ExtractPrivateCrossConnectID(),
+		Extract:      ExtractPccID(),
 		Reference:    mg.Spec.ForProvider.Pcc.PrivateCrossConnectIDRef,
 		Selector:     mg.Spec.ForProvider.Pcc.PrivateCrossConnectIDSelector,
 		To: reference.To{
-			List:    &PrivateCrossConnectList{},
-			Managed: &PrivateCrossConnect{},
+			List:    &PccList{},
+			Managed: &Pcc{},
 		},
 	})
 	if err != nil {

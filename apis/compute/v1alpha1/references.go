@@ -92,10 +92,10 @@ func ExtractIPBlockID() reference.ExtractValueFn {
 	}
 }
 
-// ExtractPrivateCrossConnectID returns the externalName of a referenced PrivateCrossConnect.
-func ExtractPrivateCrossConnectID() reference.ExtractValueFn {
+// ExtractPccID returns the externalName of a referenced Pcc.
+func ExtractPccID() reference.ExtractValueFn {
 	return func(mg resource.Managed) string {
-		res, ok := mg.(*PrivateCrossConnect)
+		res, ok := mg.(*Pcc)
 		if !ok {
 			return defaultStringValue
 		}
