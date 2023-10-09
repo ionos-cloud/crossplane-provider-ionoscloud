@@ -173,7 +173,7 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 					"kubeconfig": []byte(`{"apiVersion":"v1","kind":"Config","preferences":{},"current-context":"cluster-admin@exampleK8sCluster","clusters":[{"cluster":{"certificate-authority-data":"Y2FkYXRh","server":"https://domain.example"},"name":"exampleK8sCluster"}],"contexts":[{"context":{"cluster":"cluster-name","user":"cluster-admin"},"name":"cluster-admin@exampleK8sCluster"}],"users":[{"name":"cluster-admin","user":{"token":"bG9uZ3Rva2Vu"}}]}`),
 					"name":       []byte(""),
 					"server":     []byte("https://domain.example"),
-					"caData":     []byte("Y2FkYXRh"),
+					"caData":     []byte("cadata"),
 					"token":      []byte("bG9uZ3Rva2Vu"),
 				},
 				Diff: "",
@@ -191,6 +191,7 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 						State: ionoscloud.PtrString(k8s.DESTROYING),
 					},
 				}, nil, nil)
+				client.EXPECT().GetKubeConfig(context.Background(), "cluster-id").Return("kubeconfig-base64", nil, nil)
 			},
 			args: func() *v1alpha1.Cluster {
 				np := &v1alpha1.Cluster{
@@ -207,6 +208,8 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 				ResourceExists:          true,
 				ResourceUpToDate:        true,
 				ResourceLateInitialized: false,
+				ConnectionDetails:       managed.ConnectionDetails{"kubeconfig": []byte("kubeconfig-base64")},
+				Diff:                    "",
 			},
 			wantErr: false,
 		},
@@ -219,6 +222,7 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 						K8sVersion: ionoscloud.PtrString("1.22.33"),
 					},
 				}, nil, nil)
+				client.EXPECT().GetKubeConfig(context.Background(), "cluster-id").Return("kubeconfig-base64", nil, nil)
 			},
 			args: func() *v1alpha1.Cluster {
 				np := &v1alpha1.Cluster{
@@ -236,6 +240,7 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 				ResourceExists:          true,
 				ResourceUpToDate:        false,
 				ResourceLateInitialized: false,
+				ConnectionDetails:       managed.ConnectionDetails{"kubeconfig": []byte("kubeconfig-base64")},
 				Diff:                    "",
 			},
 			wantErr: false,
@@ -340,6 +345,7 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 				ResourceExists:          true,
 				ResourceUpToDate:        true,
 				ResourceLateInitialized: false,
+				ConnectionDetails:       managed.ConnectionDetails{"kubeconfig": []byte("")},
 				Diff:                    "",
 			},
 			wantErr: false,

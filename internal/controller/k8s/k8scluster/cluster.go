@@ -144,12 +144,12 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 		ResourceUpToDate:        k8scluster.IsK8sClusterUpToDate(cr, observed),
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}
-	if strings.EqualFold(cr.Status.AtProvider.State, k8s.ACTIVE) {
+	if !strings.EqualFold(cr.Status.AtProvider.State, k8s.DEPLOYING) {
 		if kubeconfig, _, err = c.service.GetKubeConfig(ctx, cr.Status.AtProvider.ClusterID); err != nil {
 			c.log.Info(fmt.Sprintf("failed to get connection details. error: %v", err))
 		}
-		mo.ConnectionDetails = createKubernetesConnectionDetails(c, kubeconfig, mg)
 	}
+	mo.ConnectionDetails = createKubernetesConnectionDetails(c, kubeconfig, mg)
 
 	return mo, nil
 }
