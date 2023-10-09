@@ -151,7 +151,8 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 						State: ionoscloud.PtrString(k8s.ACTIVE),
 					},
 				}, nil, nil)
-				client.EXPECT().GetKubeConfig(context.Background(), "cluster-id").Return("kubeconfig-base64", nil, nil)
+				rets := `{"apiVersion":"v1","kind":"Config","preferences":{},"current-context":"cluster-admin@exampleK8sCluster","clusters":[{"cluster":{"certificate-authority-data":"Y2FkYXRh","server":"https://domain.example"},"name":"exampleK8sCluster"}],"contexts":[{"context":{"cluster":"cluster-name","user":"cluster-admin"},"name":"cluster-admin@exampleK8sCluster"}],"users":[{"name":"cluster-admin","user":{"token":"bG9uZ3Rva2Vu"}}]}`
+				client.EXPECT().GetKubeConfig(context.Background(), "cluster-id").Return(rets, nil, nil)
 			},
 			args: func() *v1alpha1.Cluster {
 				np := &v1alpha1.Cluster{
@@ -168,8 +169,14 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 				ResourceExists:          true,
 				ResourceUpToDate:        true,
 				ResourceLateInitialized: false,
-				ConnectionDetails:       managed.ConnectionDetails{"kubeconfig": []byte("kubeconfig-base64")},
-				Diff:                    "",
+				ConnectionDetails: managed.ConnectionDetails{
+					"kubeconfig": []byte(`{"apiVersion":"v1","kind":"Config","preferences":{},"current-context":"cluster-admin@exampleK8sCluster","clusters":[{"cluster":{"certificate-authority-data":"Y2FkYXRh","server":"https://domain.example"},"name":"exampleK8sCluster"}],"contexts":[{"context":{"cluster":"cluster-name","user":"cluster-admin"},"name":"cluster-admin@exampleK8sCluster"}],"users":[{"name":"cluster-admin","user":{"token":"bG9uZ3Rva2Vu"}}]}`),
+					"name":       []byte(""),
+					"server":     []byte("https://domain.example"),
+					"caData":     []byte("cadata"),
+					"token":      []byte("bG9uZ3Rva2Vu"),
+				},
+				Diff: "",
 			},
 			wantErr: false,
 		},
@@ -245,7 +252,6 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 					Properties: nil,
 				}, nil, nil)
 				client.EXPECT().GetKubeConfig(context.Background(), "cluster-id").Return("kubeconfig-base64", nil, nil)
-
 			},
 			args: func() *v1alpha1.Cluster {
 				np := &v1alpha1.Cluster{
@@ -253,6 +259,11 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 						ForProvider: v1alpha1.ClusterParameters{
 							Name:       "cluster-name",
 							K8sVersion: "1.33.44",
+						},
+					},
+					Status: v1alpha1.ClusterStatus{
+						AtProvider: v1alpha1.ClusterObservation{
+							State: k8s.ACTIVE,
 						},
 					},
 				}
@@ -263,8 +274,10 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 				ResourceExists:          true,
 				ResourceUpToDate:        false,
 				ResourceLateInitialized: false,
-				ConnectionDetails:       managed.ConnectionDetails{"kubeconfig": []byte("kubeconfig-base64")},
-				Diff:                    "",
+				ConnectionDetails: managed.ConnectionDetails{
+					"kubeconfig": []byte("kubeconfig-base64"),
+				},
+				Diff: "",
 			},
 			wantErr: false,
 		},
@@ -275,7 +288,6 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 					Properties: nil,
 				}, nil, nil)
 				client.EXPECT().GetKubeConfig(context.Background(), "cluster-id").Return("", nil, errors.New("api broken"))
-
 			},
 			args: func() *v1alpha1.Cluster {
 				np := &v1alpha1.Cluster{
@@ -283,6 +295,11 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 						ForProvider: v1alpha1.ClusterParameters{
 							Name:       "cluster-name",
 							K8sVersion: "1.33.44",
+						},
+					},
+					Status: v1alpha1.ClusterStatus{
+						AtProvider: v1alpha1.ClusterObservation{
+							State: k8s.ACTIVE,
 						},
 					},
 				}
@@ -293,8 +310,10 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 				ResourceExists:          true,
 				ResourceUpToDate:        false,
 				ResourceLateInitialized: false,
-				ConnectionDetails:       managed.ConnectionDetails{"kubeconfig": []byte("")},
-				Diff:                    "",
+				ConnectionDetails: managed.ConnectionDetails{
+					"kubeconfig": []byte(""),
+				},
+				Diff: "",
 			},
 			wantErr: false,
 		},
@@ -309,10 +328,6 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 						Name:       ionoscloud.PtrString("node-pool-name"),
 						K8sVersion: ionoscloud.PtrString("1.22.33"),
 					}}, nil, nil)
-				client.EXPECT().
-					GetKubeConfig(context.Background(), "cluster-id").
-					Return("", nil, errors.New("resource is deploying"))
-
 			},
 			args: func() *v1alpha1.Cluster {
 				np := &v1alpha1.Cluster{
