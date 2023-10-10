@@ -459,9 +459,6 @@ spec:
     datacenterConfig:
       datacenterIdRef:
         name: example
-    pcc:
-      PrivateCrossConnectIdRef:
-        name: example
   providerConfigRef:
     name: example
 EOF
@@ -522,7 +519,7 @@ managementPolicies:
 spec:
   forProvider:
     name: exampletestLan
-    public: false
+    public: true
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -538,6 +535,38 @@ EOF
   kubectl describe lans
   kubectl wait --for=condition=ready lans/example
   kubectl wait --for=condition=synced lans/example
+
+echo_step "deploy a lan 3 CR for pcc"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: example3
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    name: exampletest3
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    pcc:
+      PrivateCrossConnectIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+    )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for lan CR to be ready & synced"
+  sleep 5
+  kubectl describe lans
+  kubectl wait --for=condition=ready lans/example3  --timeout=90s
+  kubectl wait --for=condition=synced lans/example3  --timeout=90s
 }
 
 function lan_tests_cleanup() {
@@ -598,6 +627,32 @@ EOF
 
     echo_step "wait for deletion example2 lan CR"
     kubectl wait --for=delete lans/example2
+
+INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: example3
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    name: exampletestLan3
+    public: true
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo_step "uninstalling ipfailover lan example3 CR"
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
+
+  echo_step "wait for deletion lan example3 CR"
+  kubectl wait --for=delete lans/example3
 }
 
 ## Nic CR Tests
@@ -805,34 +860,7 @@ EOF
 
 ## IPFailover CR Tests
 function ipfailover_tests() {
-  echo_step "deploy a lan CR for ipfailover"
-  INSTALL_RESOURCE_YAML="$(
-    cat <<EOF
-apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: Lan
-metadata:
-  name: example3
-managementPolicies:
-  - "*"
-spec:
-  forProvider:
-    name: exampletest3
-    public: true
-    datacenterConfig:
-      datacenterIdRef:
-        name: example
-  providerConfigRef:
-    name: example
-EOF
-    )"
 
-  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
-
-  echo_step "waiting for ipfailover lan CR to be ready & synced"
-  sleep 5
-  kubectl describe lans
-  kubectl wait --for=condition=ready lans/example3  --timeout=90s
-  kubectl wait --for=condition=synced lans/example3  --timeout=90s
 
   echo_step "deploy a ipfailover CR"
   INSTALL_RESOURCE_YAML="$(
@@ -855,7 +883,7 @@ spec:
         name: example
     lanConfig:
       lanIdRef:
-        name: example3
+        name: example
     nicConfig:
       nicIdRef:
         name: example
@@ -896,7 +924,7 @@ spec:
         name: example
     lanConfig:
       lanIdRef:
-        name: example3
+        name: example
     nicConfig:
       nicIdRef:
         name: example
@@ -933,7 +961,7 @@ spec:
         name: example
     lanConfig:
       lanIdRef:
-        name: example3
+        name: example
     nicConfig:
       nicIdRef:
         name: example
@@ -948,29 +976,4 @@ EOF
   echo_step "wait for deletion ipfailover CR"
   kubectl wait --for=delete ipfailovers/example
 
-INSTALL_RESOURCE_YAML="$(
-    cat <<EOF
-apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: Lan
-metadata:
-  name: example3
-managementPolicies:
-  - "*"
-spec:
-  forProvider:
-    name: exampletestLan3
-    public: true
-    datacenterConfig:
-      datacenterIdRef:
-        name: example
-  providerConfigRef:
-    name: example
-EOF
-  )"
-
-  echo_step "uninstalling ipfailover lan CR"
-  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
-
-  echo_step "wait for deletion ipfailover lan CR"
-  kubectl wait --for=delete lans/example3
 }
