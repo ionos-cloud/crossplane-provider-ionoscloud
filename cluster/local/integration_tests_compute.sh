@@ -827,6 +827,13 @@ EOF
     )"
 
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for ipfailover lan CR to be ready & synced"
+  sleep 5
+  kubectl describe lans
+  kubectl wait --for=condition=ready lans/example3  --timeout=90s
+  kubectl wait --for=condition=synced lans/example3  --timeout=90s
+
   echo_step "deploy a ipfailover CR"
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
