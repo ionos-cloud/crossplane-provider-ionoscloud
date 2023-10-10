@@ -190,6 +190,8 @@ if [ "$TEST_COMPUTE" = true ]; then
   datacenter_tests_cleanup
   echo_step "--- cleanup ipblock tests ---"
   ipblock_tests_cleanup
+  echo_step "--- cleanup pcc resource part of lan tests ---"
+  pcc_tests_cleanup
 fi
 
 if [ "$TEST_DBAAS" = true ]; then

@@ -94,6 +94,32 @@ EOF
   kubectl wait --for=delete ipblocks/example
 }
 
+function pcc_tests_cleanup() {
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Pcc
+metadata:
+  name: example
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    name: example
+    description: test
+  providerConfigRef:
+    name: example
+EOF
+    )"
+
+  echo_step "uninstalling pcc CR"
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
+
+  echo_step "wait for deletion pcc CR"
+  kubectl wait --for=delete pcc/example
+}
+
 ## Datacenter CR Tests
 function datacenter_tests() {
   echo_step "deploy a datacenter CR"
@@ -103,7 +129,7 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: example
-managementPolicies: 
+managementPolicies:
   - "*"
 spec:
   forProvider:
@@ -132,7 +158,7 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: example
-managementPolicies: 
+managementPolicies:
   - "*"
 spec:
   forProvider:
@@ -160,7 +186,7 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: example
-managementPolicies: 
+managementPolicies:
   - "*"
 spec:
   forProvider:
@@ -188,7 +214,7 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Volume
 metadata:
   name: example
-managementPolicies: 
+managementPolicies:
   - "*"
 spec:
   forProvider:
@@ -223,7 +249,7 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Volume
 metadata:
   name: example
-managementPolicies: 
+managementPolicies:
   - "*"
 spec:
   forProvider:
@@ -254,7 +280,7 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Volume
 metadata:
   name: example
-managementPolicies: 
+managementPolicies:
   - "*"
 spec:
   forProvider:
@@ -287,7 +313,7 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Server
 metadata:
   name: example
-managementPolicies: 
+managementPolicies:
   - "*"
 spec:
   forProvider:
@@ -325,7 +351,7 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Server
 metadata:
   name: example
-managementPolicies: 
+managementPolicies:
   - "*"
 spec:
   forProvider:
@@ -361,7 +387,7 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Server
 metadata:
   name: example
-managementPolicies: 
+managementPolicies:
   - "*"
 spec:
   forProvider:
@@ -390,6 +416,33 @@ EOF
 
 ## Lan CR Tests
 function lan_tests() {
+
+    echo_step "deploy a pcc CR"
+    INSTALL_RESOURCE_YAML="$(
+      cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Pcc
+metadata:
+  name: example
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    name: example
+    description: test
+  providerConfigRef:
+    name: example
+EOF
+    )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for pcc CR to be ready & synced"
+  sleep 5
+  kubectl describe pccs
+  kubectl wait --for=condition=ready pcc/example  --timeout=90s
+  kubectl wait --for=condition=synced pcc/example  --timeout=90s
+
   echo_step "deploy a lan CR"
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
@@ -397,7 +450,7 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: example
-managementPolicies: 
+managementPolicies:
   - "*"
 spec:
   forProvider:
@@ -405,6 +458,41 @@ spec:
     public: false
     datacenterConfig:
       datacenterIdRef:
+        name: example
+    pcc:
+      PrivateCrossConnectIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for lan CR to be ready & synced"
+  sleep 5
+  kubectl describe lans
+  kubectl wait --for=condition=ready lans/example  --timeout=90s
+  kubectl wait --for=condition=synced lans/example  --timeout=90s
+
+  echo_step "deploy a second lan CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: example2
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    name: exampletest2
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    pcc:
+      PrivateCrossConnectIdRef:
         name: example
   providerConfigRef:
     name: example
@@ -429,12 +517,12 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: example
-managementPolicies: 
+managementPolicies:
   - "*"
 spec:
   forProvider:
     name: exampletestLan
-    public: true
+    public: false
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -459,7 +547,7 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: example
-managementPolicies: 
+managementPolicies:
   - "*"
 spec:
   forProvider:
@@ -467,6 +555,9 @@ spec:
     public: true
     datacenterConfig:
       datacenterIdRef:
+        name: example
+    pcc:
+      PrivateCrossConnectIdRef:
         name: example
   providerConfigRef:
     name: example
@@ -478,6 +569,35 @@ EOF
 
   echo_step "wait for deletion lan CR"
   kubectl wait --for=delete lans/example
+
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: example2
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    name: exampletestLan
+    public: true
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    pcc:
+      PrivateCrossConnectIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+    )"
+
+    echo_step "uninstalling example2 lan CR"
+    echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
+
+    echo_step "wait for deletion example2 lan CR"
+    kubectl wait --for=delete lans/example2
 }
 
 ## Nic CR Tests

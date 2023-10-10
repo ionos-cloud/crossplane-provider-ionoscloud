@@ -1,6 +1,6 @@
 # Use this file to create a Private Cross Connection CR.
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: PrivateCrossConnect
+kind: Pcc
 metadata:
   name: examplepcc
 managementPolicies:

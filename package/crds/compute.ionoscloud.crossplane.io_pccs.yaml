@@ -4,7 +4,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.12.1
-  name: lans.compute.ionoscloud.crossplane.io
+  name: pccs.compute.ionoscloud.crossplane.io
 spec:
   group: compute.ionoscloud.crossplane.io
   names:
@@ -12,10 +12,10 @@ spec:
     - crossplane
     - managed
     - ionoscloud
-    kind: Lan
-    listKind: LanList
-    plural: lans
-    singular: lan
+    kind: Pcc
+    listKind: PccList
+    plural: pccs
+    singular: pcc
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -25,22 +25,11 @@ spec:
     - jsonPath: .status.conditions[?(@.type=='Synced')].status
       name: SYNCED
       type: string
-    - jsonPath: .spec.forProvider.datacenterConfig.datacenterId
-      name: DATACENTER ID
-      type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
-      name: LAN ID
+      name: Pcc ID
       type: string
     - jsonPath: .spec.forProvider.name
-      name: LAN NAME
-      type: string
-    - jsonPath: .spec.forProvider.public
-      name: PUBLIC
-      priority: 1
-      type: string
-    - jsonPath: .status.atProvider.ipFailovers
-      name: IPFAILOVERS
-      priority: 1
+      name: Pcc NAME
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE
@@ -51,7 +40,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: A Lan is an example API type.
+        description: A Pcc is an example API type.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -81,7 +70,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: A LanSpec defines the desired state of a Lan.
+            description: A PccSpec defines the desired state of a Pcc.
             properties:
               deletionPolicy:
                 default: Delete
@@ -97,192 +86,16 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: 'LanParameters are the observable fields of a Lan. Required
-                  values when creating a Lan: DatacenterConfig, Public.'
+                description: PccParameters To connect two PrivateCrossconnects we
+                  need 2 lans defined, one in each Pcc. After, we reference the Pcc
+                  through which we want the connection to be established.
                 properties:
-                  datacenterConfig:
-                    description: DatacenterConfig contains information about the datacenter
-                      resource on which the lan will be created.
-                    properties:
-                      datacenterId:
-                        description: DatacenterID is the ID of the Datacenter on which
-                          the resource will be created. It needs to be provided via
-                          directly or via reference.
-                        format: uuid
-                        type: string
-                      datacenterIdRef:
-                        description: DatacenterIDRef references to a Datacenter to
-                          retrieve its ID.
-                        properties:
-                          name:
-                            description: Name of the referenced object.
-                            type: string
-                          policy:
-                            description: Policies for referencing.
-                            properties:
-                              resolution:
-                                default: Required
-                                description: Resolution specifies whether resolution
-                                  of this reference is required. The default is 'Required',
-                                  which means the reconcile will fail if the reference
-                                  cannot be resolved. 'Optional' means this reference
-                                  will be a no-op if it cannot be resolved.
-                                enum:
-                                - Required
-                                - Optional
-                                type: string
-                              resolve:
-                                description: Resolve specifies when this reference
-                                  should be resolved. The default is 'IfNotPresent',
-                                  which will attempt to resolve the reference only
-                                  when the corresponding field is not present. Use
-                                  'Always' to resolve the reference on every reconcile.
-                                enum:
-                                - Always
-                                - IfNotPresent
-                                type: string
-                            type: object
-                        required:
-                        - name
-                        type: object
-                      datacenterIdSelector:
-                        description: DatacenterIDSelector selects reference to a Datacenter
-                          to retrieve its DatacenterID.
-                        properties:
-                          matchControllerRef:
-                            description: MatchControllerRef ensures an object with
-                              the same controller reference as the selecting object
-                              is selected.
-                            type: boolean
-                          matchLabels:
-                            additionalProperties:
-                              type: string
-                            description: MatchLabels ensures an object with matching
-                              labels is selected.
-                            type: object
-                          policy:
-                            description: Policies for selection.
-                            properties:
-                              resolution:
-                                default: Required
-                                description: Resolution specifies whether resolution
-                                  of this reference is required. The default is 'Required',
-                                  which means the reconcile will fail if the reference
-                                  cannot be resolved. 'Optional' means this reference
-                                  will be a no-op if it cannot be resolved.
-                                enum:
-                                - Required
-                                - Optional
-                                type: string
-                              resolve:
-                                description: Resolve specifies when this reference
-                                  should be resolved. The default is 'IfNotPresent',
-                                  which will attempt to resolve the reference only
-                                  when the corresponding field is not present. Use
-                                  'Always' to resolve the reference on every reconcile.
-                                enum:
-                                - Always
-                                - IfNotPresent
-                                type: string
-                            type: object
-                        type: object
-                    type: object
-                  name:
-                    description: The name of the  resource.
+                  description:
+                    description: A short description for the private cross-connection.
                     type: string
-                  pcc:
-                    description: The unique identifier of the private Cross-Connect
-                      the LAN is connected to, if any.
-                    properties:
-                      PrivateCrossConnectId:
-                        description: PrivateCrossConnectID is the ID of the Pcc on
-                          which the resource will be created. It needs to be provided
-                          via directly or via reference.
-                        format: uuid
-                        type: string
-                      PrivateCrossConnectIdRef:
-                        description: PrivateCrossConnectIDRef references to a Pcc
-                          to retrieve its ID.
-                        properties:
-                          name:
-                            description: Name of the referenced object.
-                            type: string
-                          policy:
-                            description: Policies for referencing.
-                            properties:
-                              resolution:
-                                default: Required
-                                description: Resolution specifies whether resolution
-                                  of this reference is required. The default is 'Required',
-                                  which means the reconcile will fail if the reference
-                                  cannot be resolved. 'Optional' means this reference
-                                  will be a no-op if it cannot be resolved.
-                                enum:
-                                - Required
-                                - Optional
-                                type: string
-                              resolve:
-                                description: Resolve specifies when this reference
-                                  should be resolved. The default is 'IfNotPresent',
-                                  which will attempt to resolve the reference only
-                                  when the corresponding field is not present. Use
-                                  'Always' to resolve the reference on every reconcile.
-                                enum:
-                                - Always
-                                - IfNotPresent
-                                type: string
-                            type: object
-                        required:
-                        - name
-                        type: object
-                      PrivateCrossConnectIdSelector:
-                        description: PrivateCrossConnectIDSelector selects reference
-                          to a Pcc to retrieve its PrivateCrossConnectID.
-                        properties:
-                          matchControllerRef:
-                            description: MatchControllerRef ensures an object with
-                              the same controller reference as the selecting object
-                              is selected.
-                            type: boolean
-                          matchLabels:
-                            additionalProperties:
-                              type: string
-                            description: MatchLabels ensures an object with matching
-                              labels is selected.
-                            type: object
-                          policy:
-                            description: Policies for selection.
-                            properties:
-                              resolution:
-                                default: Required
-                                description: Resolution specifies whether resolution
-                                  of this reference is required. The default is 'Required',
-                                  which means the reconcile will fail if the reference
-                                  cannot be resolved. 'Optional' means this reference
-                                  will be a no-op if it cannot be resolved.
-                                enum:
-                                - Required
-                                - Optional
-                                type: string
-                              resolve:
-                                description: Resolve specifies when this reference
-                                  should be resolved. The default is 'IfNotPresent',
-                                  which will attempt to resolve the reference only
-                                  when the corresponding field is not present. Use
-                                  'Always' to resolve the reference on every reconcile.
-                                enum:
-                                - Always
-                                - IfNotPresent
-                                type: string
-                            type: object
-                        type: object
-                    type: object
-                  public:
-                    description: This LAN faces the public Internet.
-                    type: boolean
-                required:
-                - datacenterConfig
-                - public
+                  name:
+                    description: The name of the private cross-connection.
+                    type: string
                 type: object
               managementPolicies:
                 default:
@@ -482,17 +295,12 @@ spec:
             - forProvider
             type: object
           status:
-            description: A LanStatus represents the observed state of a Lan.
+            description: A PccStatus represents the observed state of a Pcc.
             properties:
               atProvider:
-                description: LanObservation are the observable fields of a Lan.
+                description: PccObservation are the observable fields of a Pcc.
                 properties:
-                  ipFailovers:
-                    description: IPFailovers will be set using IPFailover CR
-                    items:
-                      type: string
-                    type: array
-                  lanId:
+                  PrivateCrossConnectId:
                     type: string
                   state:
                     type: string
