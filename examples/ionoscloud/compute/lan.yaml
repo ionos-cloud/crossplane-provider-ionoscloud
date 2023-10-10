@@ -11,7 +11,9 @@ managementPolicies:
 spec:
   forProvider:
     name: exampleLan
-    #    pcc:
+    #pcc:
+    #  PrivateCrossConnectIdRef:
+    #    name: examplePcc
     public: true
     datacenterConfig:
       datacenterIdRef:

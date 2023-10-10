@@ -42,7 +42,7 @@ type LanParameters struct {
 	// The unique identifier of the private Cross-Connect the LAN is connected to, if any.
 	//
 	// +kubebuilder:validation:Optional
-	Pcc string `json:"pcc,omitempty"`
+	Pcc PccConfig `json:"Pcc,omitempty"`
 	// This LAN faces the public Internet.
 	//
 	// +kubebuilder:validation:Required

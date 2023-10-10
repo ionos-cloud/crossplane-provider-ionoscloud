@@ -91,3 +91,17 @@ func ExtractIPBlockID() reference.ExtractValueFn {
 		return meta.GetExternalName(res)
 	}
 }
+
+// ExtractPccID returns the externalName of a referenced Pcc.
+func ExtractPccID() reference.ExtractValueFn {
+	return func(mg resource.Managed) string {
+		res, ok := mg.(*Pcc)
+		if !ok {
+			return defaultStringValue
+		}
+		if meta.GetExternalName(res) == res.Name {
+			return defaultStringValue
+		}
+		return meta.GetExternalName(res)
+	}
+}
