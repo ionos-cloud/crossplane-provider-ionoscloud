@@ -805,6 +805,28 @@ EOF
 
 ## IPFailover CR Tests
 function ipfailover_tests() {
+  echo_step "deploy a lan CR for ipfailover"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: example3
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    name: exampletest3
+    public: true
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+    )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
   echo_step "deploy a ipfailover CR"
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
@@ -826,7 +848,7 @@ spec:
         name: example
     lanConfig:
       lanIdRef:
-        name: example
+        name: example3
     nicConfig:
       nicIdRef:
         name: example
@@ -867,7 +889,7 @@ spec:
         name: example
     lanConfig:
       lanIdRef:
-        name: example
+        name: example3
     nicConfig:
       nicIdRef:
         name: example
@@ -904,7 +926,7 @@ spec:
         name: example
     lanConfig:
       lanIdRef:
-        name: example
+        name: example3
     nicConfig:
       nicIdRef:
         name: example
@@ -918,4 +940,30 @@ EOF
 
   echo_step "wait for deletion ipfailover CR"
   kubectl wait --for=delete ipfailovers/example
+
+INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: example3
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    name: exampletestLan3
+    public: true
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo_step "uninstalling ipfailover lan CR"
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
+
+  echo_step "wait for deletion ipfailover lan CR"
+  kubectl wait --for=delete lans/example3
 }
