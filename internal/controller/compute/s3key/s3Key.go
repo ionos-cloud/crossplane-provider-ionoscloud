@@ -20,6 +20,11 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/client-go/util/workqueue"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -28,17 +33,14 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/google/go-cmp/cmp"
+	"github.com/pkg/errors"
+
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/s3key"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
-	"github.com/pkg/errors"
-	"k8s.io/client-go/util/workqueue"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
 const errNotS3Key = "managed resource is not a S3Key custom resource"
@@ -144,10 +146,6 @@ func (c *externalS3Key) Create(ctx context.Context, mg resource.Managed) (manage
 		retErr := fmt.Errorf("failed to create S3Key. error: %w", err)
 		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
-	//if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-	//	return creation, err
-	//}
-	// Set External Name
 
 	cr.Status.AtProvider.SecretKey = *newInstance.Properties.SecretKey
 	cr.Status.AtProvider.S3KeyID = *newInstance.Id

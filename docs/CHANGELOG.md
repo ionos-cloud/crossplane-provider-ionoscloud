@@ -2,7 +2,10 @@
 - **Features**:
  - Option to provide postgres credentials via secret, env variable or path to file
  - k8s #116 enrich connection details with token,servername and server Url
-
+ - add s3key crd
+ - add pcc(privatecrossconnect) crd
+ - added link between lan and pcc. This is a small breaking change, as before there was only the option of providing the UUID directly
+ - 
 ## [1.0.6] (August 2023)
 - **Features**:
     - Update Crossplane-Runtime to latest version (v0.20.0). CRDs - now require `managementPolicies` to be defined
