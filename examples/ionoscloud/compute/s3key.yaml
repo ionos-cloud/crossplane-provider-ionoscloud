@@ -1,0 +1,18 @@
+# Use this file to create a S3 key.
+# Required values for creating a S3Key CR are:
+# userId (via ID).
+# SecretKey is automatically returned by the API and cannot be set.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: S3Key
+metadata:
+  name: example
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+#    replace with the user id for which you want the s3 key to be created
+    userID: "000000-0000-0000-0000-0000"
+#    optional, can be left out. the key can only be updated to false after creation
+    active: true
+  providerConfigRef:
+    name: example
