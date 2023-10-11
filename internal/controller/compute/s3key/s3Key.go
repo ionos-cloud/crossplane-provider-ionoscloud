@@ -20,6 +20,11 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/client-go/util/workqueue"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -35,10 +40,6 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/s3key"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	"github.com/pkg/errors"
-	"k8s.io/client-go/util/workqueue"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
 const errNotS3Key = "managed resource is not a S3Key custom resource"
