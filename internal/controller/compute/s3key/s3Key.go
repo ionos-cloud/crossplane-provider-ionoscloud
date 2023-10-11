@@ -144,10 +144,6 @@ func (c *externalS3Key) Create(ctx context.Context, mg resource.Managed) (manage
 		retErr := fmt.Errorf("failed to create S3Key. error: %w", err)
 		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
-	//if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-	//	return creation, err
-	//}
-	// Set External Name
 
 	cr.Status.AtProvider.SecretKey = *newInstance.Properties.SecretKey
 	cr.Status.AtProvider.S3KeyID = *newInstance.Id
