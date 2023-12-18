@@ -1,3 +1,7 @@
+## [1.0.8] (December 2023)
+- **Features**:
+- Add `postgresuser` crd
+
 ## [1.0.7] (October 2023)
 - **Features**:
  - Option to provide postgres credentials via secret, env variable or path to file
