@@ -63,7 +63,6 @@ type NodePoolParameters struct {
 	//
 	// +immutable
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Enum=AMD_OPTERON;INTEL_SKYLAKE;INTEL_XEON
 	CPUFamily string `json:"cpuFamily,omitempty"`
 	// The number of cores for the node.
 	//
