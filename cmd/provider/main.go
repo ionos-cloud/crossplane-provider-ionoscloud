@@ -50,7 +50,7 @@ func main() {
 		timeout           = app.Flag("timeout", "Timeout duration cumulatively for all the calls happening in the reconciliation functions.").Default("30m").Duration()
 	)
 	kingpin.MustParse(app.Parse(os.Args[1:]))
-
+	*debug = true
 	zl := zap.New(zap.UseDevMode(*debug))
 	log := logging.NewLogrLogger(zl.WithName("provider-ionoscloud"))
 	if *debug {

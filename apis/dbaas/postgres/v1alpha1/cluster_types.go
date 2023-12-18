@@ -129,7 +129,7 @@ type MaintenanceWindow struct {
 
 // DBUser Credentials for the database user to be created.
 type DBUser struct {
-	// The username for the initial postgres user.
+	// The username for the postgres user.
 	// Some system usernames are restricted (e.g. \"postgres\", \"admin\", \"standby\").
 	// Password must have a minimum length o 10
 	//

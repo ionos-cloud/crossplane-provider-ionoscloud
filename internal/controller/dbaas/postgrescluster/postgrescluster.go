@@ -125,7 +125,7 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 	}
 	observed, resp, err := c.service.GetCluster(ctx, meta.GetExternalName(cr))
 	if err != nil {
-		if resp != nil && resp.Response != nil && resp.StatusCode == http.StatusNotFound {
+		if resp.HttpNotFound() {
 			return managed.ExternalObservation{}, nil
 		}
 		return managed.ExternalObservation{}, fmt.Errorf("failed to get postgres cluster by id. err: %w", err)

@@ -73,12 +73,24 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `nodeCount` (integer)
-	* description: The number of nodes that make up the node pool.
-	* format: int32
+* `cpuFamily` (string)
+	* description: A valid CPU family name. If no CPUFamily is provided, it will be set the first CPUFamily supported by the location.
+	* possible values: "AMD_OPTERON";"INTEL_SKYLAKE";"INTEL_XEON"
+* `maintenanceWindow` (object)
+	* description: The maintenance window is used for updating the software on the NodePool's nodes and for upgrading the NodePool's K8s version. If no value is given, one is chosen dynamically, so there is no fixed default.
+	* properties:
+		* `dayOfTheWeek` (string)
+			* description: DayOfTheWeek The name of the week day.
+		* `time` (string)
+* `name` (string)
+	* description: A Kubernetes node pool name. Valid Kubernetes node pool name must be 63 characters or less and must be empty or begin and end with an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
+* `k8sVersion` (string)
+	* description: The Kubernetes version the NodePool is running. This imposes restrictions on what Kubernetes versions can be run in a cluster's NodePools. Additionally, not all Kubernetes versions are viable upgrade targets for all prior versions.
 * `publicIpsConfigs` (object)
 	* description: Optional array of reserved public IP addresses to be used by the nodes. IPs must be from same location as the Datacenter used for the NodePool. The array must contain one more IP than the maximum possible number of nodes (nodeCount+1 for fixed number of nodes or maxNodeCount+1 when auto-scaling is used). The extra IP is used when the nodes are rebuilt. IPs can be set directly or via reference and indexes.
 	* properties:
+		* `ips` (array)
+			* description: Use IPs to set specific IPs to the resource. If both IPs and IPsBlockConfigs are set, only `ips` field will be considered.
 		* `ipsBlockConfigs` (array)
 			* description: Use IpsBlockConfigs to reference existing IPBlocks, and to mention the indexes for the IPs. Indexes start from 0, and multiple indexes can be set. If no index is set, all IPs from the corresponding IPBlock will be assigned to the resource.
 			* properties:
@@ -121,13 +133,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
-		* `ips` (array)
-			* description: Use IPs to set specific IPs to the resource. If both IPs and IPsBlockConfigs are set, only `ips` field will be considered.
-* `ramSize` (integer)
-	* description: The RAM size for the node. Must be set in multiples of 1024 MB, with minimum size is of 2048 MB.
-	* format: int32
-	* minimum: 2048.000000
-	* multiple of: 1024.000000
 * `storageType` (string)
 	* description: The type of hardware for the volume.
 	* possible values: "HDD";"SSD"
@@ -182,24 +187,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
-* `k8sVersion` (string)
-	* description: The Kubernetes version the NodePool is running. This imposes restrictions on what Kubernetes versions can be run in a cluster's NodePools. Additionally, not all Kubernetes versions are viable upgrade targets for all prior versions.
-* `maintenanceWindow` (object)
-	* description: The maintenance window is used for updating the software on the NodePool's nodes and for upgrading the NodePool's K8s version. If no value is given, one is chosen dynamically, so there is no fixed default.
-	* properties:
-		* `dayOfTheWeek` (string)
-			* description: DayOfTheWeek The name of the week day.
-		* `time` (string)
-* `storageSize` (integer)
-	* description: The size of the volume in GB. The size should be greater than 10GB.
-	* format: int32
-	* minimum: 10.000000
-* `availabilityZone` (string)
-	* description: The availability zone in which the target VM should be provisioned.
-	* possible values: "AUTO";"ZONE_1";"ZONE_2"
-* `coresCount` (integer)
-	* description: The number of cores for the node.
-	* format: int32
 * `datacenterConfig` (object)
 	* description: A Datacenter, to which the user has access.
 	* properties:
@@ -240,15 +227,19 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
+* `nodeCount` (integer)
+	* description: The number of nodes that make up the node pool.
+	* format: int32
+* `ramSize` (integer)
+	* description: The RAM size for the node. Must be set in multiples of 1024 MB, with minimum size is of 2048 MB.
+	* format: int32
+	* minimum: 2048.000000
+	* multiple of: 1024.000000
+* `coresCount` (integer)
+	* description: The number of cores for the node.
+	* format: int32
 * `labels` (object)
 	* description: Map of labels attached to NodePool.
-* `annotations` (object)
-	* description: Map of annotations attached to NodePool.
-* `cpuFamily` (string)
-	* description: A valid CPU family name. If no CPUFamily is provided, it will be set the first CPUFamily supported by the location.
-	* possible values: "AMD_OPTERON";"INTEL_SKYLAKE";"INTEL_XEON"
-* `name` (string)
-	* description: A Kubernetes node pool name. Valid Kubernetes node pool name must be 63 characters or less and must be empty or begin and end with an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
 * `lans` (array)
 	* description: Array of additional private LANs attached to worker nodes.
 	* properties:
@@ -279,10 +270,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 				* `lanIdSelector` (object)
 					* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
 					* properties:
-						* `matchControllerRef` (boolean)
-							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-						* `matchLabels` (object)
-							* description: MatchLabels ensures an object with matching labels is selected.
 						* `policy` (object)
 							* description: Policies for selection.
 							* properties:
@@ -293,6 +280,10 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
+						* `matchControllerRef` (boolean)
+							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+						* `matchLabels` (object)
+							* description: MatchLabels ensures an object with matching labels is selected.
 		* `routes` (array)
 			* description: Array of additional LANs Routes attached to worker nodes.
 			* properties:
@@ -300,6 +291,15 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: IPv4 or IPv6 Gateway IP for the route.
 				* `network` (string)
 					* description: IPv4 or IPv6 CIDR to be routed via the interface.
+* `annotations` (object)
+	* description: Map of annotations attached to NodePool.
+* `availabilityZone` (string)
+	* description: The availability zone in which the target VM should be provisioned.
+	* possible values: "AUTO";"ZONE_1";"ZONE_2"
+* `storageSize` (integer)
+	* description: The size of the volume in GB. The size should be greater than 10GB.
+	* format: int32
+	* minimum: 10.000000
 
 ### Required Properties
 

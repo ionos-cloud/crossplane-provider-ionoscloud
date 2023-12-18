@@ -9,8 +9,9 @@ set -e
 
 ## DBaaS Postgres Cluster CR Tests
 function dbaas_postgres_cluster_tests() {
-  echo_step "add psqlcreds secret"
+  echo_step "add psqlcreds and psqlcreds2 secrets"
   "${KUBECTL}" create secret generic psqlcreds --namespace=crossplane-system --from-literal=credentials="{\"username\":\"testuser\",\"password\":\"thisshouldwork111\"}"
+  "${KUBECTL}" create secret generic psqlcreds2 --namespace=crossplane-system --from-literal=credentials="{\"username\":\"testuser2\",\"password\":\"thisshouldwork111\"}"
 
   echo_step "deploy a dbaas postgres cluster CR"
   INSTALL_RESOURCE_YAML="$(
@@ -134,6 +135,37 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for dbaas postgres cluster CR to be ready & synced"
+  kubectl wait --for=condition=ready postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=1800s
+  kubectl wait --for=condition=synced postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=1800s
+
+  echo_step "deploy a dbaas postgres cluster CR"
+    INSTALL_RESOURCE_YAML="$(
+      cat <<EOF
+apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
+kind: PostgresUser
+metadata:
+  name: example
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    credentials:
+      source: Secret
+      secretRef:
+        namespace: crossplane-system
+        name: psqlcreds2
+        key: credentials
+    clusterConfig:
+      ClusterIdRef:
+        name: testDBaaSPostgres
+  providerConfigRef:
+    name: example
+EOF
+    )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for dbaas postgres cluster CR to be ready & synced after user creation"
   kubectl wait --for=condition=ready postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=1800s
   kubectl wait --for=condition=synced postgresclusters.dbaas.ionoscloud.crossplane.io/example --timeout=1800s
 }

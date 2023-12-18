@@ -65,10 +65,10 @@ spec:
             name: examplelan
         cidr: 192.168.1.100/24
     credentials:
-      username: test
+      source: Secret
       secretRef:
-        name: psqlcreds
         namespace: crossplane-system
+        name: psqlcreds
         key: credentials
     location: de/txl
     instances: 1

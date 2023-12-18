@@ -73,6 +73,21 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
+* `algorithm` (string)
+	* description: Balancing algorithm.
+	* possible values: "ROUND_ROBIN";"LEAST_CONNECTION";"RANDOM";"SOURCE_IP"
+* `healthCheck` (object)
+	* description: Health check properties for target group.
+	* properties:
+		* `checkInterval` (integer)
+			* description: The interval in milliseconds between consecutive health checks; default is 2000.
+			* format: int32
+		* `checkTimeout` (integer)
+			* description: The maximum time in milliseconds to wait for a target to respond to a check. For target VMs with 'Check Interval' set, the lesser of the two  values is used once the TCP connection is established.
+			* format: int32
+		* `retries` (integer)
+			* description: The maximum number of attempts to reconnect to a target after a connection failure. Valid range is 0 to 65535, and default is three reconnection attempts.
+			* format: int32
 * `httpHealthCheck` (object)
 	* description: HTTP health check properties for target group.
 	* properties:
@@ -115,21 +130,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `ip`
 		* `port`
 		* `weight`
-* `algorithm` (string)
-	* description: Balancing algorithm.
-	* possible values: "ROUND_ROBIN";"LEAST_CONNECTION";"RANDOM";"SOURCE_IP"
-* `healthCheck` (object)
-	* description: Health check properties for target group.
-	* properties:
-		* `checkInterval` (integer)
-			* description: The interval in milliseconds between consecutive health checks; default is 2000.
-			* format: int32
-		* `checkTimeout` (integer)
-			* description: The maximum time in milliseconds to wait for a target to respond to a check. For target VMs with 'Check Interval' set, the lesser of the two  values is used once the TCP connection is established.
-			* format: int32
-		* `retries` (integer)
-			* description: The maximum number of attempts to reconnect to a target after a connection failure. Valid range is 0 to 65535, and default is three reconnection attempts.
-			* format: int32
 
 ### Required Properties
 

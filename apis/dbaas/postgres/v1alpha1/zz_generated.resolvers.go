@@ -19,7 +19,6 @@ package v1alpha1
 
 import (
 	"context"
-
 	reference "github.com/crossplane/crossplane-runtime/pkg/reference"
 	v1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	errors "github.com/pkg/errors"
@@ -69,6 +68,32 @@ func (mg *PostgresCluster) ResolveReferences(ctx context.Context, c client.Reade
 		mg.Spec.ForProvider.Connections[i3].LanCfg.LanIDRef = rsp.ResolvedReference
 
 	}
+
+	return nil
+}
+
+// ResolveReferences of this PostgresUser.
+func (mg *PostgresUser) ResolveReferences(ctx context.Context, c client.Reader) error {
+	r := reference.NewAPIResolver(c, mg)
+
+	var rsp reference.ResolutionResponse
+	var err error
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.ClusterCfg.ClusterID,
+		Extract:      ExtractPostgresClusterID(),
+		Reference:    mg.Spec.ForProvider.ClusterCfg.ClusterIDRef,
+		Selector:     mg.Spec.ForProvider.ClusterCfg.ClusterIDSelector,
+		To: reference.To{
+			List:    &PostgresClusterList{},
+			Managed: &PostgresCluster{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.ClusterCfg.ClusterID")
+	}
+	mg.Spec.ForProvider.ClusterCfg.ClusterID = rsp.ResolvedValue
+	mg.Spec.ForProvider.ClusterCfg.ClusterIDRef = rsp.ResolvedReference
 
 	return nil
 }

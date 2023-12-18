@@ -73,23 +73,64 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `bootCdromId` (string)
-* `cpuFamily` (string)
-	* description: CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions; available CPU architectures can be retrieved from the datacenter resource.
-	* possible values: "AMD_OPTERON";"INTEL_SKYLAKE";"INTEL_XEON"
-* `placementGroupId` (string)
-	* description: The placement group ID that belongs to this server. Requires system privileges
 * `ram` (integer)
 	* description: The memory size for the server in MB, such as 2048. Size must be specified in multiples of 256 MB with a minimum of 256 MB. however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB, then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
 	* format: int32
 	* multiple of: 256.000000
+* `volumeConfig` (object)
+	* description: In order to attach a volume to the server, it is recommended to use VolumeConfig to set the existing volume (via id or via reference). To detach a volume from the server, update the CR spec by removing it. 
+ VolumeConfig contains information about the existing volume resource which will be attached to the server and set as bootVolume
+	* properties:
+		* `volumeIdRef` (object)
+			* description: VolumeIDRef references to a Volume to retrieve its ID.
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+				* `policy` (object)
+					* description: Policies for referencing.
+					* properties:
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+			* required properties:
+				* `name`
+		* `volumeIdSelector` (object)
+			* description: VolumeIDSelector selects reference to a Volume to retrieve its VolumeID.
+			* properties:
+				* `policy` (object)
+					* description: Policies for selection.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+		* `volumeId` (string)
+			* description: VolumeID is the ID of the Volume. It needs to be provided via directly or via reference.
+			* format: uuid
 * `availabilityZone` (string)
 	* description: The availability zone in which the server should be provisioned.
 	* default: "AUTO"
 	* possible values: "AUTO";"ZONE_1";"ZONE_2"
+* `bootCdromId` (string)
 * `cores` (integer)
 	* description: The total number of cores for the server.
 	* format: int32
+* `name` (string)
+	* description: The name of the  resource.
+* `cpuFamily` (string)
+	* description: CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions; available CPU architectures can be retrieved from the datacenter resource.
+	* possible values: "AMD_OPTERON";"INTEL_SKYLAKE";"INTEL_XEON"
 * `datacenterConfig` (object)
 	* description: DatacenterConfig contains information about the datacenter resource on which the server will be created.
 	* properties:
@@ -130,49 +171,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
-* `name` (string)
-	* description: The name of the  resource.
-* `volumeConfig` (object)
-	* description: In order to attach a volume to the server, it is recommended to use VolumeConfig to set the existing volume (via id or via reference). To detach a volume from the server, update the CR spec by removing it. 
- VolumeConfig contains information about the existing volume resource which will be attached to the server and set as bootVolume
-	* properties:
-		* `volumeId` (string)
-			* description: VolumeID is the ID of the Volume. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `volumeIdRef` (object)
-			* description: VolumeIDRef references to a Volume to retrieve its ID.
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-				* `policy` (object)
-					* description: Policies for referencing.
-					* properties:
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
-			* required properties:
-				* `name`
-		* `volumeIdSelector` (object)
-			* description: VolumeIDSelector selects reference to a Volume to retrieve its VolumeID.
-			* properties:
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-				* `policy` (object)
-					* description: Policies for selection.
-					* properties:
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+* `placementGroupId` (string)
+	* description: The placement group ID that belongs to this server. Requires system privileges
 
 ### Required Properties
 

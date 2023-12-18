@@ -1,0 +1,20 @@
+apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
+kind: PostgresUser
+metadata:
+  name: example
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    credentials:
+      source: Secret
+      secretRef:
+        namespace: crossplane-system
+        name: psqlcreds
+        key: credentials
+      system: true
+    clusterConfig:
+      ClusterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
