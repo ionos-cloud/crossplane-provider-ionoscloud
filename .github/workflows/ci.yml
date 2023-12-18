@@ -8,7 +8,7 @@ on:
   workflow_dispatch: { }
 
 env:
-  GOLANGCI_VERSION: 'v1.53.3'
+  GOLANGCI_VERSION: 'v1.55.2'
   DOCKER_BUILDX_VERSION: 'v0.11.2'
 
 jobs:
