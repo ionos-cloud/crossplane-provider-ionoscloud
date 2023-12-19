@@ -179,7 +179,6 @@ func (u *externalUser) Create(ctx context.Context, mg resource.Managed) (managed
 	if instanceInput.Properties.Username != nil {
 		cr.Status.AtProvider.UserID = *instanceInput.Properties.Username
 	}
-	//cr.Status.AtProvider.ClusterID = clusterID
 	meta.SetExternalName(cr, *newInstance.Properties.Username)
 	return creation, nil
 }
