@@ -12,7 +12,7 @@ require (
 	github.com/ionos-cloud/sdk-go/v6 v6.1.4
 	github.com/pkg/errors v0.9.1
 	github.com/rung/go-safecast v1.0.1
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.24.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	k8s.io/apiextensions-apiserver v0.27.3

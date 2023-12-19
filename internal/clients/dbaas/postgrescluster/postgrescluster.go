@@ -120,6 +120,7 @@ func (cp *ClusterAPIClient) GetCluster(ctx context.Context, clusterID string) (i
 	return cp.DBaaSPostgresClient.ClustersApi.ClustersFindById(ctx, clusterID).Execute()
 }
 
+// GetUser based on clusterID and username
 func (cp *ClusterAPIClient) GetUser(ctx context.Context, clusterID, userName string) (ionoscloud.UserResource, *ionoscloud.APIResponse, error) {
 	return cp.DBaaSPostgresClient.UsersApi.UsersGet(ctx, clusterID, userName).Execute()
 }
@@ -140,10 +141,12 @@ func (cp *ClusterAPIClient) CreateCluster(ctx context.Context, cluster ionosclou
 	return cp.DBaaSPostgresClient.ClustersApi.ClustersPost(ctx).CreateClusterRequest(cluster).Execute()
 }
 
+// CreateUser based on clusterID and user properties
 func (cp *ClusterAPIClient) CreateUser(ctx context.Context, clusterID string, user ionoscloud.User) (ionoscloud.UserResource, *ionoscloud.APIResponse, error) {
 	return cp.DBaaSPostgresClient.UsersApi.UsersPost(ctx, clusterID).User(user).Execute()
 }
 
+// PatchUser based on clusterID, username and user properties
 func (cp *ClusterAPIClient) PatchUser(ctx context.Context, clusterID, username string, patchReq ionoscloud.UsersPatchRequest) (ionoscloud.UserResource, *ionoscloud.APIResponse, error) {
 	return cp.DBaaSPostgresClient.UsersApi.UsersPatch(ctx, clusterID, username).UsersPatchRequest(patchReq).Execute()
 }

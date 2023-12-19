@@ -106,6 +106,7 @@ type externalUser struct {
 	log     logging.Logger
 }
 
+// Observe checks whether the specified externalUser resource exists
 func (u *externalUser) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
 	cr, ok := mg.(*v1alpha1.PostgresUser)
 	if !ok {
@@ -125,13 +126,8 @@ func (u *externalUser) Observe(ctx context.Context, mg resource.Managed) (manage
 	}
 
 	current := cr.Spec.ForProvider.DeepCopy()
-	//postgrescluster.LateInitializer(&cr.Spec.ForProvider, &observed)
 
 	cr.Status.AtProvider.UserID = meta.GetExternalName(cr)
-	//cr.Status.AtProvider.ClusterID = cr.Spec.ForProvider.
-	//cr.Status.AtProvider.State = string(clients.GetDBaaSResourceState(&observed))
-	//u.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
-	//clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
 	return managed.ExternalObservation{
 		ResourceExists:          true,
@@ -141,6 +137,7 @@ func (u *externalUser) Observe(ctx context.Context, mg resource.Managed) (manage
 	}, nil
 }
 
+// Create creates the user
 func (u *externalUser) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint: gocyclo
 	cr, ok := mg.(*v1alpha1.PostgresUser)
 	if !ok {
@@ -187,6 +184,7 @@ func (u *externalUser) Create(ctx context.Context, mg resource.Managed) (managed
 	return creation, nil
 }
 
+// Update updates the user
 func (u *externalUser) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
 	cr, ok := mg.(*v1alpha1.PostgresUser)
 	if !ok {
@@ -222,6 +220,7 @@ func (u *externalUser) Update(ctx context.Context, mg resource.Managed) (managed
 	return managed.ExternalUpdate{}, nil
 }
 
+// Delete deletes the user
 func (u *externalUser) Delete(ctx context.Context, mg resource.Managed) error {
 	cr, ok := mg.(*v1alpha1.PostgresUser)
 	if !ok {
