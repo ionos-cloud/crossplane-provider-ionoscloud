@@ -1,6 +1,8 @@
 ## [1.0.8] (December 2023)
 - **Features**:
 - Add `postgresuser` crd
+- Update `GO` version to v1.21
+- Update `golanci-lint` to v1.54.0
 
 ## [1.0.7] (October 2023)
 - **Features**:
