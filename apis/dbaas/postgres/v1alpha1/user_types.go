@@ -89,9 +89,7 @@ type UserStatus struct {
 
 // UserObservation are the observable fields of a Cluster.
 type UserObservation struct {
-	//ClusterID string `json:"clusterId,omitempty"`
 	UserID string `json:"userId,omitempty"`
-	//State     string `json:"state,omitempty"`
 }
 
 // A PostgresUserSpec defines the desired state of a Cluster.
