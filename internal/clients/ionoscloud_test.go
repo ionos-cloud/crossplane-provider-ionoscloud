@@ -237,17 +237,17 @@ func TestGetDBaaSResourceState(t *testing.T) {
 		},
 		{
 			name: "found metadata with nil state",
-			args: &testDbaaSResource{metadata: &ionosdbaas.Metadata{State: nil}, found: true},
+			args: &testDbaaSResource{metadata: &ionosdbaas.ClusterMetadata{State: nil}, found: true},
 			want: "",
 		},
 		{
 			name: "found metadata with state",
-			args: &testDbaaSResource{metadata: &ionosdbaas.Metadata{State: ptrState("foo")}, found: true},
+			args: &testDbaaSResource{metadata: &ionosdbaas.ClusterMetadata{State: ptrState("foo")}, found: true},
 			want: "foo",
 		},
 		{
 			name: "found metadata no metadata, but it's present",
-			args: &testDbaaSResource{metadata: &ionosdbaas.Metadata{State: ptrState("foo")}, found: false},
+			args: &testDbaaSResource{metadata: &ionosdbaas.ClusterMetadata{State: ptrState("foo")}, found: false},
 			want: "",
 		},
 	}
@@ -259,11 +259,11 @@ func TestGetDBaaSResourceState(t *testing.T) {
 }
 
 type testDbaaSResource struct {
-	metadata *ionosdbaas.Metadata
+	metadata *ionosdbaas.ClusterMetadata
 	found    bool
 }
 
-func (t *testDbaaSResource) GetMetadataOk() (*ionosdbaas.Metadata, bool) {
+func (t *testDbaaSResource) GetMetadataOk() (*ionosdbaas.ClusterMetadata, bool) {
 	if t == nil {
 		return nil, false
 	}
