@@ -23,11 +23,17 @@ type ClusterAPIClient struct {
 // ClusterClient is a wrapper around IONOS Service DBaaS Postgres Cluster methods
 type ClusterClient interface {
 	CheckDuplicateCluster(ctx context.Context, clusterName string, cr *v1alpha1.PostgresCluster) (*ionoscloud.ClusterResponse, error)
+	CheckDuplicateUser(ctx context.Context, clusterID, userName string) (*ionoscloud.UserResource, error)
 	GetClusterID(cluster *ionoscloud.ClusterResponse) (string, error)
+	GetUserID(user *ionoscloud.UserResource) (string, error)
 	GetCluster(ctx context.Context, clusterID string) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
+	GetUser(ctx context.Context, clusterID, userName string) (ionoscloud.UserResource, *ionoscloud.APIResponse, error)
 	DeleteCluster(ctx context.Context, clusterID string) (*ionoscloud.APIResponse, error)
+	DeleteUser(ctx context.Context, clusterID, userName string) (*ionoscloud.APIResponse, error)
 	CreateCluster(ctx context.Context, cluster ionoscloud.CreateClusterRequest) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
+	CreateUser(ctx context.Context, clusterID string, user ionoscloud.User) (ionoscloud.UserResource, *ionoscloud.APIResponse, error)
 	UpdateCluster(ctx context.Context, clusterID string, cluster ionoscloud.PatchClusterRequest) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
+	UpdateUser(ctx context.Context, clusterID, userName string, cluster ionoscloud.UsersPatchRequest) (ionoscloud.UserResource, *ionoscloud.APIResponse, error)
 }
 
 // CheckDuplicateCluster based on clusterName and on multiple properties from CR spec
@@ -78,6 +84,15 @@ func (cp *ClusterAPIClient) CheckDuplicateCluster(ctx context.Context, clusterNa
 	return &matchedItems[0], nil
 }
 
+// CheckDuplicateUser based on clusterName and on multiple properties from CR spec
+func (cp *ClusterAPIClient) CheckDuplicateUser(ctx context.Context, clusterID, userName string) (*ionoscloud.UserResource, error) { // nolint: gocyclo
+	_, resp, err := cp.DBaaSPostgresClient.UsersApi.UsersGet(ctx, clusterID, userName).Execute()
+	if err != nil && !resp.HttpNotFound() {
+		return nil, err
+	}
+	return nil, nil
+}
+
 // GetClusterID based on cluster
 func (cp *ClusterAPIClient) GetClusterID(cluster *ionoscloud.ClusterResponse) (string, error) {
 	if cluster != nil {
@@ -89,9 +104,25 @@ func (cp *ClusterAPIClient) GetClusterID(cluster *ionoscloud.ClusterResponse) (s
 	return "", nil
 }
 
+// GetUserID based on cluster
+func (cp *ClusterAPIClient) GetUserID(user *ionoscloud.UserResource) (string, error) {
+	if user != nil {
+		if user.Properties != nil {
+			return *user.Properties.Username, nil
+		}
+		return "", fmt.Errorf("error: getting Username")
+	}
+	return "", nil
+}
+
 // GetCluster based on clusterID
 func (cp *ClusterAPIClient) GetCluster(ctx context.Context, clusterID string) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error) {
 	return cp.DBaaSPostgresClient.ClustersApi.ClustersFindById(ctx, clusterID).Execute()
+}
+
+// GetUser based on clusterID and username
+func (cp *ClusterAPIClient) GetUser(ctx context.Context, clusterID, userName string) (ionoscloud.UserResource, *ionoscloud.APIResponse, error) {
+	return cp.DBaaSPostgresClient.UsersApi.UsersGet(ctx, clusterID, userName).Execute()
 }
 
 // DeleteCluster based on clusterID
@@ -100,14 +131,34 @@ func (cp *ClusterAPIClient) DeleteCluster(ctx context.Context, clusterID string)
 	return apiResponse, err
 }
 
+// DeleteUser based on clusterID
+func (cp *ClusterAPIClient) DeleteUser(ctx context.Context, clusterID, userName string) (*ionoscloud.APIResponse, error) {
+	return cp.DBaaSPostgresClient.UsersApi.UsersDelete(ctx, clusterID, userName).Execute()
+}
+
 // CreateCluster based on cluster properties
 func (cp *ClusterAPIClient) CreateCluster(ctx context.Context, cluster ionoscloud.CreateClusterRequest) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error) {
 	return cp.DBaaSPostgresClient.ClustersApi.ClustersPost(ctx).CreateClusterRequest(cluster).Execute()
 }
 
+// CreateUser based on clusterID and user properties
+func (cp *ClusterAPIClient) CreateUser(ctx context.Context, clusterID string, user ionoscloud.User) (ionoscloud.UserResource, *ionoscloud.APIResponse, error) {
+	return cp.DBaaSPostgresClient.UsersApi.UsersPost(ctx, clusterID).User(user).Execute()
+}
+
+// PatchUser based on clusterID, username and user properties
+func (cp *ClusterAPIClient) PatchUser(ctx context.Context, clusterID, username string, patchReq ionoscloud.UsersPatchRequest) (ionoscloud.UserResource, *ionoscloud.APIResponse, error) {
+	return cp.DBaaSPostgresClient.UsersApi.UsersPatch(ctx, clusterID, username).UsersPatchRequest(patchReq).Execute()
+}
+
 // UpdateCluster based on clusterID and cluster properties
 func (cp *ClusterAPIClient) UpdateCluster(ctx context.Context, clusterID string, cluster ionoscloud.PatchClusterRequest) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error) {
 	return cp.DBaaSPostgresClient.ClustersApi.ClustersPatch(ctx, clusterID).PatchClusterRequest(cluster).Execute()
+}
+
+// UpdateUser based on clusterID and cluster properties
+func (cp *ClusterAPIClient) UpdateUser(ctx context.Context, clusterID, userName string, patchReq ionoscloud.UsersPatchRequest) (ionoscloud.UserResource, *ionoscloud.APIResponse, error) {
+	return cp.DBaaSPostgresClient.UsersApi.UsersPatch(ctx, clusterID, userName).UsersPatchRequest(patchReq).Execute()
 }
 
 // GenerateCreateClusterInput returns CreateClusterRequest based on the CR spec
@@ -143,6 +194,17 @@ func GenerateCreateClusterInput(cr *v1alpha1.PostgresCluster) (*ionoscloud.Creat
 	return &instanceCreateInput, err
 }
 
+// GenerateCreateUserInput returns psql User based on the CR spec
+func GenerateCreateUserInput(cr *v1alpha1.PostgresUser) *ionoscloud.User {
+	instanceCreateInput := ionoscloud.User{
+		Properties: &ionoscloud.UserProperties{
+			Username: &cr.Spec.ForProvider.Credentials.Username,
+			Password: &cr.Spec.ForProvider.Credentials.Password,
+		},
+	}
+	return &instanceCreateInput
+}
+
 // GenerateUpdateClusterInput returns PatchClusterRequest based on the CR spec modifications
 func GenerateUpdateClusterInput(cr *v1alpha1.PostgresCluster) (*ionoscloud.PatchClusterRequest, error) {
 	instanceUpdateInput := ionoscloud.PatchClusterRequest{
@@ -159,6 +221,18 @@ func GenerateUpdateClusterInput(cr *v1alpha1.PostgresCluster) (*ionoscloud.Patch
 	if window := clusterMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
 		instanceUpdateInput.Properties.SetMaintenanceWindow(*window)
 	}
+
+	return &instanceUpdateInput, nil
+}
+
+// GenerateUpdateUserInput returns PatchClusterRequest based on the CR spec modifications
+func GenerateUpdateUserInput(cr *v1alpha1.PostgresUser) (*ionoscloud.UsersPatchRequest, error) {
+	instanceUpdateInput := ionoscloud.UsersPatchRequest{
+		Properties: &ionoscloud.PatchUserProperties{
+			Password: &cr.Spec.ForProvider.Credentials.Password,
+		},
+	}
+
 	return &instanceUpdateInput, nil
 }
 
@@ -213,6 +287,24 @@ func IsClusterUpToDate(cr *v1alpha1.PostgresCluster, clusterResponse ionoscloud.
 	case clusterResponse.Properties.Connections != nil && !reflect.DeepEqual(*clusterResponse.Properties.Connections, cr.Spec.ForProvider.Connections):
 		return false
 	case !compare.EqualDatabaseMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow, clusterResponse.Properties.MaintenanceWindow):
+		return false
+	default:
+		return true
+	}
+}
+
+// IsUserUpToDate returns true if the user is up-to-date or false if it does not
+func IsUserUpToDate(cr *v1alpha1.PostgresUser, user ionoscloud.UserResource) bool { // nolint:gocyclo
+	switch {
+	case cr == nil && user.Properties == nil:
+		return true
+	case cr == nil && user.Properties != nil:
+		return false
+	case cr != nil && user.Properties == nil:
+		return false
+	case user.Properties.Username != nil && *user.Properties.Username != cr.Spec.ForProvider.Credentials.Username:
+		return false
+	case user.Properties.Username != nil && *user.Properties.Password != cr.Spec.ForProvider.Credentials.Password:
 		return false
 	default:
 		return true

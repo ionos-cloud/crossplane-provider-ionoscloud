@@ -1,6 +1,6 @@
 module github.com/ionos-cloud/crossplane-provider-ionoscloud
 
-go 1.19
+go 1.21
 
 require (
 	github.com/crossplane/crossplane-runtime v0.20.0
@@ -8,11 +8,11 @@ require (
 	github.com/go-logr/zapr v1.2.4
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
-	github.com/ionos-cloud/sdk-go-dbaas-postgres v1.1.1
+	github.com/ionos-cloud/sdk-go-dbaas-postgres v1.1.2
 	github.com/ionos-cloud/sdk-go/v6 v6.1.4
 	github.com/pkg/errors v0.9.1
 	github.com/rung/go-safecast v1.0.1
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.24.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	k8s.io/apiextensions-apiserver v0.27.3

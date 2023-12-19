@@ -150,9 +150,9 @@ func GetCoreResourceState(object CoreResource) string {
 	return ""
 }
 
-// DBaaSResource is an dbaas cloud API object with metadata
+// DBaaSResource is a dbaas cloud API object with metadata
 type DBaaSResource interface {
-	GetMetadataOk() (*sdkdbaas.Metadata, bool)
+	GetMetadataOk() (*sdkdbaas.ClusterMetadata, bool)
 }
 
 // GetDBaaSResourceState fetches the state of the metadata of the CoreResource

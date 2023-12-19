@@ -73,6 +73,8 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
+* `public` (boolean)
+	* description: This LAN faces the public Internet.
 * `datacenterConfig` (object)
 	* description: DatacenterConfig contains information about the datacenter resource on which the lan will be created.
 	* properties:
@@ -124,6 +126,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `PrivateCrossConnectIdRef` (object)
 			* description: PrivateCrossConnectIDRef references to a Pcc to retrieve its ID.
 			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
 				* `policy` (object)
 					* description: Policies for referencing.
 					* properties:
@@ -134,8 +138,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
-				* `name` (string)
-					* description: Name of the referenced object.
 			* required properties:
 				* `name`
 		* `PrivateCrossConnectIdSelector` (object)
@@ -155,8 +157,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
-* `public` (boolean)
-	* description: This LAN faces the public Internet.
 
 ### Required Properties
 
