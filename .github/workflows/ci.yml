@@ -7,6 +7,7 @@ on:
   pull_request: { }
   workflow_dispatch: { }
 
+
 env:
   GOLANGCI_VERSION: 'v1.55.2'
   DOCKER_BUILDX_VERSION: 'v0.11.2'
@@ -60,7 +61,7 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           version: ${{ env.GOLANGCI_VERSION }}
-          args: --timeout 10m0s --verbose
+          args: --timeout 10m0s --verbose --out-format=colored-line-number
 
   e2e-tests:
     runs-on: ubuntu-20.04
