@@ -229,10 +229,6 @@ spec:
                   cpuFamily:
                     description: A valid CPU family name. If no CPUFamily is provided,
                       it will be set the first CPUFamily supported by the location.
-                    enum:
-                    - AMD_OPTERON
-                    - INTEL_SKYLAKE
-                    - INTEL_XEON
                     type: string
                   datacenterConfig:
                     description: A Datacenter, to which the user has access.

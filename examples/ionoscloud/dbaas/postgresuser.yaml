@@ -12,7 +12,6 @@ spec:
         namespace: crossplane-system
         name: psqlcreds
         key: credentials
-      system: true
     clusterConfig:
       ClusterIdRef:
         name: example

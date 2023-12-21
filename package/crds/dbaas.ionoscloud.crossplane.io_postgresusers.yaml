@@ -446,7 +446,6 @@ spec:
                 description: UserObservation are the observable fields of a Cluster.
                 properties:
                   userId:
-                    description: ClusterID string `json:"clusterId,omitempty"`
                     type: string
                 type: object
               conditions:
