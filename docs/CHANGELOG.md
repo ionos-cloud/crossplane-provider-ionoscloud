@@ -1,3 +1,7 @@
+## [1.0.9] (January 2023)
+- **Features**:
+- Add `MongoCLuster` crd to support CRUD of MongoDB clusters
+
 ## [1.0.8] (December 2023)
 - **Features**:
 - Add `postgresuser` crd

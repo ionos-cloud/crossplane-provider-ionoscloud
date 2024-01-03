@@ -147,6 +147,7 @@ type DBUser struct {
 	xpv1.CommonCredentialSelectors `json:",inline"`
 }
 
+// BackupProperties struct matches sdk struct
 type BackupProperties struct {
 	// The location where the cluster backups will be stored. If not set, the backup is stored in the nearest location of the cluster.
 	Location string `json:"location,omitempty"`

@@ -132,7 +132,7 @@ func (cp *ClusterAPIClient) UpdateUser(ctx context.Context, clusterID, userName 
 }
 
 // GenerateCreateClusterInput returns CreateClusterRequest based on the CR spec
-func GenerateCreateClusterInput(cr *v1alpha1.MongoCluster) (*ionoscloud.CreateClusterRequest, error) {
+func GenerateCreateClusterInput(cr *v1alpha1.MongoCluster) (*ionoscloud.CreateClusterRequest, error) { // nolint: gocyclo
 	instanceCreateInput := ionoscloud.CreateClusterRequest{
 		Properties: &ionoscloud.CreateClusterProperties{
 			MongoDBVersion:    &cr.Spec.ForProvider.MongoDBVersion,
@@ -183,18 +183,18 @@ func GenerateCreateClusterInput(cr *v1alpha1.MongoCluster) (*ionoscloud.CreateCl
 }
 
 // GenerateCreateUserInput returns mongo User based on the CR spec
-//func GenerateCreateUserInput(cr *v1alpha1.MongoUser) *ionoscloud.User {
-//	instanceCreateInput := ionoscloud.User{
-//		Properties: &ionoscloud.UserProperties{
-//			Username: &cr.Spec.ForProvider.Credentials.Username,
-//			Password: &cr.Spec.ForProvider.Credentials.Password,
-//		},
-//	}
-//	return &instanceCreateInput
-//}
+// func GenerateCreateUserInput(cr *v1alpha1.MongoUser) *ionoscloud.User {
+// 	instanceCreateInput := ionoscloud.User{
+// 		Properties: &ionoscloud.UserProperties{
+// 			Username: &cr.Spec.ForProvider.Credentials.Username,
+// 			Password: &cr.Spec.ForProvider.Credentials.Password,
+// 		},
+// 	}
+// 	return &instanceCreateInput
+// }
 
 // GenerateUpdateClusterInput returns PatchClusterRequest based on the CR spec modifications
-func GenerateUpdateClusterInput(cr *v1alpha1.MongoCluster) (*ionoscloud.PatchClusterRequest, error) {
+func GenerateUpdateClusterInput(cr *v1alpha1.MongoCluster) (*ionoscloud.PatchClusterRequest, error) { // nolint: gocyclo
 	instanceUpdateInput := ionoscloud.PatchClusterRequest{
 		Properties: &ionoscloud.PatchClusterProperties{
 			Instances:   &cr.Spec.ForProvider.Instances,
@@ -375,7 +375,7 @@ func clusterCredentials(creds v1alpha1.DBUser) *ionoscloud.User {
 		Properties: &ionoscloud.UserProperties{
 			Username: &creds.Username,
 			Password: &creds.Password,
-			//TODO add roles
+			// TODO add roles
 			Roles: nil,
 		},
 	}
