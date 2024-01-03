@@ -37,6 +37,7 @@ var (
 	// <resource_name>.yaml
 	exceptionsFileNamesExamples = map[string]string{
 		"postgrescluster": "postgres-cluster.yaml",
+		"mongocluster":    "mongo-cluster.yaml",
 		"cluster":         "k8s-cluster.yaml",
 		"nodepool":        "k8s-nodepool.yaml",
 	}

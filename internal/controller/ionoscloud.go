@@ -38,6 +38,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/volume"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/config"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/mongocluster"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgrescluster"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgresuser"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/k8s/k8scluster"
@@ -68,6 +69,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter, options
 		backupunit.Setup,
 		s3key.Setup,
 		postgresuser.Setup,
+		mongocluster.Setup,
 	} {
 		if err := setup(mgr, l, wl, options); err != nil {
 			return err
