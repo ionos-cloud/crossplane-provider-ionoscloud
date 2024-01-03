@@ -236,7 +236,7 @@ func GenerateUpdateClusterInput(cr *v1alpha1.MongoCluster) (*ionoscloud.PatchClu
 }
 
 //// GenerateUpdateUserInput returns PatchClusterRequest based on the CR spec modifications
-//func GenerateUpdateUserInput(cr *v1alpha1.MongoUser) (*ionoscloud.UsersPatchRequest, error) {
+// func GenerateUpdateUserInput(cr *v1alpha1.MongoUser) (*ionoscloud.UsersPatchRequest, error) {
 //	instanceUpdateInput := ionoscloud.UsersPatchRequest{
 //		Properties: &ionoscloud.PatchUserProperties{
 //			Password: &cr.Spec.ForProvider.Credentials.Password,
@@ -308,22 +308,22 @@ func IsClusterUpToDate(cr *v1alpha1.MongoCluster, clusterResponse ionoscloud.Clu
 }
 
 // IsUserUpToDate returns true if the user is up-to-date or false if it does not
-//func IsUserUpToDate(cr *v1alpha1.MongoUser, user ionoscloud.UserResource) bool { // nolint:gocyclo
-//	switch {
-//	case cr == nil && user.Properties == nil:
-//		return true
-//	case cr == nil && user.Properties != nil:
-//		return false
-//	case cr != nil && user.Properties == nil:
-//		return false
-//	case user.Properties.Username != nil && *user.Properties.Username != cr.Spec.ForProvider.Credentials.Username:
-//		return false
-//	case user.Properties.Username != nil && *user.Properties.Password != cr.Spec.ForProvider.Credentials.Password:
-//		return false
-//	default:
-//		return true
-//	}
-//}
+// func IsUserUpToDate(cr *v1alpha1.MongoUser, user ionoscloud.UserResource) bool { // nolint:gocyclo
+// 	switch {
+// 	case cr == nil && user.Properties == nil:
+// 		return true
+// 	case cr == nil && user.Properties != nil:
+// 		return false
+// 	case cr != nil && user.Properties == nil:
+// 		return false
+// 	case user.Properties.Username != nil && *user.Properties.Username != cr.Spec.ForProvider.Credentials.Username:
+// 		return false
+// 	case user.Properties.Username != nil && *user.Properties.Password != cr.Spec.ForProvider.Credentials.Password:
+// 		return false
+// 	default:
+// 		return true
+// 	}
+// }
 
 func clusterConnections(connections []v1alpha1.Connection) *[]ionoscloud.Connection {
 	connects := make([]ionoscloud.Connection, 0)
@@ -370,16 +370,16 @@ func clusterMaintenanceWindow(window v1alpha1.MaintenanceWindow) *ionoscloud.Mai
 	return nil
 }
 
-func clusterCredentials(creds v1alpha1.DBUser) *ionoscloud.User {
-	return &ionoscloud.User{
-		Properties: &ionoscloud.UserProperties{
-			Username: &creds.Username,
-			Password: &creds.Password,
-			// TODO add roles
-			Roles: nil,
-		},
-	}
-}
+// func clusterCredentials(creds v1alpha1.DBUser) *ionoscloud.User {
+//	return &ionoscloud.User{
+//		Properties: &ionoscloud.UserProperties{
+//			Username: &creds.Username,
+//			Password: &creds.Password,
+//			// TODO add roles
+//			Roles: nil,
+//		},
+//	}
+// }
 
 func clusterFromBackup(req v1alpha1.CreateRestoreRequest) (*ionoscloud.CreateRestoreRequest, error) {
 	if req.SnapshotID != "" && req.RecoveryTargetTime != "" {
