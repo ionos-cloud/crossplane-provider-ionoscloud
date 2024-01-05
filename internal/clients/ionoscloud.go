@@ -9,6 +9,7 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	mongo "github.com/ionos-cloud/sdk-go-dbaas-mongo"
 	sdkdbaas "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
@@ -50,6 +51,7 @@ func init() {
 // IonosServices contains ionos clients
 type IonosServices struct {
 	DBaaSPostgresClient *sdkdbaas.APIClient
+	DBaaSMongoClient    *mongo.APIClient
 	ComputeClient       *sdkgo.APIClient
 }
 
@@ -90,7 +92,10 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 	if apiHostURL == "" && ionosAPIEndpoint != "" {
 		apiHostURL = ionosAPIEndpoint
 	}
-
+	// DBaaS Mongo Client
+	dbaasMongoConfig := mongo.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
+	dbaasMongoConfig.UserAgent = fmt.Sprintf("%v/%v_%v", UserAgent, version.Version, dbaasMongoConfig.UserAgent)
+	dbaasMongoClient := mongo.NewAPIClient(dbaasMongoConfig)
 	// DBaaS Postgres Client
 	dbaasPostgresConfig := sdkdbaas.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
 	dbaasPostgresConfig.UserAgent = fmt.Sprintf("%v/%v_%v", UserAgent, version.Version, dbaasPostgresConfig.UserAgent)
@@ -101,6 +106,7 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 	computeEngineClient := sdkgo.NewAPIClient(computeEngineConfig)
 
 	return &IonosServices{
+		DBaaSMongoClient:    dbaasMongoClient,
 		DBaaSPostgresClient: dbaasPostgresClient,
 		ComputeClient:       computeEngineClient,
 	}, nil
@@ -155,9 +161,9 @@ type DBaaSResource interface {
 	GetMetadataOk() (*sdkdbaas.ClusterMetadata, bool)
 }
 
-// GetDBaaSResourceState fetches the state of the metadata of the CoreResource
+// GetDBaaSPsqlResourceState fetches the state of the metadata of the CoreResource
 // If either the metadata is nil, or the state is nil, the empty string is returned
-func GetDBaaSResourceState(object DBaaSResource) sdkdbaas.State {
+func GetDBaaSPsqlResourceState(object DBaaSResource) sdkdbaas.State {
 	if metadata, metadataOk := object.GetMetadataOk(); metadataOk {
 		if state, stateOk := metadata.GetStateOk(); stateOk {
 			if state != nil {

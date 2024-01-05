@@ -14,11 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package postgrescluster
+package mongocluster
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -37,12 +36,12 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
-	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
+	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-mongo"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/postgres/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/mongo/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/dbaas/postgrescluster"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/dbaas/mongo"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
@@ -50,16 +49,16 @@ const errNotCluster = "managed resource is not a Cluster custom resource"
 
 // Setup adds a controller that reconciles Cluster managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
-	name := managed.ControllerName(v1alpha1.PostgresClusterGroupKind)
+	name := managed.ControllerName(v1alpha1.MongoClusterGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
 			RateLimiter: ratelimiter.NewController(),
 		}).
-		For(&v1alpha1.PostgresCluster{}).
+		For(&v1alpha1.MongoCluster{}).
 		Complete(managed.NewReconciler(mgr,
-			resource.ManagedKind(v1alpha1.PostgresClusterGroupVersionKind),
+			resource.ManagedKind(v1alpha1.MongoClusterGroupVersionKind),
 			managed.WithExternalConnecter(&connectorCluster{
 				kube:                 mgr.GetClient(),
 				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
@@ -89,13 +88,13 @@ type connectorCluster struct {
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
 func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	_, ok := mg.(*v1alpha1.PostgresCluster)
+	_, ok := mg.(*v1alpha1.MongoCluster)
 	if !ok {
 		return nil, errors.New(errNotCluster)
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalCluster{
-		service:              &postgrescluster.ClusterAPIClient{IonosServices: svc},
+		service:              &mongo.ClusterAPIClient{IonosServices: svc},
 		log:                  c.log,
 		isUniqueNamesEnabled: c.isUniqueNamesEnabled,
 		client:               c.kube}, err
@@ -107,19 +106,19 @@ func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (ma
 type externalCluster struct {
 	// A 'client' used to connect to the externalCluster resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service              postgrescluster.ClusterClient
+	service              mongo.ClusterClient
 	client               client.Client
 	log                  logging.Logger
 	isUniqueNamesEnabled bool
 }
 
 func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
-	cr, ok := mg.(*v1alpha1.PostgresCluster)
+	cr, ok := mg.(*v1alpha1.MongoCluster)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotCluster)
 	}
 
-	// External Name of the CR is the DBaaS Postgres Cluster ID
+	// External Name of the CR is the DBaaS Mongo Cluster ID
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
@@ -128,32 +127,34 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 		if resp.HttpNotFound() {
 			return managed.ExternalObservation{}, nil
 		}
-		return managed.ExternalObservation{}, fmt.Errorf("failed to get postgres cluster by id. err: %w", err)
+		return managed.ExternalObservation{}, fmt.Errorf("failed to get mongo cluster by id. err: %w", err)
 	}
 
 	current := cr.Spec.ForProvider.DeepCopy()
-	postgrescluster.LateInitializer(&cr.Spec.ForProvider, &observed)
+	mongo.LateInitializer(&cr.Spec.ForProvider, &observed)
 
 	cr.Status.AtProvider.ClusterID = meta.GetExternalName(cr)
-	cr.Status.AtProvider.State = string(clients.GetDBaaSPsqlResourceState(&observed))
+	if observed.Metadata != nil && observed.Metadata.State != nil {
+		cr.Status.AtProvider.State = string(*observed.GetMetadata().GetState())
+	}
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        postgrescluster.IsClusterUpToDate(cr, observed),
+		ResourceUpToDate:        mongo.IsClusterUpToDate(cr, observed),
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}, nil
 }
 
 func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint: gocyclo
-	cr, ok := mg.(*v1alpha1.PostgresCluster)
+	cr, ok := mg.(*v1alpha1.MongoCluster)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotCluster)
 	}
 	cr.SetConditions(xpv1.Creating())
-	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == string(ionoscloud.STATE_BUSY) {
 		return managed.ExternalCreation{}, nil
 	}
 
@@ -176,31 +177,15 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 			return managed.ExternalCreation{}, nil
 		}
 	}
-	instanceInput, err := postgrescluster.GenerateCreateClusterInput(cr)
+	instanceInput, err := mongo.GenerateCreateClusterInput(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	// time to get the credentials from the secret
-	if instanceInput.Properties.Credentials.Password != nil || *instanceInput.Properties.Credentials.Password == "" {
-		data, err := resource.CommonCredentialExtractor(ctx, cr.Spec.ForProvider.Credentials.Source, c.client, cr.Spec.ForProvider.Credentials.CommonCredentialSelectors)
-		if err != nil {
-			return managed.ExternalCreation{}, errors.Wrap(err, "cannot get psql credentials")
-		}
-		creds := v1alpha1.DBUser{}
-		if err := json.Unmarshal(data, &creds); err != nil {
-			return managed.ExternalCreation{}, fmt.Errorf("failed to decode psql credentials: %w", err)
-		}
-		*instanceInput.Properties.Credentials.Username = creds.Username
-		*instanceInput.Properties.Credentials.Password = creds.Password
-	}
-	if (instanceInput.Properties.Credentials.Username == nil || *instanceInput.Properties.Credentials.Username == "") ||
-		(instanceInput.Properties.Credentials.Password == nil || *instanceInput.Properties.Credentials.Password == "") {
-		return managed.ExternalCreation{}, fmt.Errorf("need to provide credentials, either directly or from a secret")
-	}
+
 	newInstance, apiResponse, err := c.service.CreateCluster(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
-		retErr := fmt.Errorf("failed to create postgres cluster: %w", err)
+		retErr := fmt.Errorf("failed to create mongo cluster: %w", err)
 		if apiResponse != nil && apiResponse.Response != nil {
 			retErr = fmt.Errorf("%w API Response Status: %v", retErr, apiResponse.Status)
 		}
@@ -214,23 +199,23 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 }
 
 func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.PostgresCluster)
+	cr, ok := mg.(*v1alpha1.MongoCluster)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotCluster)
 	}
-	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == string(ionoscloud.STATE_BUSY) {
 		return managed.ExternalUpdate{}, nil
 	}
 
 	clusterID := cr.Status.AtProvider.ClusterID
-	instanceInput, err := postgrescluster.GenerateUpdateClusterInput(cr)
+	instanceInput, err := mongo.GenerateUpdateClusterInput(cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
 
 	_, apiResponse, err := c.service.UpdateCluster(ctx, clusterID, *instanceInput)
 	if err != nil {
-		retErr := fmt.Errorf("failed to update postgres cluster: %w", err)
+		retErr := fmt.Errorf("failed to update mongo cluster: %w", err)
 		if apiResponse != nil && apiResponse.Response != nil {
 			retErr = fmt.Errorf("%w API Response Status: %v", retErr, apiResponse.Status)
 		}
@@ -240,13 +225,13 @@ func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (mana
 }
 
 func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.PostgresCluster)
+	cr, ok := mg.(*v1alpha1.MongoCluster)
 	if !ok {
 		return errors.New(errNotCluster)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
-	if cr.Status.AtProvider.State == string(ionoscloud.DESTROYING) {
+	if cr.Status.AtProvider.State == string(ionoscloud.STATE_DESTROYING) {
 		return nil
 	}
 
@@ -255,7 +240,7 @@ func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error
 		if apiResponse != nil && apiResponse.Response != nil && apiResponse.StatusCode == http.StatusNotFound {
 			return nil
 		}
-		return fmt.Errorf("failed to delete postgres cluster. error: %w", err)
+		return fmt.Errorf("failed to delete mongo cluster. error: %w", err)
 	}
 	return nil
 }

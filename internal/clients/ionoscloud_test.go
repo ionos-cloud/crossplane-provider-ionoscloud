@@ -253,7 +253,7 @@ func TestGetDBaaSResourceState(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, GetDBaaSResourceState(tt.args))
+			assert.Equal(t, tt.want, GetDBaaSPsqlResourceState(tt.args))
 		})
 	}
 }

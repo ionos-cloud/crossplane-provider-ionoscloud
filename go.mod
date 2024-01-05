@@ -8,6 +8,7 @@ require (
 	github.com/go-logr/zapr v1.2.4
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
+	github.com/ionos-cloud/sdk-go-dbaas-mongo v1.3.1
 	github.com/ionos-cloud/sdk-go-dbaas-postgres v1.1.2
 	github.com/ionos-cloud/sdk-go/v6 v6.1.4
 	github.com/pkg/errors v0.9.1
