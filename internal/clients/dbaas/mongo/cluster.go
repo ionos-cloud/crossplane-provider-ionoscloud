@@ -252,10 +252,6 @@ func GenerateUpdateUserInput(cr *v1alpha1.MongoUser) (*ionoscloud.PatchUserReque
 			Password: &cr.Spec.ForProvider.Credentials.Password,
 		},
 	}
-	//if len(cr.Spec.ForProvider.Roles) > 0 {
-	//	roles := convertToIonoscloudUserRoles(cr.Spec.ForProvider.Roles)
-	//	instanceUpdateInput.Properties.Roles = &roles
-	//}
 	roles := convertToIonoscloudUserRoles(cr.Spec.ForProvider.Roles)
 	instanceUpdateInput.Properties.Roles = &roles
 	return &instanceUpdateInput, nil
