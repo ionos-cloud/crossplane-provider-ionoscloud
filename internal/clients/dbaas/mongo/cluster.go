@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
 	"time"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/compare"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
-
 	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-mongo"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/compare"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/mongo/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
@@ -28,7 +28,10 @@ type ClusterClient interface {
 	DeleteCluster(ctx context.Context, clusterID string) (*ionoscloud.APIResponse, error)
 	DeleteUser(ctx context.Context, clusterID, userName string) (*ionoscloud.APIResponse, error)
 	CreateCluster(ctx context.Context, cluster ionoscloud.CreateClusterRequest) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
+	CreateUser(ctx context.Context, clusterID string, user ionoscloud.User) (ionoscloud.User, *ionoscloud.APIResponse, error)
 	UpdateCluster(ctx context.Context, clusterID string, cluster ionoscloud.PatchClusterRequest) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
+	GetUser(ctx context.Context, clusterID, username string) (ionoscloud.User, *ionoscloud.APIResponse, error)
+	UpdateUser(ctx context.Context, clusterID, userName string, cluster ionoscloud.PatchUserRequest) (ionoscloud.User, *ionoscloud.APIResponse, error)
 }
 
 // CheckDuplicateCluster based on clusterName and on multiple properties from CR spec
@@ -116,6 +119,11 @@ func (cp *ClusterAPIClient) CreateUser(ctx context.Context, clusterID string, us
 	return cp.DBaaSMongoClient.UsersApi.ClustersUsersPost(ctx, clusterID).User(user).Execute()
 }
 
+// GetUser based on clusterID and user properties
+func (cp *ClusterAPIClient) GetUser(ctx context.Context, clusterID, username string) (ionoscloud.User, *ionoscloud.APIResponse, error) {
+	return cp.DBaaSMongoClient.UsersApi.ClustersUsersFindById(ctx, clusterID, username).Execute()
+}
+
 // PatchUser based on clusterID, username and user properties
 func (cp *ClusterAPIClient) PatchUser(ctx context.Context, clusterID, username string, patchReq ionoscloud.PatchUserRequest) (ionoscloud.User, *ionoscloud.APIResponse, error) {
 	return cp.DBaaSMongoClient.UsersApi.ClustersUsersPatch(ctx, clusterID, username).PatchUserRequest(patchReq).Execute()
@@ -183,15 +191,17 @@ func GenerateCreateClusterInput(cr *v1alpha1.MongoCluster) (*ionoscloud.CreateCl
 }
 
 // GenerateCreateUserInput returns mongo User based on the CR spec
-// func GenerateCreateUserInput(cr *v1alpha1.MongoUser) *ionoscloud.User {
-// 	instanceCreateInput := ionoscloud.User{
-// 		Properties: &ionoscloud.UserProperties{
-// 			Username: &cr.Spec.ForProvider.Credentials.Username,
-// 			Password: &cr.Spec.ForProvider.Credentials.Password,
-// 		},
-// 	}
-// 	return &instanceCreateInput
-// }
+func GenerateCreateUserInput(cr *v1alpha1.MongoUser) *ionoscloud.User {
+	instanceCreateInput := ionoscloud.User{
+		Properties: &ionoscloud.UserProperties{
+			Username: &cr.Spec.ForProvider.Credentials.Username,
+			Password: &cr.Spec.ForProvider.Credentials.Password,
+		},
+	}
+	roles := convertToIonoscloudUserRoles(cr.Spec.ForProvider.Roles)
+	instanceCreateInput.Properties.Roles = &roles
+	return &instanceCreateInput
+}
 
 // GenerateUpdateClusterInput returns PatchClusterRequest based on the CR spec modifications
 func GenerateUpdateClusterInput(cr *v1alpha1.MongoCluster) (*ionoscloud.PatchClusterRequest, error) { // nolint: gocyclo
@@ -235,16 +245,17 @@ func GenerateUpdateClusterInput(cr *v1alpha1.MongoCluster) (*ionoscloud.PatchClu
 	return &instanceUpdateInput, nil
 }
 
-//// GenerateUpdateUserInput returns PatchClusterRequest based on the CR spec modifications
-// func GenerateUpdateUserInput(cr *v1alpha1.MongoUser) (*ionoscloud.UsersPatchRequest, error) {
-//	instanceUpdateInput := ionoscloud.UsersPatchRequest{
-//		Properties: &ionoscloud.PatchUserProperties{
-//			Password: &cr.Spec.ForProvider.Credentials.Password,
-//		},
-//	}
-//
-//	return &instanceUpdateInput, nil
-//}
+// GenerateUpdateUserInput returns PatchClusterRequest based on the CR spec modifications
+func GenerateUpdateUserInput(cr *v1alpha1.MongoUser) (*ionoscloud.PatchUserRequest, error) {
+	instanceUpdateInput := ionoscloud.PatchUserRequest{
+		Properties: &ionoscloud.PatchUserProperties{
+			Password: &cr.Spec.ForProvider.Credentials.Password,
+		},
+	}
+	roles := convertToIonoscloudUserRoles(cr.Spec.ForProvider.Roles)
+	instanceUpdateInput.Properties.Roles = &roles
+	return &instanceUpdateInput, nil
+}
 
 // LateInitializer fills the empty fields in *v1alpha1.ClusterParameters with
 // the values seen in ionoscloud.ClusterResponse.
@@ -256,12 +267,12 @@ func LateInitializer(in *v1alpha1.ClusterParameters, sg *ionoscloud.ClusterRespo
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
 		if maintenanceWindowOk, ok := propertiesOk.GetMaintenanceWindowOk(); ok && maintenanceWindowOk != nil {
 			if timeOk, ok := maintenanceWindowOk.GetTimeOk(); ok && timeOk != nil {
-				if utils.IsEmptyValue(reflect.ValueOf(in.MaintenanceWindow.Time)) {
+				if in.MaintenanceWindow.Time != "" {
 					in.MaintenanceWindow.Time = *timeOk
 				}
 			}
 			if dayOfTheWeekOk, ok := maintenanceWindowOk.GetDayOfTheWeekOk(); ok && dayOfTheWeekOk != nil {
-				if utils.IsEmptyValue(reflect.ValueOf(in.MaintenanceWindow.DayOfTheWeek)) {
+				if in.MaintenanceWindow.DayOfTheWeek != "" {
 					in.MaintenanceWindow.DayOfTheWeek = string(*dayOfTheWeekOk)
 				}
 			}
@@ -307,23 +318,40 @@ func IsClusterUpToDate(cr *v1alpha1.MongoCluster, clusterResponse ionoscloud.Clu
 	}
 }
 
+// convertToIonoscloudUserRoles converts the []v1alpha1.UserRoles to []ionoscloud.UserRoles
+func convertToIonoscloudUserRoles(roles []v1alpha1.UserRoles) []ionoscloud.UserRoles {
+	userRoles := make([]ionoscloud.UserRoles, 0)
+	if len(roles) > 0 {
+		for _, role := range roles {
+			role := role
+			userRoles = append(userRoles, ionoscloud.UserRoles{
+				Role:     &role.Role,
+				Database: &role.Database,
+			})
+		}
+	}
+	return userRoles
+}
+
 // IsUserUpToDate returns true if the user is up-to-date or false if it does not
-// func IsUserUpToDate(cr *v1alpha1.MongoUser, user ionoscloud.UserResource) bool { // nolint:gocyclo
-// 	switch {
-// 	case cr == nil && user.Properties == nil:
-// 		return true
-// 	case cr == nil && user.Properties != nil:
-// 		return false
-// 	case cr != nil && user.Properties == nil:
-// 		return false
-// 	case user.Properties.Username != nil && *user.Properties.Username != cr.Spec.ForProvider.Credentials.Username:
-// 		return false
-// 	case user.Properties.Username != nil && *user.Properties.Password != cr.Spec.ForProvider.Credentials.Password:
-// 		return false
-// 	default:
-// 		return true
-// 	}
-// }
+func IsUserUpToDate(cr *v1alpha1.MongoUser, user ionoscloud.User) bool { // nolint:gocyclo
+	switch {
+	case cr == nil && user.Properties == nil:
+		return true
+	case cr == nil && user.Properties != nil:
+		return false
+	case cr != nil && user.Properties == nil:
+		return false
+	case user.Properties.Username != nil && *user.Properties.Username != cr.Spec.ForProvider.Credentials.Username:
+		return false
+	case user.Properties.Username != nil && *user.Properties.Password != cr.Spec.ForProvider.Credentials.Password:
+		return false
+	case user.Properties.Roles != nil && !slices.Equal(*user.Properties.Roles, convertToIonoscloudUserRoles(cr.Spec.ForProvider.Roles)):
+		return false
+	default:
+		return true
+	}
+}
 
 func clusterConnections(connections []v1alpha1.Connection) *[]ionoscloud.Connection {
 	connects := make([]ionoscloud.Connection, 0)
@@ -369,17 +397,6 @@ func clusterMaintenanceWindow(window v1alpha1.MaintenanceWindow) *ionoscloud.Mai
 	}
 	return nil
 }
-
-// func clusterCredentials(creds v1alpha1.DBUser) *ionoscloud.User {
-//	return &ionoscloud.User{
-//		Properties: &ionoscloud.UserProperties{
-//			Username: &creds.Username,
-//			Password: &creds.Password,
-//			// TODO add roles
-//			Roles: nil,
-//		},
-//	}
-// }
 
 func clusterFromBackup(req v1alpha1.CreateRestoreRequest) (*ionoscloud.CreateRestoreRequest, error) {
 	if req.SnapshotID != "" && req.RecoveryTargetTime != "" {

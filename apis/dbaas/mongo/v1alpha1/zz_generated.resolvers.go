@@ -71,3 +71,29 @@ func (mg *MongoCluster) ResolveReferences(ctx context.Context, c client.Reader) 
 
 	return nil
 }
+
+// ResolveReferences of this MongoUser.
+func (mg *MongoUser) ResolveReferences(ctx context.Context, c client.Reader) error {
+	r := reference.NewAPIResolver(c, mg)
+
+	var rsp reference.ResolutionResponse
+	var err error
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.ClusterCfg.ClusterID,
+		Extract:      ExtractMongoClusterID(),
+		Reference:    mg.Spec.ForProvider.ClusterCfg.ClusterIDRef,
+		Selector:     mg.Spec.ForProvider.ClusterCfg.ClusterIDSelector,
+		To: reference.To{
+			List:    &MongoClusterList{},
+			Managed: &MongoCluster{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.ClusterCfg.ClusterID")
+	}
+	mg.Spec.ForProvider.ClusterCfg.ClusterID = rsp.ResolvedValue
+	mg.Spec.ForProvider.ClusterCfg.ClusterIDRef = rsp.ResolvedReference
+
+	return nil
+}

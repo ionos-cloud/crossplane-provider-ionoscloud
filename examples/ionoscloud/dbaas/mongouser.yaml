@@ -1,0 +1,22 @@
+apiVersion: dbaas.mongo.ionoscloud.crossplane.io/v1alpha1
+kind: MongoUser
+metadata:
+  name: example
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    userRoles:
+      - role: readWrite
+        database: test
+    credentials:
+      source: Secret
+      secretRef:
+        namespace: crossplane-system
+        name: mongocreds
+        key: credentials
+    clusterConfig:
+      ClusterIdRef:
+        name: example
+  providerConfigRef:
+    name: example

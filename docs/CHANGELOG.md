@@ -1,6 +1,7 @@
 ## [1.0.9] (January 2023)
 - **Features**:
-- Add `MongoCLuster` crd to support CRUD of MongoDB clusters
+- Add `MongoCluster` crd to support CRUD of MongoDB clusters
+- Add `MongoUser` crd to support CRUD of MongoDB users
 
 ## [1.0.8] (December 2023)
 - **Features**:
