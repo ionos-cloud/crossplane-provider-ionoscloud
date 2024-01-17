@@ -3,6 +3,7 @@ package dataplatformcluster
 import (
 	"context"
 	"fmt"
+	"time"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/errors"
@@ -182,9 +183,9 @@ func (c *externalDataplatform) Delete(ctx context.Context, mg resource.Managed) 
 		retErr := fmt.Errorf("failed to delete dataplatform cluster. error: %w", err)
 		return retErr
 	}
-	err = utils.WaitForResourceToBeDeleted(ctx, cr.Status.AtProvider.DataplatformID, 30, c.service.IsDataplatformDeleted)
+	err = utils.WaitForResourceToBeDeleted(ctx, cr.Status.AtProvider.DataplatformID, 30*time.Minute, c.service.IsDataplatformDeleted)
 	if err != nil {
-		return fmt.Errorf("an error occured while deleting %w", err)
+		return fmt.Errorf("an error occurred while deleting %w", err)
 	}
 
 	return nil

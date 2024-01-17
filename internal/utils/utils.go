@@ -104,17 +104,17 @@ func ContainsStringInSlice(input []string, specific string) bool {
 type IsResourceDeletedFunc func(ctx context.Context, ID string) (bool, error)
 
 // WaitForResourceToBeDeleted - keeps retrying until resource is not found(404), or until ctx is cancelled
-func WaitForResourceToBeDeleted(ctx context.Context, ID string, timeoutInMinutes time.Duration, fn IsResourceDeletedFunc) error {
+func WaitForResourceToBeDeleted(ctx context.Context, id string, timeoutInMinutes time.Duration, fn IsResourceDeletedFunc) error {
 
-	err := retry.RetryContext(ctx, timeoutInMinutes*time.Minute, func() *retry.RetryError {
-		isDeleted, err := fn(ctx, ID)
+	err := retry.RetryContext(ctx, timeoutInMinutes, func() *retry.RetryError {
+		isDeleted, err := fn(ctx, id)
 		if isDeleted {
 			return nil
 		}
 		if err != nil {
 			retry.NonRetryableError(err)
 		}
-		return retry.RetryableError(fmt.Errorf("resource with id %s found, still trying ", ID))
+		return retry.RetryableError(fmt.Errorf("resource with id %s found, still trying ", id))
 	})
 	return err
 }

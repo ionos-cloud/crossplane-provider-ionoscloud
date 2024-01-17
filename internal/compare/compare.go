@@ -46,11 +46,13 @@ func EqualKubernetesMaintenanceWindow(targetValue k8sv1alpha1.MaintenanceWindow,
 		EqualString(targetValue.DayOfTheWeek, observedValue.DayOfTheWeek)
 }
 
+// MaintenanceWindowPtrResource to be able to compare maintenance windows from different sdks
 type MaintenanceWindowPtrResource interface {
 	GetTime() *string
 	GetDayOfTheWeek() *string
 }
 
+// MaintenanceWindowResource - interface to be able to compare maintenance windows from different sdks
 type MaintenanceWindowResource interface {
 	GetTime() string
 	GetDayOfTheWeek() string

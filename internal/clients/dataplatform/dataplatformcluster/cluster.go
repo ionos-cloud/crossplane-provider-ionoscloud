@@ -24,7 +24,7 @@ type Client interface {
 	CreateDataplatformCluster(ctx context.Context, cluster sdkgo.CreateClusterRequest) (sdkgo.ClusterResponseData, *sdkgo.APIResponse, error)
 	PatchDataPlatformCluster(ctx context.Context, clusterID string, cluster sdkgo.PatchClusterRequest) (sdkgo.ClusterResponseData, *sdkgo.APIResponse, error)
 	DeleteDataPlatformCluster(ctx context.Context, clusterID string) (*sdkgo.APIResponse, error)
-	IsDataplatformDeleted(ctx context.Context, ID string) (bool, error)
+	IsDataplatformDeleted(ctx context.Context, id string) (bool, error)
 	GetAPIClient() *sdkgo.APIClient
 }
 
@@ -54,8 +54,8 @@ func (dp *APIClient) DeleteDataPlatformCluster(ctx context.Context, clusterID st
 	return resp, err
 }
 
-func (dp *APIClient) IsDataplatformDeleted(ctx context.Context, ID string) (bool, error) {
-	_, apiResponse, err := dp.GetDataplatformClusterById(ctx, ID)
+func (dp *APIClient) IsDataplatformDeleted(ctx context.Context, id string) (bool, error) {
+	_, apiResponse, err := dp.GetDataplatformClusterById(ctx, id)
 	if err != nil {
 		if apiResponse.HttpNotFound() {
 			return true, nil

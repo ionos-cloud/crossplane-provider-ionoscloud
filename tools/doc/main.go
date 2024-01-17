@@ -60,7 +60,6 @@ func main() {
 	// DOCS_OUT - represents the absolute path to the directory where
 	// the tool will generate the documentation files.
 	dir := os.Getenv("DOCS_OUT")
-	dir = "."
 	if dir == "" {
 		fmt.Printf("DOCS_OUT environment variable not set.\n")
 		os.Exit(1)

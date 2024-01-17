@@ -58,10 +58,12 @@ type MaintenanceWindow struct {
 	DayOfTheWeek string `json:"dayOfTheWeek,omitempty"`
 }
 
+// GetTime returns the time of the maintenance window.
 func (in *MaintenanceWindow) GetTime() string {
 	return in.Time
 }
 
+// GetDayOfTheWeek returns the day of the week of the maintenance window.
 func (in *MaintenanceWindow) GetDayOfTheWeek() string {
 	return in.DayOfTheWeek
 }
