@@ -19,7 +19,7 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service K8s Cluster methods
 type Client interface {
-	GetDataplatformClusterById(ctx context.Context, clusterID string) (sdkgo.ClusterResponseData, *sdkgo.APIResponse, error)
+	GetDataplatformClusterByID(ctx context.Context, clusterID string) (sdkgo.ClusterResponseData, *sdkgo.APIResponse, error)
 	GetKubeConfig(ctx context.Context, clusterID string) (map[string]any, *sdkgo.APIResponse, error)
 	CreateDataplatformCluster(ctx context.Context, cluster sdkgo.CreateClusterRequest) (sdkgo.ClusterResponseData, *sdkgo.APIResponse, error)
 	PatchDataPlatformCluster(ctx context.Context, clusterID string, cluster sdkgo.PatchClusterRequest) (sdkgo.ClusterResponseData, *sdkgo.APIResponse, error)
@@ -28,8 +28,8 @@ type Client interface {
 	GetAPIClient() *sdkgo.APIClient
 }
 
-// GetDataplatformClusterById based on clusterID
-func (dp *APIClient) GetDataplatformClusterById(ctx context.Context, clusterID string) (sdkgo.ClusterResponseData, *sdkgo.APIResponse, error) {
+// GetDataplatformClusterByID based on clusterID
+func (dp *APIClient) GetDataplatformClusterByID(ctx context.Context, clusterID string) (sdkgo.ClusterResponseData, *sdkgo.APIResponse, error) {
 	return dp.DataplatformClient.DataPlatformClusterApi.ClustersFindById(ctx, clusterID).Execute()
 }
 
@@ -54,8 +54,9 @@ func (dp *APIClient) DeleteDataPlatformCluster(ctx context.Context, clusterID st
 	return resp, err
 }
 
+// IsDataplatformDeleted returns true if the dataplatform cluster is deleted
 func (dp *APIClient) IsDataplatformDeleted(ctx context.Context, id string) (bool, error) {
-	_, apiResponse, err := dp.GetDataplatformClusterById(ctx, id)
+	_, apiResponse, err := dp.GetDataplatformClusterByID(ctx, id)
 	if err != nil {
 		if apiResponse.HttpNotFound() {
 			return true, nil
@@ -94,9 +95,6 @@ func GenerateUpdateInput(cr *v1alpha1.DataplatformCluster) *sdkgo.PatchClusterRe
 			Name: &cr.Spec.ForProvider.Name,
 		},
 	}
-	//if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.APISubnetAllowList)) {
-	//	instanceUpdateInput.Properties.ApiSubnetAllowList = apiSubnetAllowList(cr.Spec.ForProvider.APISubnetAllowList)
-	//}
 	if cr.Spec.ForProvider.Version != "" {
 		instanceUpdateInput.Properties.DataPlatformVersion = &cr.Spec.ForProvider.Version
 	}

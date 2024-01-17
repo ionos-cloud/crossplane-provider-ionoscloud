@@ -100,7 +100,7 @@ func (c *externalDataplatform) Observe(ctx context.Context, mg resource.Managed)
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
-	instance, _, err := c.service.GetDataplatformClusterById(ctx, meta.GetExternalName(cr))
+	instance, _, err := c.service.GetDataplatformClusterByID(ctx, meta.GetExternalName(cr))
 	if err != nil {
 		err = fmt.Errorf("failed to get dataplatform cluster by id. error: %w", err)
 		return managed.ExternalObservation{}, err

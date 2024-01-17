@@ -98,7 +98,7 @@ func (mr *MockClientMockRecorder) GetAPIClient() *gomock.Call {
 // GetK8sCluster mocks base method.
 func (m *MockClient) GetK8sCluster(ctx context.Context, clusterID string) (ionoscloud.KubernetesCluster, *ionoscloud.APIResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDataplatformClusterById", ctx, clusterID)
+	ret := m.ctrl.Call(m, "GetDataplatformClusterByID", ctx, clusterID)
 	ret0, _ := ret[0].(ionoscloud.KubernetesCluster)
 	ret1, _ := ret[1].(*ionoscloud.APIResponse)
 	ret2, _ := ret[2].(error)
@@ -108,7 +108,7 @@ func (m *MockClient) GetK8sCluster(ctx context.Context, clusterID string) (ionos
 // GetK8sCluster indicates an expected call of GetK8sCluster.
 func (mr *MockClientMockRecorder) GetK8sCluster(ctx, clusterID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDataplatformClusterById", reflect.TypeOf((*MockClient)(nil).GetK8sCluster), ctx, clusterID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDataplatformClusterByID", reflect.TypeOf((*MockClient)(nil).GetK8sCluster), ctx, clusterID)
 }
 
 // GetK8sClusterID mocks base method.
