@@ -164,7 +164,7 @@ func (c *externalPrivateCrossConnect) Create(ctx context.Context, mg resource.Ma
 		}
 	}
 
-	// Create new privateCrossConnect instance accordingly
+	// CreateDataplatformCluster new privateCrossConnect instance accordingly
 	// with the properties set.
 	instanceInput, err := pcc.GenerateCreatePrivateCrossConnectInput(cr)
 	if err != nil {

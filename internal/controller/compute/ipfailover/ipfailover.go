@@ -178,7 +178,7 @@ func (c *externalIPFailover) Create(ctx context.Context, mg resource.Managed) (m
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("failed to generate input for ipfailover creation: %w", err)
 	}
-	// Create IPFailover - Update Lan with the new IP Failover
+	// CreateDataplatformCluster IPFailover - Update Lan with the new IP Failover
 	_, apiResponse, err := c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to update lan to create ipfailover. error: %w", err)

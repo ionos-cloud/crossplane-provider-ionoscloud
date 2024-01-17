@@ -187,7 +187,7 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		}
 	}
 
-	// Create new cube server based on the properties set
+	// CreateDataplatformCluster new cube server based on the properties set
 	instanceInput, err := server.GenerateCreateCubeServerInput(cr, templateID)
 	if err != nil {
 		return managed.ExternalCreation{}, err

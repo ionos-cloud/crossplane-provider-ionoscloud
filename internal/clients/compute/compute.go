@@ -43,6 +43,7 @@ func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *s
 
 // CheckAPIResponseInfo checks status code of an APIResponse, and appends info to an existing error
 func CheckAPIResponseInfo(apiResponse *sdkgo.APIResponse, retErr error) error {
+
 	if apiResponse != nil && apiResponse.Response != nil {
 		retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Status)
 		if apiResponse.Response.StatusCode == http.StatusNotFound {

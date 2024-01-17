@@ -307,7 +307,7 @@ func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer, templateID string) (
 		dasVolumeInput.Properties.SetUserData(cr.Spec.ForProvider.DasVolumeProperties.UserData)
 	}
 
-	// Create Server Input
+	// CreateDataplatformCluster Server Input
 	instanceCreateInput := sdkgo.Server{
 		Properties: &sdkgo.ServerProperties{
 			Name:             &cr.Spec.ForProvider.Name,

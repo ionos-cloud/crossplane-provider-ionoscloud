@@ -40,17 +40,19 @@ var (
 		"mongocluster":    "mongo-cluster.yaml",
 		"cluster":         "k8s-cluster.yaml",
 		"nodepool":        "k8s-nodepool.yaml",
+		"dataplatform":    "dataplatform-cluster.yaml",
 	}
 	// This tool adds the generated files provided in DOCS_OUT/<service-long-name> directory, under the name <resource-name>.md.
 	// The <resource-name> is taken from the Managed Resource Spec Kind, using lower case (e.g.: kind=Cluster -> resource-name=cluster).
 	// The <service-name> is taken from the Managed Resource Spec Group (e.g.: group=k8s.ionoscloud.crossplane.io -> service-name=k8s).
 	// The <service-long-name> is taken from the collection defined below, using the <service-name> key:
 	servicesAbbrevDirectoriesMap = map[string]string{
-		"alb":     "application-load-balancer",
-		"compute": "compute-engine",
-		"dbaas":   "database-as-a-service",
-		"k8s":     "managed-kubernetes",
-		"backup":  "managed-backup",
+		"alb":          "application-load-balancer",
+		"compute":      "compute-engine",
+		"dbaas":        "database-as-a-service",
+		"k8s":          "managed-kubernetes",
+		"backup":       "managed-backup",
+		"dataplatform": "dataplatform",
 	}
 )
 
@@ -58,6 +60,7 @@ func main() {
 	// DOCS_OUT - represents the absolute path to the directory where
 	// the tool will generate the documentation files.
 	dir := os.Getenv("DOCS_OUT")
+	dir = "."
 	if dir == "" {
 		fmt.Printf("DOCS_OUT environment variable not set.\n")
 		os.Exit(1)
@@ -305,7 +308,7 @@ func writeUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition)
 		buf.WriteString("## Usage\n\n")
 		buf.WriteString("In order to manage resources on IONOS Cloud using Crossplane Provider, you need to have Crossplane Provider for IONOS Cloud installed into a Kubernetes Cluster, as a prerequisite. For a step-by-step guide, check the following [link](" + guideMasterGithubURL + ").\n\n")
 		buf.WriteString("It is recommended to clone the repository for easier access to the example files.\n\n")
-		buf.WriteString("### Create\n\n")
+		buf.WriteString("### CreateDataplatformCluster\n\n")
 		buf.WriteString("Use the following command to create a resource instance. Before applying the file, check the properties defined in the `spec.forProvider` fields:\n\n")
 		buf.WriteString(fmt.Sprintf(kubectlApplyCommand, path))
 		buf.WriteString(noteCommandRecommendation)
@@ -321,7 +324,7 @@ func writeUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition)
 		buf.WriteString("Use the following command to get a list of the existing instances:\n\n")
 		buf.WriteString(fmt.Sprintf(kubectlGetCommand, crd.Spec.Names.Plural, crd.Spec.Group))
 		buf.WriteString("_Note_: Use options `--output wide`, `--output json` to get more information about the resource instances.\n\n")
-		buf.WriteString("### Delete\n\n")
+		buf.WriteString("### DeleteDataPlatformCluster\n\n")
 		buf.WriteString("Use the following command to destroy the resources created by applying the file:\n\n")
 		buf.WriteString(fmt.Sprintf(kubectlDeleteCommand, path))
 		buf.WriteString(noteCommandRecommendation)

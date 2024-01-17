@@ -11,6 +11,7 @@ source ./cluster/local/integration_tests_dbaas_postgres.sh
 source ./cluster/local/integration_tests_dbaas_mongo.sh
 source ./cluster/local/integration_tests_k8s.sh
 source ./cluster/local/integration_tests_backup.sh
+source ./cluster/local/integration_tests_dataplatform.sh
 
 # ------------------------------
 projectdir="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
@@ -31,15 +32,16 @@ CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller"
 # Pay attention to the default values that are set!
 # To run specific tests, for example for dbaas resources,
 # use: make e2e TEST_COMPUTE=false TEST_DBAAS=true
-TEST_COMPUTE=${TEST_COMPUTE:-true}
+TEST_COMPUTE=${TEST_COMPUTE:-false}
 # by default, do not test the following resources
 # since it takes a lot of time
 TEST_DBAAS=${TEST_DBAAS:-false}
-TEST_MONGO=${TEST_MONGO:-true}
+TEST_MONGO=${TEST_MONGO:-false}
 TEST_POSTGRES=${TEST_POSTGRES:-false}
 TEST_K8S=${TEST_K8S:-false}
 TEST_ALB=${TEST_ALB:-false}
 TEST_BACKUP=${TEST_BACKUP:-false}
+TEST_DATAPLATFORM=${TEST_DATAPLATFORM:-true}
 skipcleanup=${skipcleanup:-false}
 
 version_tag="$(cat ${projectdir}/_output/version)"
@@ -225,10 +227,10 @@ fi
 
 if [ "$TEST_MONGO" = true ]; then
   echo_step "--- DBAAS MONGO TESTS ---"
-  echo_step "--- dbaas postgres cluster tests ---"
+  echo_step "--- dbaas mongo cluster tests ---"
   dbaas_mongo_cluster_tests
   echo_step "--- CLEANING UP DBAAS MONGO TESTS ---"
-  echo_step "--- dbaas postgres cluster tests ---"
+  echo_step "--- dbaas mongo cluster tests ---"
   dbaas_mongo_cluster_tests_cleanup
 fi
 
@@ -269,6 +271,15 @@ if [ "$TEST_BACKUP" = true ]; then
   echo_step "--- CLEANING UP BACKUP TESTS ---"
   echo_step "--- backupunit tests ---"
   backupunit_tests_cleanup
+fi
+
+if [ "$TEST_DATAPLATFORM" = true ]; then
+  echo_step "--- DATAPLATFORM TESTS ---"
+  echo_step "--- DATAPLATFORM cluster tests ---"
+  dataplatform_tests
+  echo_step "--- CLEANING UP DATAPLATFORM TESTS ---"
+  echo_step "--- DATAPLATFORM cluster tests ---"
+  dataplatform_tests_cleanup
 fi
 
 echo_step "-------------------"

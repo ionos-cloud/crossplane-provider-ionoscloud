@@ -165,7 +165,7 @@ func (c *externalDatacenter) Create(ctx context.Context, mg resource.Managed) (m
 		}
 	}
 
-	// Create new datacenter instance accordingly
+	// CreateDataplatformCluster new datacenter instance accordingly
 	// with the properties set.
 	instanceInput, err := datacenter.GenerateCreateDatacenterInput(cr)
 	if err != nil {

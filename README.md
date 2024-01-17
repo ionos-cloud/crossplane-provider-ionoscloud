@@ -24,7 +24,7 @@ following new functionality:
 * Custom Resource Definitions (CRDs) that model IONOS Cloud infrastructure and services (e.g. Database As a Service
   Postgres, Compute Engine, Kubernetes, etc.)
 * Controllers to provision these resources in IONOS Cloud based on the users desired state captured in CRDs they create
-* Implementations of Crossplane's portable resource abstractions, enabling IONOS Cloud resources to fulfill a user's
+* Implementations of Crossplane portable resource abstractions, enabling IONOS Cloud resources to fulfill a user's
   general need for cloud services
 
 ## Getting Started and Documentation
@@ -59,17 +59,42 @@ Verbose request and response logging can also significantly impact your applicat
 You can enable certificate pinning if you want to bypass the normal certificate checking procedure,
 by doing the following:
 
-Set env variable IONOS_PINNED_CERT=<insert_sha256_public_fingerprint_here>
+You can get the sha256 fingerprint most easily from the browser by inspecting the certificate test.
 
-You can get the sha256 fingerprint most easily from the browser by inspecting the certificate.
+Apply the following crds. They will install the latest ionos provider with the pinned certificate enabled.
 
+```bash
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-ionos
+spec:
+  package: ghcr.io/ionos-cloud/crossplane-provider-ionoscloud:latest
+  runtimeConfigRef:
+    name: enable-pinning
+---
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: enable-pinning
+spec:
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+            - name: package-runtime
+              env:
+                - name: IONOS_PINNED_CERT
+                  value: "pinned_cert_here"
 ```
 
 More details about ProviderConfig and authentication [here](docs/README.md#authentication-on-ionos-cloud).
 
 ## Provision Resources on IONOS Cloud
 
-Crossplane Provider IONOS Cloud Managed Resoures list is available [here](docs/RESOURCES.md).
+Crossplane Provider IONOS Cloud Managed Resources list is available [here](docs/RESOURCES.md).
 
 ## Build images
 
@@ -132,7 +157,7 @@ make e2e
 
 If the images have a specific version, other than `latest`, this can be set via `make e2e VERSION=v0.x.x`.
 
-Daily workflows with all end-to-end integration tests are running using Github Actions. You can check their
+Daily workflows with all end-to-end integration tests are running using GitHub Actions. You can check their
 status [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/actions/workflows/ci-daily.yml).
 
 ## Releases
