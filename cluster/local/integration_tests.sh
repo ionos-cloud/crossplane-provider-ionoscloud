@@ -32,7 +32,7 @@ CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller"
 # Pay attention to the default values that are set!
 # To run specific tests, for example for dbaas resources,
 # use: make e2e TEST_COMPUTE=false TEST_DBAAS=true
-TEST_COMPUTE=${TEST_COMPUTE:-false}
+TEST_COMPUTE=${TEST_COMPUTE:-TRUE}
 # by default, do not test the following resources
 # since it takes a lot of time
 TEST_DBAAS=${TEST_DBAAS:-false}
@@ -41,7 +41,7 @@ TEST_POSTGRES=${TEST_POSTGRES:-false}
 TEST_K8S=${TEST_K8S:-false}
 TEST_ALB=${TEST_ALB:-false}
 TEST_BACKUP=${TEST_BACKUP:-false}
-TEST_DATAPLATFORM=${TEST_DATAPLATFORM:-true}
+TEST_DATAPLATFORM=${TEST_DATAPLATFORM:-false}
 skipcleanup=${skipcleanup:-false}
 
 version_tag="$(cat ${projectdir}/_output/version)"
