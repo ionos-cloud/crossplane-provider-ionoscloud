@@ -130,7 +130,7 @@ func (c *externalNodePool) Observe(ctx context.Context, mg resource.Managed) (ma
 	observed, apiResponse, err := c.service.GetK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get k8s nodepool by id. error: %w", err)
-		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 
 	current := cr.Spec.ForProvider.DeepCopy()
@@ -271,7 +271,7 @@ func (c *externalNodePool) Delete(ctx context.Context, mg resource.Managed) erro
 	apiResponse, err := c.service.DeleteK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, cr.Status.AtProvider.NodePoolID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete k8s nodepool. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	return nil
 }

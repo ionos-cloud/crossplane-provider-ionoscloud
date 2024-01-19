@@ -119,7 +119,7 @@ func (c *externalPrivateCrossConnect) Observe(ctx context.Context, mg resource.M
 	instance, apiResponse, err := c.service.GetPrivateCrossConnect(ctx, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get privateCrossConnect by id. error: %w", err)
-		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 
 	cr.Status.AtProvider.PrivateCrossConnectID = meta.GetExternalName(cr)
@@ -164,7 +164,7 @@ func (c *externalPrivateCrossConnect) Create(ctx context.Context, mg resource.Ma
 		}
 	}
 
-	// CreateDataplatformCluster new privateCrossConnect instance accordingly
+	// Create new privateCrossConnect instance accordingly
 	// with the properties set.
 	instanceInput, err := pcc.GenerateCreatePrivateCrossConnectInput(cr)
 	if err != nil {
@@ -223,7 +223,7 @@ func (c *externalPrivateCrossConnect) Delete(ctx context.Context, mg resource.Ma
 	apiResponse, err := c.service.DeletePrivateCrossConnect(ctx, cr.Status.AtProvider.PrivateCrossConnectID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete privateCrossConnect. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err

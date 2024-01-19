@@ -119,7 +119,7 @@ func (c *externalTargetGroup) Observe(ctx context.Context, mg resource.Managed) 
 	observed, resp, err := c.service.GetTargetGroup(ctx, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get target group by id. error: %w", err)
-		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(resp, retErr)
+		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(resp, retErr)
 	}
 	current := cr.Spec.ForProvider.DeepCopy()
 	targetgroup.LateInitializer(&cr.Spec.ForProvider, &observed)
@@ -221,7 +221,7 @@ func (c *externalTargetGroup) Delete(ctx context.Context, mg resource.Managed) e
 	apiResponse, err := c.service.DeleteTargetGroup(ctx, cr.Status.AtProvider.TargetGroupID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete target group. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err

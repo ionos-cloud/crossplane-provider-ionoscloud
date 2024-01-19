@@ -178,7 +178,7 @@ func (c *externalIPFailover) Create(ctx context.Context, mg resource.Managed) (m
 	if err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("failed to generate input for ipfailover creation: %w", err)
 	}
-	// CreateDataplatformCluster IPFailover - Update Lan with the new IP Failover
+	// Create IPFailover - Update Lan with the new IP Failover
 	_, apiResponse, err := c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to update lan to create ipfailover. error: %w", err)
@@ -261,7 +261,7 @@ func (c *externalIPFailover) Delete(ctx context.Context, mg resource.Managed) er
 	_, apiResponse, err := c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to update lan to remove ipfailover. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return fmt.Errorf("failed to wait for request on removing ipfailover: %w", err)

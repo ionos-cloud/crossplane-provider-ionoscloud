@@ -118,7 +118,7 @@ func (c *externalS3Key) Observe(ctx context.Context, mg resource.Managed) (manag
 	observed, apiResponse, err := c.service.GetS3Key(ctx, cr.Spec.ForProvider.UserID, cr.Status.AtProvider.S3KeyID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to get S3Key by id. error: %w", err)
-		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	current := cr.Spec.ForProvider.DeepCopy()
 	s3key.LateInitializer(&cr.Spec.ForProvider, &observed)
@@ -187,7 +187,7 @@ func (c *externalS3Key) Delete(ctx context.Context, mg resource.Managed) error {
 	apiResponse, err := c.service.DeleteS3Key(ctx, cr.Spec.ForProvider.UserID, cr.Status.AtProvider.S3KeyID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete S3Key. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 
 	return compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse)

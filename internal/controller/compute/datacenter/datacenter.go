@@ -119,7 +119,7 @@ func (c *externalDatacenter) Observe(ctx context.Context, mg resource.Managed) (
 	instance, apiResponse, err := c.service.GetDatacenter(ctx, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get datacenter by id. error: %w", err)
-		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 
 	cr.Status.AtProvider.DatacenterID = meta.GetExternalName(cr)
@@ -165,7 +165,7 @@ func (c *externalDatacenter) Create(ctx context.Context, mg resource.Managed) (m
 		}
 	}
 
-	// CreateDataplatformCluster new datacenter instance accordingly
+	// Create new datacenter instance accordingly
 	// with the properties set.
 	instanceInput, err := datacenter.GenerateCreateDatacenterInput(cr)
 	if err != nil {
@@ -224,7 +224,7 @@ func (c *externalDatacenter) Delete(ctx context.Context, mg resource.Managed) er
 	apiResponse, err := c.service.DeleteDatacenter(ctx, cr.Status.AtProvider.DatacenterID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete datacenter. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err

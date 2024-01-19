@@ -122,7 +122,7 @@ func (c *externalFirewallRule) Observe(ctx context.Context, mg resource.Managed)
 		cr.Spec.ForProvider.ServerCfg.ServerID, cr.Spec.ForProvider.NicCfg.NicID, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get firewallRule by id. error: %w", err)
-		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 
 	cr.Status.AtProvider.FirewallRuleID = meta.GetExternalName(cr)
@@ -269,7 +269,7 @@ func (c *externalFirewallRule) Delete(ctx context.Context, mg resource.Managed) 
 		cr.Spec.ForProvider.ServerCfg.ServerID, cr.Spec.ForProvider.NicCfg.NicID, cr.Status.AtProvider.FirewallRuleID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete firewallRule. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err

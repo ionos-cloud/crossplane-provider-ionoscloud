@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 )
@@ -41,12 +40,12 @@ func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *s
 	return errors.New(errAPIClientNil)
 }
 
-// CheckAPIResponseInfo checks status code of an APIResponse, and appends info to an existing error
-func CheckAPIResponseInfo(apiResponse *sdkgo.APIResponse, retErr error) error {
+// ErrorUnlessNotFound returns an error with status code info, unless the status code is 404
+func ErrorUnlessNotFound(apiResponse *sdkgo.APIResponse, retErr error) error {
 
 	if apiResponse != nil && apiResponse.Response != nil {
 		retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Status)
-		if apiResponse.Response.StatusCode == http.StatusNotFound {
+		if apiResponse.HttpNotFound() {
 			retErr = nil
 		}
 	}

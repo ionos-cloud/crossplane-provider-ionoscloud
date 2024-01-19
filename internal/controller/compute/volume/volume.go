@@ -118,7 +118,7 @@ func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (mana
 	instance, apiResponse, err := c.service.GetVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get volume by id. error: %w", err)
-		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 
 	cr.Status.AtProvider.VolumeID = meta.GetExternalName(cr)
@@ -199,7 +199,7 @@ func (c *externalVolume) Update(ctx context.Context, mg resource.Managed) (manag
 	instanceObserved, apiResponse, err := c.service.GetVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, volumeID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to get volume by id. error: %w", err)
-		return managed.ExternalUpdate{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalUpdate{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	instanceInput, err := volume.GenerateUpdateVolumeInput(cr, instanceObserved.Properties)
 	if err != nil {
@@ -230,7 +230,7 @@ func (c *externalVolume) Delete(ctx context.Context, mg resource.Managed) error 
 	apiResponse, err := c.service.DeleteVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.VolumeID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete volume. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err

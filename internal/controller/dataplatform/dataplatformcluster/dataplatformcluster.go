@@ -100,8 +100,11 @@ func (c *externalDataplatform) Observe(ctx context.Context, mg resource.Managed)
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
-	instance, _, err := c.service.GetDataplatformClusterByID(ctx, meta.GetExternalName(cr))
+	instance, apiResponse, err := c.service.GetDataplatformClusterByID(ctx, meta.GetExternalName(cr))
 	if err != nil {
+		if apiResponse.HttpNotFound() {
+			return managed.ExternalObservation{}, nil
+		}
 		err = fmt.Errorf("failed to get dataplatform cluster by id. error: %w", err)
 		return managed.ExternalObservation{}, err
 	}
@@ -128,7 +131,7 @@ func (c *externalDataplatform) Create(ctx context.Context, mg resource.Managed) 
 		return managed.ExternalCreation{}, nil
 	}
 
-	// CreateDataplatformCluster new Dataplatform instance accordingly
+	// Create new Dataplatform instance accordingly
 	// with the properties set.
 	instanceInput := dataplatformcluster.GenerateCreateInput(cr)
 

@@ -125,7 +125,7 @@ func (c *externalApplicationLoadBalancer) Observe(ctx context.Context, mg resour
 	observed, resp, err := c.service.GetApplicationLoadBalancer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get application load balancer by id. error: %w", err)
-		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(resp, retErr)
+		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(resp, retErr)
 	}
 	current := cr.Spec.ForProvider.DeepCopy()
 	applicationloadbalancer.LateInitializer(&cr.Spec.ForProvider, &observed)
@@ -261,7 +261,7 @@ func (c *externalApplicationLoadBalancer) Delete(ctx context.Context, mg resourc
 	apiResponse, err := c.service.DeleteApplicationLoadBalancer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ApplicationLoadBalancerID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete application load balancer. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err
