@@ -125,7 +125,7 @@ func (c *externalForwardingRule) Observe(ctx context.Context, mg resource.Manage
 		cr.Spec.ForProvider.ALBCfg.ApplicationLoadBalancerID, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get application load balancer forwarding rule by id. error: %w", err)
-		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	current := cr.Spec.ForProvider.DeepCopy()
 	forwardingrule.LateInitializer(&cr.Spec.ForProvider, &observed)
@@ -250,7 +250,7 @@ func (c *externalForwardingRule) Delete(ctx context.Context, mg resource.Managed
 		cr.Spec.ForProvider.ALBCfg.ApplicationLoadBalancerID, cr.Status.AtProvider.ForwardingRuleID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete application load balancer forwarding rule. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err

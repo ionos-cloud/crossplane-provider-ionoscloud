@@ -2,6 +2,10 @@
 - **Features**:
 - Add `MongoCluster` crd to support CRUD of MongoDB clusters
 - Add `MongoUser` crd to support CRUD of MongoDB users
+- Add `DataplatformCluster` crd to support CRUD of Dataplatform clusters
+
+- **Documentation**:
+- Add docs on how to set pinning for crossplane provider. See [here](docs/README.md#authentication-on-ionos-cloud)
 
 ## [1.0.8] (December 2023)
 - **Features**:

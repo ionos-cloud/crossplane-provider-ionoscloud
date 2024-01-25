@@ -40,17 +40,19 @@ var (
 		"mongocluster":    "mongo-cluster.yaml",
 		"cluster":         "k8s-cluster.yaml",
 		"nodepool":        "k8s-nodepool.yaml",
+		"dataplatform":    "dataplatform-cluster.yaml",
 	}
 	// This tool adds the generated files provided in DOCS_OUT/<service-long-name> directory, under the name <resource-name>.md.
 	// The <resource-name> is taken from the Managed Resource Spec Kind, using lower case (e.g.: kind=Cluster -> resource-name=cluster).
 	// The <service-name> is taken from the Managed Resource Spec Group (e.g.: group=k8s.ionoscloud.crossplane.io -> service-name=k8s).
 	// The <service-long-name> is taken from the collection defined below, using the <service-name> key:
 	servicesAbbrevDirectoriesMap = map[string]string{
-		"alb":     "application-load-balancer",
-		"compute": "compute-engine",
-		"dbaas":   "database-as-a-service",
-		"k8s":     "managed-kubernetes",
-		"backup":  "managed-backup",
+		"alb":          "application-load-balancer",
+		"compute":      "compute-engine",
+		"dbaas":        "database-as-a-service",
+		"k8s":          "managed-kubernetes",
+		"backup":       "managed-backup",
+		"dataplatform": "dataplatform",
 	}
 )
 

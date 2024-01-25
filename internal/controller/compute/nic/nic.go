@@ -124,7 +124,7 @@ func (c *externalNic) Observe(ctx context.Context, mg resource.Managed) (managed
 		cr.Spec.ForProvider.ServerCfg.ServerID, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get nic by id. error: %w", err)
-		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 
 	current := cr.Spec.ForProvider.DeepCopy()
@@ -258,7 +258,7 @@ func (c *externalNic) Delete(ctx context.Context, mg resource.Managed) error {
 		cr.Spec.ForProvider.ServerCfg.ServerID, cr.Status.AtProvider.NicID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete nic. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err

@@ -1,8 +1,13 @@
 package utils
 
 import (
+	"context"
+	"fmt"
 	"reflect"
 	"strings"
+	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 )
 
 // DepthQueryParam is used in GET requests in Cloud API
@@ -93,4 +98,23 @@ func ContainsStringInSlice(input []string, specific string) bool {
 		}
 	}
 	return false
+}
+
+// IsResourceDeletedFunc polls api to see if resource exists based on id
+type IsResourceDeletedFunc func(ctx context.Context, ID string) (bool, error)
+
+// WaitForResourceToBeDeleted - keeps retrying until resource is not found(404), or until ctx is cancelled
+func WaitForResourceToBeDeleted(ctx context.Context, id string, timeoutInMinutes time.Duration, fn IsResourceDeletedFunc) error {
+
+	err := retry.RetryContext(ctx, timeoutInMinutes, func() *retry.RetryError {
+		isDeleted, err := fn(ctx, id)
+		if isDeleted {
+			return nil
+		}
+		if err != nil {
+			retry.NonRetryableError(err)
+		}
+		return retry.RetryableError(fmt.Errorf("resource with id %s found, still trying ", id))
+	})
+	return err
 }

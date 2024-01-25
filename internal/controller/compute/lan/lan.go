@@ -118,7 +118,7 @@ func (c *externalLan) Observe(ctx context.Context, mg resource.Managed) (managed
 	instance, apiResponse, err := c.service.GetLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
-		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 
 	cr.Status.AtProvider.IPFailovers = lan.GetIPFailoverIPs(instance)
@@ -223,7 +223,7 @@ func (c *externalLan) Delete(ctx context.Context, mg resource.Managed) error {
 	apiResponse, err := c.service.DeleteLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.LanID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete lan. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err

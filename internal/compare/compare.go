@@ -46,6 +46,28 @@ func EqualKubernetesMaintenanceWindow(targetValue k8sv1alpha1.MaintenanceWindow,
 		EqualString(targetValue.DayOfTheWeek, observedValue.DayOfTheWeek)
 }
 
+// MaintenanceWindowPtrResource to be able to compare maintenance windows from different sdks
+type MaintenanceWindowPtrResource interface {
+	GetTime() *string
+	GetDayOfTheWeek() *string
+}
+
+// MaintenanceWindowResource - interface to be able to compare maintenance windows from different sdks
+type MaintenanceWindowResource interface {
+	GetTime() string
+	GetDayOfTheWeek() string
+}
+
+// EqualMaintenanceWindow returns true if the maintenance windows are equal
+func EqualMaintenanceWindow(targetValue MaintenanceWindowResource, observedValue MaintenanceWindowPtrResource) bool {
+	if observedValue == nil {
+		return targetValue.GetTime() == "" && targetValue.GetDayOfTheWeek() == ""
+	}
+
+	return EqualTimeString(targetValue.GetTime(), observedValue.GetTime()) &&
+		EqualString(targetValue.GetDayOfTheWeek(), observedValue.GetDayOfTheWeek())
+}
+
 // EqualDatabaseMaintenanceWindow returns true if the maintenance windows are equal
 func EqualDatabaseMaintenanceWindow(targetValue dbaasv1alpha1.MaintenanceWindow, observedValue *ionosdbaas.MaintenanceWindow) bool {
 	if observedValue == nil {

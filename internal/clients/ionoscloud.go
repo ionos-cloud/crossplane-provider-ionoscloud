@@ -9,6 +9,7 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	dataplatform "github.com/ionos-cloud/sdk-go-dataplatform"
 	mongo "github.com/ionos-cloud/sdk-go-dbaas-mongo"
 	sdkdbaas "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
@@ -53,6 +54,7 @@ type IonosServices struct {
 	DBaaSPostgresClient *sdkdbaas.APIClient
 	DBaaSMongoClient    *mongo.APIClient
 	ComputeClient       *sdkgo.APIClient
+	DataplatformClient  *dataplatform.APIClient
 }
 
 // credentials specify how to authenticate with the IONOS Cloud API
@@ -105,10 +107,16 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 	computeEngineConfig.UserAgent = fmt.Sprintf("%v/%v_%v", UserAgent, version.Version, computeEngineConfig.UserAgent)
 	computeEngineClient := sdkgo.NewAPIClient(computeEngineConfig)
 
+	// Dataplatform Engine Client
+	dpConfig := dataplatform.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
+	dpConfig.UserAgent = fmt.Sprintf("%v/%v_%v", UserAgent, version.Version, dpConfig.UserAgent)
+	dpEngineClient := dataplatform.NewAPIClient(dpConfig)
+
 	return &IonosServices{
 		DBaaSMongoClient:    dbaasMongoClient,
 		DBaaSPostgresClient: dbaasPostgresClient,
 		ComputeClient:       computeEngineClient,
+		DataplatformClient:  dpEngineClient,
 	}, nil
 }
 

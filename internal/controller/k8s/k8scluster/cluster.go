@@ -128,7 +128,7 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 	observed, apiResponse, err := c.service.GetK8sCluster(ctx, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get k8s cluster by id. error: %w", err)
-		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 
 	current := cr.Spec.ForProvider.DeepCopy()
@@ -263,7 +263,7 @@ func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error
 		apiResponse, err := c.service.DeleteK8sCluster(ctx, cr.Status.AtProvider.ClusterID)
 		if err != nil {
 			retErr := fmt.Errorf("failed to delete k8s cluster. error: %w", err)
-			return compute.CheckAPIResponseInfo(apiResponse, retErr)
+			return compute.ErrorUnlessNotFound(apiResponse, retErr)
 		}
 	default:
 		return fmt.Errorf("resource needs to be in ACTIVE state to delete it, current state: %v", cr.Status.AtProvider.State)

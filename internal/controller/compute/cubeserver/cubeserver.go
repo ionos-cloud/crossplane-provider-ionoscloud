@@ -126,7 +126,7 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	instance, apiResponse, err := c.service.GetServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get cube server by id. error: %w", err)
-		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if instance.Entities != nil && instance.Entities.Volumes != nil && instance.Entities.Volumes.Items != nil {
 		if len(*instance.Entities.Volumes.Items) > 0 {
@@ -261,7 +261,7 @@ func (c *externalServer) Delete(ctx context.Context, mg resource.Managed) error 
 	apiResponse, err := c.service.DeleteServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete cube server. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err

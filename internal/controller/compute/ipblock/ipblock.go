@@ -120,7 +120,7 @@ func (c *externalIPBlock) Observe(ctx context.Context, mg resource.Managed) (man
 	observed, apiResponse, err := c.service.GetIPBlock(ctx, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get ipBlock by id. error: %w", err)
-		return managed.ExternalObservation{}, compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	current := cr.Spec.ForProvider.DeepCopy()
 	ipblock.LateStatusInitializer(&cr.Status.AtProvider, &observed)
@@ -228,7 +228,7 @@ func (c *externalIPBlock) Delete(ctx context.Context, mg resource.Managed) error
 	apiResponse, err := c.service.DeleteIPBlock(ctx, cr.Status.AtProvider.IPBlockID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete ipBlock. error: %w", err)
-		return compute.CheckAPIResponseInfo(apiResponse, retErr)
+		return compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return err
