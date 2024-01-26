@@ -1,13 +1,13 @@
 ---
-description: Manages MongoUser Resource on IONOS Cloud.
+description: Manages DataplatformCluster Resource on IONOS Cloud.
 ---
 
-# MongoUser Managed Resource
+# DataplatformCluster Managed Resource
 
 ## Overview
 
-* Resource Name: `MongoUser`
-* Resource Group: `dbaas.mongo.ionoscloud.crossplane.io`
+* Resource Name: `DataplatformCluster`
+* Resource Group: `dataplatform.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`
 * Resource Scope: `Cluster`
 
@@ -22,7 +22,7 @@ It is recommended to clone the repository for easier access to the example files
 Use the following command to create a resource instance. Before applying the file, check the properties defined in the `spec.forProvider` fields:
 
 ```bash
-kubectl apply -f examples/ionoscloud/dbaas/mongouser.yaml
+kubectl apply -f examples/ionoscloud/dataplatform/dataplatformcluster.yaml
 ```
 
 _Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.
@@ -32,7 +32,7 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 Use the following command to update an instance. Before applying the file, update the properties defined in the `spec.forProvider` fields:
 
 ```bash
-kubectl apply -f examples/ionoscloud/dbaas/mongouser.yaml
+kubectl apply -f examples/ionoscloud/dataplatform/dataplatformcluster.yaml
 ```
 
 _Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.
@@ -42,11 +42,11 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 Use the following commands to wait for resources to be ready and synced. Update the `<instance-name>` accordingly:
 
 ```bash
-kubectl wait --for=condition=ready mongousers.dbaas.mongo.ionoscloud.crossplane.io/<instance-name>
+kubectl wait --for=condition=ready dataplatformclusters.dataplatform.ionoscloud.crossplane.io/<instance-name>
 ```
 
 ```bash
-kubectl wait --for=condition=synced mongousers.dbaas.mongo.ionoscloud.crossplane.io/<instance-name>
+kubectl wait --for=condition=synced dataplatformclusters.dataplatform.ionoscloud.crossplane.io/<instance-name>
 ```
 
 ### Get
@@ -54,7 +54,7 @@ kubectl wait --for=condition=synced mongousers.dbaas.mongo.ionoscloud.crossplane
 Use the following command to get a list of the existing instances:
 
 ```bash
-kubectl get -f mongousers.dbaas.mongo.ionoscloud.crossplane.io
+kubectl get -f dataplatformclusters.dataplatform.ionoscloud.crossplane.io
 ```
 
 _Note_: Use options `--output wide`, `--output json` to get more information about the resource instances.
@@ -64,7 +64,7 @@ _Note_: Use options `--output wide`, `--output json` to get more information abo
 Use the following command to destroy the resources created by applying the file:
 
 ```bash
-kubectl delete -f examples/ionoscloud/dbaas/mongouser.yaml
+kubectl delete -f examples/ionoscloud/dataplatform/dataplatformcluster.yaml
 ```
 
 _Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.
@@ -73,14 +73,14 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `clusterConfig` (object)
-	* description: ClusterConfig is used by resources that need to link mongo clusters via id or via reference.
+* `datacenterConfig` (object)
+	* description: A Datacenter, to which the user has access, to provision the dataplatform cluster in.
 * :
-	* `ClusterId` (string)
-		* description: ClusterID is the ID of the Cluster on which the resource will be created. It needs to be provided via directly or via reference.
+	* `datacenterId` (string)
+		* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
 		* format: uuid
-	* `ClusterIdRef` (object)
-		* description: ClusterIDRef references to a Cluster to retrieve its ID.
+	* `datacenterIdRef` (object)
+		* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
 * :
 		* `name` (string)
 			* description: Name of the referenced object.
@@ -94,8 +94,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* `resolve` (string)
 				* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 				* possible values: "Always";"IfNotPresent"
-	* `ClusterIdSelector` (object)
-		* description: ClusterIDSelector selects reference to a Cluster to retrieve its ClusterID.
+	* `datacenterIdSelector` (object)
+		* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
 * :
 		* `matchControllerRef` (boolean)
 			* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
@@ -112,54 +112,30 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* `resolve` (string)
 				* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 				* possible values: "Always";"IfNotPresent"
-* `credentials` (object)
-	* description: Database credentials - either set directly, or as secret/path/env
+* `maintenanceWindow` (object)
+	* description: Starting time of a weekly 4 hour-long window, during which maintenance might occur in hh:mm:ss format
 * :
-	* `env` (object)
-		* description: Env is a reference to an environment variable that contains credentials that must be used to connect to the provider.
-* :
-		* `name` (string)
-			* description: Name is the name of an environment variable.
-	* `fs` (object)
-		* description: Fs is a reference to a filesystem location that contains credentials that must be used to connect to the provider.
-* :
-		* `path` (string)
-			* description: Path is a filesystem path.
-	* `password` (string)
-	* `secretRef` (object)
-		* description: A SecretRef is a reference to a secret key that contains the credentials that must be used to connect to the provider.
-* :
-		* `key` (string)
-			* description: The key to select.
-		* `name` (string)
-			* description: Name of the secret.
-		* `namespace` (string)
-			* description: Namespace of the secret.
-	* `source` (string)
-		* description: Source of the provider credentials.
-		* possible values: "None";"Secret";"InjectedIdentity";"Environment";"Filesystem"
-	* `username` (string)
-		* description: The username for the mongo user. Some system usernames are restricted (e.g. \"mongo\", \"admin\", \"standby\"). Password must have a minimum length o 10
-* `userRoles` (array)
-	* description: A list of mongodb user roles
-* :
-	* `database` (string)
-		* description: Database on which to set the role
-	* `role` (string)
-		* description: Role to set for the user
+	* `dayOfTheWeek` (string)
+		* description: DayOfTheWeek The name of the week day.
+	* `time` (string)
+		* description: "Time at which the maintenance should start."
+* `name` (string)
+	* description: The name of the  resource.
+	* pattern: ^[A-Za-z0-9][-A-Za-z0-9_.]*[A-Za-z0-9]$
+* `version` (string)
+	* description: The version of the Data Platform.
 
 ### Required Properties
 
 The user needs to set the following properties in order to configure the IONOS Cloud Resource:
 
-* `clusterConfig`
-* `credentials`
+* `datacenterConfig`
 
 ## Resource Definition
 
-The corresponding resource definition can be found [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/package/crds/dbaas.mongo.ionoscloud.crossplane.io_mongousers.yaml).
+The corresponding resource definition can be found [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/package/crds/dataplatform.ionoscloud.crossplane.io_dataplatformclusters.yaml).
 
 ## Resource Instance Example
 
-An example of a resource instance can be found [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples/ionoscloud/dbaas/mongouser.yaml).
+An example of a resource instance can be found [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples/ionoscloud/dataplatform/dataplatformcluster.yaml).
 
