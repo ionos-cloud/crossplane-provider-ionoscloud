@@ -99,6 +99,10 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `ClusterIdSelector` (object)
 			* description: ClusterIDSelector selects reference to a Cluster to retrieve its ClusterID.
 			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
 					* description: Policies for selection.
 					* properties:
@@ -109,19 +113,10 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
 * `credentials` (object)
 	* description: The total number of instances in the cluster (one master and n-1 standbys). 
  Database credentials - either set directly, or as secret/path/env
 	* properties:
-		* `source` (string)
-			* description: Source of the provider credentials.
-			* possible values: "None";"Secret";"InjectedIdentity";"Environment";"Filesystem"
-		* `username` (string)
-			* description: The username for the postgres user. Some system usernames are restricted (e.g. \"postgres\", \"admin\", \"standby\"). Password must have a minimum length o 10
 		* `env` (object)
 			* description: Env is a reference to an environment variable that contains credentials that must be used to connect to the provider.
 			* properties:
@@ -140,16 +135,21 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `secretRef` (object)
 			* description: A SecretRef is a reference to a secret key that contains the credentials that must be used to connect to the provider.
 			* properties:
-				* `namespace` (string)
-					* description: Namespace of the secret.
 				* `key` (string)
 					* description: The key to select.
 				* `name` (string)
 					* description: Name of the secret.
+				* `namespace` (string)
+					* description: Namespace of the secret.
 			* required properties:
 				* `key`
 				* `name`
 				* `namespace`
+		* `source` (string)
+			* description: Source of the provider credentials.
+			* possible values: "None";"Secret";"InjectedIdentity";"Environment";"Filesystem"
+		* `username` (string)
+			* description: The username for the postgres user. Some system usernames are restricted (e.g. \"postgres\", \"admin\", \"standby\"). Password must have a minimum length o 10
 
 ### Required Properties
 
