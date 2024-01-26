@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -57,73 +58,59 @@ var (
 )
 
 func main() {
-	// DOCS_OUT - represents the absolute path to the directory where
-	// the tool will generate the documentation files.
-	dir := os.Getenv("DOCS_OUT")
-	if dir == "" {
-		fmt.Printf("DOCS_OUT environment variable not set.\n")
-		os.Exit(1)
-	}
-	if _, err := os.Stat(dir); err != nil {
-		fmt.Printf("error getting directory: %v\n", err)
-		os.Exit(1)
-	}
-	if !strings.HasSuffix(dir, "/") {
-		dir += "/"
-	}
+	dir := getOutputDirectory()
 	fmt.Printf("Generating documentation in %s directory...\n", dir)
-	err := writeContent(dir)
-	if err != nil {
-		panic(err)
+	if err := writeContent(dir); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
 	}
-	fmt.Println("DONE!🎉")
+	fmt.Println("Documentation generation completed successfully.")
 }
 
-func writeContent(docsFolder string) error { // nolint: gocyclo
-	const errorPrinting = "resource: %s - error: %w"
+func getOutputDirectory() string {
+	dir := os.Getenv("DOCS_OUT")
+	if dir == "" {
+		fmt.Println("DOCS_OUT environment variable not set.")
+		os.Exit(1)
+	}
+	return strings.TrimSuffix(dir, "/") + "/"
+}
 
-	buf := new(bytes.Buffer)
+func writeContent(docsFolder string) error {
 	mustGetCRDs := crds.MustGetCRDs()
-	for i := 0; i < len(mustGetCRDs); i++ {
-		serviceName, err := getSvcShortNameFromGroup(mustGetCRDs[i])
-		if err != nil {
+	for _, crd := range mustGetCRDs {
+		if err := processCRD(crd, docsFolder); err != nil {
 			return err
-		}
-		if serviceName == ionoscloudServiceName {
-			continue
-		}
-		w, err := createOrUpdateFileForCRD(mustGetCRDs[i], docsFolder, serviceName)
-		if err != nil {
-			return err
-		}
-		kindName := mustGetCRDs[i].Spec.Names.Kind
-		buf.WriteString("---\n")
-		buf.WriteString("description: Manages " + kindName + " Resource on IONOS Cloud.\n")
-		buf.WriteString("---\n\n")
-		buf.WriteString("# " + kindName + " Managed Resource\n\n")
-		if err = getOverview(buf, mustGetCRDs[i]); err != nil {
-			return fmt.Errorf(errorPrinting, kindName, err)
-		}
-		if err = writeUsage(buf, mustGetCRDs[i]); err != nil {
-			return fmt.Errorf(errorPrinting, kindName, err)
-		}
-		if err = writeProperties(buf, mustGetCRDs[i]); err != nil {
-			return fmt.Errorf(errorPrinting, kindName, err)
-		}
-		if err = writeDefinition(buf, mustGetCRDs[i]); err != nil {
-			return fmt.Errorf(errorPrinting, kindName, err)
-		}
-		if err = writeInstanceExample(buf, mustGetCRDs[i]); err != nil {
-			return fmt.Errorf(errorPrinting, kindName, err)
-		}
-		if _, err = buf.WriteTo(w); err != nil {
-			return fmt.Errorf(errorPrinting, kindName, err)
 		}
 	}
 	return nil
 }
 
-func createOrUpdateFileForCRD(crd apiextensionsv1.CustomResourceDefinition, docsFolder, serviceShortName string) (io.Writer, error) {
+func processCRD(crd apiextensionsv1.CustomResourceDefinition, docsFolder string) error {
+	serviceName, err := getSvcShortNameFromGroup(crd)
+	if err != nil || serviceName == ionoscloudServiceName {
+		return err
+	}
+
+	file, err := createOrUpdateFileForCRD(crd, docsFolder, serviceName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return generateCRDDocumentation(crd, file)
+}
+
+func getSvcShortNameFromGroup(crd apiextensionsv1.CustomResourceDefinition) (string, error) {
+	groupSplit := strings.Split(crd.Spec.Group, ".")
+	if len(groupSplit) == 0 {
+		return "", fmt.Errorf("error getting service name from the specification group")
+	}
+	return groupSplit[0], nil
+}
+
+// createOrUpdateFileForCRD creates or updates the documentation file for a CRD
+func createOrUpdateFileForCRD(crd apiextensionsv1.CustomResourceDefinition, docsFolder, serviceShortName string) (*os.File, error) {
 	serviceLongDirName, ok := servicesAbbrevDirectoriesMap[serviceShortName]
 	if !ok {
 		return nil, fmt.Errorf("error when getting service directory name. please define the new service into the collection")
@@ -131,7 +118,6 @@ func createOrUpdateFileForCRD(crd apiextensionsv1.CustomResourceDefinition, docs
 	resourceName := strings.ToLower(crd.Spec.Names.Kind)
 	dirPath := fmt.Sprintf("%s%s", docsFolder, serviceLongDirName)
 	if _, err := os.ReadDir(dirPath); err != nil {
-		// If the directory does not exist yet, create it with the 0775 permissions.
 		if strings.Contains(err.Error(), "no such file or directory") {
 			if err = os.MkdirAll(dirPath, 0750); err != nil {
 				return nil, fmt.Errorf("error creating directory %s: %w", dirPath, err)
@@ -148,19 +134,46 @@ func createOrUpdateFileForCRD(crd apiextensionsv1.CustomResourceDefinition, docs
 	return f, nil
 }
 
-func getOverview(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error { // nolint: interfacer
-	if buf == nil {
-		return fmt.Errorf("error getting overview, buffer must be different than nil")
+// generateCRDDocumentation generates the documentation for a given CRD
+func generateCRDDocumentation(crd apiextensionsv1.CustomResourceDefinition, file io.Writer) error {
+	buf := new(bytes.Buffer)
+
+	writeOverview(buf, crd)
+	err := writeUsage(buf, crd)
+	if err != nil {
+		return err
 	}
+	err = writeProperties(buf, crd)
+	if err != nil {
+		return err
+	}
+	err = writeDefinition(buf, crd)
+	if err != nil {
+		return err
+	}
+	err = writeInstanceExample(buf, crd)
+	if err != nil {
+		return err
+	}
+
+	_, err = buf.WriteTo(file)
+	return err
+}
+
+func writeOverview(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) {
+	kindName := crd.Spec.Names.Kind
+	buf.WriteString("---\n")
+	buf.WriteString("description: Manages " + kindName + " Resource on IONOS Cloud.\n")
+	buf.WriteString("---\n\n")
+	buf.WriteString("# " + kindName + " Managed Resource\n\n")
+
 	buf.WriteString("## Overview\n\n")
-	buf.WriteString("* Resource Name: `" + crd.Spec.Names.Kind + "`\n")
+	buf.WriteString("* Resource Name: `" + kindName + "`\n")
 	buf.WriteString("* Resource Group: `" + crd.Spec.Group + "`\n")
-	if len(crd.Spec.Versions) == 0 {
-		return fmt.Errorf("error: CRD must have at least one version in spec.Versions")
+	if len(crd.Spec.Versions) > 0 {
+		buf.WriteString("* Resource Version: `" + crd.Spec.Versions[0].Name + "`\n")
 	}
-	buf.WriteString("* Resource Version: `" + crd.Spec.Versions[0].Name + "`\n")
 	buf.WriteString("* Resource Scope: `" + string(crd.Spec.Scope) + "`\n\n")
-	return nil
 }
 
 func writeProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error { // nolint: interfacer
@@ -176,10 +189,18 @@ func writeProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefini
 	if len(crd.Spec.Versions) == 0 {
 		return fmt.Errorf("error: CRD must have at least one version in spec.Versions")
 	}
+
 	propertiesCollection := crd.Spec.Versions[0].Schema.OpenAPIV3Schema.Properties[spec].Properties[forProvider]
-	for key, value := range propertiesCollection.Properties {
-		writePropertiesWithPrefix(buf, value, key, "")
+	var keys []string
+	for k := range propertiesCollection.Properties {
+		keys = append(keys, k)
 	}
+	sort.Strings(keys) // Sort the keys for deterministic order
+	for _, k := range keys {
+		value := propertiesCollection.Properties[k]
+		writePropertiesWithPrefix(buf, value, k, "")
+	}
+
 	buf.WriteString("\n")
 	buf.WriteString("### Required Properties\n\n")
 	buf.WriteString("The user needs to set the following properties in order to configure the IONOS Cloud Resource:\n\n")
@@ -220,40 +241,28 @@ func writePropertiesWithPrefix(buf *bytes.Buffer, valueProperty apiextensionsv1.
 	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.MultipleOf)) {
 		buf.WriteString(prefix + "\t* multiple of: " + fmt.Sprintf("%f", *valueProperty.MultipleOf) + "\n")
 	}
-	writeObjectOrArrayTypeProperties(buf, valueProperty, prefix)
-}
 
-func writeObjectOrArrayTypeProperties(buf *bytes.Buffer, valueProperty apiextensionsv1.JSONSchemaProps, prefix string) { // nolint: interfacer
-	const (
-		objectType = "object"
-		arrayType  = "array"
-	)
+	// Handling nested object or array type properties
+	if valueProperty.Type == "object" || valueProperty.Type == "array" {
+		buf.WriteString("* " + valueProperty.Title + ":\n")
+		var nestedProps map[string]apiextensionsv1.JSONSchemaProps
+		if valueProperty.Type == "object" {
+			nestedProps = valueProperty.Properties
+		} else {
+			nestedProps = valueProperty.Items.Schema.Properties
+		}
 
-	if valueProperty.Type == objectType || valueProperty.Type == arrayType {
-		var (
-			allProperties      map[string]apiextensionsv1.JSONSchemaProps
-			requiredProperties []string
-		)
-		if valueProperty.Type == objectType {
-			allProperties = valueProperty.Properties
-			requiredProperties = valueProperty.Required
+		// Sort keys for deterministic output
+		nestedKeys := make([]string, 0, len(nestedProps))
+		for k := range nestedProps {
+			nestedKeys = append(nestedKeys, k)
 		}
-		if valueProperty.Type == arrayType {
-			allProperties = valueProperty.Items.Schema.Properties
-			requiredProperties = valueProperty.Items.Schema.Required
-		}
-		if len(allProperties) > 0 {
-			buf.WriteString(prefix + "\t* properties:\n")
-			for keyPropertySec, valuePropertySec := range allProperties {
-				newPrefix := prefix + "\t\t"
-				writePropertiesWithPrefix(buf, valuePropertySec, keyPropertySec, newPrefix)
-			}
-		}
-		if len(requiredProperties) > 0 {
-			buf.WriteString(prefix + "\t* required properties:\n")
-			for _, valuePropertyReq := range requiredProperties {
-				buf.WriteString(prefix + "\t\t* `" + valuePropertyReq + "`\n")
-			}
+		sort.Strings(nestedKeys)
+
+		// Recursively write nested properties
+		for _, k := range nestedKeys {
+			nestedProp := nestedProps[k]
+			writePropertiesWithPrefix(buf, nestedProp, k, prefix+"\t")
 		}
 	}
 }
@@ -379,12 +388,4 @@ func yamlFileExists(filePath string) error {
 		return err
 	}
 	return nil
-}
-
-func getSvcShortNameFromGroup(crd apiextensionsv1.CustomResourceDefinition) (string, error) {
-	groupSplit := strings.Split(crd.Spec.Group, ".")
-	if len(groupSplit) == 0 {
-		return "", fmt.Errorf("error getting service name from the specification group")
-	}
-	return groupSplit[0], nil
 }
