@@ -73,14 +73,14 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `secAuthProtection` (boolean)
-	* description: Boolean value representing if the data center requires extra protection, such as two-step verification.
 * `description` (string)
 	* description: A description for the datacenter, such as staging, production.
 * `location` (string)
 	* description: The physical location where the datacenter will be created. This will be where all of your servers live. Property cannot be modified after datacenter creation (disallowed in update requests). Location can have the following values: de/fra, us/las, us/ewr, de/txl, gb/lhr, es/vit.
 * `name` (string)
 	* description: The name of the  resource.
+* `secAuthProtection` (boolean)
+	* description: Boolean value representing if the data center requires extra protection, such as two-step verification.
 
 ### Required Properties
 

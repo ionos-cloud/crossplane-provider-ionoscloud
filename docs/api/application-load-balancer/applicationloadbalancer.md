@@ -73,175 +73,174 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
+* `datacenterConfig` (object)
+	* description: A Datacenter, to which the user has access, to provision the ApplicationLoadBalancer in.
+* :
+	* `datacenterId` (string)
+		* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
+		* format: uuid
+	* `datacenterIdRef` (object)
+		* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
+* :
+		* `name` (string)
+			* description: Name of the referenced object.
+		* `policy` (object)
+			* description: Policies for referencing.
+* :
+			* `resolution` (string)
+				* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+				* default: "Required"
+				* possible values: "Required";"Optional"
+			* `resolve` (string)
+				* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+				* possible values: "Always";"IfNotPresent"
+	* `datacenterIdSelector` (object)
+		* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
+* :
+		* `matchControllerRef` (boolean)
+			* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+		* `matchLabels` (object)
+			* description: MatchLabels ensures an object with matching labels is selected.
+* :
+		* `policy` (object)
+			* description: Policies for selection.
+* :
+			* `resolution` (string)
+				* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+				* default: "Required"
+				* possible values: "Required";"Optional"
+			* `resolve` (string)
+				* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+				* possible values: "Always";"IfNotPresent"
 * `ipsConfig` (object)
 	* description: Collection of the Application Load Balancer IP addresses. (Inbound and outbound) IPs of the listenerLan are customer-reserved public IPs for the public Load Balancers, and private IPs for the private Load Balancers. The IPs can be set directly or using reference to the existing IPBlocks and indexes. If no indexes are set, all IPs from the corresponding IPBlock will be assigned. All IPs set on the Nic will be displayed on the status's ips field.
-	* properties:
-		* `ips` (array)
-			* description: Use IPs to set specific IPs to the resource. If both IPs and IPsBlockConfigs are set, only `ips` field will be considered.
-		* `ipsBlockConfigs` (array)
-			* description: Use IpsBlockConfigs to reference existing IPBlocks, and to mention the indexes for the IPs. Indexes start from 0, and multiple indexes can be set. If no index is set, all IPs from the corresponding IPBlock will be assigned to the resource.
-			* properties:
-				* `ipBlockIdRef` (object)
-					* description: IPBlockIDRef references to a IPBlock to retrieve its ID.
-					* properties:
-						* `name` (string)
-							* description: Name of the referenced object.
-						* `policy` (object)
-							* description: Policies for referencing.
-							* properties:
-								* `resolution` (string)
-									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-									* default: "Required"
-									* possible values: "Required";"Optional"
-								* `resolve` (string)
-									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-									* possible values: "Always";"IfNotPresent"
-					* required properties:
-						* `name`
-				* `ipBlockIdSelector` (object)
-					* description: IPBlockIDSelector selects reference to a IPBlock to retrieve its IPBlockID.
-					* properties:
-						* `matchControllerRef` (boolean)
-							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-						* `matchLabels` (object)
-							* description: MatchLabels ensures an object with matching labels is selected.
-						* `policy` (object)
-							* description: Policies for selection.
-							* properties:
-								* `resolve` (string)
-									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-									* possible values: "Always";"IfNotPresent"
-								* `resolution` (string)
-									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-									* default: "Required"
-									* possible values: "Required";"Optional"
-				* `indexes` (array)
-					* description: Indexes are referring to the IPs indexes retrieved from the IPBlock. Indexes are starting from 0. If no index is set, all IPs from the corresponding IPBlock will be assigned.
-				* `ipBlockId` (string)
-					* description: IPBlockID is the ID of the IPBlock on which the resource will be created. It needs to be provided via directly or via reference.
-					* format: uuid
+* :
+	* `ips` (array)
+		* description: Use IPs to set specific IPs to the resource. If both IPs and IPsBlockConfigs are set, only `ips` field will be considered.
+* :
+	* `ipsBlockConfigs` (array)
+		* description: Use IpsBlockConfigs to reference existing IPBlocks, and to mention the indexes for the IPs. Indexes start from 0, and multiple indexes can be set. If no index is set, all IPs from the corresponding IPBlock will be assigned to the resource.
+* :
+		* `indexes` (array)
+			* description: Indexes are referring to the IPs indexes retrieved from the IPBlock. Indexes are starting from 0. If no index is set, all IPs from the corresponding IPBlock will be assigned.
+* :
+		* `ipBlockId` (string)
+			* description: IPBlockID is the ID of the IPBlock on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
+		* `ipBlockIdRef` (object)
+			* description: IPBlockIDRef references to a IPBlock to retrieve its ID.
+* :
+			* `name` (string)
+				* description: Name of the referenced object.
+			* `policy` (object)
+				* description: Policies for referencing.
+* :
+				* `resolution` (string)
+					* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+					* default: "Required"
+					* possible values: "Required";"Optional"
+				* `resolve` (string)
+					* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+					* possible values: "Always";"IfNotPresent"
+		* `ipBlockIdSelector` (object)
+			* description: IPBlockIDSelector selects reference to a IPBlock to retrieve its IPBlockID.
+* :
+			* `matchControllerRef` (boolean)
+				* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+			* `matchLabels` (object)
+				* description: MatchLabels ensures an object with matching labels is selected.
+* :
+			* `policy` (object)
+				* description: Policies for selection.
+* :
+				* `resolution` (string)
+					* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+					* default: "Required"
+					* possible values: "Required";"Optional"
+				* `resolve` (string)
+					* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+					* possible values: "Always";"IfNotPresent"
 * `lbPrivateIps` (array)
 	* description: Collection of private IP addresses with the subnet mask of the Application Load Balancer. IPs must contain valid a subnet mask. If no IP is provided, the system will generate an IP with /24 subnet.
+* :
 * `listenerLanConfig` (object)
 	* description: ID of the listening (inbound) LAN. Lan ID can be set directly or via reference.
-	* properties:
-		* `lanId` (string)
-			* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
-		* `lanIdRef` (object)
-			* description: LanIDRef references to a Lan to retrieve its ID.
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-				* `policy` (object)
-					* description: Policies for referencing.
-					* properties:
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
-			* required properties:
-				* `name`
-		* `lanIdSelector` (object)
-			* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-				* `policy` (object)
-					* description: Policies for selection.
-					* properties:
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
+* :
+	* `lanId` (string)
+		* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
+	* `lanIdRef` (object)
+		* description: LanIDRef references to a Lan to retrieve its ID.
+* :
+		* `name` (string)
+			* description: Name of the referenced object.
+		* `policy` (object)
+			* description: Policies for referencing.
+* :
+			* `resolution` (string)
+				* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+				* default: "Required"
+				* possible values: "Required";"Optional"
+			* `resolve` (string)
+				* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+				* possible values: "Always";"IfNotPresent"
+	* `lanIdSelector` (object)
+		* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
+* :
+		* `matchControllerRef` (boolean)
+			* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+		* `matchLabels` (object)
+			* description: MatchLabels ensures an object with matching labels is selected.
+* :
+		* `policy` (object)
+			* description: Policies for selection.
+* :
+			* `resolution` (string)
+				* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+				* default: "Required"
+				* possible values: "Required";"Optional"
+			* `resolve` (string)
+				* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+				* possible values: "Always";"IfNotPresent"
 * `name` (string)
 	* description: The name of the Application Load Balancer.
 * `targetLanConfig` (object)
 	* description: ID of the balanced private target LAN (outbound). Lan ID can be set directly or via reference.
-	* properties:
-		* `lanId` (string)
-			* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
-		* `lanIdRef` (object)
-			* description: LanIDRef references to a Lan to retrieve its ID.
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-				* `policy` (object)
-					* description: Policies for referencing.
-					* properties:
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
-			* required properties:
-				* `name`
-		* `lanIdSelector` (object)
-			* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-				* `policy` (object)
-					* description: Policies for selection.
-					* properties:
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
-* `datacenterConfig` (object)
-	* description: A Datacenter, to which the user has access, to provision the ApplicationLoadBalancer in.
-	* properties:
-		* `datacenterIdRef` (object)
-			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
-			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-				* `policy` (object)
-					* description: Policies for referencing.
-					* properties:
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
-			* required properties:
-				* `name`
-		* `datacenterIdSelector` (object)
-			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-				* `policy` (object)
-					* description: Policies for selection.
-					* properties:
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
-		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
-			* format: uuid
+* :
+	* `lanId` (string)
+		* description: LanID is the ID of the Lan on which the resource will be created. It needs to be provided via directly or via reference.
+	* `lanIdRef` (object)
+		* description: LanIDRef references to a Lan to retrieve its ID.
+* :
+		* `name` (string)
+			* description: Name of the referenced object.
+		* `policy` (object)
+			* description: Policies for referencing.
+* :
+			* `resolution` (string)
+				* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+				* default: "Required"
+				* possible values: "Required";"Optional"
+			* `resolve` (string)
+				* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+				* possible values: "Always";"IfNotPresent"
+	* `lanIdSelector` (object)
+		* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
+* :
+		* `matchControllerRef` (boolean)
+			* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+		* `matchLabels` (object)
+			* description: MatchLabels ensures an object with matching labels is selected.
+* :
+		* `policy` (object)
+			* description: Policies for selection.
+* :
+			* `resolution` (string)
+				* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+				* default: "Required"
+				* possible values: "Required";"Optional"
+			* `resolve` (string)
+				* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+				* possible values: "Always";"IfNotPresent"
 
 ### Required Properties
 
