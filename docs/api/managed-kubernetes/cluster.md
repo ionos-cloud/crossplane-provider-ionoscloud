@@ -80,9 +80,9 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `maintenanceWindow` (object)
 	* description: The maintenance window is used for updating the cluster's control plane and for upgrading the cluster's K8s version. If no value is given, one is chosen dynamically, so there is no fixed default.
 	* properties:
-		* `time` (string)
 		* `dayOfTheWeek` (string)
 			* description: DayOfTheWeek The name of the week day.
+		* `time` (string)
 * `name` (string)
 	* description: A Kubernetes cluster name. Valid Kubernetes cluster name must be 63 characters or less and must be empty or begin and end with an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
 * `s3Buckets` (array)

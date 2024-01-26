@@ -73,51 +73,61 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `protocol` (string)
-	* description: Balancing protocol
-	* possible values: "HTTP"
-* `serverCertificatesIds` (array)
-	* description: Array of items in the collection.
-* `applicationLoadBalancerConfig` (object)
-	* description: An ApplicationLoadBalancer, to which the user has access, to provision the Forwarding Rule in.
+* `listenerIpConfig` (object)
+	* description: Listening (inbound) IP. IP must be assigned to the listener NIC of the Application Load Balancer.
 	* properties:
-		* `applicationLoadBalancerId` (string)
-			* description: ApplicationLoadBalancerID is the ID of the ApplicationLoadBalancer on which the resource should have access. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `applicationLoadBalancerIdRef` (object)
-			* description: ApplicationLoadBalancerIDRef references to a Datacenter to retrieve its ID.
+		* `ip` (string)
+			* description: Use IP to set specific IP to the resource. If both IP and IPBlockConfig are set, only `ip` field will be considered.
+			* pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
+		* `ipBlockConfig` (object)
+			* description: Use IpBlockConfig to reference existing IPBlock, and to mention the index for the IP. Index starts from 0 and it must be provided.
 			* properties:
-				* `name` (string)
-					* description: Name of the referenced object.
-				* `policy` (object)
-					* description: Policies for referencing.
+				* `index` (integer)
+					* description: Index is referring to the IP index retrieved from the IPBlock. Index starts from 0.
+				* `ipBlockId` (string)
+					* description: IPBlockID is the ID of the IPBlock on which the resource will be created. It needs to be provided via directly or via reference.
+					* format: uuid
+				* `ipBlockIdRef` (object)
+					* description: IPBlockIDRef references to a IPBlock to retrieve its ID.
 					* properties:
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
+						* `name` (string)
+							* description: Name of the referenced object.
+						* `policy` (object)
+							* description: Policies for referencing.
+							* properties:
+								* `resolution` (string)
+									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* default: "Required"
+									* possible values: "Required";"Optional"
+								* `resolve` (string)
+									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* possible values: "Always";"IfNotPresent"
+					* required properties:
+						* `name`
+				* `ipBlockIdSelector` (object)
+					* description: IPBlockIDSelector selects reference to a IPBlock to retrieve its IPBlockID.
+					* properties:
+						* `matchControllerRef` (boolean)
+							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+						* `matchLabels` (object)
+							* description: MatchLabels ensures an object with matching labels is selected.
+						* `policy` (object)
+							* description: Policies for selection.
+							* properties:
+								* `resolution` (string)
+									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* default: "Required"
+									* possible values: "Required";"Optional"
+								* `resolve` (string)
+									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* possible values: "Always";"IfNotPresent"
 			* required properties:
-				* `name`
-		* `applicationLoadBalancerIdSelector` (object)
-			* description: ApplicationLoadBalancerIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-				* `policy` (object)
-					* description: Policies for selection.
-					* properties:
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
+				* `index`
+* `name` (string)
+	* description: The name of the Application Load Balancer Forwarding Rule.
+* `clientTimeout` (integer)
+	* description: The maximum time in milliseconds to wait for the client to acknowledge or send data; default is 50,000 (50 seconds).
+	* format: int32
 * `datacenterConfig` (object)
 	* description: A Datacenter, to which the user has access, to provision the ApplicationLoadBalancer in.
 	* properties:
@@ -127,6 +137,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `datacenterIdRef` (object)
 			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
 			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
 				* `policy` (object)
 					* description: Policies for referencing.
 					* properties:
@@ -137,13 +149,13 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
-				* `name` (string)
-					* description: Name of the referenced object.
 			* required properties:
 				* `name`
 		* `datacenterIdSelector` (object)
 			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
 			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
@@ -156,11 +168,44 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 * `httpRules` (array)
 	* description: An array of items in the collection. The original order of rules is preserved during processing, except for Forward-type rules are processed after the rules with other action defined. The relative order of Forward-type rules is also preserved during the processing.
 	* properties:
+		* `name` (string)
+			* description: The unique name of the Application Load Balancer HTTP rule.
+		* `responseMessage` (string)
+			* description: The response message of the request; mandatory for STATIC actions.
+		* `conditions` (array)
+			* description: An array of items in the collection. The action is only performed if each and every condition is met; if no conditions are set, the rule will always be performed.
+			* properties:
+				* `negate` (boolean)
+					* description: Specifies whether the condition is negated or not; the default is False.
+				* `type` (string)
+					* description: Type of the HTTP rule condition.
+					* possible values: "HEADER";"PATH";"QUERY";"METHOD";"HOST";"COOKIE";"SOURCE_IP"
+				* `value` (string)
+					* description: Mandatory for conditions CONTAINS, EQUALS, MATCHES, STARTS_WITH, ENDS_WITH; Must be null when condition is EXISTS; should be a valid CIDR if provided and if type is SOURCE_IP.
+				* `condition` (string)
+					* description: Matching rule for the HTTP rule condition attribute; Mandatory for HEADER, PATH, QUERY, METHOD, HOST, and COOKIE types; Must be null when type is SOURCE_IP.
+					* possible values: "EXISTS";"CONTAINS";"EQUALS";"MATCHES";"STARTS_WITH";"ENDS_WITH"
+				* `key` (string)
+					* description: Must be null when type is PATH, METHOD, HOST, or SOURCE_IP. Key can only be set when type is COOKIES, HEADER, or QUERY.
+			* required properties:
+				* `condition`
+				* `type`
+		* `contentType` (string)
+			* description: Valid only for STATIC actions. Example: text/html
+		* `dropQuery` (boolean)
+			* description: Default is false; valid only for REDIRECT actions.
+		* `type` (string)
+			* description: Type of the HTTP rule.
+			* possible values: "FORWARD";"STATIC";"REDIRECT"
+		* `location` (string)
+			* description: The location for redirecting; mandatory and valid only for REDIRECT actions. Example: www.ionos.com
+		* `statusCode` (integer)
+			* description: Valid only for REDIRECT and STATIC actions. For REDIRECT actions, default is 301 and possible values are 301, 302, 303, 307, and 308. For STATIC actions, default is 503 and valid range is 200 to 599.
+			* format: int32
+			* possible values: 301;302;303;307;308;200;503;599
 		* `targetGroupConfig` (object)
 			* description: The ID of the target group; mandatory and only valid for FORWARD actions. The ID can be set directly or via reference.
 			* properties:
@@ -187,8 +232,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 				* `targetGroupIdSelector` (object)
 					* description: TargetGroupIDSelector selects reference to a TargetGroup to retrieve its TargetGroupID.
 					* properties:
-						* `matchControllerRef` (boolean)
-							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 						* `matchLabels` (object)
 							* description: MatchLabels ensures an object with matching labels is selected.
 						* `policy` (object)
@@ -201,104 +244,61 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
-		* `type` (string)
-			* description: Type of the HTTP rule.
-			* possible values: "FORWARD";"STATIC";"REDIRECT"
-		* `conditions` (array)
-			* description: An array of items in the collection. The action is only performed if each and every condition is met; if no conditions are set, the rule will always be performed.
-			* properties:
-				* `type` (string)
-					* description: Type of the HTTP rule condition.
-					* possible values: "HEADER";"PATH";"QUERY";"METHOD";"HOST";"COOKIE";"SOURCE_IP"
-				* `value` (string)
-					* description: Mandatory for conditions CONTAINS, EQUALS, MATCHES, STARTS_WITH, ENDS_WITH; Must be null when condition is EXISTS; should be a valid CIDR if provided and if type is SOURCE_IP.
-				* `condition` (string)
-					* description: Matching rule for the HTTP rule condition attribute; Mandatory for HEADER, PATH, QUERY, METHOD, HOST, and COOKIE types; Must be null when type is SOURCE_IP.
-					* possible values: "EXISTS";"CONTAINS";"EQUALS";"MATCHES";"STARTS_WITH";"ENDS_WITH"
-				* `key` (string)
-					* description: Must be null when type is PATH, METHOD, HOST, or SOURCE_IP. Key can only be set when type is COOKIES, HEADER, or QUERY.
-				* `negate` (boolean)
-					* description: Specifies whether the condition is negated or not; the default is False.
-			* required properties:
-				* `condition`
-				* `type`
-		* `contentType` (string)
-			* description: Valid only for STATIC actions. Example: text/html
-		* `name` (string)
-			* description: The unique name of the Application Load Balancer HTTP rule.
-		* `responseMessage` (string)
-			* description: The response message of the request; mandatory for STATIC actions.
-		* `dropQuery` (boolean)
-			* description: Default is false; valid only for REDIRECT actions.
-		* `location` (string)
-			* description: The location for redirecting; mandatory and valid only for REDIRECT actions. Example: www.ionos.com
-		* `statusCode` (integer)
-			* description: Valid only for REDIRECT and STATIC actions. For REDIRECT actions, default is 301 and possible values are 301, 302, 303, 307, and 308. For STATIC actions, default is 503 and valid range is 200 to 599.
-			* format: int32
-			* possible values: 301;302;303;307;308;200;503;599
+						* `matchControllerRef` (boolean)
+							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
 	* required properties:
 		* `name`
 		* `type`
-* `listenerIpConfig` (object)
-	* description: Listening (inbound) IP. IP must be assigned to the listener NIC of the Application Load Balancer.
+* `serverCertificatesIds` (array)
+	* description: Array of items in the collection.
+* `applicationLoadBalancerConfig` (object)
+	* description: An ApplicationLoadBalancer, to which the user has access, to provision the Forwarding Rule in.
 	* properties:
-		* `ip` (string)
-			* description: Use IP to set specific IP to the resource. If both IP and IPBlockConfig are set, only `ip` field will be considered.
-			* pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
-		* `ipBlockConfig` (object)
-			* description: Use IpBlockConfig to reference existing IPBlock, and to mention the index for the IP. Index starts from 0 and it must be provided.
+		* `applicationLoadBalancerId` (string)
+			* description: ApplicationLoadBalancerID is the ID of the ApplicationLoadBalancer on which the resource should have access. It needs to be provided via directly or via reference.
+			* format: uuid
+		* `applicationLoadBalancerIdRef` (object)
+			* description: ApplicationLoadBalancerIDRef references to a Datacenter to retrieve its ID.
 			* properties:
-				* `ipBlockIdSelector` (object)
-					* description: IPBlockIDSelector selects reference to a IPBlock to retrieve its IPBlockID.
+				* `name` (string)
+					* description: Name of the referenced object.
+				* `policy` (object)
+					* description: Policies for referencing.
 					* properties:
-						* `matchLabels` (object)
-							* description: MatchLabels ensures an object with matching labels is selected.
-						* `policy` (object)
-							* description: Policies for selection.
-							* properties:
-								* `resolution` (string)
-									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-									* default: "Required"
-									* possible values: "Required";"Optional"
-								* `resolve` (string)
-									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-									* possible values: "Always";"IfNotPresent"
-						* `matchControllerRef` (boolean)
-							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `index` (integer)
-					* description: Index is referring to the IP index retrieved from the IPBlock. Index starts from 0.
-				* `ipBlockId` (string)
-					* description: IPBlockID is the ID of the IPBlock on which the resource will be created. It needs to be provided via directly or via reference.
-					* format: uuid
-				* `ipBlockIdRef` (object)
-					* description: IPBlockIDRef references to a IPBlock to retrieve its ID.
-					* properties:
-						* `name` (string)
-							* description: Name of the referenced object.
-						* `policy` (object)
-							* description: Policies for referencing.
-							* properties:
-								* `resolution` (string)
-									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-									* default: "Required"
-									* possible values: "Required";"Optional"
-								* `resolve` (string)
-									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-									* possible values: "Always";"IfNotPresent"
-					* required properties:
-						* `name`
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
 			* required properties:
-				* `index`
-* `name` (string)
-	* description: The name of the Application Load Balancer Forwarding Rule.
-* `clientTimeout` (integer)
-	* description: The maximum time in milliseconds to wait for the client to acknowledge or send data; default is 50,000 (50 seconds).
-	* format: int32
+				* `name`
+		* `applicationLoadBalancerIdSelector` (object)
+			* description: ApplicationLoadBalancerIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+				* `policy` (object)
+					* description: Policies for selection.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
 * `listenerPort` (integer)
 	* description: Listening (inbound) port number; valid range is 1 to 65535.
 	* format: int32
 	* minimum: 1.000000
 	* maximum: 65535.000000
+* `protocol` (string)
+	* description: Balancing protocol
+	* possible values: "HTTP"
 
 ### Required Properties
 

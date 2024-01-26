@@ -73,13 +73,6 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `userRoles` (array)
-	* description: A list of mongodb user roles
-	* properties:
-		* `database` (string)
-			* description: Database on which to set the role
-		* `role` (string)
-			* description: Role to set for the user
 * `clusterConfig` (object)
 	* description: ClusterConfig is used by resources that need to link mongo clusters via id or via reference.
 	* properties:
@@ -94,18 +87,22 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 				* `policy` (object)
 					* description: Policies for referencing.
 					* properties:
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
 		* `ClusterIdSelector` (object)
 			* description: ClusterIDSelector selects reference to a Cluster to retrieve its ClusterID.
 			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
 					* description: Policies for selection.
 					* properties:
@@ -116,10 +113,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
 * `credentials` (object)
 	* description: Database credentials - either set directly, or as secret/path/env
 	* properties:
@@ -156,6 +149,13 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* possible values: "None";"Secret";"InjectedIdentity";"Environment";"Filesystem"
 		* `username` (string)
 			* description: The username for the mongo user. Some system usernames are restricted (e.g. \"mongo\", \"admin\", \"standby\"). Password must have a minimum length o 10
+* `userRoles` (array)
+	* description: A list of mongodb user roles
+	* properties:
+		* `database` (string)
+			* description: Database on which to set the role
+		* `role` (string)
+			* description: Role to set for the user
 
 ### Required Properties
 
