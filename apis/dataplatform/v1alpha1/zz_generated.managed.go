@@ -84,3 +84,69 @@ func (mg *DataplatformCluster) SetPublishConnectionDetailsTo(r *xpv1.PublishConn
 func (mg *DataplatformCluster) SetWriteConnectionSecretToReference(r *xpv1.SecretReference) {
 	mg.Spec.WriteConnectionSecretToReference = r
 }
+
+// GetCondition of this DataplatformNodepool.
+func (mg *DataplatformNodepool) GetCondition(ct xpv1.ConditionType) xpv1.Condition {
+	return mg.Status.GetCondition(ct)
+}
+
+// GetDeletionPolicy of this DataplatformNodepool.
+func (mg *DataplatformNodepool) GetDeletionPolicy() xpv1.DeletionPolicy {
+	return mg.Spec.DeletionPolicy
+}
+
+// GetProviderConfigReference of this DataplatformNodepool.
+func (mg *DataplatformNodepool) GetProviderConfigReference() *xpv1.Reference {
+	return mg.Spec.ProviderConfigReference
+}
+
+/*
+GetProviderReference of this DataplatformNodepool.
+Deprecated: Use GetProviderConfigReference.
+*/
+func (mg *DataplatformNodepool) GetProviderReference() *xpv1.Reference {
+	return mg.Spec.ProviderReference
+}
+
+// GetPublishConnectionDetailsTo of this DataplatformNodepool.
+func (mg *DataplatformNodepool) GetPublishConnectionDetailsTo() *xpv1.PublishConnectionDetailsTo {
+	return mg.Spec.PublishConnectionDetailsTo
+}
+
+// GetWriteConnectionSecretToReference of this DataplatformNodepool.
+func (mg *DataplatformNodepool) GetWriteConnectionSecretToReference() *xpv1.SecretReference {
+	return mg.Spec.WriteConnectionSecretToReference
+}
+
+// SetConditions of this DataplatformNodepool.
+func (mg *DataplatformNodepool) SetConditions(c ...xpv1.Condition) {
+	mg.Status.SetConditions(c...)
+}
+
+// SetDeletionPolicy of this DataplatformNodepool.
+func (mg *DataplatformNodepool) SetDeletionPolicy(r xpv1.DeletionPolicy) {
+	mg.Spec.DeletionPolicy = r
+}
+
+// SetProviderConfigReference of this DataplatformNodepool.
+func (mg *DataplatformNodepool) SetProviderConfigReference(r *xpv1.Reference) {
+	mg.Spec.ProviderConfigReference = r
+}
+
+/*
+SetProviderReference of this DataplatformNodepool.
+Deprecated: Use SetProviderConfigReference.
+*/
+func (mg *DataplatformNodepool) SetProviderReference(r *xpv1.Reference) {
+	mg.Spec.ProviderReference = r
+}
+
+// SetPublishConnectionDetailsTo of this DataplatformNodepool.
+func (mg *DataplatformNodepool) SetPublishConnectionDetailsTo(r *xpv1.PublishConnectionDetailsTo) {
+	mg.Spec.PublishConnectionDetailsTo = r
+}
+
+// SetWriteConnectionSecretToReference of this DataplatformNodepool.
+func (mg *DataplatformNodepool) SetWriteConnectionSecretToReference(r *xpv1.SecretReference) {
+	mg.Spec.WriteConnectionSecretToReference = r
+}

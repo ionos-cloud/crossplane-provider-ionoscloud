@@ -4,7 +4,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.12.1
-  name: dataplatformclusters.dataplatform.ionoscloud.crossplane.io
+  name: dataplatformnodepools.dataplatform.ionoscloud.crossplane.io
 spec:
   group: dataplatform.ionoscloud.crossplane.io
   names:
@@ -12,10 +12,10 @@ spec:
     - crossplane
     - managed
     - ionoscloud
-    kind: DataplatformCluster
-    listKind: DataplatformClusterList
-    plural: dataplatformclusters
-    singular: dataplatformcluster
+    kind: DataplatformNodepool
+    listKind: DataplatformNodepoolList
+    plural: dataplatformnodepools
+    singular: dataplatformnodepool
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -43,7 +43,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: A DataplatformCluster is an example API type.
+        description: A DataplatformNodepool is an example API type.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -73,8 +73,8 @@ spec:
           metadata:
             type: object
           spec:
-            description: A DataplatformClusterSpec defines the desired state of a
-              DataplatformCluster.
+            description: A DataplatformNodepoolSpec defines the desired state of a
+              DataplatformNodepool.
             properties:
               deletionPolicy:
                 default: Delete
@@ -90,13 +90,118 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: 'DataplatformClusterParameters are the observable fields
-                  of a DataplatformCluster. Required values when creating a DataplatformCluster
+                description: 'DataplatformNodepoolParameters are the observable fields
+                  of a DataplatformNodepool. Required values when creating a DataplatformNodepool
                   cluster: Location.'
                 properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Map of annotations attached to NodePool
+                    type: object
+                  availabilityZone:
+                    description: 'The availability zone in which the NodePool resources
+                      should be provisioned. Possible values: AUTO;ZONE_1;ZONE_2'
+                    type: string
+                  clusterConfig:
+                    description: The Dataplatform Cluster on which the NodePool will
+                      be created.
+                    properties:
+                      ClusterId:
+                        description: ClusterID is the ID of the Cluster on which the
+                          resource will be created. It needs to be provided via directly
+                          or via reference.
+                        format: uuid
+                        type: string
+                      ClusterIdRef:
+                        description: ClusterIDRef references to a Cluster to retrieve
+                          its ID.
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            type: string
+                          policy:
+                            description: Policies for referencing.
+                            properties:
+                              resolution:
+                                default: Required
+                                description: Resolution specifies whether resolution
+                                  of this reference is required. The default is 'Required',
+                                  which means the reconcile will fail if the reference
+                                  cannot be resolved. 'Optional' means this reference
+                                  will be a no-op if it cannot be resolved.
+                                enum:
+                                - Required
+                                - Optional
+                                type: string
+                              resolve:
+                                description: Resolve specifies when this reference
+                                  should be resolved. The default is 'IfNotPresent',
+                                  which will attempt to resolve the reference only
+                                  when the corresponding field is not present. Use
+                                  'Always' to resolve the reference on every reconcile.
+                                enum:
+                                - Always
+                                - IfNotPresent
+                                type: string
+                            type: object
+                        required:
+                        - name
+                        type: object
+                      ClusterIdSelector:
+                        description: ClusterIDSelector selects reference to a Cluster
+                          to retrieve its ClusterID.
+                        properties:
+                          matchControllerRef:
+                            description: MatchControllerRef ensures an object with
+                              the same controller reference as the selecting object
+                              is selected.
+                            type: boolean
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: MatchLabels ensures an object with matching
+                              labels is selected.
+                            type: object
+                          policy:
+                            description: Policies for selection.
+                            properties:
+                              resolution:
+                                default: Required
+                                description: Resolution specifies whether resolution
+                                  of this reference is required. The default is 'Required',
+                                  which means the reconcile will fail if the reference
+                                  cannot be resolved. 'Optional' means this reference
+                                  will be a no-op if it cannot be resolved.
+                                enum:
+                                - Required
+                                - Optional
+                                type: string
+                              resolve:
+                                description: Resolve specifies when this reference
+                                  should be resolved. The default is 'IfNotPresent',
+                                  which will attempt to resolve the reference only
+                                  when the corresponding field is not present. Use
+                                  'Always' to resolve the reference on every reconcile.
+                                enum:
+                                - Always
+                                - IfNotPresent
+                                type: string
+                            type: object
+                        type: object
+                    type: object
+                  coresCount:
+                    description: The number of CPU cores per node
+                    format: int32
+                    type: integer
+                  cpuFamily:
+                    description: A valid CPU family name or `AUTO` if the platform
+                      shall choose the best fitting option. Available CPU architectures
+                      can be retrieved from the datacenter resource.
+                    type: string
                   datacenterConfig:
                     description: A Datacenter, to which the user has access, to provision
-                      the dataplatform cluster in.
+                      the dataplatform NodePool in
                     properties:
                       datacenterId:
                         description: DatacenterID is the ID of the Datacenter on which
@@ -181,6 +286,11 @@ spec:
                             type: object
                         type: object
                     type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Map of labels attached to NodePool
+                    type: object
                   maintenanceWindow:
                     description: Starting time of a weekly 4 hour-long window, during
                       which maintenance might occur in hh:mm:ss format
@@ -193,16 +303,33 @@ spec:
                         type: string
                     type: object
                   name:
-                    description: The name of the  resource.
+                    description: The name of the resource.
                     maxLength: 63
                     pattern: ^[A-Za-z0-9][-A-Za-z0-9_.]*[A-Za-z0-9]$
                     type: string
+                  nodeCount:
+                    description: The number of nodes that make up the NodePool
+                    format: int32
+                    type: integer
+                  ramSize:
+                    description: The RAM size for one node in MB. Must be set in multiples
+                      of 1024 MB, with a minimum size is of 2048 MB.
+                    format: int32
+                    type: integer
+                  storageSize:
+                    description: The amount of storage per instance in megabytes
+                    format: int32
+                    type: integer
+                  storageType:
+                    description: The type of hardware for the NodePool Possible values
+                      HDD;SSD
+                    type: string
                   version:
-                    description: The version of the Data Platform.
+                    description: The version of the Data Platform NodePool
                     type: string
                 required:
-                - datacenterConfig
-                - version
+                - clusterConfig
+                - nodeCount
                 type: object
               managementPolicies:
                 default:
@@ -402,14 +529,16 @@ spec:
             - forProvider
             type: object
           status:
-            description: A DataplatformClusterStatus represents the observed state
-              of a DataplatformCluster.
+            description: A DataplatformNodepoolStatus represents the observed state
+              of a DataplatformNodepool.
             properties:
               atProvider:
-                description: DataplatformClusterObservation are the observable fields
-                  of a DataplatformCluster.
+                description: DataplatformNodepoolObservation are the observable fields
+                  of a DataplatformNodepool.
                 properties:
-                  DataplatformId:
+                  ClusterId:
+                    type: string
+                  datacenterId:
                     type: string
                   state:
                     type: string

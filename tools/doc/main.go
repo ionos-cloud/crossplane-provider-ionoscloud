@@ -40,7 +40,6 @@ var (
 		"mongocluster":    "mongo-cluster.yaml",
 		"cluster":         "k8s-cluster.yaml",
 		"nodepool":        "k8s-nodepool.yaml",
-		"dataplatform":    "dataplatform-cluster.yaml",
 	}
 	// This tool adds the generated files provided in DOCS_OUT/<service-long-name> directory, under the name <resource-name>.md.
 	// The <resource-name> is taken from the Managed Resource Spec Kind, using lower case (e.g.: kind=Cluster -> resource-name=cluster).

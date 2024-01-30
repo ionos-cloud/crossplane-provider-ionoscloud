@@ -24,7 +24,7 @@ type Client interface {
 	CreateDataplatformCluster(ctx context.Context, cluster sdkgo.CreateClusterRequest) (sdkgo.ClusterResponseData, *sdkgo.APIResponse, error)
 	PatchDataPlatformCluster(ctx context.Context, clusterID string, cluster sdkgo.PatchClusterRequest) (sdkgo.ClusterResponseData, *sdkgo.APIResponse, error)
 	DeleteDataPlatformCluster(ctx context.Context, clusterID string) (*sdkgo.APIResponse, error)
-	IsDataplatformDeleted(ctx context.Context, id string) (bool, error)
+	IsDataplatformDeleted(ctx context.Context, id ...string) (bool, error)
 	GetAPIClient() *sdkgo.APIClient
 }
 
@@ -55,7 +55,11 @@ func (dp *APIClient) DeleteDataPlatformCluster(ctx context.Context, clusterID st
 }
 
 // IsDataplatformDeleted returns true if the dataplatform cluster is deleted
-func (dp *APIClient) IsDataplatformDeleted(ctx context.Context, id string) (bool, error) {
+func (dp *APIClient) IsDataplatformDeleted(ctx context.Context, ids ...string) (bool, error) {
+	if len(ids) != 1 {
+		return false, fmt.Errorf("error checking dataplatform nodepool deletion status: %w", fmt.Errorf("expected 2 ids, got %d", len(ids)))
+	}
+	id := ids[0]
 	_, apiResponse, err := dp.GetDataplatformClusterByID(ctx, id)
 	if err != nil {
 		if apiResponse.HttpNotFound() {
