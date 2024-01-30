@@ -119,6 +119,7 @@ func WaitForResourceToBeDeleted(ctx context.Context, timeoutInMinutes time.Durat
 	return err
 }
 
+// MapStringToAny converts map[string]string to map[string]any
 func MapStringToAny(sMap map[string]string) map[string]any {
 	aMap := make(map[string]any)
 	for k, v := range sMap {

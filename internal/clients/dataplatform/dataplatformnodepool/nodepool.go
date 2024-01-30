@@ -79,13 +79,13 @@ func GenerateCreateInput(cr *v1alpha1.DataplatformNodepool) *sdkgo.CreateNodePoo
 			NodeCount: &cr.Spec.ForProvider.NodeCount,
 		},
 	}
-	if cpuFamily := cr.Spec.ForProvider.CpuFamily; cpuFamily != "" {
+	if cpuFamily := cr.Spec.ForProvider.CPUFamily; cpuFamily != "" {
 		instanceCreateInput.Properties.CpuFamily = &cpuFamily
 	}
 	if coresCount := cr.Spec.ForProvider.CoresCount; coresCount != 0 {
 		instanceCreateInput.Properties.CoresCount = &coresCount
 	}
-	if ramSize := cr.Spec.ForProvider.RamSize; ramSize != 0 {
+	if ramSize := cr.Spec.ForProvider.RAMSize; ramSize != 0 {
 		instanceCreateInput.Properties.RamSize = &ramSize
 	}
 	if availabilityZone := cr.Spec.ForProvider.AvailabilityZone; availabilityZone != "" {

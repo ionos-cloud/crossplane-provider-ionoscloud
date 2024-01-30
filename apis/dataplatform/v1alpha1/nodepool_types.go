@@ -56,7 +56,7 @@ type DataplatformNodepoolParameters struct {
 	// A valid CPU family name or `AUTO` if the platform shall choose the best fitting option. Available CPU architectures can be retrieved from the datacenter resource.
 	//
 	// +kubebuilder:validation:Optional
-	CpuFamily string `json:"cpuFamily"`
+	CPUFamily string `json:"cpuFamily"`
 	// The number of CPU cores per node
 	//
 	// +kubebuilder:validation:Optional
@@ -64,7 +64,7 @@ type DataplatformNodepoolParameters struct {
 	// The RAM size for one node in MB. Must be set in multiples of 1024 MB, with a minimum size is of 2048 MB.
 	//
 	// +kubebuilder:validation:Optional
-	RamSize int32 `json:"ramSize"`
+	RAMSize int32 `json:"ramSize"`
 	// The availability zone in which the NodePool resources should be provisioned.
 	// Possible values: AUTO;ZONE_1;ZONE_2
 	//
