@@ -9,7 +9,7 @@ managementPolicies:
   - "*"
 spec:
   forProvider:
-    name: exampleDatacenter4
+    name: exampleDatacenter
     location: us/las
     description: test
 #    secAuthProtection: true

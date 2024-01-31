@@ -21,7 +21,7 @@ spec:
     ipsConfigs:
       ipsBlockConfigs:
         - ipBlockIdRef:
-            name: exampleipblock
+            name: example
           indexes: [ 1 ]
         - ipBlockIdRef:
             name: example
