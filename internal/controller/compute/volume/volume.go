@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/go-cmp/cmp"
+	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -121,6 +123,8 @@ func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (mana
 		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 
+	current := cr.Spec.ForProvider.DeepCopy()
+	LateStatusInitializer(&cr.Status.AtProvider, &instance)
 	cr.Status.AtProvider.VolumeID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&instance)
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
@@ -128,10 +132,27 @@ func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (mana
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
 	return managed.ExternalObservation{
-		ResourceExists:    true,
-		ResourceUpToDate:  volume.IsVolumeUpToDate(cr, &instance),
-		ConnectionDetails: managed.ConnectionDetails{},
+		ResourceExists:          true,
+		ResourceUpToDate:        volume.IsVolumeUpToDate(cr, &instance),
+		ConnectionDetails:       managed.ConnectionDetails{},
+		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}, nil
+}
+
+// LateStatusInitializer fills the empty fields in *v1alpha1.VolumeObservation with
+// the values seen in sdkgo.Volume.
+func LateStatusInitializer(in *v1alpha1.VolumeObservation, volume *sdkgo.Volume) {
+	if volume == nil {
+		return
+	}
+	// Add options to the Spec, if they were updated by the API
+	if propertiesOk, ok := volume.GetPropertiesOk(); ok && propertiesOk != nil {
+		if PCISlotOk, ok := propertiesOk.GetPciSlotOk(); ok && PCISlotOk != nil {
+			if in.PCISlot == 0 {
+				in.PCISlot = *PCISlotOk
+			}
+		}
+	}
 }
 
 func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {

@@ -129,18 +129,11 @@ func (c *externalNic) Observe(ctx context.Context, mg resource.Managed) (managed
 
 	current := cr.Spec.ForProvider.DeepCopy()
 	nic.LateInitializer(&cr.Spec.ForProvider, &instance)
+	nic.LateStatusInitializer(&cr.Status.AtProvider, &instance)
 
 	cr.Status.AtProvider.NicID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&instance)
 
-	if instance.HasProperties() {
-		if instance.Properties.HasIps() {
-			cr.Status.AtProvider.IPs = *instance.Properties.Ips
-		}
-		if instance.Properties.HasMac() {
-			cr.Status.AtProvider.Mac = *instance.Properties.Mac
-		}
-	}
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
