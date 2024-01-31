@@ -101,20 +101,29 @@ func ContainsStringInSlice(input []string, specific string) bool {
 }
 
 // IsResourceDeletedFunc polls api to see if resource exists based on id
-type IsResourceDeletedFunc func(ctx context.Context, ID string) (bool, error)
+type IsResourceDeletedFunc func(ctx context.Context, ids ...string) (bool, error)
 
 // WaitForResourceToBeDeleted - keeps retrying until resource is not found(404), or until ctx is cancelled
-func WaitForResourceToBeDeleted(ctx context.Context, id string, timeoutInMinutes time.Duration, fn IsResourceDeletedFunc) error {
+func WaitForResourceToBeDeleted(ctx context.Context, timeoutInMinutes time.Duration, fn IsResourceDeletedFunc, ids ...string) error {
 
 	err := retry.RetryContext(ctx, timeoutInMinutes, func() *retry.RetryError {
-		isDeleted, err := fn(ctx, id)
+		isDeleted, err := fn(ctx, ids...)
 		if isDeleted {
 			return nil
 		}
 		if err != nil {
 			retry.NonRetryableError(err)
 		}
-		return retry.RetryableError(fmt.Errorf("resource with id %s found, still trying ", id))
+		return retry.RetryableError(fmt.Errorf("resource with ids %v found, still trying ", ids))
 	})
 	return err
+}
+
+// MapStringToAny converts map[string]string to map[string]any
+func MapStringToAny(sMap map[string]string) map[string]any {
+	aMap := make(map[string]any)
+	for k, v := range sMap {
+		aMap[k] = v
+	}
+	return aMap
 }

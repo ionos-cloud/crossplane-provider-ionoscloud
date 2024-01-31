@@ -22,7 +22,7 @@ spec:
 apiVersion: dataplatform.ionoscloud.crossplane.io/v1alpha1
 kind: DataplatformCluster
 metadata:
-  name: example4
+  name: example
 managementPolicies:
   - "*"
 spec:
