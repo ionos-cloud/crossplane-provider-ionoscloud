@@ -4,6 +4,7 @@
 - Add `MongoUser` crd to support CRUD of MongoDB users
 - Add `DataplatformCluster` crd to support CRUD of Dataplatform clusters
 - Add `DataplatformNodepool` crd to support CRUD of Dataplatform clusters
+- Add `PICSlot` status field to `volume` and `nic` crds
 
 - **Documentation**:
 - Add docs on how to set pinning for crossplane provider. See [here](docs/README.md#authentication-on-ionos-cloud)
