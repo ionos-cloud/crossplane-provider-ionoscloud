@@ -409,7 +409,7 @@ spec:
                 description: DataplatformClusterObservation are the observable fields
                   of a DataplatformCluster.
                 properties:
-                  DataplatformId:
+                  dataplatformId:
                     type: string
                   state:
                     type: string

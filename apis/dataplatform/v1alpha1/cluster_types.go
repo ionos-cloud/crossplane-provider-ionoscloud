@@ -91,7 +91,7 @@ type DatacenterConfig struct {
 
 // DataplatformClusterObservation are the observable fields of a DataplatformCluster.
 type DataplatformClusterObservation struct {
-	DataplatformID string `json:"DataplatformId,omitempty"`
+	DataplatformID string `json:"dataplatformId,omitempty"`
 	Version        string `json:"version,omitempty"`
 	State          string `json:"state,omitempty"`
 }
