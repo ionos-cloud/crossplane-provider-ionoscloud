@@ -1,0 +1,25 @@
+# Use this file to create a User.
+# Required values for creating a User CR are:
+# Administrator
+# Email
+# FirstName
+# ForceSecAuth
+# LastName
+# Password
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: User
+metadata:
+  name: example
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    administrator: false
+    email: "unique@email.com"
+    firstName: "Benjamin"
+    lastName: "Nicolau"
+    forceSecAuth: true
+    password: "$3cr3t"
+    active: true
+  providerConfigRef:
+    name: example

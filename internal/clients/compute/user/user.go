@@ -14,6 +14,8 @@ type APIClient struct {
 	*clients.IonosServices
 }
 
+// Client wraps the ionoscloud api for the user.
+// Currently used for mocking the interaction with the client.
 type Client interface {
 	GetUser(ctx context.Context, id string) (ionosdk.User, *ionosdk.APIResponse, error)
 	CreateUser(ctx context.Context, u ionosdk.UserPost) (ionosdk.User, *ionosdk.APIResponse, error)
@@ -91,6 +93,7 @@ type userPropsSetter interface {
 	SetActive(v bool)
 }
 
+// SetUserProperties sets the cr values into props.
 func SetUserProperties(cr v1alpha1.User, props userPropsSetter) {
 	props.SetFirstname(cr.Spec.ForProvider.FirstName)
 	props.SetLastname(cr.Spec.ForProvider.LastName)
