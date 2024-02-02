@@ -6,6 +6,9 @@
 # ForceSecAuth
 # LastName
 # Password
+#
+# You can also set crossplane.io/external-name annotation to manage an existing resource.
+# It must point to an existing user id.
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: User
 metadata:
