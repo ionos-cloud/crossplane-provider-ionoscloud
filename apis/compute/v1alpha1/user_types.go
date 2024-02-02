@@ -102,11 +102,13 @@ type UserStatus struct {
 
 // UserObservation are the observable fields of a User.
 type UserObservation struct {
-	// ID is the user id.
+	// UserID is the user id.
 	// +kubebuilder:validation:Format=uuid
 	UserID string `json:"userID,omitempty"`
 	// S3CanonicalUserID Canonical (S3) id of the user for a given identity.
 	S3CanonicalUserID string `json:"s3CanonicalUserID,omitempty"`
+	// Active Indicates if the user is active.
+	Active bool `json:"active"`
 }
 
 // +kubebuilder:object:root=true

@@ -100,7 +100,6 @@ func SetUserProperties(cr v1alpha1.User, props userPropsSetter) {
 	props.SetEmail(cr.Spec.ForProvider.Email)
 	props.SetAdministrator(cr.Spec.ForProvider.Administrator)
 	props.SetForceSecAuth(cr.Spec.ForProvider.ForceSecAuth)
-	props.SetSecAuthActive(cr.Spec.ForProvider.SecAuthActive)
 	props.SetPassword(cr.Spec.ForProvider.Password)
 	props.SetActive(cr.Spec.ForProvider.Active)
 }

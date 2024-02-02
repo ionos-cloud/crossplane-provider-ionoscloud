@@ -332,14 +332,19 @@ spec:
               atProvider:
                 description: UserObservation are the observable fields of a User.
                 properties:
+                  active:
+                    description: Active Indicates if the user is active.
+                    type: boolean
                   s3CanonicalUserID:
                     description: S3CanonicalUserID Canonical (S3) id of the user for
                       a given identity.
                     type: string
                   userID:
-                    description: ID is the user id.
+                    description: UserID is the user id.
                     format: uuid
                     type: string
+                required:
+                - active
                 type: object
               conditions:
                 description: Conditions of the resource.
