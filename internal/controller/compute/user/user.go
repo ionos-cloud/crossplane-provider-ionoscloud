@@ -19,12 +19,13 @@ package user
 import (
 	"context"
 
-	userapi "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/user"
 	ionosdk "github.com/ionos-cloud/sdk-go/v6"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+
+	userapi "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/user"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
