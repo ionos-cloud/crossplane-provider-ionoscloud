@@ -161,6 +161,7 @@ type BackupUnitConfig struct {
 type VolumeObservation struct {
 	VolumeID string `json:"volumeId,omitempty"`
 	State    string `json:"state,omitempty"`
+	PCISlot  int32  `json:"pciSlot,omitempty"`
 }
 
 // A VolumeSpec defines the desired state of a Volume.
@@ -186,6 +187,7 @@ type VolumeStatus struct {
 // +kubebuilder:printcolumn:name="TYPE",priority=1,type="string",JSONPath=".spec.forProvider.type"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="PCISlot",type="string",JSONPath=".status.atProvider.pciSlot"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
 type Volume struct {

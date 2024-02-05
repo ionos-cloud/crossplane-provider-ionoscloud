@@ -47,6 +47,9 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: AGE
       type: date
+    - jsonPath: .status.atProvider.pciSlot
+      name: PCISlot
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -726,6 +729,9 @@ spec:
                     type: string
                   nicId:
                     type: string
+                  pciSlot:
+                    format: int32
+                    type: integer
                   state:
                     type: string
                   volumeId:

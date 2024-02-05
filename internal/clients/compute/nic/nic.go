@@ -108,6 +108,28 @@ func LateInitializer(in *v1alpha1.NicParameters, sg *sdkgo.Nic) {
 	}
 }
 
+// LateStatusInitializer fills the empty fields in *v1alpha1.NicObservation with
+// the values seen in sdkgo.Nic.
+func LateStatusInitializer(in *v1alpha1.NicObservation, nic *sdkgo.Nic) {
+	if nic == nil {
+		return
+	}
+	// Add options to the Spec, if they were updated by the API
+	if propertiesOk, ok := nic.GetPropertiesOk(); ok && propertiesOk != nil {
+		if PCISlotOk, ok := propertiesOk.GetPciSlotOk(); ok && PCISlotOk != nil {
+			if in.PCISlot == 0 {
+				in.PCISlot = *PCISlotOk
+			}
+		}
+		if nic.Properties.HasIps() {
+			in.IPs = *nic.Properties.Ips
+		}
+		if nic.Properties.HasMac() {
+			in.Mac = *nic.Properties.Mac
+		}
+	}
+}
+
 // GenerateCreateNicInput returns sdkgo.Nic based on the CR spec
 func GenerateCreateNicInput(cr *v1alpha1.Nic, ips []string) (*sdkgo.Nic, error) { // nolint:gocyclo
 	properties, err := GenerateUpdateNicInput(cr, ips)
