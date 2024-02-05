@@ -106,13 +106,13 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 				* `policy` (object)
 					* description: Policies for selection.
 					* properties:
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
 * `ipConfig` (object)
 	* description: IPConfig must have a public IP for which the group is responsible for. IP can be set directly, using ipConfig.ip or via reference and index. If both ip and ipBlockConfig is set, only ip field will be considered. It is recommended to use ip field instead of ipBlockConfig field if the ipBlock contains multiple ips.
 	* properties:
@@ -154,13 +154,13 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 						* `policy` (object)
 							* description: Policies for selection.
 							* properties:
-								* `resolve` (string)
-									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-									* possible values: "Always";"IfNotPresent"
 								* `resolution` (string)
 									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
+								* `resolve` (string)
+									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `index`
 * `lanConfig` (object)
@@ -216,13 +216,13 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 				* `policy` (object)
 					* description: Policies for referencing.
 					* properties:
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
 		* `nicIdSelector` (object)

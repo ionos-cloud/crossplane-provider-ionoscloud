@@ -73,18 +73,6 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `maintenanceWindow` (object)
-	* description: Starting time of a weekly 4 hour-long window, during which maintenance might occur in hh:mm:ss format
-	* properties:
-		* `time` (string)
-			* description: "Time at which the maintenance should start."
-		* `dayOfTheWeek` (string)
-			* description: DayOfTheWeek The name of the week day.
-* `name` (string)
-	* description: The name of the  resource.
-	* pattern: ^[A-Za-z0-9][-A-Za-z0-9_.]*[A-Za-z0-9]$
-* `version` (string)
-	* description: The version of the Data Platform.
 * `datacenterConfig` (object)
 	* description: A Datacenter, to which the user has access, to provision the dataplatform cluster in.
 	* properties:
@@ -125,6 +113,18 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
+* `maintenanceWindow` (object)
+	* description: Starting time of a weekly 4 hour-long window, during which maintenance might occur in hh:mm:ss format
+	* properties:
+		* `dayOfTheWeek` (string)
+			* description: DayOfTheWeek The name of the week day.
+		* `time` (string)
+			* description: "Time at which the maintenance should start."
+* `name` (string)
+	* description: The name of the  resource.
+	* pattern: ^[A-Za-z0-9][-A-Za-z0-9_.]*[A-Za-z0-9]$
+* `version` (string)
+	* description: The version of the Data Platform.
 
 ### Required Properties
 

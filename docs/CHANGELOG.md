@@ -7,7 +7,8 @@
 - Add `PICSlot` status field to `volume` and `nic` crds
 
 - **Documentation**:
-- Add docs on how to set pinning for crossplane provider. See [here](docs/README.md#authentication-on-ionos-cloud)
+- Add docs on how to set pinning for crossplane provider. See [here](/docs/README.md#authentication-on-ionos-cloud)
+- Preserve order of fields in the generated documentation. See 
 
 ## [1.0.8] (December 2023)
 - **Features**:

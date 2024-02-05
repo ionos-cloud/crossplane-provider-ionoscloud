@@ -76,23 +76,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `datacenterConfig` (object)
 	* description: A Datacenter, to which the user has access, to provision the ApplicationLoadBalancer in.
 	* properties:
-		* `datacenterIdSelector` (object)
-			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-				* `policy` (object)
-					* description: Policies for selection.
-					* properties:
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
 		* `datacenterId` (string)
 			* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
 			* format: uuid
@@ -113,6 +96,23 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
+		* `datacenterIdSelector` (object)
+			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+				* `policy` (object)
+					* description: Policies for selection.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
 * `ipsConfig` (object)
 	* description: Collection of the Application Load Balancer IP addresses. (Inbound and outbound) IPs of the listenerLan are customer-reserved public IPs for the public Load Balancers, and private IPs for the private Load Balancers. The IPs can be set directly or using reference to the existing IPBlocks and indexes. If no indexes are set, all IPs from the corresponding IPBlock will be assigned. All IPs set on the Nic will be displayed on the status's ips field.
 	* properties:
@@ -175,13 +175,13 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 				* `policy` (object)
 					* description: Policies for referencing.
 					* properties:
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
 		* `lanIdSelector` (object)
@@ -211,6 +211,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `lanIdRef` (object)
 			* description: LanIDRef references to a Lan to retrieve its ID.
 			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
 				* `policy` (object)
 					* description: Policies for referencing.
 					* properties:
@@ -221,8 +223,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
-				* `name` (string)
-					* description: Name of the referenced object.
 			* required properties:
 				* `name`
 		* `lanIdSelector` (object)
