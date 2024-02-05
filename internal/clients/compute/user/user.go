@@ -98,6 +98,9 @@ type userPropsSetter interface {
 	SetActive(v bool)
 }
 
+var _ userPropsSetter = (*ionosdk.UserPropertiesPost)(nil)
+var _ userPropsSetter = (*ionosdk.UserPropertiesPut)(nil)
+
 // setUserProperties sets the cr values into props.
 func setUserProperties(p v1alpha1.UserParameters, props userPropsSetter) {
 	props.SetFirstname(p.FirstName)
