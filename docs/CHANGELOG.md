@@ -8,7 +8,7 @@
 
 - **Documentation**:
 - Add docs on how to set pinning for crossplane provider. See [here](/docs/README.md#authentication-on-ionos-cloud)
-- Preserve order of fields in the generated documentation. See 
+- Preserve order of fields in the generated documentation.
 
 ## [1.0.8] (December 2023)
 - **Features**:
