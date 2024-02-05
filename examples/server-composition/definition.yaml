@@ -1,0 +1,52 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xserversinstances.platform.example.org
+spec:
+  group: platform.example.org
+  names:
+    kind: XServersInstance
+    plural: xserversinstances
+    singular: xserversinstance
+  claimNames:
+    kind: ServersInstance
+    plural: serversinstances
+    singular: serversinstance
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: A XServersInstance is a composite resource
+          properties:
+            spec:
+              type: object
+              properties:
+                parameters:
+                  type: object
+                  properties:
+                    datacenterName:
+                      type: string
+                    datacenterLocation:
+                      type: string
+                    datacenterDescription:
+                      type: string
+                    serverName:
+                      type: string
+                    cores:
+                      type: integer
+                    ram:
+                      type: integer
+                    cpuFamily:
+                        type: string
+                  required:
+                    - datacenterName
+                    - datacenterLocation
+                    - serverName
+                    - cores
+                    - ram
+                    - cpuFamily
+              required:
+                - parameters

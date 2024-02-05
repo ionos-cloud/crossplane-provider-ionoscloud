@@ -1,0 +1,16 @@
+# Creates 2 servers each with a volume, a nic a lan and 2 ipblocks
+apiVersion: platform.example.org/v1alpha1
+kind: ServersInstance
+metadata:
+  # Claims are namespaced scoped, comparing with XR.
+  namespace: crossplane-system
+  name: my-servers-ref
+spec:
+  parameters:
+    datacenterName: crossplane_datacenter
+    datacenterDescription: testExampleDescription
+    datacenterLocation: us/las
+    serverName: server
+    cores: 4
+    ram: 2048
+    cpuFamily: AMD_OPTERON
