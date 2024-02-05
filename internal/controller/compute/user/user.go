@@ -43,7 +43,14 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
-const errNotUser = "managed resource is not of a User type"
+const (
+	errUserObserve = "failed to get user by id"
+	errUserDelete  = "failed to delete user"
+	errUserUpdate  = "failed to update user"
+	errUserCreate  = "failed to create user"
+	errRequestWait = "error waiting for request"
+	errNotUser     = "managed resource is not of a User type"
+)
 
 // Setup adds a controller that reconciles User managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, _ workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
@@ -101,6 +108,22 @@ type externalUser struct {
 	log     logging.Logger
 }
 
+func connectionDetails(cr *v1alpha1.User, observed ionosdk.User) managed.ConnectionDetails {
+	props := observed.GetProperties()
+	return managed.ConnectionDetails{
+		"email": []byte(*props.GetEmail()),
+		xpv1.ResourceCredentialsSecretPasswordKey: []byte(cr.Spec.ForProvider.Password),
+	}
+}
+
+func setStatus(cr *v1alpha1.User, observed ionosdk.User) {
+	props := observed.GetProperties()
+	cr.Status.AtProvider.UserID = *observed.GetId()
+	cr.Status.AtProvider.Active = *props.GetActive()
+	cr.Status.AtProvider.S3CanonicalUserID = *props.GetS3CanonicalUserId()
+	cr.Status.AtProvider.SecAuthActive = *props.GetSecAuthActive()
+}
+
 func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
 	cr, ok := mg.(*v1alpha1.User)
 	if !ok {
@@ -117,28 +140,17 @@ func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalObservation{}, nil
 	}
 	if err != nil {
-		return managed.ExternalObservation{}, errors.Wrap(err, "failed to get user by id")
+		return managed.ExternalObservation{}, errors.Wrap(err, errUserObserve)
 	}
 
-	props := observed.GetProperties()
-	cr.Status.AtProvider.UserID = *observed.GetId()
-	cr.Status.AtProvider.S3CanonicalUserID = *props.GetS3CanonicalUserId()
-	cr.Status.AtProvider.Active = *props.GetActive()
-
+	setStatus(cr, observed)
 	cr.SetConditions(xpv1.Available())
+
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  userapi.IsUserUpToDate(cr, observed),
+		ResourceUpToDate:  userapi.IsUserUpToDate(cr.Spec.ForProvider, observed),
 		ConnectionDetails: connectionDetails(cr, observed),
 	}, nil
-}
-
-func connectionDetails(cr *v1alpha1.User, observed ionosdk.User) managed.ConnectionDetails {
-	props := observed.GetProperties()
-	return managed.ConnectionDetails{
-		"email": []byte(*props.GetEmail()),
-		xpv1.ResourceCredentialsSecretPasswordKey: []byte(cr.Spec.ForProvider.Password),
-	}
 }
 
 func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
@@ -148,23 +160,22 @@ func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (manage
 	}
 	cr.SetConditions(xpv1.Creating())
 
-	nprops := ionosdk.NewUserPropertiesPost()
-	userapi.SetUserProperties(*cr, nprops)
-	observed, resp, err := eu.service.CreateUser(ctx, *ionosdk.NewUserPost(*nprops))
+	observed, resp, err := eu.service.CreateUser(ctx, cr.Spec.ForProvider)
 	if err != nil {
-		werr := errors.Wrap(err, "failed to create user")
+		werr := errors.Wrap(err, errUserCreate)
 		return managed.ExternalCreation{}, compute.AddAPIResponseInfo(resp, werr)
 	}
-	meta.SetExternalName(cr, *observed.GetId())
 
-	props := observed.GetProperties()
-	cr.Status.AtProvider.UserID = *observed.GetId()
-	cr.Status.AtProvider.Active = *props.GetActive()
-	if s3ID, sOk := props.GetS3CanonicalUserIdOk(); sOk {
-		cr.Status.AtProvider.S3CanonicalUserID = *s3ID
+	if rerr := compute.WaitForRequest(ctx, eu.service.GetAPIClient(), resp); rerr != nil {
+		return managed.ExternalCreation{}, errors.Wrap(rerr, errRequestWait)
 	}
 
+	meta.SetExternalName(cr, *observed.GetId())
+
+	setStatus(cr, observed)
 	conn := connectionDetails(cr, observed)
+	// passwords are sensitive thus should not be part of the cr
+	// they are stored as a secret in the connection details.
 	cr.Spec.ForProvider.Password = ""
 
 	return managed.ExternalCreation{ConnectionDetails: conn}, nil
@@ -178,23 +189,18 @@ func (eu *externalUser) Update(ctx context.Context, mg resource.Managed) (manage
 
 	userID := cr.Status.AtProvider.UserID
 
-	props := ionosdk.NewUserPropertiesPut()
-	userapi.SetUserProperties(*cr, props)
-	props.SetSecAuthActive(cr.Spec.ForProvider.SecAuthActive)
-	observed, resp, err := eu.service.UpdateUser(ctx, userID, *ionosdk.NewUserPut(*props))
+	observed, resp, err := eu.service.UpdateUser(ctx, userID, cr.Spec.ForProvider)
 	if err != nil {
-		werr := errors.Wrap(err, "failed to update user")
+		werr := errors.Wrap(err, errUserUpdate)
 		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(resp, werr)
 	}
 
 	if err = compute.WaitForRequest(ctx, eu.service.GetAPIClient(), resp); err != nil {
-		return managed.ExternalUpdate{}, errors.Wrap(err, "error waiting for request")
+		return managed.ExternalUpdate{}, errors.Wrap(err, errRequestWait)
 	}
 
-	oprops := observed.GetProperties()
 	conn := connectionDetails(cr, observed)
 	cr.Spec.ForProvider.Password = ""
-	cr.Status.AtProvider.Active = *oprops.GetActive()
 
 	return managed.ExternalUpdate{ConnectionDetails: conn}, nil
 }
@@ -208,7 +214,7 @@ func (eu *externalUser) Delete(ctx context.Context, mg resource.Managed) error {
 
 	resp, err := eu.service.DeleteUser(ctx, user.Status.AtProvider.UserID)
 	if err != nil {
-		return compute.ErrorUnlessNotFound(resp, errors.Wrap(err, "failed to delete user"))
+		return compute.ErrorUnlessNotFound(resp, errors.Wrap(err, errUserDelete))
 	}
 
 	return compute.WaitForRequest(ctx, eu.service.GetAPIClient(), resp)

@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	v1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 )
 
@@ -36,9 +37,9 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // CreateUser mocks base method.
-func (m *MockClient) CreateUser(ctx context.Context, u ionoscloud.UserPost) (ionoscloud.User, *ionoscloud.APIResponse, error) {
+func (m *MockClient) CreateUser(ctx context.Context, p v1alpha1.UserParameters) (ionoscloud.User, *ionoscloud.APIResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateUser", ctx, u)
+	ret := m.ctrl.Call(m, "CreateUser", ctx, p)
 	ret0, _ := ret[0].(ionoscloud.User)
 	ret1, _ := ret[1].(*ionoscloud.APIResponse)
 	ret2, _ := ret[2].(error)
@@ -46,9 +47,9 @@ func (m *MockClient) CreateUser(ctx context.Context, u ionoscloud.UserPost) (ion
 }
 
 // CreateUser indicates an expected call of CreateUser.
-func (mr *MockClientMockRecorder) CreateUser(ctx, u interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) CreateUser(ctx, p interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockClient)(nil).CreateUser), ctx, u)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockClient)(nil).CreateUser), ctx, p)
 }
 
 // DeleteUser mocks base method.
@@ -97,9 +98,9 @@ func (mr *MockClientMockRecorder) GetUser(ctx, id interface{}) *gomock.Call {
 }
 
 // UpdateUser mocks base method.
-func (m *MockClient) UpdateUser(ctx context.Context, id string, u ionoscloud.UserPut) (ionoscloud.User, *ionoscloud.APIResponse, error) {
+func (m *MockClient) UpdateUser(ctx context.Context, id string, p v1alpha1.UserParameters) (ionoscloud.User, *ionoscloud.APIResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateUser", ctx, id, u)
+	ret := m.ctrl.Call(m, "UpdateUser", ctx, id, p)
 	ret0, _ := ret[0].(ionoscloud.User)
 	ret1, _ := ret[1].(*ionoscloud.APIResponse)
 	ret2, _ := ret[2].(error)
@@ -107,9 +108,9 @@ func (m *MockClient) UpdateUser(ctx context.Context, id string, u ionoscloud.Use
 }
 
 // UpdateUser indicates an expected call of UpdateUser.
-func (mr *MockClientMockRecorder) UpdateUser(ctx, id, u interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) UpdateUser(ctx, id, p interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockClient)(nil).UpdateUser), ctx, id, u)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockClient)(nil).UpdateUser), ctx, id, p)
 }
 
 // MockuserPropsSetter is a mock of userPropsSetter interface.

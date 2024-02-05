@@ -18,8 +18,18 @@ import (
 	"k8s.io/utils/pointer"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	usermock "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/mock/clients/compute/user"
 )
+
+const idInTest = "a8ba2f37-6207-47f8-ab52-fe82021d3259"
+
+func init() {
+	// since the client is mocked, we also want to mock WaitForRequest calls.
+	compute.WaitForRequest = func(_ context.Context, _ *ionoscloud.APIClient, _ *ionoscloud.APIResponse) error {
+		return nil
+	}
+}
 
 func TestUserObserve(t *testing.T) {
 	var (
@@ -64,7 +74,7 @@ func TestUserObserve(t *testing.T) {
 			},
 		},
 		{
-			scenario: "Error from ionoscloud api sdk when fetching the user",
+			scenario: "API ionoscloud returns an error when fetching the user",
 			mock: func() {
 				err := errors.New("internal error")
 				client.EXPECT().GetUser(ctx, gomock.Any()).Return(ionoscloud.User{}, nil, err)
@@ -85,6 +95,8 @@ func TestUserObserve(t *testing.T) {
 					Properties: &ionoscloud.UserProperties{
 						Email:             pointer.String("xplane-user@ionoscloud.io"),
 						S3CanonicalUserId: pointer.String("400c7ccfed0d"),
+						Active:            pointer.Bool(true),
+						SecAuthActive:     pointer.Bool(true),
 					},
 				}
 				client.EXPECT().GetUser(ctx, gomock.Any()).Return(user, apires, nil)
@@ -108,7 +120,7 @@ func TestUserObserve(t *testing.T) {
 				ResourceUpToDate: false,
 				ConnectionDetails: managed.ConnectionDetails{
 					"email":    []byte("xplane-user@ionoscloud.io"),
-					"password": []byte("pwned"),
+					"password": []byte("$3cr3t"),
 				},
 			},
 		},
@@ -134,7 +146,265 @@ func TestUserObserve(t *testing.T) {
 	}
 }
 
-const idInTest = "a8ba2f37-6207-47f8-ab52-fe82021d3259"
+func TestUserCreate(t *testing.T) {
+	var (
+		ctx    = context.Background()
+		ctrl   = gomock.NewController(t)
+		client = usermock.NewMockClient(ctrl)
+		g      = NewWithT(t)
+		eu     = externalUser{
+			service: client,
+			log:     logging.NewNopLogger(),
+		}
+	)
+
+	tests := []struct {
+		scenario            string
+		cr                  resource.Managed
+		expectations        func(resource.Managed)
+		expectedObservation managed.ExternalCreation
+		mock                func()
+		errContains         string
+	}{
+		{
+			scenario: "API ionoscloud returns an error",
+			mock: func() {
+				err := errors.New("internal error")
+				client.EXPECT().CreateUser(ctx, gomock.Any()).Return(ionoscloud.User{}, nil, err)
+			},
+			cr:          &v1alpha1.User{},
+			errContains: "failed to create user",
+		},
+		{
+			scenario: "User creation results in connection details",
+			mock: func() {
+				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusAccepted})
+				user := ionoscloud.User{
+					Id: pointer.String(idInTest),
+					Properties: &ionoscloud.UserProperties{
+						Email:             pointer.String("xplane-user@ionoscloud.io"),
+						Firstname:         pointer.String("user name"),
+						Lastname:          pointer.String("test"),
+						S3CanonicalUserId: pointer.String("400c7ccfed0d"),
+						Administrator:     pointer.Bool(false),
+						ForceSecAuth:      pointer.Bool(false),
+						SecAuthActive:     pointer.Bool(false),
+						Active:            pointer.Bool(true),
+					},
+				}
+				client.EXPECT().CreateUser(ctx, gomock.Any()).Return(user, apires, nil)
+				client.EXPECT().GetAPIClient().Return(&ionoscloud.APIClient{})
+			},
+			cr: &v1alpha1.User{Spec: v1alpha1.UserSpec{
+				ForProvider: userParams(defaultParams),
+			}},
+			expectations: func(mg resource.Managed) {
+				cr := mg.(*v1alpha1.User)
+				g.Expect(cr.ObjectMeta.Annotations).To(HaveKeyWithValue(meta.AnnotationKeyExternalName, idInTest))
+				g.Expect(cr.Status.AtProvider.UserID).To(Equal(idInTest))
+				g.Expect(cr.Status.AtProvider.S3CanonicalUserID).To(Equal("400c7ccfed0d"))
+				g.Expect(cr.Status.AtProvider.Active).To(BeTrue())
+				g.Expect(cr.Status.AtProvider.SecAuthActive).To(BeFalse())
+				g.Expect(cr.GetCondition(xpv1.TypeReady).Equal(xpv1.Creating())).To(BeTrue())
+				g.Expect(cr.Spec.ForProvider.Password).To(BeEmpty())
+			},
+			expectedObservation: managed.ExternalCreation{
+				ConnectionDetails: managed.ConnectionDetails{
+					"email":    []byte("xplane-user@ionoscloud.io"),
+					"password": []byte("$3cr3t"),
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.scenario, func(t *testing.T) {
+			if test.mock != nil {
+				test.mock()
+			}
+			res, err := eu.Create(ctx, test.cr)
+			if test.errContains != "" {
+				g.Expect(err).ToNot(BeNil())
+				g.Expect(err.Error()).To(ContainSubstring(test.errContains))
+				return
+			}
+			if test.expectations != nil {
+				test.expectations(test.cr)
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(res).To(Equal(test.expectedObservation))
+		})
+	}
+}
+
+func TestUserUpdate(t *testing.T) {
+	var (
+		ctx    = context.Background()
+		ctrl   = gomock.NewController(t)
+		client = usermock.NewMockClient(ctrl)
+		g      = NewWithT(t)
+		eu     = externalUser{
+			service: client,
+			log:     logging.NewNopLogger(),
+		}
+	)
+
+	tests := []struct {
+		scenario            string
+		cr                  resource.Managed
+		expectations        func(resource.Managed)
+		expectedObservation managed.ExternalUpdate
+		mock                func()
+		errContains         string
+	}{
+		{
+			scenario: "API ionoscloud returns an error",
+			mock: func() {
+				err := errors.New("internal error")
+				client.EXPECT().UpdateUser(ctx, idInTest, gomock.Any()).Return(ionoscloud.User{}, nil, err)
+			},
+			cr: &v1alpha1.User{Status: v1alpha1.UserStatus{
+				AtProvider: v1alpha1.UserObservation{
+					UserID: idInTest,
+				},
+			}},
+			errContains: "failed to update user",
+		},
+		{
+			scenario: "User update results in connection details",
+			mock: func() {
+				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusAccepted})
+				user := ionoscloud.User{
+					Id: pointer.String(idInTest),
+					Properties: &ionoscloud.UserProperties{
+						Email:             pointer.String("xplane-user@ionoscloud.io"),
+						Firstname:         pointer.String("user name"),
+						Lastname:          pointer.String("test"),
+						S3CanonicalUserId: pointer.String("400c7ccfed0d"),
+						Administrator:     pointer.Bool(false),
+						ForceSecAuth:      pointer.Bool(false),
+						SecAuthActive:     pointer.Bool(false),
+						Active:            pointer.Bool(true),
+					},
+				}
+				var p v1alpha1.UserParameters
+				client.EXPECT().UpdateUser(ctx, idInTest, gomock.AssignableToTypeOf(p)).
+					DoAndReturn(func(ctx context.Context, id string, p v1alpha1.UserParameters) (ionoscloud.User, *ionoscloud.APIResponse, error) {
+						user.Properties.Email = &p.Email
+						return user, apires, nil
+					})
+				client.EXPECT().GetAPIClient().Return(&ionoscloud.APIClient{})
+			},
+			cr: &v1alpha1.User{
+				Spec: v1alpha1.UserSpec{
+					ForProvider: userParams(func(p *v1alpha1.UserParameters) {
+						p.Password = "anotherpassw"
+						p.Email = "anotheremail@ionoscloud.io"
+					}),
+				},
+				Status: v1alpha1.UserStatus{
+					AtProvider: v1alpha1.UserObservation{
+						UserID: idInTest,
+					},
+				},
+			},
+			expectations: func(mg resource.Managed) {
+				cr := mg.(*v1alpha1.User)
+				g.Expect(cr.Spec.ForProvider.Password).To(BeEmpty())
+				g.Expect(cr.Spec.ForProvider.Email).To(Equal("anotheremail@ionoscloud.io"))
+			},
+			expectedObservation: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{
+					"email":    []byte("anotheremail@ionoscloud.io"),
+					"password": []byte("anotherpassw"),
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.scenario, func(t *testing.T) {
+			if test.mock != nil {
+				test.mock()
+			}
+			res, err := eu.Update(ctx, test.cr)
+			if test.errContains != "" {
+				g.Expect(err).ToNot(BeNil())
+				g.Expect(err.Error()).To(ContainSubstring(test.errContains))
+				return
+			}
+			if test.expectations != nil {
+				test.expectations(test.cr)
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(res).To(Equal(test.expectedObservation))
+		})
+	}
+}
+
+func TestUserDelete(t *testing.T) {
+	var (
+		ctx    = context.Background()
+		ctrl   = gomock.NewController(t)
+		client = usermock.NewMockClient(ctrl)
+		g      = NewWithT(t)
+		eu     = externalUser{
+			service: client,
+			log:     logging.NewNopLogger(),
+		}
+	)
+
+	tests := []struct {
+		scenario            string
+		cr                  resource.Managed
+		expectations        func(resource.Managed)
+		expectedObservation managed.ExternalCreation
+		mock                func()
+		errContains         string
+	}{
+		{
+			scenario: "API ionoscloud returns an error",
+			mock: func() {
+				err := errors.New("internal error")
+				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusInternalServerError})
+				client.EXPECT().DeleteUser(ctx, gomock.Any()).Return(apires, err)
+			},
+			cr:          &v1alpha1.User{},
+			errContains: "failed to delete user",
+		},
+		{
+			scenario: "User deleted successfully",
+			mock: func() {
+				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusAccepted})
+				client.EXPECT().DeleteUser(ctx, gomock.Any()).Return(apires, nil)
+				client.EXPECT().GetAPIClient().Return(&ionoscloud.APIClient{})
+			},
+			cr: &v1alpha1.User{Status: v1alpha1.UserStatus{
+				AtProvider: v1alpha1.UserObservation{
+					UserID: idInTest,
+				},
+			}},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.scenario, func(t *testing.T) {
+			if test.mock != nil {
+				test.mock()
+			}
+			err := eu.Delete(ctx, test.cr)
+			if test.errContains != "" {
+				g.Expect(err).ToNot(BeNil())
+				g.Expect(err.Error()).To(ContainSubstring(test.errContains))
+				return
+			}
+			if test.expectations != nil {
+				test.expectations(test.cr)
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
+}
 
 var defaultParams func(*v1alpha1.UserParameters) = nil
 
@@ -145,7 +415,7 @@ func userParams(mod func(*v1alpha1.UserParameters)) v1alpha1.UserParameters {
 		LastName:      "test",
 		Administrator: false,
 		ForceSecAuth:  false,
-		Password:      "pwned",
+		Password:      "$3cr3t",
 		SecAuthActive: false,
 		Active:        false,
 		GroupIDs:      []string{"0194bffb-070e-464c-8c5a-4d476489e5e7"},

@@ -18,8 +18,8 @@ type APIClient struct {
 // Currently used for mocking the interaction with the client.
 type Client interface {
 	GetUser(ctx context.Context, id string) (ionosdk.User, *ionosdk.APIResponse, error)
-	CreateUser(ctx context.Context, u ionosdk.UserPost) (ionosdk.User, *ionosdk.APIResponse, error)
-	UpdateUser(ctx context.Context, id string, u ionosdk.UserPut) (ionosdk.User, *ionosdk.APIResponse, error)
+	CreateUser(ctx context.Context, p v1alpha1.UserParameters) (ionosdk.User, *ionosdk.APIResponse, error)
+	UpdateUser(ctx context.Context, id string, p v1alpha1.UserParameters) (ionosdk.User, *ionosdk.APIResponse, error)
 	DeleteUser(ctx context.Context, id string) (*ionosdk.APIResponse, error)
 	GetAPIClient() *ionosdk.APIClient
 }
@@ -30,12 +30,19 @@ func (ac *APIClient) GetUser(ctx context.Context, id string) (ionosdk.User, *ion
 }
 
 // CreateUser creates a user in the ionoscloud.
-func (ac *APIClient) CreateUser(ctx context.Context, u ionosdk.UserPost) (ionosdk.User, *ionosdk.APIResponse, error) {
+func (ac *APIClient) CreateUser(ctx context.Context, p v1alpha1.UserParameters) (ionosdk.User, *ionosdk.APIResponse, error) {
+	props := ionosdk.NewUserPropertiesPost()
+	setUserProperties(p, props)
+	u := *ionosdk.NewUserPost(*props)
 	return ac.ComputeClient.UserManagementApi.UmUsersPost(ctx).User(u).Execute()
 }
 
 // UpdateUser updates a user.
-func (ac *APIClient) UpdateUser(ctx context.Context, id string, u ionosdk.UserPut) (ionosdk.User, *ionosdk.APIResponse, error) {
+func (ac *APIClient) UpdateUser(ctx context.Context, id string, p v1alpha1.UserParameters) (ionosdk.User, *ionosdk.APIResponse, error) {
+	props := ionosdk.NewUserPropertiesPut()
+	setUserProperties(p, props)
+	props.SetSecAuthActive(p.SecAuthActive)
+	u := *ionosdk.NewUserPut(*props)
 	return ac.ComputeClient.UserManagementApi.UmUsersPut(ctx, id).User(u).Execute()
 }
 
@@ -50,33 +57,31 @@ func (ac *APIClient) GetAPIClient() *ionosdk.APIClient {
 }
 
 // IsUserUpToDate returns true if the User is up-to-date or false otherwise.
-func IsUserUpToDate(cr *v1alpha1.User, observed ionosdk.User) bool { // nolint:gocyclo
-	if !observed.HasProperties() || cr == nil {
+func IsUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User) bool {
+	if !observed.HasProperties() {
 		return false
 	}
 
 	// After creation the password is stored as a connection detail secret
 	// and removed from the cr. If the cr has a password it means
 	// the client wants to update it.
-	if cr.Spec.ForProvider.Password != "" {
+	if params.Password != "" {
 		return false
 	}
 
 	props := observed.GetProperties()
 	switch {
-	case cr.Spec.ForProvider.Administrator != *props.GetAdministrator():
+	case params.Administrator != *props.GetAdministrator():
 		return false
-	case cr.Spec.ForProvider.Email != *props.GetEmail():
+	case params.Email != *props.GetEmail():
 		return false
-	case cr.Spec.ForProvider.FirstName != *props.GetFirstname():
+	case params.FirstName != *props.GetFirstname():
 		return false
-	case cr.Spec.ForProvider.ForceSecAuth != *props.GetForceSecAuth():
+	case params.ForceSecAuth != *props.GetForceSecAuth():
 		return false
-	case cr.Spec.ForProvider.LastName != *props.GetLastname():
+	case params.LastName != *props.GetLastname():
 		return false
-	case cr.Spec.ForProvider.SecAuthActive != *props.GetSecAuthActive():
-		return false
-	case cr.Spec.ForProvider.Active != *props.GetActive():
+	case params.Active != *props.GetActive():
 		return false
 	}
 	return true
@@ -93,13 +98,15 @@ type userPropsSetter interface {
 	SetActive(v bool)
 }
 
-// SetUserProperties sets the cr values into props.
-func SetUserProperties(cr v1alpha1.User, props userPropsSetter) {
-	props.SetFirstname(cr.Spec.ForProvider.FirstName)
-	props.SetLastname(cr.Spec.ForProvider.LastName)
-	props.SetEmail(cr.Spec.ForProvider.Email)
-	props.SetAdministrator(cr.Spec.ForProvider.Administrator)
-	props.SetForceSecAuth(cr.Spec.ForProvider.ForceSecAuth)
-	props.SetPassword(cr.Spec.ForProvider.Password)
-	props.SetActive(cr.Spec.ForProvider.Active)
+// setUserProperties sets the cr values into props.
+func setUserProperties(p v1alpha1.UserParameters, props userPropsSetter) {
+	props.SetFirstname(p.FirstName)
+	props.SetLastname(p.LastName)
+	props.SetEmail(p.Email)
+	props.SetAdministrator(p.Administrator)
+	props.SetForceSecAuth(p.ForceSecAuth)
+	if pw := p.Password; pw != "" {
+		props.SetPassword(pw)
+	}
+	props.SetActive(p.Active)
 }

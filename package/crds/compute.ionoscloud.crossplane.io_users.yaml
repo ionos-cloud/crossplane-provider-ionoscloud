@@ -26,7 +26,7 @@ spec:
       name: SYNCED
       type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
-      name: ID
+      name: USER_ID
       type: string
     - jsonPath: .status.atProvider.active
       name: ACTIVE
@@ -339,12 +339,17 @@ spec:
                     description: S3CanonicalUserID Canonical (S3) id of the user for
                       a given identity.
                     type: string
+                  secAuthActive:
+                    description: SecAuthActive Indicates if secure authentication
+                      is active for the user or not.
+                    type: boolean
                   userID:
                     description: UserID is the user id.
                     format: uuid
                     type: string
                 required:
                 - active
+                - secAuthActive
                 type: object
               conditions:
                 description: Conditions of the resource.

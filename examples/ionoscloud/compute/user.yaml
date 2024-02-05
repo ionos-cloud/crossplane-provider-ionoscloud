@@ -8,21 +8,25 @@
 # Password
 #
 # You can also set crossplane.io/external-name annotation to manage an existing resource.
-# It must point to an existing user id.
+# It must point to an existing user id. Required fields are still necessary to manage the existing user.
+# Ensure the same password is used otherwise an update will take place.
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: User
 metadata:
-  name: example
+  name: xplane-test-user
 managementPolicies:
   - "*"
 spec:
   forProvider:
     administrator: false
-    email: "unique@email.com"
-    firstName: "Benjamin"
-    lastName: "Nicolau"
+    email: "unique@xplane.com"
+    firstName: "xplane test"
+    lastName: "user"
     forceSecAuth: true
     password: "$3cr3t"
     active: true
   providerConfigRef:
     name: example
+  writeConnectionSecretToRef:
+    name: "xplane-user"
+    namespace: "crossplane-system"

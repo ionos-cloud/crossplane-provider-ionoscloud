@@ -64,7 +64,7 @@ type UserParameters struct {
 // User is our managed resource.
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
-// +kubebuilder:printcolumn:name="ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
+// +kubebuilder:printcolumn:name="USER_ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="ACTIVE",type="string",JSONPath=".status.atProvider.active"
 // +kubebuilder:printcolumn:name="EMAIL",type="string",JSONPath=".spec.forProvider.email"
 // +kubebuilder:subresource:status
@@ -109,6 +109,8 @@ type UserObservation struct {
 	S3CanonicalUserID string `json:"s3CanonicalUserID,omitempty"`
 	// Active Indicates if the user is active.
 	Active bool `json:"active"`
+	// SecAuthActive Indicates if secure authentication is active for the user or not.
+	SecAuthActive bool `json:"secAuthActive"`
 }
 
 // +kubebuilder:object:root=true
