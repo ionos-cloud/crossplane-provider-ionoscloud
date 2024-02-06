@@ -73,11 +73,12 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
-* `public` (boolean)
-	* description: This LAN faces the public Internet.
 * `datacenterConfig` (object)
 	* description: DatacenterConfig contains information about the datacenter resource on which the lan will be created.
 	* properties:
+		* `datacenterId` (string)
+			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
 		* `datacenterIdRef` (object)
 			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
 			* properties:
@@ -86,13 +87,13 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 				* `policy` (object)
 					* description: Policies for referencing.
 					* properties:
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
 		* `datacenterIdSelector` (object)
@@ -112,9 +113,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
-		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
-			* format: uuid
 * `name` (string)
 	* description: The name of the  resource.
 * `pcc` (object)
@@ -157,6 +155,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
+* `public` (boolean)
+	* description: This LAN faces the public Internet.
 
 ### Required Properties
 
