@@ -283,7 +283,7 @@ func updateGroups(ctx context.Context, eu *externalUser, userID string, atProvid
 }
 
 // isUserUpToDate returns true if the User is up-to-date or false otherwise.
-func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, observedGroups []string) bool {
+func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, observedGroups []string) bool { //nolint:gocyclo
 	if !observed.HasProperties() {
 		return false
 	}
@@ -299,10 +299,7 @@ func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, obser
 		return false
 	}
 
-	return isUserPropsUpdated(params, observed.GetProperties())
-}
-
-func isUserPropsUpdated(params v1alpha1.UserParameters, props *ionosdk.UserProperties) bool {
+	props := observed.GetProperties()
 	adm := props.GetAdministrator()
 	email := props.GetEmail()
 	fname := props.GetFirstname()
