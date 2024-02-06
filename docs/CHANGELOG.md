@@ -5,8 +5,10 @@
 - Add `DataplatformCluster` crd to support CRUD of Dataplatform clusters
 - Add `DataplatformNodepool` crd to support CRUD of Dataplatform clusters
 - Add `PICSlot` status field to `volume` and `nic` crds
+- Use `make provider.addtype` to add new types to the provider
 
 - **Documentation**:
+- Add server composition and claim example
 - Add docs on how to set pinning for crossplane provider. See [here](docs/README.md#authentication-on-ionos-cloud)
 
 ## [1.0.8] (December 2023)
