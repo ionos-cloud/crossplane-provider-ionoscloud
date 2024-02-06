@@ -109,6 +109,7 @@ type NicObservation struct {
 	IPs      []string `json:"ips,omitempty"`
 	State    string   `json:"state,omitempty"`
 	Mac      string   `json:"mac,omitempty"`
+	PCISlot  int32    `json:"pciSlot,omitempty"`
 }
 
 // A NicSpec defines the desired state of a Nic.
@@ -135,6 +136,7 @@ type NicStatus struct {
 // +kubebuilder:printcolumn:name="IPS",priority=1,type="string",JSONPath=".status.atProvider.ips"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="PCISlot",type="string",JSONPath=".status.atProvider.pciSlot"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
 type Nic struct {
