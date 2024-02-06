@@ -18,18 +18,11 @@ import (
 	"k8s.io/utils/pointer"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	usermock "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/mock/clients/compute/user"
 )
 
-const idInTest = "a8ba2f37-6207-47f8-ab52-fe82021d3259"
-
-func init() {
-	// since the client is mocked, we also want to mock WaitForRequest calls.
-	compute.WaitForRequest = func(_ context.Context, _ *ionoscloud.APIClient, _ *ionoscloud.APIResponse) error {
-		return nil
-	}
-}
+const userIDInTest = "a8ba2f37-6207-47f8-ab52-fe82021d3259"
+const groupIDInTest = "5458a703-6450-4ddd-b133-59349c83f832"
 
 func TestUserObserve(t *testing.T) {
 	var (
@@ -66,7 +59,7 @@ func TestUserObserve(t *testing.T) {
 			},
 			cr: &v1alpha1.User{ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
-					meta.AnnotationKeyExternalName: idInTest,
+					meta.AnnotationKeyExternalName: userIDInTest,
 				}},
 			},
 			expectedObservation: managed.ExternalObservation{
@@ -81,29 +74,33 @@ func TestUserObserve(t *testing.T) {
 			},
 			cr: &v1alpha1.User{ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
-					meta.AnnotationKeyExternalName: idInTest,
+					meta.AnnotationKeyExternalName: userIDInTest,
 				}},
 			},
 			errContains: "failed to get user by id",
 		},
 		{
-			scenario: "User exists on ionoscloud",
+			scenario: "User exists on ionoscloud with groups",
 			mock: func() {
 				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusOK})
 				user := ionoscloud.User{
-					Id: pointer.String(idInTest),
+					Id: pointer.String(userIDInTest),
 					Properties: &ionoscloud.UserProperties{
 						Email:             pointer.String("xplane-user@ionoscloud.io"),
 						S3CanonicalUserId: pointer.String("400c7ccfed0d"),
 						Active:            pointer.Bool(true),
 						SecAuthActive:     pointer.Bool(true),
+						Firstname:         pointer.String("test"),
+						Lastname:          pointer.String("user"),
+						Administrator:     pointer.Bool(false),
 					},
 				}
 				client.EXPECT().GetUser(ctx, gomock.Any()).Return(user, apires, nil)
+				client.EXPECT().GetUserGroups(ctx, gomock.Any()).Return([]string{"5458a703-6450-4ddd-b133-59349c83f832"}, nil)
 			},
 			cr: &v1alpha1.User{ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
-					meta.AnnotationKeyExternalName: idInTest,
+					meta.AnnotationKeyExternalName: userIDInTest,
 				}},
 				Spec: v1alpha1.UserSpec{
 					ForProvider: userParams(defaultParams),
@@ -111,13 +108,15 @@ func TestUserObserve(t *testing.T) {
 			},
 			expectations: func(mg resource.Managed) {
 				cr := mg.(*v1alpha1.User)
-				g.Expect(cr.Status.AtProvider.UserID).To(Equal(idInTest))
+				g.Expect(cr.Status.AtProvider.UserID).To(Equal(userIDInTest))
 				g.Expect(cr.Status.AtProvider.S3CanonicalUserID).To(Equal("400c7ccfed0d"))
+				g.Expect(cr.Status.AtProvider.GroupIDs).To(ContainElement("5458a703-6450-4ddd-b133-59349c83f832"))
 				g.Expect(xpv1.Available().Equal(cr.GetCondition(xpv1.TypeReady))).To(BeTrue())
 			},
 			expectedObservation: managed.ExternalObservation{
-				ResourceExists:   true,
-				ResourceUpToDate: false,
+				ResourceExists:          true,
+				ResourceUpToDate:        false,
+				ResourceLateInitialized: true,
 				ConnectionDetails: managed.ConnectionDetails{
 					"email":    []byte("xplane-user@ionoscloud.io"),
 					"password": []byte("$3cr3t"),
@@ -176,11 +175,11 @@ func TestUserCreate(t *testing.T) {
 			errContains: "failed to create user",
 		},
 		{
-			scenario: "User creation results in connection details",
+			scenario: "User creation with groups results in connection details",
 			mock: func() {
 				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusAccepted})
 				user := ionoscloud.User{
-					Id: pointer.String(idInTest),
+					Id: pointer.String(userIDInTest),
 					Properties: &ionoscloud.UserProperties{
 						Email:             pointer.String("xplane-user@ionoscloud.io"),
 						Firstname:         pointer.String("user name"),
@@ -193,15 +192,15 @@ func TestUserCreate(t *testing.T) {
 					},
 				}
 				client.EXPECT().CreateUser(ctx, gomock.Any()).Return(user, apires, nil)
-				client.EXPECT().GetAPIClient().Return(&ionoscloud.APIClient{})
+				client.EXPECT().AddUserToGroup(ctx, groupIDInTest, userIDInTest).Return(user, apires, nil)
 			},
 			cr: &v1alpha1.User{Spec: v1alpha1.UserSpec{
 				ForProvider: userParams(defaultParams),
 			}},
 			expectations: func(mg resource.Managed) {
 				cr := mg.(*v1alpha1.User)
-				g.Expect(cr.ObjectMeta.Annotations).To(HaveKeyWithValue(meta.AnnotationKeyExternalName, idInTest))
-				g.Expect(cr.Status.AtProvider.UserID).To(Equal(idInTest))
+				g.Expect(cr.ObjectMeta.Annotations).To(HaveKeyWithValue(meta.AnnotationKeyExternalName, userIDInTest))
+				g.Expect(cr.Status.AtProvider.UserID).To(Equal(userIDInTest))
 				g.Expect(cr.Status.AtProvider.S3CanonicalUserID).To(Equal("400c7ccfed0d"))
 				g.Expect(cr.Status.AtProvider.Active).To(BeTrue())
 				g.Expect(cr.Status.AtProvider.SecAuthActive).To(BeFalse())
@@ -261,21 +260,21 @@ func TestUserUpdate(t *testing.T) {
 			scenario: "API ionoscloud returns an error",
 			mock: func() {
 				err := errors.New("internal error")
-				client.EXPECT().UpdateUser(ctx, idInTest, gomock.Any()).Return(ionoscloud.User{}, nil, err)
+				client.EXPECT().UpdateUser(ctx, userIDInTest, gomock.Any()).Return(ionoscloud.User{}, nil, err)
 			},
 			cr: &v1alpha1.User{Status: v1alpha1.UserStatus{
 				AtProvider: v1alpha1.UserObservation{
-					UserID: idInTest,
+					UserID: userIDInTest,
 				},
 			}},
 			errContains: "failed to update user",
 		},
 		{
-			scenario: "User update results in connection details",
+			scenario: "User update with a group results in connection details",
 			mock: func() {
 				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusAccepted})
 				user := ionoscloud.User{
-					Id: pointer.String(idInTest),
+					Id: pointer.String(userIDInTest),
 					Properties: &ionoscloud.UserProperties{
 						Email:             pointer.String("xplane-user@ionoscloud.io"),
 						Firstname:         pointer.String("user name"),
@@ -288,12 +287,12 @@ func TestUserUpdate(t *testing.T) {
 					},
 				}
 				var p v1alpha1.UserParameters
-				client.EXPECT().UpdateUser(ctx, idInTest, gomock.AssignableToTypeOf(p)).
+				client.EXPECT().UpdateUser(ctx, userIDInTest, gomock.AssignableToTypeOf(p)).
 					DoAndReturn(func(ctx context.Context, id string, p v1alpha1.UserParameters) (ionoscloud.User, *ionoscloud.APIResponse, error) {
 						user.Properties.Email = &p.Email
 						return user, apires, nil
 					})
-				client.EXPECT().GetAPIClient().Return(&ionoscloud.APIClient{})
+				client.EXPECT().AddUserToGroup(ctx, groupIDInTest, userIDInTest).Return(user, apires, nil)
 			},
 			cr: &v1alpha1.User{
 				Spec: v1alpha1.UserSpec{
@@ -304,7 +303,7 @@ func TestUserUpdate(t *testing.T) {
 				},
 				Status: v1alpha1.UserStatus{
 					AtProvider: v1alpha1.UserObservation{
-						UserID: idInTest,
+						UserID: userIDInTest,
 					},
 				},
 			},
@@ -363,25 +362,44 @@ func TestUserDelete(t *testing.T) {
 		errContains         string
 	}{
 		{
-			scenario: "API ionoscloud returns an error",
+			scenario: "API delete user returns an error",
 			mock: func() {
 				err := errors.New("internal error")
 				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusInternalServerError})
 				client.EXPECT().DeleteUser(ctx, gomock.Any()).Return(apires, err)
 			},
-			cr:          &v1alpha1.User{},
+			cr: &v1alpha1.User{Status: v1alpha1.UserStatus{
+				AtProvider: v1alpha1.UserObservation{
+					UserID: userIDInTest,
+				},
+			}},
 			errContains: "failed to delete user",
+		},
+		{
+			scenario: "API remove user from group returns an error",
+			mock: func() {
+				err := errors.New("internal error")
+				client.EXPECT().DeleteUserFromGroup(ctx, groupIDInTest, userIDInTest).Return(err)
+			},
+			cr: &v1alpha1.User{Status: v1alpha1.UserStatus{
+				AtProvider: v1alpha1.UserObservation{
+					UserID:   userIDInTest,
+					GroupIDs: []string{groupIDInTest},
+				},
+			}},
+			errContains: "failed to remove user from a group",
 		},
 		{
 			scenario: "User deleted successfully",
 			mock: func() {
 				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusAccepted})
+				client.EXPECT().DeleteUserFromGroup(ctx, groupIDInTest, userIDInTest).Return(nil)
 				client.EXPECT().DeleteUser(ctx, gomock.Any()).Return(apires, nil)
-				client.EXPECT().GetAPIClient().Return(&ionoscloud.APIClient{})
 			},
 			cr: &v1alpha1.User{Status: v1alpha1.UserStatus{
 				AtProvider: v1alpha1.UserObservation{
-					UserID: idInTest,
+					UserID:   userIDInTest,
+					GroupIDs: []string{groupIDInTest},
 				},
 			}},
 		},
@@ -418,7 +436,7 @@ func userParams(mod func(*v1alpha1.UserParameters)) v1alpha1.UserParameters {
 		Password:      "$3cr3t",
 		SecAuthActive: false,
 		Active:        false,
-		GroupIDs:      []string{"0194bffb-070e-464c-8c5a-4d476489e5e7"},
+		GroupIDs:      []string{"5458a703-6450-4ddd-b133-59349c83f832"},
 	}
 	if mod != nil {
 		mod(p)

@@ -26,14 +26,8 @@ const (
 	requestHeader = "Location"
 )
 
-// WaitForRequest waits for the request to be DONE.
-var WaitForRequest requestWaiter = requestWait
-
-// requestWaiter defines a type to wait for requests.
-type requestWaiter func(ctx context.Context, client *sdkgo.APIClient, apiResponse *sdkgo.APIResponse) error
-
-// requestWait is the default requestWaiter.
-func requestWait(ctx context.Context, client *sdkgo.APIClient, apiResponse *sdkgo.APIResponse) error {
+// WaitForRequest is the default requestWaiter.
+func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *sdkgo.APIResponse) error {
 	if client != nil {
 		if apiResponse != nil && apiResponse.Response != nil {
 			if _, err := client.WaitForRequest(ctx, apiResponse.Response.Header.Get(requestHeader)); err != nil {
@@ -48,8 +42,7 @@ func requestWait(ctx context.Context, client *sdkgo.APIClient, apiResponse *sdkg
 
 // ErrorUnlessNotFound returns an error with status code info, unless the status code is 404
 func ErrorUnlessNotFound(apiResponse *sdkgo.APIResponse, retErr error) error {
-
-	if apiResponse != nil && apiResponse.Response != nil {
+	if apiResponse != nil && apiResponse.Response != nil && apiResponse.StatusCode >= 300 {
 		retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Status)
 		if apiResponse.HttpNotFound() {
 			retErr = nil

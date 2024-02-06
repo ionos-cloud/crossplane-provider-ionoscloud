@@ -111,6 +111,8 @@ type UserObservation struct {
 	Active bool `json:"active"`
 	// SecAuthActive Indicates if secure authentication is active for the user or not.
 	SecAuthActive bool `json:"secAuthActive"`
+	// GroupIds that this user will be a member of.
+	GroupIDs []string `json:"groupIDs"`
 }
 
 // +kubebuilder:object:root=true

@@ -36,6 +36,22 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
+// AddUserToGroup mocks base method.
+func (m *MockClient) AddUserToGroup(ctx context.Context, groupId, userId string) (ionoscloud.User, *ionoscloud.APIResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddUserToGroup", ctx, groupId, userId)
+	ret0, _ := ret[0].(ionoscloud.User)
+	ret1, _ := ret[1].(*ionoscloud.APIResponse)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// AddUserToGroup indicates an expected call of AddUserToGroup.
+func (mr *MockClientMockRecorder) AddUserToGroup(ctx, groupId, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUserToGroup", reflect.TypeOf((*MockClient)(nil).AddUserToGroup), ctx, groupId, userId)
+}
+
 // CreateUser mocks base method.
 func (m *MockClient) CreateUser(ctx context.Context, p v1alpha1.UserParameters) (ionoscloud.User, *ionoscloud.APIResponse, error) {
 	m.ctrl.T.Helper()
@@ -65,6 +81,20 @@ func (m *MockClient) DeleteUser(ctx context.Context, id string) (*ionoscloud.API
 func (mr *MockClientMockRecorder) DeleteUser(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockClient)(nil).DeleteUser), ctx, id)
+}
+
+// DeleteUserFromGroup mocks base method.
+func (m *MockClient) DeleteUserFromGroup(ctx context.Context, groupId, userId string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteUserFromGroup", ctx, groupId, userId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteUserFromGroup indicates an expected call of DeleteUserFromGroup.
+func (mr *MockClientMockRecorder) DeleteUserFromGroup(ctx, groupId, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUserFromGroup", reflect.TypeOf((*MockClient)(nil).DeleteUserFromGroup), ctx, groupId, userId)
 }
 
 // GetAPIClient mocks base method.
@@ -97,6 +127,21 @@ func (mr *MockClientMockRecorder) GetUser(ctx, id interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUser", reflect.TypeOf((*MockClient)(nil).GetUser), ctx, id)
 }
 
+// GetUserGroups mocks base method.
+func (m *MockClient) GetUserGroups(ctx context.Context, userId string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserGroups", ctx, userId)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserGroups indicates an expected call of GetUserGroups.
+func (mr *MockClientMockRecorder) GetUserGroups(ctx, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserGroups", reflect.TypeOf((*MockClient)(nil).GetUserGroups), ctx, userId)
+}
+
 // UpdateUser mocks base method.
 func (m *MockClient) UpdateUser(ctx context.Context, id string, p v1alpha1.UserParameters) (ionoscloud.User, *ionoscloud.APIResponse, error) {
 	m.ctrl.T.Helper()
@@ -111,123 +156,4 @@ func (m *MockClient) UpdateUser(ctx context.Context, id string, p v1alpha1.UserP
 func (mr *MockClientMockRecorder) UpdateUser(ctx, id, p interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockClient)(nil).UpdateUser), ctx, id, p)
-}
-
-// MockuserPropsSetter is a mock of userPropsSetter interface.
-type MockuserPropsSetter struct {
-	ctrl     *gomock.Controller
-	recorder *MockuserPropsSetterMockRecorder
-}
-
-// MockuserPropsSetterMockRecorder is the mock recorder for MockuserPropsSetter.
-type MockuserPropsSetterMockRecorder struct {
-	mock *MockuserPropsSetter
-}
-
-// NewMockuserPropsSetter creates a new mock instance.
-func NewMockuserPropsSetter(ctrl *gomock.Controller) *MockuserPropsSetter {
-	mock := &MockuserPropsSetter{ctrl: ctrl}
-	mock.recorder = &MockuserPropsSetterMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockuserPropsSetter) EXPECT() *MockuserPropsSetterMockRecorder {
-	return m.recorder
-}
-
-// SetActive mocks base method.
-func (m *MockuserPropsSetter) SetActive(v bool) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetActive", v)
-}
-
-// SetActive indicates an expected call of SetActive.
-func (mr *MockuserPropsSetterMockRecorder) SetActive(v interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetActive", reflect.TypeOf((*MockuserPropsSetter)(nil).SetActive), v)
-}
-
-// SetAdministrator mocks base method.
-func (m *MockuserPropsSetter) SetAdministrator(v bool) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetAdministrator", v)
-}
-
-// SetAdministrator indicates an expected call of SetAdministrator.
-func (mr *MockuserPropsSetterMockRecorder) SetAdministrator(v interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetAdministrator", reflect.TypeOf((*MockuserPropsSetter)(nil).SetAdministrator), v)
-}
-
-// SetEmail mocks base method.
-func (m *MockuserPropsSetter) SetEmail(v string) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetEmail", v)
-}
-
-// SetEmail indicates an expected call of SetEmail.
-func (mr *MockuserPropsSetterMockRecorder) SetEmail(v interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEmail", reflect.TypeOf((*MockuserPropsSetter)(nil).SetEmail), v)
-}
-
-// SetFirstname mocks base method.
-func (m *MockuserPropsSetter) SetFirstname(v string) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetFirstname", v)
-}
-
-// SetFirstname indicates an expected call of SetFirstname.
-func (mr *MockuserPropsSetterMockRecorder) SetFirstname(v interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFirstname", reflect.TypeOf((*MockuserPropsSetter)(nil).SetFirstname), v)
-}
-
-// SetForceSecAuth mocks base method.
-func (m *MockuserPropsSetter) SetForceSecAuth(v bool) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetForceSecAuth", v)
-}
-
-// SetForceSecAuth indicates an expected call of SetForceSecAuth.
-func (mr *MockuserPropsSetterMockRecorder) SetForceSecAuth(v interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetForceSecAuth", reflect.TypeOf((*MockuserPropsSetter)(nil).SetForceSecAuth), v)
-}
-
-// SetLastname mocks base method.
-func (m *MockuserPropsSetter) SetLastname(v string) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetLastname", v)
-}
-
-// SetLastname indicates an expected call of SetLastname.
-func (mr *MockuserPropsSetterMockRecorder) SetLastname(v interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLastname", reflect.TypeOf((*MockuserPropsSetter)(nil).SetLastname), v)
-}
-
-// SetPassword mocks base method.
-func (m *MockuserPropsSetter) SetPassword(v string) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetPassword", v)
-}
-
-// SetPassword indicates an expected call of SetPassword.
-func (mr *MockuserPropsSetterMockRecorder) SetPassword(v interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPassword", reflect.TypeOf((*MockuserPropsSetter)(nil).SetPassword), v)
-}
-
-// SetSecAuthActive mocks base method.
-func (m *MockuserPropsSetter) SetSecAuthActive(v bool) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetSecAuthActive", v)
-}
-
-// SetSecAuthActive indicates an expected call of SetSecAuthActive.
-func (mr *MockuserPropsSetterMockRecorder) SetSecAuthActive(v interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetSecAuthActive", reflect.TypeOf((*MockuserPropsSetter)(nil).SetSecAuthActive), v)
 }

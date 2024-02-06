@@ -18,6 +18,8 @@ package user
 
 import (
 	"context"
+	"slices"
+	"strings"
 
 	ionosdk "github.com/ionos-cloud/sdk-go/v6"
 	"k8s.io/client-go/util/workqueue"
@@ -44,12 +46,14 @@ import (
 )
 
 const (
-	errUserObserve = "failed to get user by id"
-	errUserDelete  = "failed to delete user"
-	errUserUpdate  = "failed to update user"
-	errUserCreate  = "failed to create user"
-	errRequestWait = "error waiting for request"
-	errNotUser     = "managed resource is not of a User type"
+	errUserObserve    = "failed to get user by id"
+	errUserDelete     = "failed to delete user"
+	errUserUpdate     = "failed to update user"
+	errUserCreate     = "failed to create user"
+	errAddUserToGroup = "failed to add user to the group id"
+	errGetUserGroups  = "failed to fetch user groups"
+	errRequestWait    = "error waiting for request"
+	errNotUser        = "managed resource is not of a User type"
 )
 
 // Setup adds a controller that reconciles User managed resources.
@@ -94,7 +98,7 @@ type connectorUser struct {
 func (c *connectorUser) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalUser{
-		service: &userapi.APIClient{IonosServices: svc},
+		service: userapi.NewAPIClient(svc, compute.WaitForRequest),
 		log:     c.log,
 	}, err
 }
@@ -109,19 +113,37 @@ type externalUser struct {
 }
 
 func connectionDetails(cr *v1alpha1.User, observed ionosdk.User) managed.ConnectionDetails {
+	var details = make(managed.ConnectionDetails)
 	props := observed.GetProperties()
-	return managed.ConnectionDetails{
-		"email": []byte(*props.GetEmail()),
-		xpv1.ResourceCredentialsSecretPasswordKey: []byte(cr.Spec.ForProvider.Password),
+	details["email"] = []byte(*props.GetEmail())
+	if cr.Spec.ForProvider.Password != "" {
+		pw := cr.Spec.ForProvider.Password
+		// passwords are sensitive thus should not be part of the cr
+		// they are stored as a secret in the connection details.
+		cr.Spec.ForProvider.Password = ""
+		details[xpv1.ResourceCredentialsSecretPasswordKey] = []byte(pw)
 	}
+	return details
 }
 
-func setStatus(cr *v1alpha1.User, observed ionosdk.User) {
+func setStatus(cr *v1alpha1.User, observed ionosdk.User, groupIDs []string) {
 	props := observed.GetProperties()
-	cr.Status.AtProvider.UserID = *observed.GetId()
-	cr.Status.AtProvider.Active = *props.GetActive()
-	cr.Status.AtProvider.S3CanonicalUserID = *props.GetS3CanonicalUserId()
-	cr.Status.AtProvider.SecAuthActive = *props.GetSecAuthActive()
+	if !observed.HasProperties() {
+		return
+	}
+	if id := observed.GetId(); id != nil {
+		cr.Status.AtProvider.UserID = *id
+	}
+	if active := props.GetActive(); active != nil {
+		cr.Status.AtProvider.Active = *active
+	}
+	if s3id := props.GetS3CanonicalUserId(); s3id != nil {
+		cr.Status.AtProvider.S3CanonicalUserID = *s3id
+	}
+	if aactive := props.GetSecAuthActive(); aactive != nil {
+		cr.Status.AtProvider.SecAuthActive = *aactive
+	}
+	cr.Status.AtProvider.GroupIDs = groupIDs
 }
 
 func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -143,13 +165,22 @@ func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalObservation{}, errors.Wrap(err, errUserObserve)
 	}
 
-	setStatus(cr, observed)
+	groupIDs, err := eu.service.GetUserGroups(ctx, userID)
+	if err != nil {
+		return managed.ExternalObservation{ResourceExists: true}, errors.Wrap(err, errGetUserGroups)
+	}
+
+	setStatus(cr, observed, groupIDs)
 	cr.SetConditions(xpv1.Available())
 
+	linit := cr.Spec.ForProvider.Password != ""
+	conn := connectionDetails(cr, observed)
+
 	return managed.ExternalObservation{
-		ResourceExists:    true,
-		ResourceUpToDate:  userapi.IsUserUpToDate(cr.Spec.ForProvider, observed),
-		ConnectionDetails: connectionDetails(cr, observed),
+		ResourceExists:          true,
+		ResourceUpToDate:        userapi.IsUserUpToDate(cr.Spec.ForProvider, observed, groupIDs),
+		ConnectionDetails:       conn,
+		ResourceLateInitialized: linit,
 	}, nil
 }
 
@@ -166,17 +197,21 @@ func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (manage
 		return managed.ExternalCreation{}, compute.AddAPIResponseInfo(resp, werr)
 	}
 
-	if rerr := compute.WaitForRequest(ctx, eu.service.GetAPIClient(), resp); rerr != nil {
-		return managed.ExternalCreation{}, errors.Wrap(rerr, errRequestWait)
+	meta.SetExternalName(cr, *observed.GetId())
+	conn := connectionDetails(cr, observed)
+
+	for _, groupId := range cr.Spec.ForProvider.GroupIDs {
+		_, _, gerr := eu.service.AddUserToGroup(ctx, groupId, *observed.GetId())
+		// skip if user is already member of this group.
+		if gerr != nil && strings.Contains(gerr.Error(), "is already member of") {
+			continue
+		}
+		if gerr != nil {
+			return managed.ExternalCreation{ConnectionDetails: conn}, errors.Wrap(err, errAddUserToGroup)
+		}
 	}
 
-	meta.SetExternalName(cr, *observed.GetId())
-
-	setStatus(cr, observed)
-	conn := connectionDetails(cr, observed)
-	// passwords are sensitive thus should not be part of the cr
-	// they are stored as a secret in the connection details.
-	cr.Spec.ForProvider.Password = ""
+	setStatus(cr, observed, cr.Spec.ForProvider.GroupIDs)
 
 	return managed.ExternalCreation{ConnectionDetails: conn}, nil
 }
@@ -195,12 +230,26 @@ func (eu *externalUser) Update(ctx context.Context, mg resource.Managed) (manage
 		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(resp, werr)
 	}
 
-	if err = compute.WaitForRequest(ctx, eu.service.GetAPIClient(), resp); err != nil {
-		return managed.ExternalUpdate{}, errors.Wrap(err, errRequestWait)
+	conn := connectionDetails(cr, observed)
+
+	for _, groupID := range cr.Status.AtProvider.GroupIDs {
+		if !slices.Contains(cr.Spec.ForProvider.GroupIDs, groupID) && groupID != "" {
+			if derr := eu.service.DeleteUserFromGroup(ctx, groupID, userID); derr != nil {
+				return managed.ExternalUpdate{ConnectionDetails: conn}, errors.Wrap(derr, "failed to remove user from a group")
+			}
+		}
 	}
 
-	conn := connectionDetails(cr, observed)
-	cr.Spec.ForProvider.Password = ""
+	for _, groupID := range cr.Spec.ForProvider.GroupIDs {
+		_, _, gerr := eu.service.AddUserToGroup(ctx, groupID, *observed.GetId())
+		// skip if user is already member of this group.
+		if gerr != nil && strings.Contains(gerr.Error(), "is already member of") {
+			continue
+		}
+		if gerr != nil {
+			return managed.ExternalUpdate{ConnectionDetails: conn}, errors.Wrap(err, errAddUserToGroup)
+		}
+	}
 
 	return managed.ExternalUpdate{ConnectionDetails: conn}, nil
 }
@@ -212,10 +261,14 @@ func (eu *externalUser) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 	user.SetConditions(xpv1.Deleting())
 
-	resp, err := eu.service.DeleteUser(ctx, user.Status.AtProvider.UserID)
-	if err != nil {
-		return compute.ErrorUnlessNotFound(resp, errors.Wrap(err, errUserDelete))
+	userID := user.Status.AtProvider.UserID
+
+	for _, groupID := range user.Status.AtProvider.GroupIDs {
+		if err := eu.service.DeleteUserFromGroup(ctx, groupID, userID); err != nil {
+			return errors.Wrap(err, "failed to remove user from a group")
+		}
 	}
 
-	return compute.WaitForRequest(ctx, eu.service.GetAPIClient(), resp)
+	resp, err := eu.service.DeleteUser(ctx, userID)
+	return compute.ErrorUnlessNotFound(resp, errors.Wrap(err, errUserDelete))
 }
