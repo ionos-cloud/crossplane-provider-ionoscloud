@@ -42,20 +42,20 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
-const errNotGroup = "managed resource is not a Group custom resource"
+const errNotGroup = "managed resource is not a ManagementGroup custom resource"
 
 // Setup adds a controller that reconciles Group managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, _ workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
-	name := managed.ControllerName(v1alpha1.ManagementGroupResourceKind)
+	name := managed.ControllerName(v1alpha1.ManagementGroupKind)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
 			RateLimiter: ratelimiter.NewController(),
 		}).
-		For(&v1alpha1.Datacenter{}).
+		For(&v1alpha1.ManagementGroup{}).
 		Complete(managed.NewReconciler(mgr,
-			resource.ManagedKind(v1alpha1.DatacenterGroupVersionKind),
+			resource.ManagedKind(v1alpha1.ManagementGroupGroupVersionKind),
 			managed.WithExternalConnecter(&connectorGroup{
 				kube:                 mgr.GetClient(),
 				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
@@ -85,7 +85,7 @@ type connectorGroup struct {
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
 func (c *connectorGroup) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	_, ok := mg.(*v1alpha1.Datacenter)
+	_, ok := mg.(*v1alpha1.ManagementGroup)
 	if !ok {
 		return nil, errors.New(errNotGroup)
 	}
@@ -116,7 +116,7 @@ func (eg *externalGroup) Observe(ctx context.Context, mg resource.Managed) (mana
 	}
 	observed, apiResponse, err := eg.service.GetGroup(ctx, groupID)
 	if err != nil {
-		err = fmt.Errorf("failed to get group by ID: %w", err)
+		err = fmt.Errorf("failed to get management group by ID: %w", err)
 		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, err)
 	}
 
@@ -136,7 +136,7 @@ func (eg *externalGroup) Observe(ctx context.Context, mg resource.Managed) (mana
 	cr.SetConditions(xpv1.Available())
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  managementgroup.IsDatacenterUpToDate(cr, observed),
+		ResourceUpToDate:  managementgroup.IsManagementGroupUpToDate(cr, observed),
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
 }
@@ -171,7 +171,7 @@ func (eg *externalGroup) Create(ctx context.Context, mg resource.Managed) (manag
 	}
 	newGroup, apiResponse, err := eg.service.CreateGroup(ctx, *groupInput)
 	if err != nil {
-		err = fmt.Errorf("failed to create new group. error: %w", err)
+		err = fmt.Errorf("failed to create new management group. error: %w", err)
 		return managed.ExternalCreation{}, compute.AddAPIResponseInfo(apiResponse, err)
 	}
 	if err = compute.WaitForRequest(ctx, eg.service.GetAPIClient(), apiResponse); err != nil {
@@ -196,7 +196,7 @@ func (eg *externalGroup) Update(ctx context.Context, mg resource.Managed) (manag
 
 	_, apiResponse, err := eg.service.UpdateGroup(ctx, groupID, *groupInput)
 	if err != nil {
-		err = fmt.Errorf("failed to create new group. error: %w", err)
+		err = fmt.Errorf("failed to create new management group. error: %w", err)
 		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, err)
 	}
 	if err = compute.WaitForRequest(ctx, eg.service.GetAPIClient(), apiResponse); err != nil {
@@ -215,7 +215,7 @@ func (eg *externalGroup) Delete(ctx context.Context, mg resource.Managed) error 
 
 	apiResponse, err := eg.service.DeleteGroup(ctx, cr.Status.AtProvider.ManagementGroupID)
 	if err != nil {
-		err = fmt.Errorf("failed to delete datacenter. error: %w", err)
+		err = fmt.Errorf("failed to delete management group. error: %w", err)
 		return compute.ErrorUnlessNotFound(apiResponse, err)
 	}
 	if err = compute.WaitForRequest(ctx, eg.service.GetAPIClient(), apiResponse); err != nil {

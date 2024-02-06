@@ -142,8 +142,8 @@ func GenerateUpdateGroupInput(cr *v1alpha1.ManagementGroup) (*sdkgo.Group, error
 	return &instanceUpdateInput, nil
 }
 
-// IsDatacenterUpToDate returns true if the Group is up-to-date or false otherwise
-func IsDatacenterUpToDate(cr *v1alpha1.ManagementGroup, observed sdkgo.Group) bool { // nolint:gocyclo
+// IsManagementGroupUpToDate returns true if the Group is up-to-date or false otherwise
+func IsManagementGroupUpToDate(cr *v1alpha1.ManagementGroup, observed sdkgo.Group) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && observed.Properties == nil:
 		return true
@@ -161,8 +161,8 @@ func IsDatacenterUpToDate(cr *v1alpha1.ManagementGroup, observed sdkgo.Group) bo
 	//todo: see if this could work for any pair of sdkgo and spec parameters structs
 	return func(_observed sdkgo.Group, _cr *v1alpha1.ManagementGroup) bool {
 		observed := map[string]bool{}
-		fields := reflect.TypeOf(_observed.Properties)
-		values := reflect.ValueOf(_observed.Properties)
+		fields := reflect.TypeOf(*_observed.Properties)
+		values := reflect.ValueOf(*_observed.Properties)
 		for i := 0; i < fields.NumField(); i++ {
 			field := fields.Field(i)
 			value := values.Field(i)
@@ -176,7 +176,7 @@ func IsDatacenterUpToDate(cr *v1alpha1.ManagementGroup, observed sdkgo.Group) bo
 				// easy to do for basic type, but other structs?
 				case reflect.Bool:
 					// can use the struct tag as key here, but lowercase field name should be ok
-					observed[strings.ToLower(field.Name)] = value.Bool()
+					observed[strings.ToLower(field.Name)] = v.Bool()
 				}
 			}
 		}

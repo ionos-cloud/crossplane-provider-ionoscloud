@@ -187,10 +187,10 @@ type ManagementGroupList struct {
 
 // ManagementGroup type metadata
 var (
-	ManagementGroupResourceKind             = reflect.TypeOf(ManagementGroup{}).Name()
-	ManagementGroupResourceGroupKind        = schema.GroupKind{Group: Group, Kind: ManagementGroupResourceKind}.String()
-	ManagementGroupResourceAPIVersion       = ManagementGroupResourceKind + "." + SchemeGroupVersion.String()
-	ManagementGroupResourceGroupVersionKind = SchemeGroupVersion.WithKind(ManagementGroupResourceKind)
+	ManagementGroupKind             = reflect.TypeOf(ManagementGroup{}).Name()
+	ManagementGroupGroupKind        = schema.GroupKind{Group: Group, Kind: ManagementGroupKind}.String()
+	ManagementGroupAPIVersion       = ManagementGroupKind + "." + SchemeGroupVersion.String()
+	ManagementGroupGroupVersionKind = SchemeGroupVersion.WithKind(ManagementGroupKind)
 )
 
 func init() {
