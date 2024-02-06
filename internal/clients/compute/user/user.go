@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"reflect"
 
 	ionosdk "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
@@ -38,9 +37,9 @@ type Client interface {
 	CreateUser(ctx context.Context, p v1alpha1.UserParameters) (ionosdk.User, *ionosdk.APIResponse, error)
 	UpdateUser(ctx context.Context, id string, p v1alpha1.UserParameters) (ionosdk.User, *ionosdk.APIResponse, error)
 	DeleteUser(ctx context.Context, id string) (*ionosdk.APIResponse, error)
-	AddUserToGroup(ctx context.Context, groupId string, userId string) (ionosdk.User, *ionosdk.APIResponse, error)
-	DeleteUserFromGroup(ctx context.Context, groupId string, userId string) error
-	GetUserGroups(ctx context.Context, userId string) ([]string, error)
+	AddUserToGroup(ctx context.Context, groupID string, userID string) (ionosdk.User, *ionosdk.APIResponse, error)
+	DeleteUserFromGroup(ctx context.Context, groupID string, userID string) error
+	GetUserGroups(ctx context.Context, userID string) ([]string, error)
 	GetAPIClient() *ionosdk.APIClient
 }
 
@@ -110,18 +109,18 @@ func (ac *apiClient) DeleteUser(ctx context.Context, id string) (*ionosdk.APIRes
 }
 
 // DeleteUserFromGroup deletes the user from the group.
-func (ac *apiClient) DeleteUserFromGroup(ctx context.Context, groupId string, userId string) error {
-	resp, err := ac.svc.UserManagementApi.UmGroupsUsersDelete(ctx, groupId, userId).Execute()
+func (ac *apiClient) DeleteUserFromGroup(ctx context.Context, groupID string, userID string) error {
+	resp, err := ac.svc.UserManagementApi.UmGroupsUsersDelete(ctx, groupID, userID).Execute()
 	if err != nil {
 		return errors.Wrap(err, errRemoveUserGroup)
 	}
 	return errors.Wrap(ac.waitForRequest(ctx, ac.svc, resp), errRequestWait)
 }
 
-// AddUserToGroup adds userId to the group of groupId.
-func (ac *apiClient) AddUserToGroup(ctx context.Context, groupId string, userId string) (ionosdk.User, *ionosdk.APIResponse, error) {
-	u := ionosdk.User{Id: &userId}
-	user, resp, err := ac.svc.UserManagementApi.UmGroupsUsersPost(ctx, groupId).User(u).Execute()
+// AddUserToGroup adds userID to the group of groupID.
+func (ac *apiClient) AddUserToGroup(ctx context.Context, groupID string, userID string) (ionosdk.User, *ionosdk.APIResponse, error) {
+	u := ionosdk.User{Id: &userID}
+	user, resp, err := ac.svc.UserManagementApi.UmGroupsUsersPost(ctx, groupID).User(u).Execute()
 	if err != nil {
 		return ionosdk.User{}, resp, err
 	}
@@ -132,8 +131,8 @@ func (ac *apiClient) AddUserToGroup(ctx context.Context, groupId string, userId 
 	return user, resp, err
 }
 
-func (ac *apiClient) GetUserGroups(ctx context.Context, userId string) ([]string, error) {
-	rgroups, _, err := ac.svc.UserManagementApi.UmUsersGroupsGet(ctx, userId).Execute()
+func (ac *apiClient) GetUserGroups(ctx context.Context, userID string) ([]string, error) {
+	rgroups, _, err := ac.svc.UserManagementApi.UmUsersGroupsGet(ctx, userID).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -150,46 +149,4 @@ func (ac *apiClient) GetUserGroups(ctx context.Context, userId string) ([]string
 // GetAPIClient returns the ionoscloud apiClient.
 func (ac *apiClient) GetAPIClient() *ionosdk.APIClient {
 	return ac.svc
-}
-
-// IsUserUpToDate returns true if the User is up-to-date or false otherwise.
-func IsUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, observedGroups []string) bool {
-	if !observed.HasProperties() {
-		return false
-	}
-
-	// After creation the password is stored as a connection detail secret
-	// and removed from the cr. If the cr has a password it means
-	// the client wants to update it.
-	if params.Password != "" {
-		return false
-	}
-
-	if !reflect.DeepEqual(params.GroupIDs, observedGroups) {
-		return false
-	}
-
-	props := observed.GetProperties()
-	adm := props.GetAdministrator()
-	email := props.GetEmail()
-	fname := props.GetFirstname()
-	fsec := props.GetForceSecAuth()
-	lname := props.GetLastname()
-	active := props.GetActive()
-
-	switch {
-	case adm != nil && params.Administrator != *adm:
-		return false
-	case email != nil && params.Email != *email:
-		return false
-	case fname != nil && params.FirstName != *fname:
-		return false
-	case fsec != nil && params.ForceSecAuth != *fsec:
-		return false
-	case lname != nil && params.LastName != *lname:
-		return false
-	case active != nil && params.Active != *active:
-		return false
-	}
-	return true
 }

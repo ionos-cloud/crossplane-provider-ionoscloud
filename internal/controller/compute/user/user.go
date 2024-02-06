@@ -18,6 +18,7 @@ package user
 
 import (
 	"context"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -178,7 +179,7 @@ func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (manag
 
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        userapi.IsUserUpToDate(cr.Spec.ForProvider, observed, groupIDs),
+		ResourceUpToDate:        isUserUpToDate(cr.Spec.ForProvider, observed, groupIDs),
 		ConnectionDetails:       conn,
 		ResourceLateInitialized: linit,
 	}, nil
@@ -200,8 +201,8 @@ func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (manage
 	meta.SetExternalName(cr, *observed.GetId())
 	conn := connectionDetails(cr, observed)
 
-	for _, groupId := range cr.Spec.ForProvider.GroupIDs {
-		_, _, gerr := eu.service.AddUserToGroup(ctx, groupId, *observed.GetId())
+	for _, groupID := range cr.Spec.ForProvider.GroupIDs {
+		_, _, gerr := eu.service.AddUserToGroup(ctx, groupID, *observed.GetId())
 		// skip if user is already member of this group.
 		if gerr != nil && strings.Contains(gerr.Error(), "is already member of") {
 			continue
@@ -229,26 +230,11 @@ func (eu *externalUser) Update(ctx context.Context, mg resource.Managed) (manage
 		werr := errors.Wrap(err, errUserUpdate)
 		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(resp, werr)
 	}
-
 	conn := connectionDetails(cr, observed)
 
-	for _, groupID := range cr.Status.AtProvider.GroupIDs {
-		if !slices.Contains(cr.Spec.ForProvider.GroupIDs, groupID) && groupID != "" {
-			if derr := eu.service.DeleteUserFromGroup(ctx, groupID, userID); derr != nil {
-				return managed.ExternalUpdate{ConnectionDetails: conn}, errors.Wrap(derr, "failed to remove user from a group")
-			}
-		}
-	}
-
-	for _, groupID := range cr.Spec.ForProvider.GroupIDs {
-		_, _, gerr := eu.service.AddUserToGroup(ctx, groupID, *observed.GetId())
-		// skip if user is already member of this group.
-		if gerr != nil && strings.Contains(gerr.Error(), "is already member of") {
-			continue
-		}
-		if gerr != nil {
-			return managed.ExternalUpdate{ConnectionDetails: conn}, errors.Wrap(err, errAddUserToGroup)
-		}
+	err = updateGroups(ctx, eu, userID, cr.Status.AtProvider.GroupIDs, cr.Spec.ForProvider.GroupIDs)
+	if err != nil {
+		return managed.ExternalUpdate{ConnectionDetails: conn}, errors.Wrap(err, "failed to update groups")
 	}
 
 	return managed.ExternalUpdate{ConnectionDetails: conn}, nil
@@ -271,4 +257,72 @@ func (eu *externalUser) Delete(ctx context.Context, mg resource.Managed) error {
 
 	resp, err := eu.service.DeleteUser(ctx, userID)
 	return compute.ErrorUnlessNotFound(resp, errors.Wrap(err, errUserDelete))
+}
+
+// updateGroups adds or remove groups for the userID.
+func updateGroups(ctx context.Context, eu *externalUser, userID string, atProviderGroups []string, forProviderGroups []string) error {
+	for _, groupID := range atProviderGroups {
+		if !slices.Contains(forProviderGroups, groupID) && groupID != "" {
+			if derr := eu.service.DeleteUserFromGroup(ctx, groupID, userID); derr != nil {
+				return errors.Wrap(derr, "failed to remove user from a group")
+			}
+		}
+	}
+
+	for _, groupID := range forProviderGroups {
+		_, _, gerr := eu.service.AddUserToGroup(ctx, groupID, userID)
+		// skip if user is already member of this group.
+		if gerr != nil && strings.Contains(gerr.Error(), "is already member of") {
+			continue
+		}
+		if gerr != nil {
+			return errors.Wrap(gerr, errAddUserToGroup)
+		}
+	}
+	return nil
+}
+
+// isUserUpToDate returns true if the User is up-to-date or false otherwise.
+func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, observedGroups []string) bool {
+	if !observed.HasProperties() {
+		return false
+	}
+
+	// After creation the password is stored as a connection detail secret
+	// and removed from the cr. If the cr has a password it means
+	// the client wants to update it.
+	if params.Password != "" {
+		return false
+	}
+
+	if !reflect.DeepEqual(params.GroupIDs, observedGroups) {
+		return false
+	}
+
+	return isUserPropsUpdated(params, observed.GetProperties())
+}
+
+func isUserPropsUpdated(params v1alpha1.UserParameters, props *ionosdk.UserProperties) bool {
+	adm := props.GetAdministrator()
+	email := props.GetEmail()
+	fname := props.GetFirstname()
+	fsec := props.GetForceSecAuth()
+	lname := props.GetLastname()
+	active := props.GetActive()
+
+	switch {
+	case adm != nil && params.Administrator != *adm:
+		return false
+	case email != nil && params.Email != *email:
+		return false
+	case fname != nil && params.FirstName != *fname:
+		return false
+	case fsec != nil && params.ForceSecAuth != *fsec:
+		return false
+	case lname != nil && params.LastName != *lname:
+		return false
+	case active != nil && params.Active != *active:
+		return false
+	}
+	return true
 }
