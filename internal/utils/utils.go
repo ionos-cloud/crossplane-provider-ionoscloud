@@ -13,20 +13,13 @@ import (
 // DepthQueryParam is used in GET requests in Cloud API
 const DepthQueryParam = int32(1)
 
-// GetStringValue takes a string pointer and return the value of that pointer if it is not null, or an empty string otherwise.
-func GetStringValue(value *string) string {
-	if value == nil {
-		return ""
+// DereferenceOrZero returns the value of a pointer or a zero value if the pointer is nil.
+func DereferenceOrZero[T any](v *T) T {
+	if v == nil {
+		return *new(T)
 	}
-	return *value
-}
 
-// GetBoolValue takes a bool pointer and return the value of that pointer if it is not null, or false string otherwise.
-func GetBoolValue(value *bool) bool {
-	if value == nil {
-		return false
-	}
-	return *value
+	return *v
 }
 
 // IsEmptyValue checks if a value is empty or not.

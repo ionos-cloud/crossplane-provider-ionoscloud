@@ -17,6 +17,7 @@ limitations under the License.
 package user
 
 import (
+	"cmp"
 	"context"
 	"slices"
 	"strings"
@@ -115,7 +116,7 @@ type externalUser struct {
 func connectionDetails(cr *v1alpha1.User, observed ionosdk.User) managed.ConnectionDetails {
 	var details = make(managed.ConnectionDetails)
 	props := observed.GetProperties()
-	details["email"] = []byte(utils.GetStringValue(props.GetEmail()))
+	details["email"] = []byte(utils.DereferenceOrZero(props.GetEmail()))
 	if cr.Spec.ForProvider.Password != "" {
 		pw := cr.Spec.ForProvider.Password
 		// passwords are sensitive thus should not be part of the cr
@@ -123,6 +124,7 @@ func connectionDetails(cr *v1alpha1.User, observed ionosdk.User) managed.Connect
 		cr.Spec.ForProvider.Password = ""
 		details[xpv1.ResourceCredentialsSecretPasswordKey] = []byte(pw)
 	}
+
 	return details
 }
 
@@ -132,10 +134,10 @@ func setStatus(cr *v1alpha1.User, observed ionosdk.User, groupIDs []string) {
 		return
 	}
 
-	cr.Status.AtProvider.UserID = utils.GetStringValue(observed.GetId())
-	cr.Status.AtProvider.Active = utils.GetBoolValue(props.GetActive())
-	cr.Status.AtProvider.S3CanonicalUserID = utils.GetStringValue(props.GetS3CanonicalUserId())
-	cr.Status.AtProvider.SecAuthActive = utils.GetBoolValue(props.GetSecAuthActive())
+	cr.Status.AtProvider.UserID = utils.DereferenceOrZero(observed.GetId())
+	cr.Status.AtProvider.Active = utils.DereferenceOrZero(props.GetActive())
+	cr.Status.AtProvider.S3CanonicalUserID = utils.DereferenceOrZero(props.GetS3CanonicalUserId())
+	cr.Status.AtProvider.SecAuthActive = utils.DereferenceOrZero(props.GetSecAuthActive())
 	cr.Status.AtProvider.GroupIDs = groupIDs
 }
 
@@ -194,7 +196,7 @@ func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (manage
 	conn := connectionDetails(cr, observed)
 
 	for _, groupID := range cr.Spec.ForProvider.GroupIDs {
-		_, _, gerr := eu.service.AddUserToGroup(ctx, groupID, utils.GetStringValue(observed.GetId()))
+		_, _, gerr := eu.service.AddUserToGroup(ctx, groupID, utils.DereferenceOrZero(observed.GetId()))
 		// skip if user is already member of this group.
 		if gerr != nil && strings.Contains(gerr.Error(), "is already member of") {
 			continue
@@ -274,28 +276,6 @@ func updateGroups(ctx context.Context, eu *externalUser, userID string, atProvid
 	return nil
 }
 
-func createMap(s []string) map[string]bool {
-	m := make(map[string]bool)
-	for i := range s {
-		m[s[i]] = false
-	}
-	return m
-}
-func compareStringSlices(s1, s2 []string) bool {
-	if len(s1) != len(s2) {
-		return false
-	}
-	m1 := createMap(s1)
-	m2 := createMap(s2)
-	for s := range m1 {
-		_, exist := m2[s]
-		if !exist {
-			return false
-		}
-	}
-	return true
-}
-
 // isUserUpToDate returns true if the User is up-to-date or false otherwise.
 func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, observedGroups []string) bool { //nolint:gocyclo
 	if !observed.HasProperties() {
@@ -309,7 +289,7 @@ func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, obser
 		return false
 	}
 
-	if !compareStringSlices(params.GroupIDs, observedGroups) {
+	if !isSetEqual(observedGroups, params.GroupIDs) {
 		return false
 	}
 
@@ -335,5 +315,18 @@ func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, obser
 	case active != nil && params.Active != *active:
 		return false
 	}
+
 	return true
+}
+
+func isSetEqual[T cmp.Ordered](sl0, sl1 []T) bool {
+	if len(sl0) != len(sl1) {
+		return false
+	}
+
+	s0, s1 := slices.Clone(sl0), slices.Clone(sl1)
+	slices.Sort(s0)
+	slices.Sort(s1)
+
+	return slices.Equal(s0, s1)
 }
