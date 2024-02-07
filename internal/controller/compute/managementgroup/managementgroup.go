@@ -149,6 +149,7 @@ func (eg *externalGroup) Create(ctx context.Context, mg resource.Managed) (manag
 		}
 		if groupID != "" {
 			cr.Status.AtProvider.ManagementGroupID = groupID
+			meta.SetExternalName(cr, groupID)
 			return managed.ExternalCreation{}, nil
 		}
 	}
