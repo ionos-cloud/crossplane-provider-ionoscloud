@@ -352,57 +352,10 @@ spec:
                 description: ManagementGroupObservation are the observable fields
                   of a ManagementGroup.
                 properties:
-                  accessActivityLog:
-                    type: boolean
-                  accessAndManageCertificates:
-                    type: boolean
-                  accessAndManageDns:
-                    type: boolean
-                  accessAndManageMonitoring:
-                    type: boolean
-                  createBackupUnit:
-                    type: boolean
-                  createDataCenter:
-                    type: boolean
-                  createFlowLog:
-                    type: boolean
-                  createInternetAccess:
-                    type: boolean
-                  createK8sCluster:
-                    type: boolean
-                  createPcc:
-                    type: boolean
-                  createSnapshot:
-                    type: boolean
                   groupId:
+                    description: ManagementGroupID is the group id
+                    format: uuid
                     type: string
-                  manageDBaaS:
-                    type: boolean
-                  manageDataplatform:
-                    type: boolean
-                  manageRegistry:
-                    type: boolean
-                  reserveIp:
-                    type: boolean
-                  s3Privilege:
-                    type: boolean
-                required:
-                - accessActivityLog
-                - accessAndManageCertificates
-                - accessAndManageDns
-                - accessAndManageMonitoring
-                - createBackupUnit
-                - createDataCenter
-                - createFlowLog
-                - createInternetAccess
-                - createK8sCluster
-                - createPcc
-                - createSnapshot
-                - manageDBaaS
-                - manageDataplatform
-                - manageRegistry
-                - reserveIp
-                - s3Privilege
                 type: object
               conditions:
                 description: Conditions of the resource.

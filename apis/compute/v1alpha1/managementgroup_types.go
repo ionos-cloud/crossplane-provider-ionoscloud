@@ -117,23 +117,10 @@ type ManagementGroupParameters struct {
 
 // ManagementGroupObservation are the observable fields of a ManagementGroup.
 type ManagementGroupObservation struct {
-	ManagementGroupID           string `json:"groupId,omitempty"`
-	AccessActivityLog           bool   `json:"accessActivityLog"`
-	AccessAndManageCertificates bool   `json:"accessAndManageCertificates"`
-	AccessAndManageDNS          bool   `json:"accessAndManageDns"`
-	AccessAndManageMonitoring   bool   `json:"accessAndManageMonitoring"`
-	CreateBackupUnit            bool   `json:"createBackupUnit"`
-	CreateDataCenter            bool   `json:"createDataCenter"`
-	CreateFlowLog               bool   `json:"createFlowLog"`
-	CreateInternetAccess        bool   `json:"createInternetAccess"`
-	CreateK8sCluster            bool   `json:"createK8sCluster"`
-	CreatePcc                   bool   `json:"createPcc"`
-	CreateSnapshot              bool   `json:"createSnapshot"`
-	ManageDBaaS                 bool   `json:"manageDBaaS"`
-	ManageDataPlatform          bool   `json:"manageDataplatform"`
-	ManageRegistry              bool   `json:"manageRegistry"`
-	ReserveIP                   bool   `json:"reserveIp"`
-	S3Privilege                 bool   `json:"s3Privilege"`
+	// ManagementGroupID is the group id
+	//
+	// +kubebuilder:validation:Format=uuid
+	ManagementGroupID string `json:"groupId,omitempty"`
 }
 
 // A ManagementGroupSpec defines the desired state of a ManagementGroup.
