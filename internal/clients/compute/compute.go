@@ -42,8 +42,7 @@ func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *s
 
 // ErrorUnlessNotFound returns an error with status code info, unless the status code is 404
 func ErrorUnlessNotFound(apiResponse *sdkgo.APIResponse, retErr error) error {
-
-	if apiResponse != nil && apiResponse.Response != nil {
+	if apiResponse != nil && apiResponse.Response != nil && apiResponse.StatusCode >= 300 {
 		retErr = fmt.Errorf(errAPIResponse, retErr, apiResponse.Status)
 		if apiResponse.HttpNotFound() {
 			retErr = nil

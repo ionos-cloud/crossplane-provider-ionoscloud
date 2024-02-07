@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -176,12 +177,11 @@ func writeProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefini
 		return fmt.Errorf("error: CRD must have at least one version in spec.Versions")
 	}
 	propertiesCollection := crd.Spec.Versions[0].Schema.OpenAPIV3Schema.Properties[spec].Properties[forProvider]
-	for key, value := range propertiesCollection.Properties {
-		writePropertiesWithPrefix(buf, value, key, "")
-	}
+	writeSortedPropertiesWithPrefix(buf, propertiesCollection.Properties, "")
 	buf.WriteString("\n")
 	buf.WriteString("### Required Properties\n\n")
 	buf.WriteString("The user needs to set the following properties in order to configure the IONOS Cloud Resource:\n\n")
+	slices.Sort(propertiesCollection.Required)
 	for _, requiredValue := range propertiesCollection.Required {
 		buf.WriteString("* `" + requiredValue + "`\n")
 	}
@@ -243,13 +243,12 @@ func writeObjectOrArrayTypeProperties(buf *bytes.Buffer, valueProperty apiextens
 		}
 		if len(allProperties) > 0 {
 			buf.WriteString(prefix + "\t* properties:\n")
-			for keyPropertySec, valuePropertySec := range allProperties {
-				newPrefix := prefix + "\t\t"
-				writePropertiesWithPrefix(buf, valuePropertySec, keyPropertySec, newPrefix)
-			}
+			newPrefix := prefix + "\t\t"
+			writeSortedPropertiesWithPrefix(buf, allProperties, newPrefix)
 		}
 		if len(requiredProperties) > 0 {
 			buf.WriteString(prefix + "\t* required properties:\n")
+			slices.Sort(requiredProperties)
 			for _, valuePropertyReq := range requiredProperties {
 				buf.WriteString(prefix + "\t\t* `" + valuePropertyReq + "`\n")
 			}
@@ -257,6 +256,17 @@ func writeObjectOrArrayTypeProperties(buf *bytes.Buffer, valueProperty apiextens
 	}
 }
 
+// writeSortedPropertiesWithPrefix - sorts docs before writing to always keep the same order.
+func writeSortedPropertiesWithPrefix(buf *bytes.Buffer, propertiesCollection map[string]apiextensionsv1.JSONSchemaProps, prefix string) {
+	keys := make([]string, 0, len(propertiesCollection))
+	for k := range propertiesCollection {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	for _, key := range keys {
+		writePropertiesWithPrefix(buf, propertiesCollection[key], key, prefix)
+	}
+}
 func writeDefinition(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error { // nolint: interfacer
 	if buf == nil {
 		return fmt.Errorf("error getting definition file path, buffer must be different than nil")

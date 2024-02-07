@@ -76,29 +76,14 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `clusterConfig` (object)
 	* description: ClusterConfig is used by resources that need to link mongo clusters via id or via reference.
 	* properties:
-		* `ClusterIdSelector` (object)
-			* description: ClusterIDSelector selects reference to a Cluster to retrieve its ClusterID.
-			* properties:
-				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-				* `matchLabels` (object)
-					* description: MatchLabels ensures an object with matching labels is selected.
-				* `policy` (object)
-					* description: Policies for selection.
-					* properties:
-						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-							* possible values: "Always";"IfNotPresent"
-						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-							* default: "Required"
-							* possible values: "Required";"Optional"
 		* `ClusterId` (string)
 			* description: ClusterID is the ID of the Cluster on which the resource will be created. It needs to be provided via directly or via reference.
 			* format: uuid
 		* `ClusterIdRef` (object)
 			* description: ClusterIDRef references to a Cluster to retrieve its ID.
 			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
 				* `policy` (object)
 					* description: Policies for referencing.
 					* properties:
@@ -109,15 +94,28 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
-				* `name` (string)
-					* description: Name of the referenced object.
 			* required properties:
 				* `name`
+		* `ClusterIdSelector` (object)
+			* description: ClusterIDSelector selects reference to a Cluster to retrieve its ClusterID.
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+				* `policy` (object)
+					* description: Policies for selection.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required";"Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always";"IfNotPresent"
 * `credentials` (object)
 	* description: Database credentials - either set directly, or as secret/path/env
 	* properties:
-		* `username` (string)
-			* description: The username for the mongo user. Some system usernames are restricted (e.g. \"mongo\", \"admin\", \"standby\"). Password must have a minimum length o 10
 		* `env` (object)
 			* description: Env is a reference to an environment variable that contains credentials that must be used to connect to the provider.
 			* properties:
@@ -149,13 +147,15 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `source` (string)
 			* description: Source of the provider credentials.
 			* possible values: "None";"Secret";"InjectedIdentity";"Environment";"Filesystem"
+		* `username` (string)
+			* description: The username for the mongo user. Some system usernames are restricted (e.g. \"mongo\", \"admin\", \"standby\"). Password must have a minimum length o 10
 * `userRoles` (array)
 	* description: A list of mongodb user roles
 	* properties:
-		* `role` (string)
-			* description: Role to set for the user
 		* `database` (string)
 			* description: Database on which to set the role
+		* `role` (string)
+			* description: Role to set for the user
 
 ### Required Properties
 
