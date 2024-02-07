@@ -276,7 +276,7 @@ func updateGroups(ctx context.Context, eu *externalUser, userID string, atProvid
 
 func createMap(s []string) map[string]bool {
 	m := make(map[string]bool)
-	for i, _ := range s {
+	for i := range s {
 		m[s[i]] = false
 	}
 	return m
@@ -287,7 +287,7 @@ func compareStringSlices(s1, s2 []string) bool {
 	}
 	m1 := createMap(s1)
 	m2 := createMap(s2)
-	for s, _ := range m1 {
+	for s := range m1 {
 		_, exist := m2[s]
 		if !exist {
 			return false
