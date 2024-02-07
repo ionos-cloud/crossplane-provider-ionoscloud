@@ -110,7 +110,6 @@ func getSvcShortNameFromGroup(crd apiextensionsv1.CustomResourceDefinition) (str
 	return groupSplit[0], nil
 }
 
-// createOrUpdateFileForCRD creates or updates the documentation file for a CRD
 func createOrUpdateFileForCRD(crd apiextensionsv1.CustomResourceDefinition, docsFolder, serviceShortName string) (*os.File, error) {
 	serviceLongDirName, ok := servicesAbbrevDirectoriesMap[serviceShortName]
 	if !ok {
@@ -118,19 +117,15 @@ func createOrUpdateFileForCRD(crd apiextensionsv1.CustomResourceDefinition, docs
 	}
 	resourceName := strings.ToLower(crd.Spec.Names.Kind)
 	dirPath := fmt.Sprintf("%s%s", docsFolder, serviceLongDirName)
-	if _, err := os.ReadDir(dirPath); err != nil {
-		if strings.Contains(err.Error(), "no such file or directory") {
-			if err = os.MkdirAll(dirPath, 0750); err != nil {
-				return nil, fmt.Errorf("error creating directory %s: %w", dirPath, err)
-			}
-		} else {
-			return nil, fmt.Errorf("error reading directory %s: %w", dirPath, err)
-		}
+
+	if err := ensureDirExists(dirPath); err != nil {
+		return nil, fmt.Errorf("error creating or accessing the directory %s: %w", dirPath, err)
 	}
+
 	filePath := fmt.Sprintf("%s/%s.md", dirPath, resourceName)
 	f, err := os.Create(filePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating file %s: %w", filePath, err)
 	}
 	return f, nil
 }
@@ -398,5 +393,20 @@ func yamlFileExists(filePath string) error {
 	if _, err := os.ReadFile(filePath); err != nil {
 		return err
 	}
+	return nil
+}
+
+// Ensures a directory exists at the specified path. If the directory does not exist, it is created.
+func ensureDirExists(dirPath string) error {
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		// Attempt to create the directory with appropriate permissions
+		if mkdirErr := os.MkdirAll(dirPath, 0750); mkdirErr != nil {
+			return fmt.Errorf("error creating directory %s: %w", dirPath, mkdirErr)
+		}
+	} else if err != nil {
+		// Return any other error encountered when checking the directory
+		return fmt.Errorf("error reading directory %s: %w", dirPath, err)
+	}
+	// No error occurred, directory exists
 	return nil
 }
