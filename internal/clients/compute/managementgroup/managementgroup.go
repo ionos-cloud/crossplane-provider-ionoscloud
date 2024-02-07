@@ -3,8 +3,6 @@ package managementgroup
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"strings"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
@@ -22,6 +20,8 @@ type Client interface {
 	CheckDuplicateGroup(ctx context.Context, groupName string) (*sdkgo.Group, error)
 	GetGroupID(group *sdkgo.Group) (string, error)
 	GetGroup(ctx context.Context, groupID string) (sdkgo.Group, *sdkgo.APIResponse, error)
+	GetGroupMembers(ctx context.Context, groupID string) (sdkgo.GroupMembers, *sdkgo.APIResponse, error)
+	GetGroupResourceShares(ctx context.Context, groupID string) (sdkgo.GroupShares, *sdkgo.APIResponse, error)
 	CreateGroup(ctx context.Context, group sdkgo.Group) (sdkgo.Group, *sdkgo.APIResponse, error)
 	UpdateGroup(ctx context.Context, groupID string, group sdkgo.Group) (sdkgo.Group, *sdkgo.APIResponse, error)
 	DeleteGroup(ctx context.Context, groupID string) (*sdkgo.APIResponse, error)
@@ -69,6 +69,16 @@ func (cp *APIClient) GetGroupID(group *sdkgo.Group) (string, error) {
 // GetGroup based on groupID
 func (cp *APIClient) GetGroup(ctx context.Context, groupID string) (sdkgo.Group, *sdkgo.APIResponse, error) {
 	return cp.ComputeClient.UserManagementApi.UmGroupsFindById(ctx, groupID).Depth(utils.DepthQueryParam).Execute()
+}
+
+// GetGroupMembers retrieves users that are added to the group
+func (cp *APIClient) GetGroupMembers(ctx context.Context, groupID string) (sdkgo.GroupMembers, *sdkgo.APIResponse, error) {
+	return cp.ComputeClient.UserManagementApi.UmGroupsUsersGet(ctx, groupID).Execute()
+}
+
+// GetGroupResourceShares WIP
+func (cp *APIClient) GetGroupResourceShares(ctx context.Context, groupID string) (sdkgo.GroupShares, *sdkgo.APIResponse, error) {
+	return cp.ComputeClient.UserManagementApi.UmGroupsSharesGet(ctx, groupID).Execute()
 }
 
 // CreateGroup based on Group properties
@@ -124,20 +134,20 @@ func GenerateUpdateGroupInput(cr *v1alpha1.ManagementGroup) (*sdkgo.Group, error
 		Name:                        &cr.Spec.ForProvider.Name,
 		AccessActivityLog:           &cr.Spec.ForProvider.AccessActivityLog,
 		AccessAndManageCertificates: &cr.Spec.ForProvider.AccessAndManageCertificates,
-		//AccessAndManageDNS:          &cr.Spec.ForProvider.AccessAndManageDNS,
-		AccessAndManageMonitoring: &cr.Spec.ForProvider.AccessAndManageMonitoring,
-		CreateBackupUnit:          &cr.Spec.ForProvider.CreateBackupUnit,
-		CreateDataCenter:          &cr.Spec.ForProvider.CreateDataCenter,
-		CreateFlowLog:             &cr.Spec.ForProvider.CreateFlowLog,
-		CreateInternetAccess:      &cr.Spec.ForProvider.CreateInternetAccess,
-		CreateK8sCluster:          &cr.Spec.ForProvider.CreateK8sCluster,
-		CreatePcc:                 &cr.Spec.ForProvider.CreatePcc,
-		CreateSnapshot:            &cr.Spec.ForProvider.CreateSnapshot,
-		ManageDBaaS:               &cr.Spec.ForProvider.ManageDBaaS,
-		//ManageDataPlatform:        &cr.Spec.ForProvider.ManageDataPlatform,
-		//ManageRegistry: 			 &cr.Spec.ForProvider.ManageRegistry,
-		ReserveIp:   &cr.Spec.ForProvider.ReserveIP,
-		S3Privilege: &cr.Spec.ForProvider.S3Privilege,
+		AccessAndManageDns:          &cr.Spec.ForProvider.AccessAndManageDNS,
+		AccessAndManageMonitoring:   &cr.Spec.ForProvider.AccessAndManageMonitoring,
+		CreateBackupUnit:            &cr.Spec.ForProvider.CreateBackupUnit,
+		CreateDataCenter:            &cr.Spec.ForProvider.CreateDataCenter,
+		CreateFlowLog:               &cr.Spec.ForProvider.CreateFlowLog,
+		CreateInternetAccess:        &cr.Spec.ForProvider.CreateInternetAccess,
+		CreateK8sCluster:            &cr.Spec.ForProvider.CreateK8sCluster,
+		CreatePcc:                   &cr.Spec.ForProvider.CreatePcc,
+		CreateSnapshot:              &cr.Spec.ForProvider.CreateSnapshot,
+		ManageDBaaS:                 &cr.Spec.ForProvider.ManageDBaaS,
+		ManageDataplatform:          &cr.Spec.ForProvider.ManageDataPlatform,
+		ManageRegistry:              &cr.Spec.ForProvider.ManageRegistry,
+		ReserveIp:                   &cr.Spec.ForProvider.ReserveIP,
+		S3Privilege:                 &cr.Spec.ForProvider.S3Privilege,
 	}}
 	return &instanceUpdateInput, nil
 }
@@ -151,55 +161,6 @@ func IsManagementGroupUpToDate(cr *v1alpha1.ManagementGroup, observed sdkgo.Grou
 		return false
 	case cr != nil && observed.Properties == nil:
 		return false
-
-	case observed.Properties.Name != nil && *observed.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	case observed.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false
-
 	}
-	//todo: see if this could work for any pair of sdkgo and spec parameters structs
-	return func(_observed sdkgo.Group, _cr *v1alpha1.ManagementGroup) bool {
-		observed := map[string]bool{}
-		fields := reflect.TypeOf(*_observed.Properties)
-		values := reflect.ValueOf(*_observed.Properties)
-		for i := 0; i < fields.NumField(); i++ {
-			field := fields.Field(i)
-			value := values.Field(i)
-			switch value.Kind() {
-			case reflect.Pointer:
-				if value.IsNil() {
-					continue
-				}
-				v := value.Elem()
-				switch v.Kind() {
-				// easy to do for basic type, but other structs?
-				case reflect.Bool:
-					// can use the struct tag as key here, but lowercase field name should be ok
-					observed[strings.ToLower(field.Name)] = v.Bool()
-				}
-			}
-		}
-
-		cr := map[string]bool{}
-		fields = reflect.TypeOf(_cr.Spec.ForProvider)
-		values = reflect.ValueOf(_cr.Spec.ForProvider)
-		for i := 0; i < fields.NumField(); i++ {
-			field := fields.Field(i)
-			value := values.Field(i)
-			switch value.Kind() {
-			case reflect.Bool:
-				cr[strings.ToLower(field.Name)] = value.Bool()
-			}
-		}
-
-		for observedField, observedValue := range observed {
-			if crValue, ok := cr[observedField]; ok {
-				if crValue != observedValue {
-					return false
-				}
-			}
-		}
-		return true
-	}(observed, cr)
+	return utils.IsEqSdkPropertiesToCR(cr.Spec.ForProvider, *observed.Properties)
 }

@@ -120,19 +120,7 @@ func (eg *externalGroup) Observe(ctx context.Context, mg resource.Managed) (mana
 		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, err)
 	}
 
-	properties := observed.GetProperties()
 	cr.Status.AtProvider.ManagementGroupID = groupID
-	// WIP
-	if properties.AccessActivityLog != nil {
-		cr.Status.AtProvider.AccessActivityLog = *properties.AccessActivityLog
-	}
-	if properties.S3Privilege != nil {
-		cr.Status.AtProvider.S3Privilege = *properties.S3Privilege
-	}
-	if properties.ReserveIp != nil {
-		cr.Status.AtProvider.ReserveIP = *properties.ReserveIp
-	}
-
 	cr.SetConditions(xpv1.Available())
 	return managed.ExternalObservation{
 		ResourceExists:    true,
@@ -196,7 +184,7 @@ func (eg *externalGroup) Update(ctx context.Context, mg resource.Managed) (manag
 
 	_, apiResponse, err := eg.service.UpdateGroup(ctx, groupID, *groupInput)
 	if err != nil {
-		err = fmt.Errorf("failed to create new management group. error: %w", err)
+		err = fmt.Errorf("failed to update management group. error: %w", err)
 		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, err)
 	}
 	if err = compute.WaitForRequest(ctx, eg.service.GetAPIClient(), apiResponse); err != nil {
