@@ -1,0 +1,351 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: example
+  labels:
+    crossplane.io/xrd: xserversinstances.platform.example.org
+    provider: ionoscloud
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: platform.example.org/v1alpha1
+    kind: XServersInstance
+  resources:
+    #  0
+    - name: exampledatacenter
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: Datacenter
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: exampleDatacenter
+            location: us/las
+            description: test
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.datacenterLocation
+          toFieldPath: spec.forProvider.location
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.datacenterName
+          toFieldPath: spec.forProvider.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.datacenterDescription
+          toFieldPath: spec.forProvider.description
+    #  1
+    - name: server1
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: Server
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            datacenterConfig:
+              datacenterIdRef:
+                name: exampleDatacenter
+            name: server1
+            volumeConfig:
+              volumeIdRef:
+                name: volume1
+          providerConfigRef:
+            name: example
+            cores: 4
+            ram: 2048
+            availabilityZone: AUTO
+            cpuFamily: AMD_OPTERON
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.serverName
+          toFieldPath: spec.forProvider.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s_1"
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.cores
+          toFieldPath: spec.forProvider.cores
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.ram
+          toFieldPath: spec.forProvider.ram
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.cpuFamily
+          toFieldPath: spec.forProvider.cpuFamily
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[0].name
+          toFieldPath: spec.forProvider.datacenterConfig.datacenterIdRef.name
+#          volume1
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[6].name
+          toFieldPath: spec.forProvider.volumeConfig.volumeIdRef.name
+    #  2
+    - name: server2
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: Server
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            datacenterConfig:
+              datacenterIdRef:
+                name: exampleDatacenter
+            volumeConfig:
+              volumeIdRef:
+                name: volume2
+            name: server2
+          providerConfigRef:
+            name: example
+            cores: 4
+            ram: 2048
+            availabilityZone: AUTO
+            cpuFamily: AMD_OPTERON
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.serverName
+          toFieldPath: spec.forProvider.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s_2"
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.cores
+          toFieldPath: spec.forProvider.cores
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.ram
+          toFieldPath: spec.forProvider.ram
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.cpuFamily
+          toFieldPath: spec.forProvider.cpuFamily
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[0].name
+          toFieldPath: spec.forProvider.datacenterConfig.datacenterIdRef.name
+        #          volume2
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[10].name
+          toFieldPath: spec.forProvider.volumeConfig.volumeIdRef.name
+    #  3
+    - name: lan1
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: Lan
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: lan1
+            public: true
+            datacenterConfig:
+              datacenterIdRef:
+                name: exampleDatacenter
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[0].name
+          toFieldPath: spec.forProvider.datacenterConfig.datacenterIdRef.name
+    #  4
+    - name: ipblock1
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: IPBlock
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: ipblock1
+            size: 2
+            location: us/las
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.datacenterLocation
+          toFieldPath: spec.forProvider.location
+    #  5
+    - name: nic1
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: Nic
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: Nic1
+            dhcp: false
+            ipsConfigs:
+              ipsBlockConfigs:
+                - ipBlockIdRef:
+                    name: example
+                  indexes: [ 1 ]
+                - ipBlockIdRef:
+                    name: example
+            #    firewallActive: true
+            firewallType: INGRESS
+            datacenterConfig:
+              datacenterIdRef:
+                name: example
+            serverConfig:
+              serverIdRef:
+                name: server1
+            lanConfig:
+              lanIdRef:
+                name: lan1
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[0].name
+          toFieldPath: spec.forProvider.datacenterConfig.datacenterIdRef.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[1].name
+          toFieldPath: spec.forProvider.serverConfig.serverIdRef.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[3].name
+          toFieldPath: spec.forProvider.lanConfig.lanIdRef.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[4].name
+          toFieldPath: spec.forProvider.ipsConfigs.ipsBlockConfigs[0].ipBlockIdRef.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[4].name
+          toFieldPath: spec.forProvider.ipsConfigs.ipsBlockConfigs[1].ipBlockIdRef.name
+    #  6
+    - name: volume1
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: Volume
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: volume1
+            size: 10
+            type: HDD
+            bus: VIRTIO
+            licenceType: LINUX
+            availabilityZone: AUTO
+            #    imageAlias: ubuntu:latest
+            #    imagePassword:
+            datacenterConfig:
+              datacenterIdRef:
+                name: example
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[0].name
+          toFieldPath: spec.forProvider.datacenterConfig.datacenterIdRef.name
+    #  7
+    - name: lan2
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: Lan
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: lan2
+            public: true
+            datacenterConfig:
+              datacenterIdRef:
+                name: exampleDatacenter
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[0].name
+          toFieldPath: spec.forProvider.datacenterConfig.datacenterIdRef.name
+    #  8
+    - name: ipblock2
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: IPBlock
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: ipblock2
+            size: 2
+            location: us/las
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.datacenterLocation
+          toFieldPath: spec.forProvider.location
+    #  9
+    - name: nic2
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: Nic
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: Nic2
+            dhcp: false
+            ipsConfigs:
+              ipsBlockConfigs:
+                - ipBlockIdRef:
+                    name: example
+                  indexes: [ 1 ]
+                - ipBlockIdRef:
+                    name: example
+            #    firewallActive: true
+            firewallType: INGRESS
+            datacenterConfig:
+              datacenterIdRef:
+                name: example
+            serverConfig:
+              serverIdRef:
+                name: server2
+            lanConfig:
+              lanIdRef:
+                name: lan1
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[0].name
+          toFieldPath: spec.forProvider.datacenterConfig.datacenterIdRef.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[2].name
+          toFieldPath: spec.forProvider.serverConfig.serverIdRef.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[7].name
+          toFieldPath: spec.forProvider.lanConfig.lanIdRef.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[8].name
+          toFieldPath: spec.forProvider.ipsConfigs.ipsBlockConfigs[0].ipBlockIdRef.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[8].name
+          toFieldPath: spec.forProvider.ipsConfigs.ipsBlockConfigs[1].ipBlockIdRef.name
+    #  10
+    - name: volume2
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: Volume
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: volume2
+            size: 10
+            type: HDD
+            bus: VIRTIO
+            licenceType: LINUX
+            availabilityZone: AUTO
+            #    imageAlias: ubuntu:latest
+            #    imagePassword:
+            datacenterConfig:
+              datacenterIdRef:
+                name: example
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceRefs[0].name
+          toFieldPath: spec.forProvider.datacenterConfig.datacenterIdRef.name
