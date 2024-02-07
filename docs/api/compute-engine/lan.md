@@ -75,84 +75,82 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 
 * `datacenterConfig` (object)
 	* description: DatacenterConfig contains information about the datacenter resource on which the lan will be created.
-* :
-	* `datacenterId` (string)
-		* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
-		* format: uuid
-	* `datacenterIdRef` (object)
-		* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
-* :
-		* `name` (string)
-			* description: Name of the referenced object.
-		* `policy` (object)
-			* description: Policies for referencing.
-* :
-			* `resolution` (string)
-				* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-				* default: "Required"
-				* possible values: "Required";"Optional"
-			* `resolve` (string)
-				* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-				* possible values: "Always";"IfNotPresent"
-	* `datacenterIdSelector` (object)
-		* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
-* :
-		* `matchControllerRef` (boolean)
-			* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-		* `matchLabels` (object)
-			* description: MatchLabels ensures an object with matching labels is selected.
-* :
-		* `policy` (object)
-			* description: Policies for selection.
-* :
-			* `resolution` (string)
-				* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-				* default: "Required"
-				* possible values: "Required";"Optional"
-			* `resolve` (string)
-				* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-				* possible values: "Always";"IfNotPresent"
+	* properties:
+		* `datacenterId` (string)
+			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
+		* `datacenterIdRef` (object)
+			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+				* `policy` (object)
+					* description: Policies for referencing.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required", "Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always", "IfNotPresent"
+		* `datacenterIdSelector` (object)
+			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+				* `policy` (object)
+					* description: Policies for selection.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required", "Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always", "IfNotPresent"
 * `name` (string)
 	* description: The name of the  resource.
 * `pcc` (object)
 	* description: The unique identifier of the private Cross-Connect the LAN is connected to, if any.
-* :
-	* `PrivateCrossConnectId` (string)
-		* description: PrivateCrossConnectID is the ID of the Pcc on which the resource will be created. It needs to be provided via directly or via reference.
-		* format: uuid
-	* `PrivateCrossConnectIdRef` (object)
-		* description: PrivateCrossConnectIDRef references to a Pcc to retrieve its ID.
-* :
-		* `name` (string)
-			* description: Name of the referenced object.
-		* `policy` (object)
-			* description: Policies for referencing.
-* :
-			* `resolution` (string)
-				* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-				* default: "Required"
-				* possible values: "Required";"Optional"
-			* `resolve` (string)
-				* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-				* possible values: "Always";"IfNotPresent"
-	* `PrivateCrossConnectIdSelector` (object)
-		* description: PrivateCrossConnectIDSelector selects reference to a Pcc to retrieve its PrivateCrossConnectID.
-* :
-		* `matchControllerRef` (boolean)
-			* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-		* `matchLabels` (object)
-			* description: MatchLabels ensures an object with matching labels is selected.
-* :
-		* `policy` (object)
-			* description: Policies for selection.
-* :
-			* `resolution` (string)
-				* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-				* default: "Required"
-				* possible values: "Required";"Optional"
-			* `resolve` (string)
-				* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-				* possible values: "Always";"IfNotPresent"
+	* properties:
+		* `PrivateCrossConnectId` (string)
+			* description: PrivateCrossConnectID is the ID of the Pcc on which the resource will be created. It needs to be provided via directly or via reference.
+			* format: uuid
+		* `PrivateCrossConnectIdRef` (object)
+			* description: PrivateCrossConnectIDRef references to a Pcc to retrieve its ID.
+			* properties:
+				* `name` (string)
+					* description: Name of the referenced object.
+				* `policy` (object)
+					* description: Policies for referencing.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required", "Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always", "IfNotPresent"
+		* `PrivateCrossConnectIdSelector` (object)
+			* description: PrivateCrossConnectIDSelector selects reference to a Pcc to retrieve its PrivateCrossConnectID.
+			* properties:
+				* `matchControllerRef` (boolean)
+					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+				* `matchLabels` (object)
+					* description: MatchLabels ensures an object with matching labels is selected.
+				* `policy` (object)
+					* description: Policies for selection.
+					* properties:
+						* `resolution` (string)
+							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* default: "Required"
+							* possible values: "Required", "Optional"
+						* `resolve` (string)
+							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* possible values: "Always", "IfNotPresent"
 * `public` (boolean)
 	* description: This LAN faces the public Internet.
 

@@ -75,129 +75,127 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 
 * `backupLocation` (string)
 	* description: The S3 location where the backups will be stored.
-	* possible values: "de";"eu-south-2";"eu-central-2"
+	* possible values: "de", "eu-south-2", "eu-central-2"
 * `connections` (array)
 	* description: Connection - details about the network connection (datacenter, lan, CIDR) for your cluster.
-* :
-	* `cidr` (string)
-		* description: The IP and subnet for your cluster. Note: the following IP ranges are unavailable: 10.233.64.0/18 10.233.0.0/18 10.233.114.0/24.
-	* `datacenterConfig` (object)
-		* description: DatacenterConfig contains information about the datacenter resource.
-* :
-		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
-			* format: uuid
-		* `datacenterIdRef` (object)
-			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
-* :
-			* `name` (string)
-				* description: Name of the referenced object.
-			* `policy` (object)
-				* description: Policies for referencing.
-* :
-				* `resolution` (string)
-					* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-					* default: "Required"
-					* possible values: "Required";"Optional"
-				* `resolve` (string)
-					* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-					* possible values: "Always";"IfNotPresent"
-		* `datacenterIdSelector` (object)
-			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
-* :
-			* `matchControllerRef` (boolean)
-				* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-			* `matchLabels` (object)
-				* description: MatchLabels ensures an object with matching labels is selected.
-* :
-			* `policy` (object)
-				* description: Policies for selection.
-* :
-				* `resolution` (string)
-					* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-					* default: "Required"
-					* possible values: "Required";"Optional"
-				* `resolve` (string)
-					* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-					* possible values: "Always";"IfNotPresent"
-	* `lanConfig` (object)
-		* description: LanConfig contains information about the lan resource.
-* :
-		* `lanId` (string)
-			* description: LanID is the ID of the Lan on which the cluster will connect to. It needs to be provided via directly or via reference.
-		* `lanIdRef` (object)
-			* description: LanIDRef references to a Lan to retrieve its ID.
-* :
-			* `name` (string)
-				* description: Name of the referenced object.
-			* `policy` (object)
-				* description: Policies for referencing.
-* :
-				* `resolution` (string)
-					* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-					* default: "Required"
-					* possible values: "Required";"Optional"
-				* `resolve` (string)
-					* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-					* possible values: "Always";"IfNotPresent"
-		* `lanIdSelector` (object)
-			* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
-* :
-			* `matchControllerRef` (boolean)
-				* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-			* `matchLabels` (object)
-				* description: MatchLabels ensures an object with matching labels is selected.
-* :
-			* `policy` (object)
-				* description: Policies for selection.
-* :
-				* `resolution` (string)
-					* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-					* default: "Required"
-					* possible values: "Required";"Optional"
-				* `resolve` (string)
-					* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-					* possible values: "Always";"IfNotPresent"
+	* properties:
+		* `cidr` (string)
+			* description: The IP and subnet for your cluster. Note: the following IP ranges are unavailable: 10.233.64.0/18 10.233.0.0/18 10.233.114.0/24.
+		* `datacenterConfig` (object)
+			* description: DatacenterConfig contains information about the datacenter resource.
+			* properties:
+				* `datacenterId` (string)
+					* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
+					* format: uuid
+				* `datacenterIdRef` (object)
+					* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
+					* properties:
+						* `name` (string)
+							* description: Name of the referenced object.
+						* `policy` (object)
+							* description: Policies for referencing.
+							* properties:
+								* `resolution` (string)
+									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* default: "Required"
+									* possible values: "Required", "Optional"
+								* `resolve` (string)
+									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* possible values: "Always", "IfNotPresent"
+				* `datacenterIdSelector` (object)
+					* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
+					* properties:
+						* `matchControllerRef` (boolean)
+							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+						* `matchLabels` (object)
+							* description: MatchLabels ensures an object with matching labels is selected.
+						* `policy` (object)
+							* description: Policies for selection.
+							* properties:
+								* `resolution` (string)
+									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* default: "Required"
+									* possible values: "Required", "Optional"
+								* `resolve` (string)
+									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* possible values: "Always", "IfNotPresent"
+		* `lanConfig` (object)
+			* description: LanConfig contains information about the lan resource.
+			* properties:
+				* `lanId` (string)
+					* description: LanID is the ID of the Lan on which the cluster will connect to. It needs to be provided via directly or via reference.
+				* `lanIdRef` (object)
+					* description: LanIDRef references to a Lan to retrieve its ID.
+					* properties:
+						* `name` (string)
+							* description: Name of the referenced object.
+						* `policy` (object)
+							* description: Policies for referencing.
+							* properties:
+								* `resolution` (string)
+									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* default: "Required"
+									* possible values: "Required", "Optional"
+								* `resolve` (string)
+									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* possible values: "Always", "IfNotPresent"
+				* `lanIdSelector` (object)
+					* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
+					* properties:
+						* `matchControllerRef` (boolean)
+							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+						* `matchLabels` (object)
+							* description: MatchLabels ensures an object with matching labels is selected.
+						* `policy` (object)
+							* description: Policies for selection.
+							* properties:
+								* `resolution` (string)
+									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* default: "Required"
+									* possible values: "Required", "Optional"
+								* `resolve` (string)
+									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* possible values: "Always", "IfNotPresent"
 * `cores` (integer)
 	* description: The number of CPU cores per instance.
 	* format: int32
 * `credentials` (object)
 	* description: Database credentials - either set directly, or as secret/path/env
-* :
-	* `env` (object)
-		* description: Env is a reference to an environment variable that contains credentials that must be used to connect to the provider.
-* :
-		* `name` (string)
-			* description: Name is the name of an environment variable.
-	* `fs` (object)
-		* description: Fs is a reference to a filesystem location that contains credentials that must be used to connect to the provider.
-* :
-		* `path` (string)
-			* description: Path is a filesystem path.
-	* `password` (string)
-	* `secretRef` (object)
-		* description: A SecretRef is a reference to a secret key that contains the credentials that must be used to connect to the provider.
-* :
-		* `key` (string)
-			* description: The key to select.
-		* `name` (string)
-			* description: Name of the secret.
-		* `namespace` (string)
-			* description: Namespace of the secret.
-	* `source` (string)
-		* description: Source of the provider credentials.
-		* possible values: "None";"Secret";"InjectedIdentity";"Environment";"Filesystem"
-	* `username` (string)
-		* description: The username for the postgres user. Some system usernames are restricted (e.g. \"postgres\", \"admin\", \"standby\"). Password must have a minimum length o 10
+	* properties:
+		* `env` (object)
+			* description: Env is a reference to an environment variable that contains credentials that must be used to connect to the provider.
+			* properties:
+				* `name` (string)
+					* description: Name is the name of an environment variable.
+		* `fs` (object)
+			* description: Fs is a reference to a filesystem location that contains credentials that must be used to connect to the provider.
+			* properties:
+				* `path` (string)
+					* description: Path is a filesystem path.
+		* `password` (string)
+		* `secretRef` (object)
+			* description: A SecretRef is a reference to a secret key that contains the credentials that must be used to connect to the provider.
+			* properties:
+				* `key` (string)
+					* description: The key to select.
+				* `name` (string)
+					* description: Name of the secret.
+				* `namespace` (string)
+					* description: Namespace of the secret.
+		* `source` (string)
+			* description: Source of the provider credentials.
+			* possible values: "None", "Secret", "InjectedIdentity", "Environment", "Filesystem"
+		* `username` (string)
+			* description: The username for the postgres user. Some system usernames are restricted (e.g. \"postgres\", \"admin\", \"standby\"). Password must have a minimum length o 10
 * `displayName` (string)
 	* description: The friendly name of your cluster.
 * `fromBackup` (object)
 	* description: CreateRestoreRequest The restore request.
-* :
-	* `backupId` (string)
-		* description: The unique ID of the backup you want to restore.
-	* `recoveryTargetTime` (string)
-		* description: If this value is supplied as ISO 8601 timestamp, the backup will be replayed up until the given timestamp. If empty, the backup will be applied completely.
+	* properties:
+		* `backupId` (string)
+			* description: The unique ID of the backup you want to restore.
+		* `recoveryTargetTime` (string)
+			* description: If this value is supplied as ISO 8601 timestamp, the backup will be replayed up until the given timestamp. If empty, the backup will be applied completely.
 * `instances` (integer)
 	* description: The total number of instances in the cluster (one master and n-1 standbys).
 	* format: int32
@@ -205,25 +203,24 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* description: Location The physical location where the cluster will be created. This will be where all of your instances live. Property cannot be modified after datacenter creation. Location can have the following values: de/fra, us/las, us/ewr, de/txl, gb/lhr, es/vit.
 * `maintenanceWindow` (object)
 	* description: MaintenanceWindow A weekly 4 hour-long window, during which maintenance might occur.
-* :
-	* `dayOfTheWeek` (string)
-		* description: DayOfTheWeek The name of the week day.
-	* `time` (string)
+	* properties:
+		* `dayOfTheWeek` (string)
+			* description: DayOfTheWeek The name of the week day.
+		* `time` (string)
 * `postgresVersion` (string)
 	* description: The PostgreSQL version of your cluster.
 * `ram` (integer)
 	* description: The amount of memory per instance in megabytes. Has to be a multiple of 1024.
 	* format: int32
-	* multiple of: 1024.000000
 * `storageSize` (integer)
 	* description: The amount of storage per instance in megabytes.
 	* format: int32
 * `storageType` (string)
 	* description: The storage type used in your cluster. Value "SSD" is deprecated. Use the equivalent "SSD Premium" instead.
-	* possible values: "HDD";"SSD";"SSD Standard";"SSD Premium"
+	* possible values: "HDD", "SSD", "SSD Standard", "SSD Premium"
 * `synchronizationMode` (string)
 	* description: SynchronizationMode Represents different modes of replication.
-	* possible values: "ASYNCHRONOUS";"STRICTLY_SYNCHRONOUS";"SYNCHRONOUS"
+	* possible values: "ASYNCHRONOUS", "STRICTLY_SYNCHRONOUS", "SYNCHRONOUS"
 
 ### Required Properties
 

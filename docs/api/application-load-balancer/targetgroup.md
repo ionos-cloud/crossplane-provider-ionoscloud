@@ -75,34 +75,34 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 
 * `algorithm` (string)
 	* description: Balancing algorithm.
-	* possible values: "ROUND_ROBIN";"LEAST_CONNECTION";"RANDOM";"SOURCE_IP"
+	* possible values: "ROUND_ROBIN", "LEAST_CONNECTION", "RANDOM", "SOURCE_IP"
 * `healthCheck` (object)
 	* description: Health check properties for target group.
-* :
-	* `checkInterval` (integer)
-		* description: The interval in milliseconds between consecutive health checks; default is 2000.
-		* format: int32
-	* `checkTimeout` (integer)
-		* description: The maximum time in milliseconds to wait for a target to respond to a check. For target VMs with 'Check Interval' set, the lesser of the two  values is used once the TCP connection is established.
-		* format: int32
-	* `retries` (integer)
-		* description: The maximum number of attempts to reconnect to a target after a connection failure. Valid range is 0 to 65535, and default is three reconnection attempts.
-		* format: int32
+	* properties:
+		* `checkInterval` (integer)
+			* description: The interval in milliseconds between consecutive health checks; default is 2000.
+			* format: int32
+		* `checkTimeout` (integer)
+			* description: The maximum time in milliseconds to wait for a target to respond to a check. For target VMs with 'Check Interval' set, the lesser of the two  values is used once the TCP connection is established.
+			* format: int32
+		* `retries` (integer)
+			* description: The maximum number of attempts to reconnect to a target after a connection failure. Valid range is 0 to 65535, and default is three reconnection attempts.
+			* format: int32
 * `httpHealthCheck` (object)
 	* description: HTTP health check properties for target group.
-* :
-	* `matchType` (string)
-		* description: The match type for the HTTP health check.
-		* possible values: "";"STATUS_CODE";"RESPONSE_BODY"
-	* `method` (string)
-		* description: The method for the HTTP health check.
-		* possible values: "HEAD";"PUT";"POST";"GET";"TRACE";"PATCH";"OPTIONS"
-	* `negate` (boolean)
-	* `path` (string)
-		* description: The path (destination URL) for the HTTP health check request; the default is `/`.
-	* `regex` (boolean)
-	* `response` (string)
-		* description: The response returned by the request, depending on the match type.
+	* properties:
+		* `matchType` (string)
+			* description: The match type for the HTTP health check.
+			* possible values: "", "STATUS_CODE", "RESPONSE_BODY"
+		* `method` (string)
+			* description: The method for the HTTP health check.
+			* possible values: "HEAD", "PUT", "POST", "GET", "TRACE", "PATCH", "OPTIONS"
+		* `negate` (boolean)
+		* `path` (string)
+			* description: The path (destination URL) for the HTTP health check request; the default is `/`.
+		* `regex` (boolean)
+		* `response` (string)
+			* description: The response returned by the request, depending on the match type.
 * `name` (string)
 	* description: The name of the target group.
 * `protocol` (string)
@@ -110,19 +110,19 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* possible values: "HTTP"
 * `targets` (array)
 	* description: Array of items in the collection.
-* :
-	* `healthCheckEnabled` (boolean)
-		* description: Makes the target available only if it accepts periodic health check TCP connection attempts; when turned off, the target is considered always available. The health check only consists of a connection attempt to the address and port of the target.
-	* `ip` (string)
-		* description: The IP of the balanced target VM.
-	* `maintenanceEnabled` (boolean)
-		* description: Maintenance mode prevents the target from receiving balanced traffic.
-	* `port` (integer)
-		* description: The port of the balanced target service; valid range is 1 to 65535.
-		* format: int32
-	* `weight` (integer)
-		* description: Traffic is distributed in proportion to target weight, relative to the combined weight of all targets. A target with higher weight receives a greater share of traffic. Valid range is 0 to 256 and default is 1; targets with weight of 0 do not participate in load balancing but still accept persistent connections. It is best use values in the middle of the range to leave room for later adjustments.
-		* format: int32
+	* properties:
+		* `healthCheckEnabled` (boolean)
+			* description: Makes the target available only if it accepts periodic health check TCP connection attempts; when turned off, the target is considered always available. The health check only consists of a connection attempt to the address and port of the target.
+		* `ip` (string)
+			* description: The IP of the balanced target VM.
+		* `maintenanceEnabled` (boolean)
+			* description: Maintenance mode prevents the target from receiving balanced traffic.
+		* `port` (integer)
+			* description: The port of the balanced target service; valid range is 1 to 65535.
+			* format: int32
+		* `weight` (integer)
+			* description: Traffic is distributed in proportion to target weight, relative to the combined weight of all targets. A target with higher weight receives a greater share of traffic. Valid range is 0 to 256 and default is 1; targets with weight of 0 do not participate in load balancing but still accept persistent connections. It is best use values in the middle of the range to leave room for later adjustments.
+			* format: int32
 
 ### Required Properties
 

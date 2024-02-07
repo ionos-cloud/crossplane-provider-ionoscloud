@@ -3,6 +3,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -10,9 +11,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/package/crds"
 )
 
@@ -211,58 +212,78 @@ func writeProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefini
 	return nil
 }
 
-func writePropertiesWithPrefix(buf *bytes.Buffer, valueProperty apiextensionsv1.JSONSchemaProps, keyProperty, prefix string) { // nolint: interfacer,gocyclo
-	buf.WriteString(prefix + "* `" + keyProperty + "` (" + valueProperty.Type + ")\n")
-	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Description)) {
+func writePropertiesWithPrefix(buf *bytes.Buffer, valueProperty apiextensionsv1.JSONSchemaProps, key, prefix string) {
+	// Write the basic information about the property
+	buf.WriteString(prefix + "* `" + key + "` (" + valueProperty.Type + ")\n")
+	if valueProperty.Description != "" {
 		buf.WriteString(prefix + "\t* description: " + valueProperty.Description + "\n")
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Default)) {
-		buf.WriteString(prefix + "\t* default: " + string(valueProperty.Default.Raw) + "\n")
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Format)) {
 		buf.WriteString(prefix + "\t* format: " + valueProperty.Format + "\n")
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Pattern)) {
-		buf.WriteString(prefix + "\t* pattern: " + valueProperty.Pattern + "\n")
+	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Default)) {
+		defaultVal, _ := json.Marshal(valueProperty.Default)
+		buf.WriteString(prefix + "\t* default: " + string(defaultVal) + "\n")
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Enum)) {
-		var possibleValues string
-		for _, v := range valueProperty.Enum {
-			possibleValues = possibleValues + string(v.Raw) + ";"
+	if valueProperty.Type == "string" && len(valueProperty.Enum) > 0 {
+		enumValues := make([]string, 0, len(valueProperty.Enum))
+		for _, ev := range valueProperty.Enum {
+			// Marshal the enum value into JSON to get the string representation
+			evBytes, err := json.Marshal(ev)
+			if err != nil {
+				panic("failed converting enum value to string: " + err.Error())
+			}
+			// Convert bytes to string and add it to the enumValues slice
+			enumValues = append(enumValues, string(evBytes))
 		}
-		buf.WriteString(prefix + "\t* possible values: " + strings.TrimRight(possibleValues, ";") + "\n")
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Minimum)) {
-		buf.WriteString(prefix + "\t* minimum: " + fmt.Sprintf("%f", *valueProperty.Minimum) + "\n")
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Maximum)) {
-		buf.WriteString(prefix + "\t* maximum: " + fmt.Sprintf("%f", *valueProperty.Maximum) + "\n")
-	}
-	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.MultipleOf)) {
-		buf.WriteString(prefix + "\t* multiple of: " + fmt.Sprintf("%f", *valueProperty.MultipleOf) + "\n")
+		// Write the joined string representations of the enum values to the buffer
+		buf.WriteString(prefix + "\t* possible values: " + strings.Join(enumValues, ", ") + "\n")
 	}
 
-	// Handling nested object or array type properties
-	if valueProperty.Type == "object" || valueProperty.Type == "array" {
-		buf.WriteString("* " + valueProperty.Title + ":\n")
-		var nestedProps map[string]apiextensionsv1.JSONSchemaProps
-		if valueProperty.Type == "object" {
-			nestedProps = valueProperty.Properties
-		} else {
-			nestedProps = valueProperty.Items.Schema.Properties
+	// Handling nested object properties
+	if valueProperty.Type == "object" && len(valueProperty.Properties) > 0 {
+		buf.WriteString(prefix + "\t* properties:\n")
+		var keys []string
+		for k := range valueProperty.Properties {
+			keys = append(keys, k)
 		}
-
-		// Sort keys for deterministic output
-		nestedKeys := make([]string, 0, len(nestedProps))
-		for k := range nestedProps {
-			nestedKeys = append(nestedKeys, k)
+		sort.Strings(keys) // Ensure deterministic order
+		for _, k := range keys {
+			nestedProp := valueProperty.Properties[k]
+			writePropertiesWithPrefix(buf, nestedProp, k, prefix+"\t\t")
 		}
-		sort.Strings(nestedKeys)
+	}
 
-		// Recursively write nested properties
-		for _, k := range nestedKeys {
-			nestedProp := nestedProps[k]
-			writePropertiesWithPrefix(buf, nestedProp, k, prefix+"\t")
+	// Handling nested array properties
+	if valueProperty.Type == "array" && valueProperty.Items != nil && valueProperty.Items.Schema != nil {
+		buf.WriteString(prefix + "\t* properties:\n")
+		if len(valueProperty.Items.Schema.Properties) > 0 {
+			var keys []string
+			for k := range valueProperty.Items.Schema.Properties {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys) // Ensure deterministic order
+			for _, k := range keys {
+				nestedProp := valueProperty.Items.Schema.Properties[k]
+				writePropertiesWithPrefix(buf, nestedProp, k, prefix+"\t\t")
+			}
+		} else { // Handle arrays of primitive types
+			buf.WriteString(prefix + "\t\t* type: " + valueProperty.Items.Schema.Type + "\n")
+			if valueProperty.Type == "string" && len(valueProperty.Enum) > 0 {
+				enumValues := make([]string, 0, len(valueProperty.Enum))
+				for _, ev := range valueProperty.Enum {
+					// Marshal the enum value into JSON to get the string representation
+					evBytes, err := json.Marshal(ev)
+					if err != nil {
+						panic("failed converting enum value to string: " + err.Error())
+					}
+					// Convert bytes to string and add it to the enumValues slice
+					enumValues = append(enumValues, string(evBytes))
+				}
+				// Write the joined string representations of the enum values to the buffer
+				buf.WriteString(prefix + "\t* possible values: " + strings.Join(enumValues, ", ") + "\n")
+			}
+
 		}
 	}
 }
