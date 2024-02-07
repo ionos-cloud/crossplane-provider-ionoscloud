@@ -34,14 +34,6 @@ func (mg *ApplicationLoadBalancer) GetProviderConfigReference() *xpv1.Reference 
 	return mg.Spec.ProviderConfigReference
 }
 
-/*
-GetProviderReference of this ApplicationLoadBalancer.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *ApplicationLoadBalancer) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
-}
-
 // GetPublishConnectionDetailsTo of this ApplicationLoadBalancer.
 func (mg *ApplicationLoadBalancer) GetPublishConnectionDetailsTo() *xpv1.PublishConnectionDetailsTo {
 	return mg.Spec.PublishConnectionDetailsTo
@@ -65,14 +57,6 @@ func (mg *ApplicationLoadBalancer) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 // SetProviderConfigReference of this ApplicationLoadBalancer.
 func (mg *ApplicationLoadBalancer) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this ApplicationLoadBalancer.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *ApplicationLoadBalancer) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this ApplicationLoadBalancer.
@@ -100,14 +84,6 @@ func (mg *ForwardingRule) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
 }
 
-/*
-GetProviderReference of this ForwardingRule.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *ForwardingRule) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
-}
-
 // GetPublishConnectionDetailsTo of this ForwardingRule.
 func (mg *ForwardingRule) GetPublishConnectionDetailsTo() *xpv1.PublishConnectionDetailsTo {
 	return mg.Spec.PublishConnectionDetailsTo
@@ -131,14 +107,6 @@ func (mg *ForwardingRule) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 // SetProviderConfigReference of this ForwardingRule.
 func (mg *ForwardingRule) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this ForwardingRule.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *ForwardingRule) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this ForwardingRule.
@@ -166,14 +134,6 @@ func (mg *TargetGroup) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
 }
 
-/*
-GetProviderReference of this TargetGroup.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *TargetGroup) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
-}
-
 // GetPublishConnectionDetailsTo of this TargetGroup.
 func (mg *TargetGroup) GetPublishConnectionDetailsTo() *xpv1.PublishConnectionDetailsTo {
 	return mg.Spec.PublishConnectionDetailsTo
@@ -197,14 +157,6 @@ func (mg *TargetGroup) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 // SetProviderConfigReference of this TargetGroup.
 func (mg *TargetGroup) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this TargetGroup.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *TargetGroup) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this TargetGroup.

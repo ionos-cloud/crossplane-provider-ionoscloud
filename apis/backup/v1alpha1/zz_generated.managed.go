@@ -34,14 +34,6 @@ func (mg *BackupUnit) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
 }
 
-/*
-GetProviderReference of this BackupUnit.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *BackupUnit) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
-}
-
 // GetPublishConnectionDetailsTo of this BackupUnit.
 func (mg *BackupUnit) GetPublishConnectionDetailsTo() *xpv1.PublishConnectionDetailsTo {
 	return mg.Spec.PublishConnectionDetailsTo
@@ -65,14 +57,6 @@ func (mg *BackupUnit) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 // SetProviderConfigReference of this BackupUnit.
 func (mg *BackupUnit) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this BackupUnit.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *BackupUnit) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this BackupUnit.

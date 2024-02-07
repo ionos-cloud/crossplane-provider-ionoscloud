@@ -34,14 +34,6 @@ func (mg *PostgresCluster) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
 }
 
-/*
-GetProviderReference of this PostgresCluster.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *PostgresCluster) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
-}
-
 // GetPublishConnectionDetailsTo of this PostgresCluster.
 func (mg *PostgresCluster) GetPublishConnectionDetailsTo() *xpv1.PublishConnectionDetailsTo {
 	return mg.Spec.PublishConnectionDetailsTo
@@ -65,14 +57,6 @@ func (mg *PostgresCluster) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 // SetProviderConfigReference of this PostgresCluster.
 func (mg *PostgresCluster) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this PostgresCluster.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *PostgresCluster) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this PostgresCluster.
@@ -100,14 +84,6 @@ func (mg *PostgresUser) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
 }
 
-/*
-GetProviderReference of this PostgresUser.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *PostgresUser) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
-}
-
 // GetPublishConnectionDetailsTo of this PostgresUser.
 func (mg *PostgresUser) GetPublishConnectionDetailsTo() *xpv1.PublishConnectionDetailsTo {
 	return mg.Spec.PublishConnectionDetailsTo
@@ -131,14 +107,6 @@ func (mg *PostgresUser) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 // SetProviderConfigReference of this PostgresUser.
 func (mg *PostgresUser) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this PostgresUser.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *PostgresUser) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this PostgresUser.
