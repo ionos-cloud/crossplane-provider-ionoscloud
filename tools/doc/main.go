@@ -226,18 +226,7 @@ func writePropertiesWithPrefix(buf *bytes.Buffer, valueProperty apiextensionsv1.
 		buf.WriteString(prefix + "\t* default: " + string(defaultVal) + "\n")
 	}
 	if valueProperty.Type == "string" && len(valueProperty.Enum) > 0 {
-		enumValues := make([]string, 0, len(valueProperty.Enum))
-		for _, ev := range valueProperty.Enum {
-			// Marshal the enum value into JSON to get the string representation
-			evBytes, err := json.Marshal(ev)
-			if err != nil {
-				panic("failed converting enum value to string: " + err.Error())
-			}
-			// Convert bytes to string and add it to the enumValues slice
-			enumValues = append(enumValues, string(evBytes))
-		}
-		// Write the joined string representations of the enum values to the buffer
-		buf.WriteString(prefix + "\t* possible values: " + strings.Join(enumValues, ", ") + "\n")
+		buf.WriteString(prefix + "\t* possible values: " + formatEnumValues(valueProperty.Enum) + "\n")
 	}
 
 	// Handling nested object properties
@@ -270,22 +259,23 @@ func writePropertiesWithPrefix(buf *bytes.Buffer, valueProperty apiextensionsv1.
 		} else { // Handle arrays of primitive types
 			buf.WriteString(prefix + "\t\t* type: " + valueProperty.Items.Schema.Type + "\n")
 			if valueProperty.Type == "string" && len(valueProperty.Enum) > 0 {
-				enumValues := make([]string, 0, len(valueProperty.Enum))
-				for _, ev := range valueProperty.Enum {
-					// Marshal the enum value into JSON to get the string representation
-					evBytes, err := json.Marshal(ev)
-					if err != nil {
-						panic("failed converting enum value to string: " + err.Error())
-					}
-					// Convert bytes to string and add it to the enumValues slice
-					enumValues = append(enumValues, string(evBytes))
-				}
-				// Write the joined string representations of the enum values to the buffer
-				buf.WriteString(prefix + "\t* possible values: " + strings.Join(enumValues, ", ") + "\n")
+				buf.WriteString(prefix + "\t* possible values: " + formatEnumValues(valueProperty.Enum) + "\n")
 			}
-
 		}
 	}
+}
+
+// Utility function to handle enum values conversion to readable strings.
+func formatEnumValues(enumValues []apiextensionsv1.JSON) string {
+	formattedValues := make([]string, len(enumValues))
+	for i, ev := range enumValues {
+		evBytes, err := json.Marshal(ev)
+		if err != nil {
+			panic("failed converting enum value to string: " + err.Error())
+		}
+		formattedValues[i] = string(evBytes)
+	}
+	return strings.Join(formattedValues, ", ")
 }
 
 func writeDefinition(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition) error { // nolint: interfacer
