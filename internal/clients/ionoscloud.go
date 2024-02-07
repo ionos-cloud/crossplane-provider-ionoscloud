@@ -42,7 +42,6 @@ var ionosAPIEndpoint string
 // This allows us to reset the env before and after each test.
 func loadEnv() {
 	ionosAPIEndpoint = os.Getenv(sdkgo.IonosApiUrlEnvVar)
-
 }
 
 func init() {

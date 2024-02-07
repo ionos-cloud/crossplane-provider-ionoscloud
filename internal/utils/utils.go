@@ -13,6 +13,15 @@ import (
 // DepthQueryParam is used in GET requests in Cloud API
 const DepthQueryParam = int32(1)
 
+// DereferenceOrZero returns the value of a pointer or a zero value if the pointer is nil.
+func DereferenceOrZero[T any](v *T) T {
+	if v == nil {
+		return *new(T)
+	}
+
+	return *v
+}
+
 // IsEmptyValue checks if a value is empty or not.
 // nolint
 func IsEmptyValue(v reflect.Value) bool {
