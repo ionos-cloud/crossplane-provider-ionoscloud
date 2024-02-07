@@ -18,7 +18,6 @@ package user
 
 import (
 	"context"
-	"reflect"
 	"slices"
 	"strings"
 
@@ -116,7 +115,7 @@ type externalUser struct {
 func connectionDetails(cr *v1alpha1.User, observed ionosdk.User) managed.ConnectionDetails {
 	var details = make(managed.ConnectionDetails)
 	props := observed.GetProperties()
-	details["email"] = []byte(*props.GetEmail())
+	details["email"] = []byte(utils.GetStringValue(props.GetEmail()))
 	if cr.Spec.ForProvider.Password != "" {
 		pw := cr.Spec.ForProvider.Password
 		// passwords are sensitive thus should not be part of the cr
@@ -132,18 +131,11 @@ func setStatus(cr *v1alpha1.User, observed ionosdk.User, groupIDs []string) {
 	if !observed.HasProperties() {
 		return
 	}
-	if id := observed.GetId(); id != nil {
-		cr.Status.AtProvider.UserID = *id
-	}
-	if active := props.GetActive(); active != nil {
-		cr.Status.AtProvider.Active = *active
-	}
-	if s3id := props.GetS3CanonicalUserId(); s3id != nil {
-		cr.Status.AtProvider.S3CanonicalUserID = *s3id
-	}
-	if aactive := props.GetSecAuthActive(); aactive != nil {
-		cr.Status.AtProvider.SecAuthActive = *aactive
-	}
+
+	cr.Status.AtProvider.UserID = utils.GetStringValue(observed.GetId())
+	cr.Status.AtProvider.Active = utils.GetBoolValue(props.GetActive())
+	cr.Status.AtProvider.S3CanonicalUserID = utils.GetStringValue(props.GetS3CanonicalUserId())
+	cr.Status.AtProvider.SecAuthActive = utils.GetBoolValue(props.GetSecAuthActive())
 	cr.Status.AtProvider.GroupIDs = groupIDs
 }
 
@@ -202,7 +194,7 @@ func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (manage
 	conn := connectionDetails(cr, observed)
 
 	for _, groupID := range cr.Spec.ForProvider.GroupIDs {
-		_, _, gerr := eu.service.AddUserToGroup(ctx, groupID, *observed.GetId())
+		_, _, gerr := eu.service.AddUserToGroup(ctx, groupID, utils.GetStringValue(observed.GetId()))
 		// skip if user is already member of this group.
 		if gerr != nil && strings.Contains(gerr.Error(), "is already member of") {
 			continue
@@ -262,7 +254,7 @@ func (eu *externalUser) Delete(ctx context.Context, mg resource.Managed) error {
 // updateGroups adds or remove groups for the userID.
 func updateGroups(ctx context.Context, eu *externalUser, userID string, atProviderGroups []string, forProviderGroups []string) error {
 	for _, groupID := range atProviderGroups {
-		if !slices.Contains(forProviderGroups, groupID) && groupID != "" {
+		if groupID != "" && !slices.Contains(forProviderGroups, groupID) {
 			if derr := eu.service.DeleteUserFromGroup(ctx, groupID, userID); derr != nil {
 				return errors.Wrap(derr, "failed to remove user from a group")
 			}
@@ -282,6 +274,28 @@ func updateGroups(ctx context.Context, eu *externalUser, userID string, atProvid
 	return nil
 }
 
+func createMap(s []string) map[string]bool {
+	m := make(map[string]bool)
+	for i, _ := range s {
+		m[s[i]] = false
+	}
+	return m
+}
+func compareStringSlices(s1, s2 []string) bool {
+	if len(s1) != len(s2) {
+		return false
+	}
+	m1 := createMap(s1)
+	m2 := createMap(s2)
+	for s, _ := range m1 {
+		_, exist := m2[s]
+		if !exist {
+			return false
+		}
+	}
+	return true
+}
+
 // isUserUpToDate returns true if the User is up-to-date or false otherwise.
 func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, observedGroups []string) bool { //nolint:gocyclo
 	if !observed.HasProperties() {
@@ -295,7 +309,7 @@ func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, obser
 		return false
 	}
 
-	if !reflect.DeepEqual(params.GroupIDs, observedGroups) {
+	if !compareStringSlices(params.GroupIDs, observedGroups) {
 		return false
 	}
 

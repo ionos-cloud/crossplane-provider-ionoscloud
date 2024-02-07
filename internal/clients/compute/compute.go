@@ -26,7 +26,7 @@ const (
 	requestHeader = "Location"
 )
 
-// WaitForRequest is the default requestWaiter.
+// WaitForRequest waits for the request to be DONE
 func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *sdkgo.APIResponse) error {
 	if client != nil {
 		if apiResponse != nil && apiResponse.Response != nil {

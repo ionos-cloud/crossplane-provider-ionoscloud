@@ -56,6 +56,7 @@ func (ac *apiClient) CreateUser(ctx context.Context, p v1alpha1.UserParameters) 
 	props.SetEmail(p.Email)
 	props.SetAdministrator(p.Administrator)
 	props.SetForceSecAuth(p.ForceSecAuth)
+	// props-Password is a pointer, and we want to set it only if the provided password is not empty, otherwise we want it to be nil.
 	if pw := p.Password; pw != "" {
 		props.SetPassword(pw)
 	}
