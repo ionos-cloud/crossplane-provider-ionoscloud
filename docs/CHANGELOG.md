@@ -6,6 +6,7 @@
 - Add `DataplatformNodepool` crd to support CRUD of Dataplatform clusters
 - Add `PICSlot` status field to `volume` and `nic` crds
 - Use `make provider.addtype` to add new types to the provider
+- Update crossplane-runtime to 1.14.4.
 
 - **Documentation**:
 - Add server composition and claim example

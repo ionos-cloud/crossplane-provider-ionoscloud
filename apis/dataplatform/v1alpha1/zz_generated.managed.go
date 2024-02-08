@@ -34,14 +34,6 @@ func (mg *DataplatformCluster) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
 }
 
-/*
-GetProviderReference of this DataplatformCluster.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *DataplatformCluster) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
-}
-
 // GetPublishConnectionDetailsTo of this DataplatformCluster.
 func (mg *DataplatformCluster) GetPublishConnectionDetailsTo() *xpv1.PublishConnectionDetailsTo {
 	return mg.Spec.PublishConnectionDetailsTo
@@ -65,14 +57,6 @@ func (mg *DataplatformCluster) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 // SetProviderConfigReference of this DataplatformCluster.
 func (mg *DataplatformCluster) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this DataplatformCluster.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *DataplatformCluster) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this DataplatformCluster.
@@ -100,14 +84,6 @@ func (mg *DataplatformNodepool) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
 }
 
-/*
-GetProviderReference of this DataplatformNodepool.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *DataplatformNodepool) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
-}
-
 // GetPublishConnectionDetailsTo of this DataplatformNodepool.
 func (mg *DataplatformNodepool) GetPublishConnectionDetailsTo() *xpv1.PublishConnectionDetailsTo {
 	return mg.Spec.PublishConnectionDetailsTo
@@ -131,14 +107,6 @@ func (mg *DataplatformNodepool) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 // SetProviderConfigReference of this DataplatformNodepool.
 func (mg *DataplatformNodepool) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this DataplatformNodepool.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *DataplatformNodepool) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this DataplatformNodepool.
