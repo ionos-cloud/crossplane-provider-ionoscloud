@@ -1,0 +1,40 @@
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: ServerSet
+metadata:
+  name: serverset-sample
+spec:
+  forProvider:
+    replicas: 2
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    template:
+      metadata:
+        name: server-sample
+        labels:
+          key: value
+      spec:
+        cpuFamily: AMD_OPTERON
+        cores: 1
+        ram: 1024
+        nics:
+          - name: nic-sample
+            ipv4: "10.0.0.1/24"
+            reference: "nic-id"
+        volumeMounts:
+          - reference: "volume-mount-id"
+        bootStorageVolumeRef: "volume-id"
+    volumeClaims:
+      - metadata:
+          name: volume-claim-sample
+          labels:
+            key: value
+        spec:
+          image: "image-id"
+          size: 200
+          type: SSD
+          userData: "" #cloud-config
+          selector:
+            matchLabels:
+              "cloud.ionos.com/volume-name": "volume-name"
+              "cloud.ionos.com/replica_server_index": "0"
