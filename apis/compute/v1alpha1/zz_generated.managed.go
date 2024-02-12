@@ -579,6 +579,66 @@ func (mg *ServerSet) SetWriteConnectionSecretToReference(r *xpv1.SecretReference
 	mg.Spec.WriteConnectionSecretToReference = r
 }
 
+// GetCondition of this StatefulServerSet.
+func (mg *StatefulServerSet) GetCondition(ct xpv1.ConditionType) xpv1.Condition {
+	return mg.Status.GetCondition(ct)
+}
+
+// GetDeletionPolicy of this StatefulServerSet.
+func (mg *StatefulServerSet) GetDeletionPolicy() xpv1.DeletionPolicy {
+	return mg.Spec.DeletionPolicy
+}
+
+// GetManagementPolicies of this StatefulServerSet.
+func (mg *StatefulServerSet) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
+// GetProviderConfigReference of this StatefulServerSet.
+func (mg *StatefulServerSet) GetProviderConfigReference() *xpv1.Reference {
+	return mg.Spec.ProviderConfigReference
+}
+
+// GetPublishConnectionDetailsTo of this StatefulServerSet.
+func (mg *StatefulServerSet) GetPublishConnectionDetailsTo() *xpv1.PublishConnectionDetailsTo {
+	return mg.Spec.PublishConnectionDetailsTo
+}
+
+// GetWriteConnectionSecretToReference of this StatefulServerSet.
+func (mg *StatefulServerSet) GetWriteConnectionSecretToReference() *xpv1.SecretReference {
+	return mg.Spec.WriteConnectionSecretToReference
+}
+
+// SetConditions of this StatefulServerSet.
+func (mg *StatefulServerSet) SetConditions(c ...xpv1.Condition) {
+	mg.Status.SetConditions(c...)
+}
+
+// SetDeletionPolicy of this StatefulServerSet.
+func (mg *StatefulServerSet) SetDeletionPolicy(r xpv1.DeletionPolicy) {
+	mg.Spec.DeletionPolicy = r
+}
+
+// SetManagementPolicies of this StatefulServerSet.
+func (mg *StatefulServerSet) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
+}
+
+// SetProviderConfigReference of this StatefulServerSet.
+func (mg *StatefulServerSet) SetProviderConfigReference(r *xpv1.Reference) {
+	mg.Spec.ProviderConfigReference = r
+}
+
+// SetPublishConnectionDetailsTo of this StatefulServerSet.
+func (mg *StatefulServerSet) SetPublishConnectionDetailsTo(r *xpv1.PublishConnectionDetailsTo) {
+	mg.Spec.PublishConnectionDetailsTo = r
+}
+
+// SetWriteConnectionSecretToReference of this StatefulServerSet.
+func (mg *StatefulServerSet) SetWriteConnectionSecretToReference(r *xpv1.SecretReference) {
+	mg.Spec.WriteConnectionSecretToReference = r
+}
+
 // GetCondition of this User.
 func (mg *User) GetCondition(ct xpv1.ConditionType) xpv1.Condition {
 	return mg.Status.GetCondition(ct)

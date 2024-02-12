@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/statefulserverset"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -82,6 +83,7 @@ var controllers = []controllerSetup{
 	dataplatformcluster.Setup,
 	dataplatformnodepool.Setup,
 	serverset.Setup,
+	statefulserverset.Setup,
 }
 
 // Setup creates all IONOS Cloud controllers with the supplied logger

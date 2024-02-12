@@ -1,0 +1,72 @@
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: StatefulServerSet
+metadata:
+  name: example
+spec:
+  forProvider:
+    replicas: 2
+    deploymentStrategy:
+      type: zones
+    # This defines the template used for each replica.
+    template:
+      metadata:
+        name: c123456-cluster-{uuid}-servers
+      spec:
+        cpuFamily: AMD_OPTERON
+        cores: 4
+        ram: 1024 # (32*storageTB)
+        nics:
+          - ipv4: 10.0.1.1/24
+            vnetId: aaaaaaa1-cace-4674-ab8d-38b4e4f0c37f
+            reference: data
+          - ipv4: 10.0.1.2/24
+            vnetId: aaaaaaa2-cace-4674-ab8d-38b4e4f0c37f
+            reference: management
+          - ipv4: 10.0.1.3/24
+            vnetId: aaaaaaa3-cace-4674-ab8d-38b4e4f0c37f
+            reference: customer
+        # The system disk will be used as the boot volume,
+        # and an additional storage disk volume mounted.
+        bootStorageVolume: system
+        volumeMounts:
+          - "storage_disk"
+          - "storage_disk_extend_1"
+    lans:
+      # Three LANs are defined - an internal one (data) with IPv6 enabled and DHCP disabled for DRBD + VRRP traffic,
+      # a management network for connectivity to K8S and management as well as
+      # customer one without IPv6 or DHCP where VIP is used.
+      - metadata:
+          name: data
+        spec:
+          ipv6: true
+          dhcp: false
+      - metadata:
+          name: management
+        spec:
+          ipv6: true
+          dhcp: false
+      - metadata:
+          name: customer
+        spec:
+          ipv6: false
+          dhcp: false
+    # The volumes are then defined - a 200GB SSD "system" volume from a
+    # custom Linux image, and a separate 4TB SSD volume for storage.
+    volumes:
+      - metadata:
+          name: system
+        spec:
+          image: linuxkit/nas-image
+          size: 200
+          type: SSD
+          userData: -|
+      - metadata:
+          name: storage_disk
+        spec:
+          size: 4096
+          type: SSD
+      - metadata:
+          name: storage_disk_extend_1
+        spec:
+          size: 1024
+          type: SSD
