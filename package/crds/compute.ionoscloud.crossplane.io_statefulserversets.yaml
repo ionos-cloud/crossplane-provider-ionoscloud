@@ -71,6 +71,8 @@ spec:
                   deploymentStrategy:
                     properties:
                       type:
+                        enum:
+                        - ZONES
                         type: string
                     required:
                     - type
@@ -97,9 +99,6 @@ spec:
                               type: boolean
                             ipv6:
                               type: boolean
-                          required:
-                          - dhcp
-                          - ipv6
                           type: object
                       required:
                       - metadata
@@ -155,14 +154,13 @@ spec:
                               properties:
                                 ipv4:
                                   type: string
-                                reference:
+                                lanReferenceName:
                                   type: string
                                 vnetId:
+                                  description: This references the LAN from the client.
                                   type: string
                               required:
-                              - ipv4
-                              - reference
-                              - vnetId
+                              - lanReferenceName
                               type: object
                             minItems: 1
                             type: array
@@ -177,7 +175,15 @@ spec:
                             description: The reference to the other volumes. They
                               must exist in the same data center as the server.
                             items:
-                              type: string
+                              description: StatefulServerSetTemplateSpecVolumeMounts
+                                are the configurable fields of a StatefulServerSetTemplateSpecVolumeMounts.
+                                It is used to mount a volume to a server.
+                              properties:
+                                referenceName:
+                                  type: string
+                              required:
+                              - referenceName
+                              type: object
                             type: array
                         required:
                         - bootStorageVolume
@@ -205,6 +211,8 @@ spec:
                         spec:
                           properties:
                             image:
+                              description: The public image UUID or a public image
+                                alias.
                               type: string
                             size:
                               description: The size of the volume in GB.
@@ -212,9 +220,14 @@ spec:
                             type:
                               description: Hardware type of the volume.
                               enum:
+                              - HDD
                               - SSD
+                              - SSD Standard
+                              - SSD Premium
                               type: string
                             userData:
+                              description: The cloud init configuration in base64
+                                encoding.
                               type: string
                           required:
                           - size

@@ -26,6 +26,7 @@ import (
 )
 
 type DeploymentStrategy struct {
+	// +kubebuilder:validation:Enum=ZONES
 	Type string `json:"type"`
 }
 
@@ -38,11 +39,21 @@ type StatefulServerSetMetadata struct {
 }
 
 type StatefulServerSetTemplateSpecNic struct {
-	// +kubebuilder:validation:Required
-	IPv4   string `json:"ipv4"`
+	// +kubebuilder:validation:Optional
+	IPv4 string `json:"ipv4"`
+	// This references the LAN from the client.
+	//
+	// +kubebuilder:validation:Optional
 	VNetId string `json:"vnetId"`
 	// +kubebuilder:validation:Required
-	Reference string `json:"reference"`
+	LANReferenceName string `json:"lanReferenceName"`
+}
+
+// StatefulServerSetTemplateSpecVolumeMounts are the configurable fields of a StatefulServerSetTemplateSpecVolumeMounts.
+// It is used to mount a volume to a server.
+type StatefulServerSetTemplateSpecVolumeMounts struct {
+	// +kubebuilder:validation:Required
+	ReferenceName string `json:"referenceName"`
 }
 
 // StatefulServerSetTemplateSpec are the configurable fields of a StatefulServerSetTemplateSpec.
@@ -73,7 +84,7 @@ type StatefulServerSetTemplateSpec struct {
 	// The reference to the other volumes.
 	// They must exist in the same data center as the server.
 	// +kubebuilder:validation:Required
-	VolumeMounts []string `json:"volumeMounts,omitempty"`
+	VolumeMounts []StatefulServerSetTemplateSpecVolumeMounts `json:"volumeMounts,omitempty"`
 }
 
 // StatefulServerSetTemplate are the configurable fields of a StatefulServerSetTemplate.
@@ -88,13 +99,14 @@ type StatefulServerSetTemplate struct {
 type StatefulServerSetLanMetadata struct {
 	// +kubebuilder:validation:Required
 	Name string `json:"name"`
-	// +optional
+	// +kubebuilder:validation:Optional
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
 type StatefulServerSetLanSpec struct {
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	IPv6 bool `json:"ipv6"`
+	// +kubebuilder:validation:Optional
 	DHCP bool `json:"dhcp"`
 }
 
@@ -106,11 +118,14 @@ type StatefulServerSetLan struct {
 type StatefulServerSetVolumeMetadata struct {
 	// +kubebuilder:validation:Required
 	Name string `json:"name"`
-	// +optional
+	// +kubebuilder:validation:Optional
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
 type StatefulServerSetVolumeSpec struct {
+	// The public image UUID or a public image alias.
+	//
+	// +kubebuilder:validation:Optional
 	Image string `json:"image,omitempty"`
 	// The size of the volume in GB.
 	//
@@ -119,15 +134,16 @@ type StatefulServerSetVolumeSpec struct {
 	// Hardware type of the volume.
 	//
 	// +immutable
-	// +kubebuilder:validation:Enum=SSD
+	// +kubebuilder:validation:Enum=HDD;SSD;SSD Standard;SSD Premium
 	// +kubebuilder:validation:Required
-	Type     string `json:"type"`
+	Type string `json:"type"`
+	// The cloud init configuration in base64 encoding.
 	UserData string `json:"userData,omitempty"`
 }
 
 type StatefulServerSetVolume struct {
 	Metadata StatefulServerSetVolumeMetadata `json:"metadata"`
-	Spect    StatefulServerSetVolumeSpec     `json:"spec"`
+	Spec     StatefulServerSetVolumeSpec     `json:"spec"`
 }
 
 // StatefulServerSetParameters are the configurable fields of a StatefulServerSet.
