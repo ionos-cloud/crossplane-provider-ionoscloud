@@ -7,6 +7,8 @@ spec:
     replicas: 2
     deploymentStrategy:
       type: ZONES
+    datacenterConfig:
+      datacenterId: ddaaaaa1-cace-4674-ab8d-38b4e4f0c37f
     # This defines the template used for each replica.
     template:
       metadata:

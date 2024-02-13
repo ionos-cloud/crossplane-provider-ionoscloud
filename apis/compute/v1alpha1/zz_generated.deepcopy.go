@@ -2103,6 +2103,7 @@ func (in *StatefulServerSetObservation) DeepCopy() *StatefulServerSetObservation
 func (in *StatefulServerSetParameters) DeepCopyInto(out *StatefulServerSetParameters) {
 	*out = *in
 	out.DeploymentStrategy = in.DeploymentStrategy
+	in.DatacenterCfg.DeepCopyInto(&out.DatacenterCfg)
 	in.Template.DeepCopyInto(&out.Template)
 	if in.Lans != nil {
 		in, out := &in.Lans, &out.Lans

@@ -152,11 +152,16 @@ type StatefulServerSetParameters struct {
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=1
-	Replicas           int                       `json:"replicas"`
-	DeploymentStrategy DeploymentStrategy        `json:"deploymentStrategy"`
-	Template           StatefulServerSetTemplate `json:"template"`
-	Lans               []StatefulServerSetLan    `json:"lans"`
-	VolumeSpec         []StatefulServerSetVolume `json:"volumes"`
+	Replicas           int                `json:"replicas"`
+	DeploymentStrategy DeploymentStrategy `json:"deploymentStrategy"`
+	// DatacenterConfig contains information about the datacenter resource
+	// on which the server will be created.
+	//
+	// +kubebuilder:validation:Required
+	DatacenterCfg DatacenterConfig          `json:"datacenterConfig"`
+	Template      StatefulServerSetTemplate `json:"template"`
+	Lans          []StatefulServerSetLan    `json:"lans"`
+	VolumeSpec    []StatefulServerSetVolume `json:"volumes"`
 }
 
 // A StatefulServerSetSpec defines the desired state of a StatefulServerSet.
