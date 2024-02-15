@@ -42,18 +42,10 @@ import (
 const (
 	errNotStatefulServerSet = "managed resource is not a StatefulServerSet custom resource"
 	errTrackPCUsage         = "cannot track ProviderConfig usage"
-	errGetPC                = "cannot get ProviderConfig"
-	errGetCreds             = "cannot get credentials"
-
-	errNewClient = "cannot create new Service"
 )
 
 // A NoOpService does nothing.
 type NoOpService struct{}
-
-var (
-	newNoOpService = func(_ []byte) (interface{}, error) { return &NoOpService{}, nil }
-)
 
 // Setup adds a controller that reconciles StatefulServerSet managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
