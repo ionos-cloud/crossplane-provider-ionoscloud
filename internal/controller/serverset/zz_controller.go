@@ -162,7 +162,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 			return managed.ExternalCreation{}, err
 		}
 
-		if err := c.ensureNIC(); err != nil {
+		if err := c.ensureNICs(ctx, cr, i); err != nil {
 			return managed.ExternalCreation{}, err
 		}
 	}
@@ -224,19 +224,17 @@ func (c *external) ensureVolumeClaim() error {
 func (c *external) ensureServer(ctx context.Context, cr *v1alpha1.ServerSet, idx int) error {
 	c.log.Info("Ensuring Server")
 
-	name := fmt.Sprintf("%s-%d", cr.Spec.ForProvider.Template.Metadata.Name, idx)
+	name := getServerName(cr, idx)
 	ns := cr.Namespace
 
-	obj := &v1alpha1.Server{}
-	if err := c.kube.Get(ctx, types.NamespacedName{
-		Namespace: ns,
-		Name:      name,
-	}, obj); err != nil {
+	obj, err := c.getServer(ctx, name, ns)
+	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			return c.createServer(ctx, cr, idx)
 		}
 		return err
 	}
+
 	// can be "AVAILABLE"
 	if obj.Status.AtProvider.State == "AVAILABLE" {
 		return nil
@@ -251,6 +249,18 @@ func (c *external) ensureServer(ctx context.Context, cr *v1alpha1.ServerSet, idx
 	fmt.Println("we have to check if the claims are mounted to the server")
 
 	return nil
+}
+
+func (c *external) getServer(ctx context.Context, name, ns string) (*v1alpha1.Server, error) {
+	obj := &v1alpha1.Server{}
+	if err := c.kube.Get(ctx, types.NamespacedName{
+		Namespace: ns,
+		Name:      name,
+	}, obj); err != nil {
+		return nil, err
+	}
+
+	return obj, nil
 }
 
 func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, idx int) error {
@@ -285,8 +295,75 @@ func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, idx
 	return nil
 }
 
-func (c *external) ensureNIC() error {
+func (c *external) ensureNICs(ctx context.Context, cr *v1alpha1.ServerSet, idx int) error {
 	c.log.Info("Ensuring NIC")
+
+	srv, err := c.getServer(ctx, getServerName(cr, idx), cr.GetNamespace())
+	if err != nil {
+		return err
+	}
+
+	// check if the NIC is attached to the server
+	fmt.Println("we have to check if the NIC is attached to the server")
+
+	for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
+		if err := c.ensureNIC(ctx, cr, srv.Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].Reference, idx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *external) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, idx int) error {
+	// get the network
+	network := v1alpha1.Lan{}
+	if err := c.kube.Get(ctx, types.NamespacedName{
+		Namespace: cr.GetNamespace(),
+		Name:      lanName,
+	}, &network); err != nil {
+		return err
+	}
+
+	lanId := network.Status.AtProvider.LanID
+	nic := v1alpha1.Nic{}
+	err := c.kube.Get(ctx, types.NamespacedName{
+		Namespace: cr.GetNamespace(),
+		Name:      getNICName(cr, idx),
+	}, &nic)
+	if err != nil && !apiErrors.IsNotFound(err) {
+		return err
+	}
+
+	// no NIC found, create one
+	if apiErrors.IsNotFound(err) {
+		c.log.Info("Creating NIC", "name", getNICName(cr, idx))
+		return c.kube.Create(ctx, &v1alpha1.Nic{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      getNICName(cr, idx),
+				Namespace: cr.GetNamespace(),
+				Labels: map[string]string{
+					serverSetLabel: cr.Name,
+				},
+			},
+			ManagementPolicies: xpv1.ManagementPolicies{"*"},
+			Spec: v1alpha1.NicSpec{
+				ForProvider: v1alpha1.NicParameters{
+					DatacenterCfg: cr.Spec.ForProvider.DatacenterCfg,
+					ServerCfg: v1alpha1.ServerConfig{
+						ServerID: serverID,
+					},
+					LanCfg: v1alpha1.LanConfig{
+						LanID: lanId,
+					},
+				},
+			},
+		})
+	}
+
+	// NIC found, check if it's attached to the server
+
+	// check if we have to update the NIC
 
 	return nil
 }
