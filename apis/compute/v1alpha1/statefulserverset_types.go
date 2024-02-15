@@ -39,8 +39,6 @@ type StatefulServerSetMetadata struct {
 }
 
 type StatefulServerSetTemplateSpecNic struct {
-	// +kubebuilder:validation:Optional
-	IPv4 string `json:"ipv4"`
 	// This references the LAN from the client.
 	//
 	// +kubebuilder:validation:Optional
