@@ -150,15 +150,21 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
 		c.log.Info("Creating a new Server", "index", i)
-		if err := c.ensureVolumeClaim(); err != nil {
+		if err := c.ensureBootVolumeClaim(); err != nil {
 			return managed.ExternalCreation{}, err
 		}
 
 		if err := c.ensureServer(ctx, cr, i); err != nil {
 			return managed.ExternalCreation{}, err
 		}
-		// create a server
-		// create a volume
+
+		if err := c.ensureVolumeClaim(); err != nil {
+			return managed.ExternalCreation{}, err
+		}
+
+		if err := c.ensureNIC(); err != nil {
+			return managed.ExternalCreation{}, err
+		}
 	}
 
 	// When all conditions are met, the managed resource is considered available
@@ -203,8 +209,14 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	return nil
 }
 
-func (c *external) ensureVolumeClaim() error {
+func (c *external) ensureBootVolumeClaim() error {
 	c.log.Info("Ensuring VolumeClaim")
+
+	return nil
+}
+
+func (c *external) ensureVolumeClaim() error {
+	c.log.Info("Ensuring Volume")
 
 	return nil
 }
