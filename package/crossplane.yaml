@@ -13,7 +13,7 @@ spec:
     meta.crossplane.io/license: Apache-2.0
     meta.crossplane.io/description: |
       The IONOS Cloud Crossplane provider adds support for
-      managing IONOS resources in Kubernetes.
+      managing IONOS Cloud resources in Kubernetes.
 
     meta.crossplane.io/readme: |
       `provider-ionoscloud` is the Crossplane infrastructure provider for the [IONOS Cloud](https://cloud.ionos.com/).
