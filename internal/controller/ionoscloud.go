@@ -83,7 +83,7 @@ var controllers = []controllerSetup{
 	mongouser.Setup,
 	dataplatformcluster.Setup,
 	dataplatformnodepool.Setup,
-	serverset.Setup,
+	serverset.SetupServerSet,
 	statefulserverset.Setup,
 }
 
