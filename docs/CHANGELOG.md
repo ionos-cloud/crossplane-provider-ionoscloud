@@ -1,4 +1,8 @@
-## [1.0.9] (January 2023)
+## [1.0.10] (January 2024)
+- **Features**:
+- Allow conversion between schema types and go types 
+
+## [1.0.9] (February 2024)
 - **Features**:
 - Add `MongoCluster` crd to support CRUD of MongoDB clusters
 - Add `MongoUser` crd to support CRUD of MongoDB users
