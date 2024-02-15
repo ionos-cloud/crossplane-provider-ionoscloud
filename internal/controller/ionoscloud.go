@@ -17,9 +17,10 @@ limitations under the License.
 package controller
 
 import (
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/statefulserverset"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/statefulserverset"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/alb/applicationloadbalancer"
 	albforwardingrule "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/alb/forwardingrule"
