@@ -156,6 +156,8 @@ spec:
                         type: object
                     type: object
                   deploymentStrategy:
+                    description: DeploymentStrategy describes what strategy should
+                      be used to deploy the servers.
                     properties:
                       type:
                         enum:
@@ -166,6 +168,8 @@ spec:
                     type: object
                   lans:
                     items:
+                      description: StatefulServerSetLan are the configurable fields
+                        of a StatefulServerSetLan.
                       properties:
                         metadata:
                           description: StatefulServerSetLanMetadata are the configurable
@@ -181,6 +185,8 @@ spec:
                           - name
                           type: object
                         spec:
+                          description: StatefulServerSetLanSpec are the configurable
+                            fields of a StatefulServerSetLanSpec.
                           properties:
                             dhcp:
                               type: boolean
@@ -238,6 +244,8 @@ spec:
                           nics:
                             description: NICs are the network interfaces of the server.
                             items:
+                              description: StatefulServerSetTemplateSpecNic are the
+                                configurable fields of a StatefulServerSetTemplateSpecNic.
                               properties:
                                 lanReferenceName:
                                   type: string
@@ -281,8 +289,12 @@ spec:
                     type: object
                   volumes:
                     items:
+                      description: StatefulServerSetVolume are the configurable fields
+                        of a StatefulServerSetVolume.
                       properties:
                         metadata:
+                          description: StatefulServerSetVolumeMetadata are the configurable
+                            fields of a StatefulServerSetVolumeMetadata.
                           properties:
                             labels:
                               additionalProperties:
@@ -294,6 +306,8 @@ spec:
                           - name
                           type: object
                         spec:
+                          description: StatefulServerSetVolumeSpec are the configurable
+                            fields of a StatefulServerSetVolumeSpec.
                           properties:
                             image:
                               description: The public image UUID or a public image
@@ -501,6 +515,8 @@ spec:
                 properties:
                   replicaStatus:
                     items:
+                      description: StatefulServerSetReplicaStatus are the configurable
+                        fields of a StatefulServerSetReplicaStatus.
                       properties:
                         errorMessage:
                           description: ErrorMessage relayed from the backend.

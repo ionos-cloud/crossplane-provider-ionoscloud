@@ -75,8 +75,9 @@ type ServerSetTemplateSpec struct {
 	NICs []ServerSetTemplateNIC `json:"nics,omitempty"`
 }
 
+// ServerSetTemplateNIC are the configurable fields of a ServerSetTemplateNIC.
 type ServerSetTemplateNIC struct {
-	//todo add descriptions
+	// todo add descriptions
 	//
 	// +kubebuilder:validation:Required
 	Name string `json:"name"`
@@ -116,6 +117,7 @@ type ServerSetObservation struct {
 	ReplicaStatus []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
 }
 
+// ServerSetReplicaStatus are the observable fields of a ServerSetReplicaStatus.
 type ServerSetReplicaStatus struct {
 	// Server assigned role
 	//
@@ -141,6 +143,7 @@ type ServerSetStatus struct {
 	AtProvider          ServerSetObservation `json:"atProvider,omitempty"`
 }
 
+// ServerSetVolumeClaim are the configurable fields of a ServerSetVolumeClaim.
 type ServerSetVolumeClaim struct {
 	// +kubebuilder:validation:Required
 	Metadata ServerSetVolumeClaimMetadata `json:"metadata"`
@@ -148,6 +151,7 @@ type ServerSetVolumeClaim struct {
 	Spec ServerSetVolumeClaimSpec `json:"spec"`
 }
 
+// ServerSetVolumeClaimMetadata are the configurable fields of a ServerSetVolumeClaimMetadata.
 type ServerSetVolumeClaimMetadata struct {
 	// +kubebuilder:validation:Required
 	Name string `json:"name"`
@@ -155,6 +159,7 @@ type ServerSetVolumeClaimMetadata struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
+// ServerSetVolumeClaimSpec are the configurable fields of a ServerSetVolumeClaimSpec.
 type ServerSetVolumeClaimSpec struct {
 	// Image or snapshot ID to be used as template for this volume.
 	// Make sure the image selected is compatible with the datacenter's location.

@@ -25,6 +25,7 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
+// DeploymentStrategy describes what strategy should be used to deploy the servers.
 type DeploymentStrategy struct {
 	// +kubebuilder:validation:Enum=ZONES
 	Type string `json:"type"`
@@ -38,11 +39,12 @@ type StatefulServerSetMetadata struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
+// StatefulServerSetTemplateSpecNic are the configurable fields of a StatefulServerSetTemplateSpecNic.
 type StatefulServerSetTemplateSpecNic struct {
 	// This references the LAN from the client.
 	//
 	// +kubebuilder:validation:Optional
-	VNetId string `json:"vnetId"`
+	VNetID string `json:"vnetId"`
 	// +kubebuilder:validation:Required
 	LANReferenceName string `json:"lanReferenceName"`
 }
@@ -101,6 +103,7 @@ type StatefulServerSetLanMetadata struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
+// StatefulServerSetLanSpec are the configurable fields of a StatefulServerSetLanSpec.
 type StatefulServerSetLanSpec struct {
 	// +kubebuilder:validation:Optional
 	IPv6 bool `json:"ipv6"`
@@ -108,11 +111,13 @@ type StatefulServerSetLanSpec struct {
 	DHCP bool `json:"dhcp"`
 }
 
+// StatefulServerSetLan are the configurable fields of a StatefulServerSetLan.
 type StatefulServerSetLan struct {
 	Metadata StatefulServerSetLanMetadata `json:"metadata"`
 	Spec     StatefulServerSetLanSpec     `json:"spec"`
 }
 
+// StatefulServerSetVolumeMetadata are the configurable fields of a StatefulServerSetVolumeMetadata.
 type StatefulServerSetVolumeMetadata struct {
 	// +kubebuilder:validation:Required
 	Name string `json:"name"`
@@ -120,6 +125,7 @@ type StatefulServerSetVolumeMetadata struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
+// StatefulServerSetVolumeSpec are the configurable fields of a StatefulServerSetVolumeSpec.
 type StatefulServerSetVolumeSpec struct {
 	// The public image UUID or a public image alias.
 	//
@@ -139,6 +145,7 @@ type StatefulServerSetVolumeSpec struct {
 	UserData string `json:"userData,omitempty"`
 }
 
+// StatefulServerSetVolume are the configurable fields of a StatefulServerSetVolume.
 type StatefulServerSetVolume struct {
 	Metadata StatefulServerSetVolumeMetadata `json:"metadata"`
 	Spec     StatefulServerSetVolumeSpec     `json:"spec"`
@@ -168,6 +175,7 @@ type StatefulServerSetSpec struct {
 	ForProvider       StatefulServerSetParameters `json:"forProvider"`
 }
 
+// StatefulServerSetReplicaStatus are the configurable fields of a StatefulServerSetReplicaStatus.
 type StatefulServerSetReplicaStatus struct {
 	// Server assigned role
 	//
