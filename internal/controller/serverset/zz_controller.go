@@ -202,9 +202,21 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 
 	fmt.Printf("Deleting: %+v", cr)
 
-	if err := c.kube.DeleteAllOf(ctx, &v1alpha1.Server{}, client.InNamespace(cr.Namespace)); err != nil {
+	// delete all nics
+	if err := c.kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		serverSetLabel: cr.Name,
+	}); err != nil {
 		return err
 	}
+
+	// delete all servers
+	if err := c.kube.DeleteAllOf(ctx, &v1alpha1.Server{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		serverSetLabel: cr.Name,
+	}); err != nil {
+		return err
+	}
+
+	// todo(user): delete all volume claims
 
 	return nil
 }
@@ -343,7 +355,7 @@ func (c *external) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, server
 				Name:      getNICName(cr, idx),
 				Namespace: cr.GetNamespace(),
 				Labels: map[string]string{
-					serverSetLabel: cr.Name,
+					serverSetLabel: cr.GetName(),
 				},
 			},
 			ManagementPolicies: xpv1.ManagementPolicies{"*"},
