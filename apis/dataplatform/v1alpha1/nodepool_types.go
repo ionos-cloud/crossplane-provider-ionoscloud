@@ -152,19 +152,8 @@ type DataplatformNodepool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec               DataplatformNodepoolSpec   `json:"spec"`
-	Status             DataplatformNodepoolStatus `json:"status,omitempty"`
-	ManagementPolicies xpv1.ManagementPolicies    `json:"managementPolicies"`
-}
-
-// SetManagementPolicies implement managed interface
-func (mg *DataplatformNodepool) SetManagementPolicies(p xpv1.ManagementPolicies) {
-	mg.ManagementPolicies = p
-}
-
-// GetManagementPolicies implement managed interface
-func (mg *DataplatformNodepool) GetManagementPolicies() xpv1.ManagementPolicies {
-	return mg.ManagementPolicies
+	Spec   DataplatformNodepoolSpec   `json:"spec"`
+	Status DataplatformNodepoolStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
