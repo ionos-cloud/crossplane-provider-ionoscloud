@@ -1,8 +1,72 @@
+# Use this file to create a Volume CR.
+# Required values for creating a Volume CR are:
+# - DatacenterConfig (via ID or reference),
+# - Size,
+# - Type,
+# - Licence Type, Image ID or Image Alias.
+# Note: when using images, it is recommended to use SSH Keys or Image Password.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: example
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    name: exampleDatacenter2
+    location: us/las
+    description: test
+  #    secAuthProtection: true
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Volume
+metadata:
+  name: examplevolume-0
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    name: exampleVolume
+    size: 30
+    type: HDD
+    bus: VIRTIO
+    licenceType: LINUX
+    availabilityZone: AUTO
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
+# Use this file to create a Lan CR.
+# Required values for creating a Lan CR are:
+# - DatacenterConfig (via ID or reference),
+# - Public.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: examplelan
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    name: exampleLan
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: ServerSet
 metadata:
-  name: serverset-sample
+  name: serverset
 spec:
+  providerConfigRef:
+    name: example
   forProvider:
     replicas: 2
     datacenterConfig:
@@ -14,13 +78,13 @@ spec:
         labels:
           key: value
       spec:
-        cpuFamily: AMD_OPTERON
+        cpuFamily: INTEL_XEON
         cores: 1
         ram: 1024
         nics:
           - name: nic-sample
             ipv4: "10.0.0.1/24"
-            reference: "nic-id"
+            reference: examplelan
         volumeMounts:
           - reference: "volume-mount-id"
         bootStorageVolumeRef: "volume-id"
