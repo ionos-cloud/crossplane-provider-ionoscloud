@@ -247,11 +247,6 @@ func (c *external) ensureServer(ctx context.Context, cr *v1alpha1.ServerSet, idx
 		return err
 	}
 
-	// can be "AVAILABLE"
-	//if strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
-	//	return fmt.Errorf("server %s got state %s but expected %s", obj.GetName(), obj.Status.AtProvider.State, ionoscloud.Available)
-	//}
-
 	fmt.Println("Server State: ", obj.Status.AtProvider.State)
 
 	// check if the server is up and running
@@ -331,18 +326,6 @@ func (c *external) ensureNICs(ctx context.Context, cr *v1alpha1.ServerSet, idx i
 
 	// check if the NIC is attached to the server
 	fmt.Printf("we have to check if the NIC is attached to the server %s ", cr.GetName())
-	//if srv.Status.AtProvider.ServerID == "" {
-	//	return fmt.Errorf("server does not yet have an id")
-	//}
-	//var err error
-
-	//todo - add check here too
-	//for srv.Status.AtProvider.ServerID == "" || srv.Status.AtProvider.State != ionoscloud.Available {
-	//	srv, err = c.getServer(ctx, fmt.Sprintf("%s-%d", cr.Spec.ForProvider.Template.Metadata.Name, idx), cr.Namespace)
-	//	if err != nil && !apiErrors.IsNotFound(err) {
-	//		return err
-	//	}
-	//}
 
 	for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
 		if err := c.ensureNIC(ctx, cr, srv.Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].Reference, idx); err != nil {
@@ -365,7 +348,7 @@ func (c *external) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, server
 		return err
 	}
 
-	lanId := network.Status.AtProvider.LanID
+	lanID := network.Status.AtProvider.LanID
 	observedNic := v1alpha1.Nic{}
 	err := c.kube.Get(ctx, types.NamespacedName{
 		Namespace: cr.GetNamespace(),
@@ -394,7 +377,7 @@ func (c *external) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, server
 						ServerID: serverID,
 					},
 					LanCfg: v1alpha1.LanConfig{
-						LanID: lanId,
+						LanID: lanID,
 					},
 				},
 			},
