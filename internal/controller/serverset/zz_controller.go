@@ -19,8 +19,10 @@ package serverset
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -103,7 +105,6 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, err
 	}
 
-	fmt.Printf("Got a total of %d servers", len(serverList.Items))
 	cr.Status.AtProvider.Replicas = len(serverList.Items)
 
 	// ensure we have cr.Spec.Replicas number of servers
@@ -236,20 +237,14 @@ func (c *external) ensureVolumeClaim() error {
 func (c *external) ensureServer(ctx context.Context, cr *v1alpha1.ServerSet, idx int) error {
 	c.log.Info("Ensuring Server")
 
-	name := getServerName(cr, idx)
+	name := getNameFromIndex(cr.GetName(), "server", idx)
 	ns := cr.Namespace
-
 	obj, err := c.getServer(ctx, name, ns)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			return c.createServer(ctx, cr, idx)
 		}
 		return err
-	}
-
-	// can be "AVAILABLE"
-	if obj.Status.AtProvider.State == "AVAILABLE" {
-		return nil
 	}
 
 	fmt.Println("Server State: ", obj.Status.AtProvider.State)
@@ -278,10 +273,11 @@ func (c *external) getServer(ctx context.Context, name, ns string) (*v1alpha1.Se
 func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, idx int) error {
 	c.log.Info("Creating Server")
 	fmt.Println("Creating Server")
+	resourceType := "server"
+	serverObj := v1alpha1.Server{
 
-	if err := c.kube.Create(ctx, &v1alpha1.Server{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%d", cr.Spec.ForProvider.Template.Metadata.Name, idx),
+			Name:      getNameFromIndex(cr.GetName(), resourceType, idx),
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
 				serverSetLabel: cr.Name,
@@ -291,32 +287,45 @@ func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, idx
 		Spec: v1alpha1.ServerSpec{
 			ForProvider: v1alpha1.ServerParameters{
 				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
-				Name:             fmt.Sprintf("%s-%d", cr.Spec.ForProvider.Template.Metadata.Name, idx),
+				Name:             getNameFromIndex(cr.GetName(), resourceType, idx),
 				Cores:            cr.Spec.ForProvider.Template.Spec.Cores,
 				RAM:              cr.Spec.ForProvider.Template.Spec.RAM,
 				AvailabilityZone: "AUTO",
 				CPUFamily:        cr.Spec.ForProvider.Template.Spec.CPUFamily,
 			},
-		},
-	}); err != nil {
+		}}
+	serverObj.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
+	if err := c.kube.Create(ctx, &serverObj); err != nil {
 		fmt.Println("error creating server")
 		fmt.Println(err.Error())
 		return err
 	}
-
-	return nil
+	createdServer := &serverObj
+	var err error
+	for {
+		createdServer, err = c.getServer(ctx, getNameFromIndex(cr.GetName(), resourceType, idx), cr.Namespace)
+		if createdServer != nil && createdServer.Status.AtProvider.ServerID != "" && createdServer.Status.AtProvider.State == ionoscloud.Available {
+			return nil
+		}
+		if err != nil {
+			if apiErrors.IsNotFound(err) {
+				continue
+			}
+			return err
+		}
+	}
 }
 
 func (c *external) ensureNICs(ctx context.Context, cr *v1alpha1.ServerSet, idx int) error {
 	c.log.Info("Ensuring NIC")
 
-	srv, err := c.getServer(ctx, getServerName(cr, idx), cr.GetNamespace())
+	srv, err := c.getServer(ctx, getNameFromIndex(cr.GetName(), "server", idx), cr.GetNamespace())
 	if err != nil {
 		return err
 	}
 
 	// check if the NIC is attached to the server
-	fmt.Println("we have to check if the NIC is attached to the server")
+	fmt.Printf("we have to check if the NIC is attached to the server %s ", cr.GetName())
 
 	for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
 		if err := c.ensureNIC(ctx, cr, srv.Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].Reference, idx); err != nil {
@@ -329,6 +338,8 @@ func (c *external) ensureNICs(ctx context.Context, cr *v1alpha1.ServerSet, idx i
 
 func (c *external) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, idx int) error {
 	// get the network
+	resourceType := "nic"
+	nicName := getNameFromIndex(cr.GetName(), resourceType, idx)
 	network := v1alpha1.Lan{}
 	if err := c.kube.Get(ctx, types.NamespacedName{
 		Namespace: cr.GetNamespace(),
@@ -337,22 +348,21 @@ func (c *external) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, server
 		return err
 	}
 
-	lanId := network.Status.AtProvider.LanID
-	nic := v1alpha1.Nic{}
+	lanID := network.Status.AtProvider.LanID
+	observedNic := v1alpha1.Nic{}
 	err := c.kube.Get(ctx, types.NamespacedName{
 		Namespace: cr.GetNamespace(),
-		Name:      getNICName(cr, idx),
-	}, &nic)
+		Name:      nicName,
+	}, &observedNic)
 	if err != nil && !apiErrors.IsNotFound(err) {
 		return err
 	}
-
 	// no NIC found, create one
 	if apiErrors.IsNotFound(err) {
-		c.log.Info("Creating NIC", "name", getNICName(cr, idx))
-		return c.kube.Create(ctx, &v1alpha1.Nic{
+		c.log.Info("Creating NIC", "name", nicName)
+		createNic := &v1alpha1.Nic{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      getNICName(cr, idx),
+				Name:      nicName,
 				Namespace: cr.GetNamespace(),
 				Labels: map[string]string{
 					serverSetLabel: cr.GetName(),
@@ -361,21 +371,32 @@ func (c *external) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, server
 			ManagementPolicies: xpv1.ManagementPolicies{"*"},
 			Spec: v1alpha1.NicSpec{
 				ForProvider: v1alpha1.NicParameters{
+					Name:          nicName,
 					DatacenterCfg: cr.Spec.ForProvider.DatacenterCfg,
 					ServerCfg: v1alpha1.ServerConfig{
 						ServerID: serverID,
 					},
 					LanCfg: v1alpha1.LanConfig{
-						LanID: lanId,
+						LanID: lanID,
 					},
 				},
 			},
-		})
+		}
+		createNic.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
+		return c.kube.Create(ctx, createNic)
 	}
 
 	// NIC found, check if it's attached to the server
+	if !strings.EqualFold(observedNic.Status.AtProvider.State, ionoscloud.Available) {
+		return fmt.Errorf("observedNic %s got state %s but expected %s", observedNic.GetName(), observedNic.Status.AtProvider.State, ionoscloud.Available)
+	}
 
 	// check if we have to update the NIC
 
 	return nil
+}
+
+// getNameFromIndex - generates name consisting of name, kind and index
+func getNameFromIndex(resourceName, resourceType string, idx int) string {
+	return fmt.Sprintf("%s-%s-%d", resourceName, resourceType, idx)
 }

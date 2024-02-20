@@ -190,6 +190,9 @@ func (c *externalNic) Create(ctx context.Context, mg resource.Managed) (managed.
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
+	if cr.Spec.ForProvider.ServerCfg.ServerID == "" {
+		return managed.ExternalCreation{}, fmt.Errorf("serverId is required")
+	}
 	newInstance, apiResponse, err := c.service.CreateNic(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 		cr.Spec.ForProvider.ServerCfg.ServerID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
