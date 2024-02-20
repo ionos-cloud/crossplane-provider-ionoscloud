@@ -15,7 +15,7 @@ import (
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	usermock "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/mock/clients/compute/user"
@@ -84,15 +84,15 @@ func TestUserObserve(t *testing.T) {
 			mock: func() {
 				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusOK})
 				user := ionoscloud.User{
-					Id: pointer.String(userIDInTest),
+					Id: ptr.To(userIDInTest),
 					Properties: &ionoscloud.UserProperties{
-						Email:             pointer.String("xplane-user@ionoscloud.io"),
-						S3CanonicalUserId: pointer.String("400c7ccfed0d"),
-						Active:            pointer.Bool(true),
-						SecAuthActive:     pointer.Bool(true),
-						Firstname:         pointer.String("test"),
-						Lastname:          pointer.String("user"),
-						Administrator:     pointer.Bool(false),
+						Email:             ptr.To("xplane-user@ionoscloud.io"),
+						S3CanonicalUserId: ptr.To("400c7ccfed0d"),
+						Active:            ptr.To(true),
+						SecAuthActive:     ptr.To(true),
+						Firstname:         ptr.To("test"),
+						Lastname:          ptr.To("user"),
+						Administrator:     ptr.To(false),
 					},
 				}
 				client.EXPECT().GetUser(ctx, gomock.Any()).Return(user, apires, nil)
@@ -179,16 +179,16 @@ func TestUserCreate(t *testing.T) {
 			mock: func() {
 				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusAccepted})
 				user := ionoscloud.User{
-					Id: pointer.String(userIDInTest),
+					Id: ptr.To(userIDInTest),
 					Properties: &ionoscloud.UserProperties{
-						Email:             pointer.String("xplane-user@ionoscloud.io"),
-						Firstname:         pointer.String("user name"),
-						Lastname:          pointer.String("test"),
-						S3CanonicalUserId: pointer.String("400c7ccfed0d"),
-						Administrator:     pointer.Bool(false),
-						ForceSecAuth:      pointer.Bool(false),
-						SecAuthActive:     pointer.Bool(false),
-						Active:            pointer.Bool(true),
+						Email:             ptr.To("xplane-user@ionoscloud.io"),
+						Firstname:         ptr.To("user name"),
+						Lastname:          ptr.To("test"),
+						S3CanonicalUserId: ptr.To("400c7ccfed0d"),
+						Administrator:     ptr.To(false),
+						ForceSecAuth:      ptr.To(false),
+						SecAuthActive:     ptr.To(false),
+						Active:            ptr.To(true),
 					},
 				}
 				client.EXPECT().CreateUser(ctx, gomock.Any()).Return(user, apires, nil)
@@ -274,16 +274,16 @@ func TestUserUpdate(t *testing.T) {
 			mock: func() {
 				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusAccepted})
 				user := ionoscloud.User{
-					Id: pointer.String(userIDInTest),
+					Id: ptr.To(userIDInTest),
 					Properties: &ionoscloud.UserProperties{
-						Email:             pointer.String("xplane-user@ionoscloud.io"),
-						Firstname:         pointer.String("user name"),
-						Lastname:          pointer.String("test"),
-						S3CanonicalUserId: pointer.String("400c7ccfed0d"),
-						Administrator:     pointer.Bool(false),
-						ForceSecAuth:      pointer.Bool(false),
-						SecAuthActive:     pointer.Bool(false),
-						Active:            pointer.Bool(true),
+						Email:             ptr.To("xplane-user@ionoscloud.io"),
+						Firstname:         ptr.To("user name"),
+						Lastname:          ptr.To("test"),
+						S3CanonicalUserId: ptr.To("400c7ccfed0d"),
+						Administrator:     ptr.To(false),
+						ForceSecAuth:      ptr.To(false),
+						SecAuthActive:     ptr.To(false),
+						Active:            ptr.To(true),
 					},
 				}
 				var p v1alpha1.UserParameters
