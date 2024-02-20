@@ -104,12 +104,11 @@ type NicConfig struct {
 
 // NicObservation are the observable fields of a Nic.
 type NicObservation struct {
-	NicID    string   `json:"nicId,omitempty"`
-	VolumeID string   `json:"volumeId,omitempty"`
-	IPs      []string `json:"ips,omitempty"`
-	State    string   `json:"state,omitempty"`
-	Mac      string   `json:"mac,omitempty"`
-	PCISlot  int32    `json:"pciSlot,omitempty"`
+	NicID   string   `json:"nicId,omitempty"`
+	IPs     []string `json:"ips,omitempty"`
+	State   string   `json:"state,omitempty"`
+	Mac     string   `json:"mac,omitempty"`
+	PCISlot int32    `json:"pciSlot,omitempty"`
 }
 
 // A NicSpec defines the desired state of a Nic.

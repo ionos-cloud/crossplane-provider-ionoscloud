@@ -9,9 +9,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: CubeServer
 metadata:
   name: examplecubeserver
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleCubeServer
     availabilityZone: AUTO

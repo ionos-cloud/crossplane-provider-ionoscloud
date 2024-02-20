@@ -16,9 +16,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: exampledataplatform
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleDatacenter
     location: de/txl
@@ -30,9 +30,9 @@ apiVersion: dataplatform.ionoscloud.crossplane.io/v1alpha1
 kind: DataplatformCluster
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     datacenterConfig:
       datacenterIdRef:
@@ -60,9 +60,9 @@ apiVersion: dataplatform.ionoscloud.crossplane.io/v1alpha1
 kind: DataplatformNodepool
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleDataplatformNodepool
     nodeCount: 2
@@ -95,9 +95,9 @@ apiVersion: dataplatform.ionoscloud.crossplane.io/v1alpha1
 kind: DataplatformNodepool
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleDataplatformNodepool
     nodeCount: 2
@@ -125,9 +125,9 @@ apiVersion: dataplatform.ionoscloud.crossplane.io/v1alpha1
 kind: DataplatformCluster
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     datacenterConfig:
       datacenterIdRef:

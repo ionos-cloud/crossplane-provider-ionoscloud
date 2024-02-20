@@ -8,9 +8,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: FirewallRule
 metadata:
   name: examplefr
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleFirewallRule
     protocol: ANY

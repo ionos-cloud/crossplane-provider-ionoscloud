@@ -3,9 +3,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Pcc
 metadata:
   name: examplepcc
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleDatacenter
     description: test
