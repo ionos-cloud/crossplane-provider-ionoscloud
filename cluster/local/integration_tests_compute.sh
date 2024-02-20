@@ -14,11 +14,11 @@ function ipblock_tests() {
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
-managementPolicies:
-  - '*'
 metadata:
   name: example
 spec:
+  managementPolicies:
+    - '*'
   forProvider:
     name: exampleIpBlock
     size: 2
@@ -46,9 +46,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
   name: example
-managementPolicies:
-  - '*'
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleIpBlockUpdate
     size: 2
@@ -75,9 +75,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleIpBlockUpdate
     size: 2
@@ -102,9 +102,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Pcc
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: example
     description: test
@@ -129,9 +129,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: testdatacenter
     location: de/txl
@@ -158,9 +158,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: Test Datacenter CR
     location: de/txl
@@ -186,9 +186,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: Test Datacenter CR
     location: de/txl
@@ -214,9 +214,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Volume
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampletest
     size: 30
@@ -249,9 +249,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Volume
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleVolume
     size: 40
@@ -280,9 +280,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Volume
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleVolume
     size: 30
@@ -313,9 +313,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Server
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampletest
     cores: 4
@@ -351,9 +351,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Server
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleServerUpdate
     cores: 4
@@ -387,9 +387,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Server
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleServerUpdate
     cores: 4
@@ -424,9 +424,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Pcc
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: example
     description: test
@@ -450,9 +450,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampletest
     public: false
@@ -479,9 +479,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: example2
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampletest2
     public: false
@@ -514,9 +514,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampletestLan
     public: true
@@ -543,9 +543,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: example3
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampletest3
     public: false
@@ -576,9 +576,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampletestLan
     public: true
@@ -605,9 +605,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: example2
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampletestLan
     public: true
@@ -634,9 +634,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: example3
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampletestLan3
     public: true

@@ -20,9 +20,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: exampledbaasmongo
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleDatacenter
     location: de/txl
@@ -34,9 +34,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: examplelandbaasmongo
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleLan
     public: false
@@ -50,9 +50,9 @@ apiVersion: dbaas.mongo.ionoscloud.crossplane.io/v1alpha1
 kind: MongoCluster
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     displayName: testDBaaSMongo
     mongoDBVersion: "5.0"
@@ -90,9 +90,9 @@ apiVersion: dbaas.mongo.ionoscloud.crossplane.io/v1alpha1
 kind: MongoCluster
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     displayName: testDBaaSMongo
     mongoDBVersion: "5.0"
@@ -159,9 +159,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: exampledbaasmongo
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleDatacenter
     location: de/txl
@@ -173,9 +173,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: examplelandbaasmongo
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleLan
     public: false
@@ -189,9 +189,9 @@ apiVersion: dbaas.mongo.ionoscloud.crossplane.io/v1alpha1
 kind: MongoCluster
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     displayName: testDBaaSMongo
     mongoDBVersion: "5.0"
