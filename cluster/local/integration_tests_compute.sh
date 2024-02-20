@@ -664,9 +664,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Nic
 metadata:
   name: example
-managementPolicies: 
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleNic
     dhcp: false
@@ -707,9 +707,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Nic
 metadata:
   name: example
-managementPolicies: 
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleNic
     dhcp: false
@@ -747,9 +747,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: FirewallRule
 metadata:
   name: example
-managementPolicies: 
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleFirewallRule
     protocol: ANY
@@ -791,9 +791,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: FirewallRule
 metadata:
   name: example
-managementPolicies: 
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleFirewallRuleUpdated
     protocol: ANY
@@ -830,9 +830,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: FirewallRule
 metadata:
   name: example
-managementPolicies: 
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleFirewallRuleUpdated
     protocol: ANY
@@ -869,9 +869,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPFailover
 metadata:
   name: example
-managementPolicies: 
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     ipConfig:
       ipBlockConfig:
@@ -910,9 +910,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPFailover
 metadata:
   name: example
-managementPolicies: 
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     ipConfig:
       ipBlockConfig:
@@ -947,9 +947,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPFailover
 metadata:
   name: example
-managementPolicies: 
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     ipConfig:
       ipBlockConfig:
