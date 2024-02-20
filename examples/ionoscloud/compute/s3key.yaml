@@ -6,9 +6,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: S3Key
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
 #    replace with the user id for which you want the s3 key to be created
     userID: "000000-0000-0000-0000-0000"
