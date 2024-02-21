@@ -91,9 +91,8 @@ type MongoUser struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec               MongoUserSpec           `json:"spec"`
-	Status             UserStatus              `json:"status,omitempty"`
-	ManagementPolicies xpv1.ManagementPolicies `json:"managementPolicies"`
+	Spec   MongoUserSpec `json:"spec"`
+	Status UserStatus    `json:"status,omitempty"`
 }
 
 // A UserStatus represents the observed state of a user.
@@ -111,16 +110,6 @@ type UserObservation struct {
 type MongoUserSpec struct {
 	xpv1.ResourceSpec `json:",inline"`
 	ForProvider       MongoUserParameters `json:"forProvider"`
-}
-
-// SetManagementPolicies implement managed interface
-func (mg *MongoUser) SetManagementPolicies(p xpv1.ManagementPolicies) {
-	mg.ManagementPolicies = p
-}
-
-// GetManagementPolicies implement managed interface
-func (mg *MongoUser) GetManagementPolicies() xpv1.ManagementPolicies {
-	return mg.ManagementPolicies
 }
 
 // +kubebuilder:object:root=true

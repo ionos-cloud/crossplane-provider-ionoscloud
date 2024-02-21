@@ -29,17 +29,14 @@ func (mg *ApplicationLoadBalancer) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this ApplicationLoadBalancer.
+func (mg *ApplicationLoadBalancer) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this ApplicationLoadBalancer.
 func (mg *ApplicationLoadBalancer) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
-}
-
-/*
-GetProviderReference of this ApplicationLoadBalancer.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *ApplicationLoadBalancer) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
 }
 
 // GetPublishConnectionDetailsTo of this ApplicationLoadBalancer.
@@ -62,17 +59,14 @@ func (mg *ApplicationLoadBalancer) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
 }
 
+// SetManagementPolicies of this ApplicationLoadBalancer.
+func (mg *ApplicationLoadBalancer) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
+}
+
 // SetProviderConfigReference of this ApplicationLoadBalancer.
 func (mg *ApplicationLoadBalancer) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this ApplicationLoadBalancer.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *ApplicationLoadBalancer) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this ApplicationLoadBalancer.
@@ -95,17 +89,14 @@ func (mg *ForwardingRule) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this ForwardingRule.
+func (mg *ForwardingRule) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this ForwardingRule.
 func (mg *ForwardingRule) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
-}
-
-/*
-GetProviderReference of this ForwardingRule.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *ForwardingRule) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
 }
 
 // GetPublishConnectionDetailsTo of this ForwardingRule.
@@ -128,17 +119,14 @@ func (mg *ForwardingRule) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
 }
 
+// SetManagementPolicies of this ForwardingRule.
+func (mg *ForwardingRule) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
+}
+
 // SetProviderConfigReference of this ForwardingRule.
 func (mg *ForwardingRule) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this ForwardingRule.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *ForwardingRule) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this ForwardingRule.
@@ -161,17 +149,14 @@ func (mg *TargetGroup) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this TargetGroup.
+func (mg *TargetGroup) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this TargetGroup.
 func (mg *TargetGroup) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
-}
-
-/*
-GetProviderReference of this TargetGroup.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *TargetGroup) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
 }
 
 // GetPublishConnectionDetailsTo of this TargetGroup.
@@ -194,17 +179,14 @@ func (mg *TargetGroup) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
 }
 
+// SetManagementPolicies of this TargetGroup.
+func (mg *TargetGroup) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
+}
+
 // SetProviderConfigReference of this TargetGroup.
 func (mg *TargetGroup) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this TargetGroup.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *TargetGroup) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this TargetGroup.

@@ -29,17 +29,14 @@ func (mg *MongoCluster) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this MongoCluster.
+func (mg *MongoCluster) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this MongoCluster.
 func (mg *MongoCluster) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
-}
-
-/*
-GetProviderReference of this MongoCluster.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *MongoCluster) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
 }
 
 // GetPublishConnectionDetailsTo of this MongoCluster.
@@ -62,17 +59,14 @@ func (mg *MongoCluster) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
 }
 
+// SetManagementPolicies of this MongoCluster.
+func (mg *MongoCluster) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
+}
+
 // SetProviderConfigReference of this MongoCluster.
 func (mg *MongoCluster) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this MongoCluster.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *MongoCluster) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this MongoCluster.
@@ -95,17 +89,14 @@ func (mg *MongoUser) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this MongoUser.
+func (mg *MongoUser) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this MongoUser.
 func (mg *MongoUser) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
-}
-
-/*
-GetProviderReference of this MongoUser.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *MongoUser) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
 }
 
 // GetPublishConnectionDetailsTo of this MongoUser.
@@ -128,17 +119,14 @@ func (mg *MongoUser) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
 }
 
+// SetManagementPolicies of this MongoUser.
+func (mg *MongoUser) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
+}
+
 // SetProviderConfigReference of this MongoUser.
 func (mg *MongoUser) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this MongoUser.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *MongoUser) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this MongoUser.

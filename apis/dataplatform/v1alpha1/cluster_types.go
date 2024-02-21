@@ -124,19 +124,8 @@ type DataplatformCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec               DataplatformClusterSpec   `json:"spec"`
-	Status             DataplatformClusterStatus `json:"status,omitempty"`
-	ManagementPolicies xpv1.ManagementPolicies   `json:"managementPolicies"`
-}
-
-// SetManagementPolicies implement managed interface
-func (mg *DataplatformCluster) SetManagementPolicies(p xpv1.ManagementPolicies) {
-	mg.ManagementPolicies = p
-}
-
-// GetManagementPolicies implement managed interface
-func (mg *DataplatformCluster) GetManagementPolicies() xpv1.ManagementPolicies {
-	return mg.ManagementPolicies
+	Spec   DataplatformClusterSpec   `json:"spec"`
+	Status DataplatformClusterStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

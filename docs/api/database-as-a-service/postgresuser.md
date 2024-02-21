@@ -77,7 +77,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* description: ClusterConfig is used by resources that need to link psql clusters via id or via reference.
 	* properties:
 		* `ClusterId` (string)
-			* description: ClusterID is the ID of the Cluster on which the resource will be created. It needs to be provided via directly or via reference.
+			* description: ClusterID is the ID of the Cluster on which the resource will be created.
+It needs to be provided via directly or via reference.
 			* format: uuid
 		* `ClusterIdRef` (object)
 			* description: ClusterIDRef references to a Cluster to retrieve its ID.
@@ -88,11 +89,17 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: Policies for referencing.
 					* properties:
 						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* description: Resolution specifies whether resolution of this reference is required.
+The default is 'Required', which means the reconcile will fail if the
+reference cannot be resolved. 'Optional' means this reference will be
+a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* description: Resolve specifies when this reference should be resolved. The default
+is 'IfNotPresent', which will attempt to resolve the reference only when
+the corresponding field is not present. Use 'Always' to resolve the
+reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
@@ -100,32 +107,43 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* description: ClusterIDSelector selects reference to a Cluster to retrieve its ClusterID.
 			* properties:
 				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+					* description: MatchControllerRef ensures an object with the same controller reference
+as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
 					* description: Policies for selection.
 					* properties:
 						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* description: Resolution specifies whether resolution of this reference is required.
+The default is 'Required', which means the reconcile will fail if the
+reference cannot be resolved. 'Optional' means this reference will be
+a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* description: Resolve specifies when this reference should be resolved. The default
+is 'IfNotPresent', which will attempt to resolve the reference only when
+the corresponding field is not present. Use 'Always' to resolve the
+reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `credentials` (object)
-	* description: The total number of instances in the cluster (one master and n-1 standbys). 
- Database credentials - either set directly, or as secret/path/env
+	* description: The total number of instances in the cluster (one master and n-1 standbys).
+
+
+Database credentials - either set directly, or as secret/path/env
 	* properties:
 		* `env` (object)
-			* description: Env is a reference to an environment variable that contains credentials that must be used to connect to the provider.
+			* description: Env is a reference to an environment variable that contains credentials
+that must be used to connect to the provider.
 			* properties:
 				* `name` (string)
 					* description: Name is the name of an environment variable.
 			* required properties:
 				* `name`
 		* `fs` (object)
-			* description: Fs is a reference to a filesystem location that contains credentials that must be used to connect to the provider.
+			* description: Fs is a reference to a filesystem location that contains credentials that
+must be used to connect to the provider.
 			* properties:
 				* `path` (string)
 					* description: Path is a filesystem path.
@@ -133,7 +151,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 				* `path`
 		* `password` (string)
 		* `secretRef` (object)
-			* description: A SecretRef is a reference to a secret key that contains the credentials that must be used to connect to the provider.
+			* description: A SecretRef is a reference to a secret key that contains the credentials
+that must be used to connect to the provider.
 			* properties:
 				* `key` (string)
 					* description: The key to select.
@@ -149,7 +168,9 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* description: Source of the provider credentials.
 			* possible values: "None";"Secret";"InjectedIdentity";"Environment";"Filesystem"
 		* `username` (string)
-			* description: The username for the postgres user. Some system usernames are restricted (e.g. \"postgres\", \"admin\", \"standby\"). Password must have a minimum length o 10
+			* description: The username for the postgres user.
+Some system usernames are restricted (e.g. \"postgres\", \"admin\", \"standby\").
+Password must have a minimum length o 10
 
 ### Required Properties
 

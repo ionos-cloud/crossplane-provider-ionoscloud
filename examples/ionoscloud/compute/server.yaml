@@ -12,9 +12,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Server
 metadata:
   name: exampleserver
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleServer
     cores: 4

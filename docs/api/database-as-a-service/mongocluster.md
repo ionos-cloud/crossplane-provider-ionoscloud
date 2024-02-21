@@ -96,7 +96,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* description: DatacenterConfig contains information about the datacenter resource.
 			* properties:
 				* `datacenterId` (string)
-					* description: DatacenterID is the ID of the Datacenter on which the resource will be created. It needs to be provided via directly or via reference.
+					* description: DatacenterID is the ID of the Datacenter on which the resource will be created.
+It needs to be provided via directly or via reference.
 					* format: uuid
 				* `datacenterIdRef` (object)
 					* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
@@ -107,11 +108,17 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 							* description: Policies for referencing.
 							* properties:
 								* `resolution` (string)
-									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* description: Resolution specifies whether resolution of this reference is required.
+The default is 'Required', which means the reconcile will fail if the
+reference cannot be resolved. 'Optional' means this reference will be
+a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
-									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* description: Resolve specifies when this reference should be resolved. The default
+is 'IfNotPresent', which will attempt to resolve the reference only when
+the corresponding field is not present. Use 'Always' to resolve the
+reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 					* required properties:
 						* `name`
@@ -119,24 +126,32 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
 					* properties:
 						* `matchControllerRef` (boolean)
-							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+							* description: MatchControllerRef ensures an object with the same controller reference
+as the selecting object is selected.
 						* `matchLabels` (object)
 							* description: MatchLabels ensures an object with matching labels is selected.
 						* `policy` (object)
 							* description: Policies for selection.
 							* properties:
 								* `resolution` (string)
-									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* description: Resolution specifies whether resolution of this reference is required.
+The default is 'Required', which means the reconcile will fail if the
+reference cannot be resolved. 'Optional' means this reference will be
+a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
-									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* description: Resolve specifies when this reference should be resolved. The default
+is 'IfNotPresent', which will attempt to resolve the reference only when
+the corresponding field is not present. Use 'Always' to resolve the
+reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 		* `lanConfig` (object)
 			* description: LanConfig contains information about the lan resource.
 			* properties:
 				* `lanId` (string)
-					* description: LanID is the ID of the Lan on which the cluster will connect to. It needs to be provided via directly or via reference.
+					* description: LanID is the ID of the Lan on which the cluster will connect to.
+It needs to be provided via directly or via reference.
 				* `lanIdRef` (object)
 					* description: LanIDRef references to a Lan to retrieve its ID.
 					* properties:
@@ -146,11 +161,17 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 							* description: Policies for referencing.
 							* properties:
 								* `resolution` (string)
-									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* description: Resolution specifies whether resolution of this reference is required.
+The default is 'Required', which means the reconcile will fail if the
+reference cannot be resolved. 'Optional' means this reference will be
+a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
-									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* description: Resolve specifies when this reference should be resolved. The default
+is 'IfNotPresent', which will attempt to resolve the reference only when
+the corresponding field is not present. Use 'Always' to resolve the
+reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 					* required properties:
 						* `name`
@@ -158,18 +179,25 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: LanIDSelector selects reference to a Lan to retrieve its LanID.
 					* properties:
 						* `matchControllerRef` (boolean)
-							* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+							* description: MatchControllerRef ensures an object with the same controller reference
+as the selecting object is selected.
 						* `matchLabels` (object)
 							* description: MatchLabels ensures an object with matching labels is selected.
 						* `policy` (object)
 							* description: Policies for selection.
 							* properties:
 								* `resolution` (string)
-									* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+									* description: Resolution specifies whether resolution of this reference is required.
+The default is 'Required', which means the reconcile will fail if the
+reference cannot be resolved. 'Optional' means this reference will be
+a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
-									* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+									* description: Resolve specifies when this reference should be resolved. The default
+is 'IfNotPresent', which will attempt to resolve the reference only when
+the corresponding field is not present. Use 'Always' to resolve the
+reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 	* required properties:
 		* `cidr`
@@ -188,7 +216,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `backupId` (string)
 			* description: The unique ID of the snapshot you want to restore.
 		* `recoveryTargetTime` (string)
-			* description: If this value is supplied as ISO 8601 timestamp, the backup will be replayed up until the given timestamp. If empty, the backup will be applied completely.
+			* description: If this value is supplied as ISO 8601 timestamp, the backup will be replayed up until the given timestamp.
+If empty, the backup will be applied completely.
 	* required properties:
 		* `backupId`
 * `instances` (integer)
@@ -215,7 +244,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* description: The amount of storage per instance in megabytes.
 	* format: int32
 * `storageType` (string)
-	* description: The storage type used in your cluster. Possible values: HDD, SSD Standard, SSD Premium
+	* description: The storage type used in your cluster.
+Possible values: HDD, SSD Standard, SSD Premium
 * `synchronizationMode` (string)
 	* description: SynchronizationMode Represents different modes of replication.
 	* possible values: "ASYNCHRONOUS";"STRICTLY_SYNCHRONOUS";"SYNCHRONOUS"

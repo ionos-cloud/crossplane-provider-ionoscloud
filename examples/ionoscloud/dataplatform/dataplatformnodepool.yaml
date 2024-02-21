@@ -9,9 +9,9 @@ apiVersion: dataplatform.ionoscloud.crossplane.io/v1alpha1
 kind: DataplatformNodepool
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleDataplatformNodepool
     nodeCount: 2

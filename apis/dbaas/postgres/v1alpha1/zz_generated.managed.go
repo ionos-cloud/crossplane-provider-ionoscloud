@@ -29,17 +29,14 @@ func (mg *PostgresCluster) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this PostgresCluster.
+func (mg *PostgresCluster) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this PostgresCluster.
 func (mg *PostgresCluster) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
-}
-
-/*
-GetProviderReference of this PostgresCluster.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *PostgresCluster) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
 }
 
 // GetPublishConnectionDetailsTo of this PostgresCluster.
@@ -62,17 +59,14 @@ func (mg *PostgresCluster) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
 }
 
+// SetManagementPolicies of this PostgresCluster.
+func (mg *PostgresCluster) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
+}
+
 // SetProviderConfigReference of this PostgresCluster.
 func (mg *PostgresCluster) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this PostgresCluster.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *PostgresCluster) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this PostgresCluster.
@@ -95,17 +89,14 @@ func (mg *PostgresUser) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this PostgresUser.
+func (mg *PostgresUser) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this PostgresUser.
 func (mg *PostgresUser) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
-}
-
-/*
-GetProviderReference of this PostgresUser.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *PostgresUser) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
 }
 
 // GetPublishConnectionDetailsTo of this PostgresUser.
@@ -128,17 +119,14 @@ func (mg *PostgresUser) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
 }
 
+// SetManagementPolicies of this PostgresUser.
+func (mg *PostgresUser) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
+}
+
 // SetProviderConfigReference of this PostgresUser.
 func (mg *PostgresUser) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this PostgresUser.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *PostgresUser) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this PostgresUser.

@@ -29,17 +29,14 @@ func (mg *DataplatformCluster) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this DataplatformCluster.
+func (mg *DataplatformCluster) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this DataplatformCluster.
 func (mg *DataplatformCluster) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
-}
-
-/*
-GetProviderReference of this DataplatformCluster.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *DataplatformCluster) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
 }
 
 // GetPublishConnectionDetailsTo of this DataplatformCluster.
@@ -62,17 +59,14 @@ func (mg *DataplatformCluster) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
 }
 
+// SetManagementPolicies of this DataplatformCluster.
+func (mg *DataplatformCluster) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
+}
+
 // SetProviderConfigReference of this DataplatformCluster.
 func (mg *DataplatformCluster) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this DataplatformCluster.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *DataplatformCluster) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this DataplatformCluster.
@@ -95,17 +89,14 @@ func (mg *DataplatformNodepool) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this DataplatformNodepool.
+func (mg *DataplatformNodepool) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this DataplatformNodepool.
 func (mg *DataplatformNodepool) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
-}
-
-/*
-GetProviderReference of this DataplatformNodepool.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *DataplatformNodepool) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
 }
 
 // GetPublishConnectionDetailsTo of this DataplatformNodepool.
@@ -128,17 +119,14 @@ func (mg *DataplatformNodepool) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
 }
 
+// SetManagementPolicies of this DataplatformNodepool.
+func (mg *DataplatformNodepool) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
+}
+
 // SetProviderConfigReference of this DataplatformNodepool.
 func (mg *DataplatformNodepool) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this DataplatformNodepool.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *DataplatformNodepool) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this DataplatformNodepool.

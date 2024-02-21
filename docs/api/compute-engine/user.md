@@ -73,24 +73,25 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
+* `active` (boolean)
+	* description: Active Indicates if the user is active. Default: true.
+* `administrator` (boolean)
+	* description: Administrator The group has permission to edit privileges on this resource.
+* `email` (string)
+	* description: Email An e-mail address for the user.
+* `firstName` (string)
+	* description: FirstName A first name for the user.
 * `forceSecAuth` (boolean)
 	* description: ForceSecAuth Indicates if secure (two-factor) authentication should be enabled for the user (true) or not (false).
+* `groupIDs` (array)
+	* description: GroupIds that this user will be a member of.
 * `lastName` (string)
 	* description: LastName A last name for the user.
 * `password` (string)
 	* description: Password A password for the user.
 * `secAuthActive` (boolean)
-	* description: SecAuthActive Indicates if secure authentication is active for the user or not. It can not be used in create requests - can be used in update. Default: false.
-* `active` (boolean)
-	* description: Active Indicates if the user is active. Default: true.
-* `administrator` (boolean)
-	* description: Administrator The group has permission to edit privileges on this resource.
-* `firstName` (string)
-	* description: FirstName A first name for the user.
-* `email` (string)
-	* description: Email An e-mail address for the user.
-* `groupIDs` (array)
-	* description: GroupIds that this user will be a member of.
+	* description: SecAuthActive Indicates if secure authentication is active for the user or not.
+It can not be used in create requests - can be used in update. Default: false.
 
 ### Required Properties
 

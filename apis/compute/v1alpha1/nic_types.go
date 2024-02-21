@@ -104,12 +104,11 @@ type NicConfig struct {
 
 // NicObservation are the observable fields of a Nic.
 type NicObservation struct {
-	NicID    string   `json:"nicId,omitempty"`
-	VolumeID string   `json:"volumeId,omitempty"`
-	IPs      []string `json:"ips,omitempty"`
-	State    string   `json:"state,omitempty"`
-	Mac      string   `json:"mac,omitempty"`
-	PCISlot  int32    `json:"pciSlot,omitempty"`
+	NicID   string   `json:"nicId,omitempty"`
+	IPs     []string `json:"ips,omitempty"`
+	State   string   `json:"state,omitempty"`
+	Mac     string   `json:"mac,omitempty"`
+	PCISlot int32    `json:"pciSlot,omitempty"`
 }
 
 // A NicSpec defines the desired state of a Nic.
@@ -143,19 +142,8 @@ type Nic struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec               NicSpec                 `json:"spec"`
-	Status             NicStatus               `json:"status,omitempty"`
-	ManagementPolicies xpv1.ManagementPolicies `json:"managementPolicies"`
-}
-
-// SetManagementPolicies implement managed interface
-func (mg *Nic) SetManagementPolicies(p xpv1.ManagementPolicies) {
-	mg.ManagementPolicies = p
-}
-
-// GetManagementPolicies implement managed interface
-func (mg *Nic) GetManagementPolicies() xpv1.ManagementPolicies {
-	return mg.ManagementPolicies
+	Spec   NicSpec   `json:"spec"`
+	Status NicStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
