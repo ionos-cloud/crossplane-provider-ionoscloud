@@ -113,6 +113,34 @@ type ManagementGroupParameters struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:default=false
 	S3Privilege bool `json:"s3Privilege"`
+	// In order to add a User as member to the ManagementGroup, it is recommended to use UserCfg
+	// to add an existing User as a member (via id or via reference).
+	// To remove a User from the Group, update the CR spec by removing it.
+	//
+	// UserCfg contains information about an existing User resource
+	// which will be added to the Group
+	UserCfg []UserConfig `json:"userConfig,omitempty"`
+}
+
+// ManagementGroupConfig is used by resources that need to link Groups via id or via reference.
+type ManagementGroupConfig struct {
+	// ManagementGroupID is the ID of the ManagementGroup on which the resource should have access.
+	// It needs to be provided via directly or via reference.
+	//
+	// +immutable
+	// +kubebuilder:validation:Format=uuid
+	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ManagementGroup
+	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractManagementGroupID()
+	ManagementGroupID string `json:"managementGroupId,omitempty"`
+	// ManagementGroupIDRef references to a ManagementGroup to retrieve its ID.
+	//
+	// +optional
+	// +immutable
+	ManagementGroupIDRef *xpv1.Reference `json:"managementGroupIdRef,omitempty"`
+	// ManagementGroupIDSelector selects reference to a ManagementGroup to retrieve its ManagementGroupID.
+	//
+	// +optional
+	ManagementGroupIDSelector *xpv1.Selector `json:"managementGroupIdSelector,omitempty"`
 }
 
 // ManagementGroupObservation are the observable fields of a ManagementGroup.
@@ -121,6 +149,8 @@ type ManagementGroupObservation struct {
 	//
 	// +kubebuilder:validation:Format=uuid
 	ManagementGroupID string `json:"groupId,omitempty"`
+	// UserIDs of the members of this Group
+	UserIDs []string `json:"userIDs,omitempty"`
 }
 
 // A ManagementGroupSpec defines the desired state of a ManagementGroup.

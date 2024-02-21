@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"reflect"
@@ -139,7 +140,7 @@ func MapStringToAny(sMap map[string]string) map[string]any {
 }
 
 // StructToMap converts arbitrary structures to a flat map representation, does not recurse into slices/maps
-func StrucToMap(v any) map[string]any {
+func StructToMap(v any) map[string]any {
 	m := make(map[string]any)
 	var fn func(v any, keyPrefix string)
 	_asMap := func(v any, keyPrefix string) {
@@ -190,8 +191,8 @@ func StrucToMap(v any) map[string]any {
 
 // IsEqSdkPropertiesToCR compares an observed sdk struct to the crType parameters struct
 func IsEqSdkPropertiesToCR(crTypeParameters any, sdkStructProperties any) bool {
-	crMap := StrucToMap(crTypeParameters)
-	sdkMap := StrucToMap(sdkStructProperties)
+	crMap := StructToMap(crTypeParameters)
+	sdkMap := StructToMap(sdkStructProperties)
 	for sdkField, sdkValue := range sdkMap {
 		if crValue, ok := crMap[sdkField]; ok {
 			if crValue != sdkValue {
@@ -200,4 +201,16 @@ func IsEqSdkPropertiesToCR(crTypeParameters any, sdkStructProperties any) bool {
 		}
 	}
 	return true
+}
+
+func IsSetEqual[T cmp.Ordered](sl0, sl1 []T) bool {
+	if len(sl0) != len(sl1) {
+		return false
+	}
+
+	s0, s1 := slices.Clone(sl0), slices.Clone(sl1)
+	slices.Sort(s0)
+	slices.Sort(s1)
+
+	return slices.Equal(s0, s1)
 }

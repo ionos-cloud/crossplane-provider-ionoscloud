@@ -105,11 +105,6 @@ spec:
                     description: ForceSecAuth Indicates if secure (two-factor) authentication
                       should be enabled for the user (true) or not (false).
                     type: boolean
-                  groupIDs:
-                    description: GroupIds that this user will be a member of.
-                    items:
-                      type: string
-                    type: array
                   lastName:
                     description: LastName A last name for the user.
                     type: string
@@ -335,11 +330,6 @@ spec:
                   active:
                     description: Active Indicates if the user is active.
                     type: boolean
-                  groupIDs:
-                    description: GroupIds that this user will be a member of.
-                    items:
-                      type: string
-                    type: array
                   s3CanonicalUserID:
                     description: S3CanonicalUserID Canonical (S3) id of the user for
                       a given identity.
@@ -354,7 +344,6 @@ spec:
                     type: string
                 required:
                 - active
-                - groupIDs
                 - secAuthActive
                 type: object
               conditions:

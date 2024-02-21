@@ -17,18 +17,20 @@ limitations under the License.
 package user
 
 import (
-	"cmp"
 	"context"
 	"slices"
 	"strings"
 
-	ionosdk "github.com/ionos-cloud/sdk-go/v6"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
+	ionosdk "github.com/ionos-cloud/sdk-go/v6"
+
 	userapi "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/user"
+
+	"github.com/pkg/errors"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
@@ -37,7 +39,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	"github.com/pkg/errors"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
@@ -97,7 +98,14 @@ type connectorUser struct {
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
 func (c *connectorUser) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
+	_, ok := mg.(*v1alpha1.User)
+	if !ok {
+		return nil, errors.New(errNotUser)
+	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
+	if err != nil {
+		return nil, err
+	}
 	return &externalUser{
 		service: userapi.NewAPIClient(svc, compute.WaitForRequest),
 		log:     c.log,
@@ -128,7 +136,7 @@ func connectionDetails(cr *v1alpha1.User, observed ionosdk.User) managed.Connect
 	return details
 }
 
-func setStatus(cr *v1alpha1.User, observed ionosdk.User, groupIDs []string) {
+func setStatus(cr *v1alpha1.User, observed ionosdk.User) {
 	props := observed.GetProperties()
 	if !observed.HasProperties() {
 		return
@@ -138,7 +146,7 @@ func setStatus(cr *v1alpha1.User, observed ionosdk.User, groupIDs []string) {
 	cr.Status.AtProvider.Active = utils.DereferenceOrZero(props.GetActive())
 	cr.Status.AtProvider.S3CanonicalUserID = utils.DereferenceOrZero(props.GetS3CanonicalUserId())
 	cr.Status.AtProvider.SecAuthActive = utils.DereferenceOrZero(props.GetSecAuthActive())
-	cr.Status.AtProvider.GroupIDs = groupIDs
+	//cr.Status.AtProvider.GroupIDs = groupIDs
 }
 
 func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -165,7 +173,7 @@ func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalObservation{ResourceExists: true}, errors.Wrap(err, errGetUserGroups)
 	}
 
-	setStatus(cr, observed, groupIDs)
+	setStatus(cr, observed)
 	cr.SetConditions(xpv1.Available())
 
 	linit := cr.Spec.ForProvider.Password != ""
@@ -195,18 +203,18 @@ func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (manage
 	meta.SetExternalName(cr, *observed.GetId())
 	conn := connectionDetails(cr, observed)
 
-	for _, groupID := range cr.Spec.ForProvider.GroupIDs {
-		_, _, gerr := eu.service.AddUserToGroup(ctx, groupID, utils.DereferenceOrZero(observed.GetId()))
-		// skip if user is already member of this group.
-		if gerr != nil && strings.Contains(gerr.Error(), "is already member of") {
-			continue
-		}
-		if gerr != nil {
-			return managed.ExternalCreation{ConnectionDetails: conn}, errors.Wrap(err, errAddUserToGroup)
-		}
-	}
+	//for _, groupID := range cr.Spec.ForProvider.GroupIDs {
+	//	_, _, gerr := eu.service.AddUserToGroup(ctx, groupID, utils.DereferenceOrZero(observed.GetId()))
+	//	// skip if user is already member of this group.
+	//	if gerr != nil && strings.Contains(gerr.Error(), "is already member of") {
+	//		continue
+	//	}
+	//	if gerr != nil {
+	//		return managed.ExternalCreation{ConnectionDetails: conn}, errors.Wrap(err, errAddUserToGroup)
+	//	}
+	//}
 
-	setStatus(cr, observed, cr.Spec.ForProvider.GroupIDs)
+	setStatus(cr, observed)
 
 	return managed.ExternalCreation{ConnectionDetails: conn}, nil
 }
@@ -226,10 +234,10 @@ func (eu *externalUser) Update(ctx context.Context, mg resource.Managed) (manage
 	}
 	conn := connectionDetails(cr, observed)
 
-	err = updateGroups(ctx, eu, userID, cr.Status.AtProvider.GroupIDs, cr.Spec.ForProvider.GroupIDs)
-	if err != nil {
-		return managed.ExternalUpdate{ConnectionDetails: conn}, errors.Wrap(err, "failed to update groups")
-	}
+	//err = updateGroups(ctx, eu, userID, cr.Status.AtProvider.GroupIDs, cr.Spec.ForProvider.GroupIDs)
+	//if err != nil {
+	//	return managed.ExternalUpdate{ConnectionDetails: conn}, errors.Wrap(err, "failed to update groups")
+	//}
 
 	return managed.ExternalUpdate{ConnectionDetails: conn}, nil
 }
@@ -243,11 +251,11 @@ func (eu *externalUser) Delete(ctx context.Context, mg resource.Managed) error {
 
 	userID := user.Status.AtProvider.UserID
 
-	for _, groupID := range user.Status.AtProvider.GroupIDs {
-		if err := eu.service.DeleteUserFromGroup(ctx, groupID, userID); err != nil {
-			return errors.Wrap(err, "failed to remove user from a group")
-		}
-	}
+	//for _, groupID := range user.Status.AtProvider.GroupIDs {
+	//	if err := eu.service.DeleteUserFromGroup(ctx, groupID, userID); err != nil {
+	//		return errors.Wrap(err, "failed to remove user from a group")
+	//	}
+	//}
 
 	resp, err := eu.service.DeleteUser(ctx, userID)
 	return compute.ErrorUnlessNotFound(resp, errors.Wrap(err, errUserDelete))
@@ -289,9 +297,9 @@ func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, obser
 		return false
 	}
 
-	if !isSetEqual(observedGroups, params.GroupIDs) {
-		return false
-	}
+	//if !utils.IsSetEqual(observedGroups, params.GroupIDs) {
+	//	return false
+	//}
 
 	props := observed.GetProperties()
 	adm := props.GetAdministrator()
@@ -317,16 +325,4 @@ func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, obser
 	}
 
 	return true
-}
-
-func isSetEqual[T cmp.Ordered](sl0, sl1 []T) bool {
-	if len(sl0) != len(sl1) {
-		return false
-	}
-
-	s0, s1 := slices.Clone(sl0), slices.Clone(sl1)
-	slices.Sort(s0)
-	slices.Sort(s1)
-
-	return slices.Equal(s0, s1)
 }

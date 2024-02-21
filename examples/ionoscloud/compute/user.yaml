@@ -19,12 +19,15 @@ managementPolicies:
 spec:
   forProvider:
     administrator: false
-    email: "unique@xplane.com"
+    email: "test_uniq_15@xplane.com"
     firstName: "xplane test"
     lastName: "user"
     forceSecAuth: true
     password: "$3cr3t"
     active: true
+#    managementGroupConfig:
+#      - managementGroupIdRef:
+#          name: example
   providerConfigRef:
     name: example
   writeConnectionSecretToRef:

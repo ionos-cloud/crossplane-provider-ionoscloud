@@ -12,5 +12,8 @@ spec:
     name: exampleGroup
     createDataCenter: true
     reserveIp: true
+    userConfig:
+      - userIdRef:
+          name: xplane-test-user
   providerConfigRef:
     name: example
