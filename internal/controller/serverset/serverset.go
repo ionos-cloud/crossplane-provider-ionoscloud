@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -98,17 +99,18 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, errors.New(errUnexpectedObject)
 	}
 
-	serverList := &v1alpha1.ServerList{}
-	if err := c.kube.List(ctx, serverList, client.MatchingLabels{
-		serverSetLabel: cr.Name,
-	}); err != nil {
+	if meta.GetExternalName(cr) == "" {
+		return managed.ExternalObservation{}, nil
+	}
+
+	servers, err := c.getServersFromServerSet(ctx, cr.Spec.ForProvider.Template.Metadata.Name)
+	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
 
-	cr.Status.AtProvider.Replicas = len(serverList.Items)
-
-	// ensure we have cr.Spec.Replicas number of servers
-	if len(serverList.Items) != cr.Spec.ForProvider.Replicas {
+	cr.Status.AtProvider.Replicas = len(servers)
+	//we need to re-create servers. go to create
+	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return managed.ExternalObservation{
 			ResourceExists:    false,
 			ResourceUpToDate:  false,
@@ -116,7 +118,29 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		}, nil
 	}
 
-	// TODO: check for volume claims
+	areServersUpToDate := areServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
+	//only update
+	if areServersUpToDate == false {
+		return managed.ExternalObservation{
+			ResourceExists:    true,
+			ResourceUpToDate:  false,
+			ConnectionDetails: managed.ConnectionDetails{},
+			Diff:              "servers are not up to date",
+		}, nil
+	}
+
+	areNicsUpToDate := false
+	//todo check nic parameters are same as template
+	if areNicsUpToDate, err = c.areNicsUpToDate(ctx, cr); err != nil {
+		return managed.ExternalObservation{}, err
+	}
+	if areNicsUpToDate == false {
+		return managed.ExternalObservation{
+			ResourceExists:    false,
+			ResourceUpToDate:  false,
+			ConnectionDetails: managed.ConnectionDetails{},
+		}, nil
+	}
 
 	// TODO: check for NICs attached to the servers
 
@@ -170,7 +194,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	// When all conditions are met, the managed resource is considered available
 	cr.Status.SetConditions(xpv1.Available())
-
+	meta.SetExternalName(cr, cr.Name)
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
 		// externalServerSet resource. These will be stored as the connection secret.
@@ -183,6 +207,11 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errUnexpectedObject)
 	}
+	//how do we know if we want to update servers or nic params?
+	update, err2 := c.updateServersFromTemplate(ctx, cr.Spec.ForProvider.Template)
+	if err2 != nil {
+		return update, err2
+	}
 
 	fmt.Printf("Updating: %+v", cr)
 
@@ -191,6 +220,24 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		// externalServerSet resource. These will be stored as the connection secret.
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
+}
+
+func (c *external) updateServersFromTemplate(ctx context.Context, templateSpec v1alpha1.ServerSetTemplate) (managed.ExternalUpdate, error) {
+	servers, err := c.getServersFromServerSet(ctx, templateSpec.Metadata.Name)
+	if err != nil {
+		return managed.ExternalUpdate{}, err
+	}
+	for _, serverObj := range servers {
+		serverObj.Spec.ForProvider.RAM = templateSpec.Spec.RAM
+		serverObj.Spec.ForProvider.Cores = templateSpec.Spec.Cores
+		serverObj.Spec.ForProvider.CPUFamily = templateSpec.Spec.CPUFamily
+
+		if err := c.kube.Update(ctx, &serverObj); err != nil {
+			fmt.Printf("error updating server %w", err)
+			return managed.ExternalUpdate{}, err
+		}
+	}
+	return managed.ExternalUpdate{}, nil
 }
 
 func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
@@ -336,6 +383,42 @@ func (c *external) ensureNICs(ctx context.Context, cr *v1alpha1.ServerSet, idx i
 	return nil
 }
 
+// areServersUpToDate checks if replicas and template params are equal to server obj params
+func areServersUpToDate(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server) bool {
+
+	for _, serverObj := range servers {
+		if serverObj.Spec.ForProvider.Cores != templateParams.Cores {
+			return false
+		}
+		if serverObj.Spec.ForProvider.RAM != templateParams.RAM {
+			return false
+		}
+		if serverObj.Spec.ForProvider.CPUFamily != templateParams.CPUFamily {
+			return false
+		}
+	}
+
+	return true
+}
+
+// areNicsUpToDate gets nic k8s crs and checks if the correct number of NICs are created
+func (c *external) areNicsUpToDate(ctx context.Context, cr *v1alpha1.ServerSet) (bool, error) {
+	c.log.Info("Ensuring NIC")
+
+	nicList := &v1alpha1.NicList{}
+	if err := c.kube.List(ctx, nicList, client.MatchingLabels{
+		serverSetLabel: cr.Name,
+	}); err != nil {
+		return false, err
+	}
+
+	if len(nicList.Items) != cr.Spec.ForProvider.Replicas {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (c *external) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, idx int) error {
 	// get the network
 	resourceType := "nic"
@@ -394,6 +477,16 @@ func (c *external) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, server
 	// check if we have to update the NIC
 
 	return nil
+}
+func (c *external) getServersFromServerSet(ctx context.Context, name string) ([]v1alpha1.Server, error) {
+	serverList := &v1alpha1.ServerList{}
+	if err := c.kube.List(ctx, serverList, client.MatchingLabels{
+		serverSetLabel: name,
+	}); err != nil {
+		return nil, err
+	}
+
+	return serverList.Items, nil
 }
 
 // getNameFromIndex - generates name consisting of name, kind and index
