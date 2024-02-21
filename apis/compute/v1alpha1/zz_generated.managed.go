@@ -389,17 +389,14 @@ func (mg *ManagementGroup) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this ManagementGroup.
+func (mg *ManagementGroup) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this ManagementGroup.
 func (mg *ManagementGroup) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
-}
-
-/*
-GetProviderReference of this ManagementGroup.
-Deprecated: Use GetProviderConfigReference.
-*/
-func (mg *ManagementGroup) GetProviderReference() *xpv1.Reference {
-	return mg.Spec.ProviderReference
 }
 
 // GetPublishConnectionDetailsTo of this ManagementGroup.
@@ -422,17 +419,14 @@ func (mg *ManagementGroup) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
 }
 
+// SetManagementPolicies of this ManagementGroup.
+func (mg *ManagementGroup) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
+}
+
 // SetProviderConfigReference of this ManagementGroup.
 func (mg *ManagementGroup) SetProviderConfigReference(r *xpv1.Reference) {
 	mg.Spec.ProviderConfigReference = r
-}
-
-/*
-SetProviderReference of this ManagementGroup.
-Deprecated: Use SetProviderConfigReference.
-*/
-func (mg *ManagementGroup) SetProviderReference(r *xpv1.Reference) {
-	mg.Spec.ProviderReference = r
 }
 
 // SetPublishConnectionDetailsTo of this ManagementGroup.

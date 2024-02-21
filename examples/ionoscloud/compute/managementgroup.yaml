@@ -5,15 +5,15 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: ManagementGroup
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleGroup
     createDataCenter: true
     reserveIp: true
-    userConfig:
-      - userIdRef:
-          name: xplane-test-user
+#    userConfig:
+#      - userIdRef:
+#          name: xplane-test-user
   providerConfigRef:
     name: example

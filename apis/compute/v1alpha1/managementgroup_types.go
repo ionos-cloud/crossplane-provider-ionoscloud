@@ -178,19 +178,8 @@ type ManagementGroup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec               ManagementGroupSpec     `json:"spec"`
-	Status             ManagementGroupStatus   `json:"status,omitempty"`
-	ManagementPolicies xpv1.ManagementPolicies `json:"managementPolicies"`
-}
-
-// SetManagementPolicies implement managed interface
-func (mg *ManagementGroup) SetManagementPolicies(p xpv1.ManagementPolicies) {
-	mg.ManagementPolicies = p
-}
-
-// GetManagementPolicies implement managed interface
-func (mg *ManagementGroup) GetManagementPolicies() xpv1.ManagementPolicies {
-	return mg.ManagementPolicies
+	Spec   ManagementGroupSpec   `json:"spec"`
+	Status ManagementGroupStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
