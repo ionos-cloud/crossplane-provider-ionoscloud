@@ -13,30 +13,10 @@ managementPolicies:
   - "*"
 spec:
   forProvider:
-    name: exampleDatacenter2
+    name: exampleDatacenter
     location: us/las
     description: test
   #    secAuthProtection: true
-  providerConfigRef:
-    name: example
----
-apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: Volume
-metadata:
-  name: examplevolume-0
-managementPolicies:
-  - "*"
-spec:
-  forProvider:
-    name: exampleVolume
-    size: 30
-    type: HDD
-    bus: VIRTIO
-    licenceType: LINUX
-    availabilityZone: AUTO
-    datacenterConfig:
-      datacenterIdRef:
-        name: example
   providerConfigRef:
     name: example
 ---
