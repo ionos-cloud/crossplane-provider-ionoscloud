@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"cmp"
 	"context"
 	"fmt"
 	"reflect"
@@ -203,14 +202,58 @@ func IsEqSdkPropertiesToCR(crTypeParameters any, sdkStructProperties any) bool {
 	return true
 }
 
-func IsSetEqual[T cmp.Ordered](sl0, sl1 []T) bool {
-	if len(sl0) != len(sl1) {
+// Set is a generic map with comparable keys and empty struct elements with all the usual set operations
+type Set[T comparable] map[T]struct{}
+
+// Add an element to the set
+func (S Set[T]) Add(elements ...T) {
+	for _, e := range elements {
+		S[e] = struct{}{}
+	}
+}
+
+// Contains verifies if element is contained by the set
+func (S Set[T]) Contains(e T) bool {
+	_, ok := S[e]
+	return ok
+}
+
+// Remove eliminates an element from the set, if it exists
+func (S Set[T]) Remove(elements ...T) {
+	for _, e := range elements {
+		delete(S, e)
+	}
+}
+
+// EqualTo verifies set equality
+func (S Set[T]) EqualTo(s Set[T]) bool {
+	if len(S) != len(s) {
 		return false
 	}
+	for e := range s {
+		if _, ok := S[e]; !ok {
+			return false
+		}
+	}
+	return true
+}
 
-	s0, s1 := slices.Clone(sl0), slices.Clone(sl1)
-	slices.Sort(s0)
-	slices.Sort(s1)
+// Difference returns a new Set resulting from the set difference operation
+func (S Set[T]) Difference(s Set[T]) Set[T] {
+	diff := Set[T]{}
+	for e := range S {
+		if !s.Contains(e) {
+			diff[e] = struct{}{}
+		}
+	}
+	return diff
+}
 
-	return slices.Equal(s0, s1)
+// NewSetFromSlice returns a new Set from the elements of a slice
+func NewSetFromSlice[T comparable](s []T) Set[T] {
+	S := make(Set[T])
+	for _, v := range s {
+		S[v] = struct{}{}
+	}
+	return S
 }
