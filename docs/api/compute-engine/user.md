@@ -83,8 +83,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* description: FirstName A first name for the user.
 * `forceSecAuth` (boolean)
 	* description: ForceSecAuth Indicates if secure (two-factor) authentication should be enabled for the user (true) or not (false).
-* `groupIDs` (array)
-	* description: GroupIds that this user will be a member of.
 * `lastName` (string)
 	* description: LastName A last name for the user.
 * `password` (string)
