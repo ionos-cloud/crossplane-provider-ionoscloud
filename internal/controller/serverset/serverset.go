@@ -105,7 +105,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, nil
 	}
 
-	servers, err := c.getServersFromServerSet(ctx, cr.Spec.ForProvider.Template.Metadata.Name)
+	servers, err := c.getServersFromServerSet(ctx, cr.Name)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -210,12 +210,10 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.New(errUnexpectedObject)
 	}
 	//how do we know if we want to update servers or nic params?
-	update, err2 := c.updateServersFromTemplate(ctx, cr.Spec.ForProvider.Template)
-	if err2 != nil {
-		return update, err2
+	err := c.updateServersFromTemplate(ctx, cr)
+	if err != nil {
+		return managed.ExternalUpdate{}, err
 	}
-
-	fmt.Printf("Updating: %+v", cr)
 
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -224,22 +222,22 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	}, nil
 }
 
-func (c *external) updateServersFromTemplate(ctx context.Context, templateSpec v1alpha1.ServerSetTemplate) (managed.ExternalUpdate, error) {
-	servers, err := c.getServersFromServerSet(ctx, templateSpec.Metadata.Name)
+func (c *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.ServerSet) error {
+	servers, err := c.getServersFromServerSet(ctx, cr.Name)
 	if err != nil {
-		return managed.ExternalUpdate{}, err
+		return err
 	}
 	for _, serverObj := range servers {
-		serverObj.Spec.ForProvider.RAM = templateSpec.Spec.RAM
-		serverObj.Spec.ForProvider.Cores = templateSpec.Spec.Cores
-		serverObj.Spec.ForProvider.CPUFamily = templateSpec.Spec.CPUFamily
+		serverObj.Spec.ForProvider.RAM = cr.Spec.ForProvider.Template.Spec.RAM
+		serverObj.Spec.ForProvider.Cores = cr.Spec.ForProvider.Template.Spec.Cores
+		serverObj.Spec.ForProvider.CPUFamily = cr.Spec.ForProvider.Template.Spec.CPUFamily
 
 		if err := c.kube.Update(ctx, &serverObj); err != nil {
-			fmt.Printf("error updating server %w", err)
-			return managed.ExternalUpdate{}, err
+			fmt.Printf("error updating server %v", err)
+			return err
 		}
 	}
-	return managed.ExternalUpdate{}, nil
+	return nil
 }
 
 func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
@@ -381,7 +379,7 @@ func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, idx
 		fmt.Println(err.Error())
 		return err
 	}
-	if err := WaitForResourceToBePopulated(ctx, 5*time.Minute, IsServerAvailable, c, getNameFromIndex(cr.Name, serverType, idx), cr.Namespace); err != nil {
+	if err := WaitForKubeResource(ctx, 5*time.Minute, IsServerAvailable, c, getNameFromIndex(cr.Name, serverType, idx), cr.Namespace); err != nil {
 		return fmt.Errorf("while waiting for server to be populated %w ", err)
 	}
 	return nil
@@ -417,7 +415,7 @@ func (c *external) createBootVolume(ctx context.Context, cr *v1alpha1.ServerSet,
 	if err := c.kube.Create(ctx, &volumeObj); err != nil {
 		return err
 	}
-	if err := WaitForResourceToBePopulated(ctx, 5*time.Minute, IsVolumeAvailable, c, getNameFromIndex(cr.Name, resourceType, idx), cr.Namespace); err != nil {
+	if err := WaitForKubeResource(ctx, 5*time.Minute, IsVolumeAvailable, c, getNameFromIndex(cr.Name, resourceType, idx), cr.Namespace); err != nil {
 		return err
 	}
 
@@ -450,11 +448,11 @@ func IsVolumeAvailable(ctx context.Context, c *external, name, namespace string)
 	return false, err
 }
 
-// IsResourcePopulatedFunc polls kube api to see if resource is available and observed(status populated)
-type IsResourcePopulatedFunc func(ctx context.Context, c *external, name, namespace string) (bool, error)
+// IsResourceReady polls kube api to see if resource is available and observed(status populated)
+type IsResourceReady func(ctx context.Context, c *external, name, namespace string) (bool, error)
 
-// WaitForResourceToBePopulated - keeps retrying until resource available and observed(status populated), or until ctx is cancelled
-func WaitForResourceToBePopulated(ctx context.Context, timeoutInMinutes time.Duration, fn IsResourcePopulatedFunc, c *external, name, namespace string) error {
+// WaitForKubeResource - keeps retrying until resource meets condition, or until ctx is cancelled
+func WaitForKubeResource(ctx context.Context, timeoutInMinutes time.Duration, fn IsResourceReady, c *external, name, namespace string) error {
 	if c == nil {
 		return fmt.Errorf("external client is nil")
 	}
@@ -462,8 +460,8 @@ func WaitForResourceToBePopulated(ctx context.Context, timeoutInMinutes time.Dur
 		return fmt.Errorf("name is empty")
 	}
 	err := retry.RetryContext(ctx, timeoutInMinutes, func() *retry.RetryError {
-		isDeleted, err := fn(ctx, c, name, namespace)
-		if isDeleted {
+		isReady, err := fn(ctx, c, name, namespace)
+		if isReady {
 			return nil
 		}
 		if err != nil {
