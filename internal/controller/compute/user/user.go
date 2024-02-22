@@ -18,8 +18,6 @@ package user
 
 import (
 	"context"
-	"slices"
-	"strings"
 
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -146,7 +144,6 @@ func setStatus(cr *v1alpha1.User, observed ionosdk.User) {
 	cr.Status.AtProvider.Active = utils.DereferenceOrZero(props.GetActive())
 	cr.Status.AtProvider.S3CanonicalUserID = utils.DereferenceOrZero(props.GetS3CanonicalUserId())
 	cr.Status.AtProvider.SecAuthActive = utils.DereferenceOrZero(props.GetSecAuthActive())
-	//cr.Status.AtProvider.GroupIDs = groupIDs
 }
 
 func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -168,11 +165,6 @@ func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalObservation{}, errors.Wrap(err, errUserObserve)
 	}
 
-	groupIDs, err := eu.service.GetUserGroups(ctx, userID)
-	if err != nil {
-		return managed.ExternalObservation{ResourceExists: true}, errors.Wrap(err, errGetUserGroups)
-	}
-
 	setStatus(cr, observed)
 	cr.SetConditions(xpv1.Available())
 
@@ -181,7 +173,7 @@ func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (manag
 
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        isUserUpToDate(cr.Spec.ForProvider, observed, groupIDs),
+		ResourceUpToDate:        isUserUpToDate(cr.Spec.ForProvider, observed),
 		ConnectionDetails:       conn,
 		ResourceLateInitialized: linit,
 	}, nil
@@ -203,19 +195,7 @@ func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (manage
 	meta.SetExternalName(cr, *observed.GetId())
 	conn := connectionDetails(cr, observed)
 
-	//for _, groupID := range cr.Spec.ForProvider.GroupIDs {
-	//	_, _, gerr := eu.service.AddUserToGroup(ctx, groupID, utils.DereferenceOrZero(observed.GetId()))
-	//	// skip if user is already member of this group.
-	//	if gerr != nil && strings.Contains(gerr.Error(), "is already member of") {
-	//		continue
-	//	}
-	//	if gerr != nil {
-	//		return managed.ExternalCreation{ConnectionDetails: conn}, errors.Wrap(err, errAddUserToGroup)
-	//	}
-	//}
-
 	setStatus(cr, observed)
-
 	return managed.ExternalCreation{ConnectionDetails: conn}, nil
 }
 
@@ -234,11 +214,6 @@ func (eu *externalUser) Update(ctx context.Context, mg resource.Managed) (manage
 	}
 	conn := connectionDetails(cr, observed)
 
-	//err = updateGroups(ctx, eu, userID, cr.Status.AtProvider.GroupIDs, cr.Spec.ForProvider.GroupIDs)
-	//if err != nil {
-	//	return managed.ExternalUpdate{ConnectionDetails: conn}, errors.Wrap(err, "failed to update groups")
-	//}
-
 	return managed.ExternalUpdate{ConnectionDetails: conn}, nil
 }
 
@@ -250,42 +225,12 @@ func (eu *externalUser) Delete(ctx context.Context, mg resource.Managed) error {
 	user.SetConditions(xpv1.Deleting())
 
 	userID := user.Status.AtProvider.UserID
-
-	//for _, groupID := range user.Status.AtProvider.GroupIDs {
-	//	if err := eu.service.DeleteUserFromGroup(ctx, groupID, userID); err != nil {
-	//		return errors.Wrap(err, "failed to remove user from a group")
-	//	}
-	//}
-
 	resp, err := eu.service.DeleteUser(ctx, userID)
 	return compute.ErrorUnlessNotFound(resp, errors.Wrap(err, errUserDelete))
 }
 
-// updateGroups adds or remove groups for the userID.
-func updateGroups(ctx context.Context, eu *externalUser, userID string, atProviderGroups []string, forProviderGroups []string) error {
-	for _, groupID := range atProviderGroups {
-		if groupID != "" && !slices.Contains(forProviderGroups, groupID) {
-			if derr := eu.service.DeleteUserFromGroup(ctx, groupID, userID); derr != nil {
-				return errors.Wrap(derr, "failed to remove user from a group")
-			}
-		}
-	}
-
-	for _, groupID := range forProviderGroups {
-		_, _, gerr := eu.service.AddUserToGroup(ctx, groupID, userID)
-		// skip if user is already member of this group.
-		if gerr != nil && strings.Contains(gerr.Error(), "is already member of") {
-			continue
-		}
-		if gerr != nil {
-			return errors.Wrap(gerr, errAddUserToGroup)
-		}
-	}
-	return nil
-}
-
 // isUserUpToDate returns true if the User is up-to-date or false otherwise.
-func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, observedGroups []string) bool { //nolint:gocyclo
+func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User) bool { //nolint:gocyclo
 	if !observed.HasProperties() {
 		return false
 	}
@@ -296,10 +241,6 @@ func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, obser
 	if params.Password != "" {
 		return false
 	}
-
-	//if !utils.IsSetEqual(observedGroups, params.GroupIDs) {
-	//	return false
-	//}
 
 	props := observed.GetProperties()
 	adm := props.GetAdministrator()

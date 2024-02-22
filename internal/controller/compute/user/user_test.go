@@ -6,16 +6,17 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/golang/mock/gomock"
+	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
+
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	"github.com/golang/mock/gomock"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
-	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	usermock "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/mock/clients/compute/user"
@@ -110,7 +111,6 @@ func TestUserObserve(t *testing.T) {
 				cr := mg.(*v1alpha1.User)
 				g.Expect(cr.Status.AtProvider.UserID).To(Equal(userIDInTest))
 				g.Expect(cr.Status.AtProvider.S3CanonicalUserID).To(Equal("400c7ccfed0d"))
-				g.Expect(cr.Status.AtProvider.GroupIDs).To(ContainElement("5458a703-6450-4ddd-b133-59349c83f832"))
 				g.Expect(xpv1.Available().Equal(cr.GetCondition(xpv1.TypeReady))).To(BeTrue())
 			},
 			expectedObservation: managed.ExternalObservation{
@@ -383,8 +383,7 @@ func TestUserDelete(t *testing.T) {
 			},
 			cr: &v1alpha1.User{Status: v1alpha1.UserStatus{
 				AtProvider: v1alpha1.UserObservation{
-					UserID:   userIDInTest,
-					GroupIDs: []string{groupIDInTest},
+					UserID: userIDInTest,
 				},
 			}},
 			errContains: "failed to remove user from a group",
@@ -398,8 +397,7 @@ func TestUserDelete(t *testing.T) {
 			},
 			cr: &v1alpha1.User{Status: v1alpha1.UserStatus{
 				AtProvider: v1alpha1.UserObservation{
-					UserID:   userIDInTest,
-					GroupIDs: []string{groupIDInTest},
+					UserID: userIDInTest,
 				},
 			}},
 		},
@@ -436,7 +434,6 @@ func userParams(mod func(*v1alpha1.UserParameters)) v1alpha1.UserParameters {
 		Password:      "$3cr3t",
 		SecAuthActive: false,
 		Active:        false,
-		GroupIDs:      []string{"5458a703-6450-4ddd-b133-59349c83f832"},
 	}
 	if mod != nil {
 		mod(p)

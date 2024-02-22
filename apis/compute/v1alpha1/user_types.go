@@ -53,22 +53,6 @@ type UserParameters struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:default=true
 	Active bool `json:"active"`
-	/*
-		The referencing between group and user should only be done from one side, to avoid the need to duplicate references for both resources
-		in compositions
-			// GroupIds that this user will be a member of.
-			//
-			// +kubebuilder:validation:Optional
-			GroupIDs []string `json:"groupIDs"`
-			// In order to add the User to a ManagementGroup, it is recommended to use ManagementGroupCfg
-			// to add the existing User as a member (via id or via reference).
-			// To remove the User from a Group, update the CR spec by removing it.
-			//
-			// ManagementGroupCfg contains information about an existing Group resource
-			// to which the User will be added
-			ManagementGroupCfg []ManagementGroupConfig `json:"managementGroupConfig,omitempty"`
-
-	*/
 }
 
 // UserConfig is used by resources that need to link Users via id or via reference.
@@ -133,8 +117,6 @@ type UserObservation struct {
 	Active bool `json:"active"`
 	// SecAuthActive Indicates if secure authentication is active for the user or not.
 	SecAuthActive bool `json:"secAuthActive"`
-	//// GroupIds that this user will be a member of.
-	//GroupIDs []string `json:"groupIDs"`
 }
 
 // +kubebuilder:object:root=true

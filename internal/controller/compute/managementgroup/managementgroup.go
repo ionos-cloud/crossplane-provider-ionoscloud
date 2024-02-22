@@ -127,10 +127,11 @@ func (eg *externalGroup) Observe(ctx context.Context, mg resource.Managed) (mana
 	}
 
 	cr.Status.AtProvider.ManagementGroupID = groupID
+	cr.Status.AtProvider.UserIDs = members
 	cr.SetConditions(xpv1.Available())
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  managementgroup.IsManagementGroupUpToDate(cr, observed, members),
+		ResourceUpToDate:  managementgroup.IsManagementGroupUpToDate(cr, observed, utils.NewSetFromSlice(members)),
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
 }
@@ -160,10 +161,7 @@ func (eg *externalGroup) Create(ctx context.Context, mg resource.Managed) (manag
 		}
 	}
 
-	groupInput, memberIDs, err := managementgroup.GenerateCreateGroupInput(cr)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
+	groupInput, memberIDs := managementgroup.GenerateCreateGroupInput(cr)
 	newGroup, apiResponse, err := eg.service.CreateGroup(ctx, *groupInput)
 	if err != nil {
 		err = fmt.Errorf("failed to create new management group. error: %w", err)
@@ -175,7 +173,7 @@ func (eg *externalGroup) Create(ctx context.Context, mg resource.Managed) (manag
 	cr.Status.AtProvider.ManagementGroupID = *newGroup.Id
 	meta.SetExternalName(cr, *newGroup.Id)
 
-	if err = eg.service.AddGroupMembers(ctx, *newGroup.Id, memberIDs); err != nil {
+	if err = eg.service.UpdateGroupMembers(ctx, *newGroup.Id, memberIDs, eg.service.AddGroupMember); err != nil {
 		err = fmt.Errorf("error occurred while adding members at group creation: %w", err)
 		return managed.ExternalCreation{}, err
 	}
@@ -190,10 +188,7 @@ func (eg *externalGroup) Update(ctx context.Context, mg resource.Managed) (manag
 	}
 
 	groupID := cr.Status.AtProvider.ManagementGroupID
-	groupInput, memberIDs, err := managementgroup.GenerateUpdateGroupInput(cr)
-	if err != nil {
-		return managed.ExternalUpdate{}, err
-	}
+	groupInput, addMemberIDs, delMemberIDs := managementgroup.GenerateUpdateGroupInput(cr, utils.NewSetFromSlice(cr.Status.AtProvider.UserIDs))
 
 	_, apiResponse, err := eg.service.UpdateGroup(ctx, groupID, *groupInput)
 	if err != nil {
@@ -203,8 +198,13 @@ func (eg *externalGroup) Update(ctx context.Context, mg resource.Managed) (manag
 	if err = compute.WaitForRequest(ctx, eg.service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalUpdate{}, err
 	}
-	if err = eg.service.AddGroupMembers(ctx, groupID, memberIDs); err != nil {
+	if err = eg.service.UpdateGroupMembers(ctx, groupID, addMemberIDs, eg.service.AddGroupMember); err != nil {
 		err = fmt.Errorf("error occurred while adding members at group update: %w", err)
+		return managed.ExternalUpdate{}, err
+	}
+
+	if err = eg.service.UpdateGroupMembers(ctx, groupID, delMemberIDs, eg.service.RemoveGroupMember); err != nil {
+		err = fmt.Errorf("error occurred while removing members at group update: %w", err)
 		return managed.ExternalUpdate{}, err
 	}
 

@@ -3,8 +3,9 @@ package user
 import (
 	"context"
 
-	ionosdk "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
+
+	ionosdk "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
@@ -37,9 +38,9 @@ type Client interface {
 	CreateUser(ctx context.Context, p v1alpha1.UserParameters) (ionosdk.User, *ionosdk.APIResponse, error)
 	UpdateUser(ctx context.Context, id string, p v1alpha1.UserParameters) (ionosdk.User, *ionosdk.APIResponse, error)
 	DeleteUser(ctx context.Context, id string) (*ionosdk.APIResponse, error)
-	AddUserToGroup(ctx context.Context, groupID string, userID string) (ionosdk.User, *ionosdk.APIResponse, error)
-	DeleteUserFromGroup(ctx context.Context, groupID string, userID string) error
-	GetUserGroups(ctx context.Context, userID string) ([]string, error)
+	//AddUserToGroup(ctx context.Context, groupID string, userID string) (ionosdk.User, *ionosdk.APIResponse, error)
+	//DeleteUserFromGroup(ctx context.Context, groupID string, userID string) error
+	//GetUserGroups(ctx context.Context, userID string) ([]string, error)
 	GetAPIClient() *ionosdk.APIClient
 }
 
