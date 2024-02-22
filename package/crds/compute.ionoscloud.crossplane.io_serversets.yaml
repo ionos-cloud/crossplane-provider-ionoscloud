@@ -68,6 +68,109 @@ spec:
                 description: ServerSetParameters are the configurable fields of a
                   ServerSet.
                 properties:
+                  bootVolumeTemplate:
+                    description: BootVolumeTemplate are the configurable fields of
+                      a BootVolumeTemplate.
+                    properties:
+                      metadata:
+                        description: ServerSetBootVolumeMetadata are the configurable
+                          fields of a ServerSetBootVolumeMetadata.
+                        properties:
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          name:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      spec:
+                        description: ServerSetBootVolumeSpec are the configurable
+                          fields of a ServerSetBootVolumeSpec.
+                        properties:
+                          image:
+                            description: 'Image or snapshot ID to be used as template
+                              for this volume. Make sure the image selected is compatible
+                              with the datacenter''s location. Note: when creating
+                              a volume, set image, image alias, or licence type'
+                            type: string
+                          selector:
+                            description: A label selector is a label query over a
+                              set of resources. The result of matchLabels and matchExpressions
+                              are ANDed. An empty label selector matches all objects.
+                              A null label selector matches no objects.
+                            properties:
+                              matchExpressions:
+                                description: matchExpressions is a list of label selector
+                                  requirements. The requirements are ANDed.
+                                items:
+                                  description: A label selector requirement is a selector
+                                    that contains values, a key, and an operator that
+                                    relates the key and values.
+                                  properties:
+                                    key:
+                                      description: key is the label key that the selector
+                                        applies to.
+                                      type: string
+                                    operator:
+                                      description: operator represents a key's relationship
+                                        to a set of values. Valid operators are In,
+                                        NotIn, Exists and DoesNotExist.
+                                      type: string
+                                    values:
+                                      description: values is an array of string values.
+                                        If the operator is In or NotIn, the values
+                                        array must be non-empty. If the operator is
+                                        Exists or DoesNotExist, the values array must
+                                        be empty. This array is replaced during a
+                                        strategic merge patch.
+                                      items:
+                                        type: string
+                                      type: array
+                                  required:
+                                  - key
+                                  - operator
+                                  type: object
+                                type: array
+                              matchLabels:
+                                additionalProperties:
+                                  type: string
+                                description: matchLabels is a map of {key,value} pairs.
+                                  A single {key,value} in the matchLabels map is equivalent
+                                  to an element of matchExpressions, whose key field
+                                  is "key", the operator is "In", and the values array
+                                  contains only "value". The requirements are ANDed.
+                                type: object
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          size:
+                            description: The size of the volume in GB.
+                            type: number
+                          type:
+                            enum:
+                            - HDD
+                            - SSD
+                            - SSD Standard
+                            - SSD Premium
+                            - DAS
+                            - ISO
+                            type: string
+                          userData:
+                            description: The cloud-init configuration for the volume
+                              as base64 encoded string. The property is immutable
+                              and is only allowed to be set on creation of a new a
+                              volume. It is mandatory to provide either 'public image'
+                              or 'imageAlias' that has cloud-init compatibility in
+                              conjunction with this property.
+                            type: string
+                        required:
+                        - size
+                        - type
+                        type: object
+                    required:
+                    - spec
+                    type: object
                   datacenterConfig:
                     description: DatacenterConfig contains information about the datacenter
                       resource on which the server will be created.
@@ -252,119 +355,11 @@ spec:
                     - metadata
                     - spec
                     type: object
-                  volumeClaims:
-                    items:
-                      description: ServerSetVolumeClaim are the configurable fields
-                        of a ServerSetVolumeClaim.
-                      properties:
-                        metadata:
-                          description: ServerSetVolumeClaimMetadata are the configurable
-                            fields of a ServerSetVolumeClaimMetadata.
-                          properties:
-                            labels:
-                              additionalProperties:
-                                type: string
-                              type: object
-                            name:
-                              type: string
-                          required:
-                          - name
-                          type: object
-                        spec:
-                          description: ServerSetVolumeClaimSpec are the configurable
-                            fields of a ServerSetVolumeClaimSpec.
-                          properties:
-                            image:
-                              description: 'Image or snapshot ID to be used as template
-                                for this volume. Make sure the image selected is compatible
-                                with the datacenter''s location. Note: when creating
-                                a volume, set image, image alias, or licence type'
-                              type: string
-                            selector:
-                              description: A label selector is a label query over
-                                a set of resources. The result of matchLabels and
-                                matchExpressions are ANDed. An empty label selector
-                                matches all objects. A null label selector matches
-                                no objects.
-                              properties:
-                                matchExpressions:
-                                  description: matchExpressions is a list of label
-                                    selector requirements. The requirements are ANDed.
-                                  items:
-                                    description: A label selector requirement is a
-                                      selector that contains values, a key, and an
-                                      operator that relates the key and values.
-                                    properties:
-                                      key:
-                                        description: key is the label key that the
-                                          selector applies to.
-                                        type: string
-                                      operator:
-                                        description: operator represents a key's relationship
-                                          to a set of values. Valid operators are
-                                          In, NotIn, Exists and DoesNotExist.
-                                        type: string
-                                      values:
-                                        description: values is an array of string
-                                          values. If the operator is In or NotIn,
-                                          the values array must be non-empty. If the
-                                          operator is Exists or DoesNotExist, the
-                                          values array must be empty. This array is
-                                          replaced during a strategic merge patch.
-                                        items:
-                                          type: string
-                                        type: array
-                                    required:
-                                    - key
-                                    - operator
-                                    type: object
-                                  type: array
-                                matchLabels:
-                                  additionalProperties:
-                                    type: string
-                                  description: matchLabels is a map of {key,value}
-                                    pairs. A single {key,value} in the matchLabels
-                                    map is equivalent to an element of matchExpressions,
-                                    whose key field is "key", the operator is "In",
-                                    and the values array contains only "value". The
-                                    requirements are ANDed.
-                                  type: object
-                              type: object
-                              x-kubernetes-map-type: atomic
-                            size:
-                              description: The size of the volume in GB.
-                              type: number
-                            type:
-                              enum:
-                              - HDD
-                              - SSD
-                              - SSD Standard
-                              - SSD Premium
-                              - DAS
-                              - ISO
-                              type: string
-                            userData:
-                              description: The cloud-init configuration for the volume
-                                as base64 encoded string. The property is immutable
-                                and is only allowed to be set on creation of a new
-                                a volume. It is mandatory to provide either 'public
-                                image' or 'imageAlias' that has cloud-init compatibility
-                                in conjunction with this property.
-                              type: string
-                          required:
-                          - size
-                          - type
-                          type: object
-                      required:
-                      - metadata
-                      - spec
-                      type: object
-                    type: array
                 required:
+                - bootVolumeTemplate
                 - datacenterConfig
                 - replicas
                 - template
-                - volumeClaims
                 type: object
               managementPolicies:
                 default:
