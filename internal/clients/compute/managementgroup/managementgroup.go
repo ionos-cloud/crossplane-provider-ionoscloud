@@ -17,7 +17,8 @@ type APIClient struct {
 	*clients.IonosServices
 }
 
-type GroupMembersModifier func(context.Context, string, string) (*sdkgo.APIResponse, error)
+// GroupMembersUpdateFn function that performs a group membership update
+type GroupMembersUpdateFn func(context.Context, string, string) (*sdkgo.APIResponse, error)
 
 // Client is a wrapper around IONOS Service Group methods
 type Client interface {
@@ -30,7 +31,7 @@ type Client interface {
 	UpdateGroup(ctx context.Context, groupID string, group sdkgo.Group) (sdkgo.Group, *sdkgo.APIResponse, error)
 	AddGroupMember(ctx context.Context, groupID, userID string) (*sdkgo.APIResponse, error)
 	RemoveGroupMember(ctx context.Context, groupID, userID string) (*sdkgo.APIResponse, error)
-	UpdateGroupMembers(ctx context.Context, groupID string, userIDs utils.Set[string], modFn GroupMembersModifier) error
+	UpdateGroupMembers(ctx context.Context, groupID string, userIDs utils.Set[string], updateFn GroupMembersUpdateFn) error
 	DeleteGroup(ctx context.Context, groupID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
 }
@@ -42,17 +43,15 @@ func (cp *APIClient) CheckDuplicateGroup(ctx context.Context, groupName string) 
 		return nil, err
 	}
 	matchedItems := make([]sdkgo.Group, 0)
-	if itemsOk, ok := groups.GetItemsOk(); ok && itemsOk != nil {
-		for _, item := range *itemsOk {
-			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
-				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
-					if *nameOk == groupName {
-						matchedItems = append(matchedItems, item)
-					}
-				}
+
+	if groups.Items != nil {
+		for _, item := range *groups.Items {
+			if item.Properties != nil && item.Properties.Name != nil && *item.Properties.Name == groupName {
+				matchedItems = append(matchedItems, item)
 			}
 		}
 	}
+
 	if len(matchedItems) == 0 {
 		return nil, nil
 	}
@@ -124,14 +123,14 @@ func (cp *APIClient) RemoveGroupMember(ctx context.Context, groupID, userID stri
 }
 
 // UpdateGroupMembers updates the members of Group depending on modFn using the userIDs set
-func (cp *APIClient) UpdateGroupMembers(ctx context.Context, groupID string, userIDs utils.Set[string], modFn GroupMembersModifier) error {
+func (cp *APIClient) UpdateGroupMembers(ctx context.Context, groupID string, userIDs utils.Set[string], updateFn GroupMembersUpdateFn) error {
 
 	updateErrs := make([]error, 0, len(userIDs))
 	waitErrs := make([]error, 0, len(userIDs))
 	for userID := range userIDs {
 		// go for loop semantics
 		_userID := userID
-		apiResponse, err := modFn(ctx, groupID, _userID)
+		apiResponse, err := updateFn(ctx, groupID, _userID)
 		if err != nil {
 			updateErrs = append(updateErrs, compute.AddAPIResponseInfo(apiResponse, err))
 		}
@@ -153,7 +152,7 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 	return cp.ComputeClient
 }
 
-// GenerateCreateGroupInput returns sdkgo.Group based on the CR spec
+// GenerateUpdateGroupInput returns sdkgo.Group and members that need to be added and deleted based or CR and observed member IDs
 func GenerateUpdateGroupInput(cr *v1alpha1.ManagementGroup, observedMemberIDs utils.Set[string]) (*sdkgo.Group, utils.Set[string], utils.Set[string]) {
 	groupData, configuredMemberIDs := GenerateCreateGroupInput(cr)
 	addMemberIDs := configuredMemberIDs.Difference(observedMemberIDs)
@@ -163,7 +162,7 @@ func GenerateUpdateGroupInput(cr *v1alpha1.ManagementGroup, observedMemberIDs ut
 
 }
 
-// GenerateCreateGroupInput returns sdkgo.Group based on the CR spec modifications
+// GenerateCreateGroupInput returns sdkgo.Group and members that need to be added based on CR
 func GenerateCreateGroupInput(cr *v1alpha1.ManagementGroup) (*sdkgo.Group, utils.Set[string]) {
 	instanceCreateInput := sdkgo.Group{
 		Properties: &sdkgo.GroupProperties{

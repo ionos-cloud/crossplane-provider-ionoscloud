@@ -119,17 +119,3 @@ func ExtractUserID() reference.ExtractValueFn {
 		return meta.GetExternalName(res)
 	}
 }
-
-//// ExtractManagementGroupID returns the externalName of a referenced ManagementGroup.
-//func ExtractManagementGroupID() reference.ExtractValueFn {
-//	return func(mg resource.Managed) string {
-//		res, ok := mg.(*ManagementGroup)
-//		if !ok {
-//			return defaultStringValue
-//		}
-//		if meta.GetExternalName(res) == res.Name {
-//			return defaultStringValue
-//		}
-//		return meta.GetExternalName(res)
-//	}
-//}

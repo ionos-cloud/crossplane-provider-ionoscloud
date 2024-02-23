@@ -206,32 +206,32 @@ func IsEqSdkPropertiesToCR(crTypeParameters any, sdkStructProperties any) bool {
 type Set[T comparable] map[T]struct{}
 
 // Add an element to the set
-func (S Set[T]) Add(elements ...T) {
+func (s Set[T]) Add(elements ...T) {
 	for _, e := range elements {
-		S[e] = struct{}{}
+		s[e] = struct{}{}
 	}
 }
 
 // Contains verifies if element is contained by the set
-func (S Set[T]) Contains(e T) bool {
-	_, ok := S[e]
+func (s Set[T]) Contains(e T) bool {
+	_, ok := s[e]
 	return ok
 }
 
 // Remove eliminates an element from the set, if it exists
-func (S Set[T]) Remove(elements ...T) {
+func (s Set[T]) Remove(elements ...T) {
 	for _, e := range elements {
-		delete(S, e)
+		delete(s, e)
 	}
 }
 
 // EqualTo verifies set equality
-func (S Set[T]) EqualTo(s Set[T]) bool {
-	if len(S) != len(s) {
+func (s Set[T]) EqualTo(o Set[T]) bool {
+	if len(s) != len(o) {
 		return false
 	}
-	for e := range s {
-		if _, ok := S[e]; !ok {
+	for e := range o {
+		if _, ok := s[e]; !ok {
 			return false
 		}
 	}
@@ -239,9 +239,9 @@ func (S Set[T]) EqualTo(s Set[T]) bool {
 }
 
 // Difference returns a new Set resulting from the set difference operation
-func (S Set[T]) Difference(s Set[T]) Set[T] {
+func (s Set[T]) Difference(o Set[T]) Set[T] {
 	diff := Set[T]{}
-	for e := range S {
+	for e := range o {
 		if !s.Contains(e) {
 			diff[e] = struct{}{}
 		}
@@ -250,10 +250,10 @@ func (S Set[T]) Difference(s Set[T]) Set[T] {
 }
 
 // NewSetFromSlice returns a new Set from the elements of a slice
-func NewSetFromSlice[T comparable](s []T) Set[T] {
-	S := make(Set[T])
-	for _, v := range s {
-		S[v] = struct{}{}
+func NewSetFromSlice[T comparable](sl []T) Set[T] {
+	s := make(Set[T])
+	for _, v := range sl {
+		s[v] = struct{}{}
 	}
-	return S
+	return s
 }
