@@ -68,17 +68,10 @@ spec:
         volumeMounts:
           - reference: "volume-mount-id"
         bootStorageVolumeRef: "volume-id"
-    volumeClaims:
-      - metadata:
-          name: volume-claim-sample
-          labels:
-            key: value
-        spec:
-          image: "image-id"
-          size: 200
-          type: SSD
-          userData: "" #cloud-config
-          selector:
-            matchLabels:
-              "cloud.ionos.com/volume-name": "volume-name"
-              "cloud.ionos.com/replica_server_index": "0"
+    bootVolumeTemplate:
+      spec:
+        image: "28d0fa34-927f-11ee-8008-6202af74e858"
+        size: 10
+        type: HDD
+        userData: "" #cloud-config
+

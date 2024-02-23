@@ -38,8 +38,8 @@ type ServerSetParameters struct {
 	// +kubebuilder:validation:Required
 	DatacenterCfg DatacenterConfig `json:"datacenterConfig"`
 
-	Template     ServerSetTemplate      `json:"template"`
-	VolumeClaims []ServerSetVolumeClaim `json:"volumeClaims"`
+	Template           ServerSetTemplate  `json:"template"`
+	BootVolumeTemplate BootVolumeTemplate `json:"bootVolumeTemplate"`
 }
 
 // ServerSetTemplateSpec are the configurable fields of a ServerSetTemplateSpec.
@@ -143,24 +143,24 @@ type ServerSetStatus struct {
 	AtProvider          ServerSetObservation `json:"atProvider,omitempty"`
 }
 
-// ServerSetVolumeClaim are the configurable fields of a ServerSetVolumeClaim.
-type ServerSetVolumeClaim struct {
+// BootVolumeTemplate are the configurable fields of a BootVolumeTemplate.
+type BootVolumeTemplate struct {
+	// +kubebuilder:validation:Optional
+	Metadata ServerSetBootVolumeMetadata `json:"metadata"`
 	// +kubebuilder:validation:Required
-	Metadata ServerSetVolumeClaimMetadata `json:"metadata"`
-	// +kubebuilder:validation:Required
-	Spec ServerSetVolumeClaimSpec `json:"spec"`
+	Spec ServerSetBootVolumeSpec `json:"spec"`
 }
 
-// ServerSetVolumeClaimMetadata are the configurable fields of a ServerSetVolumeClaimMetadata.
-type ServerSetVolumeClaimMetadata struct {
+// ServerSetBootVolumeMetadata are the configurable fields of a ServerSetBootVolumeMetadata.
+type ServerSetBootVolumeMetadata struct {
 	// +kubebuilder:validation:Required
 	Name string `json:"name"`
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
-// ServerSetVolumeClaimSpec are the configurable fields of a ServerSetVolumeClaimSpec.
-type ServerSetVolumeClaimSpec struct {
+// ServerSetBootVolumeSpec are the configurable fields of a ServerSetBootVolumeSpec.
+type ServerSetBootVolumeSpec struct {
 	// Image or snapshot ID to be used as template for this volume.
 	// Make sure the image selected is compatible with the datacenter's location.
 	// Note: when creating a volume, set image, image alias, or licence type

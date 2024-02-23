@@ -20,9 +20,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -103,7 +105,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, nil
 	}
 
-	servers, err := c.getServersFromServerSet(ctx, cr.Spec.ForProvider.Template.Metadata.Name)
+	servers, err := c.getServersFromServerSet(ctx, cr.Name)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -175,7 +177,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
 		c.log.Info("Creating a new Server", "index", i)
-		if err := c.ensureBootVolumeClaim(); err != nil {
+		if err := c.ensureBootVolume(ctx, cr, i); err != nil {
 			return managed.ExternalCreation{}, err
 		}
 
@@ -208,12 +210,10 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.New(errUnexpectedObject)
 	}
 	//how do we know if we want to update servers or nic params?
-	update, err2 := c.updateServersFromTemplate(ctx, cr.Spec.ForProvider.Template)
-	if err2 != nil {
-		return update, err2
+	err := c.updateServersFromTemplate(ctx, cr)
+	if err != nil {
+		return managed.ExternalUpdate{}, err
 	}
-
-	fmt.Printf("Updating: %+v", cr)
 
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -222,22 +222,22 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	}, nil
 }
 
-func (c *external) updateServersFromTemplate(ctx context.Context, templateSpec v1alpha1.ServerSetTemplate) (managed.ExternalUpdate, error) {
-	servers, err := c.getServersFromServerSet(ctx, templateSpec.Metadata.Name)
+func (c *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.ServerSet) error {
+	servers, err := c.getServersFromServerSet(ctx, cr.Name)
 	if err != nil {
-		return managed.ExternalUpdate{}, err
+		return err
 	}
 	for _, serverObj := range servers {
-		serverObj.Spec.ForProvider.RAM = templateSpec.Spec.RAM
-		serverObj.Spec.ForProvider.Cores = templateSpec.Spec.Cores
-		serverObj.Spec.ForProvider.CPUFamily = templateSpec.Spec.CPUFamily
+		serverObj.Spec.ForProvider.RAM = cr.Spec.ForProvider.Template.Spec.RAM
+		serverObj.Spec.ForProvider.Cores = cr.Spec.ForProvider.Template.Spec.Cores
+		serverObj.Spec.ForProvider.CPUFamily = cr.Spec.ForProvider.Template.Spec.CPUFamily
 
 		if err := c.kube.Update(ctx, &serverObj); err != nil {
-			fmt.Printf("error updating server %w", err)
-			return managed.ExternalUpdate{}, err
+			fmt.Printf("error updating server %v", err)
+			return err
 		}
 	}
-	return managed.ExternalUpdate{}, nil
+	return nil
 }
 
 func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
@@ -250,7 +250,6 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 
 	fmt.Printf("Deleting: %+v", cr)
 
-	// delete all nics
 	if err := c.kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
@@ -264,13 +263,28 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return err
 	}
 
-	// todo(user): delete all volume claims
+	if err := c.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		serverSetLabel: cr.Name,
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (c *external) ensureBootVolumeClaim() error {
-	c.log.Info("Ensuring VolumeClaim")
+func (c *external) ensureBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, idx int) error {
+	c.log.Info("Ensuring BootVolume")
+	name := getNameFromIndex(cr.Name, "volume", idx)
+	ns := cr.Namespace
+	volume, err := c.getVolume(ctx, name, ns)
+
+	if err != nil {
+		if apiErrors.IsNotFound(err) {
+			return c.createBootVolume(ctx, cr, idx)
+		}
+		return err
+	}
+	fmt.Println("Server State: ", volume.Status.AtProvider.State)
 
 	return nil
 }
@@ -284,7 +298,7 @@ func (c *external) ensureVolumeClaim() error {
 func (c *external) ensureServer(ctx context.Context, cr *v1alpha1.ServerSet, idx int) error {
 	c.log.Info("Ensuring Server")
 
-	name := getNameFromIndex(cr.GetName(), "server", idx)
+	name := getNameFromIndex(cr.Name, "server", idx)
 	ns := cr.Namespace
 	obj, err := c.getServer(ctx, name, ns)
 	if err != nil {
@@ -316,15 +330,24 @@ func (c *external) getServer(ctx context.Context, name, ns string) (*v1alpha1.Se
 
 	return obj, nil
 }
+func (c *external) getVolume(ctx context.Context, volumeName, ns string) (*v1alpha1.Volume, error) {
+	obj := &v1alpha1.Volume{}
+	if err := c.kube.Get(ctx, types.NamespacedName{
+		Namespace: ns,
+		Name:      volumeName,
+	}, obj); err != nil {
+		return nil, err
+	}
 
+	return obj, nil
+}
 func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, idx int) error {
 	c.log.Info("Creating Server")
-	fmt.Println("Creating Server")
-	resourceType := "server"
+	serverType := "server"
 	serverObj := v1alpha1.Server{
 
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getNameFromIndex(cr.GetName(), resourceType, idx),
+			Name:      getNameFromIndex(cr.Name, serverType, idx),
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
 				serverSetLabel: cr.Name,
@@ -334,11 +357,20 @@ func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, idx
 		Spec: v1alpha1.ServerSpec{
 			ForProvider: v1alpha1.ServerParameters{
 				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
-				Name:             getNameFromIndex(cr.GetName(), resourceType, idx),
+				Name:             getNameFromIndex(cr.Name, serverType, idx),
 				Cores:            cr.Spec.ForProvider.Template.Spec.Cores,
 				RAM:              cr.Spec.ForProvider.Template.Spec.RAM,
 				AvailabilityZone: "AUTO",
 				CPUFamily:        cr.Spec.ForProvider.Template.Spec.CPUFamily,
+				VolumeCfg: v1alpha1.VolumeConfig{
+					VolumeIDRef: &xpv1.Reference{
+						Name: getNameFromIndex(cr.Name, "volume", idx),
+					},
+					//	          selector:
+					//            matchLabels:
+					//              "cloud.ionos.com/volume-name": "volume-name"
+					//              "cloud.ionos.com/replica_server_index": "0"
+				},
 			},
 		}}
 	serverObj.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
@@ -347,32 +379,108 @@ func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, idx
 		fmt.Println(err.Error())
 		return err
 	}
-	createdServer := &serverObj
-	var err error
-	for {
-		createdServer, err = c.getServer(ctx, getNameFromIndex(cr.GetName(), resourceType, idx), cr.Namespace)
-		if createdServer != nil && createdServer.Status.AtProvider.ServerID != "" && createdServer.Status.AtProvider.State == ionoscloud.Available {
+	if err := WaitForKubeResource(ctx, 5*time.Minute, IsServerAvailable, c, getNameFromIndex(cr.Name, serverType, idx), cr.Namespace); err != nil {
+		return fmt.Errorf("while waiting for server to be populated %w ", err)
+	}
+	return nil
+}
+
+// createBootVolume creates a volume CR and waits until in reaches AVAILABLE state
+func (c *external) createBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, idx int) error {
+	c.log.Info("Creating Volume")
+	resourceType := "volume"
+	volumeObj := v1alpha1.Volume{
+
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      getNameFromIndex(cr.Name, resourceType, idx),
+			Namespace: cr.Namespace,
+			Labels: map[string]string{
+				serverSetLabel: cr.Name,
+			},
+		},
+		ManagementPolicies: xpv1.ManagementPolicies{"*"},
+		Spec: v1alpha1.VolumeSpec{
+			ForProvider: v1alpha1.VolumeParameters{
+				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
+				Name:             getNameFromIndex(cr.Name, resourceType, idx),
+				AvailabilityZone: "AUTO",
+				Size:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size,
+				Type:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type,
+				Image:            cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image,
+				//todo add to template(?)
+				ImagePassword: "imagePassword776",
+			},
+		}}
+	volumeObj.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
+	if err := c.kube.Create(ctx, &volumeObj); err != nil {
+		return err
+	}
+	if err := WaitForKubeResource(ctx, 5*time.Minute, IsVolumeAvailable, c, getNameFromIndex(cr.Name, resourceType, idx), cr.Namespace); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func IsServerAvailable(ctx context.Context, c *external, name, namespace string) (bool, error) {
+	kubeServer, err := c.getServer(ctx, name, namespace)
+	if kubeServer != nil && kubeServer.Status.AtProvider.ServerID != "" && strings.EqualFold(kubeServer.Status.AtProvider.State, ionoscloud.Available) {
+		return true, nil
+	}
+	if err != nil {
+		if apiErrors.IsNotFound(err) {
+			return false, nil
+		}
+	}
+	return false, err
+}
+
+func IsVolumeAvailable(ctx context.Context, c *external, name, namespace string) (bool, error) {
+	kubeVolume, err := c.getVolume(ctx, name, namespace)
+	if kubeVolume != nil && kubeVolume.Status.AtProvider.VolumeID != "" && strings.EqualFold(kubeVolume.Status.AtProvider.State, ionoscloud.Available) {
+		return true, nil
+	}
+	if err != nil {
+		if apiErrors.IsNotFound(err) {
+			return false, nil
+		}
+	}
+	return false, err
+}
+
+// IsResourceReady polls kube api to see if resource is available and observed(status populated)
+type IsResourceReady func(ctx context.Context, c *external, name, namespace string) (bool, error)
+
+// WaitForKubeResource - keeps retrying until resource meets condition, or until ctx is cancelled
+func WaitForKubeResource(ctx context.Context, timeoutInMinutes time.Duration, fn IsResourceReady, c *external, name, namespace string) error {
+	if c == nil {
+		return fmt.Errorf("external client is nil")
+	}
+	if name == "" {
+		return fmt.Errorf("name is empty")
+	}
+	err := retry.RetryContext(ctx, timeoutInMinutes, func() *retry.RetryError {
+		isReady, err := fn(ctx, c, name, namespace)
+		if isReady {
 			return nil
 		}
 		if err != nil {
-			if apiErrors.IsNotFound(err) {
-				continue
-			}
-			return err
+			retry.NonRetryableError(err)
 		}
-	}
+		return retry.RetryableError(fmt.Errorf("resource with name %v found, still trying ", name))
+	})
+	return err
 }
-
 func (c *external) ensureNICs(ctx context.Context, cr *v1alpha1.ServerSet, idx int) error {
 	c.log.Info("Ensuring NIC")
 
-	srv, err := c.getServer(ctx, getNameFromIndex(cr.GetName(), "server", idx), cr.GetNamespace())
+	srv, err := c.getServer(ctx, getNameFromIndex(cr.Name, "server", idx), cr.GetNamespace())
 	if err != nil {
 		return err
 	}
 
 	// check if the NIC is attached to the server
-	fmt.Printf("we have to check if the NIC is attached to the server %s ", cr.GetName())
+	fmt.Printf("we have to check if the NIC is attached to the server %s ", cr.Name)
 
 	for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
 		if err := c.ensureNIC(ctx, cr, srv.Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].Reference, idx); err != nil {
@@ -422,7 +530,7 @@ func (c *external) areNicsUpToDate(ctx context.Context, cr *v1alpha1.ServerSet) 
 func (c *external) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, idx int) error {
 	// get the network
 	resourceType := "nic"
-	nicName := getNameFromIndex(cr.GetName(), resourceType, idx)
+	nicName := getNameFromIndex(cr.Name, resourceType, idx)
 	network := v1alpha1.Lan{}
 	if err := c.kube.Get(ctx, types.NamespacedName{
 		Namespace: cr.GetNamespace(),
@@ -448,7 +556,7 @@ func (c *external) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, server
 				Name:      nicName,
 				Namespace: cr.GetNamespace(),
 				Labels: map[string]string{
-					serverSetLabel: cr.GetName(),
+					serverSetLabel: cr.Name,
 				},
 			},
 			ManagementPolicies: xpv1.ManagementPolicies{"*"},
