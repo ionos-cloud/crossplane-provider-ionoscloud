@@ -183,7 +183,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
 		c.log.Info("Creating a new Server", "index", i)
-		if err := c.ensureBootVolume(ctx, cr, getNameFromIndex(cr.Name, "volume", i)); err != nil {
+		if err := c.ensureBootVolume(ctx, cr, getNameFromIndex(cr.Name, "bootvolume", i)); err != nil {
 			return managed.ExternalCreation{}, err
 		}
 
@@ -441,12 +441,8 @@ func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, idx
 				CPUFamily:        cr.Spec.ForProvider.Template.Spec.CPUFamily,
 				VolumeCfg: v1alpha1.VolumeConfig{
 					VolumeIDRef: &xpv1.Reference{
-						Name: getNameFromIndex(cr.Name, "volume", idx),
+						Name: getNameFromIndex(cr.Name, "bootvolume", idx),
 					},
-					//	          selector:
-					//            matchLabels:
-					//              "cloud.ionos.com/volume-name": "volume-name"
-					//              "cloud.ionos.com/replica_server_index": "0"
 				},
 			},
 		}}
