@@ -111,7 +111,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 
 	cr.Status.AtProvider.Replicas = len(servers)
-	//we need to re-create servers. go to create
+	// we need to re-create servers. go to create
 	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return managed.ExternalObservation{
 			ResourceExists:    false,
@@ -127,8 +127,8 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, err
 	}
 	areVolumesUpToDate := areVolumesUpToDate(cr.Spec.ForProvider, volumes)
-	//only update
-	if areServersUpToDate == false || areVolumesUpToDate == false {
+	// only update
+	if !areServersUpToDate || !areVolumesUpToDate {
 		return managed.ExternalObservation{
 			ResourceExists:    true,
 			ResourceUpToDate:  false,
@@ -138,11 +138,11 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 
 	areNicsUpToDate := false
-	//todo check nic parameters are same as template
+	// todo check nic parameters are same as template
 	if areNicsUpToDate, err = c.areNicsUpToDate(ctx, cr); err != nil {
 		return managed.ExternalObservation{}, err
 	}
-	if areNicsUpToDate == false {
+	if !areNicsUpToDate {
 		return managed.ExternalObservation{
 			ResourceExists:    false,
 			ResourceUpToDate:  false,
@@ -214,7 +214,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errUnexpectedObject)
 	}
-	//how do we know if we want to update servers or nic params?
+	// how do we know if we want to update servers or nic params?
 	err := c.updateServersFromTemplate(ctx, cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
@@ -237,22 +237,22 @@ func (c *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 	if err != nil {
 		return err
 	}
-	for _, serverObj := range servers {
+	for idx := range servers {
 		update := false
-		if serverObj.Spec.ForProvider.RAM != cr.Spec.ForProvider.Template.Spec.RAM {
+		if servers[idx].Spec.ForProvider.RAM != cr.Spec.ForProvider.Template.Spec.RAM {
 			update = true
-			serverObj.Spec.ForProvider.RAM = cr.Spec.ForProvider.Template.Spec.RAM
+			servers[idx].Spec.ForProvider.RAM = cr.Spec.ForProvider.Template.Spec.RAM
 		}
-		if serverObj.Spec.ForProvider.Cores != cr.Spec.ForProvider.Template.Spec.Cores {
+		if servers[idx].Spec.ForProvider.Cores != cr.Spec.ForProvider.Template.Spec.Cores {
 			update = true
-			serverObj.Spec.ForProvider.Cores = cr.Spec.ForProvider.Template.Spec.Cores
+			servers[idx].Spec.ForProvider.Cores = cr.Spec.ForProvider.Template.Spec.Cores
 		}
-		if serverObj.Spec.ForProvider.CPUFamily != cr.Spec.ForProvider.Template.Spec.CPUFamily {
+		if servers[idx].Spec.ForProvider.CPUFamily != cr.Spec.ForProvider.Template.Spec.CPUFamily {
 			update = true
-			serverObj.Spec.ForProvider.CPUFamily = cr.Spec.ForProvider.Template.Spec.CPUFamily
+			servers[idx].Spec.ForProvider.CPUFamily = cr.Spec.ForProvider.Template.Spec.CPUFamily
 		}
 		if update {
-			if err := c.kube.Update(ctx, &serverObj); err != nil {
+			if err := c.kube.Update(ctx, &servers[idx]); err != nil {
 				fmt.Printf("error updating server %v", err)
 				return err
 			}
@@ -268,34 +268,34 @@ func (c *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 		return err
 	}
 
-	for idx, volumeObj := range volumes {
+	for idx := range volumes {
 		update := false
 		deleteAndCreate := false
-		if volumeObj.Spec.ForProvider.Size != cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size {
+		if volumes[idx].Spec.ForProvider.Size != cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size {
 			update = true
-			volumeObj.Spec.ForProvider.Size = cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size
+			volumes[idx].Spec.ForProvider.Size = cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size
 		}
-		if volumeObj.Spec.ForProvider.Type != cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type {
+		if volumes[idx].Spec.ForProvider.Type != cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type {
 			deleteAndCreate = true
-			volumeObj.Spec.ForProvider.Type = cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type
+			volumes[idx].Spec.ForProvider.Type = cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type
 		}
 
-		if volumeObj.Spec.ForProvider.Image != cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image {
+		if volumes[idx].Spec.ForProvider.Image != cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image {
 			deleteAndCreate = true
-			volumeObj.Spec.ForProvider.Image = cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image
+			volumes[idx].Spec.ForProvider.Image = cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image
 		}
 
 		if deleteAndCreate {
-			if err := c.kube.Delete(ctx, &volumeObj); err != nil {
+			if err := c.kube.Delete(ctx, &volumes[idx]); err != nil {
 				fmt.Printf("error deleting volume %v", err)
 				return err
 			}
-			err := WaitForKubeResource(ctx, 5*time.Minute, IsVolumeDeleted, c, volumeObj.Name, cr.Namespace)
+			err := WaitForKubeResource(ctx, 5*time.Minute, IsVolumeDeleted, c, volumes[idx].Name, cr.Namespace)
 			if err != nil {
 				return err
 			}
 			var createdVolume v1alpha1.Volume
-			if createdVolume, err = c.createBootVolume(ctx, cr, volumeObj.Name); err != nil {
+			if createdVolume, err = c.createBootVolume(ctx, cr, volumes[idx].Name); err != nil {
 				return err
 			}
 			gotServer, err := c.getServer(ctx, getNameFromIndex(cr.Name, "server", idx), cr.Namespace)
@@ -313,12 +313,13 @@ func (c *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 				return err
 			}
 		} else if update {
-			if err := c.kube.Update(ctx, &volumeObj); err != nil {
+			if err := c.kube.Update(ctx, &volumes[idx]); err != nil {
 				fmt.Printf("error updating server %v", err)
 				return err
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -465,7 +466,7 @@ func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, idx
 // createBootVolume creates a volume CR and waits until in reaches AVAILABLE state
 func (c *external) createBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, name string) (v1alpha1.Volume, error) {
 	c.log.Info("Creating Volume")
-	volumeObj := v1alpha1.Volume{
+	var volumeObj = v1alpha1.Volume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: cr.Namespace,
@@ -482,7 +483,7 @@ func (c *external) createBootVolume(ctx context.Context, cr *v1alpha1.ServerSet,
 				Size:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size,
 				Type:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type,
 				Image:            cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image,
-				//todo add to template(?)
+				// todo add to template(?)
 				ImagePassword: "imagePassword776",
 			},
 		}}
@@ -493,7 +494,7 @@ func (c *external) createBootVolume(ctx context.Context, cr *v1alpha1.ServerSet,
 	if err := WaitForKubeResource(ctx, 5*time.Minute, IsVolumeAvailable, c, name, cr.Namespace); err != nil {
 		return v1alpha1.Volume{}, err
 	}
-	//get the volume again before returning to have the id populated
+	// get the volume again before returning to have the id populated
 	kubeVolume, err := c.getVolume(ctx, name, cr.Namespace)
 	if err != nil {
 		return v1alpha1.Volume{}, err
@@ -501,6 +502,7 @@ func (c *external) createBootVolume(ctx context.Context, cr *v1alpha1.ServerSet,
 	return *kubeVolume, nil
 }
 
+// IsServerAvailable checks if server is available and observed(status populated)
 func IsServerAvailable(ctx context.Context, c *external, name, namespace string) (bool, error) {
 	kubeServer, err := c.getServer(ctx, name, namespace)
 	if kubeServer != nil && kubeServer.Status.AtProvider.ServerID != "" && strings.EqualFold(kubeServer.Status.AtProvider.State, ionoscloud.Available) {
@@ -514,6 +516,7 @@ func IsServerAvailable(ctx context.Context, c *external, name, namespace string)
 	return false, err
 }
 
+// IsVolumeAvailable checks if volume is available and observed(status populated)
 func IsVolumeAvailable(ctx context.Context, c *external, name, namespace string) (bool, error) {
 	kubeVolume, err := c.getVolume(ctx, name, namespace)
 	if kubeVolume != nil && kubeVolume.Status.AtProvider.VolumeID != "" && strings.EqualFold(kubeVolume.Status.AtProvider.State, ionoscloud.Available) {
@@ -527,6 +530,7 @@ func IsVolumeAvailable(ctx context.Context, c *external, name, namespace string)
 	return false, err
 }
 
+// IsVolumeDeleted checks if volume is deleted
 func IsVolumeDeleted(ctx context.Context, c *external, name, namespace string) (bool, error) {
 	_, err := c.getVolume(ctx, name, namespace)
 	if err != nil {
