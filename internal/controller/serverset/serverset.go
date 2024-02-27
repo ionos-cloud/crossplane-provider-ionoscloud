@@ -224,7 +224,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, err
 
 	}
-	c.log.Info("Updating: %+v", cr)
+	c.log.Info("Finished updating serverset: ", "name", cr.Name)
 
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -361,7 +361,7 @@ func (c *external) ensureBootVolume(ctx context.Context, cr *v1alpha1.ServerSet,
 		}
 		return err
 	}
-	c.log.Info("Volume State: ", volume.Status.AtProvider.State)
+	c.log.Info(fmt.Sprintf("Volume State: %s", volume.Status.AtProvider.State))
 
 	return nil
 }
