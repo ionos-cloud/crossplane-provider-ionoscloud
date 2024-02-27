@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -132,7 +133,7 @@ func (eg *externalGroup) Observe(ctx context.Context, mg resource.Managed) (mana
 	cr.SetConditions(xpv1.Available())
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  managementgroup.IsManagementGroupUpToDate(cr, observed, utils.NewSetFromSlice(members)),
+		ResourceUpToDate:  managementgroup.IsManagementGroupUpToDate(cr, observed, sets.New[string](members...)),
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
 }
@@ -189,7 +190,7 @@ func (eg *externalGroup) Update(ctx context.Context, mg resource.Managed) (manag
 	}
 
 	groupID := cr.Status.AtProvider.ManagementGroupID
-	groupInput, addMemberIDs, delMemberIDs := managementgroup.GenerateUpdateGroupInput(cr, utils.NewSetFromSlice(cr.Status.AtProvider.UserIDs))
+	groupInput, addMemberIDs, delMemberIDs := managementgroup.GenerateUpdateGroupInput(cr, sets.New[string](cr.Status.AtProvider.UserIDs...))
 
 	_, apiResponse, err := eg.service.UpdateGroup(ctx, groupID, *groupInput)
 	if err != nil {

@@ -125,7 +125,7 @@ type ManagementGroupParameters struct {
 // ManagementGroupConfig is used by resources that need to link Groups via id or via reference.
 type ManagementGroupConfig struct {
 	// ManagementGroupID is the ID of the ManagementGroup on which the resource should have access.
-	// It needs to be provided via directly or via reference.
+	// It needs to be provided directly or via reference.
 	//
 	// +immutable
 	// +kubebuilder:validation:Format=uuid

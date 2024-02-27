@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
-
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 )
 
@@ -32,7 +33,7 @@ type Client interface {
 	UpdateGroup(ctx context.Context, groupID string, group sdkgo.Group) (sdkgo.Group, *sdkgo.APIResponse, error)
 	AddGroupMember(ctx context.Context, groupID, userID string) (*sdkgo.APIResponse, error)
 	RemoveGroupMember(ctx context.Context, groupID, userID string) (*sdkgo.APIResponse, error)
-	UpdateGroupMembers(ctx context.Context, groupID string, userIDs utils.Set[string], updateFn GroupMembersUpdateFn) error
+	UpdateGroupMembers(ctx context.Context, groupID string, userIDs sets.Set[string], updateFn GroupMembersUpdateFn) error
 	DeleteGroup(ctx context.Context, groupID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
 }
@@ -124,7 +125,7 @@ func (cp *APIClient) RemoveGroupMember(ctx context.Context, groupID, userID stri
 }
 
 // UpdateGroupMembers updates the members of Group depending on modFn using the userIDs set
-func (cp *APIClient) UpdateGroupMembers(ctx context.Context, groupID string, userIDs utils.Set[string], updateFn GroupMembersUpdateFn) error {
+func (cp *APIClient) UpdateGroupMembers(ctx context.Context, groupID string, userIDs sets.Set[string], updateFn GroupMembersUpdateFn) error {
 
 	updateErrs := make([]error, 0, len(userIDs))
 	waitErrs := make([]error, 0, len(userIDs))
@@ -154,7 +155,7 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 }
 
 // GenerateUpdateGroupInput returns sdkgo.Group and members that need to be added and deleted based or CR and observed member IDs
-func GenerateUpdateGroupInput(cr *v1alpha1.ManagementGroup, observedMemberIDs utils.Set[string]) (*sdkgo.Group, utils.Set[string], utils.Set[string]) {
+func GenerateUpdateGroupInput(cr *v1alpha1.ManagementGroup, observedMemberIDs sets.Set[string]) (*sdkgo.Group, sets.Set[string], sets.Set[string]) {
 	groupData, configuredMemberIDs := GenerateCreateGroupInput(cr)
 	addMemberIDs := configuredMemberIDs.Difference(observedMemberIDs)
 	delMembersIDs := observedMemberIDs.Difference(configuredMemberIDs)
@@ -164,7 +165,7 @@ func GenerateUpdateGroupInput(cr *v1alpha1.ManagementGroup, observedMemberIDs ut
 }
 
 // GenerateCreateGroupInput returns sdkgo.Group and members that need to be added based on CR
-func GenerateCreateGroupInput(cr *v1alpha1.ManagementGroup) (*sdkgo.Group, utils.Set[string]) {
+func GenerateCreateGroupInput(cr *v1alpha1.ManagementGroup) (*sdkgo.Group, sets.Set[string]) {
 	instanceCreateInput := sdkgo.Group{
 		Properties: &sdkgo.GroupProperties{
 			Name:                        &cr.Spec.ForProvider.Name,
@@ -192,7 +193,7 @@ func GenerateCreateGroupInput(cr *v1alpha1.ManagementGroup) (*sdkgo.Group, utils
 }
 
 // IsManagementGroupUpToDate returns true if the Group is up-to-date or false otherwise
-func IsManagementGroupUpToDate(cr *v1alpha1.ManagementGroup, observed sdkgo.Group, observedMembersIDs utils.Set[string]) bool { // nolint:gocyclo
+func IsManagementGroupUpToDate(cr *v1alpha1.ManagementGroup, observed sdkgo.Group, observedMembersIDs sets.Set[string]) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && observed.Properties == nil:
 		return true
@@ -203,14 +204,14 @@ func IsManagementGroupUpToDate(cr *v1alpha1.ManagementGroup, observed sdkgo.Grou
 	}
 	configuredMemberIDs := memberIDsSet(cr)
 
-	return utils.IsEqSdkPropertiesToCR(cr.Spec.ForProvider, *observed.Properties) && observedMembersIDs.EqualTo(configuredMemberIDs)
+	return utils.IsEqSdkPropertiesToCR(cr.Spec.ForProvider, *observed.Properties) && observedMembersIDs.Equal(configuredMemberIDs)
 }
 
-func memberIDsSet(cr *v1alpha1.ManagementGroup) utils.Set[string] {
+func memberIDsSet(cr *v1alpha1.ManagementGroup) sets.Set[string] {
 	mCount := len(cr.Spec.ForProvider.UserCfg)
-	memberIDs := utils.Set[string]{}
+	memberIDs := sets.Set[string]{}
 	for i := 0; i < mCount; i++ {
-		memberIDs.Add(cr.Spec.ForProvider.UserCfg[i].UserID)
+		memberIDs.Insert(cr.Spec.ForProvider.UserCfg[i].UserID)
 	}
 	return memberIDs
 }

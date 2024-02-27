@@ -58,7 +58,7 @@ type UserParameters struct {
 // UserConfig is used by resources that need to link Users via id or via reference.
 type UserConfig struct {
 	// UserID is the ID of the User on which the resource should have access.
-	// It needs to be provided via directly or via reference.
+	// It needs to be provided directly or via reference.
 	//
 	// +immutable
 	// +kubebuilder:validation:Format=uuid

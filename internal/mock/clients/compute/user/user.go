@@ -36,22 +36,6 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
-// AddUserToGroup mocks base method.
-func (m *MockClient) AddUserToGroup(ctx context.Context, groupID, userID string) (ionoscloud.User, *ionoscloud.APIResponse, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddUserToGroup", ctx, groupID, userID)
-	ret0, _ := ret[0].(ionoscloud.User)
-	ret1, _ := ret[1].(*ionoscloud.APIResponse)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// AddUserToGroup indicates an expected call of AddUserToGroup.
-func (mr *MockClientMockRecorder) AddUserToGroup(ctx, groupID, userID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUserToGroup", reflect.TypeOf((*MockClient)(nil).AddUserToGroup), ctx, groupID, userID)
-}
-
 // CreateUser mocks base method.
 func (m *MockClient) CreateUser(ctx context.Context, p v1alpha1.UserParameters) (ionoscloud.User, *ionoscloud.APIResponse, error) {
 	m.ctrl.T.Helper()
@@ -83,20 +67,6 @@ func (mr *MockClientMockRecorder) DeleteUser(ctx, id interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockClient)(nil).DeleteUser), ctx, id)
 }
 
-// DeleteUserFromGroup mocks base method.
-func (m *MockClient) DeleteUserFromGroup(ctx context.Context, groupID, userID string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteUserFromGroup", ctx, groupID, userID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteUserFromGroup indicates an expected call of DeleteUserFromGroup.
-func (mr *MockClientMockRecorder) DeleteUserFromGroup(ctx, groupID, userID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUserFromGroup", reflect.TypeOf((*MockClient)(nil).DeleteUserFromGroup), ctx, groupID, userID)
-}
-
 // GetAPIClient mocks base method.
 func (m *MockClient) GetAPIClient() *ionoscloud.APIClient {
 	m.ctrl.T.Helper()
@@ -125,21 +95,6 @@ func (m *MockClient) GetUser(ctx context.Context, id string) (ionoscloud.User, *
 func (mr *MockClientMockRecorder) GetUser(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUser", reflect.TypeOf((*MockClient)(nil).GetUser), ctx, id)
-}
-
-// GetUserGroups mocks base method.
-func (m *MockClient) GetUserGroups(ctx context.Context, userID string) ([]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserGroups", ctx, userID)
-	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUserGroups indicates an expected call of GetUserGroups.
-func (mr *MockClientMockRecorder) GetUserGroups(ctx, userID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserGroups", reflect.TypeOf((*MockClient)(nil).GetUserGroups), ctx, userID)
 }
 
 // UpdateUser mocks base method.
