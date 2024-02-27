@@ -1,0 +1,19 @@
+# Use this file to create a UserGroup.
+# Required values for creating a User CR are:
+# Name
+#
+# You can also set crossplane.io/external-name annotation to manage an existing resource.
+# It must point to an existing user group id. Required fields are still necessary to manage the existing user group.
+# Ensure the same password is used otherwise an update will take place.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: UserGroup
+metadata:
+  name: xplane-test-usergroup
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: testgroup
+  providerConfigRef:
+    name: example
+
