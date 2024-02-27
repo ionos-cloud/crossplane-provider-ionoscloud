@@ -150,7 +150,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		}, nil
 	}
 
-	// TODO: check for NICs attached to the servers
+	cr.Status.SetConditions(xpv1.Available())
 
 	return managed.ExternalObservation{
 		// Return false when the externalServerSet resource does not exist. This lets
@@ -201,7 +201,6 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	}
 
 	// When all conditions are met, the managed resource is considered available
-	cr.Status.SetConditions(xpv1.Available())
 	meta.SetExternalName(cr, cr.Name)
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
@@ -305,6 +304,11 @@ func (c *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 			}
 			gotServer.Spec.ForProvider.VolumeCfg.VolumeID = meta.GetExternalName(&createdVolume)
 			err = c.kube.Update(ctx, gotServer)
+			if err != nil {
+				return err
+			}
+			// wait for server to become ready again after re-attaching volume
+			err = WaitForKubeResource(ctx, 5*time.Minute, IsServerAvailable, c, getNameFromIndex(cr.Name, "server", idx), cr.Namespace)
 			if err != nil {
 				return err
 			}
