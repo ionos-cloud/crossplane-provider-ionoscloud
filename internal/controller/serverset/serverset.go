@@ -24,10 +24,8 @@ import (
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -39,6 +37,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/kube"
 )
 
 const (
@@ -47,6 +46,8 @@ const (
 	errTrackPCUsage = "cannot track ProviderConfig usage"
 
 	serverSetLabel = "ionoscloud.com/serverset"
+
+	resourceReadyTimeout = 5 * time.Minute
 )
 
 // A connector is expected to produce an ExternalClient when its Connect method
@@ -223,7 +224,6 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, err
 
 	}
-	c.log.Info("Finished updating serverset: ", "name", cr.Name)
 
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -290,7 +290,7 @@ func (c *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 				fmt.Printf("error deleting volume %v", err)
 				return err
 			}
-			err := WaitForKubeResource(ctx, 5*time.Minute, IsVolumeDeleted, c, volumes[idx].Name, cr.Namespace)
+			err := kube.WaitForKubeResource(ctx, resourceReadyTimeout, kube.IsVolumeDeleted, c.kube, volumes[idx].Name, cr.Namespace)
 			if err != nil {
 				return err
 			}
@@ -308,7 +308,7 @@ func (c *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 				return err
 			}
 			// wait for server to become ready again after re-attaching volume
-			err = WaitForKubeResource(ctx, 5*time.Minute, IsServerAvailable, c, getNameFromIndex(cr.Name, "server", idx), cr.Namespace)
+			err = kube.WaitForKubeResource(ctx, resourceReadyTimeout, IsServerAvailable, c.kube, getNameFromIndex(cr.Name, "server", idx), cr.Namespace)
 			if err != nil {
 				return err
 			}
@@ -358,7 +358,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 func (c *external) ensureBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, name string) error {
 	c.log.Info("Ensuring BootVolume")
 	ns := cr.Namespace
-	volume, err := c.getVolume(ctx, name, ns)
+	volume, err := kube.GetVolume(ctx, c.kube, name, ns)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			_, err := c.createBootVolume(ctx, cr, name)
@@ -412,52 +412,19 @@ func (c *external) getServer(ctx context.Context, name, ns string) (*v1alpha1.Se
 
 	return obj, nil
 }
-func (c *external) getVolume(ctx context.Context, volumeName, ns string) (*v1alpha1.Volume, error) {
-	obj := &v1alpha1.Volume{}
-	if err := c.kube.Get(ctx, types.NamespacedName{
-		Namespace: ns,
-		Name:      volumeName,
-	}, obj); err != nil {
-		return nil, err
-	}
 
-	return obj, nil
-}
 func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, idx int) error {
 	c.log.Info("Creating Server")
 	serverType := "server"
-	serverObj := v1alpha1.Server{
+	serverObj := fromServerSetToServer(cr, idx)
 
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      getNameFromIndex(cr.Name, serverType, idx),
-			Namespace: cr.Namespace,
-			Labels: map[string]string{
-				serverSetLabel: cr.Name,
-			},
-		},
-		ManagementPolicies: xpv1.ManagementPolicies{"*"},
-		Spec: v1alpha1.ServerSpec{
-			ForProvider: v1alpha1.ServerParameters{
-				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
-				Name:             getNameFromIndex(cr.Name, serverType, idx),
-				Cores:            cr.Spec.ForProvider.Template.Spec.Cores,
-				RAM:              cr.Spec.ForProvider.Template.Spec.RAM,
-				AvailabilityZone: "AUTO",
-				CPUFamily:        cr.Spec.ForProvider.Template.Spec.CPUFamily,
-				VolumeCfg: v1alpha1.VolumeConfig{
-					VolumeIDRef: &xpv1.Reference{
-						Name: getNameFromIndex(cr.Name, "bootvolume", idx),
-					},
-				},
-			},
-		}}
 	serverObj.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
 	if err := c.kube.Create(ctx, &serverObj); err != nil {
 		fmt.Println("error creating server")
 		fmt.Println(err.Error())
 		return err
 	}
-	if err := WaitForKubeResource(ctx, 5*time.Minute, IsServerAvailable, c, getNameFromIndex(cr.Name, serverType, idx), cr.Namespace); err != nil {
+	if err := kube.WaitForKubeResource(ctx, resourceReadyTimeout, IsServerAvailable, c.kube, getNameFromIndex(cr.Name, serverType, idx), cr.Namespace); err != nil {
 		return fmt.Errorf("while waiting for server to be populated %w ", err)
 	}
 	return nil
@@ -466,104 +433,39 @@ func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, idx
 // createBootVolume creates a volume CR and waits until in reaches AVAILABLE state
 func (c *external) createBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, name string) (v1alpha1.Volume, error) {
 	c.log.Info("Creating Volume")
-	var volumeObj = v1alpha1.Volume{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: cr.Namespace,
-			Labels: map[string]string{
-				serverSetLabel: cr.Name,
-			},
-		},
-		ManagementPolicies: xpv1.ManagementPolicies{"*"},
-		Spec: v1alpha1.VolumeSpec{
-			ForProvider: v1alpha1.VolumeParameters{
-				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
-				Name:             name,
-				AvailabilityZone: "AUTO",
-				Size:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size,
-				Type:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type,
-				Image:            cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image,
-				// todo add to template(?)
-				ImagePassword: "imagePassword776",
-			},
-		}}
+	var volumeObj = fromServerSetToVolume(cr, name)
 	volumeObj.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
 	if err := c.kube.Create(ctx, &volumeObj); err != nil {
 		return v1alpha1.Volume{}, err
 	}
-	if err := WaitForKubeResource(ctx, 5*time.Minute, IsVolumeAvailable, c, name, cr.Namespace); err != nil {
+	if err := kube.WaitForKubeResource(ctx, resourceReadyTimeout, kube.IsVolumeAvailable, c.kube, name, cr.Namespace); err != nil {
 		return v1alpha1.Volume{}, err
 	}
 	// get the volume again before returning to have the id populated
-	kubeVolume, err := c.getVolume(ctx, name, cr.Namespace)
+	kubeVolume, err := kube.GetVolume(ctx, c.kube, name, cr.Namespace)
 	if err != nil {
 		return v1alpha1.Volume{}, err
 	}
 	return *kubeVolume, nil
 }
 
-// IsServerAvailable checks if server is available and observed(status populated)
-func IsServerAvailable(ctx context.Context, c *external, name, namespace string) (bool, error) {
-	kubeServer, err := c.getServer(ctx, name, namespace)
-	if kubeServer != nil && kubeServer.Status.AtProvider.ServerID != "" && strings.EqualFold(kubeServer.Status.AtProvider.State, ionoscloud.Available) {
-		return true, nil
-	}
+func IsServerAvailable(ctx context.Context, c client.Client, name, namespace string) (bool, error) {
+	obj := &v1alpha1.Server{}
+	err := c.Get(ctx, types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}, obj)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			return false, nil
 		}
 	}
-	return false, err
-}
-
-// IsVolumeAvailable checks if volume is available and observed(status populated)
-func IsVolumeAvailable(ctx context.Context, c *external, name, namespace string) (bool, error) {
-	kubeVolume, err := c.getVolume(ctx, name, namespace)
-	if kubeVolume != nil && kubeVolume.Status.AtProvider.VolumeID != "" && strings.EqualFold(kubeVolume.Status.AtProvider.State, ionoscloud.Available) {
+	if obj != nil && obj.Status.AtProvider.ServerID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
 		return true, nil
 	}
-	if err != nil {
-		if apiErrors.IsNotFound(err) {
-			return false, nil
-		}
-	}
 	return false, err
 }
 
-// IsVolumeDeleted checks if volume is deleted
-func IsVolumeDeleted(ctx context.Context, c *external, name, namespace string) (bool, error) {
-	_, err := c.getVolume(ctx, name, namespace)
-	if err != nil {
-		if apiErrors.IsNotFound(err) {
-			return true, nil
-		}
-	}
-	return false, err
-}
-
-// IsResourceReady polls kube api to see if resource is available and observed(status populated)
-type IsResourceReady func(ctx context.Context, c *external, name, namespace string) (bool, error)
-
-// WaitForKubeResource - keeps retrying until resource meets condition, or until ctx is cancelled
-func WaitForKubeResource(ctx context.Context, timeoutInMinutes time.Duration, fn IsResourceReady, c *external, name, namespace string) error {
-	if c == nil {
-		return fmt.Errorf("external client is nil")
-	}
-	if name == "" {
-		return fmt.Errorf("name is empty")
-	}
-	err := retry.RetryContext(ctx, timeoutInMinutes, func() *retry.RetryError {
-		isReady, err := fn(ctx, c, name, namespace)
-		if isReady {
-			return nil
-		}
-		if err != nil {
-			retry.NonRetryableError(err)
-		}
-		return retry.RetryableError(fmt.Errorf("resource with name %v found, still trying ", name))
-	})
-	return err
-}
 func (c *external) ensureNICs(ctx context.Context, cr *v1alpha1.ServerSet, idx int) error {
 	c.log.Info("Ensuring NIC")
 
@@ -662,30 +564,9 @@ func (c *external) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, server
 	// no NIC found, create one
 	if apiErrors.IsNotFound(err) {
 		c.log.Info("Creating NIC", "name", nicName)
-		createNic := &v1alpha1.Nic{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      nicName,
-				Namespace: cr.GetNamespace(),
-				Labels: map[string]string{
-					serverSetLabel: cr.Name,
-				},
-			},
-			ManagementPolicies: xpv1.ManagementPolicies{"*"},
-			Spec: v1alpha1.NicSpec{
-				ForProvider: v1alpha1.NicParameters{
-					Name:          nicName,
-					DatacenterCfg: cr.Spec.ForProvider.DatacenterCfg,
-					ServerCfg: v1alpha1.ServerConfig{
-						ServerID: serverID,
-					},
-					LanCfg: v1alpha1.LanConfig{
-						LanID: lanID,
-					},
-				},
-			},
-		}
+		createNic := fromServerSetToNic(cr, nicName, serverID, lanID)
 		createNic.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
-		return c.kube.Create(ctx, createNic)
+		return c.kube.Create(ctx, &createNic)
 	}
 
 	// NIC found, check if it's attached to the server
