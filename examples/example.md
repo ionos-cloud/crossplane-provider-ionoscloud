@@ -17,7 +17,7 @@ In this Proof of Concept of the IONOS Cloud Provider, we will create a DBaaS Pos
 
 Ensure that you have the following:
 
-* A Kubernetes implementation, such as; [`kind`](https://kind.sigs.k8s.io/)
+* A Kubernetes implementation, such as [`kind`](https://kind.sigs.k8s.io/)
 * [``Kubectl``](https://kubernetes.io/docs/tasks/tools/#kubectl)
 * [``Helm``](https://helm.sh/docs/intro/install/)
 * Docker
@@ -26,13 +26,15 @@ Ensure that you have the following:
 
 ### Check prerequisites
 
-* To check K8s, in case of using ``kind``, run the following command:
+You can now check your prerequisites.
+
+To check K8s, in case of using ``kind``, run the following command:
 
 ```bash
 kind version
 ```
 
-*  To check the **credentials**, run the following command:
+To check the **credentials**, run the following command:
 
 ```bash
 export IONOS_USERNAME=xxx
@@ -46,7 +48,7 @@ OR
 export IONOS_TOKEN=xxx
 ```
 
-* To clone the repository locally, run the following command:
+To clone the repository locally, run the following command:
 
 ```bash
 git clone https://github.com/ionos-cloud/crossplane-provider-ionoscloud.git
@@ -59,7 +61,7 @@ To set up Crossplane Provider IONOS Cloud, follow these steps:
 
 * [<mark style="color:blue;">Create a K8s cluster (in case of using kind)</mark>](#create-a-k8s-cluster-in-case-of-using-kind)
 * [<mark style="color:blue;">Create namespace for the crossplane ecosystem</mark>](#create-namespace-for-the-crossplane-ecosystem)
-* [<mark style="color:blue;">Install crossplane via ``helm`</mark>](#install-crossplane-via-helm)
+* [<mark style="color:blue;">Install crossplane via ``helm``</mark>](#install-crossplane-via-helm)
 * [<mark style="color:blue;">Register CRDs into k8s cluster</mark>](#register-crds-into-k8s-cluster)
 * [<mark style="color:blue;"> Install ProviderConfig for credentialsr</mark>](#install-providerconfig-for-credentials)
 * [<mark style="color:blue;">Install Crossplane Provider IONOS Cloud</mark>](#install-crossplane-provider-ionos-cloud)
