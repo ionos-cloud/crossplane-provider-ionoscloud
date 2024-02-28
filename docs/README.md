@@ -2,91 +2,100 @@
 
 ## Overview
 
-Crossplane Provider for IONOS Cloud gives the ability to manage IONOS Cloud infrastructure directly from Kubernetes.
-Crossplane extends a Kubernetes cluster to support orchestrating any infrastructure or managed service. Providers extend
-Crossplane to enable infrastructure resource provisioning of specific API.
+Crossplane Provider for IONOS Cloud gives the ability to manage IONOS Cloud infrastructure directly from Kubernetes. Crossplane extends a Kubernetes cluster to support orchestrating any infrastructure or managed service. Providers can use Crossplane to enable infrastructure resource provisioning of a specific API.
 
-The [crossplane-provider-ionoscloud](https://github.com/ionos-cloud/crossplane-provider-ionoscloud) repository is the
-Crossplane infrastructure provider for IONOS Cloud. The provider that is built from the source code from the repository
-can be installed into a Crossplane control plane and adds the following new functionality:
+{% hint style="info" %}
+**Note:** You can access and contribute to the [<mark style="color:blue;">crossplane-provider-ionoscloud</mark>](https://github.com/ionos-cloud/crossplane-provider-ionoscloud) repository for IONOS Cloud.
+{% endhint %}
 
-* Custom Resource Definitions (CRDs) that model IONOS Cloud infrastructure and services (e.g. Compute Engine,
-  Kubernetes, Database As a Service Postgres, etc.)
-* Controllers to provision these resources in IONOS Cloud based on the users desired state captured in CRDs they create
-* Implementations of Crossplane's portable resource abstractions, enabling IONOS Cloud resources to fulfill a user's
-  general need for cloud services
+ The provider that is built from the source code from the repository can be installed into a Crossplane control plane and adds the following new functionality:
 
-## Getting Started and Documentation
+  * Custom Resource Definitions (CRDs) model IONOS Cloud infrastructure and services. For example, Compute Engine, Kubernetes, Database As a Service Postgres, etc.
+  * Controllers provision these resources in IONOS Cloud based on the user's desired state captured in CRDs when created.
+  * Implementations of Crossplane's portable resource abstractions that enable IONOS Cloud resources to fulfill a user's general need for cloud services.
 
-For getting started with Crossplane usage and concepts, see the
-official [Documentation](https://crossplane.io/docs/v1.7/).
+## Getting Started 
 
-For getting started with Crossplane Provider for IONOS Cloud, check out this
-step-by-step [guide](../examples/example.md) which provides details about the provisioning of a Postgres Cluster in
-IONOS Cloud.
+To start with Crossplane usage and concepts, see the official [<mark style="color:blue;">Crossplane Documentation</mark>](https://docs.crossplane.io/v1.15/getting-started/).
+
+To get started with Crossplane Provider for IONOS Cloud, see [<mark style="color:blue;">Crossplane Provider IONOS Cloud - Example (PoC)</mark>](../examples/example.md), which provides details about the provisioning of a **Postgres Cluster** in IONOS Cloud.
 
 ## Prerequisites
 
-To use the Crossplane Provider IONOS Cloud you will need an IONOS Cloud account, the same account you may use
-with [DCD](https://dcd.ionos.com/latest/) or other config management tools.
+Ensure that you have the following:
 
-Make sure you have a Kubernetes cluster
-and [installed a Self-Hosted Crossplane](https://crossplane.github.io/docs/v1.7/) into a namespace
-called `crossplane-system`.
+* An IONOS Cloud account that you use for [<mark style="color:blue;">DCD</mark>](https://dcd.ionos.com/latest/) or other Config Management Tools.
 
-In the examples [guide](../examples/example.md), you can find information of how to install a Kubernetes Cluster
-locally (using kind or other lightweight Kubernetes) and Crossplane.
+* A Kubernetes cluster and [<mark style="color:blue;">Install Crossplane</mark>](https://docs.crossplane.io/latest/software/install/) into a namespace called `crossplane-system`. 
+
+{% hint style="info" %}
+**Note:** You can install a Kubernetes Cluster locally by using kind or any other lightweight Kubernetes version and Crossplane. For more information, see [<mark style="color:blue;">Crossplane Provider IONOS Cloud - Example (PoC)</mark>](../examples/example.md). 
+{% endhint %}
 
 ## Authentication on IONOS Cloud
 
-Crossplane Provider for IONOS Cloud requires credentials to be provided in order to authenticate to the IONOS Cloud
-APIs. This can be done using a base64-encoded static credentials in a Kubernetes `Secret`.
+To authenticate to the IONOS Cloud APIs, you need to provide credentials for Crossplane Provider for IONOS Cloud. This can be done using the ``base64-encoded`` static credentials in a Kubernetes ``Secret``.
 
-### Environment Variables
+### Environment variables
 
-Crossplane Provider IONOS Cloud uses a `ProviderConfig` in order to setup credentials via `Secrets`. You can use
-environments variables when creating the `ProviderConfig` resource.
+Crossplane Provider IONOS Cloud uses a ``ProviderConfig``` to set up credentials via ``Secrets``. You can use environment variables when creating the ``ProviderConfig`` resource.
 
 | Environment Variable | Description                                                                                                                                                                                                                     |
 |----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `IONOS_USERNAME`     | Specify the username used to login, to authenticate against the IONOS Cloud API                                                                                                                                                 | 
-| `IONOS_PASSWORD`     | Specify the password used to login, to authenticate against the IONOS Cloud API                                                                                                                                                 | 
-| `IONOS_TOKEN`        | Specify the token used to login, if a token is being used instead of username and password                                                                                                                                      |
-| `IONOS_API_URL`      | Specify the API URL. It will overwrite the API endpoint default value `api.ionos.com`. Note: the host URL does not contain the `/cloudapi/v6` path, so it should _ not_ be included in the `IONOS_API_URL` environment variable |
+| ``IONOS_USERNAME``     | Provide the username used to login to authenticate against the IONOS Cloud API.                                                                                                                                                | 
+| ``IONOS_PASSWORD``     | Provide the password used to login to authenticate against the IONOS Cloud API.                                                                                                                                                 | 
+| ``IONOS_TOKEN``        | Provide the token used to login if a token is being used instead of **username** and **password** .                                                                                                                                     |
+| ``IONOS_API_URL``      | Provide the API URL. It will overwrite the API endpoint default value `api.ionos.com`. |
 
-### Create Provider Secret
 
-- Using username and password:
+{% hint style="info" %}
+**Note:** The host URL does not contain the ``/cloudapi/v6`` path, so it should not be included in the ``IONOS_API_URL`` environment variable.
+{% endhint %}
+
+### Create provider secret
+
+To create the provider secret, you can use either of the following methods:
+
+* [<mark style="color:blue;">Using username and password</mark>](#using-username-and-password)
+* [<mark style="color:blue;">Using token</mark>](#using-token)
+
+#### Using username and password
+
+Run the following command:
 
 ```bash
 export BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
 kubectl create secret generic --namespace crossplane-system example-provider-secret --from-literal=credentials="{\"user\":\"${IONOS_USERNAME}\",\"password\":\"${BASE64_PW}\"}"
 ```
 
-- Using token:
+#### Using token
+
+Run the following command:
 
 ```bash
 kubectl create secret generic --namespace crossplane-system example-provider-secret --from-literal=credentials="{\"token\":\"${IONOS_TOKEN}\"}"
 ```
-
-_Note_: You can overwrite the default IONOS Cloud API endpoint, by setting the following option in credentials
-struct: `credentials="{\"host_url\":\"${IONOS_API_URL}\"}"`.
-
-_Note_: You can also set the `IONOS_API_URL` environment variable in the `ControllerConfig` of the provider globally for
+{% hint style="info" %}
+**Note:** 
+* You can overwrite the default IONOS Cloud API endpoint, by setting the credentials to: `credentials="{\"host_url\":\"${IONOS_API_URL}\"}"`.
+* You can also set the `IONOS_API_URL` environment variable in the `ControllerConfig` of the provider globally for
 all resources. The following snipped shows how to set it globally in the ControllerConfig:
 
-```bash
-cat <<EOF | kubectl apply -f -
-apiVersion: pkg.crossplane.io/v1alpha1
-kind: ControllerConfig
-metadata:
-  name: overwrite-ionos-api-url
-spec:
-  env:
-    - name: IONOS_API_URL
-      value: "${IONOS_API_URL}"
-EOF
-```
+    ```bash
+  cat <<EOF | kubectl apply -f -
+  apiVersion: pkg.crossplane.io/v1alpha1
+  kind: ControllerConfig
+  metadata:
+    name: overwrite-ionos-api-url
+  spec:
+    env:
+      - name: IONOS_API_URL
+        value: "${IONOS_API_URL}"
+  EOF
+  ```
+
+{% endhint %}
+
 
 ### Configure the Provider
 
