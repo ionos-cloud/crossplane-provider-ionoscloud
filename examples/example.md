@@ -26,9 +26,7 @@ Ensure that you have the following:
 
 ### Check prerequisites
 
-You can now check your prerequisites.
-
-To check K8s, in case of using ``kind``, run the following command:
+You can now check your prerequisites. To check K8s, in case of using ``kind``, run the following command:
 
 ```bash
 kind version
@@ -63,7 +61,7 @@ To set up Crossplane Provider IONOS Cloud, follow these steps:
 * [<mark style="color:blue;">Create namespace for the crossplane ecosystem</mark>](#create-namespace-for-the-crossplane-ecosystem)
 * [<mark style="color:blue;">Install crossplane via ``helm``</mark>](#install-crossplane-via-helm)
 * [<mark style="color:blue;">Register CRDs into k8s cluster</mark>](#register-crds-into-k8s-cluster)
-* [<mark style="color:blue;"> Install ProviderConfig for credentialsr</mark>](#install-providerconfig-for-credentials)
+* [<mark style="color:blue;"> Install ProviderConfig for credentials</mark>](#install-providerconfig-for-credentials)
 * [<mark style="color:blue;">Install Crossplane Provider IONOS Cloud</mark>](#install-crossplane-provider-ionos-cloud)
 
 ### Create a K8s cluster (in case of using kind)
