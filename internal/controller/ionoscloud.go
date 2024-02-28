@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/usergroup"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -75,6 +76,7 @@ var controllers = []controllerSetup{
 	backupunit.Setup,
 	s3key.Setup,
 	user.Setup,
+	usergroup.Setup,
 	postgresuser.Setup,
 	mongocluster.Setup,
 	mongouser.Setup,

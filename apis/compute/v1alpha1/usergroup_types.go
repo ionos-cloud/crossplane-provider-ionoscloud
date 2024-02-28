@@ -69,7 +69,7 @@ type UserGroupSpec struct {
 // A UserGroupStatus represents the observed state of a UserGroup.
 type UserGroupStatus struct {
 	xpv1.ResourceStatus `json:",inline"`
-	AtProvider          UserObservation `json:"atProvider,omitempty"`
+	AtProvider          UserGroupObservation `json:"atProvider,omitempty"`
 }
 
 // UserGroupObservation are the observable fields of a UserGroup.
@@ -85,17 +85,17 @@ type UserGroupObservation struct {
 type UserGroupList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []User `json:"items"`
+	Items           []UserGroup `json:"items"`
 }
 
 // User type metadata.
 var (
 	UserGroupTypeKind         = reflect.TypeOf(UserGroup{}).Name()
-	UserGroupGroupKind        = schema.GroupKind{Group: Group, Kind: UserGroupKind}.String()
-	UserGroupKindAPIVersion   = UserGroupKind + "." + SchemeGroupVersion.String()
-	UserGroupGroupVersionKind = SchemeGroupVersion.WithKind(UserGroupKind)
+	UserGroupGroupKind        = schema.GroupKind{Group: Group, Kind: UserGroupTypeKind}.String()
+	UserGroupKindAPIVersion   = UserGroupTypeKind + "." + SchemeGroupVersion.String()
+	UserGroupGroupVersionKind = SchemeGroupVersion.WithKind(UserGroupTypeKind)
 )
 
 func init() {
-	SchemeBuilder.Register(&User{}, &UserList{})
+	SchemeBuilder.Register(&UserGroup{}, &UserGroupList{})
 }

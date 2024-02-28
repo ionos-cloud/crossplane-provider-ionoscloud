@@ -277,32 +277,12 @@ spec:
             description: A UserGroupStatus represents the observed state of a UserGroup.
             properties:
               atProvider:
-                description: UserObservation are the observable fields of a User.
+                description: UserGroupObservation are the observable fields of a UserGroup.
                 properties:
-                  active:
-                    description: Active Indicates if the user is active.
-                    type: boolean
-                  groupIDs:
-                    description: GroupIds that this user will be a member of.
-                    items:
-                      type: string
-                    type: array
-                  s3CanonicalUserID:
-                    description: S3CanonicalUserID Canonical (S3) id of the user for
-                      a given identity.
-                    type: string
-                  secAuthActive:
-                    description: SecAuthActive Indicates if secure authentication
-                      is active for the user or not.
-                    type: boolean
                   userID:
-                    description: UserID is the user id.
+                    description: UserGroupID is the user group id.
                     format: uuid
                     type: string
-                required:
-                - active
-                - groupIDs
-                - secAuthActive
                 type: object
               conditions:
                 description: Conditions of the resource.
