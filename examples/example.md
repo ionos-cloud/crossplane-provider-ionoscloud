@@ -34,24 +34,24 @@ Ensure that you have the following:
 
 *  To check the **credentials**, run the following command:
 
-    ```bash
-    export IONOS_USERNAME=xxx
-    export IONOS_PASSWORD=xxx
-    export BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
-    ```
+  ```bash
+  export IONOS_USERNAME=xxx
+  export IONOS_PASSWORD=xxx
+  export BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
+  ```
 
 OR
 
-    ```bash
-    export IONOS_TOKEN=xxx
-    ```
+  ```bash
+  export IONOS_TOKEN=xxx
+  ```
 
 * To clone the repository locally, run the following command:
 
-    ```bash
-    git clone https://github.com/ionos-cloud/crossplane-provider-ionoscloud.git
-    cd crossplane-provider-ionoscloud
-    ```
+  ```bash
+  git clone https://github.com/ionos-cloud/crossplane-provider-ionoscloud.git
+  cd crossplane-provider-ionoscloud
+  ```
 
 ## Set up Crossplane Provider IONOS Cloud
 
@@ -291,7 +291,7 @@ Refer to the following tables for DBaaS Postgres resources commands:
 
 
 | **Custom Resource**        | **Create/Delete/Update**                                                          |
-|------------------------|-----------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+|------------------------|-----|
 | DBaaS Postgres Cluster | <pre lang="bash">kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/dbaas/postgres-cluster.yaml</pre> |
 
 
@@ -300,7 +300,7 @@ Refer to the following tables for DBaaS Postgres resources commands:
 | DBaaS Postgres Cluster | <pre lang="bash">kubectl get postgresclusters</pre> | <pre lang="bash">kubectl get postgresclusters -o wide</pre> | <pre lang="bash">kubectl get postgresclusters -o json</pre> | 
 
 
-For an overview of all Managed Resources of Crossplane Provider IONOS Cloud, see [file](../docs/README.md#provision-resources-on-ionos-cloud).
+For more information on all Managed Resources of Crossplane Provider IONOS Cloud, see [Provision Resources on IONOS Cloud](../docs/README.md#provision-resources-on-ionos-cloud).
 
 ## Uninstallation
 
