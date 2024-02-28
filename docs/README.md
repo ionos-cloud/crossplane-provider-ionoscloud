@@ -230,7 +230,7 @@ CR specification file with the required ``datacenterId``.
 The references are resolved only once, when the resource is created, and the resolvers are generated
 using [<mark style="color:blue;">crossplane-tools</mark>](https://github.com/crossplane/crossplane-tools).
 
-### Example:
+### Example
 
 ```yaml
 datacenterConfig:
@@ -276,10 +276,7 @@ Once you have configured Compositions, you need to create Composite Resource Cla
 
 ### Example
 
-To create a data center, a Kubernetes Cluster and a Kubernetes Node Pool via Compositions and Claims, follow the  [<mark style="color:blue;">Composition Example</mark>](../examples/composition).
-
-{% hint style="info" %}
-**Note:** For more information, see [<mark style="color:blue;">Composite Resources Concept</mark>](https://crossplane.io/docs/v1.7/concepts/composition.html) and [<mark style="color:blue;">Composite Resources Reference</mark>](https://crossplane.io/docs/v1.7/reference/composition.html)
+To create a data center, a Kubernetes Cluster and a Kubernetes Node Pool via Compositions and Claims, follow the  [<mark style="color:blue;">Composition Example</mark>](../examples/composition). For more information, see [<mark style="color:blue;">Composite Resources</mark>](https://docs.crossplane.io/latest/concepts/composite-resources/).
 {% endhint %}
 
 ## Name uniqueness support for IONOS Cloud resources
