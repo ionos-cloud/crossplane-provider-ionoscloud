@@ -174,6 +174,8 @@ For more information, see [<mark style="color:blue;">Compute Engine API</mark>](
 
 ### Application Load Balancer managed resources
 
+You can see an up-to-date list of Application Load Balancer managed resources that Crossplane Provider IONOS Cloud supports.
+
 #### Application Load Balancer resources custom resource definitions
 
 | **Resources in IONOS Cloud** | **Custom Resource Definition**                           |
@@ -374,7 +376,7 @@ will test and release the images. It will release images for controller and prov
 
 ## Conclusion
 
-Main advantages of the Crossplane Provider IONOS Cloud are:
+The main advantages of the Crossplane Provider IONOS Cloud are as follows:
 
 * **Provisioning** resources in IONOS Cloud from a Kubernetes Cluster using (Custom Resource Definitions) CRDs.
 * Maintaining a **healthy** setup using controller and reconciling loops.
