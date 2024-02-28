@@ -276,7 +276,7 @@ Once you have configured Compositions, you need to create Composite Resource Cla
 
 ### Example
 
-To create a data center, a Kubernetes Cluster and a Kubernetes Node Pool via Compositions and Claims, follow the  [<mark style="color:blue;">Composition Example</mark>](../examples/composition/composite.yaml). For more information, see [<mark style="color:blue;">Composite Resources</mark>](https://docs.crossplane.io/latest/concepts/composite-resources/).
+To create a datacenter, a Kubernetes Cluster and a Kubernetes Node Pool via Compositions and Claims, follow the [<mark style="color:blue;">Composition Example</mark>](../examples/composition/composite.yaml). For more information, see [<mark style="color:blue;">Composite Resources</mark>](https://docs.crossplane.io/latest/concepts/composite-resources/).
 {% endhint %}
 
 ## Name uniqueness support for IONOS Cloud resources
