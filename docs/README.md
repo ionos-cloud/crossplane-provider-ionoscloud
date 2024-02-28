@@ -170,7 +170,7 @@ You can see an up-to-date list of the CRDs and corresponding IONOS Cloud resourc
 | FirewallRules            | ``firewallrules.compute.ionoscloud.crossplane.io`` |
 | IPFailovers              | ``ipfailovers.compute.ionoscloud.crossplane.io``   |
 
-For more information, see [<mark style="color:blue;">Compute Engine API</mark>](api/compute-engine).
+For more information, see [<mark style="color:blue;">Compute Engine API</mark>](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/apis/compute).
 
 ### Application Load Balancer managed resources
 
@@ -184,7 +184,7 @@ You can see an up-to-date list of Application Load Balancer managed resources th
 | ForwardingRule           | ``forwardingrule.alb.ionoscloud.crossplane.io``          |
 | TargetGroup              | ``targetgroup.alb.ionoscloud.crossplane.io``            |
 
-For more information, see [<mark style="color:blue;">Application Load Balancer API</mark>](api/application-load-balancer/).
+For more information, see [<mark style="color:blue;">Application Load Balancer API</mark>](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/apis/alb).
 
 ### Kubernetes managed resources
 You can see an up-to-date list of Managed Kubernetes resources that Crossplane Provider IONOS Cloud supports.
@@ -196,7 +196,7 @@ You can see an up-to-date list of Managed Kubernetes resources that Crossplane P
 | K8s Clusters             | ``clusters.k8s.ionoscloud.crossplane.io`` |
 | K8s NodePools            | ``nodepools.k8s.ionoscloud.crossplane.io`` |
 
-For more information, see [<mark style="color:blue;">Managed Kubernetes API</mark>](api/managed-kubernetes).
+For more information, see [<mark style="color:blue;">Managed Kubernetes API</mark>](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/apis/k8s).
 
 ### Backup Managed Resources
 
@@ -276,7 +276,7 @@ Once you have configured Compositions, you need to create Composite Resource Cla
 
 ### Example
 
-To create a data center, a Kubernetes Cluster and a Kubernetes Node Pool via Compositions and Claims, follow the  [<mark style="color:blue;">Composition Example</mark>](../examples/composition). For more information, see [<mark style="color:blue;">Composite Resources</mark>](https://docs.crossplane.io/latest/concepts/composite-resources/).
+To create a data center, a Kubernetes Cluster and a Kubernetes Node Pool via Compositions and Claims, follow the  [<mark style="color:blue;">Composition Example</mark>](../examples/composition/composite.yaml). For more information, see [<mark style="color:blue;">Composite Resources</mark>](https://docs.crossplane.io/latest/concepts/composite-resources/).
 {% endhint %}
 
 ## Name uniqueness support for IONOS Cloud resources
