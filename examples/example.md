@@ -28,30 +28,30 @@ Ensure that you have the following:
 
 * To check K8s, in case of using ``kind``, run the following command:
 
-  ```bash
-  kind version
-  ```
+```bash
+kind version
+```
 
 *  To check the **credentials**, run the following command:
 
-  ```bash
-  export IONOS_USERNAME=xxx
-  export IONOS_PASSWORD=xxx
-  export BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
-  ```
+```bash
+export IONOS_USERNAME=xxx
+export IONOS_PASSWORD=xxx
+export BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
+```
 
 OR
 
-  ```bash
-  export IONOS_TOKEN=xxx
-  ```
+```bash
+export IONOS_TOKEN=xxx
+```
 
 * To clone the repository locally, run the following command:
 
-  ```bash
-  git clone https://github.com/ionos-cloud/crossplane-provider-ionoscloud.git
-  cd crossplane-provider-ionoscloud
-  ```
+```bash
+git clone https://github.com/ionos-cloud/crossplane-provider-ionoscloud.git
+cd crossplane-provider-ionoscloud
+```
 
 ## Set up Crossplane Provider IONOS Cloud
 
