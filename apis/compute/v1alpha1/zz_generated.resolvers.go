@@ -157,6 +157,35 @@ func (mg *FirewallRule) ResolveReferences(ctx context.Context, c client.Reader) 
 	return nil
 }
 
+// ResolveReferences of this Group.
+func (mg *Group) ResolveReferences(ctx context.Context, c client.Reader) error {
+	r := reference.NewAPIResolver(c, mg)
+
+	var rsp reference.ResolutionResponse
+	var err error
+
+	for i3 := 0; i3 < len(mg.Spec.ForProvider.UserCfg); i3++ {
+		rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+			CurrentValue: mg.Spec.ForProvider.UserCfg[i3].UserID,
+			Extract:      ExtractUserID(),
+			Reference:    mg.Spec.ForProvider.UserCfg[i3].UserIDRef,
+			Selector:     mg.Spec.ForProvider.UserCfg[i3].UserIDSelector,
+			To: reference.To{
+				List:    &UserList{},
+				Managed: &User{},
+			},
+		})
+		if err != nil {
+			return errors.Wrap(err, "mg.Spec.ForProvider.UserCfg[i3].UserID")
+		}
+		mg.Spec.ForProvider.UserCfg[i3].UserID = rsp.ResolvedValue
+		mg.Spec.ForProvider.UserCfg[i3].UserIDRef = rsp.ResolvedReference
+
+	}
+
+	return nil
+}
+
 // ResolveReferences of this IPFailover.
 func (mg *IPFailover) ResolveReferences(ctx context.Context, c client.Reader) error {
 	r := reference.NewAPIResolver(c, mg)
@@ -269,35 +298,6 @@ func (mg *Lan) ResolveReferences(ctx context.Context, c client.Reader) error {
 	}
 	mg.Spec.ForProvider.Pcc.PrivateCrossConnectID = rsp.ResolvedValue
 	mg.Spec.ForProvider.Pcc.PrivateCrossConnectIDRef = rsp.ResolvedReference
-
-	return nil
-}
-
-// ResolveReferences of this ManagementGroup.
-func (mg *ManagementGroup) ResolveReferences(ctx context.Context, c client.Reader) error {
-	r := reference.NewAPIResolver(c, mg)
-
-	var rsp reference.ResolutionResponse
-	var err error
-
-	for i3 := 0; i3 < len(mg.Spec.ForProvider.UserCfg); i3++ {
-		rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
-			CurrentValue: mg.Spec.ForProvider.UserCfg[i3].UserID,
-			Extract:      ExtractUserID(),
-			Reference:    mg.Spec.ForProvider.UserCfg[i3].UserIDRef,
-			Selector:     mg.Spec.ForProvider.UserCfg[i3].UserIDSelector,
-			To: reference.To{
-				List:    &UserList{},
-				Managed: &User{},
-			},
-		})
-		if err != nil {
-			return errors.Wrap(err, "mg.Spec.ForProvider.UserCfg[i3].UserID")
-		}
-		mg.Spec.ForProvider.UserCfg[i3].UserID = rsp.ResolvedValue
-		mg.Spec.ForProvider.UserCfg[i3].UserIDRef = rsp.ResolvedReference
-
-	}
 
 	return nil
 }

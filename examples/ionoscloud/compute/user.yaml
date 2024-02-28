@@ -19,7 +19,7 @@ spec:
     - "*"
   forProvider:
     administrator: false
-    email: "unique_10022@xplane.com"
+    email: "unique_10052@xplane.com"
     firstName: "xplane test"
     lastName: "user"
     forceSecAuth: true

@@ -1,4 +1,4 @@
-package managementgroup
+package group
 
 import (
 	"context"
@@ -155,7 +155,7 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 }
 
 // GenerateUpdateGroupInput returns sdkgo.Group and members that need to be added and deleted based or CR and observed member IDs
-func GenerateUpdateGroupInput(cr *v1alpha1.ManagementGroup, observedMemberIDs sets.Set[string]) (*sdkgo.Group, sets.Set[string], sets.Set[string]) {
+func GenerateUpdateGroupInput(cr *v1alpha1.Group, observedMemberIDs sets.Set[string]) (*sdkgo.Group, sets.Set[string], sets.Set[string]) {
 	groupData, configuredMemberIDs := GenerateCreateGroupInput(cr)
 	addMemberIDs := configuredMemberIDs.Difference(observedMemberIDs)
 	delMembersIDs := observedMemberIDs.Difference(configuredMemberIDs)
@@ -165,7 +165,7 @@ func GenerateUpdateGroupInput(cr *v1alpha1.ManagementGroup, observedMemberIDs se
 }
 
 // GenerateCreateGroupInput returns sdkgo.Group and members that need to be added based on CR
-func GenerateCreateGroupInput(cr *v1alpha1.ManagementGroup) (*sdkgo.Group, sets.Set[string]) {
+func GenerateCreateGroupInput(cr *v1alpha1.Group) (*sdkgo.Group, sets.Set[string]) {
 	instanceCreateInput := sdkgo.Group{
 		Properties: &sdkgo.GroupProperties{
 			Name:                        &cr.Spec.ForProvider.Name,
@@ -192,8 +192,8 @@ func GenerateCreateGroupInput(cr *v1alpha1.ManagementGroup) (*sdkgo.Group, sets.
 	return &instanceCreateInput, memberIDsSet(cr)
 }
 
-// IsManagementGroupUpToDate returns true if the Group is up-to-date or false otherwise
-func IsManagementGroupUpToDate(cr *v1alpha1.ManagementGroup, observed sdkgo.Group, observedMembersIDs sets.Set[string]) bool { // nolint:gocyclo
+// IsGroupUpToDate returns true if the Group is up-to-date or false otherwise
+func IsGroupUpToDate(cr *v1alpha1.Group, observed sdkgo.Group, observedMembersIDs sets.Set[string]) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && observed.Properties == nil:
 		return true
@@ -207,7 +207,7 @@ func IsManagementGroupUpToDate(cr *v1alpha1.ManagementGroup, observed sdkgo.Grou
 	return utils.IsEqSdkPropertiesToCR(cr.Spec.ForProvider, *observed.Properties) && observedMembersIDs.Equal(configuredMemberIDs)
 }
 
-func memberIDsSet(cr *v1alpha1.ManagementGroup) sets.Set[string] {
+func memberIDsSet(cr *v1alpha1.Group) sets.Set[string] {
 	mCount := len(cr.Spec.ForProvider.UserCfg)
 	memberIDs := sets.Set[string]{}
 	for i := 0; i < mCount; i++ {

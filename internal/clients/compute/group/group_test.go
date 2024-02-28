@@ -1,4 +1,4 @@
-package managementgroup
+package group
 
 import (
 	"testing"
@@ -10,10 +10,10 @@ import (
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 )
 
-func TestIsManagementGroupUpToDate(t *testing.T) {
+func TestIsGroupUpToDate(t *testing.T) {
 
 	type args struct {
-		cr        *v1alpha1.ManagementGroup
+		cr        *v1alpha1.Group
 		Group     ionoscloud.Group
 		memberIDs sets.Set[string]
 	}
@@ -41,9 +41,9 @@ func TestIsManagementGroupUpToDate(t *testing.T) {
 		{
 			name: "observed empty",
 			args: args{
-				cr: &v1alpha1.ManagementGroup{
-					Spec: v1alpha1.ManagementGroupSpec{
-						ForProvider: v1alpha1.ManagementGroupParameters{
+				cr: &v1alpha1.Group{
+					Spec: v1alpha1.GroupSpec{
+						ForProvider: v1alpha1.GroupParameters{
 							Name: "foo",
 						},
 					},
@@ -55,9 +55,9 @@ func TestIsManagementGroupUpToDate(t *testing.T) {
 		{
 			name: "equal properties",
 			args: args{
-				cr: &v1alpha1.ManagementGroup{
-					Spec: v1alpha1.ManagementGroupSpec{
-						ForProvider: v1alpha1.ManagementGroupParameters{
+				cr: &v1alpha1.Group{
+					Spec: v1alpha1.GroupSpec{
+						ForProvider: v1alpha1.GroupParameters{
 							Name:                 "foo",
 							CreateDataCenter:     true,
 							CreateInternetAccess: true,
@@ -80,9 +80,9 @@ func TestIsManagementGroupUpToDate(t *testing.T) {
 		{
 			name: "different properties",
 			args: args{
-				cr: &v1alpha1.ManagementGroup{
-					Spec: v1alpha1.ManagementGroupSpec{
-						ForProvider: v1alpha1.ManagementGroupParameters{
+				cr: &v1alpha1.Group{
+					Spec: v1alpha1.GroupSpec{
+						ForProvider: v1alpha1.GroupParameters{
 							Name:                 "meow",
 							CreateDataCenter:     true,
 							CreateInternetAccess: false,
@@ -105,9 +105,9 @@ func TestIsManagementGroupUpToDate(t *testing.T) {
 		{
 			name: "equal properties and members",
 			args: args{
-				cr: &v1alpha1.ManagementGroup{
-					Spec: v1alpha1.ManagementGroupSpec{
-						ForProvider: v1alpha1.ManagementGroupParameters{
+				cr: &v1alpha1.Group{
+					Spec: v1alpha1.GroupSpec{
+						ForProvider: v1alpha1.GroupParameters{
 							Name:                 "foo",
 							CreateDataCenter:     true,
 							CreateInternetAccess: true,
@@ -141,9 +141,9 @@ func TestIsManagementGroupUpToDate(t *testing.T) {
 		{
 			name: "different members",
 			args: args{
-				cr: &v1alpha1.ManagementGroup{
-					Spec: v1alpha1.ManagementGroupSpec{
-						ForProvider: v1alpha1.ManagementGroupParameters{
+				cr: &v1alpha1.Group{
+					Spec: v1alpha1.GroupSpec{
+						ForProvider: v1alpha1.GroupParameters{
 							Name: "meow",
 							UserCfg: []v1alpha1.UserConfig{
 								{UserID: "17dc05fa-8e39-4d68-9529-5a428494882a"},
@@ -168,8 +168,8 @@ func TestIsManagementGroupUpToDate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IsManagementGroupUpToDate(tt.args.cr, tt.args.Group, tt.args.memberIDs); got != tt.want {
-				t.Errorf("IsManagementGroupUpToDate() = %v, want %v", got, tt.want)
+			if got := IsGroupUpToDate(tt.args.cr, tt.args.Group, tt.args.memberIDs); got != tt.want {
+				t.Errorf("IsGroupUpToDate() = %v, want %v", got, tt.want)
 			}
 		})
 	}

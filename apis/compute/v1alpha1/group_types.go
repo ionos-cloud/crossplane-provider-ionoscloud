@@ -25,10 +25,10 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
-// ManagementGroupParameters are the observable fields of a ManagementGroup.
-// Required values when creating a ManagementGroup:
+// GroupParameters are the observable fields of a Group.
+// Required values when creating a Group:
 // Name
-type ManagementGroupParameters struct {
+type GroupParameters struct {
 	// Name of the resource.
 	//
 	// +kubebuilder:validation:Required
@@ -113,7 +113,7 @@ type ManagementGroupParameters struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:default=false
 	S3Privilege bool `json:"s3Privilege"`
-	// In order to add a User as member to the ManagementGroup, it is recommended to use UserCfg
+	// In order to add a User as member to the Group, it is recommended to use UserCfg
 	// to add an existing User as a member (via id or via reference).
 	// To remove a User from the Group, update the CR spec by removing it.
 	//
@@ -122,83 +122,83 @@ type ManagementGroupParameters struct {
 	UserCfg []UserConfig `json:"userConfig,omitempty"`
 }
 
-// ManagementGroupConfig is used by resources that need to link Groups via id or via reference.
-type ManagementGroupConfig struct {
-	// ManagementGroupID is the ID of the ManagementGroup on which the resource should have access.
+// GroupConfig is used by resources that need to link Groups via id or via reference.
+type GroupConfig struct {
+	// GroupID is the ID of the Group on which the resource should have access.
 	// It needs to be provided directly or via reference.
 	//
 	// +immutable
 	// +kubebuilder:validation:Format=uuid
-	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ManagementGroup
-	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractManagementGroupID()
-	ManagementGroupID string `json:"managementGroupId,omitempty"`
-	// ManagementGroupIDRef references to a ManagementGroup to retrieve its ID.
+	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.Group
+	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractGroupID()
+	GroupID string `json:"groupId,omitempty"`
+	// GroupIDRef references to a Group to retrieve its ID.
 	//
 	// +optional
 	// +immutable
-	ManagementGroupIDRef *xpv1.Reference `json:"managementGroupIdRef,omitempty"`
-	// ManagementGroupIDSelector selects reference to a ManagementGroup to retrieve its ManagementGroupID.
+	GroupIDRef *xpv1.Reference `json:"groupIdRef,omitempty"`
+	// GroupIDSelector selects reference to a Group to retrieve its GroupID.
 	//
 	// +optional
-	ManagementGroupIDSelector *xpv1.Selector `json:"managementGroupIdSelector,omitempty"`
+	GroupIDSelector *xpv1.Selector `json:"groupIdSelector,omitempty"`
 }
 
-// ManagementGroupObservation are the observable fields of a ManagementGroup.
-type ManagementGroupObservation struct {
-	// ManagementGroupID is the group id
+// GroupObservation are the observable fields of a Group.
+type GroupObservation struct {
+	// GroupID is the group id
 	//
 	// +kubebuilder:validation:Format=uuid
-	ManagementGroupID string `json:"groupId,omitempty"`
+	GroupID string `json:"groupId,omitempty"`
 	// UserIDs of the members of this Group
 	UserIDs []string `json:"userIDs,omitempty"`
 }
 
-// A ManagementGroupSpec defines the desired state of a ManagementGroup.
-type ManagementGroupSpec struct {
+// A GroupSpec defines the desired state of a Group.
+type GroupSpec struct {
 	xpv1.ResourceSpec `json:",inline"`
-	ForProvider       ManagementGroupParameters `json:"forProvider"`
+	ForProvider       GroupParameters `json:"forProvider"`
 }
 
-// A ManagementGroupStatus represents the observed state of a ManagementGroup.
-type ManagementGroupStatus struct {
+// A GroupStatus represents the observed state of a Group.
+type GroupStatus struct {
 	xpv1.ResourceStatus `json:",inline"`
-	AtProvider          ManagementGroupObservation `json:"atProvider,omitempty"`
+	AtProvider          GroupObservation `json:"atProvider,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// ManagementGroup is the Schema for the ManagementGroup resource API
+// Group is the Schema for the Group resource API
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="NAME",type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
-type ManagementGroup struct {
+type Group struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ManagementGroupSpec   `json:"spec"`
-	Status ManagementGroupStatus `json:"status,omitempty"`
+	Spec   GroupSpec   `json:"spec"`
+	Status GroupStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// ManagementGroupList contains a list of ManagementGroup
-type ManagementGroupList struct {
+// GroupList contains a list of Group
+type GroupList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ManagementGroup `json:"items"`
+	Items           []Group `json:"items"`
 }
 
-// ManagementGroup type metadata
+// Group type metadata
 var (
-	ManagementGroupKind             = reflect.TypeOf(ManagementGroup{}).Name()
-	ManagementGroupGroupKind        = schema.GroupKind{Group: Group, Kind: ManagementGroupKind}.String()
-	ManagementGroupAPIVersion       = ManagementGroupKind + "." + SchemeGroupVersion.String()
-	ManagementGroupGroupVersionKind = SchemeGroupVersion.WithKind(ManagementGroupKind)
+	GroupKind             = reflect.TypeOf(Group{}).Name()
+	GroupGroupKind        = schema.GroupKind{Group: ApiGroup, Kind: GroupKind}.String()
+	GroupAPIVersion       = GroupKind + "." + SchemeGroupVersion.String()
+	GroupGroupVersionKind = SchemeGroupVersion.WithKind(GroupKind)
 )
 
 func init() {
-	SchemeBuilder.Register(&ManagementGroup{}, &ManagementGroupList{})
+	SchemeBuilder.Register(&Group{}, &GroupList{})
 }

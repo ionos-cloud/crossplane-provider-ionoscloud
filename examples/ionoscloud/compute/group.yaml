@@ -2,7 +2,7 @@
 # Required values for creating a Management Group CR:
 # - Name,
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: ManagementGroup
+kind: Group
 metadata:
   name: example
 spec:

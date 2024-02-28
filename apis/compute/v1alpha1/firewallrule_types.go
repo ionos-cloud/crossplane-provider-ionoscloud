@@ -187,7 +187,7 @@ type FirewallRuleList struct {
 // FirewallRule type metadata.
 var (
 	FirewallRuleKind             = reflect.TypeOf(FirewallRule{}).Name()
-	FirewallRuleGroupKind        = schema.GroupKind{Group: Group, Kind: FirewallRuleKind}.String()
+	FirewallRuleGroupKind        = schema.GroupKind{Group: ApiGroup, Kind: FirewallRuleKind}.String()
 	FirewallRuleKindAPIVersion   = FirewallRuleKind + "." + SchemeGroupVersion.String()
 	FirewallRuleGroupVersionKind = SchemeGroupVersion.WithKind(FirewallRuleKind)
 )

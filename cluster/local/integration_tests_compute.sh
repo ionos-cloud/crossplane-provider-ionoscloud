@@ -978,13 +978,13 @@ EOF
 
 }
 
-function managementgroup_tests(){
+function group_tests(){
 
-  echo_step "deploy a managementgroup CR"
+  echo_step "deploy a group CR"
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: ManagementGroup
+kind: Group
 metadata:
   name: example
 managementPolicies:
@@ -1002,18 +1002,18 @@ EOF
 
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
-  echo_step "waiting for managementgroup CR to be ready & synced"
-  kubectl wait --for=condition=ready managementgroups/example --timeout 120s
-  kubectl wait --for=condition=synced managementgroups/example --timeout 120s
+  echo_step "waiting for group CR to be ready & synced"
+  kubectl wait --for=condition=ready groups/example --timeout 120s
+  kubectl wait --for=condition=synced groups/example --timeout 120s
 
-  echo_step "get managementgroup CR"
-  kubectl get managementgroups
+  echo_step "get group CR"
+  kubectl get groups
 
-  echo_step "update managementgroup CR"
+  echo_step "update group CR"
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: ManagementGroup
+kind: Group
 metadata:
   name: example
 managementPolicies:
@@ -1030,17 +1030,17 @@ EOF
 
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
-  echo_step "waiting for managementgroup CR to be ready & synced"
-  kubectl wait --for=condition=ready managementgroups/example --timeout 120s
-  kubectl wait --for=condition=synced managementgroups/example --timeout 120s
+  echo_step "waiting for group CR to be ready & synced"
+  kubectl wait --for=condition=ready groups/example --timeout 120s
+  kubectl wait --for=condition=synced groups/example --timeout 120s
 
 }
 
-function managementgroup_tests_cleanup(){
+function group_tests_cleanup(){
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: ManagementGroup
+kind: Group
 metadata:
   name: example
 managementPolicies:
@@ -1055,10 +1055,10 @@ spec:
 EOF
   )"
 
-  echo_step "uninstalling managementgroup CR"
+  echo_step "uninstalling group CR"
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
-  echo_step "wait for deletion managementgroup CR"
-  kubectl wait --for=delete managementgroups/example
+  echo_step "wait for deletion group CR"
+  kubectl wait --for=delete groups/example
 
 }

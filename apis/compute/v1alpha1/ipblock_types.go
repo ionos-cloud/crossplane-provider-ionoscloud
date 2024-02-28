@@ -175,7 +175,7 @@ type IPBlockList struct {
 // IPBlock type metadata.
 var (
 	IPBlockKind             = reflect.TypeOf(IPBlock{}).Name()
-	IPBlockGroupKind        = schema.GroupKind{Group: Group, Kind: IPBlockKind}.String()
+	IPBlockGroupKind        = schema.GroupKind{Group: ApiGroup, Kind: IPBlockKind}.String()
 	IPBlockKindAPIVersion   = IPBlockKind + "." + SchemeGroupVersion.String()
 	IPBlockGroupVersionKind = SchemeGroupVersion.WithKind(IPBlockKind)
 )
