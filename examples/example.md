@@ -300,7 +300,7 @@ Refer to the following tables for DBaaS Postgres resources commands:
 | DBaaS Postgres Cluster | <pre lang="bash">kubectl get postgresclusters</pre> | <pre lang="bash">kubectl get postgresclusters -o wide</pre> | <pre lang="bash">kubectl get postgresclusters -o json</pre> | 
 
 
-For more information on all Managed Resources of Crossplane Provider IONOS Cloud, see [Provision Resources on IONOS Cloud](../docs/README.md#provision-resources-on-ionos-cloud).
+For more information on all Managed Resources of Crossplane Provider IONOS Cloud, see [<mark style="color:blue;">Provision Resources on IONOS Cloud</mark>](../docs/README.md#provision-resources-on-ionos-cloud).
 
 ## Uninstallation
 
