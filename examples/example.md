@@ -1,4 +1,4 @@
-# Crossplane Provider IONOS Cloud POC
+# Crossplane Provider IONOS Cloud Usage Example
 
 ## Overview
 
@@ -187,9 +187,9 @@ For the DBaaS Postgres service, there is only cluster resource available into th
 the ``examples/ionoscloud/dbaas/postgres-cluster.yaml`` file. Look for ``spec.forProvider`` fields. It is required to specify the datacenter (via ID or via reference),LAN (via ID or via reference), CIDR, and location(in sync with the datacenter) and also credentials for the database user.
 {% endhint %}
 
-### Create datacenter CR, LAN, and Postgres cluster CRs
+### Create datacenter CR, LAN CR, and Postgres cluster CR
 
-To create a datacenter CR, LAN CR and Postgres cluster CR, run the following command:
+To ceate datacenter CR, LAN CR, and Postgres cluster CR, run the following command:
 
 ```bash
 kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml

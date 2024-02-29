@@ -18,7 +18,7 @@ Crossplane Provider for IONOS Cloud gives the ability to manage IONOS Cloud infr
 
 To start with Crossplane usage and concepts, see the official [<mark style="color:blue;">Crossplane Documentation</mark>](https://docs.crossplane.io/v1.15/getting-started/).
 
-To get started with Crossplane Provider for IONOS Cloud, see [<mark style="color:blue;">Crossplane Provider IONOS Cloud POC</mark>](../examples/example.md), which provides details about the provisioning of a **Postgres cluster** in IONOS Cloud.
+To get started with Crossplane Provider for IONOS Cloud, see [<mark style="color:blue;">Crossplane Provider IONOS Cloud Usage Example</mark>](../examples/example.md), which provides details about the provisioning of a **Postgres cluster** in IONOS Cloud.
 
 ## Prerequisites
 
@@ -29,7 +29,7 @@ Ensure that you have the following:
 * A Kubernetes cluster and [<mark style="color:blue;">Install Crossplane</mark>](https://docs.crossplane.io/latest/software/install/) into a namespace called `crossplane-system`. 
 
 {% hint style="info" %}
-**Note:** You can install a Kubernetes Cluster locally by using kind or any other lightweight Kubernetes version and Crossplane. For more information, see [<mark style="color:blue;">Crossplane Provider IONOS Cloud POC</mark>](../examples/example.md). 
+**Note:**  You can install a Kubernetes Cluster locally by using kind or any other lightweight Kubernetes version and Crossplane. For more information, see [<mark style="color:blue;">Crossplane Provider IONOS Cloud Usage Example</mark>](../examples/example.md). 
 {% endhint %}
 
 ## Authentication on IONOS Cloud
@@ -52,12 +52,16 @@ Crossplane Provider IONOS Cloud uses a ``ProviderConfig`` to set up credentials 
 **Note:** The host URL does not contain the ``/cloudapi/v6`` path, so it should not be included in the ``IONOS_API_URL`` environment variable.
 {% endhint %}
 
-### Create provider secret
+### Create Provider secret
 
-To create the provider secret, you can use either of the following methods:
+To create the Provider secret, you can use either of the following methods:
 
 * [<mark style="color:blue;">Using username and password</mark>](#using-username-and-password)
 * [<mark style="color:blue;">Using token</mark>](#using-token)
+
+{% hint style="info" %}
+**Note:** We recommend **using token** to create the Provider secret.
+{% endhint %}
 
 #### Using username and password
 
@@ -118,7 +122,7 @@ EOF
 
 ## Installation
 
-To install the provider, follow this process:
+To install the Provider, follow this process:
 
 ### Install Provider
 
@@ -281,7 +285,7 @@ To create a datacenter, a Kubernetes Cluster and a Kubernetes Node Pool via Comp
 
 ## Name uniqueness support for IONOS Cloud resources
 
-To enable name uniqueness support for IONOS Cloud Resources, the Crossplane Provider IONOS Cloud has support for the ``--unique-names`` flag. If the `--unique-names` option is set, the Crossplane Provider for IONOS Cloud will check if a resource with the same name already exists. If multiple resources with the specified name are found, an error is thrown. If a single resource with the specified name is found, Crossplane Provider will perform an extra step and check if the immutable parameters are as expected. If the resource has the specified name but different immutable parameters, an error is thrown. If no resource with the specified name is found, a new resource will be created.
+To enable name uniqueness support for IONOS Cloud Resources, the Crossplane Provider IONOS Cloud you can use the ``--unique-names`` flag. If the `--unique-names` option is set, the Crossplane Provider for IONOS Cloud will check if a resource with the same name already exists. If multiple resources with the specified name are found, an error is thrown. If a single resource with the specified name is found, Crossplane Provider will perform an extra step and check if the immutable parameters are as expected. If the resource has the specified name but different immutable parameters, an error is thrown. If no resource with the specified name is found, a new resource will be created.
 
 {% hint style="info" %}
 **Note:** Resources will have unique names at their level. Example: k8s clusters will have unique name per account and k8s Node
@@ -319,7 +323,7 @@ EOF
 
 ## Debug mode
 
-To debug the Crossplane Provider IONOS Cloud has support for the ```--debug`` flag.
+To debug the Crossplane Provider IONOS Cloud you can use the ```--debug`` flag.
 
 ### Provider logs
 
