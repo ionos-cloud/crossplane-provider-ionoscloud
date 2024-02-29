@@ -161,7 +161,6 @@ func GenerateUpdateGroupInput(cr *v1alpha1.Group, observedMemberIDs sets.Set[str
 	delMembersIDs := observedMemberIDs.Difference(configuredMemberIDs)
 
 	return groupData, addMemberIDs, delMembersIDs
-
 }
 
 // GenerateCreateGroupInput returns sdkgo.Group and members that need to be added based on CR
@@ -187,7 +186,6 @@ func GenerateCreateGroupInput(cr *v1alpha1.Group) (*sdkgo.Group, sets.Set[string
 			S3Privilege:                 &cr.Spec.ForProvider.S3Privilege,
 		},
 	}
-	memberIDsSet(cr)
 
 	return &instanceCreateInput, memberIDsSet(cr)
 }
