@@ -176,7 +176,7 @@ kubectl get crds | grep ionoscloud
 A CRD named ``postgresclusters.dbaas.ionoscloud.crossplane.io`` should be displayed in the output.
 
 After that, you can create a Custom Resource (CR) of type ``postgresclusters.dbaas.ionoscloud.crossplane.io`` to
-provision a DBaaS Postgres Cluster in the IONOS Cloud.
+provision a DBaaS Postgres cluster in the IONOS Cloud.
 
 ### Provision DBaaS Postgres cluster
 
@@ -187,17 +187,17 @@ For the DBaaS Postgres service, there is only cluster resource available into th
 the ``examples/ionoscloud/dbaas/postgres-cluster.yaml`` file. Look for ``spec.forProvider`` fields. It is required to specify the datacenter (via ID or via reference),LAN (via ID or via reference), CIDR, and location(in sync with the datacenter) and also credentials for the database user.
 {% endhint %}
 
-### Create datacenter CR, LAN, and Postgres Cluster CRs
+### Create datacenter CR, LAN, and Postgres cluster CRs
 
-To create a datacenter CR, LAN CR and Postgres Cluster CR, run the following command:
+To create a datacenter CR, LAN CR and Postgres cluster CR, run the following command:
 
 ```bash
 kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml
 ```
 
-### Get Datacenter, LAN, and Postgres Cluster CRs
+### Get datacenter, LAN, and Postgres cluster CRs
 
-To check if the Postgres Cluster CR created is synced and ready, run the following command:
+To check if the Postgres cluster CR created is synced and ready, run the following command:
 
 ```bash
 kubectl get postgresclusters
@@ -219,7 +219,7 @@ kubectl get postgresclusters -o wide
 The ``external-name`` of the CR is the ``Cluster ID`` from IONOS Cloud. The cluster CR will be marked as ``ready`` when the cluster
 is in available state.
 
-You can check if the DBaaS Postgres Cluster was created in the IONOS Cloud using [<mark style="color:blue;">``ionosctl`` latest versions</mark>](https://github.com/ionos-cloud/ionosctl/releases/tag/v6.1.0). Run the following command:
+You can check if the DBaaS Postgres cluster was created in the IONOS Cloud using [<mark style="color:blue;">``ionosctl`` latest versions</mark>](https://github.com/ionos-cloud/ionosctl/releases/tag/v6.1.0). Run the following command:
 
 ```bash
 ionosctl dbaas postgres cluster list
@@ -231,16 +231,16 @@ ClusterId                              DisplayName   Location   DatacenterId    
 9b25ecab-83fe-11ec-8d97-828542a828c7   testDemo      de/txl     21d8fd28-5d62-43e9-a67b-68e52dac8885   1       192.168.1.100/24   1           AVAILABLE
 ```
 
-1. In the **DCD**, go to the **Menu** > **Databases** > **Postgres Clusters**.
+1. In the **DCD**, go to the **Menu** > **Databases** > **Postgres clusters**.
 
-2. Check if Datacenter and LAN CRs are created using:
+2. Check if the datacenter and LAN CRs are created using:
 
   ```bash
   kubectl get datacenters
   kubectl get lans
   ```
 
-### Update Datacenter, LAN and Postgres Cluster CRs
+### Update datacenter, LAN and Postgres ccuster CRs
 
 If you want to update the CRs created, update values from the ``examples/ionoscloud/dbaas/postgres-cluster.yaml``
 file using the following command:
@@ -251,18 +251,18 @@ kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml
 
 The updates applied should be updated in the external resource in IONOS Cloud.
 
-### Delete Datacenter, LAN and Postgres Cluster CRs
+### Delete datacenter, LAN and Postgres cluster CRs
 
-If you want to delete the ``example`` Postgres Cluster CR created, use the following command:
+If you want to delete the ``example`` Postgres cluster CR created, use the following command:
 
 ```bash
 kubectl delete postgrescluster example
 ```
 
-This would trigger the destroying of the DBaaS Postgres Cluster.
+This would trigger the destroying of the DBaaS Postgres cluster.
 
 {% hint style="warning" %}
-**Warning:** Make sure to delete the DBaaS Postgres Cluster before deleting the datacenter or the LAN used in the Cluster's
+**Warning:** Make sure to delete the DBaaS Postgres cluster before deleting the datacenter or the LAN used in the Cluster's
 connection.
 {% endhint %}
 
@@ -292,12 +292,12 @@ Refer to the following tables for DBaaS Postgres resources commands:
 
 | **Custom Resource**        | **Create/Delete/Update**                                                          |
 |------------------------|-----|
-| DBaaS Postgres Cluster | <pre lang="bash">kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/dbaas/postgres-cluster.yaml</pre> |
+| DBaaS Postgres cluster | <pre lang="bash">kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml</pre> | <pre lang="bash">kubectl delete -f examples/ionoscloud/dbaas/postgres-cluster.yaml</pre> |
 
 
 | **Custom Resource**          | **GET**                                                 | **GET More Details**                                            | **JSON Output**                                                 |
 |------------------------|-----------------------------------------------------|-------------------------------------------------------------|-------------------------------------------------------------|
-| DBaaS Postgres Cluster | <pre lang="bash">kubectl get postgresclusters</pre> | <pre lang="bash">kubectl get postgresclusters -o wide</pre> | <pre lang="bash">kubectl get postgresclusters -o json</pre> | 
+| DBaaS Postgres cluster | <pre lang="bash">kubectl get postgresclusters</pre> | <pre lang="bash">kubectl get postgresclusters -o wide</pre> | <pre lang="bash">kubectl get postgresclusters -o json</pre> | 
 
 
 For more information on all Managed Resources of Crossplane Provider IONOS Cloud, see [<mark style="color:blue;">Provision Resources on IONOS Cloud</mark>](../docs/README.md#provision-resources-on-ionos-cloud).
@@ -327,7 +327,7 @@ Now it is safe to delete also the ``Provider``. The ``ProviderRevision`` will be
 kubectl delete -f examples/provider/install-provider.yaml
 ```
 
-### Uninstall K8s Cluster
+### Uninstall K8s cluster
 
 Use the following command to delete the k8s cluster:
 
@@ -336,5 +336,5 @@ kind delete cluster --name crossplane-example
 ```
 
 {% hint style="success" %}
-**Result:** This way you can create and then delete the DBaaS Postgres Cluster resource in the IONOS Cloud. 
+**Result:** This way you can create and then delete the DBaaS Postgres cluster resource in the IONOS Cloud. 
 {% endhint %}
