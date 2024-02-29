@@ -18,7 +18,7 @@ Crossplane Provider for IONOS Cloud gives the ability to manage IONOS Cloud infr
 
 To start with Crossplane usage and concepts, see the official [<mark style="color:blue;">Crossplane Documentation</mark>](https://docs.crossplane.io/v1.15/getting-started/).
 
-To get started with Crossplane Provider for IONOS Cloud, see [<mark style="color:blue;">Crossplane Provider IONOS Cloud - Example (PoC)</mark>](../examples/example.md), which provides details about the provisioning of a **Postgres Cluster** in IONOS Cloud.
+To get started with Crossplane Provider for IONOS Cloud, see [<mark style="color:blue;">Crossplane Provider IONOS Cloud POC</mark>](../examples/example.md), which provides details about the provisioning of a **Postgres cluster** in IONOS Cloud.
 
 ## Prerequisites
 
@@ -29,7 +29,7 @@ Ensure that you have the following:
 * A Kubernetes cluster and [<mark style="color:blue;">Install Crossplane</mark>](https://docs.crossplane.io/latest/software/install/) into a namespace called `crossplane-system`. 
 
 {% hint style="info" %}
-**Note:** You can install a Kubernetes Cluster locally by using kind or any other lightweight Kubernetes version and Crossplane. For more information, see [<mark style="color:blue;">Crossplane Provider IONOS Cloud - Example (PoC)</mark>](../examples/example.md). 
+**Note:** You can install a Kubernetes Cluster locally by using kind or any other lightweight Kubernetes version and Crossplane. For more information, see [<mark style="color:blue;">Crossplane Provider IONOS Cloud POC</mark>](../examples/example.md). 
 {% endhint %}
 
 ## Authentication on IONOS Cloud

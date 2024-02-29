@@ -1,4 +1,4 @@
-# Crossplane Provider IONOS Cloud - Example (PoC)
+# Crossplane Provider IONOS Cloud POC
 
 ## Overview
 
@@ -11,7 +11,7 @@ sync with the API and contain the desired state. The Controller has a reconcile 
 desired state vs the actual state and takes action to reach the desired state. Using the SDK Go, the Controller performs
 CRUD operations and resources are managed in the IONOS Cloud.
 
-In this Proof of Concept of the IONOS Cloud Provider, we will create a DBaaS Postgres Cluster resource in the IONOS Cloud.
+In this Proof of Concept of the IONOS Cloud Provider, we will create a DBaaS Postgres cluster resource in the IONOS Cloud.
 
 ## Prerequisites
 
