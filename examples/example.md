@@ -99,9 +99,8 @@ To register CRDs into k8s cluster, run the following command:
 kubectl apply -f package/crds/ -R
 ```
 
-{% hint style="info" %}
-**Note:** Before continuing, you can check if ``kubectl get providers`` will recognize the CRDs of type ``providers``. The command should return ``No resources found``.
-{% endhint %}
+> **_NOTE:_**  Before continuing, you can check if ``kubectl get providers`` will recognize the CRDs of type ``providers``. The command should return: ``No resources found``.
+
 
 ### Install ProviderConfig for credentials
 
