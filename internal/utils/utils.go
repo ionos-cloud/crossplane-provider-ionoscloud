@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"slices"
 	"strings"
 	"time"
 
@@ -136,68 +135,4 @@ func MapStringToAny(sMap map[string]string) map[string]any {
 		aMap[k] = v
 	}
 	return aMap
-}
-
-// StructToMap converts arbitrary structures to a flat map representation, does not recurse into slices/maps
-func StructToMap(v any) map[string]any {
-	m := make(map[string]any)
-	var fn func(v any, keyPrefix string)
-	_asMap := func(v any, keyPrefix string) {
-		baseTypes := []reflect.Kind{
-			reflect.Bool,
-			reflect.String,
-			reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
-			reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
-			reflect.Float32, reflect.Float64,
-		}
-		compositeTypes := []reflect.Kind{
-			reflect.Array, reflect.Slice, reflect.Map,
-		}
-
-		rt := reflect.TypeOf(v)
-		rv := reflect.ValueOf(v)
-
-		for i := 0; i < rt.NumField(); i++ {
-			f := rt.Field(i)
-			v := rv.Field(i)
-			key := f.Name
-			if keyPrefix != "" {
-				key = fmt.Sprintf("%s.%s", keyPrefix, f.Name)
-			}
-			key = strings.ToLower(key)
-			if v.Kind() == reflect.Pointer {
-				if v.IsNil() {
-					continue
-				}
-				v = v.Elem()
-			}
-			kind := v.Kind()
-			if kind == reflect.Struct {
-				fn(v.Interface(), f.Name)
-			}
-			if slices.Contains(baseTypes, kind) {
-				m[key] = v.Interface()
-			}
-			if slices.Contains(compositeTypes, kind) {
-				continue
-			}
-		}
-	}
-	fn = _asMap
-	_asMap(v, "")
-	return m
-}
-
-// IsEqSdkPropertiesToCR compares an observed sdk struct to the crType parameters struct
-func IsEqSdkPropertiesToCR(crTypeParameters any, sdkStructProperties any) bool {
-	crMap := StructToMap(crTypeParameters)
-	sdkMap := StructToMap(sdkStructProperties)
-	for sdkField, sdkValue := range sdkMap {
-		if crValue, ok := crMap[sdkField]; ok {
-			if crValue != sdkValue {
-				return false
-			}
-		}
-	}
-	return true
 }

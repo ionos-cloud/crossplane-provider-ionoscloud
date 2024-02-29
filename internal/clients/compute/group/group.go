@@ -19,8 +19,8 @@ type APIClient struct {
 	*clients.IonosServices
 }
 
-// GroupMembersUpdateFn function that performs a group membership update
-type GroupMembersUpdateFn func(context.Context, string, string) (*sdkgo.APIResponse, error)
+// MembersUpdateFn function that performs a group membership update
+type MembersUpdateFn func(context.Context, string, string) (*sdkgo.APIResponse, error)
 
 // Client is a wrapper around IONOS Service Group methods
 type Client interface {
@@ -33,7 +33,7 @@ type Client interface {
 	UpdateGroup(ctx context.Context, groupID string, group sdkgo.Group) (sdkgo.Group, *sdkgo.APIResponse, error)
 	AddGroupMember(ctx context.Context, groupID, userID string) (*sdkgo.APIResponse, error)
 	RemoveGroupMember(ctx context.Context, groupID, userID string) (*sdkgo.APIResponse, error)
-	UpdateGroupMembers(ctx context.Context, groupID string, userIDs sets.Set[string], updateFn GroupMembersUpdateFn) error
+	UpdateGroupMembers(ctx context.Context, groupID string, userIDs sets.Set[string], updateFn MembersUpdateFn) error
 	DeleteGroup(ctx context.Context, groupID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
 }
@@ -125,7 +125,7 @@ func (cp *APIClient) RemoveGroupMember(ctx context.Context, groupID, userID stri
 }
 
 // UpdateGroupMembers updates the members of Group depending on modFn using the userIDs set
-func (cp *APIClient) UpdateGroupMembers(ctx context.Context, groupID string, userIDs sets.Set[string], updateFn GroupMembersUpdateFn) error {
+func (cp *APIClient) UpdateGroupMembers(ctx context.Context, groupID string, userIDs sets.Set[string], updateFn MembersUpdateFn) error {
 
 	updateErrs := make([]error, 0, len(userIDs))
 	waitErrs := make([]error, 0, len(userIDs))
@@ -201,10 +201,47 @@ func IsGroupUpToDate(cr *v1alpha1.Group, observed sdkgo.Group, observedMembersID
 		return false
 	case cr != nil && observed.Properties == nil:
 		return false
+	case observed.Properties.Name != nil && *observed.Properties.Name != cr.Spec.ForProvider.Name:
+		return false
+	case observed.Properties.AccessActivityLog != nil && *observed.Properties.AccessActivityLog != cr.Spec.ForProvider.AccessActivityLog:
+		return false
+	case observed.Properties.AccessAndManageCertificates != nil && *observed.Properties.AccessAndManageCertificates != cr.Spec.ForProvider.AccessAndManageCertificates:
+		return false
+	case observed.Properties.AccessAndManageDns != nil && *observed.Properties.AccessAndManageDns != cr.Spec.ForProvider.AccessAndManageDNS:
+		return false
+	case observed.Properties.AccessAndManageMonitoring != nil && *observed.Properties.AccessAndManageMonitoring != cr.Spec.ForProvider.AccessAndManageMonitoring:
+		return false
+	case observed.Properties.CreateBackupUnit != nil && *observed.Properties.CreateBackupUnit != cr.Spec.ForProvider.CreateBackupUnit:
+		return false
+	case observed.Properties.CreateDataCenter != nil && *observed.Properties.CreateDataCenter != cr.Spec.ForProvider.CreateDataCenter:
+		return false
+	case observed.Properties.CreateFlowLog != nil && *observed.Properties.CreateFlowLog != cr.Spec.ForProvider.CreateFlowLog:
+		return false
+	case observed.Properties.CreateInternetAccess != nil && *observed.Properties.CreateInternetAccess != cr.Spec.ForProvider.CreateInternetAccess:
+		return false
+	case observed.Properties.CreateK8sCluster != nil && *observed.Properties.CreateK8sCluster != cr.Spec.ForProvider.CreateK8sCluster:
+		return false
+	case observed.Properties.CreatePcc != nil && *observed.Properties.CreatePcc != cr.Spec.ForProvider.CreatePcc:
+		return false
+	case observed.Properties.CreateSnapshot != nil && *observed.Properties.CreateSnapshot != cr.Spec.ForProvider.CreateSnapshot:
+		return false
+	case observed.Properties.ManageDBaaS != nil && *observed.Properties.ManageDBaaS != cr.Spec.ForProvider.ManageDBaaS:
+		return false
+	case observed.Properties.ManageDataplatform != nil && *observed.Properties.ManageDataplatform != cr.Spec.ForProvider.ManageDataPlatform:
+		return false
+	case observed.Properties.ManageRegistry != nil && *observed.Properties.ManageRegistry != cr.Spec.ForProvider.ManageRegistry:
+		return false
+	case observed.Properties.ReserveIp != nil && *observed.Properties.ReserveIp != cr.Spec.ForProvider.ReserveIP:
+		return false
+	case observed.Properties.S3Privilege != nil && *observed.Properties.S3Privilege != cr.Spec.ForProvider.S3Privilege:
+		return false
 	}
 	configuredMemberIDs := memberIDsSet(cr)
+	if !observedMembersIDs.Equal(configuredMemberIDs) {
+		return false
+	}
 
-	return utils.IsEqSdkPropertiesToCR(cr.Spec.ForProvider, *observed.Properties) && observedMembersIDs.Equal(configuredMemberIDs)
+	return true
 }
 
 func memberIDsSet(cr *v1alpha1.Group) sets.Set[string] {
