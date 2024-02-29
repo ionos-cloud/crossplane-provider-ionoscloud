@@ -79,7 +79,7 @@ kubectl create secret generic --namespace crossplane-system example-provider-sec
 **Note:** 
 * You can overwrite the default IONOS Cloud API endpoint, by setting the credentials to: `credentials="{\"host_url\":\"${IONOS_API_URL}\"}"`.
 * You can also set the `IONOS_API_URL` environment variable in the `ControllerConfig` of the provider globally for
-all resources. The following snipped shows how to set it globally in the ControllerConfig:
+all resources. The following snippet shows how to set it globally in the ControllerConfig:
 
     ```bash
   cat <<EOF | kubectl apply -f -
