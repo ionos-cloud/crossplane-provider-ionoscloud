@@ -14,7 +14,7 @@ Crossplane Provider for IONOS Cloud gives the ability to manage IONOS Cloud infr
   * Controllers provision these resources in IONOS Cloud based on the user's desired state captured in CRDs when created.
   * Implementations of Crossplane's portable resource abstractions that enable IONOS Cloud resources to fulfill a user's general need for cloud services.
 
-## Getting Started 
+## Getting started 
 
 To start with Crossplane usage and concepts, see the official [<mark style="color:blue;">Crossplane Documentation</mark>](https://docs.crossplane.io/v1.15/getting-started/).
 
