@@ -3,11 +3,12 @@ package group
 import (
 	"testing"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	psql "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 func TestIsGroupUpToDate(t *testing.T) {

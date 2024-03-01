@@ -123,7 +123,7 @@ type LanList struct {
 // Lan type metadata.
 var (
 	LanKind             = reflect.TypeOf(Lan{}).Name()
-	LanGroupKind        = schema.GroupKind{Group: ApiGroup, Kind: LanKind}.String()
+	LanGroupKind        = schema.GroupKind{Group: APIGroup, Kind: LanKind}.String()
 	LanKindAPIVersion   = LanKind + "." + SchemeGroupVersion.String()
 	LanGroupVersionKind = SchemeGroupVersion.WithKind(LanKind)
 )

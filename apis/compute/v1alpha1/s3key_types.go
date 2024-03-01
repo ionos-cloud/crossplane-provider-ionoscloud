@@ -76,7 +76,7 @@ type S3KeyList struct {
 // S3Key type metadata.
 var (
 	S3KeyKind             = reflect.TypeOf(S3Key{}).Name()
-	S3KeyGroupKind        = schema.GroupKind{Group: ApiGroup, Kind: S3KeyKind}.String()
+	S3KeyGroupKind        = schema.GroupKind{Group: APIGroup, Kind: S3KeyKind}.String()
 	S3KeyKindAPIVersion   = S3KeyKind + "." + SchemeGroupVersion.String()
 	S3KeyGroupVersionKind = SchemeGroupVersion.WithKind(S3KeyKind)
 )
