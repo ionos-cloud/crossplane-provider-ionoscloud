@@ -3,11 +3,173 @@ package group
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	psql "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
+
+func TestSharesUpdateOp(t *testing.T) {
+	type args struct {
+		observed, configured sets.Set[v1alpha1.ResourceShare]
+		add, update, remove  sets.Set[v1alpha1.ResourceShare]
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "no op",
+			args: args{
+				observed: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: true, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+				),
+				configured: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: true, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+				),
+			},
+			want: true,
+		},
+		{
+			name: "update",
+			args: args{
+				observed: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: false, SharePrivilege: false},
+					v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "eb55a2d5-bb57-464f-b44f-f843dd059895", EditPrivilege: true, SharePrivilege: true},
+				),
+				configured: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: true, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "eb55a2d5-bb57-464f-b44f-f843dd059895", EditPrivilege: false, SharePrivilege: true},
+				),
+				update: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: true, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "eb55a2d5-bb57-464f-b44f-f843dd059895", EditPrivilege: false, SharePrivilege: true},
+				),
+			},
+			want: true,
+		},
+		{
+			name: "add",
+			args: args{
+				observed: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: false, SharePrivilege: false},
+					v1alpha1.ResourceShare{ResourceID: "eb55a2d5-bb57-464f-b44f-f843dd059895", EditPrivilege: true, SharePrivilege: true},
+				),
+				configured: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: false, SharePrivilege: false},
+					v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "eb55a2d5-bb57-464f-b44f-f843dd059895", EditPrivilege: true, SharePrivilege: true},
+				),
+				add: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+				),
+			},
+			want: true,
+		},
+		{
+			name: "remove",
+			args: args{
+				observed: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: false, SharePrivilege: false},
+					v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "eb55a2d5-bb57-464f-b44f-f843dd059895", EditPrivilege: true, SharePrivilege: true},
+				),
+				configured: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: false, SharePrivilege: false},
+				),
+				remove: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "eb55a2d5-bb57-464f-b44f-f843dd059895", EditPrivilege: true, SharePrivilege: true},
+				),
+			},
+			want: true,
+		},
+		{
+			name: "add and update",
+			args: args{
+				observed: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: true, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+				),
+				configured: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: false, SharePrivilege: false},
+					v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "eb55a2d5-bb57-464f-b44f-f843dd059895", EditPrivilege: true, SharePrivilege: true},
+				),
+				add: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "eb55a2d5-bb57-464f-b44f-f843dd059895", EditPrivilege: true, SharePrivilege: true},
+				),
+				update: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: false, SharePrivilege: false},
+				),
+			},
+			want: true,
+		},
+		{
+			name: "remove and update",
+			args: args{
+				observed: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: false, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "eb55a2d5-bb57-464f-b44f-f843dd059895", EditPrivilege: true, SharePrivilege: true},
+				),
+				configured: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: false, SharePrivilege: false},
+					v1alpha1.ResourceShare{ResourceID: "eb55a2d5-bb57-464f-b44f-f843dd059895", EditPrivilege: true, SharePrivilege: true},
+				),
+				remove: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+				),
+				update: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: false, SharePrivilege: false},
+				),
+			},
+			want: true,
+		},
+		{
+			name: "add remove update",
+			args: args{
+				observed: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: true, SharePrivilege: false},
+					v1alpha1.ResourceShare{ResourceID: "e7b5ad32-187b-494d-9082-827b45887689", EditPrivilege: false, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "eb55a2d5-bb57-464f-b44f-f843dd059895", EditPrivilege: true, SharePrivilege: true},
+				),
+				configured: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: true, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "e7b5ad32-187b-494d-9082-827b45887689", EditPrivilege: false, SharePrivilege: false},
+					v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+				),
+				add: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+				),
+				remove: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "eb55a2d5-bb57-464f-b44f-f843dd059895", EditPrivilege: true, SharePrivilege: true},
+				),
+				update: sets.New[v1alpha1.ResourceShare](
+					v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: true, SharePrivilege: true},
+					v1alpha1.ResourceShare{ResourceID: "e7b5ad32-187b-494d-9082-827b45887689", EditPrivilege: false, SharePrivilege: false},
+				),
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			op := sharesUpdateOp(tt.args.observed, tt.args.configured)
+			if got := op.Update.Equal(tt.args.update) && op.Add.Equal(tt.args.add) && op.Remove.Equal(tt.args.remove); got != tt.want {
+				t.Errorf("sharesUpdateOp() = %v, want %v", got, tt.want)
+			}
+
+		})
+	}
+}
 
 func TestIsGroupUpToDate(t *testing.T) {
 
