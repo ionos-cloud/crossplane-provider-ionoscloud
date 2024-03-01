@@ -50,7 +50,7 @@ const errNotGroup = "managed resource is not a Group custom resource"
 // Setup adds a controller that reconciles Group managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, _ workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.GroupGroupKind)
-
+	r := event.NewAPIRecorder(mgr.GetEventRecorderFor(name))
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
@@ -65,12 +65,12 @@ func Setup(mgr ctrl.Manager, l logging.Logger, _ workqueue.RateLimiter, opts *ut
 				log:                  l,
 				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
-			managed.WithInitializers(resourceShareInitializer{kube: mgr.GetClient()}),
+			managed.WithInitializers(resourceShareInitializer{kube: mgr.GetClient(), log: l, eventRecorder: r}),
 			managed.WithPollInterval(opts.GetPollInterval()),
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(l.WithValues("controller", name)),
-			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
+			managed.WithRecorder(r)))
 
 }
 
@@ -253,11 +253,17 @@ func (eg *externalGroup) Delete(ctx context.Context, mg resource.Managed) error 
 	return nil
 }
 
+// Initializers are called to initialize a Managed Resource
+// before any External Client methods are called during a reconciliation loop cycle
+//
+// resourceShareInitializer initializes the Group MR by resolving resource share references
 type resourceShareInitializer struct {
-	kube client.Client
+	kube          client.Client
+	log           logging.Logger
+	eventRecorder event.Recorder
 }
 
-// Initialize resolves and sets a ResourceID for resourceShare references which do not have one set directly
+// Initialize resolves and sets a ResourceID for resource share references which do not have one set directly
 func (in resourceShareInitializer) Initialize(ctx context.Context, mg resource.Managed) error {
 
 	cr, ok := mg.(*v1alpha1.Group)
@@ -274,8 +280,13 @@ func (in resourceShareInitializer) Initialize(ctx context.Context, mg resource.M
 			Version: ref.Version,
 			Kind:    ref.Kind,
 		})
+		// We only log and emit a warning of the error instead of also returning it
+		// to avoid blocking the Group reconciliation loop if any of the shared resources cannot be resolved
 		if err := in.kube.Get(ctx, types.NamespacedName{Name: ref.Name}, &u); err != nil {
-			return err
+			msg := fmt.Errorf("unable to resolve shared resource reference: %w", err)
+			in.log.Info(msg.Error())
+			in.eventRecorder.Event(mg, event.Warning("CannotResolveReference", msg))
+			return nil
 		}
 		cr.Spec.ForProvider.ResourceShareCfg[i].ResourceID = meta.GetExternalName(&u)
 	}
