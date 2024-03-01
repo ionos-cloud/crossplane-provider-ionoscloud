@@ -43,6 +43,7 @@ type Client interface {
 	UpdateGroup(ctx context.Context, id string, p v1alpha1.GroupParameters) (ionosdk.Group, *ionosdk.APIResponse, error)
 	DeleteGroup(ctx context.Context, id string) (*ionosdk.APIResponse, error)
 	AddResource(ctx context.Context, groupID string, resource v1alpha1.Resource) (*ionosdk.APIResponse, error)
+	UpdateResource(ctx context.Context, groupID string, resource v1alpha1.Resource) (*ionosdk.APIResponse, error)
 	GetResources(ctx context.Context, groupID string) (ionosdk.GroupShares, *ionosdk.APIResponse, error)
 	RemoveResourceFromGroup(ctx context.Context, groupID, resourceID string) (*ionosdk.APIResponse, error)
 	GetPrivilegesMap(props *ionosdk.GroupProperties) map[string]bool
@@ -121,6 +122,26 @@ func (ac *apiClient) AddResource(ctx context.Context, groupID string, resource v
 	groupShare.SetId(resource.ID)
 
 	_, responce, err := ac.svc.UserManagementApi.UmGroupsSharesPost(ctx, groupID, resource.ID).
+		Resource(*groupShare).Execute()
+	if err != nil {
+		return responce, err
+	}
+
+	if err = ac.waitForRequest(ctx, ac.svc, responce); err != nil {
+		return responce, errors.Wrap(err, errRequestWait)
+	}
+
+	return responce, nil
+}
+
+func (ac *apiClient) UpdateResource(ctx context.Context, groupID string, resource v1alpha1.Resource) (*ionosdk.APIResponse, error) {
+	props := ionosdk.NewGroupShareProperties()
+	props.SetSharePrivilege(resource.SharePrivilege)
+	props.SetEditPrivilege(resource.EditPrivilege)
+
+	groupShare := ionosdk.NewGroupShare(*props)
+
+	_, responce, err := ac.svc.UserManagementApi.UmGroupsSharesPut(ctx, groupID, resource.ID).
 		Resource(*groupShare).Execute()
 	if err != nil {
 		return responce, err

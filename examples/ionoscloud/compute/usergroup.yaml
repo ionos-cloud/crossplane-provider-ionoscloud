@@ -20,7 +20,7 @@ spec:
      - reserveIp
      - accessActivityLog
     resources:
-      - id: "ae3b18e7-2f50-4074-b229-cb076646c61f" # mshalabi-dev-env
+      - id: "ae3b18e7-2f50-4074-b229-cb076646c61f" # mshalabi1-dev-env
         editPrivilege: true
         sharePrivilege: true
       - id: "c6f8af01-6056-433f-a001-a509ab26c7d9" # veljko-2go-dev-env

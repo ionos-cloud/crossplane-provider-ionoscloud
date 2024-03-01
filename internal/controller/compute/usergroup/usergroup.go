@@ -17,7 +17,6 @@ limitations under the License.
 package usergroup
 
 import (
-	"cmp"
 	"context"
 	usergroupapi "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/usergroup"
 	ionosdk "github.com/ionos-cloud/sdk-go/v6"
@@ -25,7 +24,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"slices"
 	"strings"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -283,16 +281,4 @@ func (eu *externalUserGroup) privilegesExists(params v1alpha1.GroupParameters, p
 	}
 
 	return true
-}
-
-func isSetEqual[T cmp.Ordered](sl0, sl1 []T) bool {
-	if len(sl0) != len(sl1) {
-		return false
-	}
-
-	s0, s1 := slices.Clone(sl0), slices.Clone(sl1)
-	slices.Sort(s0)
-	slices.Sort(s1)
-
-	return slices.Equal(s0, s1)
 }

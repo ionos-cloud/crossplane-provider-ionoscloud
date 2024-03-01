@@ -88,9 +88,21 @@ func (eu *externalUserGroup) updateResources(ctx context.Context, userGroupID st
 		hashedResource := eu.hash(resource)
 		_, exist := ionosMap[hashedResource]
 		if !exist {
-			resp, err := eu.service.AddResource(ctx, userGroupID, resource)
-			if err != nil {
-				return compute.AddAPIResponseInfo(resp, err)
+			if !eu.isUpdated(resource, ionosMap) {
+				resp, err = eu.service.AddResource(ctx, userGroupID, resource)
+				if err != nil {
+					return compute.AddAPIResponseInfo(resp, err)
+				}
+			} else {
+				resp, err = eu.service.UpdateResource(ctx, userGroupID, resource)
+				if err != nil {
+					return compute.AddAPIResponseInfo(resp, err)
+				}
+				resource.SharePrivilege = !resource.SharePrivilege
+				delete(ionosMap, eu.hash(resource))
+				resource.SharePrivilege = !resource.SharePrivilege
+				resource.EditPrivilege = !resource.EditPrivilege
+				delete(ionosMap, eu.hash(resource))
 			}
 		}
 		ionosMap[hashedResource] = true
@@ -108,6 +120,22 @@ func (eu *externalUserGroup) updateResources(ctx context.Context, userGroupID st
 	}
 
 	return nil
+}
+
+func (eu *externalUserGroup) isUpdated(resource v1alpha1.Resource, ionosMap map[string]bool) bool {
+	resource.SharePrivilege = !resource.SharePrivilege
+	hashedResource := eu.hash(resource)
+	_, exist := ionosMap[hashedResource]
+	if !exist {
+		resource.SharePrivilege = !resource.SharePrivilege
+		resource.EditPrivilege = !resource.EditPrivilege
+		hashedResource = eu.hash(resource)
+		_, exist = ionosMap[hashedResource]
+		if !exist {
+			return false
+		}
+	}
+	return true
 }
 
 func getResourcesMap(resources []string) map[string]bool {
