@@ -15,5 +15,17 @@ spec:
     userConfig:
       - userIdRef:
           name: xplane-test-user
+    sharedResourcesConfig:
+      - resourceShare:
+          sharePrivilege: true
+          editPrivilege: true
+        name: example
+        kind: Datacenter
+        version: compute.ionoscloud.crossplane.io/v1alpha1
+#     Or by supplying the Datacenter ID directly:
+#      - resourceShare:
+#          resourceId: datacenter-ID-here
+#          sharePrivilege: true
+#          editPrivilege: true
   providerConfigRef:
     name: example
