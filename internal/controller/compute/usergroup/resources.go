@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const separator = " ; tosplit ; "
+const separator = "-tosplit-"
 
 func resourceToString(id string, editPrivilege, sharePrivilege bool) string {
 	return fmt.Sprintf("%s%t%t", id, editPrivilege, sharePrivilege)
@@ -74,13 +74,11 @@ func (eu *externalUserGroup) hashIonosResources(resources ionoscloud.GroupShares
 	return hashes
 }
 
-// updateResources adds missing resources and delete extra resources it will return the added and deleted resources
-func (eu *externalUserGroup) updateResources(ctx context.Context, userGroupID string, resources []v1alpha1.Resource) ([]string, []string, error) {
-	addedResources := make([]string, 0)
-	deletedResources := make([]string, 0)
+// updateResources adds missing resources and delete extra resources.
+func (eu *externalUserGroup) updateResources(ctx context.Context, userGroupID string, resources []v1alpha1.Resource) error {
 	ionosResources, resp, err := eu.service.GetResources(ctx, userGroupID)
 	if err != nil {
-		return addedResources, deletedResources, compute.AddAPIResponseInfo(resp, err)
+		return compute.AddAPIResponseInfo(resp, err)
 	}
 	ionosHashedResources := eu.hashIonosResources(ionosResources)
 
@@ -92,9 +90,8 @@ func (eu *externalUserGroup) updateResources(ctx context.Context, userGroupID st
 		if !exist {
 			resp, err := eu.service.AddResource(ctx, userGroupID, resource)
 			if err != nil {
-				return addedResources, deletedResources, compute.AddAPIResponseInfo(resp, err)
+				return compute.AddAPIResponseInfo(resp, err)
 			}
-			addedResources = append(addedResources, hashedResource)
 		}
 		ionosMap[hashedResource] = true
 	}
@@ -105,13 +102,12 @@ func (eu *externalUserGroup) updateResources(ctx context.Context, userGroupID st
 			resourceID := getResourceID(k)
 			resp, err := eu.service.RemoveResourceFromGroup(ctx, userGroupID, resourceID)
 			if err != nil {
-				return addedResources, deletedResources, compute.AddAPIResponseInfo(resp, err)
+				return compute.AddAPIResponseInfo(resp, err)
 			}
-			deletedResources = append(deletedResources, k)
 		}
 	}
 
-	return addedResources, deletedResources, nil
+	return nil
 }
 
 func getResourcesMap(resources []string) map[string]bool {

@@ -30,9 +30,6 @@ type Resource struct {
 	// ID represents the resource id
 	ID string `json:"id,omitempty"`
 
-	// Type is the resource type like group, datacenter, etc.
-	Type string `json:"type,omitempty"`
-
 	// EditPrivilege group will have an edit privilege on the resource
 	EditPrivilege bool `json:"editPrivilege,omitempty"`
 
@@ -99,9 +96,6 @@ type UserGroupObservation struct {
 	// UserGroupID is the user group id.
 	// +kubebuilder:validation:Format=uuid
 	UserGroupID string `json:"userGroupID,omitempty"`
-
-	// Resources represents an array of resource hashes
-	Resources []string `json:"resources,omitempty"`
 }
 
 // +kubebuilder:object:root=true

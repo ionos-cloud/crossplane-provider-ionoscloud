@@ -100,10 +100,6 @@ spec:
                           description: SharePrivilege group will have a share privilege
                             on the resource
                           type: boolean
-                        type:
-                          description: Type is the resource type like group, datacenter,
-                            etc.
-                          type: string
                       type: object
                     type: array
                   users:
@@ -287,11 +283,6 @@ spec:
               atProvider:
                 description: UserGroupObservation are the observable fields of a UserGroup.
                 properties:
-                  resources:
-                    description: Resources represents an array of resource hashes
-                    items:
-                      type: string
-                    type: array
                   userGroupID:
                     description: UserGroupID is the user group id.
                     format: uuid

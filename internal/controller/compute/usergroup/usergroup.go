@@ -121,11 +121,8 @@ func (eu *externalUserGroup) connectionDetails(observed ionosdk.Group) managed.C
 	return details
 }
 
-func setStatus(cr *v1alpha1.UserGroup, observed ionosdk.Group, resourceHashes []string) {
+func setStatus(cr *v1alpha1.UserGroup, observed ionosdk.Group) {
 	cr.Status.AtProvider.UserGroupID = utils.DereferenceOrZero(observed.GetId())
-	if resourceHashes != nil && len(resourceHashes) != 0 {
-		cr.Status.AtProvider.Resources = resourceHashes
-	}
 }
 
 func (eu *externalUserGroup) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -149,7 +146,7 @@ func (eu *externalUserGroup) Observe(ctx context.Context, mg resource.Managed) (
 
 	resources, resp, err := eu.service.GetResources(ctx, userGroupID)
 	hashes := eu.hashIonosResources(resources)
-	setStatus(cr, observed, hashes)
+	setStatus(cr, observed)
 	cr.SetConditions(xpv1.Available())
 
 	conn := eu.connectionDetails(observed)
@@ -179,8 +176,6 @@ func (eu *externalUserGroup) Create(ctx context.Context, mg resource.Managed) (m
 	meta.SetExternalName(cr, groupID)
 	conn := eu.connectionDetails(observed)
 
-	//hashes, err := eu.addResources(ctx, groupID, cr.Spec.ForProvider.Resources)
-
 	return managed.ExternalCreation{ConnectionDetails: conn}, nil
 }
 
@@ -198,8 +193,7 @@ func (eu *externalUserGroup) Update(ctx context.Context, mg resource.Managed) (m
 	}
 	conn := eu.connectionDetails(observed)
 
-	//resourceHashes := cr.Status.AtProvider.Resources
-	_, _, err = eu.updateResources(ctx, groupID, cr.Spec.ForProvider.Resources)
+	err = eu.updateResources(ctx, groupID, cr.Spec.ForProvider.Resources)
 	if err != nil {
 		return managed.ExternalUpdate{}, errors.Wrap(err, errResourceUpdate)
 	}
