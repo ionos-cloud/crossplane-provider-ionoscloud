@@ -166,7 +166,7 @@ You can see an up-to-date list of the CRDs and corresponding IONOS Cloud resourc
 | **Resources in IONOS Cloud** | **Custom Resource Definition**                       |
 |--------------------------|--------------------------------------------------|
 | IPBlocks                 | ``ipblocks.compute.ionoscloud.crossplane.io``      |
-| Datacenters              | ``datacenters.compute.ionoscloud.crossplane.io``   |
+| Data Centers              | ``datacenters.compute.ionoscloud.crossplane.io``   |
 | Servers                  | ``servers.compute.ionoscloud.crossplane.io``      |
 | Volumes                  | ``volumes.compute.ionoscloud.crossplane.io``      |
 | Lans                     | ``lans.compute.ionoscloud.crossplane.io``          |
@@ -228,7 +228,7 @@ For more information, see [<mark style="color:blue;">DBaaS API</mark>](api/datab
 ## References
 
 References are used to reference other resources on which the new resources are dependent. Using referenced
-resources, you can create a datacenter and a LAN using one command, without manually updating the LAN
+resources, you can create a data center and a LAN using one command, without manually updating the LAN
 CR specification file with the required ``datacenterId``.
 
 The references are resolved only once, when the resource is created, and the resolvers are generated
@@ -280,7 +280,7 @@ Once you have configured Compositions, you need to create Composite Resource Cla
 
 ### Example
 
-To create a datacenter, a Kubernetes Cluster and a Kubernetes Node Pool via Compositions and Claims, follow the [<mark style="color:blue;">Composition Example</mark>](../examples/composition/composite.yaml). For more information, see [<mark style="color:blue;">Composite Resources</mark>](https://docs.crossplane.io/latest/concepts/composite-resources/).
+To create a data center, a Kubernetes Cluster and a Kubernetes Node Pool via Compositions and Claims, follow the [<mark style="color:blue;">Composition Example</mark>](../examples/composition/composite.yaml). For more information, see [<mark style="color:blue;">Composite Resources</mark>](https://docs.crossplane.io/latest/concepts/composite-resources/).
 {% endhint %}
 
 ## Name uniqueness support for IONOS Cloud resources

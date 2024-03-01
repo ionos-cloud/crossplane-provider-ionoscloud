@@ -57,12 +57,12 @@ cd crossplane-provider-ionoscloud
 
 To set up Crossplane Provider IONOS Cloud, follow these steps:
 
-* [<mark style="color:blue;">Create a K8s cluster (in case of using kind)</mark>](#create-a-k8s-cluster-in-case-of-using-kind)
-* [<mark style="color:blue;">Create namespace for the crossplane ecosystem</mark>](#create-namespace-for-the-crossplane-ecosystem)
-* [<mark style="color:blue;">Install crossplane via ``helm``</mark>](#install-crossplane-via-helm)
-* [<mark style="color:blue;">Register CRDs into k8s cluster</mark>](#register-crds-into-k8s-cluster)
-* [<mark style="color:blue;"> Install ProviderConfig for credentials</mark>](#install-providerconfig-for-credentials)
-* [<mark style="color:blue;">Install Crossplane Provider IONOS Cloud</mark>](#install-crossplane-provider-ionos-cloud)
+1. [<mark style="color:blue;">Create a K8s cluster (in case of using kind)</mark>](#create-a-k8s-cluster-in-case-of-using-kind)
+2. [<mark style="color:blue;">Create namespace for the crossplane ecosystem</mark>](#create-namespace-for-the-crossplane-ecosystem)
+3. [<mark style="color:blue;">Install crossplane via ``helm``</mark>](#install-crossplane-via-helm)
+4. [<mark style="color:blue;">Register CRDs into k8s cluster</mark>](#register-crds-into-k8s-cluster)
+5. [<mark style="color:blue;"> Install ProviderConfig for credentials</mark>](#install-providerconfig-for-credentials)
+6. [<mark style="color:blue;">Install Crossplane Provider for IONOS Cloud</mark>](#install-crossplane-provider-for-ionos-cloud)
 
 ### Create a K8s cluster (in case of using kind)
 
@@ -121,18 +121,18 @@ OR
   ```
 
 {% hint style="info" %}
-**Note:**   You can overwrite the default IONOS Cloud API endpoint, by setting ``host_url`` to: ``--from-literal=credentials="{\"host_url\":\"${IONOS_API_URL}\"}"``.
+**Note:** You can overwrite the default IONOS Cloud API endpoint, by setting ``host_url`` to: ``--from-literal=credentials="{\"host_url\":\"${IONOS_API_URL}\"}"``.
 {% endhint %}
 
-### Install Crossplane Provider IONOS Cloud
+### Install Crossplane Provider for IONOS Cloud
 
-To install Crossplane Provider IONOS Cloud, run the following command:
+To install Crossplane Provider for IONOS Cloud, run the following command:
 
 ```bash
 kubectl apply -f examples/provider/install-provider.yaml
 ```
 
-You can install other providers; such as, ``helm`` and ``Kubernetes`` using:
+You can install other providers, such as ``Helm`` and ``Kubernetes``, using the following:
 
 ```bash
 kubectl apply --namespace crossplane-system -f examples/providers/other-providers.yaml
@@ -146,7 +146,7 @@ To check if the Crossplane Provider IONOS Cloud is installed and healthy, run th
 kubectl get providers
 ```
 
-You should be able to see pods running in the ``crossplane-system`` namespace, for each provider installed. To see the existing pods from all namespaces, run: ``kubectl get pods -A``
+You should be able to see pods running in the ``crossplane-system`` namespace for each provider installed. To see the existing pods from all namespaces, run ``kubectl get pods -A``.
 
 Run the following command to see the pods:
 
@@ -154,7 +154,8 @@ Run the following command to see the pods:
 kubectl get pods -n crossplane-system 
 ```
 
-#### Output
+{% hint style="success" %}
+**Result:** Your output will be:
 
 ```bash
 NAME                                                READY   STATUS    RESTARTS   AGE
@@ -164,6 +165,7 @@ provider-helm-a7f79daa3799-78d5959d6d-rktfs         1/1     Running   0         
 provider-ionos-cf2fec81b474-54f5d7ddd4-w9w9h        1/1     Running   0          66m
 provider-kubernetes-df601dea646a-84f7d6db54-t5dn5   1/1     Running   0          65m
 ```
+{% endhint %}
 
 #### Check CRDs
 
@@ -184,31 +186,33 @@ For the DBaaS Postgres service, there is only cluster resource available into th
 
 {% hint style="warning" %}
 **Warning:** Before running the next command, make sure to **update** the values in
-the ``examples/ionoscloud/dbaas/postgres-cluster.yaml`` file. Look for ``spec.forProvider`` fields. It is required to specify the datacenter (via ID or via reference),LAN (via ID or via reference), CIDR, and location(in sync with the datacenter) and also credentials for the database user.
+the ``examples/ionoscloud/dbaas/postgres-cluster.yaml`` file. Look for ``spec.forProvider`` fields. It is required to specify the data center (via ID or via reference),LAN (via ID or via reference), CIDR, and location(in sync with the datacenter) and also credentials for the database user.
 {% endhint %}
 
-### Create datacenter CR, LAN CR, and Postgres cluster CR
+### Create a Data Center CR, LAN CR, and Postgres cluster CR
 
-To ceate datacenter CR, LAN CR, and Postgres cluster CR, run the following command:
+To ceate data center CR, LAN CR, and Postgres cluster CR, run the following command:
 
 ```bash
 kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml
 ```
 
-### Get datacenter, LAN, and Postgres cluster CRs
+### Get a Data Center CR, LAN CR, and Postgres cluster CR
 
-To check if the Postgres cluster CR created is synced and ready, run the following command:
+To check if the created Postgres cluster CR is synced and ready, run the following command:
 
 ```bash
 kubectl get postgresclusters
 ```
 
-#### Output
+{% hint style="success" %}
+**Result:** Your output will be:
 
 ```bash
 NAME       READY   SYNCED   CLUSTER ID                            STATE      AGE
 example    True    True     9b25ecab-83fe-11ec-8d97-828542a828c7  AVAILABLE  93m
 ```
+{% endhint %}
 
 To view more details, run the following command:
 
@@ -224,23 +228,27 @@ You can check if the DBaaS Postgres cluster was created in the IONOS Cloud using
 ```bash
 ionosctl dbaas postgres cluster list
 ```
-#### Output
+
+{% hint style="success" %}
+**Result:** Your output will be:
 
 ```bash
 ClusterId                              DisplayName   Location   DatacenterId                           LanId   Cidr               Instances   State
 9b25ecab-83fe-11ec-8d97-828542a828c7   testDemo      de/txl     21d8fd28-5d62-43e9-a67b-68e52dac8885   1       192.168.1.100/24   1           AVAILABLE
 ```
+{% endhint %}
+
 
 1. In the **DCD**, go to the **Menu** > **Databases** > **Postgres clusters**.
 
-2. Check if the datacenter and LAN CRs are created using:
+2. Check if the data center and LAN CRs are created using:
 
   ```bash
   kubectl get datacenters
   kubectl get lans
   ```
 
-### Update datacenter, LAN and Postgres ccuster CRs
+### Update a Data Center CR, LAN and Postgres ccuster CR
 
 If you want to update the CRs created, update values from the ``examples/ionoscloud/dbaas/postgres-cluster.yaml``
 file using the following command:
@@ -251,9 +259,9 @@ kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml
 
 The updates applied should be updated in the external resource in IONOS Cloud.
 
-### Delete datacenter, LAN and Postgres cluster CRs
+### Delete a Data Center CR, LAN and Postgres cluster CRs
 
-If you want to delete the ``example`` Postgres cluster CR created, use the following command:
+To delete the Postgres cluster CR with the name ``example``, use the following command:
 
 ```bash
 kubectl delete postgrescluster example
@@ -262,11 +270,11 @@ kubectl delete postgrescluster example
 This would trigger the destroying of the DBaaS Postgres cluster.
 
 {% hint style="warning" %}
-**Warning:** Make sure to delete the DBaaS Postgres cluster before deleting the datacenter or the LAN used in the Cluster's
+**Warning:** Make sure to delete the DBaaS Postgres cluster before deleting the data center or the LAN used in the Cluster's
 connection.
 {% endhint %}
 
-Delete the LAN and datacenter CRs using:
+Delete the LAN and data center CRs using:
 
 ```bash
 kubectl delete lan examplelan
@@ -281,7 +289,7 @@ You can use the following command
 kubectl delete -f examples/ionoscloud/dbaas/postgres-cluster.yaml
 ```
 {% hint style="warning" %}
-**Warning:** This command is not recommended and can be used for this particular case only. It might delete the datacenter before
+**Warning:** This command is not recommended and can be used for this particular case only. It might delete the data center before
 the cluster.
 {% endhint %}
 
