@@ -21,8 +21,9 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/util/sets"
-
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -64,7 +65,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, _ workqueue.RateLimiter, opts *ut
 				log:                  l,
 				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
-			managed.WithInitializers(),
+			managed.WithInitializers(resourceShareInitializer{kube: mgr.GetClient()}),
 			managed.WithPollInterval(opts.GetPollInterval()),
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
@@ -93,6 +94,7 @@ func (c *connectorGroup) Connect(ctx context.Context, mg resource.Managed) (mana
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalGroup{
+		kube:                 c.kube,
 		service:              &group.APIClient{IonosServices: svc},
 		log:                  c.log,
 		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
@@ -101,7 +103,8 @@ func (c *connectorGroup) Connect(ctx context.Context, mg resource.Managed) (mana
 // externalGroup observes, then either creates, updates or deletes a group in ionoscloud
 // to ensure it reflects the desired state of the managed resource
 type externalGroup struct {
-	// service is the ionoscloud API client (https://api.ionos.com/docs/cloud/v6/#tag/User-management)
+	// service is the ionoscloud API client
+	kube                 client.Client
 	service              group.Client
 	log                  logging.Logger
 	isUniqueNamesEnabled bool
@@ -128,12 +131,19 @@ func (eg *externalGroup) Observe(ctx context.Context, mg resource.Managed) (mana
 		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, err)
 	}
 
+	shares, apiResponse, err := eg.service.GetGroupResourceShares(ctx, groupID)
+	if err != nil {
+		err = fmt.Errorf("failed to get group shares: %w", err)
+		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, err)
+	}
+
 	cr.Status.AtProvider.GroupID = groupID
 	cr.Status.AtProvider.UserIDs = members
+	cr.Status.AtProvider.ResourceShares = shares
 	cr.SetConditions(xpv1.Available())
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  group.IsGroupUpToDate(cr, observed, sets.New[string](members...)),
+		ResourceUpToDate:  group.IsGroupUpToDate(cr, observed),
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
 }
@@ -163,7 +173,7 @@ func (eg *externalGroup) Create(ctx context.Context, mg resource.Managed) (manag
 		}
 	}
 
-	groupInput, memberIDs := group.GenerateCreateGroupInput(cr)
+	groupInput, memberIDs, resourceShares := group.GenerateCreateGroupInput(cr)
 	newGroup, apiResponse, err := eg.service.CreateGroup(ctx, *groupInput)
 	if err != nil {
 		err = fmt.Errorf("failed to create new group. error: %w", err)
@@ -180,6 +190,11 @@ func (eg *externalGroup) Create(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalCreation{}, err
 	}
 
+	if err = eg.service.UpdateGroupResourceShares(ctx, *newGroup.Id, group.SharesUpdateOp{Add: resourceShares}); err != nil {
+		err = fmt.Errorf("error occurred while adding resource shares at group creation: %w", err)
+		return managed.ExternalCreation{}, err
+	}
+
 	return managed.ExternalCreation{}, nil
 }
 
@@ -190,7 +205,9 @@ func (eg *externalGroup) Update(ctx context.Context, mg resource.Managed) (manag
 	}
 
 	groupID := cr.Status.AtProvider.GroupID
-	groupInput, addMemberIDs, delMemberIDs := group.GenerateUpdateGroupInput(cr, sets.New[string](cr.Status.AtProvider.UserIDs...))
+	observedMemberIDs := cr.Status.AtProvider.UserIDs
+	observedShares := cr.Status.AtProvider.ResourceShares
+	groupInput, membersInput, sharesInput := group.GenerateUpdateGroupInput(cr, observedMemberIDs, observedShares)
 
 	_, apiResponse, err := eg.service.UpdateGroup(ctx, groupID, *groupInput)
 	if err != nil {
@@ -200,13 +217,18 @@ func (eg *externalGroup) Update(ctx context.Context, mg resource.Managed) (manag
 	if err = compute.WaitForRequest(ctx, eg.service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalUpdate{}, err
 	}
-	if err = eg.service.UpdateGroupMembers(ctx, groupID, addMemberIDs, eg.service.AddGroupMember); err != nil {
+	if err = eg.service.UpdateGroupMembers(ctx, groupID, membersInput.Add, eg.service.AddGroupMember); err != nil {
 		err = fmt.Errorf("error occurred while adding members at group update: %w", err)
 		return managed.ExternalUpdate{}, err
 	}
 
-	if err = eg.service.UpdateGroupMembers(ctx, groupID, delMemberIDs, eg.service.RemoveGroupMember); err != nil {
+	if err = eg.service.UpdateGroupMembers(ctx, groupID, membersInput.Remove, eg.service.RemoveGroupMember); err != nil {
 		err = fmt.Errorf("error occurred while removing members at group update: %w", err)
+		return managed.ExternalUpdate{}, err
+	}
+
+	if err = eg.service.UpdateGroupResourceShares(ctx, groupID, sharesInput); err != nil {
+		err = fmt.Errorf("error occurred while updating resource shares at group update: %w", err)
 		return managed.ExternalUpdate{}, err
 	}
 
@@ -228,5 +250,35 @@ func (eg *externalGroup) Delete(ctx context.Context, mg resource.Managed) error 
 	if err = compute.WaitForRequest(ctx, eg.service.GetAPIClient(), apiResponse); err != nil {
 		return err
 	}
+	return nil
+}
+
+type resourceShareInitializer struct {
+	kube client.Client
+}
+
+// Initialize resolves and sets a ResourceID for resourceShare references which do not have one set directly
+func (in resourceShareInitializer) Initialize(ctx context.Context, mg resource.Managed) error {
+
+	cr, ok := mg.(*v1alpha1.Group)
+	if !ok {
+		return errors.New(errNotGroup)
+	}
+
+	for i, ref := range cr.Spec.ForProvider.ResourceShareCfg {
+		if ref.ResourceID != "" {
+			continue
+		}
+		u := unstructured.Unstructured{}
+		u.SetGroupVersionKind(schema.GroupVersionKind{
+			Version: ref.Version,
+			Kind:    ref.Kind,
+		})
+		if err := in.kube.Get(ctx, types.NamespacedName{Name: ref.Name}, &u); err != nil {
+			return err
+		}
+		cr.Spec.ForProvider.ResourceShareCfg[i].ResourceID = meta.GetExternalName(&u)
+	}
+
 	return nil
 }

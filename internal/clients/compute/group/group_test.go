@@ -3,8 +3,6 @@ package group
 import (
 	"testing"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	psql "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
@@ -13,9 +11,8 @@ import (
 func TestIsGroupUpToDate(t *testing.T) {
 
 	type args struct {
-		cr        *v1alpha1.Group
-		Group     ionoscloud.Group
-		memberIDs sets.Set[string]
+		cr    *v1alpha1.Group
+		Group ionoscloud.Group
 	}
 	tests := []struct {
 		name string
@@ -120,6 +117,15 @@ func TestIsGroupUpToDate(t *testing.T) {
 							},
 						},
 					},
+					Status: v1alpha1.GroupStatus{
+						AtProvider: v1alpha1.GroupObservation{
+							UserIDs: []string{
+								"777c08be-1c95-4b6f-a15d-02994f3de1a1",
+								"338fa0ac-ab6e-4add-90d9-4850b743371f",
+								"17dc05fa-8e39-4d68-9529-5a428494882a",
+							},
+						},
+					},
 				},
 				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{
 					Name:                 psql.ToPtr("foo"),
@@ -129,11 +135,6 @@ func TestIsGroupUpToDate(t *testing.T) {
 					CreateK8sCluster:     psql.ToPtr(true),
 				},
 				},
-				memberIDs: sets.New[string](
-					"777c08be-1c95-4b6f-a15d-02994f3de1a1",
-					"338fa0ac-ab6e-4add-90d9-4850b743371f",
-					"17dc05fa-8e39-4d68-9529-5a428494882a",
-				),
 			},
 			want: true,
 		},
@@ -152,15 +153,18 @@ func TestIsGroupUpToDate(t *testing.T) {
 							},
 						},
 					},
+					Status: v1alpha1.GroupStatus{
+						AtProvider: v1alpha1.GroupObservation{
+							UserIDs: []string{
+								"17dc05fa-8e39-4d68-9529-5a428494882a",
+								"338fa0ac-ab6e-4add-90d9-4850b743371f",
+							},
+						},
+					},
 				},
 				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{
-					Name: psql.ToPtr("meow"),
+					Name: psql.ToPtr("meow")},
 				},
-				},
-				memberIDs: sets.New(
-					"17dc05fa-8e39-4d68-9529-5a428494882a",
-					"338fa0ac-ab6e-4add-90d9-4850b743371f",
-				),
 			},
 			want: false,
 		},
@@ -168,7 +172,7 @@ func TestIsGroupUpToDate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IsGroupUpToDate(tt.args.cr, tt.args.Group, tt.args.memberIDs); got != tt.want {
+			if got := IsGroupUpToDate(tt.args.cr, tt.args.Group); got != tt.want {
 				t.Errorf("IsGroupUpToDate() = %v, want %v", got, tt.want)
 			}
 		})

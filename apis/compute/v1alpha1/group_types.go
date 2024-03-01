@@ -120,6 +120,50 @@ type GroupParameters struct {
 	// UserCfg contains information about an existing User resource
 	// which will be added to the Group
 	UserCfg []UserConfig `json:"userConfig,omitempty"`
+
+	// SharedResources allows sharing privilege to resources between the members of the group
+	// In order to share a resource within a group, it must be referenced either by providing its ID directly
+	// or by specifying a set of values by which its K8s object can be identified
+	ResourceShareCfg []ResourceShareConfig `json:"sharedResourcesConfig,omitempty"`
+}
+
+// ResourceShareConfig is used for referencing a resource to be added as a ResourceShare within a Group
+type ResourceShareConfig struct {
+	// ResourceShare
+	ResourceShare `json:"resourceShare,omitempty"`
+	// If ResourceID is not provided directly, the resource can be referenced through other attributes
+	// These attributes mut all be provided for the Resource to be resolved successfully
+	// Name of the kubernetes object instance of the Custom Resource
+	//
+	// +kubebuilder:validation:Optional
+	Name string `json:"name,omitempty"`
+	// Kind of the Custom Resource
+	//
+	// +kubebuilder:validation:Optional
+	Kind string `json:"kind,omitempty"`
+	// Version of the Custom Resource
+	//
+	// +kubebuilder:validation:Optional
+	Version string `json:"version,omitempty"`
+}
+
+// ResourceShare can be added to a Group to grant privileges to its members on the resource referenced by ResourceID
+type ResourceShare struct {
+	// EditPrivilege for the Resource
+	//
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:default=false
+	EditPrivilege bool `json:"editPrivilege,omitempty"`
+	// SharePrivilege for the Resource
+	//
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:default=false
+	SharePrivilege bool `json:"sharePrivilege,omitempty"`
+	// ResourceID is the ID of the Resource to which Group members gain privileges
+	// It can only be provided directly
+	// +immutable
+	// +kubebuilder:validation:Format=uuid
+	ResourceID string `json:"resourceId,omitempty"`
 }
 
 // GroupConfig is used by resources that need to link Groups via id or via reference.
@@ -146,11 +190,11 @@ type GroupConfig struct {
 // GroupObservation are the observable fields of a Group.
 type GroupObservation struct {
 	// GroupID is the group id
-	//
-	// +kubebuilder:validation:Format=uuid
 	GroupID string `json:"groupId,omitempty"`
 	// UserIDs of the members of this Group
 	UserIDs []string `json:"userIDs,omitempty"`
+	// ResourceShares of this Group
+	ResourceShares []ResourceShare `json:"resourceShare,omitempty"`
 }
 
 // A GroupSpec defines the desired state of a Group.
