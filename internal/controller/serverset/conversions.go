@@ -1,51 +1,58 @@
 package serverset
 
 import (
+	"fmt"
+
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/kube"
 )
 
 // Conversions from serverset template to server, volume, nic objects
 
-// fromServerSetToServer is a conversion function that converts a ServerSet resource to a Server resource
+// FromServerSetToServer is a conversion function that converts a ServerSet resource to a Server resource
 // attaches a bootvolume to the server based on replicaIndex
-func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex int) v1alpha1.Server {
+func FromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) v1alpha1.Server {
 	serverType := "server"
 	return v1alpha1.Server{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getNameFromIndex(cr.Name, serverType, replicaIndex),
+			Name:      kube.GetNameFromIndex(cr.Name, serverType, replicaIndex, version),
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
 				serverSetLabel: cr.Name,
+				fmt.Sprintf(serversetIndexLabel, serverType):   fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(serversetVersionLabel, serverType): fmt.Sprintf("%d", version),
 			},
 		},
 		ManagementPolicies: xpv1.ManagementPolicies{"*"},
 		Spec: v1alpha1.ServerSpec{
 			ForProvider: v1alpha1.ServerParameters{
 				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
-				Name:             getNameFromIndex(cr.Name, serverType, replicaIndex),
+				Name:             kube.GetNameFromIndex(cr.Name, serverType, replicaIndex, version),
 				Cores:            cr.Spec.ForProvider.Template.Spec.Cores,
 				RAM:              cr.Spec.ForProvider.Template.Spec.RAM,
 				AvailabilityZone: "AUTO",
 				CPUFamily:        cr.Spec.ForProvider.Template.Spec.CPUFamily,
 				VolumeCfg: v1alpha1.VolumeConfig{
 					VolumeIDRef: &xpv1.Reference{
-						Name: getNameFromIndex(cr.Name, "bootvolume", replicaIndex),
+						Name: kube.GetNameFromIndex(cr.Name, "bootvolume", replicaIndex, volumeVersion),
 					},
 				},
 			},
 		}}
 }
 
-func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string) v1alpha1.Volume {
+func FromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, version int) v1alpha1.Volume {
 	return v1alpha1.Volume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
 				serverSetLabel: cr.Name,
+				fmt.Sprintf(serversetIndexLabel, "bootvolume"):   fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(serversetVersionLabel, "bootvolume"): fmt.Sprintf("%d", version),
 			},
 		},
 		ManagementPolicies: xpv1.ManagementPolicies{"*"},
@@ -63,13 +70,15 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string) v1alpha1.Volume 
 		}}
 }
 
-func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string) v1alpha1.Nic {
+func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, replicaIndex, version int) v1alpha1.Nic {
 	return v1alpha1.Nic{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: cr.GetNamespace(),
 			Labels: map[string]string{
-				serverSetLabel: cr.Name,
+				serverSetLabel:                            cr.Name,
+				fmt.Sprintf(serversetIndexLabel, "nic"):   fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(serversetVersionLabel, "nic"): fmt.Sprintf("%d", version),
 			},
 		},
 		ManagementPolicies: xpv1.ManagementPolicies{"*"},
