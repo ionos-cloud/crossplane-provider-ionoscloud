@@ -349,7 +349,7 @@ func IsGroupUpToDate(cr *v1alpha1.Group, observed sdkgo.Group) bool { // nolint:
 
 	configuredResourceShares := resourceSharesSet(cr)
 	observedResourceShares := sets.New[v1alpha1.ResourceShare](cr.Status.AtProvider.ResourceShares...)
-	return !observedResourceShares.Equal(configuredResourceShares)
+	return observedResourceShares.Equal(configuredResourceShares)
 }
 
 func memberIDsSet(cr *v1alpha1.Group) sets.Set[string] {
