@@ -210,7 +210,7 @@ type VolumeList struct {
 // Volume type metadata.
 var (
 	VolumeKind             = reflect.TypeOf(Volume{}).Name()
-	VolumeGroupKind        = schema.GroupKind{Group: ApiGroup, Kind: VolumeKind}.String()
+	VolumeGroupKind        = schema.GroupKind{Group: APIGroup, Kind: VolumeKind}.String()
 	VolumeKindAPIVersion   = VolumeKind + "." + SchemeGroupVersion.String()
 	VolumeGroupVersionKind = SchemeGroupVersion.WithKind(VolumeKind)
 )

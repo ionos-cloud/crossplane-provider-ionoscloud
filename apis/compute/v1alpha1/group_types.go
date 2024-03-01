@@ -238,7 +238,7 @@ type GroupList struct {
 // Group type metadata
 var (
 	GroupKind             = reflect.TypeOf(Group{}).Name()
-	GroupGroupKind        = schema.GroupKind{Group: ApiGroup, Kind: GroupKind}.String()
+	GroupGroupKind        = schema.GroupKind{Group: APIGroup, Kind: GroupKind}.String()
 	GroupAPIVersion       = GroupKind + "." + SchemeGroupVersion.String()
 	GroupGroupVersionKind = SchemeGroupVersion.WithKind(GroupKind)
 )

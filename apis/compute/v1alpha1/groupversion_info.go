@@ -27,13 +27,13 @@ import (
 
 // Package type metadata.
 const (
-	ApiGroup = "compute.ionoscloud.crossplane.io"
+	APIGroup = "compute.ionoscloud.crossplane.io"
 	Version  = "v1alpha1"
 )
 
 var (
 	// SchemeGroupVersion is group version used to register these objects
-	SchemeGroupVersion = schema.GroupVersion{Group: ApiGroup, Version: Version}
+	SchemeGroupVersion = schema.GroupVersion{Group: APIGroup, Version: Version}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
