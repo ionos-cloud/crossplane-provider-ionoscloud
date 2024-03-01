@@ -191,7 +191,7 @@ the ``examples/ionoscloud/dbaas/postgres-cluster.yaml`` file. Look for ``spec.fo
 
 ### Create a Data Center CR, LAN CR, and Postgres cluster CR
 
-To ceate data center CR, LAN CR, and Postgres cluster CR, run the following command:
+To create a data center CR, LAN CR, and Postgres cluster CR, run the following command:
 
 ```bash
 kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml
