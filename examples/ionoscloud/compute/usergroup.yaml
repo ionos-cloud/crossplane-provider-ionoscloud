@@ -14,6 +14,21 @@ spec:
     - "*"
   forProvider:
     name: testgroup
+    privileges:
+     - createDataCenter
+     - createSnapshot
+     - reserveIp
+     - accessActivityLog
+    resources:
+      - id: "ae3b18e7-2f50-4074-b229-cb076646c61f" # mshalabi-dev-env
+        editPrivilege: true
+        sharePrivilege: true
+      - id: "c6f8af01-6056-433f-a001-a509ab26c7d9" # veljko-2go-dev-env
+        editPrivilege: false
+        sharePrivilege: true
+      - id: "a25e0bc3-1d21-49a0-a8a9-b39ca7576a0e"  # mshalabi-dev-env
+        editPrivilege: true
+      - id: "55bbcaab-5e66-4767-be36-474e5c0dcd07" # djacinto-dev-env
   providerConfigRef:
     name: example
 

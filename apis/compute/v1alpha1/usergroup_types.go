@@ -9,6 +9,22 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
+const (
+	CreateDataCenter            = "createdatacenter"
+	CreateSnapshot              = "createsnapshot"
+	ReserveIp                   = "reserveip"
+	AccessActivityLog           = "accessactivitylog"
+	CreatePcc                   = "createpcc"
+	S3Privilege                 = "s3privilege"
+	CreateBackupUnit            = "createbackupunit"
+	CreateInternetAccess        = "createinternetaccess"
+	CreateK8sCluster            = "createk8scluster"
+	CreateFlowLog               = "createflowlog"
+	AccessAndManageMonitoring   = "accessandmanagemonitoring"
+	AccessAndManageCertificates = "accessandmanagecertificates"
+	ManageDBaaS                 = "managedbaas"
+)
+
 // Resource is an IONOS resource like datacenter.
 type Resource struct {
 	// ID represents the resource id
@@ -16,6 +32,12 @@ type Resource struct {
 
 	// Type is the resource type like group, datacenter, etc.
 	Type string `json:"type,omitempty"`
+
+	// EditPrivilege group will have an edit privilege on the resource
+	EditPrivilege bool `json:"editPrivilege,omitempty"`
+
+	// SharePrivilege group will have a share privilege on the resource
+	SharePrivilege bool `json:"sharePrivilege,omitempty"`
 }
 
 // GroupParameters defines the desired state of a UserGroup.
@@ -30,7 +52,7 @@ type GroupParameters struct {
 	// Privileges a list of group permissions
 	//
 	// +kubebuilder:validation:Optional
-	privileges []string `json:"privileges"`
+	Privileges []string `json:"privileges"`
 
 	// Users a list of user ids
 	//
@@ -49,7 +71,7 @@ type GroupParameters struct {
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="USERGROUP_ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
-// +kubebuilder:printcolumn:name="NAME",type="string",JSONPath=".spec.forProvider.name"
+// +kubebuilder:printcolumn:name="GROUP NAME",type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
 type UserGroup struct {
@@ -76,7 +98,10 @@ type UserGroupStatus struct {
 type UserGroupObservation struct {
 	// UserGroupID is the user group id.
 	// +kubebuilder:validation:Format=uuid
-	UserGroupID string `json:"userID,omitempty"`
+	UserGroupID string `json:"userGroupID,omitempty"`
+
+	// Resources represents an array of resource hashes
+	Resources []string `json:"resources,omitempty"`
 }
 
 // +kubebuilder:object:root=true

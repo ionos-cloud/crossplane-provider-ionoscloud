@@ -19,14 +19,14 @@ package usergroup
 import (
 	"cmp"
 	"context"
+	usergroupapi "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/usergroup"
 	ionosdk "github.com/ionos-cloud/sdk-go/v6"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"slices"
-
-	usergroupapi "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/usergroup"
+	"strings"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
@@ -49,10 +49,8 @@ const (
 	errUserGroupDelete  = "failed to delete user group"
 	errUserGroupUpdate  = "failed to update user group"
 	errUserGroupCreate  = "failed to create user group"
-	errAddUserToGroup   = "failed to add user to the group id"
-	errGetUserGroups    = "failed to fetch user groups"
-	errRequestWait      = "error waiting for request"
 	errNotUserGroup     = "managed resource is not of a UserGroup type"
+	errResourceUpdate   = "failed to update user group resources"
 )
 
 // A connectorUserGroup is expected to produce an ExternalClient when its Connect method
@@ -111,7 +109,7 @@ type externalUserGroup struct {
 	log     logging.Logger
 }
 
-func (eu *externalUserGroup) connectionDetails(cr *v1alpha1.UserGroup, observed ionosdk.Group) managed.ConnectionDetails {
+func (eu *externalUserGroup) connectionDetails(observed ionosdk.Group) managed.ConnectionDetails {
 	var details = make(managed.ConnectionDetails)
 	props := observed.GetProperties()
 	if props == nil {
@@ -123,8 +121,11 @@ func (eu *externalUserGroup) connectionDetails(cr *v1alpha1.UserGroup, observed 
 	return details
 }
 
-func setStatus(cr *v1alpha1.UserGroup, observed ionosdk.Group) {
+func setStatus(cr *v1alpha1.UserGroup, observed ionosdk.Group, resourceHashes []string) {
 	cr.Status.AtProvider.UserGroupID = utils.DereferenceOrZero(observed.GetId())
+	if resourceHashes != nil && len(resourceHashes) != 0 {
+		cr.Status.AtProvider.Resources = resourceHashes
+	}
 }
 
 func (eu *externalUserGroup) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -146,14 +147,16 @@ func (eu *externalUserGroup) Observe(ctx context.Context, mg resource.Managed) (
 		return managed.ExternalObservation{}, errors.Wrap(err, errUserGroupObserve)
 	}
 
-	setStatus(cr, observed)
+	resources, resp, err := eu.service.GetResources(ctx, userGroupID)
+	hashes := eu.hashIonosResources(resources)
+	setStatus(cr, observed, hashes)
 	cr.SetConditions(xpv1.Available())
 
-	conn := eu.connectionDetails(cr, observed)
+	conn := eu.connectionDetails(observed)
 
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        isUserUpToDate(cr.Spec.ForProvider, observed),
+		ResourceUpToDate:        eu.isUserGroupUpToDate(cr.Spec.ForProvider, observed, hashes),
 		ConnectionDetails:       conn,
 		ResourceLateInitialized: false,
 	}, nil
@@ -172,10 +175,11 @@ func (eu *externalUserGroup) Create(ctx context.Context, mg resource.Managed) (m
 		return managed.ExternalCreation{}, compute.AddAPIResponseInfo(resp, werr)
 	}
 
-	meta.SetExternalName(cr, *observed.GetId())
-	conn := eu.connectionDetails(cr, observed)
+	groupID := utils.DereferenceOrZero(observed.GetId())
+	meta.SetExternalName(cr, groupID)
+	conn := eu.connectionDetails(observed)
 
-	setStatus(cr, observed)
+	//hashes, err := eu.addResources(ctx, groupID, cr.Spec.ForProvider.Resources)
 
 	return managed.ExternalCreation{ConnectionDetails: conn}, nil
 }
@@ -190,10 +194,15 @@ func (eu *externalUserGroup) Update(ctx context.Context, mg resource.Managed) (m
 
 	observed, resp, err := eu.service.UpdateGroup(ctx, groupID, cr.Spec.ForProvider)
 	if err != nil {
-		werr := errors.Wrap(err, errUserGroupUpdate)
-		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(resp, werr)
+		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(resp, errors.Wrap(err, errUserGroupUpdate))
 	}
-	conn := eu.connectionDetails(cr, observed)
+	conn := eu.connectionDetails(observed)
+
+	//resourceHashes := cr.Status.AtProvider.Resources
+	_, _, err = eu.updateResources(ctx, groupID, cr.Spec.ForProvider.Resources)
+	if err != nil {
+		return managed.ExternalUpdate{}, errors.Wrap(err, errResourceUpdate)
+	}
 
 	return managed.ExternalUpdate{ConnectionDetails: conn}, nil
 }
@@ -211,18 +220,91 @@ func (eu *externalUserGroup) Delete(ctx context.Context, mg resource.Managed) er
 	return compute.ErrorUnlessNotFound(resp, errors.Wrap(err, errUserGroupDelete))
 }
 
-// isUserUpToDate returns true if the User is up-to-date or false otherwise.
-func isUserUpToDate(params v1alpha1.GroupParameters, observed ionosdk.Group) bool { //nolint:gocyclo
+// isUserGroupUpToDate returns true if the UserGroup is up-to-date or false otherwise.
+func (eu *externalUserGroup) isUserGroupUpToDate(params v1alpha1.GroupParameters, observed ionosdk.Group, ionosHashes []string) bool { //nolint:gocyclo
 	if !observed.HasProperties() {
 		return false
 	}
-
 	props := observed.GetProperties()
-	name := props.GetName()
 
-	switch {
-	case name != nil && params.Name != *name:
+	name := utils.DereferenceOrZero(props.GetName())
+	if params.Name != name {
 		return false
+	}
+
+	if !privilegesExists(params, props) {
+		return false
+	}
+
+	if !resourcesExists(eu.hashResources(params.Resources), ionosHashes) {
+		return false
+	}
+
+	return true
+}
+
+func resourcesExists(resources []string, ionosResources []string) bool {
+	ionosMap := getResourcesMap(ionosResources)
+	// find any resource that exists in k8s but not in ionos
+	for _, resource := range resources {
+		_, exist := ionosMap[resource]
+		if !exist {
+			return false
+		}
+		ionosMap[resource] = true
+	}
+
+	// find any resource exists in ionos but not in k8s
+	for _, v := range ionosMap {
+		if !v {
+			return false
+		}
+	}
+
+	return true
+}
+
+func getPrivilegesMap(props *ionosdk.GroupProperties) map[string]bool {
+	m := make(map[string]bool)
+	m[v1alpha1.CreateDataCenter] = utils.DereferenceOrZero(props.GetCreateDataCenter())
+	m[v1alpha1.CreateSnapshot] = utils.DereferenceOrZero(props.GetCreateSnapshot())
+	m[v1alpha1.ReserveIp] = utils.DereferenceOrZero(props.GetReserveIp())
+	m[v1alpha1.AccessActivityLog] = utils.DereferenceOrZero(props.GetAccessActivityLog())
+	m[v1alpha1.CreatePcc] = utils.DereferenceOrZero(props.GetCreatePcc())
+	m[v1alpha1.S3Privilege] = utils.DereferenceOrZero(props.GetS3Privilege())
+	m[v1alpha1.CreateBackupUnit] = utils.DereferenceOrZero(props.GetCreateBackupUnit())
+	m[v1alpha1.CreateInternetAccess] = utils.DereferenceOrZero(props.GetCreateInternetAccess())
+	m[v1alpha1.CreateK8sCluster] = utils.DereferenceOrZero(props.GetCreateK8sCluster())
+	m[v1alpha1.CreateFlowLog] = utils.DereferenceOrZero(props.GetCreateFlowLog())
+	m[v1alpha1.AccessAndManageMonitoring] = utils.DereferenceOrZero(props.GetAccessAndManageMonitoring())
+	m[v1alpha1.AccessAndManageCertificates] = utils.DereferenceOrZero(props.GetAccessAndManageCertificates())
+	m[v1alpha1.ManageDBaaS] = utils.DereferenceOrZero(props.GetManageDBaaS())
+
+	return m
+}
+
+// privilegesExists returns true if all privileges exists in IONOS group
+func privilegesExists(params v1alpha1.GroupParameters, props *ionosdk.GroupProperties) bool {
+	privileges := getPrivilegesMap(props)
+	ionos := make(map[string]bool)
+	//all privileges defined in k8s exists in ionos group
+	for _, p := range params.Privileges {
+		privilege := strings.ToLower(p)
+		_, exist := privileges[privilege]
+		if !exist {
+			return false
+		}
+		ionos[privilege] = true
+	}
+
+	//all privileges defined in ionos group exists in k8s
+	for k, v := range ionos {
+		if v {
+			_, exist := privileges[k]
+			if !exist {
+				return false
+			}
+		}
 	}
 
 	return true

@@ -29,7 +29,7 @@ spec:
       name: USERGROUP_ID
       type: string
     - jsonPath: .spec.forProvider.name
-      name: NAME
+      name: GROUP NAME
       type: string
     name: v1alpha1
     schema:
@@ -89,9 +89,17 @@ spec:
                     items:
                       description: Resource is an IONOS resource like datacenter.
                       properties:
+                        editPrivilege:
+                          description: EditPrivilege group will have an edit privilege
+                            on the resource
+                          type: boolean
                         id:
                           description: ID represents the resource id
                           type: string
+                        sharePrivilege:
+                          description: SharePrivilege group will have a share privilege
+                            on the resource
+                          type: boolean
                         type:
                           description: Type is the resource type like group, datacenter,
                             etc.
@@ -279,7 +287,12 @@ spec:
               atProvider:
                 description: UserGroupObservation are the observable fields of a UserGroup.
                 properties:
-                  userID:
+                  resources:
+                    description: Resources represents an array of resource hashes
+                    items:
+                      type: string
+                    type: array
+                  userGroupID:
                     description: UserGroupID is the user group id.
                     format: uuid
                     type: string
