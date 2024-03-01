@@ -2,6 +2,7 @@ package usergroup
 
 import (
 	"context"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	"k8s.io/utils/pointer"
 	"strings"
 
@@ -15,6 +16,7 @@ import (
 const errRequestWait = "error waiting for request"
 const errRemoveUserGroup = " failed to remove user from group"
 const depth = 5
+const errFailedToGetProperties = "could not get user group properties"
 
 // requestWaiter defines a type to wait for requests.
 type requestWaiter func(ctx context.Context, client *ionosdk.APIClient, apiResponse *ionosdk.APIResponse) error
@@ -43,6 +45,7 @@ type Client interface {
 	AddResource(ctx context.Context, groupID string, resource v1alpha1.Resource) (*ionosdk.APIResponse, error)
 	GetResources(ctx context.Context, groupID string) (ionosdk.GroupShares, *ionosdk.APIResponse, error)
 	RemoveResourceFromGroup(ctx context.Context, groupID, resourceID string) (*ionosdk.APIResponse, error)
+	GetPrivilegesMap(props *ionosdk.GroupProperties) map[string]bool
 	/*
 		AddUserToGroup(ctx context.Context, groupID string, userID string) (ionosdk.User, *ionosdk.APIResponse, error)
 		DeleteUserFromGroup(ctx context.Context, groupID string, userID string) error
@@ -85,8 +88,15 @@ func (ac *apiClient) DeleteGroup(ctx context.Context, id string) (*ionosdk.APIRe
 
 // UpdateGroup updates a user group.
 func (ac *apiClient) UpdateGroup(ctx context.Context, id string, p v1alpha1.GroupParameters) (ionosdk.Group, *ionosdk.APIResponse, error) {
-	props := ionosdk.NewGroupProperties()
-	props.SetName(p.Name)
+	ionosGroup, resp, err := ac.GetGroup(ctx, id)
+	if err != nil {
+		return ionosdk.Group{}, resp, err
+	}
+	props := ionosGroup.GetProperties()
+	if props == nil {
+		return ionosdk.Group{}, nil, errors.New(errFailedToGetProperties)
+	}
+	ac.removePermissions(p, props)
 	ac.setGroupPermissions(p, props)
 
 	u := *ionosdk.NewGroup(*props)
@@ -131,39 +141,71 @@ func (ac *apiClient) GetResources(ctx context.Context, groupID string) (ionosdk.
 	return ac.svc.UserManagementApi.UmGroupsSharesGet(ctx, groupID).Depth(depth).Execute()
 }
 
+func (ac *apiClient) GetPrivilegesMap(props *ionosdk.GroupProperties) map[string]bool {
+	m := make(map[string]bool)
+	m[v1alpha1.CreateDataCenter] = utils.DereferenceOrZero(props.GetCreateDataCenter())
+	m[v1alpha1.CreateSnapshot] = utils.DereferenceOrZero(props.GetCreateSnapshot())
+	m[v1alpha1.ReserveIp] = utils.DereferenceOrZero(props.GetReserveIp())
+	m[v1alpha1.AccessActivityLog] = utils.DereferenceOrZero(props.GetAccessActivityLog())
+	m[v1alpha1.CreatePcc] = utils.DereferenceOrZero(props.GetCreatePcc())
+	m[v1alpha1.S3Privilege] = utils.DereferenceOrZero(props.GetS3Privilege())
+	m[v1alpha1.CreateBackupUnit] = utils.DereferenceOrZero(props.GetCreateBackupUnit())
+	m[v1alpha1.CreateInternetAccess] = utils.DereferenceOrZero(props.GetCreateInternetAccess())
+	m[v1alpha1.CreateK8sCluster] = utils.DereferenceOrZero(props.GetCreateK8sCluster())
+	m[v1alpha1.CreateFlowLog] = utils.DereferenceOrZero(props.GetCreateFlowLog())
+	m[v1alpha1.AccessAndManageMonitoring] = utils.DereferenceOrZero(props.GetAccessAndManageMonitoring())
+	m[v1alpha1.AccessAndManageCertificates] = utils.DereferenceOrZero(props.GetAccessAndManageCertificates())
+	m[v1alpha1.ManageDBaaS] = utils.DereferenceOrZero(props.GetManageDBaaS())
+
+	return m
+}
+func (ac *apiClient) removePermissions(p v1alpha1.GroupParameters, props *ionosdk.GroupProperties) {
+	propertiesMap := ac.GetPrivilegesMap(props)
+	for _, privilege := range p.Privileges {
+		propertiesMap[strings.ToLower(privilege)] = false
+	}
+	for privilege, v := range propertiesMap {
+		if v {
+			setPrivilege(privilege, props, false)
+		}
+	}
+}
+func setPrivilege(privilege string, props *ionosdk.GroupProperties, value bool) {
+	switch strings.ToLower(privilege) {
+	case v1alpha1.CreateDataCenter:
+		props.SetCreateDataCenter(value)
+	case v1alpha1.CreateSnapshot:
+		props.CreateSnapshot = pointer.Bool(value)
+	case v1alpha1.ReserveIp:
+		props.SetReserveIp(value)
+	case v1alpha1.AccessActivityLog:
+		props.SetAccessActivityLog(value)
+	case v1alpha1.CreatePcc:
+		props.SetCreatePcc(value)
+	case v1alpha1.S3Privilege:
+		props.SetS3Privilege(value)
+	case v1alpha1.CreateBackupUnit:
+		props.SetCreateBackupUnit(value)
+	case v1alpha1.CreateInternetAccess:
+		props.SetCreateInternetAccess(value)
+	case v1alpha1.CreateK8sCluster:
+		props.SetCreateK8sCluster(value)
+	case v1alpha1.CreateFlowLog:
+		props.SetCreateFlowLog(value)
+	case v1alpha1.AccessAndManageMonitoring:
+		props.SetAccessAndManageMonitoring(value)
+	case v1alpha1.AccessAndManageCertificates:
+		props.SetAccessAndManageCertificates(value)
+	case v1alpha1.ManageDBaaS:
+		props.SetManageDBaaS(value)
+		// case "accessandmanagedns": This is not defined in the SDK, but it is defined in the documentation
+		// case "manageregistry":
+		//case "manageDataplatform":
+
+	}
+}
 func (ac *apiClient) setGroupPermissions(p v1alpha1.GroupParameters, props *ionosdk.GroupProperties) {
 	for _, privilege := range p.Privileges {
-		switch strings.ToLower(privilege) {
-		case v1alpha1.CreateDataCenter:
-			props.SetCreateDataCenter(true)
-		case v1alpha1.CreateSnapshot:
-			props.CreateSnapshot = pointer.Bool(true)
-		case v1alpha1.ReserveIp:
-			props.SetReserveIp(true)
-		case v1alpha1.AccessActivityLog:
-			props.SetAccessActivityLog(true)
-		case v1alpha1.CreatePcc:
-			props.SetCreatePcc(true)
-		case v1alpha1.S3Privilege:
-			props.SetS3Privilege(true)
-		case v1alpha1.CreateBackupUnit:
-			props.SetCreateBackupUnit(true)
-		case v1alpha1.CreateInternetAccess:
-			props.SetCreateInternetAccess(true)
-		case v1alpha1.CreateK8sCluster:
-			props.SetCreateK8sCluster(true)
-		case v1alpha1.CreateFlowLog:
-			props.SetCreateFlowLog(true)
-		case v1alpha1.AccessAndManageMonitoring:
-			props.SetAccessAndManageMonitoring(true)
-		case v1alpha1.AccessAndManageCertificates:
-			props.SetAccessAndManageCertificates(true)
-		case v1alpha1.ManageDBaaS:
-			props.SetManageDBaaS(true)
-			// case "accessandmanagedns": This is not defined in the SDK, but it is defined in the documentation
-			// case "manageregistry":
-			//case "manageDataplatform":
-
-		}
+		setPrivilege(privilege, props, true)
 	}
 }

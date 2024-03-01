@@ -226,7 +226,7 @@ func (eu *externalUserGroup) isUserGroupUpToDate(params v1alpha1.GroupParameters
 		return false
 	}
 
-	if !privilegesExists(params, props) {
+	if !eu.privilegesExists(params, props) {
 		return false
 	}
 
@@ -258,33 +258,14 @@ func resourcesExists(resources []string, ionosResources []string) bool {
 	return true
 }
 
-func getPrivilegesMap(props *ionosdk.GroupProperties) map[string]bool {
-	m := make(map[string]bool)
-	m[v1alpha1.CreateDataCenter] = utils.DereferenceOrZero(props.GetCreateDataCenter())
-	m[v1alpha1.CreateSnapshot] = utils.DereferenceOrZero(props.GetCreateSnapshot())
-	m[v1alpha1.ReserveIp] = utils.DereferenceOrZero(props.GetReserveIp())
-	m[v1alpha1.AccessActivityLog] = utils.DereferenceOrZero(props.GetAccessActivityLog())
-	m[v1alpha1.CreatePcc] = utils.DereferenceOrZero(props.GetCreatePcc())
-	m[v1alpha1.S3Privilege] = utils.DereferenceOrZero(props.GetS3Privilege())
-	m[v1alpha1.CreateBackupUnit] = utils.DereferenceOrZero(props.GetCreateBackupUnit())
-	m[v1alpha1.CreateInternetAccess] = utils.DereferenceOrZero(props.GetCreateInternetAccess())
-	m[v1alpha1.CreateK8sCluster] = utils.DereferenceOrZero(props.GetCreateK8sCluster())
-	m[v1alpha1.CreateFlowLog] = utils.DereferenceOrZero(props.GetCreateFlowLog())
-	m[v1alpha1.AccessAndManageMonitoring] = utils.DereferenceOrZero(props.GetAccessAndManageMonitoring())
-	m[v1alpha1.AccessAndManageCertificates] = utils.DereferenceOrZero(props.GetAccessAndManageCertificates())
-	m[v1alpha1.ManageDBaaS] = utils.DereferenceOrZero(props.GetManageDBaaS())
-
-	return m
-}
-
 // privilegesExists returns true if all privileges exists in IONOS group
-func privilegesExists(params v1alpha1.GroupParameters, props *ionosdk.GroupProperties) bool {
-	privileges := getPrivilegesMap(props)
+func (eu *externalUserGroup) privilegesExists(params v1alpha1.GroupParameters, props *ionosdk.GroupProperties) bool {
+	privileges := eu.service.GetPrivilegesMap(props)
 	ionos := make(map[string]bool)
 	//all privileges defined in k8s exists in ionos group
 	for _, p := range params.Privileges {
 		privilege := strings.ToLower(p)
-		_, exist := privileges[privilege]
+		exist := privileges[privilege]
 		if !exist {
 			return false
 		}
@@ -292,9 +273,9 @@ func privilegesExists(params v1alpha1.GroupParameters, props *ionosdk.GroupPrope
 	}
 
 	//all privileges defined in ionos group exists in k8s
-	for k, v := range ionos {
+	for k, v := range privileges {
 		if v {
-			_, exist := privileges[k]
+			_, exist := ionos[k]
 			if !exist {
 				return false
 			}
