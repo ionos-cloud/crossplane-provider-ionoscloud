@@ -39,9 +39,9 @@ following new functionality:
 
 For getting started with Crossplane Provider IONOS Cloud, check out this step-by-step [example](examples/example.md).
 
-## Setup Crossplane Provider IONOS Cloud
+## Set up Crossplane Provider IONOS Cloud
 
-In order to setup Crossplane Provider IONOS Cloud, see details
+In order to set up Crossplane Provider IONOS Cloud, see details
 in [here](examples/example.md#setup-crossplane-provider-ionos-cloud).
 
 ## Authentication on IONOS Cloud
