@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
@@ -44,8 +43,6 @@ const (
 	errUnexpectedObject = "managed resource is not an Volume resource"
 
 	errTrackPCUsage = "cannot track ProviderConfig usage"
-
-	resourceReadyTimeout = 5 * time.Minute
 )
 
 // A connector is expected to produce an ExternalClient when its Connect method
@@ -320,14 +317,14 @@ func (c *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 					}
 
 					for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
-						if err := c.createNic(ctx, cr, createdServer.Status.AtProvider.ServerID,
+						if err := c.kubeWrapper.CreateNic(ctx, cr, createdServer.Status.AtProvider.ServerID,
 							cr.Spec.ForProvider.Template.Spec.NICs[nicx].Reference, idx, newServerVersion); err != nil {
 							return err
 						}
 					}
 
 					// wait for server to become ready again after re-attaching volume
-					err = kube.WaitForKubeResource(ctx, resourceReadyTimeout, c.kubeWrapper.IsServerAvailable, kube.GetNameFromIndex(cr.Name, "server", idx, volumeVersion), cr.Namespace)
+					err = kube.WaitForKubeResource(ctx, kube.ResourceReadyTimeout, c.kubeWrapper.IsServerAvailable, kube.GetNameFromIndex(cr.Name, "server", idx, volumeVersion), cr.Namespace)
 					if err != nil {
 						return err
 					}
@@ -336,7 +333,7 @@ func (c *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 						fmt.Printf("error deleting volume %v", err)
 						return err
 					}
-					err = kube.WaitForKubeResource(ctx, resourceReadyTimeout, c.kubeWrapper.IsVolumeDeleted, condemnedVolume.Name, cr.Namespace)
+					err = kube.WaitForKubeResource(ctx, kube.ResourceReadyTimeout, c.kubeWrapper.IsVolumeDeleted, condemnedVolume.Name, cr.Namespace)
 					if err != nil {
 						return err
 					}
@@ -470,10 +467,10 @@ func (c *external) getServer(ctx context.Context, name, ns string) (*v1alpha1.Se
 	return obj, nil
 }
 
-func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, idx, version, volumeVersion int) error {
+func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
 	c.log.Info("Creating Server")
 	serverType := "server"
-	serverObj := kube.FromServerSetToServer(cr, idx, version, volumeVersion)
+	serverObj := kube.FromServerSetToServer(cr, replicaIndex, version, volumeVersion)
 
 	serverObj.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
 	if err := c.kubeWrapper.Kube.Create(ctx, &serverObj); err != nil {
@@ -481,37 +478,9 @@ func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, idx
 		fmt.Println(err.Error())
 		return err
 	}
-	if err := kube.WaitForKubeResource(ctx, resourceReadyTimeout, c.kubeWrapper.IsServerAvailable, kube.GetNameFromIndex(cr.Name, serverType, idx, version), cr.Namespace); err != nil {
+	if err := kube.WaitForKubeResource(ctx, kube.ResourceReadyTimeout, c.kubeWrapper.IsServerAvailable, kube.GetNameFromIndex(cr.Name, serverType, replicaIndex, version), cr.Namespace); err != nil {
 		return fmt.Errorf("while waiting for server to be populated %w ", err)
 	}
-	return nil
-}
-
-// createNic creates a NIC CR and waits until in reaches AVAILABLE state
-func (c *external) createNic(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) error {
-	resourceType := "nic"
-	nicName := kube.GetNameFromIndex(cr.Name, resourceType, replicaIndex, version)
-	c.log.Info("Creating NIC", "name", nicName)
-	network := v1alpha1.Lan{}
-	if err := c.kubeWrapper.Kube.Get(ctx, types.NamespacedName{
-		Namespace: cr.GetNamespace(),
-		Name:      lanName,
-	}, &network); err != nil {
-		return err
-	}
-	lanID := network.Status.AtProvider.LanID
-	// no NIC found, create one
-	createNic := kube.FromServerSetToNic(cr, nicName, serverID, lanID, replicaIndex, version)
-	createNic.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
-	if err := c.kubeWrapper.Kube.Create(ctx, &createNic); err != nil {
-		return err
-	}
-
-	err := kube.WaitForKubeResource(ctx, resourceReadyTimeout, c.kubeWrapper.IsNIcAvailable, createNic.Name, cr.Namespace)
-	if err != nil {
-		return err
-	}
-	c.log.Info("Finished creating NIC", "name", nicName)
 	return nil
 }
 
@@ -523,7 +492,7 @@ func (c *external) createBootVolume(ctx context.Context, cr *v1alpha1.ServerSet,
 	if err := c.kubeWrapper.Kube.Create(ctx, &volumeObj); err != nil {
 		return v1alpha1.Volume{}, err
 	}
-	if err := kube.WaitForKubeResource(ctx, resourceReadyTimeout, c.kubeWrapper.IsVolumeAvailable, name, cr.Namespace); err != nil {
+	if err := kube.WaitForKubeResource(ctx, kube.ResourceReadyTimeout, c.kubeWrapper.IsVolumeAvailable, name, cr.Namespace); err != nil {
 		return v1alpha1.Volume{}, err
 	}
 	// get the volume again before returning to have the id populated
@@ -619,7 +588,7 @@ func (c *external) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, server
 		return err
 	}
 	if len(res.Items) == 0 {
-		return c.createNic(ctx, cr, serverID, lanName, replicaIndex, version)
+		return c.kubeWrapper.CreateNic(ctx, cr, serverID, lanName, replicaIndex, version)
 
 		// network := v1alpha1.Lan{}
 		// if err := c.kubeWrapper.Kube.Get(ctx, types.NamespacedName{

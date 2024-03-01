@@ -179,3 +179,33 @@ func (c *Wrapper) IsServerAvailable(ctx context.Context, name, namespace string)
 	}
 	return false, err
 }
+
+// CreateNic creates a NIC CR and waits until in reaches AVAILABLE state
+func (c *Wrapper) CreateNic(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) error {
+	resourceType := "nic"
+	nicName := GetNameFromIndex(cr.Name, resourceType, replicaIndex, version)
+	c.Log.Info("Creating NIC", "name", nicName)
+	network := v1alpha1.Lan{}
+	if err := c.Kube.Get(ctx, types.NamespacedName{
+		Namespace: cr.GetNamespace(),
+		Name:      lanName,
+	}, &network); err != nil {
+		return err
+	}
+	lanID := network.Status.AtProvider.LanID
+	// no NIC found, create one
+	createNic := FromServerSetToNic(cr, nicName, serverID, lanID, replicaIndex, version)
+	createNic.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
+	if err := c.Kube.Create(ctx, &createNic); err != nil {
+		return err
+	}
+
+	err := WaitForKubeResource(ctx, ResourceReadyTimeout, c.IsNIcAvailable, createNic.Name, cr.Namespace)
+	if err != nil {
+		return err
+	}
+	c.Log.Info("Finished creating NIC", "name", nicName)
+	return nil
+}
+
+const ResourceReadyTimeout = 5 * time.Minute
