@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
@@ -52,7 +52,7 @@ func (c *Wrapper) GetNic(ctx context.Context, name, ns string) (*v1alpha1.Nic, e
 	return obj, nil
 }
 
-func ListResourceFromLabelIndex(ctx context.Context, kube client.Client, resType string, index int, obj client.ObjectList) error {
+func ListResourceFromIndex(ctx context.Context, kube client.Client, resType string, index int, obj client.ObjectList) error {
 	if err := kube.List(ctx, obj, client.MatchingLabels{
 		fmt.Sprintf("ionoscloud.com/serverset-%s-index", resType): strconv.Itoa(index),
 	}); err != nil {
@@ -61,9 +61,10 @@ func ListResourceFromLabelIndex(ctx context.Context, kube client.Client, resType
 	return nil
 }
 
-func ListResourceFromLabelVersion(ctx context.Context, kube client.Client, resType string, version int, obj client.ObjectList) error {
+func ListResourceWithIndexAndVersion(ctx context.Context, kube client.Client, resType string, index, version int, obj client.ObjectList) error {
 	if err := kube.List(ctx, obj, client.MatchingLabels{
 		fmt.Sprintf("ionoscloud.com/serverset-%s-version", resType): strconv.Itoa(version),
+		fmt.Sprintf("ionoscloud.com/serverset-%s-index", resType):   strconv.Itoa(index),
 	}); err != nil {
 		return err
 	}
@@ -76,6 +77,41 @@ func (c *Wrapper) IsVolumeDeleted(ctx context.Context, name, namespace string) (
 	_, err := c.GetVolume(ctx, name, namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
+			return true, nil
+		}
+		return false, nil
+	}
+	return false, nil
+}
+
+// getObjectTypeFromName - returns a kubernetes object type based on name. Naming convention must be <serverset-name>-<object-type>-<index>-<version>
+func getObjectTypeFromName(name string) client.Object {
+	s := strings.Split(name, "-")[1]
+	switch s {
+	case "server":
+		return &v1alpha1.Server{}
+	case "volume", "bootvolume":
+		return &v1alpha1.Volume{}
+	case "nic":
+		return &v1alpha1.Nic{}
+	default:
+		return nil
+	}
+
+}
+
+// IsResourceDeleted - checks if a kube object is deleted. Extracts resource type from name,
+// support for server, bootvolume, volume, nic
+func (c *Wrapper) IsResourceDeleted(ctx context.Context, name, namespace string) (bool, error) {
+	c.Log.Info("Checking if resource is deleted", "name", name, "namespace", namespace)
+	obj := getObjectTypeFromName(name)
+	err := c.Kube.Get(ctx, types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}, obj)
+	if err != nil {
+		if apiErrors.IsNotFound(err) {
+			c.Log.Info("Resource has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
 		return false, nil
@@ -138,21 +174,12 @@ func (c *Wrapper) IsNIcAvailable(ctx context.Context, name, namespace string) (b
 
 // WaitForKubeResource - keeps retrying until resource meets condition, or until ctx is cancelled
 func WaitForKubeResource(ctx context.Context, timeoutInMinutes time.Duration, fn IsResourceReady, name, namespace string) error {
-
 	if name == "" {
 		return fmt.Errorf("name is empty")
 	}
-	err := retry.RetryContext(ctx, timeoutInMinutes, func() *retry.RetryError {
-		isReady, err := fn(ctx, name, namespace)
-		if isReady {
-			return nil
-		}
-		if err != nil {
-			retry.NonRetryableError(err)
-		}
-		return retry.RetryableError(fmt.Errorf("resource with name %v found, still trying ", name))
+	return wait.PollUntilContextTimeout(ctx, 2*time.Second, timeoutInMinutes, true, func(context.Context) (bool, error) {
+		return fn(ctx, name, namespace)
 	})
-	return err
 }
 
 // IsResourceReady polls Kube api to see if resource is available and observed(status populated)
@@ -183,8 +210,8 @@ func (c *Wrapper) IsServerAvailable(ctx context.Context, name, namespace string)
 // CreateNic creates a NIC CR and waits until in reaches AVAILABLE state
 func (c *Wrapper) CreateNic(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) error {
 	resourceType := "nic"
-	nicName := GetNameFromIndex(cr.Name, resourceType, replicaIndex, version)
-	c.Log.Info("Creating NIC", "name", nicName)
+	name := GetNameFromIndex(cr.Name, resourceType, replicaIndex, version)
+	c.Log.Info("Creating NIC", "name", name)
 	network := v1alpha1.Lan{}
 	if err := c.Kube.Get(ctx, types.NamespacedName{
 		Namespace: cr.GetNamespace(),
@@ -194,7 +221,7 @@ func (c *Wrapper) CreateNic(ctx context.Context, cr *v1alpha1.ServerSet, serverI
 	}
 	lanID := network.Status.AtProvider.LanID
 	// no NIC found, create one
-	createNic := FromServerSetToNic(cr, nicName, serverID, lanID, replicaIndex, version)
+	createNic := FromServerSetToNic(cr, name, serverID, lanID, replicaIndex, version)
 	createNic.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
 	if err := c.Kube.Create(ctx, &createNic); err != nil {
 		return err
@@ -204,7 +231,7 @@ func (c *Wrapper) CreateNic(ctx context.Context, cr *v1alpha1.ServerSet, serverI
 	if err != nil {
 		return err
 	}
-	c.Log.Info("Finished creating NIC", "name", nicName)
+	c.Log.Info("Finished creating NIC", "name", name)
 	return nil
 }
 
