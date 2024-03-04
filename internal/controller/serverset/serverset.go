@@ -116,7 +116,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-
+	populateCRStatus(cr, servers)
 	cr.Status.AtProvider.Replicas = len(servers)
 	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return managed.ExternalObservation{
@@ -175,6 +175,59 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// resource. These will be stored as the connection secret.
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
+}
+
+func populateCRStatus(cr *v1alpha1.ServerSet, serverSetReplicas *v1alpha1.ServerList) {
+	if cr.Status.AtProvider.ReplicaStatuses == nil {
+		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, cr.Spec.ForProvider.Replicas)
+	}
+	firstReplicaReadyIdx := computeFirstReplicaReadyIdx(serverSetReplicas.Items)
+	cr.Status.AtProvider.Replicas = len(serverSetReplicas.Items)
+
+	for replicaIdx := range serverSetReplicas.Items {
+		replicaStatus := computeStatus(serverSetReplicas.Items[replicaIdx].Status.AtProvider.State)
+		cr.Status.AtProvider.ReplicaStatuses[replicaIdx] = v1alpha1.ServerSetReplicaStatus{
+			Role:         computeRole(replicaStatus, firstReplicaReadyIdx == replicaIdx),
+			Name:         getNameFromIndex(cr.GetName(), "server", replicaIdx),
+			Status:       replicaStatus,
+			ErrorMessage: "",
+			LastModified: metav1.Now(),
+		}
+	}
+}
+
+func computeFirstReplicaReadyIdx(items []v1alpha1.Server) int {
+	for idx, replica := range items {
+		if strings.EqualFold(replica.Status.AtProvider.State, ionoscloud.Available) {
+			return idx
+		}
+	}
+	// None of the replicas are ready
+	return -1
+}
+
+func computeRole(replicaStatus string, isTheFirstReplicaReady bool) string {
+	if strings.EqualFold(replicaStatus, "READY") && isTheFirstReplicaReady {
+		return "ACTIVE"
+	} else if strings.EqualFold(replicaStatus, "READY") {
+		return "PASSIVE"
+	} else if strings.EqualFold(replicaStatus, "UNKNOWN") {
+		return "REPLICA"
+	}
+	// In case of error, we don't know the role of the server
+	return "REPLICA"
+}
+
+func computeStatus(state string) string {
+	// At the moment we compute the status of the Server contained in the ServerSet
+	// based on the status of the Server. However, this status does not mean
+	// That the NAS software is up and running on it.
+	if strings.EqualFold(state, ionoscloud.Available) {
+		return "READY"
+	} else if strings.EqualFold(state, ionoscloud.Failed) {
+		return "ERROR"
+	}
+	return "UNKNOWN"
 }
 
 func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
