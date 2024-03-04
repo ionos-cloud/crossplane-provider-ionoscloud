@@ -286,9 +286,9 @@ func (in resourceShareInitializer) Initialize(ctx context.Context, mg resource.M
 			msg := fmt.Errorf("unable to resolve shared resource reference: %w", err)
 			in.log.Info(msg.Error())
 			in.eventRecorder.Event(mg, event.Warning("CannotResolveReference", msg))
-			return nil
+		} else {
+			cr.Spec.ForProvider.ResourceShareCfg[i].ResourceID = meta.GetExternalName(&u)
 		}
-		cr.Spec.ForProvider.ResourceShareCfg[i].ResourceID = meta.GetExternalName(&u)
 	}
 
 	return nil
