@@ -12,7 +12,6 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/kube"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
@@ -29,9 +28,21 @@ func SetupServerSet(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.ServerSetGroupVersionKind),
 			managed.WithExternalConnecter(&connector{
-				kubeWrapper: kube.Wrapper{
-					Kube: mgr.GetClient(),
-					Log:  l,
+				kubeWrapper: wrapper{
+					kube: mgr.GetClient(),
+					log:  l,
+				},
+				bootVolumeController: &kubeBootVolumeController{
+					kube: mgr.GetClient(),
+					log:  l,
+				},
+				nicController: &KubeNicController{
+					kube: mgr.GetClient(),
+					log:  l,
+				},
+				serverController: &KubeServerController{
+					kube: mgr.GetClient(),
+					log:  l,
 				},
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:   l,

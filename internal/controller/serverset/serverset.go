@@ -24,9 +24,8 @@ import (
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
+	"github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -36,21 +35,31 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/kube"
 )
 
 const (
 	errUnexpectedObject = "managed resource is not an Volume resource"
+	errTrackPCUsage     = "cannot track ProviderConfig usage"
+)
 
-	errTrackPCUsage = "cannot track ProviderConfig usage"
+const (
+	// indexLabel is the label used to identify the server set by index
+	indexLabel = "ionoscloud.com/serverset-%s-index"
+	// versionLabel is the label used to identify the server set by version
+	versionLabel = "ionoscloud.com/serverset-%s-version"
+	// serverSetLabel is the label used to identify the server set resources. All resources created by a server set will have this label
+	serverSetLabel = "ionoscloud.com/serverset"
 )
 
 // A connector is expected to produce an ExternalClient when its Connect method
 // is called.
 type connector struct {
-	kubeWrapper kube.Wrapper
-	usage       resource.Tracker
-	log         logging.Logger
+	kubeWrapper          wrapper
+	bootVolumeController KubeBootVolumeControlManager
+	nicController        kubeNicControlManager
+	serverController     kubeServerControlManager
+	usage                resource.Tracker
+	log                  logging.Logger
 }
 
 // Connect typically produces an ExternalClient by:
@@ -68,30 +77,35 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		return nil, errors.Wrap(err, errTrackPCUsage)
 	}
 
-	svc, err := clients.ConnectForCRD(ctx, mg, c.kubeWrapper.Kube, c.usage)
+	svc, err := clients.ConnectForCRD(ctx, mg, c.kubeWrapper.kube, c.usage)
 	if err != nil {
 		return nil, err
 	}
 
 	return &external{
-		kubeWrapper: c.kubeWrapper,
-		service:     &server.APIClient{IonosServices: svc},
-		log:         c.log,
+		kubeWrapper:          c.kubeWrapper,
+		service:              &server.APIClient{IonosServices: svc},
+		log:                  c.log,
+		bootVolumeController: c.bootVolumeController,
+		nicController:        c.nicController,
+		serverController:     c.serverController,
 	}, err
 }
 
 // external observes, then either creates, updates, or deletes an
 // externalServerSet resource to ensure it reflects the managed resource's desired state.
 type external struct {
-	kubeWrapper kube.Wrapper
+	kubeWrapper wrapper
 	// A 'client' used to connect to the externalServer resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-
-	service server.Client
-	log     logging.Logger
+	bootVolumeController KubeBootVolumeControlManager
+	nicController        kubeNicControlManager
+	serverController     kubeServerControlManager
+	service              server.Client
+	log                  logging.Logger
 }
 
-func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
 	cr, ok := mg.(*v1alpha1.ServerSet)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errUnexpectedObject)
@@ -101,7 +115,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, nil
 	}
 
-	servers, err := c.getServersFromServerSet(ctx, cr.Name)
+	servers, err := e.getServersFromServerSet(ctx, cr.Name)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -118,7 +132,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	areServersUpToDate := areServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
 
-	volumes, err := c.getVolumesFromServerSet(ctx, cr.Name)
+	volumes, err := e.getVolumesFromServerSet(ctx, cr.Name)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -135,7 +149,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	areNicsUpToDate := false
 	// todo check nic parameters are same as template
-	if areNicsUpToDate, err = c.areNicsUpToDate(ctx, cr); err != nil {
+	if areNicsUpToDate, err = e.areNicsUpToDate(ctx, cr); err != nil {
 		return managed.ExternalObservation{}, err
 	}
 	if !areNicsUpToDate {
@@ -165,7 +179,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}, nil
 }
 
-func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
 	cr, ok := mg.(*v1alpha1.ServerSet)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errUnexpectedObject)
@@ -175,40 +189,40 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	// for n times of cr.Spec.Replicas, create a server
 	// for each server, create a volume
-	c.log.Info("Creating a new ServerSet", "replicas", cr.Spec.ForProvider.Replicas)
+	e.log.Info("Creating a new ServerSet", "replicas", cr.Spec.ForProvider.Replicas)
 	version := 0
 	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
-		c.log.Info("Creating a new Server", "index", i)
+		e.log.Info("Creating a new Server", "index", i)
 		res := &v1alpha1.VolumeList{}
-		err := kube.ListResourceFromIndex(ctx, c.kubeWrapper.Kube, "bootvolume", i, res)
+		err := ListResFromSSetWithIndex(ctx, e.kubeWrapper.kube, resourceBootVolume, i, res)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}
 		if len(res.Items) > 1 {
 			return managed.ExternalCreation{}, fmt.Errorf("found too many volumes for index %d ", i)
 		} else if len(res.Items) == 0 {
-			if err := c.ensureBootVolume(ctx, cr, i, version); err != nil {
+			if err := e.EnsureBootVolume(ctx, cr, i, version); err != nil {
 				return managed.ExternalCreation{}, err
 			}
 		}
 
 		resSrv := &v1alpha1.ServerList{}
-		err = kube.ListResourceFromIndex(ctx, c.kubeWrapper.Kube, "server", i, resSrv)
+		err = ListResFromSSetWithIndex(ctx, e.kubeWrapper.kube, resourceServer, i, resSrv)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}
 		if len(resSrv.Items) > 1 {
 			return managed.ExternalCreation{}, fmt.Errorf("found too many servers for index %d ", i)
 		} else if len(resSrv.Items) == 0 {
-			if err := c.ensureServer(ctx, cr, i, version); err != nil {
+			if err := e.EnsureServer(ctx, cr, i, version); err != nil {
 				return managed.ExternalCreation{}, err
 			}
-			if err := c.ensureNICs(ctx, cr, i, version); err != nil {
+			if err := e.EnsureNICs(ctx, cr, i, version); err != nil {
 				return managed.ExternalCreation{}, err
 			}
 		}
 
-		if err := c.ensureVolumeClaim(); err != nil {
+		if err := e.ensureVolumeClaim(); err != nil {
 			return managed.ExternalCreation{}, err
 		}
 
@@ -223,17 +237,17 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	}, nil
 }
 
-func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
+func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
 	cr, ok := mg.(*v1alpha1.ServerSet)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errUnexpectedObject)
 	}
 	// how do we know if we want to update servers or nic params?
-	err := c.updateServersFromTemplate(ctx, cr)
+	err := e.updateServersFromTemplate(ctx, cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
-	if err := c.reconcileVolumesFromTemplate(ctx, cr); err != nil {
+	if err := e.reconcileVolumesFromTemplate(ctx, cr); err != nil {
 		return managed.ExternalUpdate{}, err
 
 	}
@@ -245,8 +259,8 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	}, nil
 }
 
-func (c *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.ServerSet) error {
-	servers, err := c.getServersFromServerSet(ctx, cr.Name)
+func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.ServerSet) error {
+	servers, err := e.getServersFromServerSet(ctx, cr.Name)
 	if err != nil {
 		return err
 	}
@@ -265,7 +279,7 @@ func (c *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 			servers[idx].Spec.ForProvider.CPUFamily = cr.Spec.ForProvider.Template.Spec.CPUFamily
 		}
 		if update {
-			if err := c.kubeWrapper.Kube.Update(ctx, &servers[idx]); err != nil {
+			if err := e.kubeWrapper.kube.Update(ctx, &servers[idx]); err != nil {
 				fmt.Printf("error updating server %v", err)
 				return err
 			}
@@ -276,8 +290,8 @@ func (c *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 
 // reconcileVolumesFromTemplate updates bootvolume, or deletes and re-creates server, volume and nic if something
 // immutable changes in a bootvolume
-func (c *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha1.ServerSet) error {
-	volumes, err := c.getVolumesFromServerSet(ctx, cr.Name)
+func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha1.ServerSet) error {
+	volumes, err := e.getVolumesFromServerSet(ctx, cr.Name)
 	if err != nil {
 		return err
 	}
@@ -300,80 +314,52 @@ func (c *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 		}
 
 		if deleteAndCreate {
-			res := &v1alpha1.VolumeList{}
-			err := kube.ListResourceFromIndex(ctx, c.kubeWrapper.Kube, "bootvolume", idx, res)
+			volumeResources := &v1alpha1.VolumeList{}
+			err := ListResFromSSetWithIndex(ctx, e.kubeWrapper.kube, resourceBootVolume, idx, volumeResources)
 			if err != nil {
 				return err
 			}
-			if len(res.Items) > 1 {
+			if len(volumeResources.Items) > 1 {
 				return fmt.Errorf("found too many volumes for index %d ", idx)
 			}
-			if len(res.Items) > 0 {
-				condemnedVolume := res.Items[0]
-				volumeVersion, err := strconv.Atoi(condemnedVolume.Labels[fmt.Sprintf(kube.ServersetVersionLabel, "bootvolume")])
-				if err != nil {
-					return err
-				}
-				newVolumeVersion := volumeVersion + 1
-				err = c.ensureBootVolume(ctx, cr, idx, newVolumeVersion)
-				if err != nil {
-					return err
-				}
-				res := &v1alpha1.ServerList{}
-				err = kube.ListResourceFromIndex(ctx, c.kubeWrapper.Kube, "server", idx, res)
-				if err != nil {
-					return err
-				}
-				servers := res.Items
-				if len(servers) > 0 {
-					serverVersion, _ := strconv.Atoi(servers[0].Labels[fmt.Sprintf(kube.ServersetVersionLabel, "server")])
-					newServerVersion := serverVersion + 1
-					err := c.ensureServer(ctx, cr, idx, newServerVersion)
-					if err != nil {
-						return err
-					}
-
-					if err = c.ensureNICs(ctx, cr, idx, newServerVersion); err != nil {
-						return err
-					}
-					// cleanup - bootvolume, server, nic
-					if err := c.kubeWrapper.Kube.Delete(ctx, &condemnedVolume); err != nil {
-						fmt.Printf("error deleting volume %v", err)
-						return err
-					}
-					err = kube.WaitForKubeResource(ctx, kube.ResourceReadyTimeout, c.kubeWrapper.IsResourceDeleted, condemnedVolume.Name, cr.Namespace)
-					if err != nil {
-						return err
-					}
-
-					condemnedServer, err := c.getServer(ctx, kube.GetNameFromIndex(cr.Name, "server", idx, serverVersion), cr.Namespace)
-					if err != nil {
-						return err
-					}
-					if err := c.kubeWrapper.Kube.Delete(ctx, condemnedServer); err != nil {
-						fmt.Printf("error deleting server %v", err)
-						return err
-					}
-					err = kube.WaitForKubeResource(ctx, kube.ResourceReadyTimeout, c.kubeWrapper.IsResourceDeleted, condemnedServer.Name, cr.Namespace)
-					if err != nil {
-						return err
-					}
-					condemnedNic, err := c.kubeWrapper.GetNic(ctx, kube.GetNameFromIndex(cr.Name, "nic", idx, serverVersion), cr.Namespace)
-					if err != nil {
-						return err
-					}
-					if err := c.kubeWrapper.Kube.Delete(ctx, condemnedNic); err != nil {
-						fmt.Printf("error deleting nic %v", err)
-						return err
-					}
-					err = kube.WaitForKubeResource(ctx, kube.ResourceReadyTimeout, c.kubeWrapper.IsResourceDeleted, condemnedNic.Name, cr.Namespace)
-					if err != nil {
-						return err
-					}
-				}
+			if len(volumeResources.Items) == 0 {
+				return fmt.Errorf("found no volumes for index %d ", idx)
 			}
+			serverResources := &v1alpha1.ServerList{}
+			err = ListResFromSSetWithIndex(ctx, e.kubeWrapper.kube, resourceServer, idx, serverResources)
+			if err != nil {
+				return err
+			}
+			if len(serverResources.Items) > 1 {
+				return fmt.Errorf("found too many servers for index %d ", idx)
+			}
+			if len(serverResources.Items) == 0 {
+				return fmt.Errorf("found no servers for index %d ", idx)
+			}
+
+			condemnedVolume := volumeResources.Items[0]
+			volumeVersion, err := strconv.Atoi(condemnedVolume.Labels[fmt.Sprintf(versionLabel, resourceBootVolume)])
+			if err != nil {
+				return err
+			}
+
+			servers := serverResources.Items
+			serverVersion, err := strconv.Atoi(servers[0].Labels[fmt.Sprintf(versionLabel, resourceServer)])
+			if err != nil {
+				return err
+			}
+			// creates bootvolume, server, nic
+			if err = e.createResources(ctx, cr, idx, volumeVersion+1, serverVersion+1); err != nil {
+				return err
+			}
+
+			// cleanup - bootvolume, server, nic
+			if err = e.cleanupCondemned(ctx, cr, idx, volumeVersion, serverVersion); err != nil {
+				return err
+			}
+
 		} else if update {
-			if err := c.kubeWrapper.Kube.Update(ctx, &volumes[idx]); err != nil {
+			if err := e.kubeWrapper.kube.Update(ctx, &volumes[idx]); err != nil {
 				fmt.Printf("error updating server %v", err)
 				return err
 			}
@@ -383,7 +369,57 @@ func (c *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 	return nil
 }
 
-func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
+func (e *external) createResources(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
+	if err := e.EnsureBootVolume(ctx, cr, index, volumeVersion); err != nil {
+		return err
+	}
+
+	if err := e.EnsureServer(ctx, cr, index, serverVersion); err != nil {
+		return err
+	}
+
+	return e.EnsureNICs(ctx, cr, index, serverVersion)
+}
+
+func (e *external) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
+	condemnedVolume, err := e.bootVolumeController.Get(ctx, getNameFromIndex(cr.Name, resourceBootVolume, index, volumeVersion), cr.Namespace)
+	if err != nil {
+		return err
+	}
+	if err := e.kubeWrapper.kube.Delete(ctx, condemnedVolume); err != nil {
+		fmt.Printf("error deleting volume %v", err)
+		return err
+	}
+	if err = WaitForKubeResource(ctx, ResourceReadyTimeout, e.kubeWrapper.isResourceDeleted, condemnedVolume.Name, cr.Namespace); err != nil {
+		return err
+	}
+
+	condemnedServer, err := e.serverController.Get(ctx, getNameFromIndex(cr.Name, resourceServer, index, serverVersion), cr.Namespace)
+	if err != nil {
+		return err
+	}
+
+	if err := e.kubeWrapper.kube.Delete(ctx, condemnedServer); err != nil {
+		fmt.Printf("error deleting server %v", err)
+		return err
+	}
+	if err = WaitForKubeResource(ctx, ResourceReadyTimeout, e.kubeWrapper.isResourceDeleted, condemnedServer.Name, cr.Namespace); err != nil {
+		return err
+	}
+
+	condemnedNic, err := e.nicController.Get(ctx, getNameFromIndex(cr.Name, resourceNIC, index, serverVersion), cr.Namespace)
+	if err != nil {
+		return err
+	}
+	if err := e.kubeWrapper.kube.Delete(ctx, condemnedNic); err != nil {
+		fmt.Printf("error deleting nic %v", err)
+		return err
+	}
+
+	return WaitForKubeResource(ctx, ResourceReadyTimeout, e.kubeWrapper.isResourceDeleted, condemnedNic.Name, cr.Namespace)
+}
+
+func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	cr, ok := mg.(*v1alpha1.ServerSet)
 	if !ok {
 		return errors.New(errUnexpectedObject)
@@ -393,21 +429,21 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 
 	fmt.Printf("Deleting: %+v", cr)
 
-	if err := c.kubeWrapper.Kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
-		kube.ServerSetLabel: cr.Name,
+	if err := e.kubeWrapper.kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
 
 	// delete all servers
-	if err := c.kubeWrapper.Kube.DeleteAllOf(ctx, &v1alpha1.Server{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
-		kube.ServerSetLabel: cr.Name,
+	if err := e.kubeWrapper.kube.DeleteAllOf(ctx, &v1alpha1.Server{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
 
-	if err := c.kubeWrapper.Kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
-		kube.ServerSetLabel: cr.Name,
+	if err := e.kubeWrapper.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
@@ -415,120 +451,8 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	return nil
 }
 
-func (c *external) ensureBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
-	c.log.Info("Ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
-	resourceType := "bootvolume"
-	res := &v1alpha1.VolumeList{}
-	err := kube.ListResourceWithIndexAndVersion(ctx, c.kubeWrapper.Kube, resourceType, replicaIndex, version, res)
-	if err != nil {
-		return err
-	}
-	volumes := res.Items
-	if len(volumes) == 0 {
-		volume, err := c.createBootVolume(ctx, cr, replicaIndex, version)
-		c.log.Info(fmt.Sprintf("Volume State:", "state", volume.Status.AtProvider.State))
-		return err
-	}
-
-	return nil
-}
-
-func (c *external) ensureVolumeClaim() error {
-	c.log.Info("Ensuring Volume")
-
-	return nil
-}
-
-func (c *external) ensureServer(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
-	c.log.Info("Ensuring Server")
-
-	resourceType := "server"
-	res := &v1alpha1.ServerList{}
-	err := kube.ListResourceWithIndexAndVersion(ctx, c.kubeWrapper.Kube, resourceType, replicaIndex, version, res)
-	if err != nil {
-		return err
-	}
-	servers := res.Items
-	if len(servers) > 0 {
-		c.log.Info("Server already exists", "name", servers[0].Name)
-	} else {
-		return c.createServer(ctx, cr, replicaIndex, version, version)
-	}
-	// fmt.Println("Server State: ", obj.Status.AtProvider.State)
-
-	return nil
-}
-
-func (c *external) getServer(ctx context.Context, name, ns string) (*v1alpha1.Server, error) {
-	obj := &v1alpha1.Server{}
-	if err := c.kubeWrapper.Kube.Get(ctx, types.NamespacedName{
-		Namespace: ns,
-		Name:      name,
-	}, obj); err != nil {
-		return nil, err
-	}
-
-	return obj, nil
-}
-
-func (c *external) createServer(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
-	createServer := kube.FromServerSetToServer(cr, replicaIndex, version, volumeVersion)
-	c.log.Info("Creating Server", "name", createServer.Name)
-
-	createServer.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
-	if err := c.kubeWrapper.Kube.Create(ctx, &createServer); err != nil {
-		fmt.Println("error creating createServer")
-		fmt.Println(err.Error())
-		return err
-	}
-	if err := kube.WaitForKubeResource(ctx, kube.ResourceReadyTimeout, c.kubeWrapper.IsServerAvailable, createServer.Name, cr.Namespace); err != nil {
-		return fmt.Errorf("while waiting for createServer to be populated %w ", err)
-	}
-	c.log.Info("Finished creating Server", "name", createServer.Name)
-
-	return nil
-}
-
-// createBootVolume creates a volume CR and waits until in reaches AVAILABLE state
-func (c *external) createBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Volume, error) {
-	name := kube.GetNameFromIndex(cr.Name, "bootvolume", replicaIndex, version)
-	c.log.Info("Creating Volume", "name", name)
-
-	createVolume := kube.FromServerSetToVolume(cr, name, replicaIndex, version)
-	createVolume.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
-	if err := c.kubeWrapper.Kube.Create(ctx, &createVolume); err != nil {
-		return v1alpha1.Volume{}, err
-	}
-	if err := kube.WaitForKubeResource(ctx, kube.ResourceReadyTimeout, c.kubeWrapper.IsVolumeAvailable, name, cr.Namespace); err != nil {
-		return v1alpha1.Volume{}, err
-	}
-	// get the volume again before returning to have the id populated
-	kubeVolume, err := c.kubeWrapper.GetVolume(ctx, name, cr.Namespace)
-	if err != nil {
-		return v1alpha1.Volume{}, err
-	}
-	c.log.Info("Finished creating Volume", "name", name)
-
-	return *kubeVolume, nil
-}
-
-func (c *external) ensureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
-	c.log.Info("Ensuring NIC")
-	res := &v1alpha1.ServerList{}
-	err := kube.ListResourceWithIndexAndVersion(ctx, c.kubeWrapper.Kube, "server", replicaIndex, version, res)
-	if err != nil {
-		return err
-	}
-	servers := res.Items
-	// check if the NIC is attached to the server
-	fmt.Printf("we have to check if the NIC is attached to the server %s ", cr.Name)
-	if len(servers) > 0 {
-		for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
-			if err := c.ensureNIC(ctx, cr, servers[0].Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].Reference, replicaIndex, version); err != nil {
-				return err
-			}
-		}
-	}
+func (e *external) ensureVolumeClaim() error {
+	e.log.Info("Ensuring Volume")
 
 	return nil
 }
@@ -570,12 +494,12 @@ func areVolumesUpToDate(templateParams v1alpha1.ServerSetParameters, volumes []v
 }
 
 // areNicsUpToDate gets nic k8s crs and checks if the correct number of NICs are created
-func (c *external) areNicsUpToDate(ctx context.Context, cr *v1alpha1.ServerSet) (bool, error) {
-	c.log.Info("Ensuring NIC")
+func (e *external) areNicsUpToDate(ctx context.Context, cr *v1alpha1.ServerSet) (bool, error) {
+	e.log.Info("Ensuring NIC")
 
 	nicList := &v1alpha1.NicList{}
-	if err := c.kubeWrapper.Kube.List(ctx, nicList, client.MatchingLabels{
-		kube.ServerSetLabel: cr.Name,
+	if err := e.kubeWrapper.kube.List(ctx, nicList, client.MatchingLabels{
+		serverSetLabel: cr.Name,
 	}); err != nil {
 		return false, err
 	}
@@ -587,32 +511,10 @@ func (c *external) areNicsUpToDate(ctx context.Context, cr *v1alpha1.ServerSet) 
 	return true, nil
 }
 
-func (c *external) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) error {
-	// get the network
-	resourceType := "nic"
-
-	res := &v1alpha1.NicList{}
-	err := kube.ListResourceWithIndexAndVersion(ctx, c.kubeWrapper.Kube, resourceType, replicaIndex, version, res)
-	if err != nil {
-		return err
-	}
-	if len(res.Items) == 0 {
-		return c.kubeWrapper.CreateNic(ctx, cr, serverID, lanName, replicaIndex, version)
-	} else {
-		observedNic := res.Items[0]
-		// NIC found, check if it's attached to the server
-		if !strings.EqualFold(observedNic.Status.AtProvider.State, ionoscloud.Available) {
-			return fmt.Errorf("observedNic %s got state %s but expected %s", observedNic.GetName(), observedNic.Status.AtProvider.State, ionoscloud.Available)
-		}
-	}
-
-	return nil
-}
-
-func (c *external) getServersFromServerSet(ctx context.Context, name string) ([]v1alpha1.Server, error) {
+func (e *external) getServersFromServerSet(ctx context.Context, name string) ([]v1alpha1.Server, error) {
 	serverList := &v1alpha1.ServerList{}
-	if err := c.kubeWrapper.Kube.List(ctx, serverList, client.MatchingLabels{
-		kube.ServerSetLabel: name,
+	if err := e.kubeWrapper.kube.List(ctx, serverList, client.MatchingLabels{
+		serverSetLabel: name,
 	}); err != nil {
 		return nil, err
 	}
@@ -620,13 +522,114 @@ func (c *external) getServersFromServerSet(ctx context.Context, name string) ([]
 	return serverList.Items, nil
 }
 
-func (c *external) getVolumesFromServerSet(ctx context.Context, name string) ([]v1alpha1.Volume, error) {
+func (e *external) getVolumesFromServerSet(ctx context.Context, name string) ([]v1alpha1.Volume, error) {
 	volumeList := &v1alpha1.VolumeList{}
-	if err := c.kubeWrapper.Kube.List(ctx, volumeList, client.MatchingLabels{
-		kube.ServerSetLabel: name,
+	if err := e.kubeWrapper.kube.List(ctx, volumeList, client.MatchingLabels{
+		serverSetLabel: name,
 	}); err != nil {
 		return nil, err
 	}
 
 	return volumeList.Items, nil
+}
+
+// ListResFromSSetWithIndex - lists resources from a server set with a specific index label
+func ListResFromSSetWithIndex(ctx context.Context, kube client.Client, resType string, index int, list client.ObjectList) error {
+	return kube.List(ctx, list, client.MatchingLabels{
+		fmt.Sprintf("ionoscloud.com/serverset-%s-index", resType): strconv.Itoa(index),
+	})
+}
+
+// ListResFromSSetWithIndexAndVersion - lists resources from a server set with a specific index and version label
+func ListResFromSSetWithIndexAndVersion(ctx context.Context, kube client.Client, resType string, index, version int, list client.ObjectList) error {
+	return kube.List(ctx, list, client.MatchingLabels{
+		fmt.Sprintf("ionoscloud.com/serverset-%s-version", resType): strconv.Itoa(version),
+		fmt.Sprintf("ionoscloud.com/serverset-%s-index", resType):   strconv.Itoa(index),
+	})
+}
+
+// EnsureBootVolume - creates a boot volume if it does not exist
+func (e *external) EnsureBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+	e.log.Info("Ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
+	resourceType := resourceBootVolume
+	res := &v1alpha1.VolumeList{}
+	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kubeWrapper.kube, resourceType, replicaIndex, version, res); err != nil {
+		return err
+	}
+	volumes := res.Items
+	if len(volumes) == 0 {
+		volume, err := e.bootVolumeController.Create(ctx, cr, replicaIndex, version)
+		e.log.Info("Volume State", "state", volume.Status.AtProvider.State)
+		return err
+	}
+
+	return nil
+}
+
+// EnsureServer - creates a server CR if it does not exist
+func (e *external) EnsureServer(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+	e.log.Info("Ensuring Server", "index", replicaIndex, "version", version)
+	res := &v1alpha1.ServerList{}
+	err := ListResFromSSetWithIndexAndVersion(ctx, e.kubeWrapper.kube, resourceServer, replicaIndex, version, res)
+	if err != nil {
+		return err
+	}
+	servers := res.Items
+	if len(servers) > 0 {
+		e.log.Info("Server already exists", "name", servers[0].Name)
+	} else {
+		_, err := e.serverController.Create(ctx, cr, replicaIndex, version, version)
+		if err != nil {
+			return err
+		}
+	}
+	e.log.Info("Finished ensuring Server", "index", replicaIndex, "version", version)
+
+	return nil
+}
+
+// EnsureNICs - creates NICS if they do not exist
+func (e *external) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+	e.log.Info("Ensuring NICs", "index", replicaIndex, "version", version)
+	res := &v1alpha1.ServerList{}
+	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kubeWrapper.kube, resourceServer, replicaIndex, version, res); err != nil {
+		return err
+	}
+	servers := res.Items
+	// check if the NIC is attached to the server
+	fmt.Printf("we have to check if the NIC is attached to the server %s ", cr.Name)
+	if len(servers) > 0 {
+		for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
+			if err := e.EnsureNIC(ctx, cr, servers[0].Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].Reference, replicaIndex, version); err != nil {
+				return err
+			}
+		}
+	}
+	e.log.Info("Finished ensuring NICs", "index", replicaIndex, "version", version)
+
+	return nil
+}
+
+// EnsureNIC - creates a NIC if it does not exist
+func (e *external) EnsureNIC(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) error {
+	res := &v1alpha1.NicList{}
+	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kubeWrapper.kube, resourceNIC, replicaIndex, version, res); err != nil {
+		return err
+	}
+	nic := v1alpha1.Nic{}
+	if len(res.Items) == 0 {
+		var err error
+		nic, err = e.nicController.Create(ctx, cr, serverID, lanName, replicaIndex, version)
+		if err != nil {
+			return err
+		}
+	} else {
+		nic = res.Items[0]
+		// NIC found, check if it's attached to the server
+
+	}
+	if !strings.EqualFold(nic.Status.AtProvider.State, ionoscloud.Available) {
+		return fmt.Errorf("observedNic %s got state %s but expected %s", nic.GetName(), nic.Status.AtProvider.State, ionoscloud.Available)
+	}
+	return nil
 }

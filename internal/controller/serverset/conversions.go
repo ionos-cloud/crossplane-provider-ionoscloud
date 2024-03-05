@@ -1,4 +1,4 @@
-package kube
+package serverset
 
 import (
 	"fmt"
@@ -17,26 +17,26 @@ func FromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volume
 	serverType := "server"
 	return v1alpha1.Server{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      GetNameFromIndex(cr.Name, serverType, replicaIndex, version),
+			Name:      getNameFromIndex(cr.Name, serverType, replicaIndex, version),
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
-				ServerSetLabel: cr.Name,
-				fmt.Sprintf(ServersetIndexLabel, serverType):   fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(ServersetVersionLabel, serverType): fmt.Sprintf("%d", version),
+				serverSetLabel:                        cr.Name,
+				fmt.Sprintf(indexLabel, serverType):   fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(versionLabel, serverType): fmt.Sprintf("%d", version),
 			},
 		},
 		ManagementPolicies: xpv1.ManagementPolicies{"*"},
 		Spec: v1alpha1.ServerSpec{
 			ForProvider: v1alpha1.ServerParameters{
 				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
-				Name:             GetNameFromIndex(cr.Name, serverType, replicaIndex, version),
+				Name:             getNameFromIndex(cr.Name, serverType, replicaIndex, version),
 				Cores:            cr.Spec.ForProvider.Template.Spec.Cores,
 				RAM:              cr.Spec.ForProvider.Template.Spec.RAM,
 				AvailabilityZone: "AUTO",
 				CPUFamily:        cr.Spec.ForProvider.Template.Spec.CPUFamily,
 				VolumeCfg: v1alpha1.VolumeConfig{
 					VolumeIDRef: &xpv1.Reference{
-						Name: GetNameFromIndex(cr.Name, "bootvolume", replicaIndex, volumeVersion),
+						Name: getNameFromIndex(cr.Name, "bootvolume", replicaIndex, volumeVersion),
 					},
 				},
 			},
@@ -49,9 +49,9 @@ func FromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 			Name:      name,
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
-				ServerSetLabel: cr.Name,
-				fmt.Sprintf(ServersetIndexLabel, "bootvolume"):   fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(ServersetVersionLabel, "bootvolume"): fmt.Sprintf("%d", version),
+				serverSetLabel:                          cr.Name,
+				fmt.Sprintf(indexLabel, "bootvolume"):   fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(versionLabel, "bootvolume"): fmt.Sprintf("%d", version),
 			},
 		},
 		ManagementPolicies: xpv1.ManagementPolicies{"*"},
@@ -75,9 +75,9 @@ func FromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, re
 			Name:      name,
 			Namespace: cr.GetNamespace(),
 			Labels: map[string]string{
-				ServerSetLabel:                            cr.Name,
-				fmt.Sprintf(ServersetIndexLabel, "nic"):   fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(ServersetVersionLabel, "nic"): fmt.Sprintf("%d", version),
+				serverSetLabel:                   cr.Name,
+				fmt.Sprintf(indexLabel, "nic"):   fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(versionLabel, "nic"): fmt.Sprintf("%d", version),
 			},
 		},
 		ManagementPolicies: xpv1.ManagementPolicies{"*"},
