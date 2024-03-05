@@ -36,11 +36,11 @@ func SetupServerSet(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter
 					kube: mgr.GetClient(),
 					log:  l,
 				},
-				nicController: &KubeNicController{
+				nicController: &kubeNicController{
 					kube: mgr.GetClient(),
 					log:  l,
 				},
-				serverController: &KubeServerController{
+				serverController: &kubeServerController{
 					kube: mgr.GetClient(),
 					log:  l,
 				},

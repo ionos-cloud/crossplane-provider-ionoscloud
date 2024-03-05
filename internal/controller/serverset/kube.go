@@ -15,7 +15,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
-const ResourceReadyTimeout = 5 * time.Minute
+const resourceReadyTimeout = 5 * time.Minute
 
 // Implements lower level functions to interact with kubernetes
 

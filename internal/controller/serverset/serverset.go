@@ -55,7 +55,7 @@ const (
 // is called.
 type connector struct {
 	kubeWrapper          wrapper
-	bootVolumeController KubeBootVolumeControlManager
+	bootVolumeController kubeBootVolumeControlManager
 	nicController        kubeNicControlManager
 	serverController     kubeServerControlManager
 	usage                resource.Tracker
@@ -98,7 +98,7 @@ type external struct {
 	kubeWrapper wrapper
 	// A 'client' used to connect to the externalServer resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	bootVolumeController KubeBootVolumeControlManager
+	bootVolumeController kubeBootVolumeControlManager
 	nicController        kubeNicControlManager
 	serverController     kubeServerControlManager
 	service              server.Client
@@ -390,7 +390,7 @@ func (e *external) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet,
 		fmt.Printf("error deleting volume %v", err)
 		return err
 	}
-	if err = WaitForKubeResource(ctx, ResourceReadyTimeout, e.kubeWrapper.isResourceDeleted, condemnedVolume.Name, cr.Namespace); err != nil {
+	if err = WaitForKubeResource(ctx, resourceReadyTimeout, e.kubeWrapper.isResourceDeleted, condemnedVolume.Name, cr.Namespace); err != nil {
 		return err
 	}
 
@@ -403,7 +403,7 @@ func (e *external) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet,
 		fmt.Printf("error deleting server %v", err)
 		return err
 	}
-	if err = WaitForKubeResource(ctx, ResourceReadyTimeout, e.kubeWrapper.isResourceDeleted, condemnedServer.Name, cr.Namespace); err != nil {
+	if err = WaitForKubeResource(ctx, resourceReadyTimeout, e.kubeWrapper.isResourceDeleted, condemnedServer.Name, cr.Namespace); err != nil {
 		return err
 	}
 
@@ -416,7 +416,7 @@ func (e *external) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet,
 		return err
 	}
 
-	return WaitForKubeResource(ctx, ResourceReadyTimeout, e.kubeWrapper.isResourceDeleted, condemnedNic.Name, cr.Namespace)
+	return WaitForKubeResource(ctx, resourceReadyTimeout, e.kubeWrapper.isResourceDeleted, condemnedNic.Name, cr.Namespace)
 }
 
 func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
@@ -536,24 +536,24 @@ func (e *external) getVolumesFromServerSet(ctx context.Context, name string) ([]
 // ListResFromSSetWithIndex - lists resources from a server set with a specific index label
 func ListResFromSSetWithIndex(ctx context.Context, kube client.Client, resType string, index int, list client.ObjectList) error {
 	return kube.List(ctx, list, client.MatchingLabels{
-		fmt.Sprintf("ionoscloud.com/serverset-%s-index", resType): strconv.Itoa(index),
+
+		fmt.Sprintf(indexLabel, resType): strconv.Itoa(index),
 	})
 }
 
 // ListResFromSSetWithIndexAndVersion - lists resources from a server set with a specific index and version label
 func ListResFromSSetWithIndexAndVersion(ctx context.Context, kube client.Client, resType string, index, version int, list client.ObjectList) error {
 	return kube.List(ctx, list, client.MatchingLabels{
-		fmt.Sprintf("ionoscloud.com/serverset-%s-version", resType): strconv.Itoa(version),
-		fmt.Sprintf("ionoscloud.com/serverset-%s-index", resType):   strconv.Itoa(index),
+		fmt.Sprintf(versionLabel, resType): strconv.Itoa(version),
+		fmt.Sprintf(indexLabel, resType):   strconv.Itoa(index),
 	})
 }
 
 // EnsureBootVolume - creates a boot volume if it does not exist
 func (e *external) EnsureBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	e.log.Info("Ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
-	resourceType := resourceBootVolume
 	res := &v1alpha1.VolumeList{}
-	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kubeWrapper.kube, resourceType, replicaIndex, version, res); err != nil {
+	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kubeWrapper.kube, resourceBootVolume, replicaIndex, version, res); err != nil {
 		return err
 	}
 	volumes := res.Items
@@ -562,6 +562,7 @@ func (e *external) EnsureBootVolume(ctx context.Context, cr *v1alpha1.ServerSet,
 		e.log.Info("Volume State", "state", volume.Status.AtProvider.State)
 		return err
 	}
+	e.log.Info("Finished ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
 
 	return nil
 }

@@ -2,18 +2,21 @@ package serverset
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/ionos-cloud/sdk-go/v6"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
-type KubeBootVolumeControlManager interface {
+type kubeBootVolumeControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Volume, error)
 	Get(ctx context.Context, volumeName, ns string) (*v1alpha1.Volume, error)
 }
@@ -29,12 +32,12 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	name := getNameFromIndex(cr.Name, "bootvolume", replicaIndex, version)
 	k.log.Info("Creating Volume", "name", name)
 
-	createVolume := FromServerSetToVolume(cr, name, replicaIndex, version)
+	createVolume := fromServerSetToVolume(cr, name, replicaIndex, version)
 	createVolume.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
 	if err := k.kube.Create(ctx, &createVolume); err != nil {
 		return v1alpha1.Volume{}, err
 	}
-	if err := WaitForKubeResource(ctx, ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
+	if err := WaitForKubeResource(ctx, resourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
 		return v1alpha1.Volume{}, err
 	}
 	// get the volume again before returning to have the id populated
@@ -70,4 +73,30 @@ func (k *kubeBootVolumeController) isAvailable(ctx context.Context, name, namesp
 		return true, nil
 	}
 	return false, err
+}
+
+func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, version int) v1alpha1.Volume {
+	return v1alpha1.Volume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: cr.Namespace,
+			Labels: map[string]string{
+				serverSetLabel:                          cr.Name,
+				fmt.Sprintf(indexLabel, "bootvolume"):   fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(versionLabel, "bootvolume"): fmt.Sprintf("%d", version),
+			},
+		},
+		ManagementPolicies: xpv1.ManagementPolicies{"*"},
+		Spec: v1alpha1.VolumeSpec{
+			ForProvider: v1alpha1.VolumeParameters{
+				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
+				Name:             name,
+				AvailabilityZone: "AUTO",
+				Size:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size,
+				Type:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type,
+				Image:            cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image,
+				// todo add to template(?)
+				ImagePassword: "imagePassword776",
+			},
+		}}
 }
