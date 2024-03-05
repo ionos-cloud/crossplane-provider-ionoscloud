@@ -28,7 +28,22 @@ func SetupServerSet(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.ServerSetGroupVersionKind),
 			managed.WithExternalConnecter(&connector{
-				kube:  mgr.GetClient(),
+				kubeWrapper: wrapper{
+					kube: mgr.GetClient(),
+					log:  l,
+				},
+				bootVolumeController: &kubeBootVolumeController{
+					kube: mgr.GetClient(),
+					log:  l,
+				},
+				nicController: &kubeNicController{
+					kube: mgr.GetClient(),
+					log:  l,
+				},
+				serverController: &kubeServerController{
+					kube: mgr.GetClient(),
+					log:  l,
+				},
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:   l,
 			}),
