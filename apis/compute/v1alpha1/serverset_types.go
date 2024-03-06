@@ -113,8 +113,8 @@ type ServerSetMetadata struct {
 // ServerSetObservation are the observable fields of a ServerSet.
 type ServerSetObservation struct {
 	// Replicas is the count of ready replicas.
-	Replicas      int                      `json:"replicas,omitempty"`
-	ReplicaStatus []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
+	Replicas        int                      `json:"replicas,omitempty"`
+	ReplicaStatuses []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
 }
 
 // ServerSetReplicaStatus are the observable fields of a ServerSetReplicaStatus.

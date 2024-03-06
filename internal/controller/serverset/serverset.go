@@ -149,6 +149,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if areNicsUpToDate, err = e.areNicsUpToDate(ctx, cr); err != nil {
 		return managed.ExternalObservation{}, err
 	}
+
 	if !areNicsUpToDate {
 		return managed.ExternalObservation{
 			ResourceExists:    false,
