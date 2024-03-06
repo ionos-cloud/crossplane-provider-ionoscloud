@@ -54,7 +54,7 @@ const (
 // A connector is expected to produce an ExternalClient when its Connect method
 // is called.
 type connector struct {
-	kubeWrapper          wrapper
+	kube                 client.Client
 	bootVolumeController kubeBootVolumeControlManager
 	nicController        kubeNicControlManager
 	serverController     kubeServerControlManager
@@ -77,13 +77,13 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		return nil, errors.Wrap(err, errTrackPCUsage)
 	}
 
-	svc, err := clients.ConnectForCRD(ctx, mg, c.kubeWrapper.kube, c.usage)
+	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	if err != nil {
 		return nil, err
 	}
 
 	return &external{
-		kubeWrapper:          c.kubeWrapper,
+		kube:                 c.kube,
 		service:              &server.APIClient{IonosServices: svc},
 		log:                  c.log,
 		bootVolumeController: c.bootVolumeController,
@@ -95,7 +95,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 // external observes, then either creates, updates, or deletes an
 // externalServerSet resource to ensure it reflects the managed resource's desired state.
 type external struct {
-	kubeWrapper wrapper
+	kube client.Client
 	// A 'client' used to connect to the externalServer resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
 	bootVolumeController kubeBootVolumeControlManager
@@ -194,7 +194,7 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
 		e.log.Info("Creating a new Server", "index", i)
 		res := &v1alpha1.VolumeList{}
-		err := ListResFromSSetWithIndex(ctx, e.kubeWrapper.kube, resourceBootVolume, i, res)
+		err := ListResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, i, res)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}
@@ -207,7 +207,7 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		}
 
 		resSrv := &v1alpha1.ServerList{}
-		err = ListResFromSSetWithIndex(ctx, e.kubeWrapper.kube, resourceServer, i, resSrv)
+		err = ListResFromSSetWithIndex(ctx, e.kube, resourceServer, i, resSrv)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}
@@ -279,7 +279,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 			servers[idx].Spec.ForProvider.CPUFamily = cr.Spec.ForProvider.Template.Spec.CPUFamily
 		}
 		if update {
-			if err := e.kubeWrapper.kube.Update(ctx, &servers[idx]); err != nil {
+			if err := e.kube.Update(ctx, &servers[idx]); err != nil {
 				fmt.Printf("error updating server %v", err)
 				return err
 			}
@@ -315,7 +315,7 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 
 		if deleteAndCreate {
 			volumeResources := &v1alpha1.VolumeList{}
-			err := ListResFromSSetWithIndex(ctx, e.kubeWrapper.kube, resourceBootVolume, idx, volumeResources)
+			err := ListResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, idx, volumeResources)
 			if err != nil {
 				return err
 			}
@@ -326,7 +326,7 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 				return fmt.Errorf("found no volumes for index %d ", idx)
 			}
 			serverResources := &v1alpha1.ServerList{}
-			err = ListResFromSSetWithIndex(ctx, e.kubeWrapper.kube, resourceServer, idx, serverResources)
+			err = ListResFromSSetWithIndex(ctx, e.kube, resourceServer, idx, serverResources)
 			if err != nil {
 				return err
 			}
@@ -359,7 +359,7 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 			}
 
 		} else if update {
-			if err := e.kubeWrapper.kube.Update(ctx, &volumes[idx]); err != nil {
+			if err := e.kube.Update(ctx, &volumes[idx]); err != nil {
 				fmt.Printf("error updating server %v", err)
 				return err
 			}
@@ -382,41 +382,15 @@ func (e *external) createResources(ctx context.Context, cr *v1alpha1.ServerSet, 
 }
 
 func (e *external) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
-	condemnedVolume, err := e.bootVolumeController.Get(ctx, getNameFromIndex(cr.Name, resourceBootVolume, index, volumeVersion), cr.Namespace)
+	err := e.bootVolumeController.Delete(ctx, getNameFromIndex(cr.Name, resourceBootVolume, index, volumeVersion), cr.Namespace)
 	if err != nil {
 		return err
 	}
-	if err := e.kubeWrapper.kube.Delete(ctx, condemnedVolume); err != nil {
-		fmt.Printf("error deleting volume %v", err)
-		return err
-	}
-	if err = WaitForKubeResource(ctx, resourceReadyTimeout, e.kubeWrapper.isResourceDeleted, condemnedVolume.Name, cr.Namespace); err != nil {
-		return err
-	}
-
-	condemnedServer, err := e.serverController.Get(ctx, getNameFromIndex(cr.Name, resourceServer, index, serverVersion), cr.Namespace)
+	err = e.serverController.Delete(ctx, getNameFromIndex(cr.Name, resourceServer, index, serverVersion), cr.Namespace)
 	if err != nil {
 		return err
 	}
-
-	if err := e.kubeWrapper.kube.Delete(ctx, condemnedServer); err != nil {
-		fmt.Printf("error deleting server %v", err)
-		return err
-	}
-	if err = WaitForKubeResource(ctx, resourceReadyTimeout, e.kubeWrapper.isResourceDeleted, condemnedServer.Name, cr.Namespace); err != nil {
-		return err
-	}
-
-	condemnedNic, err := e.nicController.Get(ctx, getNameFromIndex(cr.Name, resourceNIC, index, serverVersion), cr.Namespace)
-	if err != nil {
-		return err
-	}
-	if err := e.kubeWrapper.kube.Delete(ctx, condemnedNic); err != nil {
-		fmt.Printf("error deleting nic %v", err)
-		return err
-	}
-
-	return WaitForKubeResource(ctx, resourceReadyTimeout, e.kubeWrapper.isResourceDeleted, condemnedNic.Name, cr.Namespace)
+	return e.nicController.Delete(ctx, getNameFromIndex(cr.Name, resourceNIC, index, serverVersion), cr.Namespace)
 }
 
 func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
@@ -429,20 +403,20 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 
 	fmt.Printf("Deleting: %+v", cr)
 
-	if err := e.kubeWrapper.kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
 
 	// delete all servers
-	if err := e.kubeWrapper.kube.DeleteAllOf(ctx, &v1alpha1.Server{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Server{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
 
-	if err := e.kubeWrapper.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
@@ -498,7 +472,7 @@ func (e *external) areNicsUpToDate(ctx context.Context, cr *v1alpha1.ServerSet) 
 	e.log.Info("Ensuring NIC")
 
 	nicList := &v1alpha1.NicList{}
-	if err := e.kubeWrapper.kube.List(ctx, nicList, client.MatchingLabels{
+	if err := e.kube.List(ctx, nicList, client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
 		return false, err
@@ -513,7 +487,7 @@ func (e *external) areNicsUpToDate(ctx context.Context, cr *v1alpha1.ServerSet) 
 
 func (e *external) getServersFromServerSet(ctx context.Context, name string) ([]v1alpha1.Server, error) {
 	serverList := &v1alpha1.ServerList{}
-	if err := e.kubeWrapper.kube.List(ctx, serverList, client.MatchingLabels{
+	if err := e.kube.List(ctx, serverList, client.MatchingLabels{
 		serverSetLabel: name,
 	}); err != nil {
 		return nil, err
@@ -524,7 +498,7 @@ func (e *external) getServersFromServerSet(ctx context.Context, name string) ([]
 
 func (e *external) getVolumesFromServerSet(ctx context.Context, name string) ([]v1alpha1.Volume, error) {
 	volumeList := &v1alpha1.VolumeList{}
-	if err := e.kubeWrapper.kube.List(ctx, volumeList, client.MatchingLabels{
+	if err := e.kube.List(ctx, volumeList, client.MatchingLabels{
 		serverSetLabel: name,
 	}); err != nil {
 		return nil, err
@@ -553,7 +527,7 @@ func ListResFromSSetWithIndexAndVersion(ctx context.Context, kube client.Client,
 func (e *external) EnsureBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	e.log.Info("Ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
 	res := &v1alpha1.VolumeList{}
-	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kubeWrapper.kube, resourceBootVolume, replicaIndex, version, res); err != nil {
+	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kube, resourceBootVolume, replicaIndex, version, res); err != nil {
 		return err
 	}
 	volumes := res.Items
@@ -571,7 +545,7 @@ func (e *external) EnsureBootVolume(ctx context.Context, cr *v1alpha1.ServerSet,
 func (e *external) EnsureServer(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	e.log.Info("Ensuring Server", "index", replicaIndex, "version", version)
 	res := &v1alpha1.ServerList{}
-	err := ListResFromSSetWithIndexAndVersion(ctx, e.kubeWrapper.kube, resourceServer, replicaIndex, version, res)
+	err := ListResFromSSetWithIndexAndVersion(ctx, e.kube, resourceServer, replicaIndex, version, res)
 	if err != nil {
 		return err
 	}
@@ -593,7 +567,7 @@ func (e *external) EnsureServer(ctx context.Context, cr *v1alpha1.ServerSet, rep
 func (e *external) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	e.log.Info("Ensuring NICs", "index", replicaIndex, "version", version)
 	res := &v1alpha1.ServerList{}
-	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kubeWrapper.kube, resourceServer, replicaIndex, version, res); err != nil {
+	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kube, resourceServer, replicaIndex, version, res); err != nil {
 		return err
 	}
 	servers := res.Items
@@ -614,7 +588,7 @@ func (e *external) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, repli
 // EnsureNIC - creates a NIC if it does not exist
 func (e *external) EnsureNIC(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) error {
 	res := &v1alpha1.NicList{}
-	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kubeWrapper.kube, resourceNIC, replicaIndex, version, res); err != nil {
+	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kube, resourceNIC, replicaIndex, version, res); err != nil {
 		return err
 	}
 	nic := v1alpha1.Nic{}
