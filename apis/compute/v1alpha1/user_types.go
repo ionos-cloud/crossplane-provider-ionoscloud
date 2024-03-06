@@ -53,7 +53,8 @@ type UserParameters struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:default=true
 	Active bool `json:"active"`
-	// GroupIds that this user will be a member of.
+	// GroupIDs that this user will be a member of.
+	// NOTE: It is recommended to manage group membership through the group CRD as it offers more flexibility.
 	//
 	// +kubebuilder:validation:Optional
 	GroupIDs []string `json:"groupIDs"`
@@ -121,7 +122,7 @@ type UserObservation struct {
 	Active bool `json:"active"`
 	// SecAuthActive Indicates if secure authentication is active for the user or not.
 	SecAuthActive bool `json:"secAuthActive"`
-	// GroupIds that this user will be a member of.
+	// GroupIDs that this user will be a member of
 	GroupIDs []string `json:"groupIDs"`
 }
 

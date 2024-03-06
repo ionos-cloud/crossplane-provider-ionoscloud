@@ -103,7 +103,9 @@ spec:
                       should be enabled for the user (true) or not (false).
                     type: boolean
                   groupIDs:
-                    description: GroupIds that this user will be a member of.
+                    description: |-
+                      GroupIDs that this user will be a member of.
+                      NOTE: It is recommended to manage group membership through the group CRD as it offers more flexibility.
                     items:
                       type: string
                     type: array
@@ -303,7 +305,7 @@ spec:
                     description: Active Indicates if the user is active.
                     type: boolean
                   groupIDs:
-                    description: GroupIds that this user will be a member of.
+                    description: GroupIDs that this user will be a member of
                     items:
                       type: string
                     type: array
