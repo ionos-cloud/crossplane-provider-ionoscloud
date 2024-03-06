@@ -20,9 +20,6 @@ type APIClient struct {
 	*clients.IonosServices
 }
 
-// MembersUpdateFn function that performs a group membership update
-type MembersUpdateFn func(context.Context, string, string) (*sdkgo.APIResponse, error)
-
 // Client is a wrapper around IONOS Service Group methods
 type Client interface {
 	CheckDuplicateGroup(ctx context.Context, groupName string) (*sdkgo.Group, error)
@@ -34,7 +31,7 @@ type Client interface {
 	UpdateGroup(ctx context.Context, groupID string, group sdkgo.Group) (sdkgo.Group, *sdkgo.APIResponse, error)
 	AddGroupMember(ctx context.Context, groupID, userID string) (*sdkgo.APIResponse, error)
 	RemoveGroupMember(ctx context.Context, groupID, userID string) (*sdkgo.APIResponse, error)
-	UpdateGroupMembers(ctx context.Context, groupID string, userIDs sets.Set[string], updateFn MembersUpdateFn) error
+	UpdateGroupMembers(ctx context.Context, groupID string, membersIn MembersUpdateOp) error
 	AddResourceShare(ctx context.Context, groupID string, share v1alpha1.ResourceShare) (*sdkgo.APIResponse, error)
 	RemoveResourceShare(ctx context.Context, groupID string, share v1alpha1.ResourceShare) (*sdkgo.APIResponse, error)
 	UpdateResourceShare(ctx context.Context, groupID string, share v1alpha1.ResourceShare) (*sdkgo.APIResponse, error)
@@ -153,7 +150,13 @@ func (cp *APIClient) UpdateGroup(ctx context.Context, groupID string, group sdkg
 // AddGroupMember adds the User referenced by userID to the Group with groupID
 func (cp *APIClient) AddGroupMember(ctx context.Context, groupID, userID string) (*sdkgo.APIResponse, error) {
 	_, apiResponse, err := cp.ComputeClient.UserManagementApi.UmGroupsUsersPost(ctx, groupID).User(sdkgo.User{Id: &userID}).Execute()
-	return apiResponse, err
+	if err != nil {
+		return apiResponse, err
+	}
+	if err = compute.WaitForRequest(ctx, cp.GetAPIClient(), apiResponse); err != nil {
+		return apiResponse, err
+	}
+	return apiResponse, nil
 }
 
 // RemoveGroupMember removes the User referenced by userID from the Group with groupID
@@ -162,20 +165,23 @@ func (cp *APIClient) RemoveGroupMember(ctx context.Context, groupID, userID stri
 }
 
 // UpdateGroupMembers updates the members of Group depending on modFn using the userIDs set
-func (cp *APIClient) UpdateGroupMembers(ctx context.Context, groupID string, userIDs sets.Set[string], updateFn MembersUpdateFn) error {
-
-	updateErrs := make([]error, 0, len(userIDs))
-	waitErrs := make([]error, 0, len(userIDs))
-	for userID := range userIDs {
-		apiResponse, err := updateFn(ctx, groupID, userID)
+func (cp *APIClient) UpdateGroupMembers(ctx context.Context, groupID string, membersIn MembersUpdateOp) error {
+	errs := make([]error, 0, len(membersIn.Add)+len(membersIn.Remove))
+	for memberID := range membersIn.Add {
+		apiResponse, err := cp.AddGroupMember(ctx, groupID, memberID)
 		if err != nil {
-			updateErrs = append(updateErrs, compute.AddAPIResponseInfo(apiResponse, err))
-		}
-		if err = compute.WaitForRequest(ctx, cp.GetAPIClient(), apiResponse); err != nil {
-			waitErrs = append(waitErrs, err)
+			err = fmt.Errorf("failed to add member: %w", compute.AddAPIResponseInfo(apiResponse, err))
+			errs = append(errs, err)
 		}
 	}
-	return errors.Join(append(updateErrs, waitErrs...)...)
+	for memberID := range membersIn.Remove {
+		apiResponse, err := cp.RemoveGroupMember(ctx, groupID, memberID)
+		if err != nil {
+			err = fmt.Errorf("failed to remove member: %w", compute.AddAPIResponseInfo(apiResponse, err))
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // AddResourceShare adds a ResourceShare to the Group with groupID

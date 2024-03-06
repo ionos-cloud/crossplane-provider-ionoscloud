@@ -45,7 +45,10 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
-const errNotGroup = "managed resource is not a Group custom resource"
+const (
+	errNotGroup                 = "managed resource is not a Group custom resource"
+	eventCannotResolveReference = "CannotResolveReference"
+)
 
 // Setup adds a controller that reconciles Group managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, _ workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
@@ -185,7 +188,7 @@ func (eg *externalGroup) Create(ctx context.Context, mg resource.Managed) (manag
 	cr.Status.AtProvider.GroupID = *newGroup.Id
 	meta.SetExternalName(cr, *newGroup.Id)
 
-	if err = eg.service.UpdateGroupMembers(ctx, *newGroup.Id, memberIDs, eg.service.AddGroupMember); err != nil {
+	if err = eg.service.UpdateGroupMembers(ctx, *newGroup.Id, group.MembersUpdateOp{Add: memberIDs}); err != nil {
 		err = fmt.Errorf("error occurred while adding members at group creation: %w", err)
 		return managed.ExternalCreation{}, err
 	}
@@ -217,18 +220,13 @@ func (eg *externalGroup) Update(ctx context.Context, mg resource.Managed) (manag
 	if err = compute.WaitForRequest(ctx, eg.service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalUpdate{}, err
 	}
-	if err = eg.service.UpdateGroupMembers(ctx, groupID, membersInput.Add, eg.service.AddGroupMember); err != nil {
-		err = fmt.Errorf("error occurred while adding members at group update: %w", err)
-		return managed.ExternalUpdate{}, err
-	}
-
-	if err = eg.service.UpdateGroupMembers(ctx, groupID, membersInput.Remove, eg.service.RemoveGroupMember); err != nil {
-		err = fmt.Errorf("error occurred while removing members at group update: %w", err)
+	if err = eg.service.UpdateGroupMembers(ctx, groupID, membersInput); err != nil {
+		err = fmt.Errorf("error occurred while updating group members: %w", err)
 		return managed.ExternalUpdate{}, err
 	}
 
 	if err = eg.service.UpdateGroupResourceShares(ctx, groupID, sharesInput); err != nil {
-		err = fmt.Errorf("error occurred while updating resource shares at group update: %w", err)
+		err = fmt.Errorf("error occurred while updating group resource shares: %w", err)
 		return managed.ExternalUpdate{}, err
 	}
 
@@ -285,7 +283,7 @@ func (in resourceShareInitializer) Initialize(ctx context.Context, mg resource.M
 		if err := in.kube.Get(ctx, types.NamespacedName{Name: ref.Name}, &u); err != nil {
 			msg := fmt.Errorf("unable to resolve shared resource reference: %w", err)
 			in.log.Info(msg.Error())
-			in.eventRecorder.Event(mg, event.Warning("CannotResolveReference", msg))
+			in.eventRecorder.Event(mg, event.Warning(eventCannotResolveReference, msg))
 		} else {
 			cr.Spec.ForProvider.ResourceShareCfg[i].ResourceID = meta.GetExternalName(&u)
 		}
