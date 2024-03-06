@@ -46,14 +46,12 @@ import (
 )
 
 const (
-	errUserObserve    = "failed to get user by id"
-	errUserDelete     = "failed to delete user"
-	errUserUpdate     = "failed to update user"
-	errUserCreate     = "failed to create user"
-	errAddUserToGroup = "failed to add user to the group id"
-	errGetUserGroups  = "failed to fetch user groups"
-	errRequestWait    = "error waiting for request"
-	errNotUser        = "managed resource is not of a User type"
+	errUserObserve   = "failed to get user by id"
+	errUserDelete    = "failed to delete user"
+	errUserUpdate    = "failed to update user"
+	errUserCreate    = "failed to create user"
+	errGetUserGroups = "failed to fetch user groups"
+	errNotUser       = "managed resource is not of a User type"
 )
 
 // Setup adds a controller that reconciles User managed resources.
@@ -134,7 +132,7 @@ func connectionDetails(cr *v1alpha1.User, observed ionosdk.User) managed.Connect
 	return details
 }
 
-func setStatus(cr *v1alpha1.User, observed ionosdk.User) {
+func setStatus(cr *v1alpha1.User, observed ionosdk.User, groupIDs []string) {
 	props := observed.GetProperties()
 	if !observed.HasProperties() {
 		return
@@ -144,6 +142,7 @@ func setStatus(cr *v1alpha1.User, observed ionosdk.User) {
 	cr.Status.AtProvider.Active = utils.DereferenceOrZero(props.GetActive())
 	cr.Status.AtProvider.S3CanonicalUserID = utils.DereferenceOrZero(props.GetS3CanonicalUserId())
 	cr.Status.AtProvider.SecAuthActive = utils.DereferenceOrZero(props.GetSecAuthActive())
+	cr.Status.AtProvider.GroupIDs = groupIDs
 }
 
 func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -165,7 +164,12 @@ func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalObservation{}, errors.Wrap(err, errUserObserve)
 	}
 
-	setStatus(cr, observed)
+	groupIDs, err := eu.service.GetUserGroups(ctx, userID)
+	if err != nil {
+		return managed.ExternalObservation{ResourceExists: true}, errors.Wrap(err, errGetUserGroups)
+	}
+
+	setStatus(cr, observed, groupIDs)
 	cr.SetConditions(xpv1.Available())
 
 	linit := cr.Spec.ForProvider.Password != ""
@@ -173,7 +177,7 @@ func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (manag
 
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        isUserUpToDate(cr.Spec.ForProvider, observed),
+		ResourceUpToDate:        userapi.IsUserUpToDate(cr.Spec.ForProvider, observed, groupIDs),
 		ConnectionDetails:       conn,
 		ResourceLateInitialized: linit,
 	}, nil
@@ -195,7 +199,13 @@ func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (manage
 	meta.SetExternalName(cr, *observed.GetId())
 	conn := connectionDetails(cr, observed)
 
-	setStatus(cr, observed)
+	err = eu.service.UpdateUserGroups(ctx, *observed.GetId(), nil, cr.Spec.ForProvider.GroupIDs)
+	if err != nil {
+		return managed.ExternalCreation{ConnectionDetails: conn}, err
+	}
+
+	setStatus(cr, observed, cr.Spec.ForProvider.GroupIDs)
+
 	return managed.ExternalCreation{ConnectionDetails: conn}, nil
 }
 
@@ -214,6 +224,11 @@ func (eu *externalUser) Update(ctx context.Context, mg resource.Managed) (manage
 	}
 	conn := connectionDetails(cr, observed)
 
+	err = eu.service.UpdateUserGroups(ctx, userID, cr.Status.AtProvider.GroupIDs, cr.Spec.ForProvider.GroupIDs)
+	if err != nil {
+		return managed.ExternalUpdate{ConnectionDetails: conn}, err
+	}
+
 	return managed.ExternalUpdate{ConnectionDetails: conn}, nil
 }
 
@@ -227,43 +242,4 @@ func (eu *externalUser) Delete(ctx context.Context, mg resource.Managed) error {
 	userID := user.Status.AtProvider.UserID
 	resp, err := eu.service.DeleteUser(ctx, userID)
 	return compute.ErrorUnlessNotFound(resp, errors.Wrap(err, errUserDelete))
-}
-
-// isUserUpToDate returns true if the User is up-to-date or false otherwise.
-func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User) bool { //nolint:gocyclo
-	if !observed.HasProperties() {
-		return false
-	}
-
-	// After creation the password is stored as a connection detail secret
-	// and removed from the cr. If the cr has a password it means
-	// the client wants to update it.
-	if params.Password != "" {
-		return false
-	}
-
-	props := observed.GetProperties()
-	adm := props.GetAdministrator()
-	email := props.GetEmail()
-	fname := props.GetFirstname()
-	fsec := props.GetForceSecAuth()
-	lname := props.GetLastname()
-	active := props.GetActive()
-
-	switch {
-	case adm != nil && params.Administrator != *adm:
-		return false
-	case email != nil && params.Email != *email:
-		return false
-	case fname != nil && params.FirstName != *fname:
-		return false
-	case fsec != nil && params.ForceSecAuth != *fsec:
-		return false
-	case lname != nil && params.LastName != *lname:
-		return false
-	case active != nil && params.Active != *active:
-		return false
-	}
-
-	return true
 }

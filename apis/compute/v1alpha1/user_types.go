@@ -53,6 +53,10 @@ type UserParameters struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:default=true
 	Active bool `json:"active"`
+	// GroupIds that this user will be a member of.
+	//
+	// +kubebuilder:validation:Optional
+	GroupIDs []string `json:"groupIDs"`
 }
 
 // UserConfig is used by resources that need to link Users via id or via reference.
@@ -117,6 +121,8 @@ type UserObservation struct {
 	Active bool `json:"active"`
 	// SecAuthActive Indicates if secure authentication is active for the user or not.
 	SecAuthActive bool `json:"secAuthActive"`
+	// GroupIds that this user will be a member of.
+	GroupIDs []string `json:"groupIDs"`
 }
 
 // +kubebuilder:object:root=true
