@@ -19,6 +19,9 @@ package serverset
 import (
 	"context"
 	"fmt"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"strconv"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -116,8 +119,8 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-	populateCRStatus(cr, servers)
-	cr.Status.AtProvider.Replicas = len(servers)
+	populateCRStatus(e, ctx, cr, servers)
+	// we need to re-create servers. go to create
 	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return managed.ExternalObservation{
 			// we need to re-create servers. go to create
@@ -177,18 +180,17 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}, nil
 }
 
-func populateCRStatus(cr *v1alpha1.ServerSet, serverSetReplicas *v1alpha1.ServerList) {
+func populateCRStatus(c *external, ctx context.Context, cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) {
 	if cr.Status.AtProvider.ReplicaStatuses == nil {
 		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, cr.Spec.ForProvider.Replicas)
 	}
-	firstReplicaReadyIdx := computeFirstReplicaReadyIdx(serverSetReplicas.Items)
-	cr.Status.AtProvider.Replicas = len(serverSetReplicas.Items)
+	cr.Status.AtProvider.Replicas = len(serverSetReplicas)
 
-	for replicaIdx := range serverSetReplicas.Items {
-		replicaStatus := computeStatus(serverSetReplicas.Items[replicaIdx].Status.AtProvider.State)
+	for replicaIdx, replica := range serverSetReplicas {
+		replicaStatus := computeStatus(serverSetReplicas[replicaIdx].Status.AtProvider.State)
 		cr.Status.AtProvider.ReplicaStatuses[replicaIdx] = v1alpha1.ServerSetReplicaStatus{
-			Role:         computeRole(replicaStatus, firstReplicaReadyIdx == replicaIdx),
-			Name:         getNameFromIndex(cr.GetName(), "server", replicaIdx),
+			Role:         computeRole(c, ctx, replica),
+			Name:         replica.Name,
 			Status:       replicaStatus,
 			ErrorMessage: "",
 			LastModified: metav1.Now(),
@@ -196,26 +198,24 @@ func populateCRStatus(cr *v1alpha1.ServerSet, serverSetReplicas *v1alpha1.Server
 	}
 }
 
-func computeFirstReplicaReadyIdx(items []v1alpha1.Server) int {
-	for idx, replica := range items {
-		if strings.EqualFold(replica.Status.AtProvider.State, ionoscloud.Available) {
-			return idx
-		}
+func computeRole(c *external, ctx context.Context, server v1alpha1.Server) string {
+	configMap := &v1.ConfigMap{}
+	name := "configs-" + server.Name
+	ns := server.Namespace
+	if ns == "" {
+		ns = "default"
 	}
-	// None of the replicas are ready
-	return -1
-}
 
-func computeRole(replicaStatus string, isTheFirstReplicaReady bool) string {
-	if strings.EqualFold(replicaStatus, "READY") && isTheFirstReplicaReady {
-		return "ACTIVE"
-	} else if strings.EqualFold(replicaStatus, "READY") {
-		return "PASSIVE"
-	} else if strings.EqualFold(replicaStatus, "UNKNOWN") {
-		return "REPLICA"
+	err := c.kubeWrapper.kube.Get(ctx, types.NamespacedName{ns, name}, configMap)
+	if err != nil {
+		return "UNKNOWN"
 	}
-	// In case of error, we don't know the role of the server
-	return "REPLICA"
+
+	value, ok := configMap.Data["role"]
+	if !ok {
+		return "UNKNOWN"
+	}
+	return value
 }
 
 func computeStatus(state string) string {

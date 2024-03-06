@@ -566,6 +566,7 @@ spec:
                         role:
                           description: Server assigned role
                           enum:
+                          - UNKNOWN
                           - ACTIVE
                           - PASSIVE
                           - REPLICA

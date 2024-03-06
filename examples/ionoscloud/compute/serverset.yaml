@@ -81,4 +81,19 @@ spec:
 #        todo - add sshKeys or imagePassword
 #        todo - add userdata in volume creation
         userData: "" #cloud-config
-
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configs-serverset-server-0
+data:
+  role: "REPLICA"
+  other-config: "value"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configs-serverset-server-1
+data:
+  role: "REPLICA"
+  other-config: "value"

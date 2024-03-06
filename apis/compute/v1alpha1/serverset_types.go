@@ -121,7 +121,7 @@ type ServerSetObservation struct {
 type ServerSetReplicaStatus struct {
 	// Server assigned role
 	//
-	// +kubebuilder:validation:Enum=ACTIVE;PASSIVE;REPLICA
+	// +kubebuilder:validation:Enum=UNKNOWN;ACTIVE;PASSIVE;REPLICA
 	Role string `json:"role"`
 	Name string `json:"name"`
 	// +kubebuilder:validation:Enum=UNKNOWN;READY;ERROR
