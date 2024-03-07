@@ -161,17 +161,13 @@ func (eg *externalGroup) Create(ctx context.Context, mg resource.Managed) (manag
 	// Multiple groups with the same name will trigger an error
 	// If only one group exists with the same name, it will be "imported"
 	if eg.isUniqueNamesEnabled {
-		existingGroup, err := eg.service.CheckDuplicateGroup(ctx, cr.Spec.ForProvider.Name)
+		duplicateGroupID, err := eg.service.CheckDuplicateGroup(ctx, cr.Spec.ForProvider.Name)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}
-		groupID, err := eg.service.GetGroupID(existingGroup)
-		if err != nil {
-			return managed.ExternalCreation{}, err
-		}
-		if groupID != "" {
-			cr.Status.AtProvider.GroupID = groupID
-			meta.SetExternalName(cr, groupID)
+		if duplicateGroupID != "" {
+			cr.Status.AtProvider.GroupID = duplicateGroupID
+			meta.SetExternalName(cr, duplicateGroupID)
 			return managed.ExternalCreation{}, nil
 		}
 	}

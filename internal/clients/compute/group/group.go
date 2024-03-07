@@ -22,8 +22,7 @@ type APIClient struct {
 
 // Client is a wrapper around IONOS Service Group methods
 type Client interface {
-	CheckDuplicateGroup(ctx context.Context, groupName string) (*sdkgo.Group, error)
-	GetGroupID(group *sdkgo.Group) (string, error)
+	CheckDuplicateGroup(ctx context.Context, groupName string) (string, error)
 	GetGroup(ctx context.Context, groupID string) (sdkgo.Group, *sdkgo.APIResponse, error)
 	GetGroupMembers(ctx context.Context, groupID string) ([]string, *sdkgo.APIResponse, error)
 	GetGroupResourceShares(ctx context.Context, groupID string) ([]v1alpha1.ResourceShare, *sdkgo.APIResponse, error)
@@ -50,11 +49,11 @@ type SharesUpdateOp struct {
 	Add, Update, Remove sets.Set[v1alpha1.ResourceShare]
 }
 
-// CheckDuplicateGroup based on groupName
-func (cp *APIClient) CheckDuplicateGroup(ctx context.Context, groupName string) (*sdkgo.Group, error) {
+// CheckDuplicateGroup based on groupName, returns the ID of the duplicate group if any, or an error if multiple duplicate name groups are found
+func (cp *APIClient) CheckDuplicateGroup(ctx context.Context, groupName string) (string, error) {
 	groups, _, err := cp.ComputeClient.UserManagementApi.UmGroupsGet(ctx).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	matchedItems := make([]sdkgo.Group, 0)
 
@@ -67,23 +66,15 @@ func (cp *APIClient) CheckDuplicateGroup(ctx context.Context, groupName string) 
 	}
 
 	if len(matchedItems) == 0 {
-		return nil, nil
+		return "", nil
 	}
 	if len(matchedItems) > 1 {
-		return nil, fmt.Errorf("error: found multiple groups with the name %v", groupName)
+		return "", fmt.Errorf("error: found multiple groups with the name %v", groupName)
 	}
-	return &matchedItems[0], nil
-}
-
-// GetGroupID based on group
-func (cp *APIClient) GetGroupID(group *sdkgo.Group) (string, error) {
-	if group != nil {
-		if idPtr, ok := group.GetIdOk(); ok && idPtr != nil {
-			return *idPtr, nil
-		}
-		return "", fmt.Errorf("error: getting group id")
+	if matchedItems[0].Id == nil {
+		return "", fmt.Errorf("error getting ID for group named: %v", groupName)
 	}
-	return "", nil
+	return *matchedItems[0].Id, nil
 }
 
 // GetGroup based on groupID
