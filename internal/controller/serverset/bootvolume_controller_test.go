@@ -2,11 +2,11 @@ package serverset
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"testing"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -16,15 +16,24 @@ import (
 	computev1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
-func GetVolumeTest(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+func fakeKubeClient(functions interceptor.Funcs) client.WithWatch {
+	scheme, _ := computev1alpha1.SchemeBuilder.Build()
+	return fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(functions).Build()
+}
+
+func getVolumePopulateStatusTest(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	vol := obj.(*v1alpha1.Volume)
 	vol.Status.AtProvider.State = "AVAILABLE"
 	vol.Status.AtProvider.VolumeID = "uuid"
 	return nil
 }
+
+func createVolumeReturnsErrorTest(ctx context.Context, client client.WithWatch, obj client.Object,
+	opts ...client.CreateOption) error {
+	return errors.New("something went wrong")
+}
+
 func Test_kubeBootVolumeController_Create(t *testing.T) {
-	scheme, _ := computev1alpha1.SchemeBuilder.Build()
-	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(interceptor.Funcs{Get: GetVolumeTest}).Build()
 	type fields struct {
 		kube client.Client
 		log  logging.Logger
@@ -42,29 +51,15 @@ func Test_kubeBootVolumeController_Create(t *testing.T) {
 		want    v1alpha1.Volume
 		wantErr bool
 	}{
-
 		{
-			name: "TestCreateBootVolumeExpectSuccess",
+			name: "expect success",
 			fields: fields{
-				kube: fakeClient,
+				kube: fakeKubeClient(interceptor.Funcs{Get: getVolumePopulateStatusTest}),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
 				ctx: context.Background(),
-				cr: &v1alpha1.ServerSet{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "ServerSet",
-						APIVersion: "v1alpha1",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "serverset",
-						Namespace: "",
-					},
-					Spec:   v1alpha1.ServerSetSpec{},
-					Status: v1alpha1.ServerSetStatus{},
-				},
-				replicaIndex: 0,
-				version:      0,
+				cr:  &v1alpha1.ServerSet{},
 			},
 			want: v1alpha1.Volume{
 				Status: v1alpha1.VolumeStatus{
@@ -75,6 +70,19 @@ func Test_kubeBootVolumeController_Create(t *testing.T) {
 				},
 			},
 			wantErr: false,
+		},
+		{
+			name: "expect error",
+			fields: fields{
+				kube: fakeKubeClient(interceptor.Funcs{Create: createVolumeReturnsErrorTest}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  &v1alpha1.ServerSet{},
+			},
+			want:    v1alpha1.Volume{},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
