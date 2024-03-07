@@ -66,6 +66,9 @@ type connectorUserGroup struct {
 // 4. Using the credentials to form a client.
 func (c *connectorUserGroup) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
+	if err != nil {
+		return &externalUserGroup{}, err
+	}
 	return &externalUserGroup{
 		service: usergroupapi.NewAPIClient(svc, compute.WaitForRequest),
 		log:     c.log,
@@ -101,7 +104,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, _ workqueue.RateLimiter, opts *ut
 // externalUser observes, then either creates, updates, or deletes a
 // user in the cloud api. it ensures it reflects a desired state.
 type externalUserGroup struct {
-	// service is the ionos cloud api client to manage users.
+	// service is the ionos cloud api client to manage groups.
 	// see https://api.ionos.com/docs/cloud/v6/#tag/User-management
 	service usergroupapi.Client
 	log     logging.Logger
