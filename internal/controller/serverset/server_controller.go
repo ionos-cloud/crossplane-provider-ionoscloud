@@ -19,6 +19,7 @@ import (
 type kubeServerControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) (v1alpha1.Server, error)
 	Get(ctx context.Context, name, ns string) (*v1alpha1.Server, error)
+	Delete(ctx context.Context, name, namespace string) error
 }
 
 // kubeServerController - kubernetes client wrapper for server resources
@@ -76,6 +77,36 @@ func (k *kubeServerController) isAvailable(ctx context.Context, name, namespace 
 		return true, nil
 	}
 	return false, err
+}
+
+// Delete - deletes the server k8s client and waits until it is deleted
+func (k *kubeServerController) Delete(ctx context.Context, name, namespace string) error {
+	condemnedServer, err := k.Get(ctx, name, namespace)
+	if err != nil {
+		return err
+	}
+	if err := k.kube.Delete(ctx, condemnedServer); err != nil {
+		fmt.Printf("error deleting server %v", err)
+		return err
+	}
+	return WaitForKubeResource(ctx, resourceReadyTimeout, k.isServerDeleted, condemnedServer.Name, namespace)
+}
+
+func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namespace string) (bool, error) {
+	k.log.Info("Checking if Server is deleted", "name", name, "namespace", namespace)
+	obj := &v1alpha1.Server{}
+	err := k.kube.Get(ctx, types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}, obj)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			k.log.Info("Server has been deleted", "name", name, "namespace", namespace)
+			return true, nil
+		}
+		return false, nil
+	}
+	return false, nil
 }
 
 // fromServerSetToServer is a conversion function that converts a ServerSet resource to a Server resource

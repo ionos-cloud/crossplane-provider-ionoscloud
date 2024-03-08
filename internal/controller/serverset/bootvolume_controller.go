@@ -8,7 +8,7 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/ionos-cloud/sdk-go/v6"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -19,6 +19,7 @@ import (
 type kubeBootVolumeControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Volume, error)
 	Get(ctx context.Context, volumeName, ns string) (*v1alpha1.Volume, error)
+	Delete(ctx context.Context, name, namespace string) error
 }
 
 // kubeBootVolumeController - kubernetes client wrapper  for server resources
@@ -60,11 +61,24 @@ func (k *kubeBootVolumeController) Get(ctx context.Context, volumeName, ns strin
 	return obj, err
 }
 
+// Delete - deletes the bootvolume k8s client and waits until it is deleted
+func (k *kubeBootVolumeController) Delete(ctx context.Context, name, namespace string) error {
+	condemnedVolume, err := k.Get(ctx, name, namespace)
+	if err != nil {
+		return err
+	}
+	if err := k.kube.Delete(ctx, condemnedVolume); err != nil {
+		fmt.Printf("error deleting volume %v", err)
+		return err
+	}
+	return WaitForKubeResource(ctx, resourceReadyTimeout, k.isBootVolumeDeleted, condemnedVolume.Name, namespace)
+}
+
 // IsVolumeAvailable - checks if a volume is available
 func (k *kubeBootVolumeController) isAvailable(ctx context.Context, name, namespace string) (bool, error) {
 	obj, err := k.Get(ctx, name, namespace)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apiErrors.IsNotFound(err) {
 			return false, nil
 		}
 		return false, err
@@ -73,6 +87,23 @@ func (k *kubeBootVolumeController) isAvailable(ctx context.Context, name, namesp
 		return true, nil
 	}
 	return false, err
+}
+
+func (k *kubeBootVolumeController) isBootVolumeDeleted(ctx context.Context, name, namespace string) (bool, error) {
+	k.log.Info("Checking if Volume is deleted", "name", name, "namespace", namespace)
+	obj := &v1alpha1.Volume{}
+	err := k.kube.Get(ctx, types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}, obj)
+	if err != nil {
+		if apiErrors.IsNotFound(err) {
+			k.log.Info("Volume has been deleted", "name", name, "namespace", namespace)
+			return true, nil
+		}
+		return false, nil
+	}
+	return false, nil
 }
 
 func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, version int) v1alpha1.Volume {
