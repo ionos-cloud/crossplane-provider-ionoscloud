@@ -16,48 +16,129 @@ limitations under the License.
 
 package serverset
 
-// Unlike many Kubernetes projects Crossplane does not use third party testing
-// libraries, per the common Go test review comments. Crossplane encourages the
-// use of table driven unit tests. The tests of the crossplane-runtime project
-// are representative of the testing style Crossplane encourages.
-//
-// https://github.com/golang/go/wiki/TestComments
-// https://github.com/crossplane/crossplane/blob/master/CONTRIBUTING.md#contributing-code
+import (
+	"context"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
+)
 
-// func TestObserve(t *testing.T) {
-//	type fields struct {
-//		service interface{}
-//	}
-//
-//	type args struct {
-//		ctx context.Context
-//		mg  resource.Managed
-//	}
-//
-//	type want struct {
-//		o   managed.ExternalObservation
-//		err error
-//	}
-//
-//	cases := map[string]struct {
-//		reason string
-//		fields fields
-//		args   args
-//		want   want
-//	}{
-//		// TODO: Add test cases.
-//	}
-//
-//	for name, tc := range cases {
-//		t.Run(name, func(t *testing.T) {
-//			e := externalServerSet{service: tc.fields.service}
-//			got, err := e.Observe(tc.args.ctx, tc.args.mg)
-//			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
-//				t.Errorf("\n%s\ne.Observe(...): -want error, +got error:\n%s\n", tc.reason, diff)
-//			}
-//			if diff := cmp.Diff(tc.want.o, got); diff != "" {
-//				t.Errorf("\n%s\ne.Observe(...): -want, +got:\n%s\n", tc.reason, diff)
-//			}
-//		})
-//	}
-//}
+func createBasicServerSet() *v1alpha1.ServerSet {
+	return &v1alpha1.ServerSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ServerSet",
+			APIVersion: "v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "serverset",
+			Namespace: "",
+			Annotations: map[string]string{
+				"crossplane.io/external-name": "serverset",
+			},
+		},
+		Spec: v1alpha1.ServerSetSpec{
+			ForProvider: v1alpha1.ServerSetParameters{
+				Replicas: 2,
+			},
+		},
+		Status: v1alpha1.ServerSetStatus{},
+	}
+}
+
+func fakeKubeClient(objs ...client.Object) client.WithWatch {
+	scheme, _ := v1alpha1.SchemeBuilder.Build()
+	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
+}
+
+func createServer(name string) v1alpha1.Server {
+	return v1alpha1.Server{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Status: v1alpha1.ServerStatus{
+			AtProvider: v1alpha1.ServerObservation{
+				State: "AVAILABLE",
+			},
+		},
+	}
+}
+
+func getConfigMap(name string) v1.ConfigMap {
+	role := "UNKNOWN"
+	if name == "serverset-server-0-0" {
+		role = "ACTIVE"
+	} else if name == "serverset-server-1-0" {
+		role = "PASSIVE"
+	}
+
+	return v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Data: map[string]string{"role": role},
+	}
+}
+
+func Test_serverSetController_Observe(t *testing.T) {
+	type fields struct {
+		kubeWrapper wrapper
+	}
+	type args struct {
+		ctx          context.Context
+		cr           *v1alpha1.ServerSet
+		replicaIndex int
+		version      int
+	}
+	server1 := createServer("serverset-server-0-0")
+	server2 := createServer("serverset-server-1-0")
+	configMap1 := getConfigMap("serverset-server-0-0")
+	configMap2 := getConfigMap("serverset-server-1-0")
+	kubeClient := fakeKubeClient(&server1, &server2, &configMap1, &configMap2)
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    v1alpha1.ServerSetReplicaStatus
+		wantErr bool
+	}{
+		{
+			name: "ReplicaStatusesPopulatedCorrectly",
+			fields: fields{
+				kubeWrapper: wrapper{
+					kube: kubeClient,
+					log:  logging.NewNopLogger(),
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			want:    v1alpha1.ServerSetReplicaStatus{},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &external{
+				kubeWrapper: tt.fields.kubeWrapper,
+			}
+			// WHEN
+			got, err := e.Observe(tt.args.ctx, tt.args.cr)
+
+			// THEN
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Observe() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Observe() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

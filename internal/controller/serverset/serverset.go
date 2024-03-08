@@ -119,7 +119,10 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-	populateCRStatus(e, ctx, cr, servers)
+	err = populateCRStatus(ctx, e, cr, servers)
+	if err != nil {
+		return managed.ExternalObservation{}, err
+	}
 	// we need to re-create servers. go to create
 	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return managed.ExternalObservation{
@@ -180,7 +183,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}, nil
 }
 
-func populateCRStatus(c *external, ctx context.Context, cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) {
+func populateCRStatus(ctx context.Context, c *external, cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) error {
 	if cr.Status.AtProvider.ReplicaStatuses == nil {
 		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, cr.Spec.ForProvider.Replicas)
 	}
@@ -188,17 +191,23 @@ func populateCRStatus(c *external, ctx context.Context, cr *v1alpha1.ServerSet, 
 
 	for replicaIdx, replica := range serverSetReplicas {
 		replicaStatus := computeStatus(serverSetReplicas[replicaIdx].Status.AtProvider.State)
+		role, err := computeRole(c, ctx, replica)
+		if err != nil {
+			return err
+		}
+
 		cr.Status.AtProvider.ReplicaStatuses[replicaIdx] = v1alpha1.ServerSetReplicaStatus{
-			Role:         computeRole(c, ctx, replica),
+			Role:         role,
 			Name:         replica.Name,
 			Status:       replicaStatus,
 			ErrorMessage: "",
 			LastModified: metav1.Now(),
 		}
 	}
+	return nil
 }
 
-func computeRole(c *external, ctx context.Context, server v1alpha1.Server) string {
+func computeRole(c *external, ctx context.Context, server v1alpha1.Server) (string, error) {
 	configMap := &v1.ConfigMap{}
 	name := "configs-" + server.Name
 	ns := server.Namespace
@@ -208,23 +217,24 @@ func computeRole(c *external, ctx context.Context, server v1alpha1.Server) strin
 
 	err := c.kubeWrapper.kube.Get(ctx, types.NamespacedName{ns, name}, configMap)
 	if err != nil {
-		return "UNKNOWN"
+		return "UNKNOWN", err
 	}
 
 	value, ok := configMap.Data["role"]
 	if !ok {
-		return "UNKNOWN"
+		return "UNKNOWN", err
 	}
-	return value
+	return value, nil
 }
 
 func computeStatus(state string) string {
 	// At the moment we compute the status of the Server contained in the ServerSet
 	// based on the status of the Server. However, this status does not mean
 	// That the NAS software is up and running on it.
-	if strings.EqualFold(state, ionoscloud.Available) {
+	switch state {
+	case ionoscloud.Available:
 		return "READY"
-	} else if strings.EqualFold(state, ionoscloud.Failed) {
+	case ionoscloud.Failed:
 		return "ERROR"
 	}
 	return "UNKNOWN"

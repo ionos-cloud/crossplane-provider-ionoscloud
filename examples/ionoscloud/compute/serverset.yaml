@@ -85,15 +85,15 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: configs-serverset-server-0
+  name: configs-serverset-server-0-0
 data:
-  role: "REPLICA"
+  role: "PASSIVE"
   other-config: "value"
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: configs-serverset-server-1
+  name: configs-serverset-server-1-0
 data:
-  role: "REPLICA"
+  role: "ACTIVE"
   other-config: "value"
