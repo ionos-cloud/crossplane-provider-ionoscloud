@@ -123,7 +123,6 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volume
 				fmt.Sprintf(versionLabel, serverType): fmt.Sprintf("%d", version),
 			},
 		},
-		ManagementPolicies: xpv1.ManagementPolicies{"*"},
 		Spec: v1alpha1.ServerSpec{
 			ForProvider: v1alpha1.ServerParameters{
 				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,

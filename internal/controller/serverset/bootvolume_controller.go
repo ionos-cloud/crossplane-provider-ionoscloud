@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/ionos-cloud/sdk-go/v6"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -117,7 +116,6 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 				fmt.Sprintf(versionLabel, "bootvolume"): fmt.Sprintf("%d", version),
 			},
 		},
-		ManagementPolicies: xpv1.ManagementPolicies{"*"},
 		Spec: v1alpha1.VolumeSpec{
 			ForProvider: v1alpha1.VolumeParameters{
 				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,

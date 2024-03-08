@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/ionos-cloud/sdk-go/v6"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -127,7 +126,6 @@ func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, re
 				fmt.Sprintf(versionLabel, "nic"): fmt.Sprintf("%d", version),
 			},
 		},
-		ManagementPolicies: xpv1.ManagementPolicies{"*"},
 		Spec: v1alpha1.NicSpec{
 			ForProvider: v1alpha1.NicParameters{
 				Name:          name,
