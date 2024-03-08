@@ -3,6 +3,7 @@ package ccpatch
 import (
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"strings"
 	"unicode"
 
@@ -30,7 +31,7 @@ type CloudInitPatcher struct {
 func NewCloudInitPatcher(raw string) (*CloudInitPatcher, error) {
 	byt, err := base64.StdEncoding.DecodeString(raw)
 	if err != nil {
-		return nil, ErrDecodeFailed
+		return nil, fmt.Errorf("error decoding base64: %w (%w)", ErrDecodeFailed, err)
 	}
 
 	if len(byt) == 0 {
