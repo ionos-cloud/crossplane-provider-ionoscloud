@@ -10,6 +10,8 @@ import (
 )
 
 var (
+	// ErrDecodeFailed is returned when base64 decoding fails
+	ErrDecodeFailed = errors.New("failed to decode base64")
 	// ErrNoCloudConfig is returned when no cloud-config header is found
 	ErrNoCloudConfig = errors.New("no cloud-config header found")
 	// ErrMalformedData is returned when the cloud-init data is malformed
@@ -28,7 +30,7 @@ type CloudInitPatcher struct {
 func NewCloudInitPatcher(raw string) (*CloudInitPatcher, error) {
 	byt, err := base64.StdEncoding.DecodeString(raw)
 	if err != nil {
-		return nil, ErrNoCloudConfig
+		return nil, ErrDecodeFailed
 	}
 
 	if len(byt) == 0 {
