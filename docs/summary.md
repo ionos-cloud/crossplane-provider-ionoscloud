@@ -1,7 +1,7 @@
 # Table of contents
 
 * [Introduction](README.md)
-* [Example Guide](../examples/example.md)
+* [Crossplane Provider IONOS Cloud Usage Example](../examples/example.md)
 * [Changelog](CHANGELOG.md)
 
 ## API

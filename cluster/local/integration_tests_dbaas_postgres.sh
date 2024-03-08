@@ -20,9 +20,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: exampledbaas
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleDatacenter
     location: de/txl
@@ -34,9 +34,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: examplelandbaas
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleLan
     public: false
@@ -50,9 +50,9 @@ apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
 kind: PostgresCluster
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     displayName: testDBaaS
     postgresVersion: "13"
@@ -99,9 +99,9 @@ apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
 kind: PostgresCluster
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     displayName: testDBaaSPostgres
     postgresVersion: "13"
@@ -145,9 +145,9 @@ apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
 kind: PostgresUser
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     credentials:
       source: Secret
@@ -177,9 +177,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: exampledbaas
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleDatacenter
     location: de/txl
@@ -191,9 +191,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: examplelandbaas
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleLan
     public: false
@@ -207,9 +207,9 @@ apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
 kind: PostgresCluster
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     displayName: testDBaaS
     postgresVersion: "13"

@@ -5,9 +5,9 @@ apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: Cluster
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleK8sCluster
   #    k8sVersion: 1.22.6

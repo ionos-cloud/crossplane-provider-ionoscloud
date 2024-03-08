@@ -9,9 +9,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Volume
 metadata:
   name: examplevolume
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleVolume
     size: 30

@@ -12,9 +12,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Nic
 metadata:
   name: examplenic
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleNic
     dhcp: false

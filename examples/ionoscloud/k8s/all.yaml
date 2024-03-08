@@ -6,8 +6,7 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
   name: examplek8s
-managementPolicies:
-  - "*"
+
 spec:
   forProvider:
     name: exampleIpBlock
@@ -22,8 +21,7 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: examplek8s
-managementPolicies:
-  - "*"
+
 spec:
   forProvider:
     name: exampleDatacenter

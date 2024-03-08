@@ -159,19 +159,8 @@ type IPBlock struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec               IPBlockSpec             `json:"spec"`
-	Status             IPBlockStatus           `json:"status,omitempty"`
-	ManagementPolicies xpv1.ManagementPolicies `json:"managementPolicies"`
-}
-
-// SetManagementPolicies implement managed interface
-func (mg *IPBlock) SetManagementPolicies(p xpv1.ManagementPolicies) {
-	mg.ManagementPolicies = p
-}
-
-// GetManagementPolicies implement managed interface
-func (mg *IPBlock) GetManagementPolicies() xpv1.ManagementPolicies {
-	return mg.ManagementPolicies
+	Spec   IPBlockSpec   `json:"spec"`
+	Status IPBlockStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

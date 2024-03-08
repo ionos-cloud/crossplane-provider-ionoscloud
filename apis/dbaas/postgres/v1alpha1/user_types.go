@@ -76,9 +76,8 @@ type PostgresUser struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec               PostgresUserSpec        `json:"spec"`
-	Status             UserStatus              `json:"status,omitempty"`
-	ManagementPolicies xpv1.ManagementPolicies `json:"managementPolicies"`
+	Spec   PostgresUserSpec `json:"spec"`
+	Status UserStatus       `json:"status,omitempty"`
 }
 
 // A UserStatus represents the observed state of a user.
@@ -96,16 +95,6 @@ type UserObservation struct {
 type PostgresUserSpec struct {
 	xpv1.ResourceSpec `json:",inline"`
 	ForProvider       PostgresUserParameters `json:"forProvider"`
-}
-
-// SetManagementPolicies implement managed interface
-func (mg *PostgresUser) SetManagementPolicies(p xpv1.ManagementPolicies) {
-	mg.ManagementPolicies = p
-}
-
-// GetManagementPolicies implement managed interface
-func (mg *PostgresUser) GetManagementPolicies() xpv1.ManagementPolicies {
-	return mg.ManagementPolicies
 }
 
 // +kubebuilder:object:root=true

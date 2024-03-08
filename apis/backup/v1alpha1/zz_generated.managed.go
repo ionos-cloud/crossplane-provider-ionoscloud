@@ -29,6 +29,11 @@ func (mg *BackupUnit) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this BackupUnit.
+func (mg *BackupUnit) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this BackupUnit.
 func (mg *BackupUnit) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
@@ -52,6 +57,11 @@ func (mg *BackupUnit) SetConditions(c ...xpv1.Condition) {
 // SetDeletionPolicy of this BackupUnit.
 func (mg *BackupUnit) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
+}
+
+// SetManagementPolicies of this BackupUnit.
+func (mg *BackupUnit) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
 }
 
 // SetProviderConfigReference of this BackupUnit.

@@ -2,9 +2,9 @@ apiVersion: dbaas.mongo.ionoscloud.crossplane.io/v1alpha1
 kind: MongoUser
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     userRoles:
       - role: readWrite

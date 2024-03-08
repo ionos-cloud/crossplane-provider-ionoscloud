@@ -42,19 +42,8 @@ type S3Key struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec               S3KeySpec               `json:"spec"`
-	Status             S3KeyStatus             `json:"status,omitempty"`
-	ManagementPolicies xpv1.ManagementPolicies `json:"managementPolicies"`
-}
-
-// SetManagementPolicies implement managed interface
-func (mg *S3Key) SetManagementPolicies(p xpv1.ManagementPolicies) {
-	mg.ManagementPolicies = p
-}
-
-// GetManagementPolicies implement managed interface
-func (mg *S3Key) GetManagementPolicies() xpv1.ManagementPolicies {
-	return mg.ManagementPolicies
+	Spec   S3KeySpec   `json:"spec"`
+	Status S3KeyStatus `json:"status,omitempty"`
 }
 
 // A S3KeySpec defines the desired state of a S3Key.

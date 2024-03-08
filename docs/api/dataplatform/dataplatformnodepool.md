@@ -76,12 +76,14 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `annotations` (object)
 	* description: Map of annotations attached to NodePool
 * `availabilityZone` (string)
-	* description: The availability zone in which the NodePool resources should be provisioned. Possible values: AUTO;ZONE_1;ZONE_2
+	* description: The availability zone in which the NodePool resources should be provisioned.
+Possible values: AUTO;ZONE_1;ZONE_2
 * `clusterConfig` (object)
 	* description: The Dataplatform Cluster on which the NodePool will be created.
 	* properties:
 		* `ClusterId` (string)
-			* description: ClusterID is the ID of the Cluster on which the resource will be created. It needs to be provided via directly or via reference.
+			* description: ClusterID is the ID of the Cluster on which the resource will be created.
+It needs to be provided via directly or via reference.
 			* format: uuid
 		* `ClusterIdRef` (object)
 			* description: ClusterIDRef references to a Cluster to retrieve its ID.
@@ -92,11 +94,17 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: Policies for referencing.
 					* properties:
 						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* description: Resolution specifies whether resolution of this reference is required.
+The default is 'Required', which means the reconcile will fail if the
+reference cannot be resolved. 'Optional' means this reference will be
+a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* description: Resolve specifies when this reference should be resolved. The default
+is 'IfNotPresent', which will attempt to resolve the reference only when
+the corresponding field is not present. Use 'Always' to resolve the
+reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
@@ -104,18 +112,25 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* description: ClusterIDSelector selects reference to a Cluster to retrieve its ClusterID.
 			* properties:
 				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+					* description: MatchControllerRef ensures an object with the same controller reference
+as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
 					* description: Policies for selection.
 					* properties:
 						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* description: Resolution specifies whether resolution of this reference is required.
+The default is 'Required', which means the reconcile will fail if the
+reference cannot be resolved. 'Optional' means this reference will be
+a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* description: Resolve specifies when this reference should be resolved. The default
+is 'IfNotPresent', which will attempt to resolve the reference only when
+the corresponding field is not present. Use 'Always' to resolve the
+reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `coresCount` (integer)
 	* description: The number of CPU cores per node
@@ -123,10 +138,12 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `cpuFamily` (string)
 	* description: A valid CPU family name or `AUTO` if the platform shall choose the best fitting option. Available CPU architectures can be retrieved from the datacenter resource.
 * `datacenterConfig` (object)
-	* description: A Datacenter, to which the user has access, to provision the dataplatform NodePool in
+	* description: A Datacenter, to which the user has access, to provision
+the dataplatform NodePool in
 	* properties:
 		* `datacenterId` (string)
-			* description: DatacenterID is the ID of the Datacenter on which the resource should have access. It needs to be provided via directly or via reference.
+			* description: DatacenterID is the ID of the Datacenter on which the resource should have access.
+It needs to be provided via directly or via reference.
 			* format: uuid
 		* `datacenterIdRef` (object)
 			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
@@ -137,11 +154,17 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					* description: Policies for referencing.
 					* properties:
 						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* description: Resolution specifies whether resolution of this reference is required.
+The default is 'Required', which means the reconcile will fail if the
+reference cannot be resolved. 'Optional' means this reference will be
+a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* description: Resolve specifies when this reference should be resolved. The default
+is 'IfNotPresent', which will attempt to resolve the reference only when
+the corresponding field is not present. Use 'Always' to resolve the
+reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
@@ -149,18 +172,25 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* description: DatacenterIDSelector selects reference to a Datacenter to retrieve its DatacenterID.
 			* properties:
 				* `matchControllerRef` (boolean)
-					* description: MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+					* description: MatchControllerRef ensures an object with the same controller reference
+as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
 					* description: Policies for selection.
 					* properties:
 						* `resolution` (string)
-							* description: Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+							* description: Resolution specifies whether resolution of this reference is required.
+The default is 'Required', which means the reconcile will fail if the
+reference cannot be resolved. 'Optional' means this reference will be
+a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
-							* description: Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+							* description: Resolve specifies when this reference should be resolved. The default
+is 'IfNotPresent', which will attempt to resolve the reference only when
+the corresponding field is not present. Use 'Always' to resolve the
+reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `labels` (object)
 	* description: Map of labels attached to NodePool
@@ -184,7 +214,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* description: The amount of storage per instance in megabytes
 	* format: int32
 * `storageType` (string)
-	* description: The type of hardware for the NodePool Possible values HDD;SSD
+	* description: The type of hardware for the NodePool
+Possible values HDD;SSD
 * `version` (string)
 	* description: The version of the Data Platform NodePool
 

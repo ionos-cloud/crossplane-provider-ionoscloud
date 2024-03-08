@@ -29,6 +29,11 @@ func (mg *DataplatformCluster) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this DataplatformCluster.
+func (mg *DataplatformCluster) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this DataplatformCluster.
 func (mg *DataplatformCluster) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
@@ -52,6 +57,11 @@ func (mg *DataplatformCluster) SetConditions(c ...xpv1.Condition) {
 // SetDeletionPolicy of this DataplatformCluster.
 func (mg *DataplatformCluster) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
+}
+
+// SetManagementPolicies of this DataplatformCluster.
+func (mg *DataplatformCluster) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
 }
 
 // SetProviderConfigReference of this DataplatformCluster.
@@ -79,6 +89,11 @@ func (mg *DataplatformNodepool) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this DataplatformNodepool.
+func (mg *DataplatformNodepool) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this DataplatformNodepool.
 func (mg *DataplatformNodepool) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
@@ -102,6 +117,11 @@ func (mg *DataplatformNodepool) SetConditions(c ...xpv1.Condition) {
 // SetDeletionPolicy of this DataplatformNodepool.
 func (mg *DataplatformNodepool) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
+}
+
+// SetManagementPolicies of this DataplatformNodepool.
+func (mg *DataplatformNodepool) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
 }
 
 // SetProviderConfigReference of this DataplatformNodepool.
