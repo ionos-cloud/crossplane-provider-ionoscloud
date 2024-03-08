@@ -193,36 +193,13 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	version := 0
 	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
 		e.log.Info("Creating a new Server", "index", i)
-		res := &v1alpha1.VolumeList{}
-		err := ListResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, i, res)
+		err := e.ensureBootVolumeByIndex(ctx, i, cr, version)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}
-		if len(res.Items) > 1 {
-			return managed.ExternalCreation{}, fmt.Errorf("found too many volumes for index %d ", i)
-		} else if len(res.Items) == 0 {
-			if err := e.EnsureBootVolume(ctx, cr, i, version); err != nil {
-				return managed.ExternalCreation{}, err
-			}
-		}
 
-		resSrv := &v1alpha1.ServerList{}
-		err = ListResFromSSetWithIndex(ctx, e.kube, resourceServer, i, resSrv)
+		err = e.ensureServerAndNicByIndex(ctx, err, i, cr, version)
 		if err != nil {
-			return managed.ExternalCreation{}, err
-		}
-		if len(resSrv.Items) > 1 {
-			return managed.ExternalCreation{}, fmt.Errorf("found too many servers for index %d ", i)
-		} else if len(resSrv.Items) == 0 {
-			if err := e.EnsureServer(ctx, cr, i, version); err != nil {
-				return managed.ExternalCreation{}, err
-			}
-			if err := e.EnsureNICs(ctx, cr, i, version); err != nil {
-				return managed.ExternalCreation{}, err
-			}
-		}
-
-		if err := e.ensureVolumeClaim(); err != nil {
 			return managed.ExternalCreation{}, err
 		}
 
@@ -235,6 +212,42 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		// externalServerSet resource. These will be stored as the connection secret.
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
+}
+
+func (e *external) ensureServerAndNicByIndex(ctx context.Context, err error, i int, cr *v1alpha1.ServerSet, version int) error {
+	resSrv := &v1alpha1.ServerList{}
+	err = ListResFromSSetWithIndex(ctx, e.kube, resourceServer, i, resSrv)
+	if err != nil {
+		return err
+	}
+	if len(resSrv.Items) > 1 {
+		return fmt.Errorf("found too many servers for index %d ", i)
+	} else if len(resSrv.Items) == 0 {
+		if err := e.EnsureServer(ctx, cr, i, version); err != nil {
+			return err
+		}
+		if err := e.EnsureNICs(ctx, cr, i, version); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ensureBootVolumeByIndex - ensures boot volume created for a specific index. After checking for index, it checks for index and version
+func (e *external) ensureBootVolumeByIndex(ctx context.Context, i int, cr *v1alpha1.ServerSet, version int) error {
+	res := &v1alpha1.VolumeList{}
+	err := ListResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, i, res)
+	if err != nil {
+		return err
+	}
+	if len(res.Items) > 1 {
+		return fmt.Errorf("found too many volumes for index %d ", i)
+	} else if len(res.Items) == 0 {
+		if err := e.EnsureBootVolume(ctx, cr, i, version); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
@@ -421,12 +434,6 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}); err != nil {
 		return err
 	}
-
-	return nil
-}
-
-func (e *external) ensureVolumeClaim() error {
-	e.log.Info("Ensuring Volume")
 
 	return nil
 }
