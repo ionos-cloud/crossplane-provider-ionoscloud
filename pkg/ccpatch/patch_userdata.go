@@ -44,7 +44,7 @@ func NewCloudInitPatcher(raw string) (*CloudInitPatcher, error) {
 
 	data := make(map[string]interface{})
 	if err := yaml.Unmarshal(byt, &data); err != nil {
-		return nil, ErrMalformedData
+		return nil, fmt.Errorf("error unmarshalling yaml: %w (%w)", ErrMalformedData, err)
 	}
 
 	return &CloudInitPatcher{raw: raw, decoded: string(byt), data: data}, nil
