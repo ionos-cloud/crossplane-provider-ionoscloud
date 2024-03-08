@@ -21,14 +21,14 @@ func fakeKubeClient(functions interceptor.Funcs) client.WithWatch {
 	return fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(functions).Build()
 }
 
-func getVolumePopulateStatusTest(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+func getVolumePopulateStatus(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	vol := obj.(*v1alpha1.Volume)
 	vol.Status.AtProvider.State = "AVAILABLE"
 	vol.Status.AtProvider.VolumeID = "uuid"
 	return nil
 }
 
-func createVolumeReturnsErrorTest(ctx context.Context, client client.WithWatch, obj client.Object,
+func createVolumeReturnsError(ctx context.Context, client client.WithWatch, obj client.Object,
 	opts ...client.CreateOption) error {
 	return errors.New("something went wrong")
 }
@@ -54,7 +54,7 @@ func Test_kubeBootVolumeController_Create(t *testing.T) {
 		{
 			name: "expect success",
 			fields: fields{
-				kube: fakeKubeClient(interceptor.Funcs{Get: getVolumePopulateStatusTest}),
+				kube: fakeKubeClient(interceptor.Funcs{Get: getVolumePopulateStatus}),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
@@ -74,7 +74,7 @@ func Test_kubeBootVolumeController_Create(t *testing.T) {
 		{
 			name: "expect error",
 			fields: fields{
-				kube: fakeKubeClient(interceptor.Funcs{Create: createVolumeReturnsErrorTest}),
+				kube: fakeKubeClient(interceptor.Funcs{Create: createVolumeReturnsError}),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
