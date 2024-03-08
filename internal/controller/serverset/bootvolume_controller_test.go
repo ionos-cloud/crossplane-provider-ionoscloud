@@ -52,7 +52,7 @@ func Test_kubeBootVolumeController_Create(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "expect success",
+			name: "expect success and status is populated",
 			fields: fields{
 				kube: fakeKubeClient(interceptor.Funcs{Get: getVolumePopulateStatus}),
 				log:  logging.NewNopLogger(),
@@ -72,7 +72,7 @@ func Test_kubeBootVolumeController_Create(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "expect error",
+			name: "kube object creation failed expect error",
 			fields: fields{
 				kube: fakeKubeClient(interceptor.Funcs{Create: createVolumeReturnsError}),
 				log:  logging.NewNopLogger(),
