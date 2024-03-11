@@ -503,8 +503,7 @@ func getVersionsFromVolumeAndServer(ctx context.Context, kube client.Client, rep
 
 func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	resSrv := &v1alpha1.ServerList{}
-	err := ListResFromSSetWithIndex(ctx, e.kube, resourceServer, replicaIndex, resSrv)
-	if err != nil {
+	if err := ListResFromSSetWithIndex(ctx, e.kube, resourceServer, replicaIndex, resSrv); err != nil {
 		return err
 	}
 	if len(resSrv.Items) > 1 {
@@ -524,8 +523,7 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.S
 // ensureBootVolumeByIndex - ensures boot volume created for a specific index. After checking for index, it checks for index and version
 func (e *external) ensureBootVolumeByIndex(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	res := &v1alpha1.VolumeList{}
-	err := ListResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, replicaIndex, res)
-	if err != nil {
+	if err := ListResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, replicaIndex, res); err != nil {
 		return err
 	}
 	if len(res.Items) > 1 {
