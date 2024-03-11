@@ -191,12 +191,12 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	version := 0
 	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
 		e.log.Info("Creating a new Server", "index", i)
-		err := e.ensureBootVolumeByIndex(ctx, i, cr, version)
+		err := e.ensureBootVolumeByIndex(ctx, cr, i, version)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}
 
-		err = e.ensureServerAndNicByIndex(ctx, err, i, cr, version)
+		err = e.ensureServerAndNicByIndex(ctx, cr, i, version)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}
@@ -501,19 +501,20 @@ func getVersionsFromVolumeAndServer(ctx context.Context, kube client.Client, rep
 	return volumeVersion, serverVersion, nil
 }
 
-func (e *external) ensureServerAndNicByIndex(ctx context.Context, err error, i int, cr *v1alpha1.ServerSet, version int) error {
+func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	resSrv := &v1alpha1.ServerList{}
-	err = ListResFromSSetWithIndex(ctx, e.kube, resourceServer, i, resSrv)
+	err := ListResFromSSetWithIndex(ctx, e.kube, resourceServer, replicaIndex, resSrv)
 	if err != nil {
 		return err
 	}
 	if len(resSrv.Items) > 1 {
-		return fmt.Errorf("found too many servers for index %d ", i)
-	} else if len(resSrv.Items) == 0 {
-		if err := e.serverController.EnsureServer(ctx, cr, i, version); err != nil {
+		return fmt.Errorf("found too many servers for index %d ", replicaIndex)
+	}
+	if len(resSrv.Items) == 0 {
+		if err := e.serverController.EnsureServer(ctx, cr, replicaIndex, version); err != nil {
 			return err
 		}
-		if err := e.nicController.EnsureNICs(ctx, cr, i, version); err != nil {
+		if err := e.nicController.EnsureNICs(ctx, cr, replicaIndex, version); err != nil {
 			return err
 		}
 	}
@@ -521,16 +522,17 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, err error, i i
 }
 
 // ensureBootVolumeByIndex - ensures boot volume created for a specific index. After checking for index, it checks for index and version
-func (e *external) ensureBootVolumeByIndex(ctx context.Context, i int, cr *v1alpha1.ServerSet, version int) error {
+func (e *external) ensureBootVolumeByIndex(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	res := &v1alpha1.VolumeList{}
-	err := ListResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, i, res)
+	err := ListResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, replicaIndex, res)
 	if err != nil {
 		return err
 	}
 	if len(res.Items) > 1 {
-		return fmt.Errorf("found too many volumes for index %d ", i)
-	} else if len(res.Items) == 0 {
-		if err := e.bootVolumeController.EnsureBootVolume(ctx, cr, i, version); err != nil {
+		return fmt.Errorf("found too many volumes for index %d ", replicaIndex)
+	}
+	if len(res.Items) == 0 {
+		if err := e.bootVolumeController.EnsureBootVolume(ctx, cr, replicaIndex, version); err != nil {
 			return err
 		}
 	}
