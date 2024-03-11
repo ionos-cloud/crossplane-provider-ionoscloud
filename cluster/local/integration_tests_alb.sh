@@ -16,9 +16,9 @@ apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: TargetGroup
 metadata:
   name: examplealb
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleTargetGroupALB
     algorithm: ROUND_ROBIN
@@ -52,9 +52,9 @@ apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: TargetGroup
 metadata:
   name: examplealb
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleTargetGroupALBUpdated
     algorithm: ROUND_ROBIN
@@ -82,9 +82,9 @@ apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: TargetGroup
 metadata:
   name: examplealb
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleTargetGroupALBUpdated
     algorithm: ROUND_ROBIN
@@ -114,9 +114,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
   name: examplealb
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleIpBlockALB
     size: 2
@@ -128,9 +128,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: examplealb
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleDatacenterALB
     location: de/txl
@@ -156,9 +156,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: examplealb
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: examplePrivateLanALB
     public: false
@@ -172,9 +172,9 @@ apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: ApplicationLoadBalancer
 metadata:
   name: examplealb
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     datacenterConfig:
       datacenterIdRef:
@@ -216,9 +216,9 @@ apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: ApplicationLoadBalancer
 metadata:
   name: examplealb
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     datacenterConfig:
       datacenterIdRef:
@@ -257,9 +257,9 @@ apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: ApplicationLoadBalancer
 metadata:
   name: examplealb
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     datacenterConfig:
       datacenterIdRef:
@@ -293,9 +293,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: examplelanalb
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: examplePublicLanALB
     public: true
@@ -323,9 +323,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: examplealb
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleDatacenterALB
     location: de/txl
@@ -365,9 +365,9 @@ apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: ForwardingRule
 metadata:
   name: examplealb
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     datacenterConfig:
       datacenterIdRef:
@@ -437,9 +437,9 @@ apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: ForwardingRule
 metadata:
   name: examplealb
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     datacenterConfig:
       datacenterIdRef:
@@ -486,9 +486,9 @@ apiVersion: alb.ionoscloud.crossplane.io/v1alpha1
 kind: ForwardingRule
 metadata:
   name: examplealb
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     datacenterConfig:
       datacenterIdRef:

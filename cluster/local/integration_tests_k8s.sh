@@ -16,9 +16,9 @@ apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: Cluster
 metadata:
   name: examplek8s
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleK8sCluster
     maintenanceWindow:
@@ -48,9 +48,9 @@ apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: Cluster
 metadata:
   name: examplek8s
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleK8sClusterUpdate
     maintenanceWindow:
@@ -82,9 +82,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
   name: exampleipblockk8s
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleIpBlock
     size: 3
@@ -96,9 +96,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: exampledatacenterk8s
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleDatacenterK8sNodepool
     location: us/las
@@ -110,9 +110,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: examplelank8s
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleLanK8sNodepool
     public: false
@@ -126,9 +126,9 @@ apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: NodePool
 metadata:
   name: examplek8snodepool
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     maintenanceWindow:
       dayOfTheWeek: Friday
@@ -183,9 +183,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: IPBlock
 metadata:
   name: exampleipblockk8s
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleIpBlock
     size: 3
@@ -197,9 +197,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Datacenter
 metadata:
   name: exampledatacenterk8s
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleDatacenterK8sNodepool
     location: us/las
@@ -211,9 +211,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Lan
 metadata:
   name: examplelank8s
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleLanK8sNodepool
     public: false
@@ -227,9 +227,9 @@ apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: NodePool
 metadata:
   name: examplek8snodepool
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleK8sNodepool
     nodeCount: 1
@@ -277,9 +277,9 @@ apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: Cluster
 metadata:
   name: examplek8s
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleK8sCluster
     maintenanceWindow:

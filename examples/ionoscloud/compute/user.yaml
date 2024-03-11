@@ -14,9 +14,9 @@ apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: User
 metadata:
   name: xplane-test-user
-managementPolicies:
-  - "*"
 spec:
+  3managementPolicies:
+    - "*"
   forProvider:
     administrator: false
     email: "unique@xplane.com"

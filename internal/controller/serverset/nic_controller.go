@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/ionos-cloud/sdk-go/v6"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -19,6 +18,7 @@ import (
 type kubeNicControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) (v1alpha1.Nic, error)
 	Get(ctx context.Context, name, ns string) (*v1alpha1.Nic, error)
+	Delete(ctx context.Context, name, namespace string) error
 }
 
 // kubeNicController - kubernetes client wrapper
@@ -86,6 +86,35 @@ func (k *kubeNicController) Get(ctx context.Context, name, ns string) (*v1alpha1
 	return obj, nil
 }
 
+func (k *kubeNicController) isNicDeleted(ctx context.Context, name, namespace string) (bool, error) {
+	k.log.Info("Checking if Nic is deleted", "name", name, "namespace", namespace)
+	nic := &v1alpha1.Nic{}
+	err := k.kube.Get(ctx, types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}, nic)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			k.log.Info("Nic has been deleted", "name", name, "namespace", namespace)
+			return true, nil
+		}
+		return false, nil
+	}
+	return false, nil
+}
+
+// Delete - deletes the nic k8s client and waits until it is deleted
+func (k *kubeNicController) Delete(ctx context.Context, name, namespace string) error {
+	condemnedVolume, err := k.Get(ctx, name, namespace)
+	if err != nil {
+		return err
+	}
+	if err := k.kube.Delete(ctx, condemnedVolume); err != nil {
+		return err
+	}
+	return WaitForKubeResource(ctx, resourceReadyTimeout, k.isNicDeleted, condemnedVolume.Name, namespace)
+}
+
 func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, replicaIndex, version int) v1alpha1.Nic {
 	return v1alpha1.Nic{
 		ObjectMeta: metav1.ObjectMeta{
@@ -97,7 +126,6 @@ func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, re
 				fmt.Sprintf(versionLabel, "nic"): fmt.Sprintf("%d", version),
 			},
 		},
-		ManagementPolicies: xpv1.ManagementPolicies{"*"},
 		Spec: v1alpha1.NicSpec{
 			ForProvider: v1alpha1.NicParameters{
 				Name:          name,

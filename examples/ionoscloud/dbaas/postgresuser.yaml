@@ -2,9 +2,9 @@ apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
 kind: PostgresUser
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     credentials:
       source: Secret

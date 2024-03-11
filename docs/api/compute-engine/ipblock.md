@@ -74,7 +74,8 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
 * `location` (string)
-	* description: Location of that IP block. Property cannot be modified after it is created (disallowed in update requests). Location can have the following values: de/fra, us/las, us/ewr, de/txl, gb/lhr, es/vit.
+	* description: Location of that IP block. Property cannot be modified after it is created (disallowed in update requests).
+Location can have the following values: de/fra, us/las, us/ewr, de/txl, gb/lhr, es/vit.
 * `name` (string)
 	* description: The name of the  resource.
 * `size` (integer)

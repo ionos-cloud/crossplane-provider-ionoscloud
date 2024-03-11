@@ -29,6 +29,11 @@ func (mg *MongoCluster) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this MongoCluster.
+func (mg *MongoCluster) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this MongoCluster.
 func (mg *MongoCluster) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
@@ -52,6 +57,11 @@ func (mg *MongoCluster) SetConditions(c ...xpv1.Condition) {
 // SetDeletionPolicy of this MongoCluster.
 func (mg *MongoCluster) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
+}
+
+// SetManagementPolicies of this MongoCluster.
+func (mg *MongoCluster) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
 }
 
 // SetProviderConfigReference of this MongoCluster.
@@ -79,6 +89,11 @@ func (mg *MongoUser) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this MongoUser.
+func (mg *MongoUser) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this MongoUser.
 func (mg *MongoUser) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
@@ -102,6 +117,11 @@ func (mg *MongoUser) SetConditions(c ...xpv1.Condition) {
 // SetDeletionPolicy of this MongoUser.
 func (mg *MongoUser) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
+}
+
+// SetManagementPolicies of this MongoUser.
+func (mg *MongoUser) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
 }
 
 // SetProviderConfigReference of this MongoUser.

@@ -29,6 +29,11 @@ func (mg *PostgresCluster) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this PostgresCluster.
+func (mg *PostgresCluster) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this PostgresCluster.
 func (mg *PostgresCluster) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
@@ -52,6 +57,11 @@ func (mg *PostgresCluster) SetConditions(c ...xpv1.Condition) {
 // SetDeletionPolicy of this PostgresCluster.
 func (mg *PostgresCluster) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
+}
+
+// SetManagementPolicies of this PostgresCluster.
+func (mg *PostgresCluster) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
 }
 
 // SetProviderConfigReference of this PostgresCluster.
@@ -79,6 +89,11 @@ func (mg *PostgresUser) GetDeletionPolicy() xpv1.DeletionPolicy {
 	return mg.Spec.DeletionPolicy
 }
 
+// GetManagementPolicies of this PostgresUser.
+func (mg *PostgresUser) GetManagementPolicies() xpv1.ManagementPolicies {
+	return mg.Spec.ManagementPolicies
+}
+
 // GetProviderConfigReference of this PostgresUser.
 func (mg *PostgresUser) GetProviderConfigReference() *xpv1.Reference {
 	return mg.Spec.ProviderConfigReference
@@ -102,6 +117,11 @@ func (mg *PostgresUser) SetConditions(c ...xpv1.Condition) {
 // SetDeletionPolicy of this PostgresUser.
 func (mg *PostgresUser) SetDeletionPolicy(r xpv1.DeletionPolicy) {
 	mg.Spec.DeletionPolicy = r
+}
+
+// SetManagementPolicies of this PostgresUser.
+func (mg *PostgresUser) SetManagementPolicies(r xpv1.ManagementPolicies) {
+	mg.Spec.ManagementPolicies = r
 }
 
 // SetProviderConfigReference of this PostgresUser.
