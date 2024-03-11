@@ -3,8 +3,6 @@ package serverset
 import (
 	"context"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
@@ -16,7 +14,6 @@ type createBeforeDestroy struct {
 	bootVolumeController kubeBootVolumeControlManager
 	serverController     kubeServerControlManager
 	nicController        kubeNicControlManager
-	kube                 client.Client
 }
 
 func newCreateBeforeDestroy(bootVolumeController kubeBootVolumeControlManager, serverController kubeServerControlManager, nicController kubeNicControlManager) *createBeforeDestroy {

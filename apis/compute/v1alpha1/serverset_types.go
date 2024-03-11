@@ -186,14 +186,19 @@ type ServerSetBootVolumeSpec struct {
 	UpdateStrategy UpdateStrategy       `json:"updateStrategy,omitempty"`
 }
 
+// UpdateStrategy is the update strategy for the boot volume.
 type UpdateStrategy struct {
 	Stype UpdateStrategyType `json:"type"`
 }
+
+// UpdateStrategyType is the type of the update strategy for the boot volume.
 type UpdateStrategyType string
 
 const (
-	CreateAllBeforeDestroy        UpdateStrategyType = "createAllBeforeDestroy"
-	CreateBeforeDestroyBootVolume                    = "createBeforeDestroyBootVolume"
+	// CreateAllBeforeDestroy creates server, boot volume, and NIC before destroying the old ones.
+	CreateAllBeforeDestroy UpdateStrategyType = "createAllBeforeDestroy"
+	// CreateBeforeDestroyBootVolume creates boot volume before destroying the old one.
+	CreateBeforeDestroyBootVolume = "createBeforeDestroyBootVolume"
 )
 
 // +kubebuilder:object:root=true
