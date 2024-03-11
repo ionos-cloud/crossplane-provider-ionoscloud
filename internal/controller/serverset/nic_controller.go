@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/ionos-cloud/sdk-go/v6"
+	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"

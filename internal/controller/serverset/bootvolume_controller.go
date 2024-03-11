@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/ionos-cloud/sdk-go/v6"
+	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -132,19 +132,19 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 }
 
 // EnsureBootVolume - creates a boot volume if it does not exist
-func (e *kubeBootVolumeController) EnsureBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
-	e.log.Info("Ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
+func (k *kubeBootVolumeController) EnsureBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+	k.log.Info("Ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
 	res := &v1alpha1.VolumeList{}
-	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kube, resourceBootVolume, replicaIndex, version, res); err != nil {
+	if err := ListResFromSSetWithIndexAndVersion(ctx, k.kube, resourceBootVolume, replicaIndex, version, res); err != nil {
 		return err
 	}
 	volumes := res.Items
 	if len(volumes) == 0 {
-		volume, err := e.Create(ctx, cr, replicaIndex, version)
-		e.log.Info("Volume State", "state", volume.Status.AtProvider.State)
+		volume, err := k.Create(ctx, cr, replicaIndex, version)
+		k.log.Info("Volume State", "state", volume.Status.AtProvider.State)
 		return err
 	}
-	e.log.Info("Finished ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
+	k.log.Info("Finished ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
 
 	return nil
 }
