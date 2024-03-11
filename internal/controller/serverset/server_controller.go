@@ -7,7 +7,7 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/ionos-cloud/sdk-go/v6"
+	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,6 +20,7 @@ type kubeServerControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) (v1alpha1.Server, error)
 	Get(ctx context.Context, name, ns string) (*v1alpha1.Server, error)
 	Delete(ctx context.Context, name, namespace string) error
+	Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error
 }
 
 // kubeServerController - kubernetes client wrapper for server resources
@@ -86,8 +87,7 @@ func (k *kubeServerController) Delete(ctx context.Context, name, namespace strin
 		return err
 	}
 	if err := k.kube.Delete(ctx, condemnedServer); err != nil {
-		fmt.Printf("error deleting server %v", err)
-		return err
+		return fmt.Errorf("error deleting server %w", err)
 	}
 	return WaitForKubeResource(ctx, resourceReadyTimeout, k.isServerDeleted, condemnedServer.Name, namespace)
 }
@@ -138,4 +138,27 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volume
 				},
 			},
 		}}
+}
+
+// Ensure - creates a server CR if it does not exist
+func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+	k.log.Info("Ensuring Server", "index", replicaIndex, "version", version)
+	res := &v1alpha1.ServerList{}
+	if err := ListResFromSSetWithIndexAndVersion(ctx, k.kube, resourceServer, replicaIndex, version, res); err != nil {
+		return err
+	}
+	servers := res.Items
+	if len(servers) > 0 {
+		k.log.Info("Server already exists", "name", servers[0].Name)
+		return nil
+	}
+
+	_, err := k.Create(ctx, cr, replicaIndex, version, version)
+	if err != nil {
+		return err
+	}
+
+	k.log.Info("Finished ensuring Server", "index", replicaIndex, "version", version)
+
+	return nil
 }

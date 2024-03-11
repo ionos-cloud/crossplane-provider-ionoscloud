@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/ionos-cloud/sdk-go/v6"
+	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -19,6 +19,7 @@ type kubeBootVolumeControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Volume, error)
 	Get(ctx context.Context, volumeName, ns string) (*v1alpha1.Volume, error)
 	Delete(ctx context.Context, name, namespace string) error
+	Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error
 }
 
 // kubeBootVolumeController - kubernetes client wrapper  for server resources
@@ -67,8 +68,7 @@ func (k *kubeBootVolumeController) Delete(ctx context.Context, name, namespace s
 		return err
 	}
 	if err := k.kube.Delete(ctx, condemnedVolume); err != nil {
-		fmt.Printf("error deleting volume %v", err)
-		return err
+		return fmt.Errorf("error deleting volume %w", err)
 	}
 	return WaitForKubeResource(ctx, resourceReadyTimeout, k.isBootVolumeDeleted, condemnedVolume.Name, namespace)
 }
@@ -128,4 +128,22 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 				ImagePassword: "imagePassword776",
 			},
 		}}
+}
+
+// Ensure - creates a boot volume if it does not exist
+func (k *kubeBootVolumeController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+	k.log.Info("Ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
+	res := &v1alpha1.VolumeList{}
+	if err := ListResFromSSetWithIndexAndVersion(ctx, k.kube, resourceBootVolume, replicaIndex, version, res); err != nil {
+		return err
+	}
+	volumes := res.Items
+	if len(volumes) == 0 {
+		volume, err := k.Create(ctx, cr, replicaIndex, version)
+		k.log.Info("Volume State", "state", volume.Status.AtProvider.State)
+		return err
+	}
+	k.log.Info("Finished ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
+
+	return nil
 }
