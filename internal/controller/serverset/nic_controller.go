@@ -151,7 +151,6 @@ func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerS
 	}
 	servers := res.Items
 	// check if the NIC is attached to the server
-	fmt.Printf("we have to check if the NIC is attached to the server %s ", cr.Name)
 	if len(servers) > 0 {
 		for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
 			if err := k.ensureNIC(ctx, cr, servers[0].Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].Reference, replicaIndex, version); err != nil {
