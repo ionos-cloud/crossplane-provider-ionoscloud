@@ -20,11 +20,9 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -201,7 +199,7 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		if len(res.Items) > 1 {
 			return managed.ExternalCreation{}, fmt.Errorf("found too many volumes for index %d ", i)
 		} else if len(res.Items) == 0 {
-			if err := e.EnsureBootVolume(ctx, cr, i, version); err != nil {
+			if err := e.bootVolumeController.EnsureBootVolume(ctx, cr, i, version); err != nil {
 				return managed.ExternalCreation{}, err
 			}
 		}
@@ -214,10 +212,10 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		if len(resSrv.Items) > 1 {
 			return managed.ExternalCreation{}, fmt.Errorf("found too many servers for index %d ", i)
 		} else if len(resSrv.Items) == 0 {
-			if err := e.EnsureServer(ctx, cr, i, version); err != nil {
+			if err := e.serverController.EnsureServer(ctx, cr, i, version); err != nil {
 				return managed.ExternalCreation{}, err
 			}
-			if err := e.EnsureNICs(ctx, cr, i, version); err != nil {
+			if err := e.nicController.EnsureNICs(ctx, cr, i, version); err != nil {
 				return managed.ExternalCreation{}, err
 			}
 		}
@@ -314,37 +312,7 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 		}
 
 		if deleteAndCreate {
-			volumeResources := &v1alpha1.VolumeList{}
-			err := ListResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, idx, volumeResources)
-			if err != nil {
-				return err
-			}
-			if len(volumeResources.Items) > 1 {
-				return fmt.Errorf("found too many volumes for index %d ", idx)
-			}
-			if len(volumeResources.Items) == 0 {
-				return fmt.Errorf("found no volumes for index %d ", idx)
-			}
-			serverResources := &v1alpha1.ServerList{}
-			err = ListResFromSSetWithIndex(ctx, e.kube, resourceServer, idx, serverResources)
-			if err != nil {
-				return err
-			}
-			if len(serverResources.Items) > 1 {
-				return fmt.Errorf("found too many servers for index %d ", idx)
-			}
-			if len(serverResources.Items) == 0 {
-				return fmt.Errorf("found no servers for index %d ", idx)
-			}
-
-			condemnedVolume := volumeResources.Items[0]
-			volumeVersion, err := strconv.Atoi(condemnedVolume.Labels[fmt.Sprintf(versionLabel, resourceBootVolume)])
-			if err != nil {
-				return err
-			}
-
-			servers := serverResources.Items
-			serverVersion, err := strconv.Atoi(servers[0].Labels[fmt.Sprintf(versionLabel, resourceServer)])
+			volumeVersion, serverVersion, err := getVersionsFromVolumeAndServer(ctx, e.kube, idx)
 			if err != nil {
 				return err
 			}
@@ -370,15 +338,15 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 }
 
 func (e *external) createResources(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
-	if err := e.EnsureBootVolume(ctx, cr, index, volumeVersion); err != nil {
+	if err := e.bootVolumeController.EnsureBootVolume(ctx, cr, index, volumeVersion); err != nil {
 		return err
 	}
 
-	if err := e.EnsureServer(ctx, cr, index, serverVersion); err != nil {
+	if err := e.serverController.EnsureServer(ctx, cr, index, serverVersion); err != nil {
 		return err
 	}
 
-	return e.EnsureNICs(ctx, cr, index, serverVersion)
+	return e.nicController.EnsureNICs(ctx, cr, index, serverVersion)
 }
 
 func (e *external) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
@@ -523,88 +491,41 @@ func ListResFromSSetWithIndexAndVersion(ctx context.Context, kube client.Client,
 	})
 }
 
-// EnsureBootVolume - creates a boot volume if it does not exist
-func (e *external) EnsureBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
-	e.log.Info("Ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
-	res := &v1alpha1.VolumeList{}
-	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kube, resourceBootVolume, replicaIndex, version, res); err != nil {
-		return err
-	}
-	volumes := res.Items
-	if len(volumes) == 0 {
-		volume, err := e.bootVolumeController.Create(ctx, cr, replicaIndex, version)
-		e.log.Info("Volume State", "state", volume.Status.AtProvider.State)
-		return err
-	}
-	e.log.Info("Finished ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
-
-	return nil
-}
-
-// EnsureServer - creates a server CR if it does not exist
-func (e *external) EnsureServer(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
-	e.log.Info("Ensuring Server", "index", replicaIndex, "version", version)
-	res := &v1alpha1.ServerList{}
-	err := ListResFromSSetWithIndexAndVersion(ctx, e.kube, resourceServer, replicaIndex, version, res)
+// getVersionsFromVolumeAndServer checks that there is only one server and volume and returns their version
+func getVersionsFromVolumeAndServer(ctx context.Context, kube client.Client, replicaIndex int) (volumeVersion int, serverVersion int, err error) {
+	volumeResources := &v1alpha1.VolumeList{}
+	err = ListResFromSSetWithIndex(ctx, kube, resourceBootVolume, replicaIndex, volumeResources)
 	if err != nil {
-		return err
+		return volumeVersion, serverVersion, err
 	}
-	servers := res.Items
-	if len(servers) > 0 {
-		e.log.Info("Server already exists", "name", servers[0].Name)
-	} else {
-		_, err := e.serverController.Create(ctx, cr, replicaIndex, version, version)
-		if err != nil {
-			return err
-		}
+	if len(volumeResources.Items) > 1 {
+		return volumeVersion, serverVersion, fmt.Errorf("found too many volumes for index %d ", replicaIndex)
 	}
-	e.log.Info("Finished ensuring Server", "index", replicaIndex, "version", version)
+	if len(volumeResources.Items) == 0 {
+		return volumeVersion, serverVersion, fmt.Errorf("found no volumes for index %d ", replicaIndex)
+	}
+	serverResources := &v1alpha1.ServerList{}
+	err = ListResFromSSetWithIndex(ctx, kube, resourceServer, replicaIndex, serverResources)
+	if err != nil {
+		return volumeVersion, serverVersion, err
+	}
+	if len(serverResources.Items) > 1 {
+		return volumeVersion, serverVersion, fmt.Errorf("found too many servers for index %d ", replicaIndex)
+	}
+	if len(serverResources.Items) == 0 {
+		return volumeVersion, serverVersion, fmt.Errorf("found no servers for index %d ", replicaIndex)
+	}
 
-	return nil
-}
+	condemnedVolume := volumeResources.Items[0]
+	volumeVersion, err = strconv.Atoi(condemnedVolume.Labels[fmt.Sprintf(versionLabel, resourceBootVolume)])
+	if err != nil {
+		return volumeVersion, serverVersion, err
+	}
 
-// EnsureNICs - creates NICS if they do not exist
-func (e *external) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
-	e.log.Info("Ensuring NICs", "index", replicaIndex, "version", version)
-	res := &v1alpha1.ServerList{}
-	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kube, resourceServer, replicaIndex, version, res); err != nil {
-		return err
+	servers := serverResources.Items
+	serverVersion, err = strconv.Atoi(servers[0].Labels[fmt.Sprintf(versionLabel, resourceServer)])
+	if err != nil {
+		return volumeVersion, serverVersion, err
 	}
-	servers := res.Items
-	// check if the NIC is attached to the server
-	fmt.Printf("we have to check if the NIC is attached to the server %s ", cr.Name)
-	if len(servers) > 0 {
-		for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
-			if err := e.EnsureNIC(ctx, cr, servers[0].Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].Reference, replicaIndex, version); err != nil {
-				return err
-			}
-		}
-	}
-	e.log.Info("Finished ensuring NICs", "index", replicaIndex, "version", version)
-
-	return nil
-}
-
-// EnsureNIC - creates a NIC if it does not exist
-func (e *external) EnsureNIC(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) error {
-	res := &v1alpha1.NicList{}
-	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kube, resourceNIC, replicaIndex, version, res); err != nil {
-		return err
-	}
-	nic := v1alpha1.Nic{}
-	if len(res.Items) == 0 {
-		var err error
-		nic, err = e.nicController.Create(ctx, cr, serverID, lanName, replicaIndex, version)
-		if err != nil {
-			return err
-		}
-	} else {
-		nic = res.Items[0]
-		// NIC found, check if it's attached to the server
-
-	}
-	if !strings.EqualFold(nic.Status.AtProvider.State, ionoscloud.Available) {
-		return fmt.Errorf("observedNic %s got state %s but expected %s", nic.GetName(), nic.Status.AtProvider.State, ionoscloud.Available)
-	}
-	return nil
+	return volumeVersion, serverVersion, nil
 }

@@ -19,6 +19,7 @@ type kubeBootVolumeControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Volume, error)
 	Get(ctx context.Context, volumeName, ns string) (*v1alpha1.Volume, error)
 	Delete(ctx context.Context, name, namespace string) error
+	EnsureBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error
 }
 
 // kubeBootVolumeController - kubernetes client wrapper  for server resources
@@ -128,4 +129,22 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 				ImagePassword: "imagePassword776",
 			},
 		}}
+}
+
+// EnsureBootVolume - creates a boot volume if it does not exist
+func (e *kubeBootVolumeController) EnsureBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+	e.log.Info("Ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
+	res := &v1alpha1.VolumeList{}
+	if err := ListResFromSSetWithIndexAndVersion(ctx, e.kube, resourceBootVolume, replicaIndex, version, res); err != nil {
+		return err
+	}
+	volumes := res.Items
+	if len(volumes) == 0 {
+		volume, err := e.Create(ctx, cr, replicaIndex, version)
+		e.log.Info("Volume State", "state", volume.Status.AtProvider.State)
+		return err
+	}
+	e.log.Info("Finished ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
+
+	return nil
 }

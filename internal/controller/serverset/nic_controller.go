@@ -19,6 +19,7 @@ type kubeNicControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) (v1alpha1.Nic, error)
 	Get(ctx context.Context, name, ns string) (*v1alpha1.Nic, error)
 	Delete(ctx context.Context, name, namespace string) error
+	EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error
 }
 
 // kubeNicController - kubernetes client wrapper
@@ -139,4 +140,50 @@ func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, re
 			},
 		},
 	}
+}
+
+// EnsureNICs - creates NICS if they do not exist
+func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+	k.log.Info("Ensuring NICs", "index", replicaIndex, "version", version)
+	res := &v1alpha1.ServerList{}
+	if err := ListResFromSSetWithIndexAndVersion(ctx, k.kube, resourceServer, replicaIndex, version, res); err != nil {
+		return err
+	}
+	servers := res.Items
+	// check if the NIC is attached to the server
+	fmt.Printf("we have to check if the NIC is attached to the server %s ", cr.Name)
+	if len(servers) > 0 {
+		for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
+			if err := k.ensureNIC(ctx, cr, servers[0].Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].Reference, replicaIndex, version); err != nil {
+				return err
+			}
+		}
+	}
+	k.log.Info("Finished ensuring NICs", "index", replicaIndex, "version", version)
+
+	return nil
+}
+
+// EnsureNIC - creates a NIC if it does not exist
+func (k *kubeNicController) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) error {
+	res := &v1alpha1.NicList{}
+	if err := ListResFromSSetWithIndexAndVersion(ctx, k.kube, resourceNIC, replicaIndex, version, res); err != nil {
+		return err
+	}
+	nic := v1alpha1.Nic{}
+	if len(res.Items) == 0 {
+		var err error
+		nic, err = k.Create(ctx, cr, serverID, lanName, replicaIndex, version)
+		if err != nil {
+			return err
+		}
+	} else {
+		nic = res.Items[0]
+		// NIC found, check if it's attached to the server
+
+	}
+	if !strings.EqualFold(nic.Status.AtProvider.State, ionoscloud.Available) {
+		return fmt.Errorf("observedNic %s got state %s but expected %s", nic.GetName(), nic.Status.AtProvider.State, ionoscloud.Available)
+	}
+	return nil
 }
