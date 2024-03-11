@@ -144,7 +144,7 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volume
 func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
 	k.log.Info("Ensuring Server", "index", replicaIndex, "version", version)
 	res := &v1alpha1.ServerList{}
-	if err := ListResFromSSetWithIndexAndVersion(ctx, k.kube, resourceServer, replicaIndex, version, res); err != nil {
+	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, resourceServer, replicaIndex, version, res); err != nil {
 		return err
 	}
 	servers := res.Items

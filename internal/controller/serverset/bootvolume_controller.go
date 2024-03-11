@@ -134,7 +134,7 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 func (k *kubeBootVolumeController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	k.log.Info("Ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
 	res := &v1alpha1.VolumeList{}
-	if err := ListResFromSSetWithIndexAndVersion(ctx, k.kube, resourceBootVolume, replicaIndex, version, res); err != nil {
+	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, resourceBootVolume, replicaIndex, version, res); err != nil {
 		return err
 	}
 	volumes := res.Items
