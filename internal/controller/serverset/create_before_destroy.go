@@ -34,10 +34,10 @@ func (c *createBeforeDestroy) update(ctx context.Context, cr *v1alpha1.ServerSet
 }
 
 func (c *createBeforeDestroy) createResources(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
-	if err := c.bootVolumeController.EnsureBootVolume(ctx, cr, index, volumeVersion); err != nil {
+	if err := c.bootVolumeController.Ensure(ctx, cr, index, volumeVersion); err != nil {
 		return err
 	}
-	if err := c.serverController.EnsureServer(ctx, cr, index, serverVersion, volumeVersion); err != nil {
+	if err := c.serverController.Ensure(ctx, cr, index, serverVersion, volumeVersion); err != nil {
 		return err
 	}
 	return c.nicController.EnsureNICs(ctx, cr, index, serverVersion)

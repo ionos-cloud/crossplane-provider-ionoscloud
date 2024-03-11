@@ -20,7 +20,7 @@ func newCreateBeforeDestroyOnlyBootVolume(bootVolumeController kubeBootVolumeCon
 
 func (c *createBeforeDestroyOnlyBootVolume) update(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, volumeVersion, serverVersion int) error {
 	newVolumeVersion := volumeVersion + 1
-	if err := c.bootVolumeController.EnsureBootVolume(ctx, cr, replicaIndex, newVolumeVersion); err != nil {
+	if err := c.bootVolumeController.Ensure(ctx, cr, replicaIndex, newVolumeVersion); err != nil {
 		return err
 	}
 

@@ -21,6 +21,7 @@ type kubeServerControlManager interface {
 	Get(ctx context.Context, name, ns string) (*v1alpha1.Server, error)
 	Delete(ctx context.Context, name, namespace string) error
 	Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error
+	Update(ctx context.Context, server *v1alpha1.Server) error
 }
 
 // kubeServerController - kubernetes client wrapper for server resources
