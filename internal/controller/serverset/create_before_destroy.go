@@ -8,26 +8,26 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
-type Updater interface {
-	Update(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, volumeVersion, serverVersion int) error
+type updater interface {
+	update(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, volumeVersion, serverVersion int) error
 }
 
-type CreateBeforeDestroy struct {
+type createBeforeDestroy struct {
 	bootVolumeController kubeBootVolumeControlManager
 	serverController     kubeServerControlManager
 	nicController        kubeNicControlManager
 	kube                 client.Client
 }
 
-func newCreateBeforeDestroy(bootVolumeController kubeBootVolumeControlManager, serverController kubeServerControlManager, nicController kubeNicControlManager) *CreateBeforeDestroy {
-	return &CreateBeforeDestroy{
+func newCreateBeforeDestroy(bootVolumeController kubeBootVolumeControlManager, serverController kubeServerControlManager, nicController kubeNicControlManager) *createBeforeDestroy {
+	return &createBeforeDestroy{
 		bootVolumeController: bootVolumeController,
 		serverController:     serverController,
 		nicController:        nicController,
 	}
 }
 
-func (c *CreateBeforeDestroy) Update(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, volumeVersion, serverVersion int) error {
+func (c *createBeforeDestroy) update(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, volumeVersion, serverVersion int) error {
 	// creates bootvolume, server, nic
 	if err := c.createResources(ctx, cr, replicaIndex, volumeVersion+1, serverVersion+1); err != nil {
 		return err
@@ -36,7 +36,7 @@ func (c *CreateBeforeDestroy) Update(ctx context.Context, cr *v1alpha1.ServerSet
 	return c.cleanupCondemned(ctx, cr, replicaIndex, volumeVersion, serverVersion)
 }
 
-func (c *CreateBeforeDestroy) createResources(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
+func (c *createBeforeDestroy) createResources(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
 	if err := c.bootVolumeController.EnsureBootVolume(ctx, cr, index, volumeVersion); err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (c *CreateBeforeDestroy) createResources(ctx context.Context, cr *v1alpha1.
 	return c.nicController.EnsureNICs(ctx, cr, index, serverVersion)
 }
 
-func (c *CreateBeforeDestroy) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
+func (c *createBeforeDestroy) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
 	err := c.bootVolumeController.Delete(ctx, getNameFromIndex(cr.Name, resourceBootVolume, index, volumeVersion), cr.Namespace)
 	if err != nil {
 		return err

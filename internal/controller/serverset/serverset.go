@@ -281,7 +281,7 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 				return err
 			}
 			updater := e.getUpdaterByStrategy(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UpdateStrategy.Stype)
-			if err := updater.Update(ctx, cr, idx, volumeVersion, serverVersion); err != nil {
+			if err := updater.update(ctx, cr, idx, volumeVersion, serverVersion); err != nil {
 				return err
 			}
 		} else if update {
@@ -295,7 +295,7 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 	return nil
 }
 
-func (e *external) getUpdaterByStrategy(strategyType v1alpha1.UpdateStrategyType) Updater {
+func (e *external) getUpdaterByStrategy(strategyType v1alpha1.UpdateStrategyType) updater {
 	switch strategyType {
 	case v1alpha1.CreateAllBeforeDestroy:
 		return newCreateBeforeDestroy(e.bootVolumeController, e.serverController, e.nicController)
@@ -323,30 +323,6 @@ func updateOrRecreate(volumeParams *v1alpha1.VolumeParameters, volumeSpec v1alph
 		volumeParams.Image = volumeSpec.Image
 	}
 	return update, deleteAndCreate
-}
-
-func (e *external) createResources(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
-	if err := e.bootVolumeController.EnsureBootVolume(ctx, cr, index, volumeVersion); err != nil {
-		return err
-	}
-
-	if err := e.serverController.EnsureServer(ctx, cr, index, serverVersion, volumeVersion); err != nil {
-		return err
-	}
-
-	return e.nicController.EnsureNICs(ctx, cr, index, serverVersion)
-}
-
-func (e *external) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
-	err := e.bootVolumeController.Delete(ctx, getNameFromIndex(cr.Name, resourceBootVolume, index, volumeVersion), cr.Namespace)
-	if err != nil {
-		return err
-	}
-	err = e.serverController.Delete(ctx, getNameFromIndex(cr.Name, resourceServer, index, serverVersion), cr.Namespace)
-	if err != nil {
-		return err
-	}
-	return e.nicController.Delete(ctx, getNameFromIndex(cr.Name, resourceNIC, index, serverVersion), cr.Namespace)
 }
 
 func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
