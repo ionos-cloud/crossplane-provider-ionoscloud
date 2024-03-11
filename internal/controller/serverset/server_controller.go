@@ -145,22 +145,20 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volume
 func (k *kubeServerController) EnsureServer(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	k.log.Info("Ensuring Server", "index", replicaIndex, "version", version)
 	res := &v1alpha1.ServerList{}
-	err := ListResFromSSetWithIndexAndVersion(ctx, k.kube, resourceServer, replicaIndex, version, res)
-	if err != nil {
+	if err := ListResFromSSetWithIndexAndVersion(ctx, k.kube, resourceServer, replicaIndex, version, res); err != nil {
 		return err
 	}
 	servers := res.Items
 	if len(servers) > 0 {
-	if len(servers) > 0 {
 		k.log.Info("Server already exists", "name", servers[0].Name)
-		return nil 
+		return nil
 	}
 
 	_, err := k.Create(ctx, cr, replicaIndex, version, version)
 	if err != nil {
 		return err
 	}
-	
+
 	k.log.Info("Finished ensuring Server", "index", replicaIndex, "version", version)
 
 	return nil
