@@ -68,8 +68,7 @@ func (k *kubeBootVolumeController) Delete(ctx context.Context, name, namespace s
 		return err
 	}
 	if err := k.kube.Delete(ctx, condemnedVolume); err != nil {
-		fmt.Printf("error deleting volume %v", err)
-		return err
+		return fmt.Errorf("error deleting volume %w", err)
 	}
 	return WaitForKubeResource(ctx, resourceReadyTimeout, k.isBootVolumeDeleted, condemnedVolume.Name, namespace)
 }

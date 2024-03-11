@@ -87,8 +87,7 @@ func (k *kubeServerController) Delete(ctx context.Context, name, namespace strin
 		return err
 	}
 	if err := k.kube.Delete(ctx, condemnedServer); err != nil {
-		fmt.Printf("error deleting server %v", err)
-		return err
+		return fmt.Errorf("error deleting server %w", err)
 	}
 	return WaitForKubeResource(ctx, resourceReadyTimeout, k.isServerDeleted, condemnedServer.Name, namespace)
 }
