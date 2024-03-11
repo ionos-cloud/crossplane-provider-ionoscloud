@@ -320,11 +320,11 @@ func updateOrRecreate(volumeParams *v1alpha1.VolumeParameters, volumeSpec v1alph
 }
 
 func (e *external) createResources(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
-	if err := e.bootVolumeController.EnsureBootVolume(ctx, cr, index, volumeVersion); err != nil {
+	if err := e.bootVolumeController.Ensure(ctx, cr, index, volumeVersion); err != nil {
 		return err
 	}
 
-	if err := e.serverController.EnsureServer(ctx, cr, index, serverVersion); err != nil {
+	if err := e.serverController.Ensure(ctx, cr, index, serverVersion); err != nil {
 		return err
 	}
 
@@ -513,7 +513,7 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.S
 		return fmt.Errorf("found too many servers for index %d ", replicaIndex)
 	}
 	if len(resSrv.Items) == 0 {
-		if err := e.serverController.EnsureServer(ctx, cr, replicaIndex, version); err != nil {
+		if err := e.serverController.Ensure(ctx, cr, replicaIndex, version); err != nil {
 			return err
 		}
 		if err := e.nicController.EnsureNICs(ctx, cr, replicaIndex, version); err != nil {
@@ -533,7 +533,7 @@ func (e *external) ensureBootVolumeByIndex(ctx context.Context, cr *v1alpha1.Ser
 		return fmt.Errorf("found too many volumes for index %d ", replicaIndex)
 	}
 	if len(res.Items) == 0 {
-		if err := e.bootVolumeController.EnsureBootVolume(ctx, cr, replicaIndex, version); err != nil {
+		if err := e.bootVolumeController.Ensure(ctx, cr, replicaIndex, version); err != nil {
 			return err
 		}
 	}

@@ -153,7 +153,7 @@ func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerS
 	// check if the NIC is attached to the server
 	if len(servers) > 0 {
 		for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
-			if err := k.ensureNIC(ctx, cr, servers[0].Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].Reference, replicaIndex, version); err != nil {
+			if err := k.ensure(ctx, cr, servers[0].Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].Reference, replicaIndex, version); err != nil {
 				return err
 			}
 		}
@@ -164,7 +164,7 @@ func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerS
 }
 
 // EnsureNIC - creates a NIC if it does not exist
-func (k *kubeNicController) ensureNIC(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) error {
+func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) error {
 	res := &v1alpha1.NicList{}
 	if err := ListResFromSSetWithIndexAndVersion(ctx, k.kube, resourceNIC, replicaIndex, version, res); err != nil {
 		return err
