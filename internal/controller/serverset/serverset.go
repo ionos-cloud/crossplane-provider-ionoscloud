@@ -274,19 +274,7 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 	for idx := range volumes {
 		update := false
 		deleteAndCreate := false
-		if volumes[idx].Spec.ForProvider.Size != cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size {
-			update = true
-			volumes[idx].Spec.ForProvider.Size = cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size
-		}
-		if volumes[idx].Spec.ForProvider.Type != cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type {
-			deleteAndCreate = true
-			volumes[idx].Spec.ForProvider.Type = cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type
-		}
-
-		if volumes[idx].Spec.ForProvider.Image != cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image {
-			deleteAndCreate = true
-			volumes[idx].Spec.ForProvider.Image = cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image
-		}
+		update, deleteAndCreate = updateOrRecreate(volumes[idx].Spec.ForProvider, cr.Spec.ForProvider.BootVolumeTemplate.Spec)
 
 		if deleteAndCreate {
 			volumeVersion, serverVersion, err := getVersionsFromVolumeAndServer(ctx, e.kube, idx)
@@ -312,6 +300,25 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 	}
 
 	return nil
+}
+
+// updateOrRecreate checks if bootvolume parameters are equal to bootvolume template parameters
+// updates volume parameters if they are not equal
+func updateOrRecreate(volumeParams v1alpha1.VolumeParameters, volumeSpec v1alpha1.ServerSetBootVolumeSpec) (update bool, deleteAndCreate bool) {
+	if volumeParams.Size != volumeSpec.Size {
+		update = true
+		volumeParams.Size = volumeSpec.Size
+	}
+	if volumeParams.Type != volumeSpec.Type {
+		deleteAndCreate = true
+		volumeParams.Type = volumeSpec.Type
+	}
+
+	if volumeParams.Image != volumeSpec.Image {
+		deleteAndCreate = true
+		volumeParams.Image = volumeSpec.Image
+	}
+	return update, deleteAndCreate
 }
 
 func (e *external) createResources(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
