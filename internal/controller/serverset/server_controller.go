@@ -20,7 +20,7 @@ type kubeServerControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) (v1alpha1.Server, error)
 	Get(ctx context.Context, name, ns string) (*v1alpha1.Server, error)
 	Delete(ctx context.Context, name, namespace string) error
-	Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error
+	Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error
 }
 
 // kubeServerController - kubernetes client wrapper for server resources
@@ -140,8 +140,7 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volume
 		}}
 }
 
-// Ensure - creates a server CR if it does not exist
-func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
 	k.log.Info("Ensuring Server", "index", replicaIndex, "version", version)
 	res := &v1alpha1.ServerList{}
 	if err := ListResFromSSetWithIndexAndVersion(ctx, k.kube, resourceServer, replicaIndex, version, res); err != nil {
@@ -153,7 +152,7 @@ func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSe
 		return nil
 	}
 
-	_, err := k.Create(ctx, cr, replicaIndex, version, version)
+	_, err := k.Create(ctx, cr, replicaIndex, version, volumeVersion)
 	if err != nil {
 		return err
 	}
@@ -161,4 +160,8 @@ func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSe
 	k.log.Info("Finished ensuring Server", "index", replicaIndex, "version", version)
 
 	return nil
+}
+
+func (k *kubeServerController) Update(ctx context.Context, server *v1alpha1.Server) error {
+	return k.kube.Update(ctx, server)
 }

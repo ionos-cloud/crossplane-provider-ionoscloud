@@ -254,8 +254,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 		}
 		if update {
 			if err := e.kube.Update(ctx, &servers[idx]); err != nil {
-				fmt.Printf("error updating server %v", err)
-				return err
+				return fmt.Errorf("error updating server %v", err)
 			}
 		}
 	}
@@ -286,8 +285,7 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 			}
 		} else if update {
 			if err := e.kube.Update(ctx, &volumes[idx]); err != nil {
-				fmt.Printf("error updating server %v", err)
-				return err
+				return fmt.Errorf("error updating server %v", err)
 			}
 		}
 	}
@@ -332,8 +330,6 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 
 	cr.SetConditions(xpv1.Deleting())
-
-	fmt.Printf("Deleting: %+v", cr)
 
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
@@ -509,7 +505,7 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.S
 				return err
 			}
 		}
-		if err := e.serverController.EnsureServer(ctx, cr, replicaIndex, version, volumeVersion); err != nil {
+		if err := e.serverController.Ensure(ctx, cr, replicaIndex, version, volumeVersion); err != nil {
 			return err
 		}
 		if err := e.nicController.EnsureNICs(ctx, cr, replicaIndex, version); err != nil {
@@ -529,7 +525,7 @@ func (e *external) ensureBootVolumeByIndex(ctx context.Context, cr *v1alpha1.Ser
 		return fmt.Errorf("found too many volumes for index %d ", replicaIndex)
 	}
 	if len(res.Items) == 0 {
-		if err := e.bootVolumeController.EnsureBootVolume(ctx, cr, replicaIndex, version); err != nil {
+		if err := e.bootVolumeController.Ensure(ctx, cr, replicaIndex, version); err != nil {
 			return err
 		}
 	}
