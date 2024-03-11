@@ -161,8 +161,16 @@ spec:
                             - ISO
                             type: string
                           updateStrategy:
+                            description: UpdateStrategy is the update strategy for
+                              the boot volume.
                             properties:
                               type:
+                                default: createBeforeDestroyBootVolume
+                                description: UpdateStrategyType is the type of the
+                                  update strategy for the boot volume.
+                                enum:
+                                - createAllBeforeDestroy
+                                - createBeforeDestroyBootVolume
                                 type: string
                             required:
                             - type
