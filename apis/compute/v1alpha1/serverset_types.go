@@ -181,9 +181,20 @@ type ServerSetBootVolumeSpec struct {
 	// It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
 	//
 	// +immutable
-	UserData string               `json:"userData,omitempty"`
-	Selector metav1.LabelSelector `json:"selector,omitempty"`
+	UserData       string               `json:"userData,omitempty"`
+	Selector       metav1.LabelSelector `json:"selector,omitempty"`
+	UpdateStrategy UpdateStrategy       `json:"updateStrategy,omitempty"`
 }
+
+type UpdateStrategy struct {
+	Stype UpdateStrategyType `json:"type"`
+}
+type UpdateStrategyType string
+
+const (
+	CreateAllBeforeDestroy        UpdateStrategyType = "createAllBeforeDestroy"
+	CreateBeforeDestroyBootVolume                    = "createBeforeDestroyBootVolume"
+)
 
 // +kubebuilder:object:root=true
 

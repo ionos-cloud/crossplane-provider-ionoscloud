@@ -160,6 +160,13 @@ spec:
                             - DAS
                             - ISO
                             type: string
+                          updateStrategy:
+                            properties:
+                              type:
+                                type: string
+                            required:
+                            - type
+                            type: object
                           userData:
                             description: |-
                               The cloud-init configuration for the volume as base64 encoded string.

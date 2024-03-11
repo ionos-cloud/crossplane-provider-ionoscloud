@@ -74,7 +74,6 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	if err := c.usage.Track(ctx, mg); err != nil {
 		return nil, errors.Wrap(err, errTrackPCUsage)
 	}
-
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	if err != nil {
 		return nil, err
@@ -274,23 +273,17 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 	for idx := range volumes {
 		update := false
 		deleteAndCreate := false
-		update, deleteAndCreate = updateOrRecreate(volumes[idx].Spec.ForProvider, cr.Spec.ForProvider.BootVolumeTemplate.Spec)
+		update, deleteAndCreate = updateOrRecreate(&volumes[idx].Spec.ForProvider, cr.Spec.ForProvider.BootVolumeTemplate.Spec)
 
 		if deleteAndCreate {
 			volumeVersion, serverVersion, err := getVersionsFromVolumeAndServer(ctx, e.kube, idx)
 			if err != nil {
 				return err
 			}
-			// creates bootvolume, server, nic
-			if err = e.createResources(ctx, cr, idx, volumeVersion+1, serverVersion+1); err != nil {
+			updater := e.getUpdaterByStrategy(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UpdateStrategy.Stype)
+			if err := updater.Update(ctx, cr, idx, volumeVersion, serverVersion); err != nil {
 				return err
 			}
-
-			// cleanup - bootvolume, server, nic
-			if err = e.cleanupCondemned(ctx, cr, idx, volumeVersion, serverVersion); err != nil {
-				return err
-			}
-
 		} else if update {
 			if err := e.kube.Update(ctx, &volumes[idx]); err != nil {
 				fmt.Printf("error updating server %v", err)
@@ -302,9 +295,20 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 	return nil
 }
 
+func (e *external) getUpdaterByStrategy(strategyType v1alpha1.UpdateStrategyType) Updater {
+	switch strategyType {
+	case v1alpha1.CreateAllBeforeDestroy:
+		return newCreateBeforeDestroy(e.bootVolumeController, e.serverController, e.nicController)
+	case v1alpha1.CreateBeforeDestroyBootVolume:
+		return newCreateBeforeDestroyOnlyBootVolume(e.bootVolumeController, e.serverController)
+	default:
+		return newCreateBeforeDestroyOnlyBootVolume(e.bootVolumeController, e.serverController)
+	}
+}
+
 // updateOrRecreate checks if bootvolume parameters are equal to bootvolume template parameters
-// updates volume parameters if they are not equal
-func updateOrRecreate(volumeParams v1alpha1.VolumeParameters, volumeSpec v1alpha1.ServerSetBootVolumeSpec) (update bool, deleteAndCreate bool) {
+// mutates volume parameters if fields are not equal
+func updateOrRecreate(volumeParams *v1alpha1.VolumeParameters, volumeSpec v1alpha1.ServerSetBootVolumeSpec) (update bool, deleteAndCreate bool) {
 	if volumeParams.Size != volumeSpec.Size {
 		update = true
 		volumeParams.Size = volumeSpec.Size
@@ -326,7 +330,7 @@ func (e *external) createResources(ctx context.Context, cr *v1alpha1.ServerSet, 
 		return err
 	}
 
-	if err := e.serverController.EnsureServer(ctx, cr, index, serverVersion); err != nil {
+	if err := e.serverController.EnsureServer(ctx, cr, index, serverVersion, volumeVersion); err != nil {
 		return err
 	}
 
@@ -517,7 +521,19 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.S
 		return fmt.Errorf("found too many servers for index %d ", replicaIndex)
 	}
 	if len(resSrv.Items) == 0 {
-		if err := e.serverController.EnsureServer(ctx, cr, replicaIndex, version); err != nil {
+		res := &v1alpha1.VolumeList{}
+		volumeVersion := version
+		if err := ListResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, replicaIndex, res); err != nil {
+			return err
+		}
+		if len(res.Items) > 0 {
+			var err error
+			volumeVersion, err = strconv.Atoi(res.Items[0].Labels[fmt.Sprintf(versionLabel, resourceBootVolume)])
+			if err != nil {
+				return err
+			}
+		}
+		if err := e.serverController.EnsureServer(ctx, cr, replicaIndex, version, volumeVersion); err != nil {
 			return err
 		}
 		if err := e.nicController.EnsureNICs(ctx, cr, replicaIndex, version); err != nil {
