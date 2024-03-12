@@ -151,11 +151,11 @@ EOF
 
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
-  echo_step "waiting for serverset nodepool CR to be ready & synced"
-  kubectl wait --for=condition=ready serverset/serverset --timeout=60m
-  kubectl wait --for=condition=synced serverset/serverset --timeout=60m
+  echo_step "waiting for updated serverset CR to be ready & synced"
+  kubectl wait --for=condition=ready serverset/serverset --timeout=5m
+  kubectl wait --for=condition=synced serverset/serverset --timeout=5m
 
-  echo_step "get serverset nodepool CR"
+  echo_step "get serverset CR"
   kubectl get serverset
 }
 
@@ -203,6 +203,36 @@ spec:
 #        todo - add sshKeys or imagePassword
 #        todo - add userdata in volume creation
         userData: "" #cloud-config
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: examplelan
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: exampleLan
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: exampleserverset
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: exampleserverset
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: exampleDatacenter
+    location: us/las
+    description: serverset datacenter
+  providerConfigRef:
+    name: example
 EOF
   )"
 
@@ -210,5 +240,5 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
   echo_step "wait for deletion serverset CR"
-  kubectl wait --for=delete serverset/serverset --timeout=30m
+  kubectl wait --for=delete serverset/serverset --timeout=10m
 }
