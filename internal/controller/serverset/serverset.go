@@ -136,6 +136,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	areVolumesUpToDate := areVolumesUpToDate(cr.Spec.ForProvider, volumes)
 	// only update
 	if !areServersUpToDate || !areVolumesUpToDate {
+		cr.SetConditions(xpv1.Creating())
 		return managed.ExternalObservation{
 			ResourceExists:    true,
 			ResourceUpToDate:  false,
@@ -157,7 +158,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		}, nil
 	}
 
-	cr.Status.SetConditions(xpv1.Available())
+	cr.SetConditions(xpv1.Available())
 
 	return managed.ExternalObservation{
 		// Return false when the externalServerSet resource does not exist. This lets
@@ -182,7 +183,7 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errUnexpectedObject)
 	}
 
-	cr.Status.SetConditions(xpv1.Creating())
+	cr.SetConditions(xpv1.Creating())
 	// for n times of cr.Spec.Replicas, create a server
 	// for each server, create a volume and nics from the slice
 	e.log.Info("Creating a new ServerSet", "replicas", cr.Spec.ForProvider.Replicas)
