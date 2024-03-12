@@ -88,9 +88,16 @@ EOF
 
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
+  echo_step "describe serverset CR with resources"
+  sleep 30
+  kubectl describe volume
+  sleep 120
+  kubectl describe server
+  sleep 120
+  kubectl describe serverset/serverset
   echo_step "waiting for serverset CR to be ready & synced"
-  kubectl wait --for=condition=ready serverset/serverset --timeout=60m
-  kubectl wait --for=condition=synced serverset/serverset --timeout=60m
+  kubectl wait --for=condition=ready serverset/serverset --timeout=10m
+  kubectl wait --for=condition=synced serverset/serverset --timeout=10m
 
   echo_step "get serverset CR"
   kubectl get serversets
