@@ -183,9 +183,8 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	}
 
 	cr.Status.SetConditions(xpv1.Creating())
-
 	// for n times of cr.Spec.Replicas, create a server
-	// for each server, create a volume
+	// for each server, create a volume and nics from the slice
 	e.log.Info("Creating a new ServerSet", "replicas", cr.Spec.ForProvider.Replicas)
 	version := 0
 	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
@@ -226,6 +225,7 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	}
 
+	cr.SetConditions(xpv1.Available())
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
 		// externalServerSet resource. These will be stored as the connection secret.
@@ -279,6 +279,7 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 			if err != nil {
 				return err
 			}
+			cr.SetConditions(xpv1.Creating())
 			updater := e.getUpdaterByStrategy(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UpdateStrategy.Stype)
 			if err := updater.update(ctx, cr, idx, volumeVersion, serverVersion); err != nil {
 				return err

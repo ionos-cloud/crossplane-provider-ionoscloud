@@ -236,9 +236,10 @@ spec:
 EOF
   )"
 
+  sleep 120
   echo_step "uninstalling serverset CR"
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
 
   echo_step "wait for deletion serverset CR"
-  kubectl wait --for=delete serverset/serverset --timeout=10m
+  kubectl wait --for=delete serverset/serverset --timeout=5m
 }
