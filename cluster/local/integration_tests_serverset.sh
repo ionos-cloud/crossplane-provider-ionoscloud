@@ -20,7 +20,7 @@ spec:
   managementPolicies:
     - "*"
   forProvider:
-    name: exampleDatacenter
+    name: exampleserversetDC
     location: us/las
     description: serverset datacenter
   providerConfigRef:
@@ -163,6 +163,36 @@ function serverset_tests_cleanup() {
   INSTALL_RESOURCE_YAML="$(
     cat <<EOF
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: exampleserverset
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: exampleserversetDC
+    location: us/las
+    description: serverset datacenter
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: examplelan
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: exampleLan
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: exampleserverset
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: ServerSet
 metadata:
   name: serverset
@@ -203,36 +233,6 @@ spec:
 #        todo - add sshKeys or imagePassword
 #        todo - add userdata in volume creation
         userData: "" #cloud-config
----
-apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: Lan
-metadata:
-  name: examplelan
-spec:
-  managementPolicies:
-    - "*"
-  forProvider:
-    name: exampleLan
-    public: false
-    datacenterConfig:
-      datacenterIdRef:
-        name: exampleserverset
-  providerConfigRef:
-    name: example
----
-apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: Datacenter
-metadata:
-  name: exampleserverset
-spec:
-  managementPolicies:
-    - "*"
-  forProvider:
-    name: exampleDatacenter
-    location: us/las
-    description: serverset datacenter
-  providerConfigRef:
-    name: example
 EOF
   )"
 
