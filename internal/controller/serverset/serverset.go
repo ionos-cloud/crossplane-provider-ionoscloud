@@ -183,7 +183,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}, nil
 }
 
-func populateCRStatus(ctx context.Context, c *external, cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) error {
+func populateCRStatus(ctx context.Context, e *external, cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) error {
 	if cr.Status.AtProvider.ReplicaStatuses == nil {
 		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, cr.Spec.ForProvider.Replicas)
 	}
@@ -191,7 +191,7 @@ func populateCRStatus(ctx context.Context, c *external, cr *v1alpha1.ServerSet, 
 
 	for replicaIdx, replica := range serverSetReplicas {
 		replicaStatus := computeStatus(serverSetReplicas[replicaIdx].Status.AtProvider.State)
-		role, err := computeRole(c, ctx, replica)
+		role, err := computeRole(e, ctx, replica)
 		if err != nil {
 			return err
 		}
@@ -215,7 +215,7 @@ func computeRole(c *external, ctx context.Context, server v1alpha1.Server) (stri
 		ns = "default"
 	}
 
-	err := c.kubeWrapper.kube.Get(ctx, types.NamespacedName{ns, name}, configMap)
+	err := c.kube.Get(ctx, types.NamespacedName{ns, name}, configMap)
 	if err != nil {
 		return "UNKNOWN", err
 	}
