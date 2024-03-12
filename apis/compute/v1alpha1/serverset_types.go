@@ -181,13 +181,18 @@ type ServerSetBootVolumeSpec struct {
 	// It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
 	//
 	// +immutable
-	UserData       string               `json:"userData,omitempty"`
-	Selector       metav1.LabelSelector `json:"selector,omitempty"`
-	UpdateStrategy UpdateStrategy       `json:"updateStrategy,omitempty"`
+	UserData string               `json:"userData,omitempty"`
+	Selector metav1.LabelSelector `json:"selector,omitempty"`
+	// UpdateStrategy is the update strategy when changing immutable fields on boot volume. The default value is createBeforeDestroyBootVolume which creates a new bootvolume before deleting the old one
+
+	// +kubebuilder:validation:Optional
+	UpdateStrategy UpdateStrategy `json:"updateStrategy,omitempty"`
 }
 
 // UpdateStrategy is the update strategy for the boot volume.
 type UpdateStrategy struct {
+	// +kubebuilder:validation:Enum=createAllBeforeDestroy;createBeforeDestroyBootVolume
+	// +kubebuilder:default=createBeforeDestroyBootVolume
 	Stype UpdateStrategyType `json:"type"`
 }
 
