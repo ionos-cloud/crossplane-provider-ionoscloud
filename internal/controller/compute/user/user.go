@@ -17,18 +17,18 @@ limitations under the License.
 package user
 
 import (
-	"cmp"
 	"context"
-	"slices"
-	"strings"
 
-	ionosdk "github.com/ionos-cloud/sdk-go/v6"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
+	ionosdk "github.com/ionos-cloud/sdk-go/v6"
+
 	userapi "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/user"
+
+	"github.com/pkg/errors"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
@@ -37,7 +37,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	"github.com/pkg/errors"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
@@ -47,14 +46,12 @@ import (
 )
 
 const (
-	errUserObserve    = "failed to get user by id"
-	errUserDelete     = "failed to delete user"
-	errUserUpdate     = "failed to update user"
-	errUserCreate     = "failed to create user"
-	errAddUserToGroup = "failed to add user to the group id"
-	errGetUserGroups  = "failed to fetch user groups"
-	errRequestWait    = "error waiting for request"
-	errNotUser        = "managed resource is not of a User type"
+	errUserObserve   = "failed to get user by id"
+	errUserDelete    = "failed to delete user"
+	errUserUpdate    = "failed to update user"
+	errUserCreate    = "failed to create user"
+	errGetUserGroups = "failed to fetch user groups"
+	errNotUser       = "managed resource is not of a User type"
 )
 
 // Setup adds a controller that reconciles User managed resources.
@@ -97,7 +94,14 @@ type connectorUser struct {
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
 func (c *connectorUser) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
+	_, ok := mg.(*v1alpha1.User)
+	if !ok {
+		return nil, errors.New(errNotUser)
+	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
+	if err != nil {
+		return nil, err
+	}
 	return &externalUser{
 		service: userapi.NewAPIClient(svc, compute.WaitForRequest),
 		log:     c.log,
@@ -173,7 +177,7 @@ func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (manag
 
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        isUserUpToDate(cr.Spec.ForProvider, observed, groupIDs),
+		ResourceUpToDate:        userapi.IsUserUpToDate(cr.Spec.ForProvider, observed, groupIDs),
 		ConnectionDetails:       conn,
 		ResourceLateInitialized: linit,
 	}, nil
@@ -195,15 +199,9 @@ func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (manage
 	meta.SetExternalName(cr, *observed.GetId())
 	conn := connectionDetails(cr, observed)
 
-	for _, groupID := range cr.Spec.ForProvider.GroupIDs {
-		_, _, gerr := eu.service.AddUserToGroup(ctx, groupID, utils.DereferenceOrZero(observed.GetId()))
-		// skip if user is already member of this group.
-		if gerr != nil && strings.Contains(gerr.Error(), "is already member of") {
-			continue
-		}
-		if gerr != nil {
-			return managed.ExternalCreation{ConnectionDetails: conn}, errors.Wrap(err, errAddUserToGroup)
-		}
+	err = eu.service.UpdateUserGroups(ctx, *observed.GetId(), nil, cr.Spec.ForProvider.GroupIDs)
+	if err != nil {
+		return managed.ExternalCreation{ConnectionDetails: conn}, err
 	}
 
 	setStatus(cr, observed, cr.Spec.ForProvider.GroupIDs)
@@ -226,9 +224,9 @@ func (eu *externalUser) Update(ctx context.Context, mg resource.Managed) (manage
 	}
 	conn := connectionDetails(cr, observed)
 
-	err = updateGroups(ctx, eu, userID, cr.Status.AtProvider.GroupIDs, cr.Spec.ForProvider.GroupIDs)
+	err = eu.service.UpdateUserGroups(ctx, userID, cr.Status.AtProvider.GroupIDs, cr.Spec.ForProvider.GroupIDs)
 	if err != nil {
-		return managed.ExternalUpdate{ConnectionDetails: conn}, errors.Wrap(err, "failed to update groups")
+		return managed.ExternalUpdate{ConnectionDetails: conn}, err
 	}
 
 	return managed.ExternalUpdate{ConnectionDetails: conn}, nil
@@ -242,91 +240,6 @@ func (eu *externalUser) Delete(ctx context.Context, mg resource.Managed) error {
 	user.SetConditions(xpv1.Deleting())
 
 	userID := user.Status.AtProvider.UserID
-
-	for _, groupID := range user.Status.AtProvider.GroupIDs {
-		if err := eu.service.DeleteUserFromGroup(ctx, groupID, userID); err != nil {
-			return errors.Wrap(err, "failed to remove user from a group")
-		}
-	}
-
 	resp, err := eu.service.DeleteUser(ctx, userID)
 	return compute.ErrorUnlessNotFound(resp, errors.Wrap(err, errUserDelete))
-}
-
-// updateGroups adds or remove groups for the userID.
-func updateGroups(ctx context.Context, eu *externalUser, userID string, atProviderGroups []string, forProviderGroups []string) error {
-	for _, groupID := range atProviderGroups {
-		if groupID != "" && !slices.Contains(forProviderGroups, groupID) {
-			if derr := eu.service.DeleteUserFromGroup(ctx, groupID, userID); derr != nil {
-				return errors.Wrap(derr, "failed to remove user from a group")
-			}
-		}
-	}
-
-	for _, groupID := range forProviderGroups {
-		_, _, gerr := eu.service.AddUserToGroup(ctx, groupID, userID)
-		// skip if user is already member of this group.
-		if gerr != nil && strings.Contains(gerr.Error(), "is already member of") {
-			continue
-		}
-		if gerr != nil {
-			return errors.Wrap(gerr, errAddUserToGroup)
-		}
-	}
-	return nil
-}
-
-// isUserUpToDate returns true if the User is up-to-date or false otherwise.
-func isUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, observedGroups []string) bool { //nolint:gocyclo
-	if !observed.HasProperties() {
-		return false
-	}
-
-	// After creation the password is stored as a connection detail secret
-	// and removed from the cr. If the cr has a password it means
-	// the client wants to update it.
-	if params.Password != "" {
-		return false
-	}
-
-	if !isSetEqual(observedGroups, params.GroupIDs) {
-		return false
-	}
-
-	props := observed.GetProperties()
-	adm := props.GetAdministrator()
-	email := props.GetEmail()
-	fname := props.GetFirstname()
-	fsec := props.GetForceSecAuth()
-	lname := props.GetLastname()
-	active := props.GetActive()
-
-	switch {
-	case adm != nil && params.Administrator != *adm:
-		return false
-	case email != nil && params.Email != *email:
-		return false
-	case fname != nil && params.FirstName != *fname:
-		return false
-	case fsec != nil && params.ForceSecAuth != *fsec:
-		return false
-	case lname != nil && params.LastName != *lname:
-		return false
-	case active != nil && params.Active != *active:
-		return false
-	}
-
-	return true
-}
-
-func isSetEqual[T cmp.Ordered](sl0, sl1 []T) bool {
-	if len(sl0) != len(sl1) {
-		return false
-	}
-
-	s0, s1 := slices.Clone(sl0), slices.Clone(sl1)
-	slices.Sort(s0)
-	slices.Sort(s1)
-
-	return slices.Equal(s0, s1)
 }

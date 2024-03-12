@@ -1,6 +1,11 @@
-## [1.0.10] (January 2024)
+## [1.0.10] (March 2024) upcoming release
 - **Features**:
-- Allow conversion between schema types and go types 
+  - Allow conversion between schema types and go types 
+  - Add `group` CRD to support CRUD of compute Groups
+  - Update `sdk-go` to v6.1.11
+
+- **Misc**:
+  - Minor `user` CRD refactor
 
 ## [1.0.9] (February 2024)
 - **Features**:

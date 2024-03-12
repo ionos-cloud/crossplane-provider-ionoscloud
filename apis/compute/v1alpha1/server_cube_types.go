@@ -180,7 +180,7 @@ type CubeServerList struct {
 // CubeServer type metadata.
 var (
 	CubeServerKind             = reflect.TypeOf(CubeServer{}).Name()
-	CubeServerGroupKind        = schema.GroupKind{Group: Group, Kind: CubeServerKind}.String()
+	CubeServerGroupKind        = schema.GroupKind{Group: APIGroup, Kind: CubeServerKind}.String()
 	CubeServerKindAPIVersion   = CubeServerKind + "." + SchemeGroupVersion.String()
 	CubeServerGroupVersionKind = SchemeGroupVersion.WithKind(CubeServerKind)
 )

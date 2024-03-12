@@ -27,6 +27,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/cubeserver"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/datacenter"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/firewallrule"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/group"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/ipblock"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/ipfailover"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/lan"
@@ -80,6 +81,7 @@ var controllers = []controllerSetup{
 	mongouser.Setup,
 	dataplatformcluster.Setup,
 	dataplatformnodepool.Setup,
+	group.Setup,
 }
 
 // Setup creates all IONOS Cloud controllers with the supplied logger
