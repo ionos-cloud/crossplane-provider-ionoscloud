@@ -36,6 +36,8 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
+
+	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 )
 
 const (

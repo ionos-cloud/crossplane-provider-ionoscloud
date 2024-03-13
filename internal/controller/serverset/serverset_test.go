@@ -34,7 +34,10 @@ import (
 )
 
 const (
-	serverSetName = "serverset"
+	serverSetName   = "serverset"
+	bootVolumeSize  = 100
+	bootVolumeType  = "HDD"
+	bootVolumeImage = "image"
 )
 
 func createServer(name string) v1alpha1.Server {
@@ -81,6 +84,24 @@ func createNic(name string) v1alpha1.Nic {
 			Name: name,
 			Labels: map[string]string{
 				serverSetLabel: serverSetName,
+			},
+		},
+	}
+}
+
+func createBootVolume(name string) v1alpha1.Volume {
+	return v1alpha1.Volume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				serverSetLabel: serverSetName,
+			},
+		},
+		Spec: v1alpha1.VolumeSpec{
+			ForProvider: v1alpha1.VolumeParameters{
+				Image: bootVolumeImage,
+				Type:  bootVolumeType,
+				Size:  bootVolumeSize,
 			},
 		},
 	}
@@ -143,6 +164,31 @@ func createServerSetWithUpdatedServerSpec() *v1alpha1.ServerSet {
 	}
 }
 
+func createServerSetWithUpdatedBootVolume(updatedSpec v1alpha1.ServerSetBootVolumeSpec) *v1alpha1.ServerSet {
+	return &v1alpha1.ServerSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ServerSet",
+			APIVersion: "v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serverSetName,
+			Namespace: "",
+			Annotations: map[string]string{
+				"crossplane.io/external-name": serverSetName,
+			},
+		},
+		Spec: v1alpha1.ServerSetSpec{
+			ForProvider: v1alpha1.ServerSetParameters{
+				Replicas: 2,
+				BootVolumeTemplate: v1alpha1.BootVolumeTemplate{
+					Spec: updatedSpec,
+				},
+			},
+		},
+		Status: v1alpha1.ServerSetStatus{},
+	}
+}
+
 func areEqual(t *testing.T, want, got v1alpha1.ServerSetObservation) {
 	if diff := cmp.Diff(want, got, cmpopts.IgnoreFields(v1alpha1.ServerSetReplicaStatus{}, "LastModified")); diff != "" {
 		t.Errorf("ServerSetObservation() mismatch (-want +got):\n%s", diff)
@@ -165,6 +211,8 @@ func Test_serverSetController_Observe(t *testing.T) {
 	configMap2 := createConfigMap("configs-" + server2.Name)
 	nic1 := createNic(server1.Name)
 	nic2 := createNic(server2.Name)
+	bootVolume1 := createBootVolume("boot-volume-" + server1.Name)
+	bootVolume2 := createBootVolume("boot-volume-" + server2.Name)
 
 	tests := []struct {
 		name    string
@@ -223,13 +271,76 @@ func Test_serverSetController_Observe(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "boot volume image is not up to date, then resource exists and is not up to date",
+			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &server2, &configMap1, &configMap2, &bootVolume1, &bootVolume2),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedBootVolume(v1alpha1.ServerSetBootVolumeSpec{
+					Size:  bootVolumeSize,
+					Image: "newImage",
+					Type:  bootVolumeType,
+				}),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+				Diff:              "servers are not up to date",
+			},
+			wantErr: false,
+		},
+		{
+			name: "boot volume size is not up to date, then resource exists and is not up to date",
+			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &server2, &configMap1, &configMap2, &bootVolume1, &bootVolume2),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedBootVolume(v1alpha1.ServerSetBootVolumeSpec{
+					Size:  300,
+					Image: bootVolumeImage,
+					Type:  bootVolumeType,
+				}),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+				Diff:              "servers are not up to date",
+			},
+			wantErr: false,
+		},
+		{
+			name: "boot volume type is not up to date, then resource exists and is not up to date",
+			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &server2, &configMap1, &configMap2, &bootVolume1, &bootVolume2),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedBootVolume(v1alpha1.ServerSetBootVolumeSpec{
+					Size:  bootVolumeSize,
+					Image: bootVolumeImage,
+					Type:  "SSD",
+				}),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+				Diff:              "servers are not up to date",
+			},
+			wantErr: false,
+		},
+		{
 			name: "servers < replica count, then resource does not exist and is not up to date",
 			fields: fields{
 				kube: fakeKubeClientObjs(&server1, &configMap1),
 			},
 			args: args{
 				ctx: context.Background(),
-				cr:  createServerSetWithUpdatedServerSpec(),
+				cr:  createBasicServerSet(),
 			},
 			want: managed.ExternalObservation{
 				ResourceExists:    false,
