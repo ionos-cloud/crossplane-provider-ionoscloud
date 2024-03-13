@@ -77,7 +77,10 @@ func (cp *APIClient) CheckDuplicateNetworkLoadBalancer(ctx context.Context, data
 func (cp *APIClient) GetNetworkLoadBalancerByID(ctx context.Context, datacenterID, nlbID string) (sdkgo.NetworkLoadBalancer, *sdkgo.APIResponse, error) {
 	nlb, apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFindByNetworkLoadBalancerId(ctx, datacenterID, nlbID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
-		return sdkgo.NetworkLoadBalancer{}, apiResponse, fmt.Errorf(nlbGetByIDErr, err)
+		err = ErrNotFound
+		if !apiResponse.HttpNotFound() {
+			err = fmt.Errorf(nlbGetByIDErr, err)
+		}
 	}
 	return nlb, apiResponse, err
 }

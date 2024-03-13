@@ -121,6 +121,9 @@ func (c *externalNetworkLoadBalancer) Observe(ctx context.Context, mg resource.M
 	}
 	observed, _, err := c.service.GetNetworkLoadBalancerByID(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, meta.GetExternalName(cr))
 	if err != nil {
+		if errors.Is(err, networkloadbalancer.ErrNotFound) {
+			return managed.ExternalObservation{}, nil
+		}
 		return managed.ExternalObservation{}, err
 	}
 	isLateInitialized := networkloadbalancer.LateInitializer(&cr.Spec.ForProvider, observed)
