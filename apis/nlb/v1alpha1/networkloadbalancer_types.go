@@ -65,7 +65,6 @@ type NetworkLoadBalancerParameters struct {
 	//
 	// +optional
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:UniqueItems=true
 	LbPrivateIps []string `json:"lbPrivateIps,omitempty"`
 }
 
@@ -73,7 +72,6 @@ type NetworkLoadBalancerParameters struct {
 type IPsConfig struct {
 	// IPs can be used to directly specify a list of ips to the resource
 	//
-	// +kubebuilder:validation:UniqueItems=true
 	IPs []string `json:"ips,omitempty"`
 	// IPBlocks can be used to reference existing IPBlocks and assign ips by indexing
 	IPsBlocksCfg []IPsBlockConfig `json:"ipsBlocksConfig,omitempty"`
@@ -170,3 +168,7 @@ var (
 	NetworkLoadBalancerKindAPIVersion   = NetworkLoadBalancerKind + "." + SchemeGroupVersion.String()
 	NetworkLoadBalancerGroupVersionKind = SchemeGroupVersion.WithKind(NetworkLoadBalancerKind)
 )
+
+func init() {
+	SchemeBuilder.Register(&NetworkLoadBalancer{}, &NetworkLoadBalancerList{})
+}

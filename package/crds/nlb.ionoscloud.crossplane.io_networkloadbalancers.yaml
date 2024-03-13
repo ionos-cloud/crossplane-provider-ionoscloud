@@ -200,7 +200,6 @@ spec:
                         items:
                           type: string
                         type: array
-                        uniqueItems: true
                       ipsBlocksConfig:
                         description: IPBlocks can be used to reference existing IPBlocks
                           and assign ips by indexing
@@ -314,7 +313,6 @@ spec:
                     items:
                       type: string
                     type: array
-                    uniqueItems: true
                   listenerLanConfig:
                     description: |-
                       ID of the listening (inbound) LAN.
