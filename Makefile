@@ -72,7 +72,7 @@ generate: crds.clean
 e2e.run: test-integration
 
 # Run integration tests.
-test-integration: $(KIND) $(KUBECTL) $(HELM3)
+test-integration: $(KIND) $(KUBECTL) $(UP) $(HELM3)
 	@$(INFO) running integration tests using kind $(KIND_VERSION)
 	@$(ROOT_DIR)/cluster/local/integration_tests.sh VERSION=$(VERSION) || $(FAIL)
 	@$(OK) integration tests passed

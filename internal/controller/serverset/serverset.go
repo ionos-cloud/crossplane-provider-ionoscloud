@@ -24,6 +24,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -108,7 +109,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, errors.New(errUnexpectedObject)
 	}
 
-	if meta.GetExternalName(cr) == "" {
+	if meta.GetExternalName(cr) == "" { // || meta.WasDeleted(cr)
 		return managed.ExternalObservation{}, nil
 	}
 
@@ -136,6 +137,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	areVolumesUpToDate := areVolumesUpToDate(cr.Spec.ForProvider, volumes)
 	// only update
 	if !areServersUpToDate || !areVolumesUpToDate {
+		cr.SetConditions(xpv1.Creating())
 		return managed.ExternalObservation{
 			ResourceExists:    true,
 			ResourceUpToDate:  false,
@@ -157,7 +159,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		}, nil
 	}
 
-	cr.Status.SetConditions(xpv1.Available())
+	cr.SetConditions(xpv1.Available())
 
 	return managed.ExternalObservation{
 		// Return false when the externalServerSet resource does not exist. This lets
@@ -182,10 +184,9 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errUnexpectedObject)
 	}
 
-	cr.Status.SetConditions(xpv1.Creating())
-
+	cr.SetConditions(xpv1.Creating())
 	// for n times of cr.Spec.Replicas, create a server
-	// for each server, create a volume
+	// for each server, create a volume and nics from the slice
 	e.log.Info("Creating a new ServerSet", "replicas", cr.Spec.ForProvider.Replicas)
 	version := 0
 	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
@@ -226,6 +227,7 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	}
 
+	cr.SetConditions(xpv1.Available())
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
 		// externalServerSet resource. These will be stored as the connection secret.
@@ -279,6 +281,7 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 			if err != nil {
 				return err
 			}
+			cr.SetConditions(xpv1.Creating())
 			updater := e.getUpdaterByStrategy(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UpdateStrategy.Stype)
 			if err := updater.update(ctx, cr, idx, volumeVersion, serverVersion); err != nil {
 				return err
@@ -328,27 +331,46 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	if !ok {
 		return errors.New(errUnexpectedObject)
 	}
-
+	e.log.Info("Deleting ServerSet", "name", cr.Name)
 	cr.SetConditions(xpv1.Deleting())
-
+	// for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
+	// 	e.nicController.Delete(ctx, getNameFromIndex(cr.Name, resourceNIC, index, serverVersion), cr.Namespace)
+	//
+	// }
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
-	}); err != nil {
+	},
+		client.PropagationPolicy(metav1.DeletePropagationForeground)); err != nil {
 		return err
 	}
 
 	// delete all servers
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Server{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
-	}); err != nil {
+	},
+		client.PropagationPolicy(metav1.DeletePropagationForeground)); err != nil {
 		return err
 	}
 
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
-	}); err != nil {
+	},
+		client.PropagationPolicy(metav1.DeletePropagationForeground)); err != nil {
 		return err
 	}
+
+	if err := e.kube.DeleteAllOf(
+		ctx,
+		&v1alpha1.ServerSet{}, client.InNamespace(cr.Namespace),
+		client.PropagationPolicy(metav1.DeletePropagationForeground),
+		client.MatchingLabels{
+			serverSetLabel: cr.Name,
+		},
+		// client.GracePeriodSeconds(10),
+	); err != nil {
+		return err
+	}
+	e.log.Info("Finished deleting ServerSet", "name", cr.Name)
 
 	return nil
 }
