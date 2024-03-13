@@ -200,10 +200,8 @@ func Test_serverSetController_Observe(t *testing.T) {
 		kube client.Client
 	}
 	type args struct {
-		ctx          context.Context
-		cr           *v1alpha1.ServerSet
-		replicaIndex int
-		version      int
+		ctx context.Context
+		cr  *v1alpha1.ServerSet
 	}
 	server1 := createServer("serverset-server-0-0")
 	server2 := createServer("serverset-server-1-0")

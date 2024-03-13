@@ -193,7 +193,7 @@ func populateCRStatus(ctx context.Context, e *external, cr *v1alpha1.ServerSet, 
 
 	for replicaIdx, replica := range serverSetReplicas {
 		replicaStatus := computeStatus(serverSetReplicas[replicaIdx].Status.AtProvider.State)
-		role, err := computeRole(e, ctx, replica)
+		role, err := computeRole(ctx, e, replica)
 		if err != nil {
 			return err
 		}
@@ -209,7 +209,7 @@ func populateCRStatus(ctx context.Context, e *external, cr *v1alpha1.ServerSet, 
 	return nil
 }
 
-func computeRole(c *external, ctx context.Context, server v1alpha1.Server) (string, error) {
+func computeRole(ctx context.Context, c *external, server v1alpha1.Server) (string, error) {
 	configMap := &v1.ConfigMap{}
 	name := "configs-" + server.Name
 	ns := server.Namespace
