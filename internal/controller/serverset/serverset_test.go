@@ -274,7 +274,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
 				ConnectionDetails: managed.ConnectionDetails{},
-				Diff:              "servers are not up to date",
+				Diff:              "servers are not up to datee",
 			},
 			wantErr: false,
 		},
