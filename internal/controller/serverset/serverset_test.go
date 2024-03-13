@@ -78,6 +78,16 @@ func createConfigMap(name string) v1.ConfigMap {
 	}
 }
 
+func createEmptyConfigMap(name string) v1.ConfigMap {
+	return v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "default",
+		},
+		Data: map[string]string{},
+	}
+}
+
 func createNic(name string) v1alpha1.Nic {
 	return v1alpha1.Nic{
 		ObjectMeta: metav1.ObjectMeta{
@@ -390,10 +400,8 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 		kube client.Client
 	}
 	type args struct {
-		ctx          context.Context
-		cr           *v1alpha1.ServerSet
-		replicaIndex int
-		version      int
+		ctx context.Context
+		cr  *v1alpha1.ServerSet
 	}
 
 	server1 := createServer("serverset-server-0-0")
@@ -402,6 +410,8 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 	configMap2 := createConfigMap("configs-" + server2.Name)
 	nic1 := createNic(server1.Name)
 	nic2 := createNic(server2.Name)
+	emptyConfigMap1 := createEmptyConfigMap("configs-" + server1.Name)
+	emptyConfigMap2 := createEmptyConfigMap("configs-" + server2.Name)
 
 	fakeKubeClient := fakeKubeClientObjs(&server1, &server2, &configMap1, &configMap2, &nic1, &nic2)
 	tests := []struct {
@@ -434,6 +444,49 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Role:         "PASSIVE",
 						Status:       "READY",
 						ErrorMessage: "",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "config map for role not found, then status is not populated and error is returned",
+			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &server2),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			want: v1alpha1.ServerSetObservation{
+				Replicas:        2,
+				ReplicaStatuses: make([]v1alpha1.ServerSetReplicaStatus, 2),
+			},
+			wantErr: true,
+		},
+		{
+			name: "no role found in config, then status is populated but role is set to UNKNOWN",
+			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &server2, &emptyConfigMap1, &emptyConfigMap2, &nic1, &nic2),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			want: v1alpha1.ServerSetObservation{
+				Replicas: 2,
+				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+					{
+						Name:         server1.Name,
+						Role:         "UNKNOWN",
+						Status:       "READY",
+						ErrorMessage: "Role not found in configmap. Will default to UNKNOWN",
+					},
+					{
+						Name:         server2.Name,
+						Role:         "UNKNOWN",
+						Status:       "READY",
+						ErrorMessage: "Role not found in configmap. Will default to UNKNOWN",
 					},
 				},
 			},

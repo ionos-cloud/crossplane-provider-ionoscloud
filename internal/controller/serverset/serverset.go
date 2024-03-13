@@ -121,11 +121,13 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-	err = populateCRStatus(ctx, e, cr, servers)
+
+	err = e.populateCRStatus(ctx, cr, servers)
 	if err != nil {
+		e.log.Info("ServerSet status could not be populated", "error", err)
 		return managed.ExternalObservation{}, err
 	}
-	// we need to re-create servers. go to create
+
 	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return managed.ExternalObservation{
 			// we need to re-create servers. go to create
@@ -141,8 +143,9 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
+
 	areVolumesUpToDate := areVolumesUpToDate(cr.Spec.ForProvider, volumes)
-	// only update
+
 	if !areServersUpToDate || !areVolumesUpToDate {
 		return managed.ExternalObservation{
 			ResourceExists:    true,
@@ -185,48 +188,59 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}, nil
 }
 
-func populateCRStatus(ctx context.Context, e *external, cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) error {
+func (e *external) populateCRStatus(ctx context.Context, cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) error {
 	if cr.Status.AtProvider.ReplicaStatuses == nil {
 		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, cr.Spec.ForProvider.Replicas)
 	}
 	cr.Status.AtProvider.Replicas = len(serverSetReplicas)
 
-	for replicaIdx, replica := range serverSetReplicas {
-		replicaStatus := computeStatus(serverSetReplicas[replicaIdx].Status.AtProvider.State)
-		role, err := computeRole(ctx, e, replica)
+	configs := []v1.ConfigMap{}
+	for _, replica := range serverSetReplicas {
+		nameSpacedName := computeNamespacedName(replica)
+		c := &v1.ConfigMap{}
+		err := e.kube.Get(ctx, nameSpacedName, c)
 		if err != nil {
 			return err
 		}
+		configs = append(configs, *c)
+	}
 
-		cr.Status.AtProvider.ReplicaStatuses[replicaIdx] = v1alpha1.ServerSetReplicaStatus{
+	for i, replica := range serverSetReplicas {
+		replicaStatus := computeStatus(serverSetReplicas[i].Status.AtProvider.State)
+
+		role, err := getRole(configs[i])
+		errMsg := ""
+		if err != nil {
+			errMsg = err.Error()
+			e.log.Info("error", err)
+		}
+
+		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{
 			Role:         role,
 			Name:         replica.Name,
 			Status:       replicaStatus,
-			ErrorMessage: "",
+			ErrorMessage: errMsg,
 			LastModified: metav1.Now(),
 		}
 	}
 	return nil
 }
 
-func computeRole(ctx context.Context, c *external, server v1alpha1.Server) (string, error) {
-	configMap := &v1.ConfigMap{}
+func getRole(configMap v1.ConfigMap) (string, error) {
+	value, ok := configMap.Data["role"]
+	if !ok {
+		return "UNKNOWN", errors.New("Role not found in configmap. Will default to UNKNOWN")
+	}
+	return value, nil
+}
+
+func computeNamespacedName(server v1alpha1.Server) types.NamespacedName {
 	name := "configs-" + server.Name
 	ns := server.Namespace
 	if ns == "" {
 		ns = "default"
 	}
-
-	err := c.kube.Get(ctx, types.NamespacedName{ns, name}, configMap)
-	if err != nil {
-		return "UNKNOWN", err
-	}
-
-	value, ok := configMap.Data["role"]
-	if !ok {
-		return "UNKNOWN", err
-	}
-	return value, nil
+	return types.NamespacedName{ns, name}
 }
 
 func computeStatus(state string) string {
