@@ -16,6 +16,8 @@ import (
 )
 
 const (
+	nlbGetByIDErr    = "failed to get nlb by ID: %w"
+	nlbListErr       = "failed to get nlb list of datacenter: %w"
 	nlbCreateErr     = "failed to create nlb: %w"
 	nlbCreateWaitErr = "error while waiting for nlb create request: %w"
 	nlbUpdateErr     = "failed to update nlb: %w"
@@ -46,7 +48,7 @@ type Client interface {
 func (cp *APIClient) CheckDuplicateNetworkLoadBalancer(ctx context.Context, datacenterID, nlbName string) (string, error) {
 	networkLoadBalancers, _, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf(nlbListErr, err)
 	}
 
 	matchedItems := make([]sdkgo.NetworkLoadBalancer, 0)
@@ -73,14 +75,18 @@ func (cp *APIClient) CheckDuplicateNetworkLoadBalancer(ctx context.Context, data
 
 // GetNetworkLoadBalancerByID based on Datacenter ID and NetworkLoadBalancer ID
 func (cp *APIClient) GetNetworkLoadBalancerByID(ctx context.Context, datacenterID, nlbID string) (sdkgo.NetworkLoadBalancer, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFindByNetworkLoadBalancerId(ctx, datacenterID, nlbID).Depth(utils.DepthQueryParam).Execute()
+	nlb, apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFindByNetworkLoadBalancerId(ctx, datacenterID, nlbID).Depth(utils.DepthQueryParam).Execute()
+	if err != nil {
+		return sdkgo.NetworkLoadBalancer{}, apiResponse, fmt.Errorf(nlbGetByIDErr, err)
+	}
+	return nlb, apiResponse, err
 }
 
 // CreateNetworkLoadBalancer based on Datacenter ID and NetworkLoadBalancer
 func (cp *APIClient) CreateNetworkLoadBalancer(ctx context.Context, datacenterID string, nlb sdkgo.NetworkLoadBalancer) (sdkgo.NetworkLoadBalancer, *sdkgo.APIResponse, error) {
 	nlb, apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersPost(ctx, datacenterID).NetworkLoadBalancer(nlb).Execute()
 	if err != nil {
-		return sdkgo.NetworkLoadBalancer{}, apiResponse, compute.AddAPIResponseInfo(apiResponse, fmt.Errorf(nlbCreateErr, err))
+		return sdkgo.NetworkLoadBalancer{}, apiResponse, fmt.Errorf(nlbCreateErr, err)
 	}
 	if err = compute.WaitForRequest(ctx, cp.ComputeClient, apiResponse); err != nil {
 		return sdkgo.NetworkLoadBalancer{}, apiResponse, fmt.Errorf(nlbCreateWaitErr, err)
@@ -92,7 +98,7 @@ func (cp *APIClient) CreateNetworkLoadBalancer(ctx context.Context, datacenterID
 func (cp *APIClient) UpdateNetworkLoadBalancer(ctx context.Context, datacenterID, nlbID string, nlbProperties sdkgo.NetworkLoadBalancerProperties) (sdkgo.NetworkLoadBalancer, *sdkgo.APIResponse, error) {
 	nlb, apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersPatch(ctx, datacenterID, nlbID).NetworkLoadBalancerProperties(nlbProperties).Execute()
 	if err != nil {
-		return sdkgo.NetworkLoadBalancer{}, apiResponse, compute.AddAPIResponseInfo(apiResponse, fmt.Errorf(nlbUpdateErr, err))
+		return sdkgo.NetworkLoadBalancer{}, apiResponse, fmt.Errorf(nlbUpdateErr, err)
 	}
 	if err = compute.WaitForRequest(ctx, cp.ComputeClient, apiResponse); err != nil {
 		return sdkgo.NetworkLoadBalancer{}, apiResponse, fmt.Errorf(nlbUpdateWaitErr, err)
@@ -104,10 +110,10 @@ func (cp *APIClient) UpdateNetworkLoadBalancer(ctx context.Context, datacenterID
 func (cp *APIClient) DeleteNetworkLoadBalancer(ctx context.Context, datacenterID, nlbID string) (*sdkgo.APIResponse, error) {
 	apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersDelete(ctx, datacenterID, nlbID).Execute()
 	if err != nil {
-		if apiResponse != nil && apiResponse.HttpNotFound() {
+		if apiResponse.HttpNotFound() {
 			return apiResponse, ErrNotFound
 		}
-		return apiResponse, compute.AddAPIResponseInfo(apiResponse, fmt.Errorf(nlbDeleteErr, err))
+		return apiResponse, fmt.Errorf(nlbDeleteErr, err)
 	}
 	if err = compute.WaitForRequest(ctx, cp.ComputeClient, apiResponse); err != nil {
 		return apiResponse, fmt.Errorf(nlbDeleteWaitErr, err)
@@ -164,7 +170,7 @@ func GenerateUpdateInput(cr *v1alpha1.NetworkLoadBalancer, listenerLanID, target
 }
 
 // IsUpToDate returns true if the NetworkLoadBalancer is up-to-date or false otherwise
-func IsUpToDate(cr *v1alpha1.NetworkLoadBalancer, observed sdkgo.NetworkLoadBalancer, listenerLan, targetLan int32, publicIPs []string) bool { // nolint:gocyclo
+func IsUpToDate(cr *v1alpha1.NetworkLoadBalancer, observed sdkgo.NetworkLoadBalancer, listenerLan, targetLan int32, ips []string) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && observed.Properties == nil:
 		return true
@@ -185,15 +191,28 @@ func IsUpToDate(cr *v1alpha1.NetworkLoadBalancer, observed sdkgo.NetworkLoadBala
 	}
 
 	if observed.Properties.Ips != nil {
-		if len(*observed.Properties.Ips) != len(publicIPs) {
+		if len(*observed.Properties.Ips) != len(ips) {
 			return false
 		}
 		obsIPs := sets.New[string](*observed.Properties.Ips...)
-		cfgIPs := sets.New[string](publicIPs...)
+		cfgIPs := sets.New[string](ips...)
 		if !obsIPs.Equal(cfgIPs) {
 			return false
 		}
-	} else if len(publicIPs) != 0 {
+	} else if len(ips) != 0 {
+		return false
+	}
+
+	if observed.Properties.LbPrivateIps != nil {
+		if len(*observed.Properties.LbPrivateIps) != len(cr.Spec.ForProvider.LbPrivateIps) {
+			return false
+		}
+		obsIPs := sets.New[string](*observed.Properties.LbPrivateIps...)
+		cfgIPs := sets.New[string](cr.Spec.ForProvider.LbPrivateIps...)
+		if !obsIPs.Equal(cfgIPs) {
+			return false
+		}
+	} else if len(cr.Spec.ForProvider.LbPrivateIps) != 0 {
 		return false
 	}
 
