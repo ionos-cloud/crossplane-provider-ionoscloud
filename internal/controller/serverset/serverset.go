@@ -24,6 +24,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -108,7 +109,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, errors.New(errUnexpectedObject)
 	}
 
-	if meta.GetExternalName(cr) == "" {
+	if meta.GetExternalName(cr) == "" { // || meta.WasDeleted(cr)
 		return managed.ExternalObservation{}, nil
 	}
 
@@ -330,27 +331,46 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	if !ok {
 		return errors.New(errUnexpectedObject)
 	}
-
+	e.log.Info("Deleting ServerSet", "name", cr.Name)
 	cr.SetConditions(xpv1.Deleting())
-
+	// for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
+	// 	e.nicController.Delete(ctx, getNameFromIndex(cr.Name, resourceNIC, index, serverVersion), cr.Namespace)
+	//
+	// }
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
-	}); err != nil {
+	},
+		client.PropagationPolicy(metav1.DeletePropagationForeground)); err != nil {
 		return err
 	}
 
 	// delete all servers
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Server{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
-	}); err != nil {
+	},
+		client.PropagationPolicy(metav1.DeletePropagationForeground)); err != nil {
 		return err
 	}
 
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
-	}); err != nil {
+	},
+		client.PropagationPolicy(metav1.DeletePropagationForeground)); err != nil {
 		return err
 	}
+
+	if err := e.kube.DeleteAllOf(
+		ctx,
+		&v1alpha1.ServerSet{}, client.InNamespace(cr.Namespace),
+		client.PropagationPolicy(metav1.DeletePropagationForeground),
+		client.MatchingLabels{
+			serverSetLabel: cr.Name,
+		},
+		// client.GracePeriodSeconds(10),
+	); err != nil {
+		return err
+	}
+	e.log.Info("Finished deleting ServerSet", "name", cr.Name)
 
 	return nil
 }
