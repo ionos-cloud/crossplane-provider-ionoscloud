@@ -88,5 +88,5 @@ func IsCloudConfig(userdata string) bool {
 	// Trim trailing whitespaces
 	header = strings.TrimRightFunc(header, unicode.IsSpace)
 
-	return (header == "#cloud-config")
+	return header == "#cloud-config"
 }
