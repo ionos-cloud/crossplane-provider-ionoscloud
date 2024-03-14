@@ -19,6 +19,8 @@ var (
 	ErrMalformedData = errors.New("malformed cloud-init data")
 )
 
+const cloudConfigHeader = "#cloud-config"
+
 // CloudInitPatcher is a helper to patch cloud-init userdata
 type CloudInitPatcher struct {
 	raw     string
@@ -31,7 +33,7 @@ type CloudInitPatcher struct {
 func NewCloudInitPatcher(raw string) (*CloudInitPatcher, error) {
 	byt, err := base64.StdEncoding.DecodeString(raw)
 	if err != nil {
-		return nil, fmt.Errorf("error decoding base64: %w (%w)", ErrDecodeFailed, err)
+		return nil, fmt.Errorf("%w (%w)", ErrDecodeFailed, err)
 	}
 
 	if len(byt) == 0 {
@@ -44,7 +46,7 @@ func NewCloudInitPatcher(raw string) (*CloudInitPatcher, error) {
 
 	data := make(map[string]interface{})
 	if err := yaml.Unmarshal(byt, &data); err != nil {
-		return nil, fmt.Errorf("error unmarshalling yaml: %w (%w)", ErrMalformedData, err)
+		return nil, fmt.Errorf("%w (%w)", ErrMalformedData, err)
 	}
 
 	return &CloudInitPatcher{raw: raw, decoded: string(byt), data: data}, nil
@@ -69,7 +71,7 @@ func (c *CloudInitPatcher) String() string {
 	}
 
 	// add #cloud-config header
-	byt = append([]byte("#cloud-config\n"), byt...)
+	byt = append([]byte(cloudConfigHeader+"\n"), byt...)
 
 	return string(byt)
 }
@@ -88,5 +90,5 @@ func IsCloudConfig(userdata string) bool {
 	// Trim trailing whitespaces
 	header = strings.TrimRightFunc(header, unicode.IsSpace)
 
-	return header == "#cloud-config"
+	return header == cloudConfigHeader
 }

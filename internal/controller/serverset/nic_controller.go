@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -42,7 +43,6 @@ func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, 
 	lanID := network.Status.AtProvider.LanID
 	// no NIC found, create one
 	createNic := fromServerSetToNic(cr, name, serverID, lanID, replicaIndex, version)
-	createNic.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
 	if err := k.kube.Create(ctx, &createNic); err != nil {
 		return v1alpha1.Nic{}, err
 	}
@@ -122,12 +122,17 @@ func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, re
 			Name:      name,
 			Namespace: cr.GetNamespace(),
 			Labels: map[string]string{
-				serverSetLabel:                   cr.Name,
-				fmt.Sprintf(indexLabel, "nic"):   fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(versionLabel, "nic"): fmt.Sprintf("%d", version),
+				serverSetLabel:                         cr.Name,
+				fmt.Sprintf(indexLabel, resourceNIC):   fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(versionLabel, resourceNIC): fmt.Sprintf("%d", version),
 			},
 		},
 		Spec: v1alpha1.NicSpec{
+			ResourceSpec: xpv1.ResourceSpec{
+				ProviderConfigReference: cr.GetProviderConfigReference(),
+				ManagementPolicies:      cr.GetManagementPolicies(),
+				DeletionPolicy:          cr.GetDeletionPolicy(),
+			},
 			ForProvider: v1alpha1.NicParameters{
 				Name:          name,
 				DatacenterCfg: cr.Spec.ForProvider.DatacenterCfg,
