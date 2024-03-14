@@ -13,9 +13,9 @@ apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
 kind: NodePool
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleK8sNodepool
     nodeCount: 1

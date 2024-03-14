@@ -88,19 +88,8 @@ type Pcc struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec               PccSpec                 `json:"spec"`
-	Status             PccStatus               `json:"status,omitempty"`
-	ManagementPolicies xpv1.ManagementPolicies `json:"managementPolicies"`
-}
-
-// SetManagementPolicies implement managed interface
-func (mg *Pcc) SetManagementPolicies(p xpv1.ManagementPolicies) {
-	mg.ManagementPolicies = p
-}
-
-// GetManagementPolicies implement managed interface
-func (mg *Pcc) GetManagementPolicies() xpv1.ManagementPolicies {
-	return mg.ManagementPolicies
+	Spec   PccSpec   `json:"spec"`
+	Status PccStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

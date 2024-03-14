@@ -183,7 +183,28 @@ type ServerSetBootVolumeSpec struct {
 	// +immutable
 	UserData string               `json:"userData,omitempty"`
 	Selector metav1.LabelSelector `json:"selector,omitempty"`
+	// UpdateStrategy is the update strategy when changing immutable fields on boot volume. The default value is createBeforeDestroyBootVolume which creates a new bootvolume before deleting the old one
+
+	// +kubebuilder:validation:Optional
+	UpdateStrategy UpdateStrategy `json:"updateStrategy,omitempty"`
 }
+
+// UpdateStrategy is the update strategy for the boot volume.
+type UpdateStrategy struct {
+	// +kubebuilder:validation:Enum=createAllBeforeDestroy;createBeforeDestroyBootVolume
+	// +kubebuilder:default=createBeforeDestroyBootVolume
+	Stype UpdateStrategyType `json:"type"`
+}
+
+// UpdateStrategyType is the type of the update strategy for the boot volume.
+type UpdateStrategyType string
+
+const (
+	// CreateAllBeforeDestroy creates server, boot volume, and NIC before destroying the old ones.
+	CreateAllBeforeDestroy UpdateStrategyType = "createAllBeforeDestroy"
+	// CreateBeforeDestroyBootVolume creates boot volume before destroying the old one.
+	CreateBeforeDestroyBootVolume = "createBeforeDestroyBootVolume"
+)
 
 // +kubebuilder:object:root=true
 

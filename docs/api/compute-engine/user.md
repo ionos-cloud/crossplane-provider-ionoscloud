@@ -90,7 +90,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `password` (string)
 	* description: Password A password for the user.
 * `secAuthActive` (boolean)
-	* description: SecAuthActive Indicates if secure authentication is active for the user or not. It can not be used in create requests - can be used in update. Default: false.
+	* description: SecAuthActive Indicates if secure authentication is active for the user or not.
+It can not be used in create requests - can be used in update. Default: false.
 
 ### Required Properties
 

@@ -28,10 +28,7 @@ func SetupServerSet(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.ServerSetGroupVersionKind),
 			managed.WithExternalConnecter(&connector{
-				kubeWrapper: wrapper{
-					kube: mgr.GetClient(),
-					log:  l,
-				},
+				kube: mgr.GetClient(),
 				bootVolumeController: &kubeBootVolumeController{
 					kube: mgr.GetClient(),
 					log:  l,

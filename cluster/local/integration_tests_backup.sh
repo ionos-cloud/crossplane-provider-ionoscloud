@@ -16,9 +16,9 @@ apiVersion: backup.ionoscloud.crossplane.io/v1alpha1
 kind: BackupUnit
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleBackupUnit
     email: test12345@gmail.com
@@ -44,9 +44,9 @@ apiVersion: backup.ionoscloud.crossplane.io/v1alpha1
 kind: BackupUnit
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleBackupUnit
     email: test123456@gmail.com
@@ -70,9 +70,9 @@ apiVersion: backup.ionoscloud.crossplane.io/v1alpha1
 kind: BackupUnit
 metadata:
   name: example
-managementPolicies:
-  - "*"
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
     name: exampleBackupUnit
     email: test123456@gmail.com
