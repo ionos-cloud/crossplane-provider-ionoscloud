@@ -124,20 +124,20 @@ func (mg *ForwardingRule) ResolveReferences(ctx context.Context, c client.Reader
 
 	for i3 := 0; i3 < len(mg.Spec.ForProvider.Targets); i3++ {
 		rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
-			CurrentValue: mg.Spec.ForProvider.Targets[i3].IP.IPBlockConfig.IPBlockID,
+			CurrentValue: mg.Spec.ForProvider.Targets[i3].IPCfg.IPBlockConfig.IPBlockID,
 			Extract:      v1alpha1.ExtractIPBlockID(),
-			Reference:    mg.Spec.ForProvider.Targets[i3].IP.IPBlockConfig.IPBlockIDRef,
-			Selector:     mg.Spec.ForProvider.Targets[i3].IP.IPBlockConfig.IPBlockIDSelector,
+			Reference:    mg.Spec.ForProvider.Targets[i3].IPCfg.IPBlockConfig.IPBlockIDRef,
+			Selector:     mg.Spec.ForProvider.Targets[i3].IPCfg.IPBlockConfig.IPBlockIDSelector,
 			To: reference.To{
 				List:    &v1alpha1.IPBlockList{},
 				Managed: &v1alpha1.IPBlock{},
 			},
 		})
 		if err != nil {
-			return errors.Wrap(err, "mg.Spec.ForProvider.Targets[i3].IP.IPBlockConfig.IPBlockID")
+			return errors.Wrap(err, "mg.Spec.ForProvider.Targets[i3].IPCfg.IPBlockConfig.IPBlockID")
 		}
-		mg.Spec.ForProvider.Targets[i3].IP.IPBlockConfig.IPBlockID = rsp.ResolvedValue
-		mg.Spec.ForProvider.Targets[i3].IP.IPBlockConfig.IPBlockIDRef = rsp.ResolvedReference
+		mg.Spec.ForProvider.Targets[i3].IPCfg.IPBlockConfig.IPBlockID = rsp.ResolvedValue
+		mg.Spec.ForProvider.Targets[i3].IPCfg.IPBlockConfig.IPBlockIDRef = rsp.ResolvedReference
 
 	}
 

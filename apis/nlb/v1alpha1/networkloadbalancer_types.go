@@ -56,14 +56,12 @@ type NetworkLoadBalancerParameters struct {
 	// the public Load Balancers, and private IPs for the private Load Balancers.
 	// The IPs can be set directly or using reference to the existing IPBlocks and indexes.
 	//
-	// +optional
 	// +kubebuilder:validation:Optional
 	IpsCfg IPsConfig `json:"ipsConfig,omitempty"`
 	// Collection of private IP addresses with the subnet mask of the Network Load Balancer.
 	// IPs must contain valid a subnet mask.
 	// If no IP is provided, the system will generate an IP with /24 subnet.
 	//
-	// +optional
 	// +kubebuilder:validation:Optional
 	LbPrivateIps []string `json:"lbPrivateIps,omitempty"`
 }
@@ -71,7 +69,6 @@ type NetworkLoadBalancerParameters struct {
 // IPsConfig used by resources that need to link multiple IPs directly or by indexing referenced IPBlock resources
 type IPsConfig struct {
 	// IPs can be used to directly specify a list of ips to the resource
-	//
 	IPs []string `json:"ips,omitempty"`
 	// IPBlocks can be used to reference existing IPBlocks and assign ips by indexing
 	IPsBlocksCfg []IPsBlockConfig `json:"ipsBlocksConfig,omitempty"`
@@ -86,7 +83,6 @@ type IPsBlockConfig struct {
 	// Individual indexes can be specified: 0,2,5,6,7
 	// Or a range can be provided: firstIndex:lastIndex, one end can be omitted for 'everything from' or 'everything until' behavior
 	// for example: 2:5, :4, 3:
-	// +optional
 	Indexes string `json:"indexes,omitempty"`
 }
 

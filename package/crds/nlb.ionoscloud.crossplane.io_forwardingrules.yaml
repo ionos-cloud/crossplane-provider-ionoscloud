@@ -102,6 +102,14 @@ spec:
                   ListenerIP (via ID or via reference),
                   ListenerPort.
                 properties:
+                  algorithm:
+                    description: Algorithm used in load balancing
+                    enum:
+                    - ROUND_ROBIN
+                    - LEAST_CONNECTION
+                    - RANDOM
+                    - SOURCE_IP
+                    type: string
                   datacenterConfig:
                     description: Datacenter in which the Network Load Balancer that
                       this Forwarding Rule applies to is provisioned in.
@@ -577,15 +585,21 @@ spec:
                             It is best to assign weights in the middle of the range to leave room for later adjustments.
                           format: int32
                           type: integer
+                      required:
+                      - ip
+                      - port
+                      - weight
                       type: object
                     type: array
                 required:
+                - algorithm
                 - datacenterConfig
                 - listenerIpConfig
                 - listenerPort
                 - name
                 - networkLoadBalancerConfig
                 - protocol
+                - targets
                 type: object
               managementPolicies:
                 default:
@@ -762,13 +776,7 @@ spec:
                 description: ForwardingRuleObservation are the observable fields of
                   a Network Load Balancer ForwardingRule.
                 properties:
-                  algorithm:
-                    type: string
                   forwardingRuleId:
-                    type: string
-                  listenerIp:
-                    type: string
-                  listenerPort:
                     type: string
                   state:
                     type: string

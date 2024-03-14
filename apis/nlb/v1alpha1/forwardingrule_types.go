@@ -64,6 +64,11 @@ type ForwardingRuleParameters struct {
 	// +kubebuilder:validation:Maximum=65535
 	// +kubebuilder:validation:Required
 	ListenerPort int32 `json:"listenerPort"`
+	// Algorithm used in load balancing
+	//
+	// +kubebuilder:validation:Enum=ROUND_ROBIN;LEAST_CONNECTION;RANDOM;SOURCE_IP
+	// +kubebuilder:validation:Required
+	Algorithm string `json:"algorithm"`
 	// HealthCheck options for the forwarding rule health check
 	//
 	// +kubebuilder:validation:Optional
@@ -72,7 +77,7 @@ type ForwardingRuleParameters struct {
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems:1
-	Targets []ForwardingRuleTarget `json:"targets,omitempty"`
+	Targets []ForwardingRuleTarget `json:"targets"`
 }
 
 // ForwardingRuleHealthCheck structure for the forwarding rule health check
@@ -104,11 +109,11 @@ type ForwardingRuleTarget struct {
 	// IP of the balanced target
 	//
 	// +kubebuilder:validation:Required
-	IP IPConfig `json:"ip,omitempty"`
+	IPCfg IPConfig `json:"ip"`
 	// Port of the balanced target
 	//
 	// +kubebuilder:validation:Required
-	Port int32 `json:"port,omitempty"`
+	Port int32 `json:"port"`
 	// Weight of the balanced target Traffic is distributed in proportion to target weight, relative to the combined weight of all targets.
 	// A target with higher weight receives a greater share of traffic. Valid range is 0 to 256 and default is 1.
 	// Targets with weight of 0 do not participate in load balancing but still accept persistent connections.
@@ -116,9 +121,8 @@ type ForwardingRuleTarget struct {
 	//
 	// +kubebuilder:validation:Minimum:0
 	// +kubebuilder:validation:Maximum:256
-	// +kubebuilder:validation:Default:1
 	// +kubebuilder:validation:Required
-	Weight int32 `json:"weight,omitempty"`
+	Weight int32 `json:"weight"`
 	// ProxyProtocol version of the proxy protocol
 	//
 	// +kubebuilder:validation:Enum=none;v1;v2;v2ssl
@@ -166,9 +170,6 @@ type IPConfig struct {
 type ForwardingRuleObservation struct {
 	ForwardingRuleID string `json:"forwardingRuleId,omitempty"`
 	State            string `json:"state,omitempty"`
-	ListenerIP       string `json:"listenerIp,omitempty"`
-	ListenerPort     string `json:"listenerPort,omitempty"`
-	Algorithm        string `json:"algorithm,omitempty"`
 }
 
 // ForwardingRuleSpec defines the desired state of a Network Load Balancer ForwardingRule.
