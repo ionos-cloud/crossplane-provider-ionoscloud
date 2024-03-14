@@ -241,7 +241,7 @@ func computeNamespacedName(server v1alpha1.Server) types.NamespacedName {
 	if ns == "" {
 		ns = "default"
 	}
-	return types.NamespacedName{ns, name}
+	return types.NamespacedName{Namespace: ns, Name: name}
 }
 
 func computeStatus(state string) string {
