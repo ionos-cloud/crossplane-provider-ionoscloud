@@ -74,7 +74,6 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	if err := c.usage.Track(ctx, mg); err != nil {
 		return nil, errors.Wrap(err, errTrackPCUsage)
 	}
-
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	if err != nil {
 		return nil, err
@@ -280,16 +279,10 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 			if err != nil {
 				return err
 			}
-			// creates bootvolume, server, nic
-			if err = e.createResources(ctx, cr, idx, volumeVersion+1, serverVersion+1); err != nil {
+			updater := e.getUpdaterByStrategy(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UpdateStrategy.Stype)
+			if err := updater.update(ctx, cr, idx, volumeVersion, serverVersion); err != nil {
 				return err
 			}
-
-			// cleanup - bootvolume, server, nic
-			if err = e.cleanupCondemned(ctx, cr, idx, volumeVersion, serverVersion); err != nil {
-				return err
-			}
-
 		} else if update {
 			if err := e.kube.Update(ctx, &volumes[idx]); err != nil {
 				return fmt.Errorf("error updating server %w", err)
@@ -298,6 +291,17 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 	}
 
 	return nil
+}
+
+func (e *external) getUpdaterByStrategy(strategyType v1alpha1.UpdateStrategyType) updater {
+	switch strategyType {
+	case v1alpha1.CreateAllBeforeDestroy:
+		return newCreateBeforeDestroy(e.bootVolumeController, e.serverController, e.nicController)
+	case v1alpha1.CreateBeforeDestroyBootVolume:
+		return newCreateBeforeDestroyOnlyBootVolume(e.bootVolumeController, e.serverController)
+	default:
+		return newCreateBeforeDestroyOnlyBootVolume(e.bootVolumeController, e.serverController)
+	}
 }
 
 // updateOrRecreate checks if bootvolume parameters are equal to bootvolume template parameters
@@ -317,30 +321,6 @@ func updateOrRecreate(volumeParams *v1alpha1.VolumeParameters, volumeSpec v1alph
 		volumeParams.Image = volumeSpec.Image
 	}
 	return update, deleteAndCreate
-}
-
-func (e *external) createResources(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
-	if err := e.bootVolumeController.Ensure(ctx, cr, index, volumeVersion); err != nil {
-		return err
-	}
-
-	if err := e.serverController.Ensure(ctx, cr, index, serverVersion); err != nil {
-		return err
-	}
-
-	return e.nicController.EnsureNICs(ctx, cr, index, serverVersion)
-}
-
-func (e *external) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
-	err := e.bootVolumeController.Delete(ctx, getNameFromIndex(cr.Name, resourceBootVolume, index, volumeVersion), cr.Namespace)
-	if err != nil {
-		return err
-	}
-	err = e.serverController.Delete(ctx, getNameFromIndex(cr.Name, resourceServer, index, serverVersion), cr.Namespace)
-	if err != nil {
-		return err
-	}
-	return e.nicController.Delete(ctx, getNameFromIndex(cr.Name, resourceNIC, index, serverVersion), cr.Namespace)
 }
 
 func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
@@ -449,16 +429,15 @@ func (e *external) getVolumesFromServerSet(ctx context.Context, name string) ([]
 	return volumeList.Items, nil
 }
 
-// ListResFromSSetWithIndex - lists resources from a server set with a specific index label
-func ListResFromSSetWithIndex(ctx context.Context, kube client.Client, resType string, index int, list client.ObjectList) error {
+// listResFromSSetWithIndex - lists resources from a server set with a specific index label
+func listResFromSSetWithIndex(ctx context.Context, kube client.Client, resType string, index int, list client.ObjectList) error {
 	return kube.List(ctx, list, client.MatchingLabels{
-
 		fmt.Sprintf(indexLabel, resType): strconv.Itoa(index),
 	})
 }
 
-// ListResFromSSetWithIndexAndVersion - lists resources from a server set with a specific index and version label
-func ListResFromSSetWithIndexAndVersion(ctx context.Context, kube client.Client, resType string, index, version int, list client.ObjectList) error {
+// listResFromSSetWithIndexAndVersion - lists resources from a server set with a specific index and version label
+func listResFromSSetWithIndexAndVersion(ctx context.Context, kube client.Client, resType string, index, version int, list client.ObjectList) error {
 	return kube.List(ctx, list, client.MatchingLabels{
 		fmt.Sprintf(versionLabel, resType): strconv.Itoa(version),
 		fmt.Sprintf(indexLabel, resType):   strconv.Itoa(index),
@@ -468,7 +447,7 @@ func ListResFromSSetWithIndexAndVersion(ctx context.Context, kube client.Client,
 // getVersionsFromVolumeAndServer checks that there is only one server and volume and returns their version
 func getVersionsFromVolumeAndServer(ctx context.Context, kube client.Client, replicaIndex int) (volumeVersion int, serverVersion int, err error) {
 	volumeResources := &v1alpha1.VolumeList{}
-	err = ListResFromSSetWithIndex(ctx, kube, resourceBootVolume, replicaIndex, volumeResources)
+	err = listResFromSSetWithIndex(ctx, kube, resourceBootVolume, replicaIndex, volumeResources)
 	if err != nil {
 		return volumeVersion, serverVersion, err
 	}
@@ -479,7 +458,7 @@ func getVersionsFromVolumeAndServer(ctx context.Context, kube client.Client, rep
 		return volumeVersion, serverVersion, fmt.Errorf("found no volumes for index %d ", replicaIndex)
 	}
 	serverResources := &v1alpha1.ServerList{}
-	err = ListResFromSSetWithIndex(ctx, kube, resourceServer, replicaIndex, serverResources)
+	err = listResFromSSetWithIndex(ctx, kube, resourceServer, replicaIndex, serverResources)
 	if err != nil {
 		return volumeVersion, serverVersion, err
 	}
@@ -506,14 +485,26 @@ func getVersionsFromVolumeAndServer(ctx context.Context, kube client.Client, rep
 
 func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	resSrv := &v1alpha1.ServerList{}
-	if err := ListResFromSSetWithIndex(ctx, e.kube, resourceServer, replicaIndex, resSrv); err != nil {
+	if err := listResFromSSetWithIndex(ctx, e.kube, resourceServer, replicaIndex, resSrv); err != nil {
 		return err
 	}
 	if len(resSrv.Items) > 1 {
 		return fmt.Errorf("found too many servers for index %d ", replicaIndex)
 	}
 	if len(resSrv.Items) == 0 {
-		if err := e.serverController.Ensure(ctx, cr, replicaIndex, version); err != nil {
+		res := &v1alpha1.VolumeList{}
+		volumeVersion := version
+		if err := listResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, replicaIndex, res); err != nil {
+			return err
+		}
+		if len(res.Items) > 0 {
+			var err error
+			volumeVersion, err = strconv.Atoi(res.Items[0].Labels[fmt.Sprintf(versionLabel, resourceBootVolume)])
+			if err != nil {
+				return err
+			}
+		}
+		if err := e.serverController.Ensure(ctx, cr, replicaIndex, version, volumeVersion); err != nil {
 			return err
 		}
 		if err := e.nicController.EnsureNICs(ctx, cr, replicaIndex, version); err != nil {
@@ -526,7 +517,7 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.S
 // ensureBootVolumeByIndex - ensures boot volume created for a specific index. After checking for index, it checks for index and version
 func (e *external) ensureBootVolumeByIndex(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	res := &v1alpha1.VolumeList{}
-	if err := ListResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, replicaIndex, res); err != nil {
+	if err := listResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, replicaIndex, res); err != nil {
 		return err
 	}
 	if len(res.Items) > 1 {

@@ -188,7 +188,7 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	cr.Status.AtProvider.ServerID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
-		c.log.Debug("Attaching Volume...", "volume", cr.Spec.ForProvider.Name)
+		c.log.Debug("Attaching Volume...", "volume", cr.Spec.ForProvider.VolumeCfg.VolumeID)
 		_, apiResponse, err = c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 			cr.Status.AtProvider.ServerID, sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
 		if err != nil {
@@ -209,12 +209,13 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotServer)
 	}
+	c.log.Debug("Update, started updating server", "name", cr.Spec.ForProvider.Name)
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalUpdate{}, nil
 	}
 	// Attach or Detach Volume
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
-		c.log.Debug("Attaching Volume...")
+		c.log.Debug("Update, attaching Volume", "volume", cr.Spec.ForProvider.VolumeCfg.VolumeID)
 		_, apiResponse, err := c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID,
 			sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
 		if err != nil {
@@ -224,6 +225,8 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 		if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 			return managed.ExternalUpdate{}, err
 		}
+		c.log.Debug("Update, finished attaching Volume", "volume", cr.Spec.ForProvider.VolumeCfg.VolumeID)
+
 	} else if cr.Status.AtProvider.VolumeID != "" {
 		c.log.Debug("Detaching Volume...")
 		apiResponse, err := c.service.DetachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
@@ -249,6 +252,8 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalUpdate{}, err
 	}
+	c.log.Debug("Update, finished updating server", "name", cr.Spec.ForProvider.Name)
+
 	return managed.ExternalUpdate{}, nil
 }
 

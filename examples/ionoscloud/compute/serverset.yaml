@@ -72,6 +72,9 @@ spec:
         bootStorageVolumeRef: "volume-id"
     bootVolumeTemplate:
       spec:
+        updateStrategy:
+#          createBeforeDestroyBootVolume createAllBeforeDestroy
+          type: "createBeforeDestroyBootVolume"
         image: "28d0fa34-927f-11ee-8008-6202af74e858"
         size: 10
         type: HDD
