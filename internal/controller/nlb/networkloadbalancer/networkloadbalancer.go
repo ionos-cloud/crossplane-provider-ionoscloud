@@ -115,11 +115,11 @@ func (c *externalNetworkLoadBalancer) Observe(ctx context.Context, mg resource.M
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotNetworkLoadBalancer)
 	}
-
-	if meta.GetExternalName(cr) == "" {
+	networkLoadBalancerID := meta.GetExternalName(cr)
+	if networkLoadBalancerID == "" {
 		return managed.ExternalObservation{}, nil
 	}
-	observed, _, err := c.service.GetNetworkLoadBalancerByID(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, meta.GetExternalName(cr))
+	observed, _, err := c.service.GetNetworkLoadBalancerByID(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, networkLoadBalancerID)
 	if err != nil {
 		if errors.Is(err, networkloadbalancer.ErrNotFound) {
 			return managed.ExternalObservation{}, nil
@@ -128,6 +128,7 @@ func (c *externalNetworkLoadBalancer) Observe(ctx context.Context, mg resource.M
 	}
 	isLateInitialized := networkloadbalancer.LateInitializer(&cr.Spec.ForProvider, observed)
 	networkloadbalancer.SetStatus(&cr.Status.AtProvider, observed)
+	cr.Status.AtProvider.NetworkLoadBalancerID = networkLoadBalancerID
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}

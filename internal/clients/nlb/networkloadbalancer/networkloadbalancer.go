@@ -142,9 +142,6 @@ func SetStatus(in *v1alpha1.NetworkLoadBalancerObservation, nlb sdkgo.NetworkLoa
 	if nlb.Metadata != nil && nlb.Metadata.State != nil {
 		in.State = *nlb.Metadata.State
 	}
-	if nlb.Id != nil {
-		in.NetworkLoadBalancerID = *nlb.Id
-	}
 }
 
 // GenerateCreateInput returns sdkgo.NetworkLoadBalancer for Create requests based on CR spec
