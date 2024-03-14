@@ -120,7 +120,7 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 			ForProvider: v1alpha1.VolumeParameters{
 				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
 				Name:             name,
-				AvailabilityZone: "AUTO",
+				AvailabilityZone: GetZoneFromIndex(replicaIndex),
 				Size:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size,
 				Type:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type,
 				Image:            cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image,
