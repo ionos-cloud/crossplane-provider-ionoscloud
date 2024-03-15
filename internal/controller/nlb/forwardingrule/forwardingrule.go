@@ -18,6 +18,7 @@ package forwardingrule
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/workqueue"
@@ -32,6 +33,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/nlb/v1alpha1"
@@ -42,7 +44,11 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
-const errNotForwardingRule = "managed resource is not a NetworkLoadBalancer ForwardingRule"
+const (
+	errNotForwardingRule = "managed resource is not a NetworkLoadBalancer ForwardingRule"
+	errGetListenerIP     = "failed to get forwarding rule listener ip: %w"
+	errGetTargetsIPs     = "failed to get forwarding rule targets ips: %w"
+)
 
 // Setup adds a controller that reconciles ForwardingRule managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
@@ -134,7 +140,7 @@ func (c *externalForwardingRule) Observe(ctx context.Context, mg resource.Manage
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-	targetIPs, err := c.getConfiguredTargetsIPs(ctx, cr)
+	targetsIPs, err := c.getConfiguredTargetsIPs(ctx, cr)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -142,7 +148,7 @@ func (c *externalForwardingRule) Observe(ctx context.Context, mg resource.Manage
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        forwardingrule.IsUpToDate(cr, observed, listenerIP, targetIPs),
+		ResourceUpToDate:        forwardingrule.IsUpToDate(cr, observed, listenerIP, targetsIPs),
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: isLateInitialized,
 	}, nil
@@ -163,8 +169,40 @@ func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed
 		return managed.ExternalCreation{}, nil
 	}
 
+	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
+	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
+
 	if c.isUniqueNamesEnabled {
+		// isUniqueNamesEnabled option enforces NetworkLoadBalancer names to be unique per Datacenter
+		// Multiple Network Load Balancers with the same name will trigger an error
+		// If only one instance is found, it will be "imported"
+		ruleDuplicateID, err := c.service.CheckDuplicateForwardingRule(ctx, datacenterID, nlbID, cr.Spec.ForProvider.Name)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if ruleDuplicateID != "" {
+			cr.Status.AtProvider.ForwardingRuleID = ruleDuplicateID
+			meta.SetExternalName(cr, ruleDuplicateID)
+			return managed.ExternalCreation{}, nil
+		}
 	}
+
+	listenerIP, err := c.getConfiguredListenerIP(ctx, cr)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	targetsIPs, err := c.getConfiguredTargetsIPs(ctx, cr)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+
+	ruleInput := forwardingrule.GenerateCreateInput(cr, listenerIP, targetsIPs)
+	newInstance, _, err := c.service.CreateForwardingRule(ctx, datacenterID, nlbID, ruleInput)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	cr.Status.AtProvider.ForwardingRuleID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
 	return managed.ExternalCreation{}, nil
 }
 
@@ -177,7 +215,21 @@ func (c *externalForwardingRule) Update(ctx context.Context, mg resource.Managed
 		return managed.ExternalUpdate{}, nil
 	}
 
-	return managed.ExternalUpdate{}, nil
+	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
+	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
+	ruleID := cr.Status.AtProvider.ForwardingRuleID
+	listenerIP, err := c.getConfiguredListenerIP(ctx, cr)
+	if err != nil {
+		return managed.ExternalUpdate{}, err
+	}
+	targetsIPs, err := c.getConfiguredTargetsIPs(ctx, cr)
+	if err != nil {
+		return managed.ExternalUpdate{}, err
+	}
+	ruleInput := forwardingrule.GenerateUpdateInput(cr, listenerIP, targetsIPs)
+	_, _, err = c.service.UpdateForwardingRule(ctx, datacenterID, nlbID, ruleID, ruleInput)
+
+	return managed.ExternalUpdate{}, err
 }
 
 func (c *externalForwardingRule) Delete(ctx context.Context, mg resource.Managed) error {
@@ -187,10 +239,15 @@ func (c *externalForwardingRule) Delete(ctx context.Context, mg resource.Managed
 	}
 
 	cr.SetConditions(xpv1.Deleting())
-	if cr.Status.AtProvider.State == string(ionoscloud.DESTROYING) || cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == compute.DESTROYING {
 		return nil
 	}
-
+	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
+	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
+	_, err := c.service.DeleteForwardingRule(ctx, datacenterID, nlbID, cr.Status.AtProvider.ForwardingRuleID)
+	if !errors.Is(err, forwardingrule.ErrNotFound) {
+		return err
+	}
 	return nil
 }
 
@@ -201,7 +258,7 @@ func (c *externalForwardingRule) getConfiguredListenerIP(ctx context.Context, cr
 
 	ip, err := c.ipBlockService.GetIPs(ctx, cr.Spec.ForProvider.ListenerIP.IPBlockID, int(cr.Spec.ForProvider.ListenerIP.Index))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf(errGetListenerIP, err)
 	}
 	return ip[0], nil
 }
@@ -220,7 +277,7 @@ func (c *externalForwardingRule) getConfiguredTargetsIPs(ctx context.Context, cr
 		}
 		ip, err := c.ipBlockService.GetIPs(ctx, t.IPCfg.IPBlockID, int(t.IPCfg.Index))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf(errGetTargetsIPs, err)
 		}
 		targetsMap[ip[0]] = t
 	}

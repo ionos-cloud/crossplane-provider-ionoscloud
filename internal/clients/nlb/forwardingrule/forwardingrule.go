@@ -21,7 +21,12 @@ const (
 	ruleUpdateErr     = "failed to update nlb forwarding rule: %w"
 	ruleUpdateWaitErr = "error while waiting for nlb forwarding rule update request: %w"
 	ruleDeleteErr     = "failed to delete nlb forwarding rule: %w"
-	ruleDeleteWaitErr = "error while waiting for nlb delete request: %w"
+	ruleDeleteWaitErr = "error while waiting for nlb forwarding rule delete request: %w"
+)
+
+var (
+	zeroRuleHealthCheck   = v1alpha1.ForwardingRuleHealthCheck{}
+	zeroTargetHealthCheck = v1alpha1.ForwardingRuleTargetHealthCheck{}
 )
 
 // ErrNotFound no Network Load Balancer ForwardingRule rule has been found
@@ -288,6 +293,10 @@ func equalTargetHealthCheck(cr v1alpha1.ForwardingRuleTargetHealthCheck, observe
 }
 
 func ruleHealthCheckInput(cr v1alpha1.ForwardingRuleHealthCheck) *sdkgo.NetworkLoadBalancerForwardingRuleHealthCheck {
+	// Don't include 0-value rule health check
+	if cr == zeroRuleHealthCheck {
+		return nil
+	}
 	return &sdkgo.NetworkLoadBalancerForwardingRuleHealthCheck{
 		Retries:        &cr.Retries,
 		ClientTimeout:  &cr.ClientTimeout,
@@ -297,19 +306,23 @@ func ruleHealthCheckInput(cr v1alpha1.ForwardingRuleHealthCheck) *sdkgo.NetworkL
 }
 
 func ruleTargetsInput(targetsIPs map[string]v1alpha1.ForwardingRuleTarget) *[]sdkgo.NetworkLoadBalancerForwardingRuleTarget {
-	targetsInput := make([]sdkgo.NetworkLoadBalancerForwardingRuleTarget, len(targetsIPs))
+	targetsInput := make([]sdkgo.NetworkLoadBalancerForwardingRuleTarget, 0, len(targetsIPs))
 	for k, v := range targetsIPs {
 		target := sdkgo.NetworkLoadBalancerForwardingRuleTarget{
 			Ip:            &k,
 			Port:          &v.Port,
 			Weight:        &v.Weight,
 			ProxyProtocol: &v.ProxyProtocol,
-			HealthCheck: &sdkgo.NetworkLoadBalancerForwardingRuleTargetHealthCheck{
+		}
+		// Don't include 0-value target health check
+		if v.HealthCheck != zeroTargetHealthCheck {
+			target.HealthCheck = &sdkgo.NetworkLoadBalancerForwardingRuleTargetHealthCheck{
 				Check:         &v.HealthCheck.Check,
 				CheckInterval: &v.HealthCheck.CheckInterval,
 				Maintenance:   &v.HealthCheck.Maintenance,
-			},
+			}
 		}
+
 		targetsInput = append(targetsInput, target)
 	}
 	return &targetsInput
