@@ -17,7 +17,7 @@ import (
 
 const (
 	nlbGetByIDErr    = "failed to get nlb by ID: %w"
-	nlbListErr       = "failed to get nlb list of datacenter: %w"
+	nlbListErr       = "failed to get nlb list: %w"
 	nlbCreateErr     = "failed to create nlb: %w"
 	nlbCreateWaitErr = "error while waiting for nlb create request: %w"
 	nlbUpdateErr     = "failed to update nlb: %w"

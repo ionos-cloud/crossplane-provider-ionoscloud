@@ -140,7 +140,7 @@ func (c *externalNetworkLoadBalancer) Observe(ctx context.Context, mg resource.M
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-
+	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
@@ -215,11 +215,8 @@ func (c *externalNetworkLoadBalancer) Update(ctx context.Context, mg resource.Ma
 	}
 	nlbInput := networkloadbalancer.GenerateUpdateInput(cr, listenerLanID, targetLanID, publicIPs)
 	_, _, err = c.service.UpdateNetworkLoadBalancer(ctx, datacenterID, nlbID, nlbInput)
-	if err != nil {
-		return managed.ExternalUpdate{}, err
-	}
 
-	return managed.ExternalUpdate{}, nil
+	return managed.ExternalUpdate{}, err
 }
 
 func (c *externalNetworkLoadBalancer) Delete(ctx context.Context, mg resource.Managed) error {
@@ -235,7 +232,7 @@ func (c *externalNetworkLoadBalancer) Delete(ctx context.Context, mg resource.Ma
 	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
 	nlbID := cr.Status.AtProvider.NetworkLoadBalancerID
 	_, err := c.service.DeleteNetworkLoadBalancer(ctx, datacenterID, nlbID)
-	if err != nil && !errors.Is(err, networkloadbalancer.ErrNotFound) {
+	if !errors.Is(err, networkloadbalancer.ErrNotFound) {
 		return err
 	}
 	return nil
