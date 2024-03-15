@@ -144,9 +144,9 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volume
 		}}
 }
 
-// GetZoneFromIndex returns ZONE_1 for odd and ZONE_2 for even index
+// GetZoneFromIndex returns ZONE_2 for odd and ZONE_1 for even index
 func GetZoneFromIndex(index int) string {
-	return fmt.Sprintf("ZONE_%d", (index+1)%2+1)
+	return fmt.Sprintf("ZONE_%d", index%2+1)
 }
 
 func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
