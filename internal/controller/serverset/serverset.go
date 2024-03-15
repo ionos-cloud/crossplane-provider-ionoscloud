@@ -125,13 +125,11 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	err = e.populateCRStatus(ctx, cr, servers)
 	if err != nil {
-		e.log.Info("ServerSet status could not be populated", "error", err)
 		return managed.ExternalObservation{}, err
 	}
 
 	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return managed.ExternalObservation{
-			// we need to re-create servers. go to create
 			ResourceExists:    false,
 			ResourceUpToDate:  false,
 			ConnectionDetails: managed.ConnectionDetails{},
@@ -213,6 +211,7 @@ func (e *external) populateCRStatus(ctx context.Context, cr *v1alpha1.ServerSet,
 		c := &v1.ConfigMap{}
 		err := e.kube.Get(ctx, nameSpacedName, c)
 		if err != nil {
+			e.log.Info("ServerSet status could not be populated", "error", err)
 			return err
 		}
 		configs = append(configs, *c)
