@@ -189,8 +189,20 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}, nil
 }
 
+func didNrIncrease(cr *v1alpha1.ServerSet, replicas []v1alpha1.Server) bool {
+	return len(replicas) > cr.Status.AtProvider.Replicas
+}
+
+func didNrDecrease(cr *v1alpha1.ServerSet, replicas []v1alpha1.Server) bool {
+	return len(replicas) < cr.Status.AtProvider.Replicas
+}
+
+func didNrOfReplicasChange(cr *v1alpha1.ServerSet, replicas []v1alpha1.Server) bool {
+	return didNrIncrease(cr, replicas) || didNrDecrease(cr, replicas)
+}
+
 func (e *external) populateCRStatus(ctx context.Context, cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) error {
-	if cr.Status.AtProvider.ReplicaStatuses == nil {
+	if cr.Status.AtProvider.ReplicaStatuses == nil || didNrOfReplicasChange(cr, serverSetReplicas) {
 		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, cr.Spec.ForProvider.Replicas)
 	}
 	cr.Status.AtProvider.Replicas = len(serverSetReplicas)

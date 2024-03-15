@@ -206,6 +206,80 @@ func areEqual(t *testing.T, want, got v1alpha1.ServerSetObservation) {
 	}
 }
 
+func createServerSetWhichUpdatesFrom1ReplicaTo2(serverName string) *v1alpha1.ServerSet {
+	return &v1alpha1.ServerSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ServerSet",
+			APIVersion: "v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serverSetName,
+			Namespace: "",
+			Annotations: map[string]string{
+				"crossplane.io/external-name": serverSetName,
+			},
+		},
+		Spec: v1alpha1.ServerSetSpec{
+			ForProvider: v1alpha1.ServerSetParameters{
+				Replicas: 2,
+			},
+		},
+		Status: v1alpha1.ServerSetStatus{
+			AtProvider: v1alpha1.ServerSetObservation{
+				Replicas: 1,
+				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+					{
+						Name:         serverName,
+						Role:         "ACTIVE",
+						Status:       "READY",
+						ErrorMessage: "",
+					},
+				},
+			},
+		},
+	}
+}
+
+func createServerSetWhichUpdatesFrom2ReplicasTo1(serverName1, serverName2 string) *v1alpha1.ServerSet {
+	return &v1alpha1.ServerSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ServerSet",
+			APIVersion: "v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serverSetName,
+			Namespace: "",
+			Annotations: map[string]string{
+				"crossplane.io/external-name": serverSetName,
+			},
+		},
+		Spec: v1alpha1.ServerSetSpec{
+			ForProvider: v1alpha1.ServerSetParameters{
+				Replicas: 1,
+			},
+		},
+		Status: v1alpha1.ServerSetStatus{
+			AtProvider: v1alpha1.ServerSetObservation{
+				Replicas: 2,
+				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+					{
+						Name:         serverName1,
+						Role:         "ACTIVE",
+						Status:       "READY",
+						ErrorMessage: "",
+					},
+					{
+						Name:         serverName2,
+						Role:         "ACTIVE",
+						Status:       "READY",
+						ErrorMessage: "",
+					},
+				},
+			},
+		},
+	}
+}
+
 func Test_serverSetController_Observe(t *testing.T) {
 	type fields struct {
 		kube client.Client
@@ -275,7 +349,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
 				ConnectionDetails: managed.ConnectionDetails{},
-				Diff:              "servers are not up to datee",
+				Diff:              "servers are not up to date",
 			},
 			wantErr: false,
 		},
@@ -488,6 +562,56 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Role:         "UNKNOWN",
 						Status:       "READY",
 						ErrorMessage: "Role not found in configmap. Will default to UNKNOWN",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "replica count increases, then number of replica status is increased",
+			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &server2, &configMap1, &configMap2, &nic1, &nic2),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createServerSetWhichUpdatesFrom1ReplicaTo2(server1.Name),
+			},
+			want: v1alpha1.ServerSetObservation{
+				Replicas: 2,
+				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+					{
+						Name:         server1.Name,
+						Role:         "ACTIVE",
+						Status:       "READY",
+						ErrorMessage: "",
+					},
+					{
+						Name:         server2.Name,
+						Role:         "PASSIVE",
+						Status:       "READY",
+						ErrorMessage: "",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "replica count decreases, then number of replica status is decreased",
+			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &configMap1, &nic1),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createServerSetWhichUpdatesFrom2ReplicasTo1(server1.Name, server2.Name),
+			},
+			want: v1alpha1.ServerSetObservation{
+				Replicas: 1,
+				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+					{
+						Name:         server1.Name,
+						Role:         "ACTIVE",
+						Status:       "READY",
+						ErrorMessage: "",
 					},
 				},
 			},
