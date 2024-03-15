@@ -85,14 +85,17 @@ type ForwardingRuleHealthCheck struct {
 	// ClientTimeout the maximum time in milliseconds to wait for the client to acknowledge or send data; default is 50,000 (50 seconds).
 	//
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=50
 	ClientTimeout int32 `json:"clientTimeout,omitempty"`
 	// ConnectTimeout the maximum time in milliseconds to wait for a connection attempt to a target to succeed; default is 5000 (five seconds).
 	//
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=5000
 	ConnectTimeout int32 `json:"connectTimeout,omitempty"`
 	// TargetTimeout the maximum time in milliseconds that a target can remain inactive; default is 50,000 (50 seconds).
 	//
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=50
 	TargetTimeout int32 `json:"targetTimeout,omitempty"`
 	// Retries the maximum number of attempts to reconnect to a target after a connection failure. Valid range is 0 to 65535 and default is three reconnection attempts.
 	//
@@ -125,8 +128,9 @@ type ForwardingRuleTarget struct {
 	Weight int32 `json:"weight"`
 	// ProxyProtocol version of the proxy protocol
 	//
-	// +kubebuilder:validation:Enum=none;v1;v2;v2ssl
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum=none;v1;v2;v2ssl
+	// +kubebuilder:default=none
 	ProxyProtocol string `json:"proxyProtocol,omitempty"`
 	// HealthCheck options of the balanced target health check
 	//
@@ -141,10 +145,12 @@ type ForwardingRuleTargetHealthCheck struct {
 	// The health check only consists of a connection attempt to the address and port of the target.
 	//
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=true
 	Check bool `json:"check,omitempty"`
 	// CheckInterval the interval in milliseconds between consecutive health checks; default is 2000.
 	//
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=2000
 	CheckInterval int32 `json:"checkInterval,omitempty"`
 	// Maintenance mode prevents the target from receiving balanced traffic.
 	//
@@ -190,7 +196,7 @@ type ForwardingRuleStatus struct {
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="DATACENTER ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
-// +kubebuilder:printcolumn:name="NETWORKLOADBALANCER ID",type="string",JSONPath=".spec.forProvider.applicationLoadBalancerConfig.applicationLoadBalancerId"
+// +kubebuilder:printcolumn:name="NETWORKLOADBALANCER ID",type="string",JSONPath=".spec.forProvider.networkLoadBalancerConfig.networkLoadBalancerId"
 // +kubebuilder:printcolumn:name="FORWARDINGRULE ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="FORWARDINGRULE NAME",type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="PROTOCOL",priority=1,type="string",JSONPath=".spec.forProvider.protocol"

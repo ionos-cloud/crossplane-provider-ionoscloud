@@ -28,7 +28,7 @@ spec:
     - jsonPath: .spec.forProvider.datacenterConfig.datacenterId
       name: DATACENTER ID
       type: string
-    - jsonPath: .spec.forProvider.applicationLoadBalancerConfig.applicationLoadBalancerId
+    - jsonPath: .spec.forProvider.networkLoadBalancerConfig.networkLoadBalancerId
       name: NETWORKLOADBALANCER ID
       type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
@@ -202,12 +202,14 @@ spec:
                       check
                     properties:
                       clientTimeout:
+                        default: 50
                         description: ClientTimeout the maximum time in milliseconds
                           to wait for the client to acknowledge or send data; default
                           is 50,000 (50 seconds).
                         format: int32
                         type: integer
                       connectTimeout:
+                        default: 5000
                         description: ConnectTimeout the maximum time in milliseconds
                           to wait for a connection attempt to a target to succeed;
                           default is 5000 (five seconds).
@@ -220,6 +222,7 @@ spec:
                         format: int32
                         type: integer
                       targetTimeout:
+                        default: 50
                         description: TargetTimeout the maximum time in milliseconds
                           that a target can remain inactive; default is 50,000 (50
                           seconds).
@@ -448,12 +451,14 @@ spec:
                             health check
                           properties:
                             check:
+                              default: true
                               description: |-
                                 Check makes the target available only if it accepts periodic health check TCP connection attempts.
                                 When turned off, the target is considered always available.
                                 The health check only consists of a connection attempt to the address and port of the target.
                               type: boolean
                             checkInterval:
+                              default: 2000
                               description: CheckInterval the interval in milliseconds
                                 between consecutive health checks; default is 2000.
                               format: int32
@@ -570,6 +575,7 @@ spec:
                           format: int32
                           type: integer
                         proxyProtocol:
+                          default: none
                           description: ProxyProtocol version of the proxy protocol
                           enum:
                           - none
