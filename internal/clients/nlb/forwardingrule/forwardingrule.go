@@ -157,6 +157,7 @@ func LateInitializer(in *v1alpha1.ForwardingRuleParameters, rule sdkgo.NetworkLo
 	return lateInitialized
 }
 
+// SetStatus sets fields of the ForwardingRuleObservation based on sdkgo.NetworkLoadBalancerForwardingRule
 func SetStatus(in *v1alpha1.ForwardingRuleObservation, rule sdkgo.NetworkLoadBalancerForwardingRule) {
 	if rule.Metadata != nil && rule.Metadata.State != nil {
 		in.State = *rule.Metadata.State
@@ -187,6 +188,7 @@ func GenerateUpdateInput(cr *v1alpha1.ForwardingRule, listenerIP string, targets
 	return instanceUpdateInput
 }
 
+// IsUpToDate returns true if the ForwardingRule is up-to-date or false otherwise
 func IsUpToDate(cr *v1alpha1.ForwardingRule, observed sdkgo.NetworkLoadBalancerForwardingRule, listenerIp string, targetsIPs map[string]v1alpha1.ForwardingRuleTarget) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && observed.Properties == nil:

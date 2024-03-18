@@ -33,12 +33,10 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
-	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
-
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/nlb/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/nlb/forwardingrule"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
@@ -165,7 +163,7 @@ func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed
 	if meta.GetExternalName(cr) != "" {
 		return managed.ExternalCreation{}, nil
 	}
-	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
 
@@ -173,8 +171,8 @@ func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed
 	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
 
 	if c.isUniqueNamesEnabled {
-		// isUniqueNamesEnabled option enforces NetworkLoadBalancer names to be unique per Datacenter
-		// Multiple Network Load Balancers with the same name will trigger an error
+		// isUniqueNamesEnabled option enforces ForwardingRule names to be unique per Datacenter and NetworkLoadBalancer
+		// Multiple Forwarding Rules with the same name will trigger an error
 		// If only one instance is found, it will be "imported"
 		ruleDuplicateID, err := c.service.CheckDuplicateForwardingRule(ctx, datacenterID, nlbID, cr.Spec.ForProvider.Name)
 		if err != nil {
@@ -211,7 +209,7 @@ func (c *externalForwardingRule) Update(ctx context.Context, mg resource.Managed
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotForwardingRule)
 	}
-	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalUpdate{}, nil
 	}
 
