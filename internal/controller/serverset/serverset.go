@@ -181,16 +181,8 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}, nil
 }
 
-func didNrIncrease(cr *v1alpha1.ServerSet, replicas []v1alpha1.Server) bool {
-	return len(replicas) > cr.Status.AtProvider.Replicas
-}
-
-func didNrDecrease(cr *v1alpha1.ServerSet, replicas []v1alpha1.Server) bool {
-	return len(replicas) < cr.Status.AtProvider.Replicas
-}
-
 func didNrOfReplicasChange(cr *v1alpha1.ServerSet, replicas []v1alpha1.Server) bool {
-	return didNrIncrease(cr, replicas) || didNrDecrease(cr, replicas)
+	return len(replicas) != cr.Status.AtProvider.Replicas
 }
 
 func (e *external) populateCRStatus(cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) {
