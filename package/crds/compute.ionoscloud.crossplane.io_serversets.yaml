@@ -563,14 +563,6 @@ spec:
                           type: string
                         name:
                           type: string
-                        role:
-                          description: Server assigned role
-                          enum:
-                          - UNKNOWN
-                          - ACTIVE
-                          - PASSIVE
-                          - REPLICA
-                          type: string
                         status:
                           enum:
                           - UNKNOWN
@@ -579,7 +571,6 @@ spec:
                           type: string
                       required:
                       - name
-                      - role
                       - status
                       type: object
                     type: array

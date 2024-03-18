@@ -21,13 +21,10 @@ import (
 	"fmt"
 	"strconv"
 
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -123,7 +120,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, err
 	}
 
-	err = e.populateCRStatus(ctx, cr, servers)
+	err = e.populateCRStatus(cr, servers)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -199,60 +196,22 @@ func didNrOfReplicasChange(cr *v1alpha1.ServerSet, replicas []v1alpha1.Server) b
 	return didNrIncrease(cr, replicas) || didNrDecrease(cr, replicas)
 }
 
-func (e *external) populateCRStatus(ctx context.Context, cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) error {
+func (e *external) populateCRStatus(cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) error {
 	if cr.Status.AtProvider.ReplicaStatuses == nil || didNrOfReplicasChange(cr, serverSetReplicas) {
 		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, cr.Spec.ForProvider.Replicas)
 	}
 	cr.Status.AtProvider.Replicas = len(serverSetReplicas)
 
-	configs := []v1.ConfigMap{}
-	for _, replica := range serverSetReplicas {
-		nameSpacedName := computeNamespacedName(replica)
-		c := &v1.ConfigMap{}
-		err := e.kube.Get(ctx, nameSpacedName, c)
-		if err != nil {
-			e.log.Info("ServerSet status could not be populated", "error", err)
-			return err
-		}
-		configs = append(configs, *c)
-	}
-
 	for i, replica := range serverSetReplicas {
 		replicaStatus := computeStatus(serverSetReplicas[i].Status.AtProvider.State)
-
-		role, err := getRole(configs[i])
-		errMsg := ""
-		if err != nil {
-			errMsg = err.Error()
-			e.log.Info("error", err)
-		}
-
 		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{
-			Role:         role,
 			Name:         replica.Name,
 			Status:       replicaStatus,
-			ErrorMessage: errMsg,
+			ErrorMessage: "",
 			LastModified: metav1.Now(),
 		}
 	}
 	return nil
-}
-
-func getRole(configMap v1.ConfigMap) (string, error) {
-	value, ok := configMap.Data["role"]
-	if !ok {
-		return "UNKNOWN", errors.New("Role not found in configmap. Will default to UNKNOWN")
-	}
-	return value, nil
-}
-
-func computeNamespacedName(server v1alpha1.Server) types.NamespacedName {
-	name := "configs-" + server.Name
-	ns := server.Namespace
-	if ns == "" {
-		ns = "default"
-	}
-	return types.NamespacedName{Namespace: ns, Name: name}
 }
 
 func computeStatus(state string) string {
