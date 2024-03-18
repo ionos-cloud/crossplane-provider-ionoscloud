@@ -21,6 +21,8 @@ import (
 	"reflect"
 	"testing"
 
+	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
+
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/google/go-cmp/cmp"
@@ -50,7 +52,7 @@ func createServer(name string) v1alpha1.Server {
 		},
 		Status: v1alpha1.ServerStatus{
 			AtProvider: v1alpha1.ServerObservation{
-				State: "AVAILABLE",
+				State: ionoscloud.Available,
 			},
 		},
 	}
@@ -241,6 +243,28 @@ func createServerSetWhichUpdatesFrom2ReplicasTo1(serverName1, serverName2 string
 				},
 			},
 		},
+	}
+}
+
+func createServerSetWithOneReplica(serverName1 string) *v1alpha1.ServerSet {
+	return &v1alpha1.ServerSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ServerSet",
+			APIVersion: "v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serverSetName,
+			Namespace: "",
+			Annotations: map[string]string{
+				"crossplane.io/external-name": serverSetName,
+			},
+		},
+		Spec: v1alpha1.ServerSetSpec{
+			ForProvider: v1alpha1.ServerSetParameters{
+				Replicas: 1,
+			},
+		},
+		Status: v1alpha1.ServerSetStatus{},
 	}
 }
 
@@ -443,6 +467,13 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 
 	server1 := createServer("serverset-server-0-0")
 	server2 := createServer("serverset-server-1-0")
+
+	serverWithErrorStatus := createServer("serverset-server-1-0")
+	serverWithErrorStatus.Status.AtProvider.State = ionoscloud.Failed
+
+	serverWithUnknownStatus := createServer("serverset-server-1-0")
+	serverWithUnknownStatus.Status.AtProvider.State = "new-state"
+
 	nic1 := createNic(server1.Name)
 	nic2 := createNic(server2.Name)
 
@@ -521,6 +552,48 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					{
 						Name:         server1.Name,
 						Status:       "READY",
+						ErrorMessage: "",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "status of the server is failure, then status of replica is ERROR",
+			fields: fields{
+				kube: fakeKubeClientObjs(&serverWithErrorStatus, &nic1),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createServerSetWithOneReplica(serverWithErrorStatus.Name),
+			},
+			want: v1alpha1.ServerSetObservation{
+				Replicas: 1,
+				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+					{
+						Name:         serverWithErrorStatus.Name,
+						Status:       "ERROR",
+						ErrorMessage: "",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Status of the server not among known ones, then status of replica is also UNKNOWN",
+			fields: fields{
+				kube: fakeKubeClientObjs(&serverWithUnknownStatus, &nic1),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createServerSetWhichUpdatesFrom2ReplicasTo1(serverWithUnknownStatus.Name, server2.Name),
+			},
+			want: v1alpha1.ServerSetObservation{
+				Replicas: 1,
+				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+					{
+						Name:         serverWithUnknownStatus.Name,
+						Status:       "UNKNOWN",
 						ErrorMessage: "",
 					},
 				},

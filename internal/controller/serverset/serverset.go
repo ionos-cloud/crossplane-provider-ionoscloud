@@ -120,10 +120,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, err
 	}
 
-	err = e.populateCRStatus(cr, servers)
-	if err != nil {
-		return managed.ExternalObservation{}, err
-	}
+	e.populateCRStatus(cr, servers)
 
 	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return managed.ExternalObservation{
@@ -196,7 +193,7 @@ func didNrOfReplicasChange(cr *v1alpha1.ServerSet, replicas []v1alpha1.Server) b
 	return didNrIncrease(cr, replicas) || didNrDecrease(cr, replicas)
 }
 
-func (e *external) populateCRStatus(cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) error {
+func (e *external) populateCRStatus(cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) {
 	if cr.Status.AtProvider.ReplicaStatuses == nil || didNrOfReplicasChange(cr, serverSetReplicas) {
 		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, cr.Spec.ForProvider.Replicas)
 	}
@@ -211,7 +208,6 @@ func (e *external) populateCRStatus(cr *v1alpha1.ServerSet, serverSetReplicas []
 			LastModified: metav1.Now(),
 		}
 	}
-	return nil
 }
 
 func computeStatus(state string) string {
