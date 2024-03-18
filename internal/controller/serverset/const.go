@@ -5,4 +5,7 @@ const (
 	resourceVolume     = "volume"
 	resourceNIC        = "nic"
 	resourceBootVolume = "bootvolume"
+	statusReady        = "READY"
+	statusUnknown      = "UNKNOWN"
+	statusError        = "ERROR"
 )

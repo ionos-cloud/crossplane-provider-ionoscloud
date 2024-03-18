@@ -207,11 +207,11 @@ func computeStatus(state string) string {
 	// based on the status of the Server.
 	switch state {
 	case ionoscloud.Available:
-		return "READY"
+		return statusReady
 	case ionoscloud.Failed:
-		return "ERROR"
+		return statusError
 	}
-	return "UNKNOWN"
+	return statusUnknown
 }
 
 func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {

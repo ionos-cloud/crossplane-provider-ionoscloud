@@ -202,7 +202,7 @@ func createServerSetWhichUpdatesFrom1ReplicaTo2(serverName string) *v1alpha1.Ser
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
 						Name:         serverName,
-						Status:       "READY",
+						Status:       statusReady,
 						ErrorMessage: "",
 					},
 				},
@@ -235,12 +235,12 @@ func createServerSetWhichUpdatesFrom2ReplicasTo1(serverName1, serverName2 string
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
 						Name:         serverName1,
-						Status:       "READY",
+						Status:       statusReady,
 						ErrorMessage: "",
 					},
 					{
 						Name:         serverName2,
-						Status:       "READY",
+						Status:       statusReady,
 						ErrorMessage: "",
 					},
 				},
@@ -481,6 +481,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 	nic2 := createNic(server2.Name)
 
 	fakeKubeClient := fakeKubeClientObjs(&server1, &server2, &nic1, &nic2)
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -502,12 +503,12 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
 						Name:         server1.Name,
-						Status:       "READY",
+						Status:       statusReady,
 						ErrorMessage: "",
 					},
 					{
 						Name:         server2.Name,
-						Status:       "READY",
+						Status:       statusReady,
 						ErrorMessage: "",
 					},
 				},
@@ -528,12 +529,12 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
 						Name:         server1.Name,
-						Status:       "READY",
+						Status:       statusReady,
 						ErrorMessage: "",
 					},
 					{
 						Name:         server2.Name,
-						Status:       "READY",
+						Status:       statusReady,
 						ErrorMessage: "",
 					},
 				},
@@ -554,7 +555,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
 						Name:         server1.Name,
-						Status:       "READY",
+						Status:       statusReady,
 						ErrorMessage: "",
 					},
 				},
@@ -575,7 +576,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
 						Name:         serverWithErrorStatus.Name,
-						Status:       "ERROR",
+						Status:       statusError,
 						ErrorMessage: "",
 					},
 				},
@@ -596,7 +597,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
 						Name:         serverWithUnknownStatus.Name,
-						Status:       "UNKNOWN",
+						Status:       statusUnknown,
 						ErrorMessage: "",
 					},
 				},
