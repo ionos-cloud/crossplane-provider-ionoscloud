@@ -213,7 +213,8 @@ spec:
                     description: Name of the  Flow Log.
                     type: string
                   networkLoadBalancerConfig:
-                    description: NetworkLoadBalancer to which this Flow Log will apply
+                    description: NetworkLoadBalancer to which this Flow Log will apply.
+                      There can only be one flow log per Network Load Balancer.
                     properties:
                       networkLoadBalancerId:
                         description: |-
@@ -481,12 +482,6 @@ spec:
                 description: FlowLogObservation are the observable fields of a Network
                   Load Balancer FlowLog.
                 properties:
-                  action:
-                    type: string
-                  bucket:
-                    type: string
-                  direction:
-                    type: string
                   flowLogId:
                     type: string
                   state:

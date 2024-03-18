@@ -24,12 +24,12 @@ type FlowLogParameters struct {
 	// +immutable
 	// +kubebuilder:validation:Required
 	DatacenterCfg DatacenterConfig `json:"datacenterConfig"`
-	// NetworkLoadBalancer to which this Flow Log will apply
+	// NetworkLoadBalancer to which this Flow Log will apply. There can only be one flow log per Network Load Balancer.
 	//
 	// +immutable
 	// +kubebuilder:validation:Required
 	NLBCfg NetworkLoadBalancerConfig `json:"networkLoadBalancerConfig"`
-	// Name of the  Flow Log.
+	// Name of the Flow Log.
 	//
 	// +kubebuilder:validation:Required
 	Name string `json:"name"`
@@ -53,9 +53,6 @@ type FlowLogParameters struct {
 type FlowLogObservation struct {
 	FlowLogID string `json:"flowLogId,omitempty"`
 	State     string `json:"state,omitempty"`
-	Action    string `json:"action,omitempty"`
-	Direction string `json:"direction,omitempty"`
-	Bucket    string `json:"bucket,omitempty"`
 }
 
 // FlowLogSpec defines the desired state of a Network Load Balancer FlowLog.

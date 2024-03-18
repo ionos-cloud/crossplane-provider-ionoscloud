@@ -32,6 +32,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/nlb/forwardingrule"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/nlb/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
@@ -41,7 +42,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
-const errNotFlowLog = "managed resource is not a FlowLog"
+const errNotFlowLog = "managed resource is not a NetworkLoadBalancer FlowLog"
 
 // Setup adds a controller that reconciles FlowLog managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
@@ -110,12 +111,29 @@ func (c *externalFlowLog) Observe(ctx context.Context, mg resource.Managed) (man
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotFlowLog)
 	}
-
-	if meta.GetExternalName(cr) == "" {
+	flowLogID := meta.GetExternalName(cr)
+	if flowLogID == "" {
 		return managed.ExternalObservation{}, nil
 	}
 
-	return managed.ExternalObservation{}, nil
+	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
+	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
+	observed, _, err := c.service.GetFlowLogByID(ctx, datacenterID, nlbID, flowLogID)
+	if err != nil {
+		if errors.Is(err, forwardingrule.ErrNotFound) {
+			return managed.ExternalObservation{}, nil
+		}
+		return managed.ExternalObservation{}, err
+	}
+	flowlog.SetStatus(&cr.Status.AtProvider, observed)
+	cr.Status.AtProvider.FlowLogID = flowLogID
+
+	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
+	return managed.ExternalObservation{
+		ResourceExists:    true,
+		ResourceUpToDate:  flowlog.IsUpToDate(cr, observed),
+		ConnectionDetails: managed.ConnectionDetails{},
+	}, nil
 }
 
 func (c *externalFlowLog) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint: gocyclo
@@ -133,8 +151,28 @@ func (c *externalFlowLog) Create(ctx context.Context, mg resource.Managed) (mana
 		return managed.ExternalCreation{}, nil
 	}
 
+	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
+	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
 	if c.isUniqueNamesEnabled {
+		// isUniqueNamesEnabled option enforces FlowLog names to be unique per Datacenter and NetworkLoadBalancer
+		// Multiple Flow Logs with the same name will trigger an error
+		// If only one instance is found, it will be "imported"
+		flowLogDuplicateID, err := c.service.CheckDuplicateFlowLog(ctx, datacenterID, nlbID, cr.Spec.ForProvider.Name)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if flowLogDuplicateID != "" {
+			cr.Status.AtProvider.FlowLogID = flowLogDuplicateID
+			meta.SetExternalName(cr, flowLogDuplicateID)
+			return managed.ExternalCreation{}, nil
+		}
 	}
+	flowLogInput := flowlog.GenerateCreateInput(cr)
+	newInstance, _, err := c.service.CreateFlowLog(ctx, datacenterID, nlbID, flowLogInput)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	cr.Status.AtProvider.FlowLogID = *newInstance.Id
 	return managed.ExternalCreation{}, nil
 }
 
@@ -147,7 +185,12 @@ func (c *externalFlowLog) Update(ctx context.Context, mg resource.Managed) (mana
 		return managed.ExternalUpdate{}, nil
 	}
 
-	return managed.ExternalUpdate{}, nil
+	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
+	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
+	flowLogID := cr.Status.AtProvider.FlowLogID
+	flowLogInput := flowlog.GenerateUpdateInput(cr)
+	_, _, err := c.service.UpdateFlowLog(ctx, datacenterID, nlbID, flowLogID, flowLogInput)
+	return managed.ExternalUpdate{}, err
 }
 
 func (c *externalFlowLog) Delete(ctx context.Context, mg resource.Managed) error {
@@ -155,11 +198,16 @@ func (c *externalFlowLog) Delete(ctx context.Context, mg resource.Managed) error
 	if !ok {
 		return errors.New(errNotFlowLog)
 	}
-
 	cr.SetConditions(xpv1.Deleting())
-	if cr.Status.AtProvider.State == compute.DESTROYING || cr.Status.AtProvider.State == compute.BUSY {
+	if cr.Status.AtProvider.State == compute.DESTROYING {
 		return nil
 	}
 
+	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
+	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
+	_, err := c.service.DeleteFlowLog(ctx, datacenterID, nlbID, cr.Status.AtProvider.FlowLogID)
+	if !errors.Is(err, forwardingrule.ErrNotFound) {
+		return err
+	}
 	return nil
 }
