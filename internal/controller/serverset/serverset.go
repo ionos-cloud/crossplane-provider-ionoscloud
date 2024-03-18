@@ -24,6 +24,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -33,6 +34,8 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
+
+	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 )
 
 const (
@@ -117,10 +120,10 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, err
 	}
 
-	cr.Status.AtProvider.Replicas = len(servers)
+	e.populateCRStatus(cr, servers)
+
 	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return managed.ExternalObservation{
-			// we need to re-create servers. go to create
 			ResourceExists:    false,
 			ResourceUpToDate:  false,
 			ConnectionDetails: managed.ConnectionDetails{},
@@ -133,8 +136,9 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
+
 	areVolumesUpToDate := areVolumesUpToDate(cr.Spec.ForProvider, volumes)
-	// only update
+
 	if !areServersUpToDate || !areVolumesUpToDate {
 		return managed.ExternalObservation{
 			ResourceExists:    true,
@@ -149,6 +153,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if areNicsUpToDate, err = e.areNicsUpToDate(ctx, cr); err != nil {
 		return managed.ExternalObservation{}, err
 	}
+
 	if !areNicsUpToDate {
 		return managed.ExternalObservation{
 			ResourceExists:    false,
@@ -174,6 +179,39 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// resource. These will be stored as the connection secret.
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
+}
+
+func didNrOfReplicasChange(cr *v1alpha1.ServerSet, replicas []v1alpha1.Server) bool {
+	return len(replicas) != cr.Status.AtProvider.Replicas
+}
+
+func (e *external) populateCRStatus(cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) {
+	if cr.Status.AtProvider.ReplicaStatuses == nil || didNrOfReplicasChange(cr, serverSetReplicas) {
+		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, cr.Spec.ForProvider.Replicas)
+	}
+	cr.Status.AtProvider.Replicas = len(serverSetReplicas)
+
+	for i := range serverSetReplicas {
+		replicaStatus := computeStatus(serverSetReplicas[i].Status.AtProvider.State)
+		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{
+			Name:         serverSetReplicas[i].Name,
+			Status:       replicaStatus,
+			ErrorMessage: "",
+			LastModified: metav1.Now(),
+		}
+	}
+}
+
+func computeStatus(state string) string {
+	// At the moment we compute the status of the Server contained in the ServerSet
+	// based on the status of the Server.
+	switch state {
+	case ionoscloud.Available:
+		return statusReady
+	case ionoscloud.Failed:
+		return statusError
+	}
+	return statusUnknown
 }
 
 func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {

@@ -113,16 +113,12 @@ type ServerSetMetadata struct {
 // ServerSetObservation are the observable fields of a ServerSet.
 type ServerSetObservation struct {
 	// Replicas is the count of ready replicas.
-	Replicas      int                      `json:"replicas,omitempty"`
-	ReplicaStatus []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
+	Replicas        int                      `json:"replicas,omitempty"`
+	ReplicaStatuses []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
 }
 
 // ServerSetReplicaStatus are the observable fields of a ServerSetReplicaStatus.
 type ServerSetReplicaStatus struct {
-	// Server assigned role
-	//
-	// +kubebuilder:validation:Enum=ACTIVE;PASSIVE;REPLICA
-	Role string `json:"role"`
 	Name string `json:"name"`
 	// +kubebuilder:validation:Enum=UNKNOWN;READY;ERROR
 	Status string `json:"status"`

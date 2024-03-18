@@ -81,4 +81,3 @@ spec:
 #        todo - add sshKeys or imagePassword
 #        todo - add userdata in volume creation
         userData: "" #cloud-config
-
