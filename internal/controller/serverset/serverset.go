@@ -191,10 +191,10 @@ func (e *external) populateCRStatus(cr *v1alpha1.ServerSet, serverSetReplicas []
 	}
 	cr.Status.AtProvider.Replicas = len(serverSetReplicas)
 
-	for i, replica := range serverSetReplicas {
+	for i := range serverSetReplicas {
 		replicaStatus := computeStatus(serverSetReplicas[i].Status.AtProvider.State)
 		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{
-			Name:         replica.Name,
+			Name:         serverSetReplicas[i].Name,
 			Status:       replicaStatus,
 			ErrorMessage: "",
 			LastModified: metav1.Now(),
