@@ -204,8 +204,7 @@ func (e *external) populateCRStatus(cr *v1alpha1.ServerSet, serverSetReplicas []
 
 func computeStatus(state string) string {
 	// At the moment we compute the status of the Server contained in the ServerSet
-	// based on the status of the Server. However, this status does not mean
-	// That the NAS software is up and running on it.
+	// based on the status of the Server.
 	switch state {
 	case ionoscloud.Available:
 		return "READY"
