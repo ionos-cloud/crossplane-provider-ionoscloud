@@ -21,6 +21,7 @@ const (
 	logDeleteWaitErr = "error while waiting for %s flow log delete request: %w"
 )
 
+// ErrNotFound flow log was not found
 var ErrNotFound = errors.New("flow log not found")
 
 type listFunc = func() (sdkgo.FlowLogs, *sdkgo.APIResponse, error)
@@ -28,7 +29,7 @@ type byIdFunc = func() (sdkgo.FlowLog, *sdkgo.APIResponse, error)
 type createOrPatchFunc = func() (sdkgo.FlowLog, *sdkgo.APIResponse, error)
 type deleteFunc = func() (*sdkgo.APIResponse, error)
 
-// flowLogClient defines CRUD operations which are applicable to all custom resource flow logs
+// flowLogClient common CRUD interface for flow log
 type flowLogClient interface {
 	checkDuplicateFlowLog(flowLogName string, listFn listFunc) (string, error)
 	getFlowLogByID(byIdFn byIdFunc) (sdkgo.FlowLog, *sdkgo.APIResponse, error)
@@ -37,9 +38,9 @@ type flowLogClient interface {
 	deleteFlowLog(ctx context.Context, deleteFn deleteFunc) (*sdkgo.APIResponse, error)
 }
 
+// client implements common functionality for IONOS flow log
 type client struct {
 	*clients.IonosServices
-	flowLogClient
 	parent string
 }
 

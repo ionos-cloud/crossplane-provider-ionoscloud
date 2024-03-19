@@ -31,9 +31,9 @@ func GenerateCreateInput(cr customResource) sdkgo.FlowLog {
 // GenerateUpdateInput returns sdkgo.FlowLogProperties for Update requests based on CR spec
 func GenerateUpdateInput(cr customResource) sdkgo.FlowLogProperties {
 	name := cr.GetName()
-	action := cr.GetName()
-	direction := cr.GetName()
-	bucket := cr.GetName()
+	action := cr.GetAction()
+	direction := cr.GetDirection()
+	bucket := cr.GetBucket()
 	return sdkgo.FlowLogProperties{
 		Name:      &name,
 		Action:    &action,
@@ -59,6 +59,7 @@ func IsUpToDate(cr customResource, observed sdkgo.FlowLog) bool { // nolint:gocy
 	return true
 }
 
+// EqualFlowLogProperties compares a target flow log customResource to the observed sdkgo.FlowLogProperties
 func EqualFlowLogProperties(target customResource, observed sdkgo.FlowLogProperties) bool {
 	return compare.EqualString(target.GetName(), observed.GetName()) &&
 		compare.EqualString(target.GetAction(), observed.GetAction()) &&
