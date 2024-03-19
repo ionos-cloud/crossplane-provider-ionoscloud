@@ -86,32 +86,6 @@ func EqualMongoDatabaseMaintenanceWindow(targetValue mongoalphav1.MaintenanceWin
 		EqualMongoDayOfTheWeek(targetValue.DayOfTheWeek, observedValue.DayOfTheWeek)
 }
 
-// FlowLogPtrProperties allows comparison of flow logs from different sdk entities
-type FlowLogPtrProperties interface {
-	GetName() *string
-	GetAction() *string
-	GetDirection() *string
-	GetBucket() *string
-}
-
-// FlowLogProperties allows comparison of flow logs from different custom resources
-type FlowLogProperties interface {
-	GetName() string
-	GetAction() string
-	GetDirection() string
-	GetBucket() string
-}
-
-func EqualFlowLogProperties(target FlowLogProperties, observed FlowLogPtrProperties) bool {
-	if observed == nil {
-		return target.GetName() == "" && target.GetAction() == "" && target.GetDirection() == "" && target.GetBucket() == ""
-	}
-	return EqualString(target.GetName(), observed.GetName()) &&
-		EqualString(target.GetAction(), observed.GetAction()) &&
-		EqualString(target.GetDirection(), observed.GetDirection()) &&
-		EqualString(target.GetBucket(), observed.GetBucket())
-}
-
 // EqualTimeString compares the two given strings if they are represent the same point in time.
 // This function assumes the timeformat is HH:mm:ssZ. If the Z is missing, it will be added.
 func EqualTimeString(targetValue string, observedValue *string) bool {

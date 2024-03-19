@@ -110,6 +110,11 @@ func (f *FlowLog) GetBucket() string {
 	return f.Spec.ForProvider.Bucket
 }
 
+// SetState sets the state of the flow log observation
+func (f *FlowLog) SetState(state string) {
+	f.Status.AtProvider.State = state
+}
+
 // +kubebuilder:object:root=true
 
 // FlowLogList contains a list of NetworkLoadBalancer

@@ -36,7 +36,7 @@ import (
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/nlb/flowlog"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/flowlog"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
@@ -89,7 +89,7 @@ func (c *connectorFlowLog) Connect(ctx context.Context, mg resource.Managed) (ma
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalFlowLog{
-		service:              flowlog.NewClient(svc),
+		service:              flowlog.NLBClient(svc),
 		log:                  c.log,
 		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
@@ -99,7 +99,7 @@ func (c *connectorFlowLog) Connect(ctx context.Context, mg resource.Managed) (ma
 type externalFlowLog struct {
 	// A 'client' used to connect to the externalFlowLog resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service              flowlog.Client
+	service              flowlog.NLBFlowLog
 	log                  logging.Logger
 	isUniqueNamesEnabled bool
 }
@@ -123,7 +123,7 @@ func (c *externalFlowLog) Observe(ctx context.Context, mg resource.Managed) (man
 		}
 		return managed.ExternalObservation{}, err
 	}
-	flowlog.SetStatus(&cr.Status.AtProvider, observed)
+	flowlog.SetStatus(cr, observed)
 	cr.Status.AtProvider.FlowLogID = flowLogID
 
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
