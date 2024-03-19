@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -13,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch"
 )
 
 type kubeBootVolumeControlManager interface {
@@ -30,11 +32,14 @@ type kubeBootVolumeController struct {
 
 // Create creates a volume CR and waits until in reaches AVAILABLE state
 func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Volume, error) {
-	name := getNameFromIndex(cr.Name, "bootvolume", replicaIndex, version)
+	name := getNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, version)
 	k.log.Info("Creating Volume", "name", name)
-
+	userDataPatcher, err := ccpatch.NewCloudInitPatcher(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData)
+	if err != nil {
+		return v1alpha1.Volume{}, fmt.Errorf("while creating cloud init patcher for volume %s %w", name, err)
+	}
 	createVolume := fromServerSetToVolume(cr, name, replicaIndex, version)
-	createVolume.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
+	createVolume.Spec.ForProvider.UserData = userDataPatcher.Patch("hostname", name).Encode()
 	if err := k.kube.Create(ctx, &createVolume); err != nil {
 		return v1alpha1.Volume{}, err
 	}
@@ -111,12 +116,17 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 			Name:      name,
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
-				serverSetLabel:                          cr.Name,
-				fmt.Sprintf(indexLabel, "bootvolume"):   fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(versionLabel, "bootvolume"): fmt.Sprintf("%d", version),
+				serverSetLabel: cr.Name,
+				fmt.Sprintf(indexLabel, resourceBootVolume):   fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(versionLabel, resourceBootVolume): fmt.Sprintf("%d", version),
 			},
 		},
 		Spec: v1alpha1.VolumeSpec{
+			ResourceSpec: xpv1.ResourceSpec{
+				ProviderConfigReference: cr.GetProviderConfigReference(),
+				ManagementPolicies:      cr.GetManagementPolicies(),
+				DeletionPolicy:          cr.GetDeletionPolicy(),
+			},
 			ForProvider: v1alpha1.VolumeParameters{
 				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
 				Name:             name,
@@ -124,6 +134,7 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 				Size:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size,
 				Type:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type,
 				Image:            cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image,
+				UserData:         cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData,
 				// todo add to template(?)
 				ImagePassword: "imagePassword776",
 			},

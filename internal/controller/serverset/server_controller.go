@@ -35,7 +35,6 @@ func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSe
 	createServer := fromServerSetToServer(cr, replicaIndex, version, volumeVersion)
 	k.log.Info("Creating Server", "name", createServer.Name)
 
-	createServer.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
 	if err := k.kube.Create(ctx, &createServer); err != nil {
 		return v1alpha1.Server{}, fmt.Errorf("while creating createServer %w ", err)
 	}
@@ -113,37 +112,41 @@ func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namesp
 // fromServerSetToServer is a conversion function that converts a ServerSet resource to a Server resource
 // attaches a bootvolume to the server based on replicaIndex
 func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) v1alpha1.Server {
-	serverType := "server"
 	return v1alpha1.Server{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getNameFromIndex(cr.Name, serverType, replicaIndex, version),
+			Name:      getNameFromIndex(cr.Name, resourceServer, replicaIndex, version),
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
-				serverSetLabel:                        cr.Name,
-				fmt.Sprintf(indexLabel, serverType):   fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(versionLabel, serverType): fmt.Sprintf("%d", version),
+				serverSetLabel:                            cr.Name,
+				fmt.Sprintf(indexLabel, resourceServer):   fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(versionLabel, resourceServer): fmt.Sprintf("%d", version),
 			},
 		},
 		Spec: v1alpha1.ServerSpec{
+			ResourceSpec: xpv1.ResourceSpec{
+				ProviderConfigReference: cr.GetProviderConfigReference(),
+				ManagementPolicies:      cr.GetManagementPolicies(),
+				DeletionPolicy:          cr.GetDeletionPolicy(),
+			},
 			ForProvider: v1alpha1.ServerParameters{
 				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
-				Name:             getNameFromIndex(cr.Name, serverType, replicaIndex, version),
+				Name:             getNameFromIndex(cr.Name, resourceServer, replicaIndex, version),
 				Cores:            cr.Spec.ForProvider.Template.Spec.Cores,
 				RAM:              cr.Spec.ForProvider.Template.Spec.RAM,
 				AvailabilityZone: GetZoneFromIndex(replicaIndex),
 				CPUFamily:        cr.Spec.ForProvider.Template.Spec.CPUFamily,
 				VolumeCfg: v1alpha1.VolumeConfig{
 					VolumeIDRef: &xpv1.Reference{
-						Name: getNameFromIndex(cr.Name, "bootvolume", replicaIndex, volumeVersion),
+						Name: getNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, volumeVersion),
 					},
 				},
 			},
 		}}
 }
 
-// GetZoneFromIndex returns ZONE_1 for odd and ZONE_2 for even index
+// GetZoneFromIndex returns ZONE_2 for odd and ZONE_1 for even index
 func GetZoneFromIndex(index int) string {
-	return fmt.Sprintf("ZONE_%d", (index+1)%2+1)
+	return fmt.Sprintf("ZONE_%d", index%2+1)
 }
 
 func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
