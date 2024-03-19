@@ -107,30 +107,17 @@ func (c *externalVolumeselector) Observe(ctx context.Context, mg resource.Manage
 		if err != nil {
 			return managed.ExternalObservation{}, err
 		}
-		if len(volumeList.Items) == 0 {
-			c.log.Info("no volumes found", "index", replicaIndex)
-			continue
-		}
 		// get server by index
 		serverList := v1alpha1.ServerList{}
 		err = serverset.ListResFromSSetWithIndex(ctx, c.kube, serverset.ResourceServer, replicaIndex, &serverList)
 		if err != nil {
 			return managed.ExternalObservation{}, err
 		}
-		if len(serverList.Items) == 0 {
-			c.log.Info("no server found", "index", replicaIndex)
-			continue
+		areResourcesReady := c.areVolumesAndServersReady(volumeList, serverList)
+		if err != nil {
+			return managed.ExternalObservation{}, err
 		}
-		if volumeList.Items[0].Status.AtProvider.VolumeID == "" {
-			c.log.Info("volume does not have ID", "index", replicaIndex)
-			continue
-		}
-		if serverList.Items[0].Spec.ForProvider.DatacenterCfg.DatacenterID == "" {
-			c.log.Info("server does not have dcID", "index", replicaIndex)
-			continue
-		}
-		if serverList.Items[0].Status.AtProvider.ServerID == "" {
-			c.log.Info("server does not have ID", "index", replicaIndex)
+		if !areResourcesReady {
 			continue
 		}
 		isAttached := false
