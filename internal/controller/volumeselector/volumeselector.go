@@ -101,6 +101,7 @@ func (c *externalVolumeselector) Observe(ctx context.Context, mg resource.Manage
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
+
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
 		volumeList := v1alpha1.VolumeList{}
 		err := listResFromSSetWithIndex(ctx, c.kube, fmt.Sprintf(indexLabel, dataVolume), replicaIndex, &volumeList)
@@ -113,11 +114,7 @@ func (c *externalVolumeselector) Observe(ctx context.Context, mg resource.Manage
 		if err != nil {
 			return managed.ExternalObservation{}, err
 		}
-		areResourcesReady := c.areVolumesAndServersReady(volumeList, serverList)
-		if err != nil {
-			return managed.ExternalObservation{}, err
-		}
-		if !areResourcesReady {
+		if !c.areVolumesAndServersReady(volumeList, serverList) {
 			continue
 		}
 		isAttached := false
@@ -171,11 +168,8 @@ func (c *externalVolumeselector) Update(ctx context.Context, mg resource.Managed
 		if err != nil {
 			return managed.ExternalUpdate{}, err
 		}
-		areReady := c.areVolumesAndServersReady(volumeList, serverList)
-		if err != nil {
-			return managed.ExternalUpdate{}, err
-		}
-		if !areReady {
+
+		if !c.areVolumesAndServersReady(volumeList, serverList) {
 			continue
 		}
 		for _, volume := range volumeList.Items {
