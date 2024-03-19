@@ -73,7 +73,7 @@ type FlowLogStatus struct {
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="DATACENTER ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
-// +kubebuilder:printcolumn:name="NETWORKLOADBALANCER ID",type="string",JSONPath=".spec.forProvider.applicationLoadBalancerConfig.applicationLoadBalancerId"
+// +kubebuilder:printcolumn:name="NETWORKLOADBALANCER ID",type="string",JSONPath=".spec.forProvider.networkLoadBalancerConfig.networkLoadBalancerId"
 // +kubebuilder:printcolumn:name="FLOWLOG ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="FLOWLOG NAME",type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="ACTION",priority=1,type="string",JSONPath=".spec.forProvider.action"

@@ -210,7 +210,7 @@ spec:
                     - BIDIRECTIONAL
                     type: string
                   name:
-                    description: Name of the  Flow Log.
+                    description: Name of the Flow Log.
                     type: string
                   networkLoadBalancerConfig:
                     description: NetworkLoadBalancer to which this Flow Log will apply.
