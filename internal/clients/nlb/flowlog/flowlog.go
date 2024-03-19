@@ -4,20 +4,24 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/flowlog"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/compare"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/nlb/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
-// APIClient is a wrapper around IONOS Service
-type APIClient struct {
+var ErrNotFound = fmt.Errorf("network load balancer: %w", flowlog.ErrNotFound)
+
+type apiClient struct {
 	*clients.IonosServices
+	fc flowlog.Client
 }
 
-// Client is a wrapper around IONOS Service Network Load Balancer methods
+// Client wrapper
 type Client interface {
 	CheckDuplicateFlowLog(ctx context.Context, datacenterID, nlbID, flowLogName string) (string, error)
 	GetFlowLogByID(ctx context.Context, datacenterID, nlbID, flowLogID string) (sdkgo.FlowLog, *sdkgo.APIResponse, error)
@@ -28,54 +32,59 @@ type Client interface {
 
 // CheckDuplicateFlowLog returns the ID of the duplicate Flow Log if any,
 // or an error if multiple Flow Logs with the same name are found
-func (cp *APIClient) CheckDuplicateFlowLog(ctx context.Context, datacenterID, nlbID, flowLogName string) (string, error) {
-	FlowLogs, _, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFlowlogsGet(ctx, datacenterID, nlbID).Depth(utils.DepthQueryParam).Execute()
-	if err != nil {
-		return "", err
-	}
-
-	matchedItems := make([]sdkgo.FlowLog, 0)
-
-	if FlowLogs.Items != nil {
-		for _, item := range *FlowLogs.Items {
-			if item.Properties != nil && item.Properties.Name != nil && *item.Properties.Name == flowLogName {
-				matchedItems = append(matchedItems, item)
-			}
-		}
-	}
-
-	if len(matchedItems) == 0 {
-		return "", nil
-	}
-	if len(matchedItems) > 1 {
-		return "", fmt.Errorf("error: found multiple Flow Logs with the name %v", flowLogName)
-	}
-	if matchedItems[0].Id == nil {
-		return "", fmt.Errorf("error getting ID for Flow Log named: %v", flowLogName)
-	}
-	return *matchedItems[0].Id, nil
+func (cp *apiClient) CheckDuplicateFlowLog(ctx context.Context, datacenterID, nlbID, flowLogName string) (string, error) {
+	listFn := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFlowlogsGet(ctx, datacenterID, nlbID).Depth(utils.DepthQueryParam).Execute
+	return cp.fc.CheckDuplicateFlowLog(flowLogName, listFn)
 }
 
 // GetFlowLogByID based on Datacenter ID, NetworkLoadBalancer ID and FlowLog ID
-func (cp *APIClient) GetFlowLogByID(ctx context.Context, datacenterID, nlbID, flowLogID string) (sdkgo.FlowLog, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFlowlogsFindByFlowLogId(ctx, datacenterID, nlbID, flowLogID).Depth(utils.DepthQueryParam).Execute()
+func (cp *apiClient) GetFlowLogByID(ctx context.Context, datacenterID, nlbID, flowLogID string) (sdkgo.FlowLog, *sdkgo.APIResponse, error) {
+	byIdFn := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFlowlogsFindByFlowLogId(ctx, datacenterID, nlbID, flowLogID).Depth(utils.DepthQueryParam).Execute
+	return cp.fc.GetFlowLogByID(byIdFn)
 }
 
 // CreateFlowLog based on Datacenter ID, NetworkLoadBalancer ID and FlowLog
-func (cp *APIClient) CreateFlowLog(ctx context.Context, datacenterID, nlbID string, flowLog sdkgo.FlowLog) (sdkgo.FlowLog, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFlowlogsPost(ctx, datacenterID, nlbID).NetworkLoadBalancerFlowLog(flowLog).Execute()
+func (cp *apiClient) CreateFlowLog(ctx context.Context, datacenterID, nlbID string, flowLog sdkgo.FlowLog) (sdkgo.FlowLog, *sdkgo.APIResponse, error) {
+	createFn := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFlowlogsPost(ctx, datacenterID, nlbID).NetworkLoadBalancerFlowLog(flowLog).Execute
+	return cp.fc.CreateFlowLog(ctx, createFn)
 }
 
 // UpdateFlowLog based on Datacenter ID, NetworkLoadBalancer ID, FlowLog ID, and FlowLog
-func (cp *APIClient) UpdateFlowLog(ctx context.Context, datacenterID, nlbID, flowLogID string, flowLog sdkgo.FlowLogProperties) (sdkgo.FlowLog, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFlowlogsPatch(ctx, datacenterID, nlbID, flowLogID).NetworkLoadBalancerFlowLogProperties(flowLog).Execute()
+func (cp *apiClient) UpdateFlowLog(ctx context.Context, datacenterID, nlbID, flowLogID string, flowLog sdkgo.FlowLogProperties) (sdkgo.FlowLog, *sdkgo.APIResponse, error) {
+	updateFn := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFlowlogsPatch(ctx, datacenterID, nlbID, flowLogID).NetworkLoadBalancerFlowLogProperties(flowLog).Execute
+	return cp.fc.UpdateFlowLog(ctx, updateFn)
 }
 
 // DeleteFlowLog based on Datacenter ID, NetworkLoadBalancer ID and FlowLog ID
-func (cp *APIClient) DeleteFlowLog(ctx context.Context, datacenterID, nlbID, flowLogID string) (*sdkgo.APIResponse, error) {
-	return cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFlowlogsDelete(ctx, datacenterID, nlbID, flowLogID).Execute()
+func (cp *apiClient) DeleteFlowLog(ctx context.Context, datacenterID, nlbID, flowLogID string) (*sdkgo.APIResponse, error) {
+	deleteFn := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFlowlogsDelete(ctx, datacenterID, nlbID, flowLogID).Execute
+	return cp.fc.DeleteFlowLog(ctx, deleteFn)
 }
 
+// SetStatus sets fields of the FlowLogObservation based on sdkgo.FlowLog
+func SetStatus(in *v1alpha1.FlowLogObservation, flowLog sdkgo.FlowLog) {
+	if flowLog.Metadata != nil && flowLog.Metadata.State != nil {
+		in.State = *flowLog.Metadata.State
+	}
+}
+
+// GenerateCreateInput returns sdkgo.FlowLog for Create requests based on CR spec
+func GenerateCreateInput(cr *v1alpha1.FlowLog) sdkgo.FlowLog {
+	flowLogProperties := GenerateUpdateInput(cr)
+	return sdkgo.FlowLog{Properties: &flowLogProperties}
+}
+
+// GenerateUpdateInput returns sdkgo.FlowLogProperties for Update requests based on CR spec
+func GenerateUpdateInput(cr *v1alpha1.FlowLog) sdkgo.FlowLogProperties {
+	return sdkgo.FlowLogProperties{
+		Name:      &cr.Spec.ForProvider.Name,
+		Action:    &cr.Spec.ForProvider.Action,
+		Direction: &cr.Spec.ForProvider.Direction,
+		Bucket:    &cr.Spec.ForProvider.Bucket,
+	}
+}
+
+// IsUpToDate returns true if the FlowLog is up-to-date or false otherwise
 func IsUpToDate(cr *v1alpha1.FlowLog, observed sdkgo.FlowLog) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && observed.Properties == nil:
@@ -86,11 +95,16 @@ func IsUpToDate(cr *v1alpha1.FlowLog, observed sdkgo.FlowLog) bool { // nolint:g
 		return false
 	case observed.Metadata != nil && observed.Metadata.State != nil && (*observed.Metadata.State == compute.BUSY || *observed.Metadata.State == compute.UPDATING):
 		return true
-	case observed.Properties.Name != nil && *observed.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	case observed.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
+	case !compare.EqualFlowLogProperties(cr, observed.Properties):
 		return false
 	}
-
 	return true
+}
+
+// NewClient returns a new NetworkLoadBalancer flow log client
+func NewClient(svc *clients.IonosServices) Client {
+	return &apiClient{
+		IonosServices: svc,
+		fc:            flowlog.NewClient("NetworkLoadBalancer", svc),
+	}
 }

@@ -90,6 +90,26 @@ type FlowLog struct {
 	Status FlowLogStatus `json:"status,omitempty"`
 }
 
+// GetName returns the name of the flow log
+func (f *FlowLog) GetName() string {
+	return f.Spec.ForProvider.Name
+}
+
+// GetAction returns the action of the flow log
+func (f *FlowLog) GetAction() string {
+	return f.Spec.ForProvider.Action
+}
+
+// GetDirection returns the direction of the flow log
+func (f *FlowLog) GetDirection() string {
+	return f.Spec.ForProvider.Direction
+}
+
+// GetBucket returns the bucket of the flow log
+func (f *FlowLog) GetBucket() string {
+	return f.Spec.ForProvider.Bucket
+}
+
 // +kubebuilder:object:root=true
 
 // FlowLogList contains a list of NetworkLoadBalancer

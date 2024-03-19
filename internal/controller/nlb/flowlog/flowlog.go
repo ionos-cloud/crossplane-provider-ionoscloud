@@ -32,8 +32,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/nlb/forwardingrule"
-
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/nlb/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
@@ -91,7 +89,7 @@ func (c *connectorFlowLog) Connect(ctx context.Context, mg resource.Managed) (ma
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalFlowLog{
-		service:              &flowlog.APIClient{IonosServices: svc},
+		service:              flowlog.NewClient(svc),
 		log:                  c.log,
 		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
@@ -120,7 +118,7 @@ func (c *externalFlowLog) Observe(ctx context.Context, mg resource.Managed) (man
 	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
 	observed, _, err := c.service.GetFlowLogByID(ctx, datacenterID, nlbID, flowLogID)
 	if err != nil {
-		if errors.Is(err, forwardingrule.ErrNotFound) {
+		if errors.Is(err, flowlog.ErrNotFound) {
 			return managed.ExternalObservation{}, nil
 		}
 		return managed.ExternalObservation{}, err
@@ -173,6 +171,8 @@ func (c *externalFlowLog) Create(ctx context.Context, mg resource.Managed) (mana
 		return managed.ExternalCreation{}, err
 	}
 	cr.Status.AtProvider.FlowLogID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
+
 	return managed.ExternalCreation{}, nil
 }
 
@@ -206,7 +206,7 @@ func (c *externalFlowLog) Delete(ctx context.Context, mg resource.Managed) error
 	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
 	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
 	_, err := c.service.DeleteFlowLog(ctx, datacenterID, nlbID, cr.Status.AtProvider.FlowLogID)
-	if !errors.Is(err, forwardingrule.ErrNotFound) {
+	if !errors.Is(err, flowlog.ErrNotFound) {
 		return err
 	}
 	return nil
