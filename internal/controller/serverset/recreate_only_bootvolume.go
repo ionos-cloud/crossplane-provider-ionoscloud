@@ -24,7 +24,7 @@ func (c *createBeforeDestroyOnlyBootVolume) update(ctx context.Context, cr *v1al
 		return err
 	}
 
-	server, err := c.serverController.Get(ctx, getNameFromIndex(cr.Name, resourceServer, replicaIndex, serverVersion), cr.Namespace)
+	server, err := c.serverController.Get(ctx, getNameFromIndex(cr.Name, ResourceServer, replicaIndex, serverVersion), cr.Namespace)
 	if err != nil {
 		return err
 	}
