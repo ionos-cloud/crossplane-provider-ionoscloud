@@ -1,7 +1,7 @@
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: StatefulServerSet
 metadata:
-  name: example
+  name: sss-example
 spec:
   forProvider:
     replicas: 2
@@ -18,18 +18,12 @@ spec:
         cores: 4
         ram: 1024 # (32*storageTB)
         nics:
-          - vnetId: aaaaaaa1-cace-4674-ab8d-38b4e4f0c37f
-            lanReferenceName: data
-          - vnetId: aaaaaaa2-cace-4674-ab8d-38b4e4f0c37f
-            lanReferenceName: management
-          - vnetId: aaaaaaa3-cace-4674-ab8d-38b4e4f0c37f
-            lanReferenceName: customer
-        # The system disk will be used as the boot volume,
-        # and an additional storage disk volume mounted.
-        bootStorageVolume: system
+          - name: nic-sample
+            ipv4: "10.0.0.1/24"
+            reference: examplelan
         volumeMounts:
-          - referenceName: "storage_disk"
-          - referenceName: "storage_disk_extend_1"
+          - reference: "volume-mount-id"
+        bootStorageVolumeRef: "volume-id"
     lans:
       # Three LANs are defined - an internal one (data) with IPv6 enabled and DHCP disabled for DRBD + VRRP traffic,
       # a management network for connectivity to K8S and management as well as
