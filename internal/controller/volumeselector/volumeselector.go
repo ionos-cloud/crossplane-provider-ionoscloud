@@ -157,6 +157,9 @@ func (c *externalVolumeselector) Update(ctx context.Context, mg resource.Managed
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotVolumeSelector)
 	}
+	if meta.GetExternalName(cr) == "" {
+		return managed.ExternalUpdate{}, nil
+	}
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
 		volumeList := v1alpha1.VolumeList{}
 		err := listResFromSSetWithIndex(ctx, c.kube, fmt.Sprintf(indexLabel, dataVolume), replicaIndex, &volumeList)
@@ -188,7 +191,7 @@ func (c *externalVolumeselector) Delete(ctx context.Context, mg resource.Managed
 	if !ok {
 		return errors.New(errNotVolumeSelector)
 	}
-
+	meta.SetExternalName(cr, "")
 	cr.SetConditions(xpv1.Deleting())
 	err := c.kube.Delete(ctx, cr)
 	if err != nil {

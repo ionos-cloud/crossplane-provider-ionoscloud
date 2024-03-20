@@ -250,6 +250,10 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errUnexpectedObject)
 	}
+
+	if meta.GetExternalName(cr) == "" {
+		return managed.ExternalUpdate{}, nil
+	}
 	// how do we know if we want to update servers or nic params?
 	err := e.updateServersFromTemplate(ctx, cr)
 	if err != nil {
@@ -364,7 +368,7 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 
 	cr.SetConditions(xpv1.Deleting())
-
+	meta.SetExternalName(cr, "")
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
