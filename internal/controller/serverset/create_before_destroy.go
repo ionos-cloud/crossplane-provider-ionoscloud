@@ -44,13 +44,13 @@ func (c *createBeforeDestroy) createResources(ctx context.Context, cr *v1alpha1.
 }
 
 func (c *createBeforeDestroy) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
-	err := c.bootVolumeController.Delete(ctx, getNameFromIndex(cr.Name, resourceBootVolume, index, volumeVersion), cr.Namespace)
+	err := c.bootVolumeController.Delete(ctx, GetNameFromIndex(cr.Name, resourceBootVolume, index, volumeVersion), cr.Namespace)
 	if err != nil {
 		return err
 	}
-	err = c.serverController.Delete(ctx, getNameFromIndex(cr.Name, ResourceServer, index, serverVersion), cr.Namespace)
+	err = c.serverController.Delete(ctx, GetNameFromIndex(cr.Name, ResourceServer, index, serverVersion), cr.Namespace)
 	if err != nil {
 		return err
 	}
-	return c.nicController.Delete(ctx, getNameFromIndex(cr.Name, resourceNIC, index, serverVersion), cr.Namespace)
+	return c.nicController.Delete(ctx, GetNameFromIndex(cr.Name, resourceNIC, index, serverVersion), cr.Namespace)
 }

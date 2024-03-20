@@ -32,7 +32,7 @@ type kubeBootVolumeController struct {
 
 // Create creates a volume CR and waits until in reaches AVAILABLE state
 func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Volume, error) {
-	name := getNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, version)
+	name := GetNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, version)
 	k.log.Info("Creating Volume", "name", name)
 	userDataPatcher, err := ccpatch.NewCloudInitPatcher(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData)
 	if err != nil {
@@ -43,7 +43,7 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	if err := k.kube.Create(ctx, &createVolume); err != nil {
 		return v1alpha1.Volume{}, err
 	}
-	if err := WaitForKubeResource(ctx, resourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
+	if err := WaitForKubeResource(ctx, ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
 		return v1alpha1.Volume{}, err
 	}
 	// get the volume again before returning to have the id populated
@@ -75,7 +75,7 @@ func (k *kubeBootVolumeController) Delete(ctx context.Context, name, namespace s
 	if err := k.kube.Delete(ctx, condemnedVolume); err != nil {
 		return fmt.Errorf("error deleting volume %w", err)
 	}
-	return WaitForKubeResource(ctx, resourceReadyTimeout, k.isBootVolumeDeleted, condemnedVolume.Name, namespace)
+	return WaitForKubeResource(ctx, ResourceReadyTimeout, k.isBootVolumeDeleted, condemnedVolume.Name, namespace)
 }
 
 // IsVolumeAvailable - checks if a volume is available

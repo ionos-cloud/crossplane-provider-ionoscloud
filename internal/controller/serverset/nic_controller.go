@@ -31,7 +31,7 @@ type kubeNicController struct {
 
 // Create creates a NIC CR and waits until in reaches AVAILABLE state
 func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) (v1alpha1.Nic, error) {
-	name := getNameFromIndex(cr.Name, resourceNIC, replicaIndex, version)
+	name := GetNameFromIndex(cr.Name, resourceNIC, replicaIndex, version)
 	k.log.Info("Creating NIC", "name", name)
 	network := v1alpha1.Lan{}
 	if err := k.kube.Get(ctx, types.NamespacedName{
@@ -47,7 +47,7 @@ func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, 
 		return v1alpha1.Nic{}, err
 	}
 
-	err := WaitForKubeResource(ctx, resourceReadyTimeout, k.isAvailable, createNic.Name, cr.Namespace)
+	err := WaitForKubeResource(ctx, ResourceReadyTimeout, k.isAvailable, createNic.Name, cr.Namespace)
 	if err != nil {
 		return v1alpha1.Nic{}, err
 	}
@@ -113,7 +113,7 @@ func (k *kubeNicController) Delete(ctx context.Context, name, namespace string) 
 	if err := k.kube.Delete(ctx, condemnedVolume); err != nil {
 		return err
 	}
-	return WaitForKubeResource(ctx, resourceReadyTimeout, k.isNicDeleted, condemnedVolume.Name, namespace)
+	return WaitForKubeResource(ctx, ResourceReadyTimeout, k.isNicDeleted, condemnedVolume.Name, namespace)
 }
 
 func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, replicaIndex, version int) v1alpha1.Nic {

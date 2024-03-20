@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-const resourceReadyTimeout = 5 * time.Minute
+const ResourceReadyTimeout = 5 * time.Minute
 
 // Implements lower level functions to interact with kubernetes
 
@@ -26,7 +26,7 @@ func WaitForKubeResource(ctx context.Context, timeoutInMinutes time.Duration, fn
 	})
 }
 
-// getNameFromIndex - generates name consisting of name, kind and index
-func getNameFromIndex(resourceName, resourceType string, idx, version int) string {
+// GetNameFromIndex - generates name consisting of name, kind and index
+func GetNameFromIndex(resourceName, resourceType string, idx, version int) string {
 	return fmt.Sprintf("%s-%s-%d-%d", resourceName, resourceType, idx, version)
 }

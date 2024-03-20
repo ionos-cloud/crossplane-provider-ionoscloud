@@ -38,7 +38,7 @@ func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSe
 	if err := k.kube.Create(ctx, &createServer); err != nil {
 		return v1alpha1.Server{}, fmt.Errorf("while creating createServer %w ", err)
 	}
-	if err := WaitForKubeResource(ctx, resourceReadyTimeout, k.isAvailable, createServer.Name, cr.Namespace); err != nil {
+	if err := WaitForKubeResource(ctx, ResourceReadyTimeout, k.isAvailable, createServer.Name, cr.Namespace); err != nil {
 		return v1alpha1.Server{}, fmt.Errorf("while waiting for createServer to be populated %w ", err)
 	}
 	createdServer, err := k.Get(ctx, createServer.Name, cr.Namespace)
@@ -89,7 +89,7 @@ func (k *kubeServerController) Delete(ctx context.Context, name, namespace strin
 	if err := k.kube.Delete(ctx, condemnedServer); err != nil {
 		return fmt.Errorf("error deleting server %w", err)
 	}
-	return WaitForKubeResource(ctx, resourceReadyTimeout, k.isServerDeleted, condemnedServer.Name, namespace)
+	return WaitForKubeResource(ctx, ResourceReadyTimeout, k.isServerDeleted, condemnedServer.Name, namespace)
 }
 
 func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namespace string) (bool, error) {
@@ -114,7 +114,7 @@ func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namesp
 func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) v1alpha1.Server {
 	return v1alpha1.Server{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getNameFromIndex(cr.Name, ResourceServer, replicaIndex, version),
+			Name:      GetNameFromIndex(cr.Name, ResourceServer, replicaIndex, version),
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
 				serverSetLabel:                            cr.Name,
@@ -130,14 +130,14 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volume
 			},
 			ForProvider: v1alpha1.ServerParameters{
 				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
-				Name:             getNameFromIndex(cr.Name, ResourceServer, replicaIndex, version),
+				Name:             GetNameFromIndex(cr.Name, ResourceServer, replicaIndex, version),
 				Cores:            cr.Spec.ForProvider.Template.Spec.Cores,
 				RAM:              cr.Spec.ForProvider.Template.Spec.RAM,
 				AvailabilityZone: GetZoneFromIndex(replicaIndex),
 				CPUFamily:        cr.Spec.ForProvider.Template.Spec.CPUFamily,
 				VolumeCfg: v1alpha1.VolumeConfig{
 					VolumeIDRef: &xpv1.Reference{
-						Name: getNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, volumeVersion),
+						Name: GetNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, volumeVersion),
 					},
 				},
 			},

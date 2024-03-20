@@ -19,6 +19,7 @@ package statefulserverset
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
@@ -45,9 +46,10 @@ type NoOpService struct{}
 // A connector is expected to produce an ExternalClient when its Connect method
 // is called.
 type connector struct {
-	kube  client.Client
-	usage resource.Tracker
-	log   logging.Logger
+	kube                 client.Client
+	usage                resource.Tracker
+	log                  logging.Logger
+	dataVolumeController kubeDataVolumeControlManager
 }
 
 // Connect typically produces an ExternalClient by:
@@ -66,29 +68,38 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	}
 
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
+	if err != nil {
+		return nil, err
+	}
 	return &external{
-		kube:    c.kube,
-		service: &server.APIClient{IonosServices: svc},
-		log:     c.log,
+		kube:                 c.kube,
+		service:              &server.APIClient{IonosServices: svc},
+		dataVolumeController: c.dataVolumeController,
+		log:                  c.log,
 	}, err
 }
 
 // external observes, then either creates, updates, or deletes an
 // externalServerSet resource to ensure it reflects the managed resource's desired state.
 type external struct {
-	kube    client.Client
-	service server.Client
-	log     logging.Logger
+	kube                 client.Client
+	service              server.Client
+	dataVolumeController kubeDataVolumeControlManager
+	log                  logging.Logger
 }
 
-func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotStatefulServerSet)
 	}
 
+	if meta.GetExternalName(cr) == "" {
+		return managed.ExternalObservation{}, nil
+	}
 	// These fmt statements should be removed in the real implementation.
 	fmt.Printf("Observing: %+v", cr)
+	cr.SetConditions(xpv1.Available())
 
 	return managed.ExternalObservation{
 		// Return false when the externalStatefulServerSet resource does not exist. This lets
@@ -116,9 +127,14 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	cr.Status.SetConditions(xpv1.Creating())
 
 	e.log.Info("Creating a new ServerSet", "replicas", cr.Spec.ForProvider.Replicas)
-	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
-		e.log.Info("Creating a the data volumes")
-
+	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
+		e.log.Info("Creating the data volumes")
+		for volumeIndex := range cr.Spec.ForProvider.Volumes {
+			err := e.dataVolumeController.Ensure(ctx, cr, replicaIndex, volumeIndex)
+			if err != nil {
+				return managed.ExternalCreation{}, err
+			}
+		}
 		e.log.Info("Creating the lans")
 	}
 
@@ -131,13 +147,11 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	}, nil
 }
 
-func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.StatefulServerSet)
+func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
+	_, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotStatefulServerSet)
 	}
-
-	fmt.Printf("Updating: %+v", cr)
 
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -146,13 +160,36 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	}, nil
 }
 
-func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
+func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
 		return errors.New(errNotStatefulServerSet)
 	}
-
-	fmt.Printf("Deleting: %+v", cr)
+	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		statefulServerSetLabel: cr.Name,
+	}); err != nil {
+		return err
+	}
 
 	return nil
+}
+
+// listResFromSSSetWithReplica - lists resources from a server set with a specific index label
+func listResFromSSSetWithReplica(ctx context.Context, kube client.Client, sssName, resType string, index int, list client.ObjectList) error {
+	return kube.List(ctx, list, client.MatchingLabels{
+		fmt.Sprintf(replicaIndexLabel, sssName, resType): strconv.Itoa(index),
+	})
+}
+
+// listResFromSSSetWithReplicaAndIndex - lists resources from a server set with a specific index and version label
+func listResFromSSSetWithReplicaAndIndex(ctx context.Context, kube client.Client, sssName, resType string, index, volumeIndex int, list client.ObjectList) error {
+	return kube.List(ctx, list, client.MatchingLabels{
+		fmt.Sprintf(volumeIndexLabel, sssName, resType):  strconv.Itoa(volumeIndex),
+		fmt.Sprintf(replicaIndexLabel, sssName, resType): strconv.Itoa(index),
+	})
+}
+
+// getNameFromIndexes - generates name consisting of name, kind and index
+func getNameFromIndexes(resourceName, resourceType string, idx, version int) string {
+	return fmt.Sprintf("%s-%s-%d-%d", resourceName, resourceType, idx, version)
 }
