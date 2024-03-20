@@ -113,8 +113,9 @@ func fromStatefulServerSetToVolume(cr *v1alpha1.StatefulServerSet, name string, 
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
 				statefulServerSetLabel: cr.Name,
-				fmt.Sprintf(replicaIndexLabel, cr.Name, resourceDataVolume): fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(volumeIndexLabel, cr.Name, resourceDataVolume):  fmt.Sprintf("%d", volumeIndex),
+				// todo replace with function
+				fmt.Sprintf(replicaIndexLabel, cr.Name+"-"+cr.Spec.ForProvider.Template.Metadata.Name, resourceDataVolume): fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(volumeIndexLabel, cr.Name+"-"+cr.Spec.ForProvider.Template.Metadata.Name, resourceDataVolume):  fmt.Sprintf("%d", volumeIndex),
 			},
 		},
 		Spec: v1alpha1.VolumeSpec{
@@ -149,13 +150,13 @@ func fromStatefulServerSetToVolume(cr *v1alpha1.StatefulServerSet, name string, 
 func (k *kubeDataVolumeController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) error {
 	k.log.Info("Ensuring DataVolume", "replicaIndex", replicaIndex, "volumeIndex", volumeIndex)
 	res := &v1alpha1.VolumeList{}
-	if err := listResFromSSSetWithReplicaAndIndex(ctx, k.kube, cr.Name, resourceDataVolume, replicaIndex, volumeIndex, res); err != nil {
+	if err := listResFromSSSetWithReplicaAndIndex(ctx, k.kube, cr.Spec.ForProvider.Template.Metadata.Name, resourceDataVolume, replicaIndex, volumeIndex, res); err != nil {
 		return err
 	}
 	volumes := res.Items
 	if len(volumes) == 0 {
 		volume, err := k.Create(ctx, cr, replicaIndex, volumeIndex)
-		k.log.Info("Data volume State", "state", volume.Status.AtProvider.State)
+		k.log.Info("Data volume", "state", volume.Status.AtProvider.State)
 		return err
 	}
 	k.log.Info("Finished ensuring DataVolume", "replicaIndex", replicaIndex, "volumeIndex", volumeIndex)

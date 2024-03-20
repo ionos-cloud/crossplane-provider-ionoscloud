@@ -175,10 +175,10 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 }
 
 // listResFromSSSetWithReplicaAndIndex - lists resources from a server set with a specific index and version label
-func listResFromSSSetWithReplicaAndIndex(ctx context.Context, kube client.Client, sssName, resType string, index, volumeIndex int, list client.ObjectList) error {
+func listResFromSSSetWithReplicaAndIndex(ctx context.Context, kube client.Client, ssName, resType string, index, volumeIndex int, list client.ObjectList) error {
 	return kube.List(ctx, list, client.MatchingLabels{
-		fmt.Sprintf(volumeIndexLabel, sssName, resType):  strconv.Itoa(volumeIndex),
-		fmt.Sprintf(replicaIndexLabel, sssName, resType): strconv.Itoa(index),
+		fmt.Sprintf(volumeIndexLabel, ssName, resType):  strconv.Itoa(volumeIndex),
+		fmt.Sprintf(replicaIndexLabel, ssName, resType): strconv.Itoa(index),
 	})
 }
 
