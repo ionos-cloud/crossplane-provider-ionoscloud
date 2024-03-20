@@ -103,14 +103,7 @@ func (c *externalVolumeselector) Observe(ctx context.Context, mg resource.Manage
 	}
 
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
-		volumeList := v1alpha1.VolumeList{}
-		err := listResFromSSetWithIndex(ctx, c.kube, fmt.Sprintf(indexLabel, dataVolume), replicaIndex, &volumeList)
-		if err != nil {
-			return managed.ExternalObservation{}, err
-		}
-		// get server by index
-		serverList := v1alpha1.ServerList{}
-		err = serverset.ListResFromSSetWithIndex(ctx, c.kube, serverset.ResourceServer, replicaIndex, &serverList)
+		volumeList, serverList, err := c.getVolumesAndServers(ctx, replicaIndex)
 		if err != nil {
 			return managed.ExternalObservation{}, err
 		}
@@ -161,17 +154,10 @@ func (c *externalVolumeselector) Update(ctx context.Context, mg resource.Managed
 		return managed.ExternalUpdate{}, nil
 	}
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
-		volumeList := v1alpha1.VolumeList{}
-		err := listResFromSSetWithIndex(ctx, c.kube, fmt.Sprintf(indexLabel, dataVolume), replicaIndex, &volumeList)
+		volumeList, serverList, err := c.getVolumesAndServers(ctx, replicaIndex)
 		if err != nil {
 			return managed.ExternalUpdate{}, err
 		}
-		serverList := v1alpha1.ServerList{}
-		err = serverset.ListResFromSSetWithIndex(ctx, c.kube, serverset.ResourceServer, replicaIndex, &serverList)
-		if err != nil {
-			return managed.ExternalUpdate{}, err
-		}
-
 		if !c.areVolumesAndServersReady(volumeList, serverList) {
 			continue
 		}
@@ -256,4 +242,20 @@ func (c *externalVolumeselector) areVolumesAndServersReady(volumeList v1alpha1.V
 	}
 
 	return true
+}
+
+func (c *externalVolumeselector) getVolumesAndServers(ctx context.Context, replicaIndex int) (v1alpha1.VolumeList, v1alpha1.ServerList, error) {
+	volumeList := v1alpha1.VolumeList{}
+	serverList := v1alpha1.ServerList{}
+	err := listResFromSSetWithIndex(ctx, c.kube, fmt.Sprintf(indexLabel, dataVolume), replicaIndex, &volumeList)
+	if err != nil {
+		return volumeList, serverList, err
+	}
+	// get server by index
+
+	err = serverset.ListResFromSSetWithIndex(ctx, c.kube, serverset.ResourceServer, replicaIndex, &serverList)
+	if err != nil {
+		return volumeList, serverList, err
+	}
+	return volumeList, serverList, err
 }
