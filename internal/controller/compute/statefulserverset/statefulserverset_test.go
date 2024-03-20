@@ -40,7 +40,7 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "stateful server set is created succesfully",
+			name: "stateful server set is created successfully",
 			fields: fields{
 				kube: fakeKubeClientObjs(),
 				log:  logging.NewNopLogger(),
