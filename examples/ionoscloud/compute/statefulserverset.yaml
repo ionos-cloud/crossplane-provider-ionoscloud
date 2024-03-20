@@ -1,4 +1,18 @@
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: example
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: exampleDatacenter
+    location: us/las
+    description: test
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: StatefulServerSet
 metadata:
   name: sss-example
@@ -8,7 +22,8 @@ spec:
     deploymentStrategy:
       type: ZONES
     datacenterConfig:
-      datacenterId: ddaaaaa1-cace-4674-ab8d-38b4e4f0c37f
+      datacenterIdRef:
+        name: example
     # This defines the template used for each replica.
     template:
       metadata:
@@ -57,10 +72,12 @@ spec:
       - metadata:
           name: storage_disk
         spec:
-          size: 4096
+          size: 10
           type: SSD
       - metadata:
           name: storage_disk_extend_1
         spec:
-          size: 1024
+          size: 10
           type: SSD
+  providerConfigRef:
+    name: example
