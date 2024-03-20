@@ -48,7 +48,7 @@ func (c *createBeforeDestroy) cleanupCondemned(ctx context.Context, cr *v1alpha1
 	if err != nil {
 		return err
 	}
-	err = c.serverController.Delete(ctx, getNameFromIndex(cr.Name, resourceServer, index, serverVersion), cr.Namespace)
+	err = c.serverController.Delete(ctx, getNameFromIndex(cr.Name, ResourceServer, index, serverVersion), cr.Namespace)
 	if err != nil {
 		return err
 	}

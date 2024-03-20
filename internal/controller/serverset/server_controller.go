@@ -114,12 +114,12 @@ func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namesp
 func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) v1alpha1.Server {
 	return v1alpha1.Server{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getNameFromIndex(cr.Name, resourceServer, replicaIndex, version),
+			Name:      getNameFromIndex(cr.Name, ResourceServer, replicaIndex, version),
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
 				serverSetLabel:                            cr.Name,
-				fmt.Sprintf(indexLabel, resourceServer):   fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(versionLabel, resourceServer): fmt.Sprintf("%d", version),
+				fmt.Sprintf(indexLabel, ResourceServer):   fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(versionLabel, ResourceServer): fmt.Sprintf("%d", version),
 			},
 		},
 		Spec: v1alpha1.ServerSpec{
@@ -130,7 +130,7 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volume
 			},
 			ForProvider: v1alpha1.ServerParameters{
 				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
-				Name:             getNameFromIndex(cr.Name, resourceServer, replicaIndex, version),
+				Name:             getNameFromIndex(cr.Name, ResourceServer, replicaIndex, version),
 				Cores:            cr.Spec.ForProvider.Template.Spec.Cores,
 				RAM:              cr.Spec.ForProvider.Template.Spec.RAM,
 				AvailabilityZone: GetZoneFromIndex(replicaIndex),
@@ -152,7 +152,7 @@ func GetZoneFromIndex(index int) string {
 func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
 	k.log.Info("Ensuring Server", "index", replicaIndex, "version", version)
 	res := &v1alpha1.ServerList{}
-	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, resourceServer, replicaIndex, version, res); err != nil {
+	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, ResourceServer, replicaIndex, version, res); err != nil {
 		return err
 	}
 	servers := res.Items

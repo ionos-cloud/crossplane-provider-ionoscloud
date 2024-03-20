@@ -32,8 +32,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
 
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 )
@@ -55,12 +53,13 @@ const (
 // A connector is expected to produce an ExternalClient when its Connect method
 // is called.
 type connector struct {
-	kube                 client.Client
-	bootVolumeController kubeBootVolumeControlManager
-	nicController        kubeNicControlManager
-	serverController     kubeServerControlManager
-	usage                resource.Tracker
-	log                  logging.Logger
+	kube                     client.Client
+	bootVolumeController     kubeBootVolumeControlManager
+	nicController            kubeNicControlManager
+	serverController         kubeServerControlManager
+	volumeSelectorController kubeVolumeSelectorManager
+	usage                    resource.Tracker
+	log                      logging.Logger
 }
 
 // Connect typically produces an ExternalClient by:
@@ -73,22 +72,18 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	if !ok {
 		return nil, errors.New(errUnexpectedObject)
 	}
-
-	if err := c.usage.Track(ctx, mg); err != nil {
+	var err error
+	if err = c.usage.Track(ctx, mg); err != nil {
 		return nil, errors.Wrap(err, errTrackPCUsage)
-	}
-	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
-	if err != nil {
-		return nil, err
 	}
 
 	return &external{
-		kube:                 c.kube,
-		service:              &server.APIClient{IonosServices: svc},
-		log:                  c.log,
-		bootVolumeController: c.bootVolumeController,
-		nicController:        c.nicController,
-		serverController:     c.serverController,
+		kube:                     c.kube,
+		log:                      c.log,
+		bootVolumeController:     c.bootVolumeController,
+		nicController:            c.nicController,
+		serverController:         c.serverController,
+		volumeSelectorController: c.volumeSelectorController,
 	}, err
 }
 
@@ -98,11 +93,11 @@ type external struct {
 	kube client.Client
 	// A 'client' used to connect to the externalServer resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	bootVolumeController kubeBootVolumeControlManager
-	nicController        kubeNicControlManager
-	serverController     kubeServerControlManager
-	service              server.Client
-	log                  logging.Logger
+	bootVolumeController     kubeBootVolumeControlManager
+	nicController            kubeNicControlManager
+	serverController         kubeServerControlManager
+	volumeSelectorController kubeVolumeSelectorManager
+	log                      logging.Logger
 }
 
 func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -227,17 +222,18 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	e.log.Info("Creating a new ServerSet", "replicas", cr.Spec.ForProvider.Replicas)
 	version := 0
 	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
-		e.log.Info("Creating a new Server", "index", i)
-		err := e.ensureBootVolumeByIndex(ctx, cr, i, version)
-		if err != nil {
+		if err := e.ensureBootVolumeByIndex(ctx, cr, i, version); err != nil {
 			return managed.ExternalCreation{}, err
 		}
 
-		err = e.ensureServerAndNicByIndex(ctx, cr, i, version)
-		if err != nil {
+		if err := e.ensureServerAndNicByIndex(ctx, cr, i, version); err != nil {
 			return managed.ExternalCreation{}, err
 		}
 
+	}
+	// volume selector attaches data volumes to the servers created in the serverset
+	if err := e.volumeSelectorController.CreateOrUpdate(ctx, cr); err != nil {
+		return managed.ExternalCreation{}, err
 	}
 
 	// When all conditions are met, the managed resource is considered available
@@ -253,6 +249,10 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	cr, ok := mg.(*v1alpha1.ServerSet)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errUnexpectedObject)
+	}
+
+	if meta.GetExternalName(cr) == "" {
+		return managed.ExternalUpdate{}, nil
 	}
 	// how do we know if we want to update servers or nic params?
 	err := e.updateServersFromTemplate(ctx, cr)
@@ -368,7 +368,7 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 
 	cr.SetConditions(xpv1.Deleting())
-
+	meta.SetExternalName(cr, "")
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
@@ -388,6 +388,11 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return err
 	}
 
+	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volumeselector{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		serverSetLabel: cr.Name,
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -467,8 +472,8 @@ func (e *external) getVolumesFromServerSet(ctx context.Context, name string) ([]
 	return volumeList.Items, nil
 }
 
-// listResFromSSetWithIndex - lists resources from a server set with a specific index label
-func listResFromSSetWithIndex(ctx context.Context, kube client.Client, resType string, index int, list client.ObjectList) error {
+// ListResFromSSetWithIndex - lists resources from a server set with a specific index label
+func ListResFromSSetWithIndex(ctx context.Context, kube client.Client, resType string, index int, list client.ObjectList) error {
 	return kube.List(ctx, list, client.MatchingLabels{
 		fmt.Sprintf(indexLabel, resType): strconv.Itoa(index),
 	})
@@ -485,7 +490,7 @@ func listResFromSSetWithIndexAndVersion(ctx context.Context, kube client.Client,
 // getVersionsFromVolumeAndServer checks that there is only one server and volume and returns their version
 func getVersionsFromVolumeAndServer(ctx context.Context, kube client.Client, replicaIndex int) (volumeVersion int, serverVersion int, err error) {
 	volumeResources := &v1alpha1.VolumeList{}
-	err = listResFromSSetWithIndex(ctx, kube, resourceBootVolume, replicaIndex, volumeResources)
+	err = ListResFromSSetWithIndex(ctx, kube, resourceBootVolume, replicaIndex, volumeResources)
 	if err != nil {
 		return volumeVersion, serverVersion, err
 	}
@@ -496,7 +501,7 @@ func getVersionsFromVolumeAndServer(ctx context.Context, kube client.Client, rep
 		return volumeVersion, serverVersion, fmt.Errorf("found no volumes for index %d ", replicaIndex)
 	}
 	serverResources := &v1alpha1.ServerList{}
-	err = listResFromSSetWithIndex(ctx, kube, resourceServer, replicaIndex, serverResources)
+	err = ListResFromSSetWithIndex(ctx, kube, ResourceServer, replicaIndex, serverResources)
 	if err != nil {
 		return volumeVersion, serverVersion, err
 	}
@@ -514,7 +519,7 @@ func getVersionsFromVolumeAndServer(ctx context.Context, kube client.Client, rep
 	}
 
 	servers := serverResources.Items
-	serverVersion, err = strconv.Atoi(servers[0].Labels[fmt.Sprintf(versionLabel, resourceServer)])
+	serverVersion, err = strconv.Atoi(servers[0].Labels[fmt.Sprintf(versionLabel, ResourceServer)])
 	if err != nil {
 		return volumeVersion, serverVersion, err
 	}
@@ -523,7 +528,7 @@ func getVersionsFromVolumeAndServer(ctx context.Context, kube client.Client, rep
 
 func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	resSrv := &v1alpha1.ServerList{}
-	if err := listResFromSSetWithIndex(ctx, e.kube, resourceServer, replicaIndex, resSrv); err != nil {
+	if err := ListResFromSSetWithIndex(ctx, e.kube, ResourceServer, replicaIndex, resSrv); err != nil {
 		return err
 	}
 	if len(resSrv.Items) > 1 {
@@ -532,7 +537,7 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.S
 	if len(resSrv.Items) == 0 {
 		res := &v1alpha1.VolumeList{}
 		volumeVersion := version
-		if err := listResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, replicaIndex, res); err != nil {
+		if err := ListResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, replicaIndex, res); err != nil {
 			return err
 		}
 		if len(res.Items) > 0 {
@@ -555,7 +560,7 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.S
 // ensureBootVolumeByIndex - ensures boot volume created for a specific index. After checking for index, it checks for index and version
 func (e *external) ensureBootVolumeByIndex(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	res := &v1alpha1.VolumeList{}
-	if err := listResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, replicaIndex, res); err != nil {
+	if err := ListResFromSSetWithIndex(ctx, e.kube, resourceBootVolume, replicaIndex, res); err != nil {
 		return err
 	}
 	if len(res.Items) > 1 {
