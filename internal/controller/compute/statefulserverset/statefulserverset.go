@@ -20,23 +20,18 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/pkg/errors"
-	"k8s.io/client-go/util/workqueue"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 
-	"github.com/crossplane/crossplane-runtime/pkg/event"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	"github.com/pkg/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
-	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const (
@@ -47,39 +42,12 @@ const (
 // A NoOpService does nothing.
 type NoOpService struct{}
 
-// Setup adds a controller that reconciles StatefulServerSet managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
-	name := managed.ControllerName(v1alpha1.StatefulServerSetGroupKind)
-
-	return ctrl.NewControllerManagedBy(mgr).
-		Named(name).
-		WithOptions(controller.Options{
-			RateLimiter: ratelimiter.NewController(),
-		}).
-		For(&v1alpha1.StatefulServerSet{}).
-		Complete(managed.NewReconciler(mgr,
-			resource.ManagedKind(v1alpha1.StatefulServerSetGroupVersionKind),
-			managed.WithExternalConnecter(&connectorStatefulServerSet{
-				kube:                 mgr.GetClient(),
-				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:                  l,
-				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
-			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
-			managed.WithInitializers(),
-			managed.WithPollInterval(opts.GetPollInterval()),
-			managed.WithTimeout(opts.GetTimeout()),
-			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
-			managed.WithLogger(l.WithValues("controller", name)),
-			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
-}
-
-// A connectorStatefulServerSet is expected to produce an ExternalClient when its Connect method
+// A connector is expected to produce an ExternalClient when its Connect method
 // is called.
-type connectorStatefulServerSet struct {
-	kube                 client.Client
-	usage                resource.Tracker
-	log                  logging.Logger
-	isUniqueNamesEnabled bool
+type connector struct {
+	kube  client.Client
+	usage resource.Tracker
+	log   logging.Logger
 }
 
 // Connect typically produces an ExternalClient by:
@@ -87,7 +55,7 @@ type connectorStatefulServerSet struct {
 // 2. Getting the managed resource's ProviderConfig.
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
-func (c *connectorStatefulServerSet) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
+func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
 	_, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
 		return nil, errors.New(errNotStatefulServerSet)
@@ -98,23 +66,22 @@ func (c *connectorStatefulServerSet) Connect(ctx context.Context, mg resource.Ma
 	}
 
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
-	return &externalStatefulServerSet{
-		service:              &server.APIClient{IonosServices: svc},
-		log:                  c.log,
-		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
+	return &external{
+		kube:    c.kube,
+		service: &server.APIClient{IonosServices: svc},
+		log:     c.log,
+	}, err
 }
 
-// An ExternalClient observes, then either creates, updates, or deletes an
-// externalStatefulServerSet resource to ensure it reflects the managed resource's desired state.
-type externalStatefulServerSet struct {
-	// A 'client' used to connect to the externalServer resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
-	service              server.Client
-	log                  logging.Logger
-	isUniqueNamesEnabled bool
+// external observes, then either creates, updates, or deletes an
+// externalServerSet resource to ensure it reflects the managed resource's desired state.
+type external struct {
+	kube    client.Client
+	service server.Client
+	log     logging.Logger
 }
 
-func (c *externalStatefulServerSet) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotStatefulServerSet)
@@ -140,14 +107,23 @@ func (c *externalStatefulServerSet) Observe(ctx context.Context, mg resource.Man
 	}, nil
 }
 
-func (c *externalStatefulServerSet) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotStatefulServerSet)
 	}
 
-	fmt.Printf("Creating: %+v", cr)
+	cr.Status.SetConditions(xpv1.Creating())
 
+	e.log.Info("Creating a new ServerSet", "replicas", cr.Spec.ForProvider.Replicas)
+	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
+		e.log.Info("Creating a the data volumes")
+
+		e.log.Info("Creating the lans")
+	}
+
+	// When all conditions are met, the managed resource is considered available
+	meta.SetExternalName(cr, cr.Name)
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
 		// externalStatefulServerSet resource. These will be stored as the connection secret.
@@ -155,7 +131,7 @@ func (c *externalStatefulServerSet) Create(ctx context.Context, mg resource.Mana
 	}, nil
 }
 
-func (c *externalStatefulServerSet) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
+func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotStatefulServerSet)
@@ -170,7 +146,7 @@ func (c *externalStatefulServerSet) Update(ctx context.Context, mg resource.Mana
 	}, nil
 }
 
-func (c *externalStatefulServerSet) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
 		return errors.New(errNotStatefulServerSet)
