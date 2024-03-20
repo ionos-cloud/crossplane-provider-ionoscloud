@@ -2028,6 +2028,7 @@ func (in *StatefulServerSetParameters) DeepCopyInto(out *StatefulServerSetParame
 	out.DeploymentStrategy = in.DeploymentStrategy
 	in.DatacenterCfg.DeepCopyInto(&out.DatacenterCfg)
 	in.Template.DeepCopyInto(&out.Template)
+	in.BootVolumeTemplate.DeepCopyInto(&out.BootVolumeTemplate)
 	if in.Lans != nil {
 		in, out := &in.Lans, &out.Lans
 		*out = make([]StatefulServerSetLan, len(*in))

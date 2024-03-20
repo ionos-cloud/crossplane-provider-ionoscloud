@@ -99,10 +99,11 @@ type StatefulServerSetParameters struct {
 	// on which the server will be created.
 	//
 	// +kubebuilder:validation:Required
-	DatacenterCfg DatacenterConfig          `json:"datacenterConfig"`
-	Template      ServerSetTemplate         `json:"template"`
-	Lans          []StatefulServerSetLan    `json:"lans"`
-	Volumes       []StatefulServerSetVolume `json:"volumes"`
+	DatacenterCfg      DatacenterConfig          `json:"datacenterConfig"`
+	Template           ServerSetTemplate         `json:"template"`
+	BootVolumeTemplate BootVolumeTemplate        `json:"bootVolumeTemplate"`
+	Lans               []StatefulServerSetLan    `json:"lans"`
+	Volumes            []StatefulServerSetVolume `json:"volumes"`
 }
 
 // A StatefulServerSetSpec defines the desired state of a StatefulServerSet.

@@ -24,6 +24,14 @@ spec:
         volumeMounts:
           - reference: "volume-mount-id"
         bootStorageVolumeRef: "volume-id"
+    bootVolumeTemplate:
+      spec:
+        updateStrategy:
+          type: "createBeforeDestroyBootVolume"
+        image: "28d0fa34-927f-11ee-8008-6202af74e858"
+        size: 10
+        type: HDD
+        userData: "" #cloud-config
     lans:
       # Three LANs are defined - an internal one (data) with IPv6 enabled and DHCP disabled for DRBD + VRRP traffic,
       # a management network for connectivity to K8S and management as well as
@@ -46,13 +54,6 @@ spec:
     # The volumes are then defined - a 200GB SSD "system" volume from a
     # custom Linux image, and a separate 4TB SSD volume for storage.
     volumes:
-      - metadata:
-          name: system
-        spec:
-          image: linuxkit/nas-image
-          size: 200
-          type: SSD
-          userData: -|
       - metadata:
           name: storage_disk
         spec:
