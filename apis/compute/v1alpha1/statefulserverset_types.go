@@ -31,70 +31,6 @@ type DeploymentStrategy struct {
 	Type string `json:"type"`
 }
 
-// StatefulServerSetMetadata are the configurable fields of a StatefulServerSetMetadata.
-type StatefulServerSetMetadata struct {
-	// +kubebuilder:validation:Required
-	Name string `json:"name"`
-	// +optional
-	Labels map[string]string `json:"labels,omitempty"`
-}
-
-// StatefulServerSetTemplateSpecNic are the configurable fields of a StatefulServerSetTemplateSpecNic.
-type StatefulServerSetTemplateSpecNic struct {
-	// This references the LAN from the client.
-	//
-	// +kubebuilder:validation:Optional
-	VNetID string `json:"vnetId"`
-	// +kubebuilder:validation:Required
-	LANReferenceName string `json:"lanReferenceName"`
-}
-
-// StatefulServerSetTemplateSpecVolumeMounts are the configurable fields of a StatefulServerSetTemplateSpecVolumeMounts.
-// It is used to mount a volume to a server.
-type StatefulServerSetTemplateSpecVolumeMounts struct {
-	// +kubebuilder:validation:Required
-	ReferenceName string `json:"referenceName"`
-}
-
-// StatefulServerSetTemplateSpec are the configurable fields of a StatefulServerSetTemplateSpec.
-type StatefulServerSetTemplateSpec struct {
-	// CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions;
-	// available CPU architectures can be retrieved from the datacenter resource.
-	//
-	// +immutable
-	// +kubebuilder:validation:Enum=AMD_OPTERON;INTEL_SKYLAKE;INTEL_XEON
-	CPUFamily string `json:"cpuFamily,omitempty"`
-	// The total number of cores for the server.
-	//
-	// +kubebuilder:validation:Required
-	Cores int32 `json:"cores"`
-	// The memory size for the server in MB, such as 2048. Size must be specified in multiples of 256 MB with a minimum of 256 MB.
-	//
-	// +kubebuilder:validation:MultipleOf=256
-	// +kubebuilder:validation:Required
-	RAM int32 `json:"ram"`
-	// NICs are the network interfaces of the server.
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinItems=1
-	NICs []StatefulServerSetTemplateSpecNic `json:"nics,omitempty"`
-	// The reference to the boot volume.
-	// It must exist in the same data center as the server.
-	// +kubebuilder:validation:Required
-	BootStorageVolume string `json:"bootStorageVolume"`
-	// The reference to the other volumes.
-	// They must exist in the same data center as the server.
-	// +kubebuilder:validation:Required
-	VolumeMounts []StatefulServerSetTemplateSpecVolumeMounts `json:"volumeMounts,omitempty"`
-}
-
-// StatefulServerSetTemplate are the configurable fields of a StatefulServerSetTemplate.
-type StatefulServerSetTemplate struct {
-	// +kubebuilder:validation:Required
-	Metadata StatefulServerSetMetadata `json:"metadata"`
-	// +kubebuilder:validation:Required
-	Spec StatefulServerSetTemplateSpec `json:"spec"`
-}
-
 // StatefulServerSetLanMetadata are the configurable fields of a StatefulServerSetLanMetadata.
 type StatefulServerSetLanMetadata struct {
 	// +kubebuilder:validation:Required
@@ -164,9 +100,9 @@ type StatefulServerSetParameters struct {
 	//
 	// +kubebuilder:validation:Required
 	DatacenterCfg DatacenterConfig          `json:"datacenterConfig"`
-	Template      StatefulServerSetTemplate `json:"template"`
+	Template      ServerSetTemplate         `json:"template"`
 	Lans          []StatefulServerSetLan    `json:"lans"`
-	VolumeSpec    []StatefulServerSetVolume `json:"volumes"`
+	Volumes       []StatefulServerSetVolume `json:"volumes"`
 }
 
 // A StatefulServerSetSpec defines the desired state of a StatefulServerSet.
@@ -215,8 +151,7 @@ type StatefulServerSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec StatefulServerSetSpec `json:"spec"`
-	//TODO: Not sure if the StatefulServerSetStatus should look like this
+	Spec   StatefulServerSetSpec   `json:"spec"`
 	Status StatefulServerSetStatus `json:"status,omitempty"`
 }
 

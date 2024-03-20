@@ -210,12 +210,12 @@ spec:
                     minimum: 1
                     type: integer
                   template:
-                    description: StatefulServerSetTemplate are the configurable fields
-                      of a StatefulServerSetTemplate.
+                    description: ServerSetTemplate are the configurable fields of
+                      a ServerSetTemplate.
                     properties:
                       metadata:
-                        description: StatefulServerSetMetadata are the configurable
-                          fields of a StatefulServerSetMetadata.
+                        description: ServerSetMetadata are the configurable fields
+                          of a ServerSetMetadata.
                         properties:
                           labels:
                             additionalProperties:
@@ -227,10 +227,10 @@ spec:
                         - name
                         type: object
                       spec:
-                        description: StatefulServerSetTemplateSpec are the configurable
-                          fields of a StatefulServerSetTemplateSpec.
+                        description: ServerSetTemplateSpec are the configurable fields
+                          of a ServerSetTemplateSpec.
                         properties:
-                          bootStorageVolume:
+                          bootStorageVolumeRef:
                             description: |-
                               The reference to the boot volume.
                               It must exist in the same data center as the server.
@@ -251,43 +251,48 @@ spec:
                           nics:
                             description: NICs are the network interfaces of the server.
                             items:
-                              description: StatefulServerSetTemplateSpecNic are the
-                                configurable fields of a StatefulServerSetTemplateSpecNic.
+                              description: ServerSetTemplateNIC are the configurable
+                                fields of a ServerSetTemplateNIC.
                               properties:
-                                lanReferenceName:
+                                ipv4:
                                   type: string
-                                vnetId:
-                                  description: This references the LAN from the client.
+                                name:
+                                  description: todo add descriptions
+                                  type: string
+                                reference:
                                   type: string
                               required:
-                              - lanReferenceName
+                              - ipv4
+                              - name
+                              - reference
                               type: object
                             minItems: 1
                             type: array
                           ram:
-                            description: The memory size for the server in MB, such
-                              as 2048. Size must be specified in multiples of 256
-                              MB with a minimum of 256 MB.
+                            description: |-
+                              The memory size for the server in MB, such as 2048. Size must be specified in multiples of 256 MB with a minimum of 256 MB.
+                              however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB,
+                              then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
                             format: int32
                             multipleOf: 256
                             type: integer
                           volumeMounts:
                             description: |-
-                              The reference to the other volumes.
-                              They must exist in the same data center as the server.
+                              The reference to the boot volume.
+                              It must exist in the same data center as the server.
                             items:
                               description: |-
-                                StatefulServerSetTemplateSpecVolumeMounts are the configurable fields of a StatefulServerSetTemplateSpecVolumeMounts.
+                                ServerSetTemplateVolumeMount are the configurable fields of a ServerSetTemplateVolumeMount.
                                 It is used to mount a volume to a server.
                               properties:
-                                referenceName:
+                                reference:
                                   type: string
                               required:
-                              - referenceName
+                              - reference
                               type: object
                             type: array
                         required:
-                        - bootStorageVolume
+                        - bootStorageVolumeRef
                         - cores
                         - ram
                         type: object
@@ -521,8 +526,8 @@ spec:
             - forProvider
             type: object
           status:
-            description: 'TODO: Not sure if the StatefulServerSetStatus should look
-              like this'
+            description: A StatefulServerSetStatus represents the observed state of
+              a StatefulServerSet.
             properties:
               atProvider:
                 description: StatefulServerSetObservation are the observable fields
