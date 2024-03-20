@@ -27,6 +27,7 @@ type Client interface {
 	CreateServer(ctx context.Context, datacenterID string, server sdkgo.Server) (sdkgo.Server, *sdkgo.APIResponse, error)
 	UpdateServer(ctx context.Context, datacenterID, serverID string, server sdkgo.ServerProperties) (sdkgo.Server, *sdkgo.APIResponse, error)
 	DeleteServer(ctx context.Context, datacenterID, serverID string) (*sdkgo.APIResponse, error)
+	IsVolumeAttached(ctx context.Context, datacenterID, serverID, volumeID string) (bool, error)
 	AttachVolume(ctx context.Context, datacenterID, serverID string, volume sdkgo.Volume) (sdkgo.Volume, *sdkgo.APIResponse, error)
 	DetachVolume(ctx context.Context, datacenterID, serverID, volumeID string) (*sdkgo.APIResponse, error)
 	AttachCdrom(ctx context.Context, datacenterID, serverID string, cdrom sdkgo.Image) (sdkgo.Image, *sdkgo.APIResponse, error)
@@ -142,6 +143,18 @@ func (cp *APIClient) DeleteServer(ctx context.Context, datacenterID, serverID st
 // AttachVolume based on datacenterID, serverID, and volume
 func (cp *APIClient) AttachVolume(ctx context.Context, datacenterID, serverID string, volume sdkgo.Volume) (sdkgo.Volume, *sdkgo.APIResponse, error) {
 	return cp.ComputeClient.ServersApi.DatacentersServersVolumesPost(ctx, datacenterID, serverID).Volume(volume).Execute()
+}
+
+// IsVolumeAttached based on datacenterID, serverID, and volume
+func (cp *APIClient) IsVolumeAttached(ctx context.Context, datacenterID, serverID string, volumeID string) (bool, error) {
+	_, apiResponse, err := cp.ComputeClient.ServersApi.DatacentersServersVolumesFindById(ctx, datacenterID, serverID, volumeID).Execute()
+	if apiResponse.HttpNotFound() {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // DetachVolume based on datacenterID, serverID, and volume
