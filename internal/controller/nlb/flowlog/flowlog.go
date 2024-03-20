@@ -116,7 +116,7 @@ func (c *externalFlowLog) Observe(ctx context.Context, mg resource.Managed) (man
 
 	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
 	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
-	observed, _, err := c.service.GetFlowLogByID(ctx, datacenterID, nlbID, flowLogID)
+	observed, err := c.service.GetFlowLogByID(ctx, datacenterID, nlbID, flowLogID)
 	if err != nil {
 		if errors.Is(err, flowlog.ErrNotFound) {
 			return managed.ExternalObservation{}, nil
@@ -166,7 +166,7 @@ func (c *externalFlowLog) Create(ctx context.Context, mg resource.Managed) (mana
 		}
 	}
 	flowLogInput := flowlog.GenerateCreateInput(cr)
-	newInstance, _, err := c.service.CreateFlowLog(ctx, datacenterID, nlbID, flowLogInput)
+	newInstance, err := c.service.CreateFlowLog(ctx, datacenterID, nlbID, flowLogInput)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -189,7 +189,7 @@ func (c *externalFlowLog) Update(ctx context.Context, mg resource.Managed) (mana
 	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
 	flowLogID := cr.Status.AtProvider.FlowLogID
 	flowLogInput := flowlog.GenerateUpdateInput(cr)
-	_, _, err := c.service.UpdateFlowLog(ctx, datacenterID, nlbID, flowLogID, flowLogInput)
+	_, err := c.service.UpdateFlowLog(ctx, datacenterID, nlbID, flowLogID, flowLogInput)
 	return managed.ExternalUpdate{}, err
 }
 
@@ -205,7 +205,7 @@ func (c *externalFlowLog) Delete(ctx context.Context, mg resource.Managed) error
 
 	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
 	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
-	_, err := c.service.DeleteFlowLog(ctx, datacenterID, nlbID, cr.Status.AtProvider.FlowLogID)
+	err := c.service.DeleteFlowLog(ctx, datacenterID, nlbID, cr.Status.AtProvider.FlowLogID)
 	if !errors.Is(err, flowlog.ErrNotFound) {
 		return err
 	}

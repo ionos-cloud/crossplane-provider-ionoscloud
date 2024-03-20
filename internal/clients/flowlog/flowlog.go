@@ -10,19 +10,19 @@ import (
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 )
 
-const (
-	logGetByIDErr    = "failed to get %s flow log by ID: %w"
-	logListErr       = "failed to get %s flow logs list: %w"
-	logCreateErr     = "failed to create %s flow log: %w"
-	logCreateWaitErr = "error while waiting for %s flow log create request: %w"
-	logUpdateErr     = "failed to update %s flow log: %w"
-	logUpdateWaitErr = "error while waiting for %s flow log update request: %w"
-	logDeleteErr     = "failed to delete %s flow log: %w"
-	logDeleteWaitErr = "error while waiting for %s flow log delete request: %w"
-)
+var (
+	// ErrNotFound flow log was not found
+	ErrNotFound = errors.New("flow log not found")
 
-// ErrNotFound flow log was not found
-var ErrNotFound = errors.New("flow log not found")
+	errGetByID    = errors.New("failed to get flow log by ID")
+	errList       = errors.New("failed to get flow logs list")
+	errCreate     = errors.New("failed to create flow log")
+	errCreateWait = errors.New("error while waiting for flow log create request")
+	errUpdate     = errors.New("failed to update flow log")
+	errUpdateWait = errors.New("error while waiting for flow log update request")
+	errDelete     = errors.New("failed to delete flow log")
+	errDeleteWait = errors.New("error while waiting for flow log delete request")
+)
 
 type listFunc = func() (sdkgo.FlowLogs, *sdkgo.APIResponse, error)
 type byIdFunc = func() (sdkgo.FlowLog, *sdkgo.APIResponse, error)
@@ -32,10 +32,10 @@ type deleteFunc = func() (*sdkgo.APIResponse, error)
 // flowLogClient common CRUD interface for flow log
 type flowLogClient interface {
 	checkDuplicateFlowLog(flowLogName string, listFn listFunc) (string, error)
-	getFlowLogByID(byIdFn byIdFunc) (sdkgo.FlowLog, *sdkgo.APIResponse, error)
-	createFlowLog(ctx context.Context, createFn createOrPatchFunc) (sdkgo.FlowLog, *sdkgo.APIResponse, error)
-	updateFlowLog(ctx context.Context, updateFn createOrPatchFunc) (sdkgo.FlowLog, *sdkgo.APIResponse, error)
-	deleteFlowLog(ctx context.Context, deleteFn deleteFunc) (*sdkgo.APIResponse, error)
+	getFlowLogByID(byIdFn byIdFunc) (sdkgo.FlowLog, error)
+	createFlowLog(ctx context.Context, createFn createOrPatchFunc) (sdkgo.FlowLog, error)
+	updateFlowLog(ctx context.Context, updateFn createOrPatchFunc) (sdkgo.FlowLog, error)
+	deleteFlowLog(ctx context.Context, deleteFn deleteFunc) error
 }
 
 // client implements common functionality for IONOS flow log
@@ -47,7 +47,7 @@ type client struct {
 func (c *client) checkDuplicateFlowLog(flowLogName string, listFn listFunc) (string, error) {
 	flowLogs, _, err := listFn()
 	if err != nil {
-		return "", fmt.Errorf(logListErr, c.parent, err)
+		return "", fmt.Errorf("%w: %w", errList, err)
 	}
 
 	matchedItems := make([]sdkgo.FlowLog, 0)
@@ -72,49 +72,49 @@ func (c *client) checkDuplicateFlowLog(flowLogName string, listFn listFunc) (str
 	return *matchedItems[0].Id, nil
 }
 
-func (c *client) getFlowLogByID(byIdFn byIdFunc) (sdkgo.FlowLog, *sdkgo.APIResponse, error) {
+func (c *client) getFlowLogByID(byIdFn byIdFunc) (sdkgo.FlowLog, error) {
 	flowLog, apiResponse, err := byIdFn()
 	if err != nil {
-		err = ErrNotFound
-		if !apiResponse.HttpNotFound() {
-			err = fmt.Errorf(logGetByIDErr, c.parent, err)
+		if apiResponse.HttpNotFound() {
+			return flowLog, ErrNotFound
 		}
+		return flowLog, fmt.Errorf("%w: %w", errGetByID, err)
 	}
-	return flowLog, apiResponse, err
+	return flowLog, nil
 }
 
-func (c *client) createFlowLog(ctx context.Context, createFn createOrPatchFunc) (sdkgo.FlowLog, *sdkgo.APIResponse, error) {
+func (c *client) createFlowLog(ctx context.Context, createFn createOrPatchFunc) (sdkgo.FlowLog, error) {
 	flowLog, apiResponse, err := createFn()
 	if err != nil {
-		return sdkgo.FlowLog{}, apiResponse, fmt.Errorf(logCreateErr, c.parent, err)
+		return sdkgo.FlowLog{}, fmt.Errorf("%w: %w", errCreate, err)
 	}
 	if err = compute.WaitForRequest(ctx, c.ComputeClient, apiResponse); err != nil {
-		return sdkgo.FlowLog{}, apiResponse, fmt.Errorf(logCreateWaitErr, c.parent, err)
+		return sdkgo.FlowLog{}, fmt.Errorf("%w: %w", errCreateWait, err)
 	}
-	return flowLog, apiResponse, err
+	return flowLog, nil
 }
 
-func (c *client) updateFlowLog(ctx context.Context, updateFn createOrPatchFunc) (sdkgo.FlowLog, *sdkgo.APIResponse, error) {
+func (c *client) updateFlowLog(ctx context.Context, updateFn createOrPatchFunc) (sdkgo.FlowLog, error) {
 	flowLog, apiResponse, err := updateFn()
 	if err != nil {
-		return sdkgo.FlowLog{}, apiResponse, fmt.Errorf(logUpdateErr, c.parent, err)
+		return sdkgo.FlowLog{}, fmt.Errorf("%w: %w", errUpdate, err)
 	}
 	if err = compute.WaitForRequest(ctx, c.ComputeClient, apiResponse); err != nil {
-		return sdkgo.FlowLog{}, apiResponse, fmt.Errorf(logUpdateWaitErr, c.parent, err)
+		return sdkgo.FlowLog{}, fmt.Errorf("%w: %w", errUpdateWait, err)
 	}
-	return flowLog, apiResponse, err
+	return flowLog, nil
 }
 
-func (c *client) deleteFlowLog(ctx context.Context, deleteFn deleteFunc) (*sdkgo.APIResponse, error) {
+func (c *client) deleteFlowLog(ctx context.Context, deleteFn deleteFunc) error {
 	apiResponse, err := deleteFn()
 	if err != nil {
 		if apiResponse.HttpNotFound() {
-			return apiResponse, ErrNotFound
+			return ErrNotFound
 		}
-		return apiResponse, fmt.Errorf(logDeleteErr, c.parent, err)
+		return fmt.Errorf("%w: %w", errDelete, err)
 	}
 	if err = compute.WaitForRequest(ctx, c.ComputeClient, apiResponse); err != nil {
-		return apiResponse, fmt.Errorf(logDeleteWaitErr, c.parent, err)
+		return fmt.Errorf("%w: %w", errDeleteWait, err)
 	}
-	return apiResponse, nil
+	return nil
 }
