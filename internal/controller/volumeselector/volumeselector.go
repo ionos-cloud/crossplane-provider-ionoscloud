@@ -98,7 +98,7 @@ func (c *externalVolumeselector) Observe(ctx context.Context, mg resource.Manage
 	}
 
 	// External Name of the CR is the Volumeselector ID
-	if meta.GetExternalName(cr) == "" {
+	if meta.GetExternalName(cr) == "" || meta.WasDeleted(cr) {
 		return managed.ExternalObservation{}, nil
 	}
 
@@ -191,12 +191,11 @@ func (c *externalVolumeselector) Delete(ctx context.Context, mg resource.Managed
 	if !ok {
 		return errors.New(errNotVolumeSelector)
 	}
+	if meta.GetExternalName(cr) == "" {
+		return nil
+	}
 	meta.SetExternalName(cr, "")
 	cr.SetConditions(xpv1.Deleting())
-	err := c.kube.Delete(ctx, cr)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
