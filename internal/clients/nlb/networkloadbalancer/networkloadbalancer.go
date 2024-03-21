@@ -188,18 +188,25 @@ func IsUpToDate(cr *v1alpha1.NetworkLoadBalancer, observed sdkgo.NetworkLoadBala
 		return false
 	case observed.Properties.TargetLan != nil && *observed.Properties.TargetLan != targetLan:
 		return false
+	case !equalNetworkLoadBalancerIPs(cr, observed, ips):
+		return false
 	}
 
+	return true
+}
+
+func equalNetworkLoadBalancerIPs(cr *v1alpha1.NetworkLoadBalancer, observed sdkgo.NetworkLoadBalancer, configuredIPs []string) bool {
+
 	if observed.Properties.Ips != nil {
-		if len(*observed.Properties.Ips) != len(ips) {
+		if len(*observed.Properties.Ips) != len(configuredIPs) {
 			return false
 		}
 		obsIPs := sets.New[string](*observed.Properties.Ips...)
-		cfgIPs := sets.New[string](ips...)
+		cfgIPs := sets.New[string](configuredIPs...)
 		if !obsIPs.Equal(cfgIPs) {
 			return false
 		}
-	} else if len(ips) != 0 {
+	} else if len(configuredIPs) != 0 {
 		return false
 	}
 
