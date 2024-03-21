@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 
+	sdkgo "github.com/ionos-cloud/sdk-go/v6"
+
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
-	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 )
 
 var (
@@ -25,14 +26,14 @@ var (
 )
 
 type listFunc = func() (sdkgo.FlowLogs, *sdkgo.APIResponse, error)
-type byIdFunc = func() (sdkgo.FlowLog, *sdkgo.APIResponse, error)
+type byIDFunc = func() (sdkgo.FlowLog, *sdkgo.APIResponse, error)
 type createOrPatchFunc = func() (sdkgo.FlowLog, *sdkgo.APIResponse, error)
 type deleteFunc = func() (*sdkgo.APIResponse, error)
 
 // flowLogClient common CRUD interface for flow log
 type flowLogClient interface {
 	checkDuplicateFlowLog(flowLogName string, listFn listFunc) (string, error)
-	getFlowLogByID(byIdFn byIdFunc) (sdkgo.FlowLog, error)
+	getFlowLogByID(byIDFn byIDFunc) (sdkgo.FlowLog, error)
 	createFlowLog(ctx context.Context, createFn createOrPatchFunc) (sdkgo.FlowLog, error)
 	updateFlowLog(ctx context.Context, updateFn createOrPatchFunc) (sdkgo.FlowLog, error)
 	deleteFlowLog(ctx context.Context, deleteFn deleteFunc) error
@@ -72,8 +73,8 @@ func (c *client) checkDuplicateFlowLog(flowLogName string, listFn listFunc) (str
 	return *matchedItems[0].Id, nil
 }
 
-func (c *client) getFlowLogByID(byIdFn byIdFunc) (sdkgo.FlowLog, error) {
-	flowLog, apiResponse, err := byIdFn()
+func (c *client) getFlowLogByID(byIDFn byIDFunc) (sdkgo.FlowLog, error) {
+	flowLog, apiResponse, err := byIDFn()
 	if err != nil {
 		if apiResponse.HttpNotFound() {
 			return flowLog, ErrNotFound

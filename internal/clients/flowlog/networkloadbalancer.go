@@ -3,9 +3,10 @@ package flowlog
 import (
 	"context"
 
+	sdkgo "github.com/ionos-cloud/sdk-go/v6"
+
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
-	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 )
 
 // NLBFlowLog wrapper for IONOS NetworkLoadBalancer flow log methods
@@ -32,8 +33,8 @@ func (nc *nlbClient) CheckDuplicateFlowLog(ctx context.Context, datacenterID, nl
 
 // GetFlowLogByID based on Datacenter ID, NetworkLoadBalancer ID and FlowLog ID
 func (nc *nlbClient) GetFlowLogByID(ctx context.Context, datacenterID, nlbID, flowLogID string) (sdkgo.FlowLog, error) {
-	byIdFn := nc.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFlowlogsFindByFlowLogId(ctx, datacenterID, nlbID, flowLogID).Depth(utils.DepthQueryParam).Execute
-	return nc.flowLogClient.getFlowLogByID(byIdFn)
+	byIDFn := nc.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFlowlogsFindByFlowLogId(ctx, datacenterID, nlbID, flowLogID).Depth(utils.DepthQueryParam).Execute
+	return nc.flowLogClient.getFlowLogByID(byIDFn)
 }
 
 // CreateFlowLog based on Datacenter ID, NetworkLoadBalancer ID and FlowLog

@@ -1,9 +1,10 @@
 package flowlog
 
 import (
+	sdkgo "github.com/ionos-cloud/sdk-go/v6"
+
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/compare"
-	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 )
 
 // customResource allows comparison and input generation for flow logs of different custom resources
