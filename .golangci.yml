@@ -176,6 +176,11 @@ issues:
       - gosec
       - gas
 
+    # This is the "implicit memory aliasing in for loop" issue which is resolved in >= go1.22
+    - text: "G601:"
+      linters:
+        - gosec
+
   # Independently from option `exclude` we use default exclude patterns,
   # it can be disabled by this option. To list all
   # excluded by default patterns execute `golangci-lint run --help`.
