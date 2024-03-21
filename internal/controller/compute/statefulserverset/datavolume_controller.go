@@ -117,8 +117,8 @@ func fromSSSetToVolume(cr *v1alpha1.StatefulServerSet, name string, replicaIndex
 			Labels: map[string]string{
 				statefulServerSetLabel: cr.Name,
 				// todo replace with function
-				fmt.Sprintf(volumeselector.VolumeReplicaIndexLabel, cr.Name+"-"+cr.Spec.ForProvider.Template.Metadata.Name, volumeselector.ResourceDataVolume): fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(volumeselector.VolumeIndexLabel, cr.Name+"-"+cr.Spec.ForProvider.Template.Metadata.Name, volumeselector.ResourceDataVolume):        fmt.Sprintf("%d", volumeIndex),
+				fmt.Sprintf(volumeselector.VolumeReplicaIndexLabel, getParentResourceName(cr), volumeselector.ResourceDataVolume): fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(volumeselector.VolumeIndexLabel, getParentResourceName(cr), volumeselector.ResourceDataVolume):        fmt.Sprintf("%d", volumeIndex),
 			},
 		},
 		Spec: v1alpha1.VolumeSpec{
@@ -154,8 +154,8 @@ func (k *kubeDataVolumeController) Ensure(ctx context.Context, cr *v1alpha1.Stat
 	res := &v1alpha1.VolumeList{}
 
 	if err := k.kube.List(ctx, res, client.MatchingLabels{
-		createVolumeLabelKey(volumeselector.VolumeIndexLabel, cr.Name+"-"+cr.Spec.ForProvider.Template.Metadata.Name):        strconv.Itoa(volumeIndex),
-		createVolumeLabelKey(volumeselector.VolumeReplicaIndexLabel, cr.Name+"-"+cr.Spec.ForProvider.Template.Metadata.Name): strconv.Itoa(volumeIndex),
+		createVolumeLabelKey(volumeselector.VolumeIndexLabel, getParentResourceName(cr)):        strconv.Itoa(volumeIndex),
+		createVolumeLabelKey(volumeselector.VolumeReplicaIndexLabel, getParentResourceName(cr)): strconv.Itoa(volumeIndex),
 	}); err != nil {
 		return err
 	}
@@ -171,4 +171,8 @@ func (k *kubeDataVolumeController) Ensure(ctx context.Context, cr *v1alpha1.Stat
 
 func createVolumeLabelKey(label string, name string) string {
 	return fmt.Sprintf(label, name, volumeselector.ResourceDataVolume)
+}
+
+func getParentResourceName(cr *v1alpha1.StatefulServerSet) string {
+	return cr.Name + "-" + cr.Spec.ForProvider.Template.Metadata.Name
 }
