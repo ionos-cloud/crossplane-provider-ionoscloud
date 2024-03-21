@@ -33,6 +33,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/volumeselector"
 )
 
 const (
@@ -162,6 +163,7 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 
 func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
+	cr.SetConditions(xpv1.Deleting())
 	if !ok {
 		return errors.New(errNotStatefulServerSet)
 	}
@@ -177,8 +179,8 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 // listResFromSSSetWithReplicaAndIndex - lists resources from a server set with a specific index and version label
 func listResFromSSSetWithReplicaAndIndex(ctx context.Context, kube client.Client, ssName, resType string, index, volumeIndex int, list client.ObjectList) error {
 	return kube.List(ctx, list, client.MatchingLabels{
-		fmt.Sprintf(volumeIndexLabel, ssName, resType):  strconv.Itoa(volumeIndex),
-		fmt.Sprintf(replicaIndexLabel, ssName, resType): strconv.Itoa(index),
+		fmt.Sprintf(volumeselector.VolumeIndexLabel, ssName, resType):        strconv.Itoa(volumeIndex),
+		fmt.Sprintf(volumeselector.VolumeReplicaIndexLabel, ssName, resType): strconv.Itoa(index),
 	})
 }
 

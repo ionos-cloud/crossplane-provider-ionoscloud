@@ -15,6 +15,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/serverset"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/volumeselector"
 )
 
 type kubeDataVolumeControlManager interface {
@@ -32,7 +33,7 @@ type kubeDataVolumeController struct {
 
 // Create creates a volume CR and waits until in reaches AVAILABLE state
 func (k *kubeDataVolumeController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
-	name := getNameFromIndexes(cr.Name, resourceDataVolume, replicaIndex, volumeIndex)
+	name := getNameFromIndexes(cr.Name, volumeselector.ResourceDataVolume, replicaIndex, volumeIndex)
 	k.log.Info("Creating Data Volume", "name", name)
 
 	createVolume := fromStatefulServerSetToVolume(cr, name, replicaIndex, volumeIndex)
@@ -114,8 +115,8 @@ func fromStatefulServerSetToVolume(cr *v1alpha1.StatefulServerSet, name string, 
 			Labels: map[string]string{
 				statefulServerSetLabel: cr.Name,
 				// todo replace with function
-				fmt.Sprintf(replicaIndexLabel, cr.Name+"-"+cr.Spec.ForProvider.Template.Metadata.Name, resourceDataVolume): fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(volumeIndexLabel, cr.Name+"-"+cr.Spec.ForProvider.Template.Metadata.Name, resourceDataVolume):  fmt.Sprintf("%d", volumeIndex),
+				fmt.Sprintf(volumeselector.VolumeReplicaIndexLabel, cr.Name+"-"+cr.Spec.ForProvider.Template.Metadata.Name, volumeselector.ResourceDataVolume): fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(volumeselector.VolumeIndexLabel, cr.Name+"-"+cr.Spec.ForProvider.Template.Metadata.Name, volumeselector.ResourceDataVolume):        fmt.Sprintf("%d", volumeIndex),
 			},
 		},
 		Spec: v1alpha1.VolumeSpec{
@@ -150,13 +151,12 @@ func fromStatefulServerSetToVolume(cr *v1alpha1.StatefulServerSet, name string, 
 func (k *kubeDataVolumeController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) error {
 	k.log.Info("Ensuring DataVolume", "replicaIndex", replicaIndex, "volumeIndex", volumeIndex)
 	res := &v1alpha1.VolumeList{}
-	if err := listResFromSSSetWithReplicaAndIndex(ctx, k.kube, cr.Spec.ForProvider.Template.Metadata.Name, resourceDataVolume, replicaIndex, volumeIndex, res); err != nil {
+	if err := listResFromSSSetWithReplicaAndIndex(ctx, k.kube, cr.Spec.ForProvider.Template.Metadata.Name, volumeselector.ResourceDataVolume, replicaIndex, volumeIndex, res); err != nil {
 		return err
 	}
 	volumes := res.Items
 	if len(volumes) == 0 {
-		volume, err := k.Create(ctx, cr, replicaIndex, volumeIndex)
-		k.log.Info("Data volume", "state", volume.Status.AtProvider.State)
+		_, err := k.Create(ctx, cr, replicaIndex, volumeIndex)
 		return err
 	}
 	k.log.Info("Finished ensuring DataVolume", "replicaIndex", replicaIndex, "volumeIndex", volumeIndex)

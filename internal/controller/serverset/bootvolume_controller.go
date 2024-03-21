@@ -150,8 +150,7 @@ func (k *kubeBootVolumeController) Ensure(ctx context.Context, cr *v1alpha1.Serv
 	}
 	volumes := res.Items
 	if len(volumes) == 0 {
-		volume, err := k.Create(ctx, cr, replicaIndex, version)
-		k.log.Info("Volume State", "state", volume.Status.AtProvider.State)
+		_, err := k.Create(ctx, cr, replicaIndex, version)
 		return err
 	}
 	k.log.Info("Finished ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)

@@ -30,8 +30,15 @@ import (
 
 const errNotVolumeSelector = "managed resource is not a Volumeselector custom resource"
 
-const indexLabel = "ionoscloud.com/statefulserverset-%s-index"
-const dataVolume = "datavolume"
+const (
+	// VolumeReplicaIndexLabel ionoscloud.com/<serverset_serverset_name>-<resource_type>-index
+	VolumeReplicaIndexLabel = "ionoscloud.com/%s-%s-index"
+	// VolumeIndexLabel ionoscloud.com/<serverset_serverset_name>-<resource_type>-volumeindex
+	VolumeIndexLabel = "ionoscloud.com/%s-%s-volumeindex"
+)
+
+// ResourceDataVolume is the res name for the volume
+const ResourceDataVolume = "datavolume"
 
 // Setup adds a controller that reconciles Volumeselector managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
@@ -103,7 +110,7 @@ func (c *externalVolumeselector) Observe(ctx context.Context, mg resource.Manage
 	}
 
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
-		volumeList, serverList, err := c.getVolumesAndServers(ctx, replicaIndex)
+		volumeList, serverList, err := c.getVolumesAndServers(ctx, cr.Spec.ForProvider.ServersetName, replicaIndex)
 		if err != nil {
 			return managed.ExternalObservation{}, err
 		}
@@ -154,7 +161,7 @@ func (c *externalVolumeselector) Update(ctx context.Context, mg resource.Managed
 		return managed.ExternalUpdate{}, nil
 	}
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
-		volumeList, serverList, err := c.getVolumesAndServers(ctx, replicaIndex)
+		volumeList, serverList, err := c.getVolumesAndServers(ctx, cr.Spec.ForProvider.ServersetName, replicaIndex)
 		if err != nil {
 			return managed.ExternalUpdate{}, err
 		}
@@ -244,10 +251,10 @@ func (c *externalVolumeselector) areVolumesAndServersReady(volumeList v1alpha1.V
 	return true
 }
 
-func (c *externalVolumeselector) getVolumesAndServers(ctx context.Context, replicaIndex int) (v1alpha1.VolumeList, v1alpha1.ServerList, error) {
+func (c *externalVolumeselector) getVolumesAndServers(ctx context.Context, serversetName string, replicaIndex int) (v1alpha1.VolumeList, v1alpha1.ServerList, error) {
 	volumeList := v1alpha1.VolumeList{}
 	serverList := v1alpha1.ServerList{}
-	err := listResFromSSetWithIndex(ctx, c.kube, fmt.Sprintf(indexLabel, dataVolume), replicaIndex, &volumeList)
+	err := listResFromSSetWithIndex(ctx, c.kube, fmt.Sprintf(VolumeReplicaIndexLabel, serversetName, ResourceDataVolume), replicaIndex, &volumeList)
 	if err != nil {
 		return volumeList, serverList, err
 	}

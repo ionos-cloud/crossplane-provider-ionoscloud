@@ -31,6 +31,10 @@ type VolumeSelectorParameters struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=1
 	Replicas int `json:"replicas"`
+	// Name of the serverset on which the volume and server will be
+	//
+	// +kubebuilder:validation:Required
+	ServersetName string `json:"serversetName"`
 }
 
 // A VolumeselectorSpec defines the desired state of a Volumeselector.

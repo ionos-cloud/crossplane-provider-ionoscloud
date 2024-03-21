@@ -116,7 +116,8 @@ func fromServerSetToVolumeSelector(cr *v1alpha1.ServerSet) v1alpha1.Volumeselect
 				ManagementPolicies: cr.GetManagementPolicies(),
 			},
 			ForProvider: v1alpha1.VolumeSelectorParameters{
-				Replicas: cr.Spec.ForProvider.Replicas,
+				Replicas:      cr.Spec.ForProvider.Replicas,
+				ServersetName: cr.GetName(),
 			},
 		},
 	}
