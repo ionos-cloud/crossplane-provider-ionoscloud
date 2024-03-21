@@ -40,6 +40,7 @@ TEST_MONGO=${TEST_MONGO:-false}
 TEST_POSTGRES=${TEST_POSTGRES:-false}
 TEST_K8S=${TEST_K8S:-false}
 TEST_ALB=${TEST_ALB:-false}
+TEST_NLB=${TEST_NLB:-false}
 TEST_BACKUP=${TEST_BACKUP:-false}
 TEST_DATAPLATFORM=${TEST_DATAPLATFORM:-false}
 skipcleanup=${skipcleanup:-false}
@@ -262,6 +263,23 @@ if [ "$TEST_ALB" = true ]; then
   alb_tests_cleanup
   echo_step "--- target group tests ---"
   targetgroup_tests_cleanup
+fi
+
+if [ "$TEST_NLB" = true ]; then
+  echo_step "--- NLB TESTS ---"
+  echo_step "--- network load balancer tests ---"
+  nlb_tests
+  echo_step "--- nlb forwarding rule tests ---"
+  nlbforwardingrule_tests
+  echo_step "--- nlb flow log tests ---"
+  nlbflowlog_tests
+  echo_step "--- CLEANING UP NLB TESTS---"
+  echo_step "--- flow log tests ---"
+  nlbflowlog_tests_cleanup
+  echo_step "--- forwarding rule tests ---"
+  nlbforwardingrule_tests_cleanup
+  echo_step "--- network load balancer tests ---"
+  nlb_tests_cleanup
 fi
 
 if [ "$TEST_BACKUP" = true ]; then

@@ -166,7 +166,7 @@ type IPConfig struct {
 	IP string `json:"ip,omitempty"`
 	// IPBlockConfig can be used to reference an existing IPBlock and assign an ip by indexing
 	// For Network Load Balancer Forwarding Rules, only a single index can be specified
-	IPBlockConfig `json:"ipBlocks,omitempty"`
+	IPBlockConfig `json:"ipBlock,omitempty"`
 	// Index can be used to retrieve an ip from the referenced IPBlock
 	// Starting index is 0.
 	Index uint `json:"index,omitempty"`
