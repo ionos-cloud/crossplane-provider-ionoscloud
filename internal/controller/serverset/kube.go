@@ -27,7 +27,7 @@ func WaitForKubeResource(ctx context.Context, timeoutInMinutes time.Duration, fn
 	})
 }
 
-// GetNameFromIndex - generates name consisting of name, kind and index
-func GetNameFromIndex(resourceName, resourceType string, idx, version int) string {
+// getNameFromIndex - generates name consisting of name, kind and index
+func getNameFromIndex(resourceName, resourceType string, idx, version int) string {
 	return fmt.Sprintf("%s-%s-%d-%d", resourceName, resourceType, idx, version)
 }

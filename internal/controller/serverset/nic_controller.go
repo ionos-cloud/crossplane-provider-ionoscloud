@@ -31,7 +31,7 @@ type kubeNicController struct {
 
 // Create creates a NIC CR and waits until in reaches AVAILABLE state
 func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) (v1alpha1.Nic, error) {
-	name := GetNameFromIndex(cr.Name, resourceNIC, replicaIndex, version)
+	name := getNameFromIndex(cr.Name, resourceNIC, replicaIndex, version)
 	k.log.Info("Creating NIC", "name", name)
 	network := v1alpha1.Lan{}
 	if err := k.kube.Get(ctx, types.NamespacedName{

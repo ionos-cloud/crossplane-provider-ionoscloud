@@ -24,11 +24,11 @@ func (c *createBeforeDestroyOnlyBootVolume) update(ctx context.Context, cr *v1al
 		return err
 	}
 
-	server, err := c.serverController.Get(ctx, GetNameFromIndex(cr.Name, ResourceServer, replicaIndex, serverVersion), cr.Namespace)
+	server, err := c.serverController.Get(ctx, getNameFromIndex(cr.Name, ResourceServer, replicaIndex, serverVersion), cr.Namespace)
 	if err != nil {
 		return err
 	}
-	createdVolume, err := c.bootVolumeController.Get(ctx, GetNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, newVolumeVersion), cr.Namespace)
+	createdVolume, err := c.bootVolumeController.Get(ctx, getNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, newVolumeVersion), cr.Namespace)
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func (c *createBeforeDestroyOnlyBootVolume) update(ctx context.Context, cr *v1al
 	if err := c.serverController.Update(ctx, server); err != nil {
 		return err
 	}
-	if err = c.bootVolumeController.Delete(ctx, GetNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, volumeVersion), cr.Namespace); err != nil {
+	if err = c.bootVolumeController.Delete(ctx, getNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, volumeVersion), cr.Namespace); err != nil {
 		return err
 	}
 	return err

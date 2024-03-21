@@ -114,7 +114,7 @@ func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namesp
 func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) v1alpha1.Server {
 	return v1alpha1.Server{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      GetNameFromIndex(cr.Name, ResourceServer, replicaIndex, version),
+			Name:      getNameFromIndex(cr.Name, ResourceServer, replicaIndex, version),
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
 				serverSetLabel:                            cr.Name,
@@ -130,14 +130,14 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volume
 			},
 			ForProvider: v1alpha1.ServerParameters{
 				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
-				Name:             GetNameFromIndex(cr.Name, ResourceServer, replicaIndex, version),
+				Name:             getNameFromIndex(cr.Name, ResourceServer, replicaIndex, version),
 				Cores:            cr.Spec.ForProvider.Template.Spec.Cores,
 				RAM:              cr.Spec.ForProvider.Template.Spec.RAM,
 				AvailabilityZone: GetZoneFromIndex(replicaIndex),
 				CPUFamily:        cr.Spec.ForProvider.Template.Spec.CPUFamily,
 				VolumeCfg: v1alpha1.VolumeConfig{
 					VolumeIDRef: &xpv1.Reference{
-						Name: GetNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, volumeVersion),
+						Name: getNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, volumeVersion),
 					},
 				},
 			},
