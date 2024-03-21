@@ -100,7 +100,7 @@ func (k *kubeNicController) isNicDeleted(ctx context.Context, name, namespace st
 			k.log.Info("Nic has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
-		return false, nil
+		return false, err
 	}
 	return false, nil
 }

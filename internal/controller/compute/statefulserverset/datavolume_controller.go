@@ -104,7 +104,7 @@ func (k *kubeDataVolumeController) isDataVolumeDeleted(ctx context.Context, name
 			k.log.Info("Data volume has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
-		return false, nil
+		return false, err
 	}
 	return false, nil
 }

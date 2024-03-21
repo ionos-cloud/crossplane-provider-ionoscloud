@@ -105,7 +105,7 @@ func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namesp
 			k.log.Info("Server has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
-		return false, nil
+		return false, err
 	}
 	return false, nil
 }

@@ -106,7 +106,7 @@ func (k *kubeBootVolumeController) isBootVolumeDeleted(ctx context.Context, name
 			k.log.Info("Volume has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
-		return false, nil
+		return false, err
 	}
 	return false, nil
 }
