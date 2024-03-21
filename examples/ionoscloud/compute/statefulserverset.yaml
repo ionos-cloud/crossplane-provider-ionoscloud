@@ -27,7 +27,7 @@ spec:
     # This defines the template used for each replica.
     template:
       metadata:
-        name: c123456-cluster-{uuid}-servers
+        name: serverset-name
       spec:
         cpuFamily: AMD_OPTERON
         cores: 4

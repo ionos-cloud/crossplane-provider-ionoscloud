@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 type kubeVolumeSelectorManager interface {
@@ -61,7 +62,7 @@ func (k *kubeVolumeSelectorController) Create(ctx context.Context, cr *v1alpha1.
 	if err := k.kube.Create(ctx, &volSelector); err != nil {
 		return v1alpha1.Volumeselector{}, err
 	}
-	if err := WaitForKubeResource(ctx, resourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
+	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
 		return v1alpha1.Volumeselector{}, err
 	}
 	// get the volume again before returning to have the id populated
@@ -116,7 +117,8 @@ func fromServerSetToVolumeSelector(cr *v1alpha1.ServerSet) v1alpha1.Volumeselect
 				ManagementPolicies: cr.GetManagementPolicies(),
 			},
 			ForProvider: v1alpha1.VolumeSelectorParameters{
-				Replicas: cr.Spec.ForProvider.Replicas,
+				Replicas:      cr.Spec.ForProvider.Replicas,
+				ServersetName: cr.GetName(),
 			},
 		},
 	}

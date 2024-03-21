@@ -15,6 +15,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 type kubeBootVolumeControlManager interface {
@@ -43,7 +44,7 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	if err := k.kube.Create(ctx, &createVolume); err != nil {
 		return v1alpha1.Volume{}, err
 	}
-	if err := WaitForKubeResource(ctx, resourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
+	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
 		return v1alpha1.Volume{}, err
 	}
 	// get the volume again before returning to have the id populated
@@ -75,7 +76,7 @@ func (k *kubeBootVolumeController) Delete(ctx context.Context, name, namespace s
 	if err := k.kube.Delete(ctx, condemnedVolume); err != nil {
 		return fmt.Errorf("error deleting volume %w", err)
 	}
-	return WaitForKubeResource(ctx, resourceReadyTimeout, k.isBootVolumeDeleted, condemnedVolume.Name, namespace)
+	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isBootVolumeDeleted, condemnedVolume.Name, namespace)
 }
 
 // IsVolumeAvailable - checks if a volume is available
@@ -105,7 +106,7 @@ func (k *kubeBootVolumeController) isBootVolumeDeleted(ctx context.Context, name
 			k.log.Info("Volume has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
-		return false, nil
+		return false, err
 	}
 	return false, nil
 }
@@ -150,8 +151,7 @@ func (k *kubeBootVolumeController) Ensure(ctx context.Context, cr *v1alpha1.Serv
 	}
 	volumes := res.Items
 	if len(volumes) == 0 {
-		volume, err := k.Create(ctx, cr, replicaIndex, version)
-		k.log.Info("Volume State", "state", volume.Status.AtProvider.State)
+		_, err := k.Create(ctx, cr, replicaIndex, version)
 		return err
 	}
 	k.log.Info("Finished ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)

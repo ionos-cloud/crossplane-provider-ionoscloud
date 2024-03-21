@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 type kubeNicControlManager interface {
@@ -47,7 +48,7 @@ func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, 
 		return v1alpha1.Nic{}, err
 	}
 
-	err := WaitForKubeResource(ctx, resourceReadyTimeout, k.isAvailable, createNic.Name, cr.Namespace)
+	err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createNic.Name, cr.Namespace)
 	if err != nil {
 		return v1alpha1.Nic{}, err
 	}
@@ -99,7 +100,7 @@ func (k *kubeNicController) isNicDeleted(ctx context.Context, name, namespace st
 			k.log.Info("Nic has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
-		return false, nil
+		return false, err
 	}
 	return false, nil
 }
@@ -113,7 +114,7 @@ func (k *kubeNicController) Delete(ctx context.Context, name, namespace string) 
 	if err := k.kube.Delete(ctx, condemnedVolume); err != nil {
 		return err
 	}
-	return WaitForKubeResource(ctx, resourceReadyTimeout, k.isNicDeleted, condemnedVolume.Name, namespace)
+	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isNicDeleted, condemnedVolume.Name, namespace)
 }
 
 func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, replicaIndex, version int) v1alpha1.Nic {

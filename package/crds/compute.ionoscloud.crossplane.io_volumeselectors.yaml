@@ -78,8 +78,13 @@ spec:
                     description: The number of servers that will be created.
                     minimum: 1
                     type: integer
+                  serversetName:
+                    description: Name of the serverset on which the volume and server
+                      will be
+                    type: string
                 required:
                 - replicas
+                - serversetName
                 type: object
               managementPolicies:
                 default:
