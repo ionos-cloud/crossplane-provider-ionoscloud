@@ -243,7 +243,7 @@ spec:
                           to the resource
                         pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
                         type: string
-                      ipBlocks:
+                      ipBlock:
                         description: |-
                           IPBlockConfig can be used to reference an existing IPBlock and assign an ip by indexing
                           For Network Load Balancer Forwarding Rules, only a single index can be specified
@@ -481,7 +481,7 @@ spec:
                                 ip to the resource
                               pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
                               type: string
-                            ipBlocks:
+                            ipBlock:
                               description: |-
                                 IPBlockConfig can be used to reference an existing IPBlock and assign an ip by indexing
                                 For Network Load Balancer Forwarding Rules, only a single index can be specified
