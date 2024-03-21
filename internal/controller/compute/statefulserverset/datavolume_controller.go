@@ -33,7 +33,7 @@ type kubeDataVolumeController struct {
 
 // Create creates a volume CR and waits until in reaches AVAILABLE state
 func (k *kubeDataVolumeController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
-	name := getNameFromIndexes(cr.Name, volumeselector.ResourceDataVolume, replicaIndex, volumeIndex)
+	name := generateNameFrom(cr.Name, volumeselector.ResourceDataVolume, replicaIndex, volumeIndex)
 	k.log.Info("Creating Data Volume", "name", name)
 
 	createVolume := fromStatefulServerSetToVolume(cr, name, replicaIndex, volumeIndex)

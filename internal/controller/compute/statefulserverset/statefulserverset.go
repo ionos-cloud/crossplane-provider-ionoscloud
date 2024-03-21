@@ -41,6 +41,8 @@ const (
 	errTrackPCUsage         = "cannot track ProviderConfig usage"
 )
 
+const statefulServerSetLabel = "ionoscloud.com/statefulServerSet"
+
 // A NoOpService does nothing.
 type NoOpService struct{}
 
@@ -98,8 +100,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
-	// These fmt statements should be removed in the real implementation.
-	fmt.Printf("Observing: %+v", cr)
+
 	cr.SetConditions(xpv1.Available())
 
 	return managed.ExternalObservation{
@@ -184,7 +185,7 @@ func listResFromSSSetWithReplicaAndIndex(ctx context.Context, kube client.Client
 	})
 }
 
-// getNameFromIndexes - generates name consisting of name, kind and index
-func getNameFromIndexes(resourceName, resourceType string, idx, version int) string {
+// generateNameFrom - generates name consisting of name, kind, index and version/second index
+func generateNameFrom(resourceName, resourceType string, idx, version int) string {
 	return fmt.Sprintf("%s-%s-%d-%d", resourceName, resourceType, idx, version)
 }
