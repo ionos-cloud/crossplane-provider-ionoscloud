@@ -1,4 +1,4 @@
-package serverset
+package kube
 
 import (
 	"context"
@@ -16,8 +16,8 @@ const ResourceReadyTimeout = 5 * time.Minute
 // IsResourceReady polls kube api to see if resource is available and observed(status populated)
 type IsResourceReady func(ctx context.Context, name, namespace string) (bool, error)
 
-// WaitForKubeResource - keeps retrying until resource meets condition, or until ctx is cancelled
-func WaitForKubeResource(ctx context.Context, timeoutInMinutes time.Duration, fn IsResourceReady, name, namespace string) error {
+// WaitForResource - keeps retrying until resource meets condition, or until ctx is cancelled
+func WaitForResource(ctx context.Context, timeoutInMinutes time.Duration, fn IsResourceReady, name, namespace string) error {
 	if name == "" {
 		return fmt.Errorf("name is empty")
 	}
@@ -25,9 +25,4 @@ func WaitForKubeResource(ctx context.Context, timeoutInMinutes time.Duration, fn
 	return wait.PollUntilContextTimeout(ctx, pollInterval, timeoutInMinutes, true, func(context.Context) (bool, error) {
 		return fn(ctx, name, namespace)
 	})
-}
-
-// getNameFromIndex - generates name consisting of name, kind and index
-func getNameFromIndex(resourceName, resourceType string, idx, version int) string {
-	return fmt.Sprintf("%s-%s-%d-%d", resourceName, resourceType, idx, version)
 }

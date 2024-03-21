@@ -19,7 +19,6 @@ package statefulserverset
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
@@ -33,7 +32,6 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/volumeselector"
 )
 
 const (
@@ -131,11 +129,9 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	e.log.Info("Creating a new ServerSet", "replicas", cr.Spec.ForProvider.Replicas)
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
 		e.log.Info("Creating the data volumes")
-		for volumeIndex := range cr.Spec.ForProvider.Volumes {
-			err := e.dataVolumeController.Ensure(ctx, cr, replicaIndex, volumeIndex)
-			if err != nil {
-				return managed.ExternalCreation{}, err
-			}
+		err := e.ensureDataVolumes(ctx, cr, replicaIndex)
+		if err != nil {
+			return managed.ExternalCreation{}, fmt.Errorf("while ensuring data volumes %w", err)
 		}
 		e.log.Info("Creating the lans")
 	}
@@ -177,12 +173,15 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	return nil
 }
 
-// listResFromSSSetWithReplicaAndIndex - lists resources from a server set with a specific index and version label
-func listResFromSSSetWithReplicaAndIndex(ctx context.Context, kube client.Client, ssName, resType string, index, volumeIndex int, list client.ObjectList) error {
-	return kube.List(ctx, list, client.MatchingLabels{
-		fmt.Sprintf(volumeselector.VolumeIndexLabel, ssName, resType):        strconv.Itoa(volumeIndex),
-		fmt.Sprintf(volumeselector.VolumeReplicaIndexLabel, ssName, resType): strconv.Itoa(index),
-	})
+func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex int) error {
+	e.log.Info("Ensuring the data volumes")
+	for volumeIndex := range cr.Spec.ForProvider.Volumes {
+		err := e.dataVolumeController.Ensure(ctx, cr, replicaIndex, volumeIndex)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // generateNameFrom - generates name consisting of name, kind, index and version/second index

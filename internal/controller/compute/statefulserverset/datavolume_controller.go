@@ -3,6 +3,7 @@ package statefulserverset
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -16,6 +17,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/serverset"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/volumeselector"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 type kubeDataVolumeControlManager interface {
@@ -36,11 +38,11 @@ func (k *kubeDataVolumeController) Create(ctx context.Context, cr *v1alpha1.Stat
 	name := generateNameFrom(cr.Name, volumeselector.ResourceDataVolume, replicaIndex, volumeIndex)
 	k.log.Info("Creating Data Volume", "name", name)
 
-	createVolume := fromStatefulServerSetToVolume(cr, name, replicaIndex, volumeIndex)
+	createVolume := fromSSSetToVolume(cr, name, replicaIndex, volumeIndex)
 	if err := k.kube.Create(ctx, &createVolume); err != nil {
 		return v1alpha1.Volume{}, err
 	}
-	if err := serverset.WaitForKubeResource(ctx, serverset.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
+	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
 		return v1alpha1.Volume{}, err
 	}
 	// get the volume again before returning to have the id populated
@@ -72,7 +74,7 @@ func (k *kubeDataVolumeController) Delete(ctx context.Context, name, namespace s
 	if err := k.kube.Delete(ctx, condemnedVolume); err != nil {
 		return fmt.Errorf("error deleting data volume %w", err)
 	}
-	return serverset.WaitForKubeResource(ctx, serverset.ResourceReadyTimeout, k.isDataVolumeDeleted, condemnedVolume.Name, namespace)
+	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isDataVolumeDeleted, condemnedVolume.Name, namespace)
 }
 
 // isAvailable - checks if a volume is available
@@ -107,7 +109,7 @@ func (k *kubeDataVolumeController) isDataVolumeDeleted(ctx context.Context, name
 	return false, nil
 }
 
-func fromStatefulServerSetToVolume(cr *v1alpha1.StatefulServerSet, name string, replicaIndex, volumeIndex int) v1alpha1.Volume {
+func fromSSSetToVolume(cr *v1alpha1.StatefulServerSet, name string, replicaIndex, volumeIndex int) v1alpha1.Volume {
 	vol := v1alpha1.Volume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -135,8 +137,7 @@ func fromStatefulServerSetToVolume(cr *v1alpha1.StatefulServerSet, name string, 
 		}}
 	if cr.Spec.ForProvider.Volumes[volumeIndex].Spec.Image != "" {
 		vol.Spec.ForProvider.Image = cr.Spec.ForProvider.Volumes[volumeIndex].Spec.Image
-		vol.Spec.ForProvider.ImagePassword = "imagePassword776"
-
+		// todo - this will not work without a password
 	} else {
 		vol.Spec.ForProvider.LicenceType = "UNKNOWN"
 
@@ -151,7 +152,11 @@ func fromStatefulServerSetToVolume(cr *v1alpha1.StatefulServerSet, name string, 
 func (k *kubeDataVolumeController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) error {
 	k.log.Info("Ensuring DataVolume", "replicaIndex", replicaIndex, "volumeIndex", volumeIndex)
 	res := &v1alpha1.VolumeList{}
-	if err := listResFromSSSetWithReplicaAndIndex(ctx, k.kube, cr.Spec.ForProvider.Template.Metadata.Name, volumeselector.ResourceDataVolume, replicaIndex, volumeIndex, res); err != nil {
+
+	if err := k.kube.List(ctx, res, client.MatchingLabels{
+		createVolumeLabelKey(volumeselector.VolumeIndexLabel, cr.Name+"-"+cr.Spec.ForProvider.Template.Metadata.Name):        strconv.Itoa(volumeIndex),
+		createVolumeLabelKey(volumeselector.VolumeReplicaIndexLabel, cr.Name+"-"+cr.Spec.ForProvider.Template.Metadata.Name): strconv.Itoa(volumeIndex),
+	}); err != nil {
 		return err
 	}
 	volumes := res.Items
@@ -162,4 +167,8 @@ func (k *kubeDataVolumeController) Ensure(ctx context.Context, cr *v1alpha1.Stat
 	k.log.Info("Finished ensuring DataVolume", "replicaIndex", replicaIndex, "volumeIndex", volumeIndex)
 
 	return nil
+}
+
+func createVolumeLabelKey(label string, name string) string {
+	return fmt.Sprintf(label, name, volumeselector.ResourceDataVolume)
 }
