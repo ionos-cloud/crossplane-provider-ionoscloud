@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -141,6 +142,15 @@ func LateInitializer(in *v1alpha1.NetworkLoadBalancerParameters, nlb sdkgo.Netwo
 func SetStatus(in *v1alpha1.NetworkLoadBalancerObservation, nlb sdkgo.NetworkLoadBalancer) {
 	if nlb.Metadata != nil && nlb.Metadata.State != nil {
 		in.State = *nlb.Metadata.State
+	}
+	// Store a single string in the Observation instead of []string, removes the need for deep copy method generation
+	if nlb.Properties != nil {
+		if nlb.Properties.Ips != nil {
+			in.ListenerIPs = strings.Join(*nlb.Properties.Ips, ", ")
+		}
+		if nlb.Properties.LbPrivateIps != nil {
+			in.PrivateIPs = strings.Join(*nlb.Properties.LbPrivateIps, ", ")
+		}
 	}
 }
 

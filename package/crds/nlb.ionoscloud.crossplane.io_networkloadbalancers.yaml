@@ -36,15 +36,15 @@ spec:
       type: string
     - jsonPath: .spec.forProvider.listenerLanConfig.lanId
       name: LISTENER LAN
-      priority: 1
       type: string
     - jsonPath: .spec.forProvider.targetLanConfig.lanId
       name: TARGET LAN
-      priority: 1
       type: string
-    - jsonPath: .status.atProvider.publicIps
-      name: IPS
-      priority: 1
+    - jsonPath: .status.atProvider.listenerIps
+      name: LISTENER IPS
+      type: string
+    - jsonPath: .status.atProvider.privateIps
+      name: PRIVATE IPS
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE
@@ -671,7 +671,11 @@ spec:
                 description: NetworkLoadBalancerObservation are the observable fields
                   of an NetworkLoadBalancer.
                 properties:
+                  listenerIps:
+                    type: string
                   networkLoadBalancerId:
+                    type: string
+                  privateIps:
                     type: string
                   state:
                     type: string

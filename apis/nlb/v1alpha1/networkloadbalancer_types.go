@@ -111,6 +111,8 @@ type NetworkLoadBalancerConfig struct {
 type NetworkLoadBalancerObservation struct {
 	NetworkLoadBalancerID string `json:"networkLoadBalancerId,omitempty"`
 	State                 string `json:"state,omitempty"`
+	ListenerIPs           string `json:"listenerIps,omitempty"`
+	PrivateIPs            string `json:"privateIps,omitempty"`
 }
 
 // NetworkLoadBalancerSpec defines the desired state of an NetworkLoadBalancer.
@@ -133,9 +135,10 @@ type NetworkLoadBalancerStatus struct {
 // +kubebuilder:printcolumn:name="DATACENTER ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
 // +kubebuilder:printcolumn:name="NETWORKLOADBALANCER ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="NETWORKLOADBALANCER NAME",type="string",JSONPath=".spec.forProvider.name"
-// +kubebuilder:printcolumn:name="LISTENER LAN",priority=1,type="string",JSONPath=".spec.forProvider.listenerLanConfig.lanId"
-// +kubebuilder:printcolumn:name="TARGET LAN",priority=1,type="string",JSONPath=".spec.forProvider.targetLanConfig.lanId"
-// +kubebuilder:printcolumn:name="IPS",priority=1,type="string",JSONPath=".status.atProvider.publicIps"
+// +kubebuilder:printcolumn:name="LISTENER LAN",type="string",JSONPath=".spec.forProvider.listenerLanConfig.lanId"
+// +kubebuilder:printcolumn:name="TARGET LAN",type="string",JSONPath=".spec.forProvider.targetLanConfig.lanId"
+// +kubebuilder:printcolumn:name="LISTENER IPS",type="string",JSONPath=".status.atProvider.listenerIps"
+// +kubebuilder:printcolumn:name="PRIVATE IPS",type="string",JSONPath=".status.atProvider.privateIps"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
