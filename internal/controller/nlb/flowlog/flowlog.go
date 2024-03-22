@@ -18,6 +18,7 @@ package flowlog
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/workqueue"
@@ -126,7 +127,7 @@ func (c *externalFlowLog) Observe(ctx context.Context, mg resource.Managed) (man
 	}
 	flowlog.SetStatus(cr, observed)
 	cr.Status.AtProvider.FlowLogID = flowLogID
-
+	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 	return managed.ExternalObservation{
 		ResourceExists:    true,

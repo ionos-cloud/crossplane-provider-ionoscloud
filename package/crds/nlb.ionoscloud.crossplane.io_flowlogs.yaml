@@ -28,7 +28,7 @@ spec:
     - jsonPath: .spec.forProvider.datacenterConfig.datacenterId
       name: DATACENTER ID
       type: string
-    - jsonPath: .spec.forProvider.applicationLoadBalancerConfig.applicationLoadBalancerId
+    - jsonPath: .spec.forProvider.networkLoadBalancerConfig.networkLoadBalancerId
       name: NETWORKLOADBALANCER ID
       type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
@@ -39,11 +39,12 @@ spec:
       type: string
     - jsonPath: .spec.forProvider.action
       name: ACTION
-      priority: 1
       type: string
-    - jsonPath: .status.atProvider.direction
+    - jsonPath: .spec.forProvider.direction
       name: DIRECTION
-      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.bucket
+      name: S3BUCKET
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE
@@ -97,7 +98,6 @@ spec:
                   Required fields in order to create a Network Load Balancer FlowLog:
                   DatacenterCfg (via ID or via reference),
                   NLBCfg (via ID or via reference),
-                  Name,
                   Name,
                   Action
                   Direction.

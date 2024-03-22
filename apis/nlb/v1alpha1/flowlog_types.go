@@ -75,9 +75,9 @@ type FlowLogStatus struct {
 // +kubebuilder:printcolumn:name="NETWORKLOADBALANCER ID",type="string",JSONPath=".spec.forProvider.networkLoadBalancerConfig.networkLoadBalancerId"
 // +kubebuilder:printcolumn:name="FLOWLOG ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="FLOWLOG NAME",type="string",JSONPath=".spec.forProvider.name"
-// +kubebuilder:printcolumn:name="ACTION",priority=1,type="string",JSONPath=".spec.forProvider.action"
-// +kubebuilder:printcolumn:name="DIRECTION",priority=1,type="string",JSONPath=".spec.forProvider.direction"
-// +kubebuilder:printcolumn:name="S3BUCKET",priority=1,type="string",JSONPath=".spec.forProvider.bucket"
+// +kubebuilder:printcolumn:name="ACTION",type="string",JSONPath=".spec.forProvider.action"
+// +kubebuilder:printcolumn:name="DIRECTION",type="string",JSONPath=".spec.forProvider.direction"
+// +kubebuilder:printcolumn:name="S3BUCKET",type="string",JSONPath=".spec.forProvider.bucket"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
