@@ -22,6 +22,7 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
@@ -136,6 +137,12 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		e.log.Info("Creating the lans")
 	}
 
+	// ensure that above are already created
+	e.log.Info("Creating the ServerSet CR")
+	if err := e.createServerSetCR(ctx, cr); err != nil {
+		return managed.ExternalCreation{}, err
+	}
+
 	// When all conditions are met, the managed resource is considered available
 	meta.SetExternalName(cr, cr.Name)
 	return managed.ExternalCreation{
@@ -187,4 +194,30 @@ func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulS
 // generateNameFrom - generates name consisting of name, kind, index and version/second index
 func generateNameFrom(resourceName, resourceType string, idx, version int) string {
 	return fmt.Sprintf("%s-%s-%d-%d", resourceName, resourceType, idx, version)
+}
+
+func (e *external) createServerSetCR(ctx context.Context, sssCR *v1alpha1.StatefulServerSet) error {
+	ssCR := &v1alpha1.ServerSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      getSSName(sssCR.Name, sssCR.Spec.ForProvider.Template.Metadata.Name),
+			Namespace: sssCR.Namespace,
+		},
+		Spec: v1alpha1.ServerSetSpec{
+			ResourceSpec: xpv1.ResourceSpec{
+				ProviderConfigReference: sssCR.GetProviderConfigReference(),
+				ManagementPolicies:      sssCR.GetManagementPolicies(),
+			},
+			ForProvider: v1alpha1.ServerSetParameters{
+				Replicas:           sssCR.Spec.ForProvider.Replicas,
+				DatacenterCfg:      sssCR.Spec.ForProvider.DatacenterCfg,
+				Template:           sssCR.Spec.ForProvider.Template,
+				BootVolumeTemplate: sssCR.Spec.ForProvider.BootVolumeTemplate,
+			},
+		},
+	}
+	return e.kube.Create(ctx, ssCR)
+}
+
+func getSSName(sssName, ssName string) string {
+	return fmt.Sprintf("%s-%s", sssName, ssName)
 }
