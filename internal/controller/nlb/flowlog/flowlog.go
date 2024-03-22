@@ -32,13 +32,12 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/nlb/forwardingrule"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/nlb/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/nlb/flowlog"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/flowlog"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
@@ -91,7 +90,7 @@ func (c *connectorFlowLog) Connect(ctx context.Context, mg resource.Managed) (ma
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalFlowLog{
-		service:              &flowlog.APIClient{IonosServices: svc},
+		service:              flowlog.NLBClient(svc),
 		log:                  c.log,
 		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
@@ -101,7 +100,7 @@ func (c *connectorFlowLog) Connect(ctx context.Context, mg resource.Managed) (ma
 type externalFlowLog struct {
 	// A 'client' used to connect to the externalFlowLog resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service              flowlog.Client
+	service              flowlog.NLBFlowLog
 	log                  logging.Logger
 	isUniqueNamesEnabled bool
 }
@@ -118,14 +117,14 @@ func (c *externalFlowLog) Observe(ctx context.Context, mg resource.Managed) (man
 
 	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
 	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
-	observed, _, err := c.service.GetFlowLogByID(ctx, datacenterID, nlbID, flowLogID)
+	observed, err := c.service.GetFlowLogByID(ctx, datacenterID, nlbID, flowLogID)
 	if err != nil {
-		if errors.Is(err, forwardingrule.ErrNotFound) {
+		if errors.Is(err, flowlog.ErrNotFound) {
 			return managed.ExternalObservation{}, nil
 		}
 		return managed.ExternalObservation{}, err
 	}
-	flowlog.SetStatus(&cr.Status.AtProvider, observed)
+	flowlog.SetStatus(cr, observed)
 	cr.Status.AtProvider.FlowLogID = flowLogID
 
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
@@ -168,11 +167,13 @@ func (c *externalFlowLog) Create(ctx context.Context, mg resource.Managed) (mana
 		}
 	}
 	flowLogInput := flowlog.GenerateCreateInput(cr)
-	newInstance, _, err := c.service.CreateFlowLog(ctx, datacenterID, nlbID, flowLogInput)
+	newInstance, err := c.service.CreateFlowLog(ctx, datacenterID, nlbID, flowLogInput)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
 	cr.Status.AtProvider.FlowLogID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
+
 	return managed.ExternalCreation{}, nil
 }
 
@@ -189,7 +190,7 @@ func (c *externalFlowLog) Update(ctx context.Context, mg resource.Managed) (mana
 	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
 	flowLogID := cr.Status.AtProvider.FlowLogID
 	flowLogInput := flowlog.GenerateUpdateInput(cr)
-	_, _, err := c.service.UpdateFlowLog(ctx, datacenterID, nlbID, flowLogID, flowLogInput)
+	_, err := c.service.UpdateFlowLog(ctx, datacenterID, nlbID, flowLogID, flowLogInput)
 	return managed.ExternalUpdate{}, err
 }
 
@@ -205,8 +206,8 @@ func (c *externalFlowLog) Delete(ctx context.Context, mg resource.Managed) error
 
 	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
 	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
-	_, err := c.service.DeleteFlowLog(ctx, datacenterID, nlbID, cr.Status.AtProvider.FlowLogID)
-	if !errors.Is(err, forwardingrule.ErrNotFound) {
+	err := c.service.DeleteFlowLog(ctx, datacenterID, nlbID, cr.Status.AtProvider.FlowLogID)
+	if !errors.Is(err, flowlog.ErrNotFound) {
 		return err
 	}
 	return nil
