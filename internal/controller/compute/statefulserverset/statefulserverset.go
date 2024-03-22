@@ -23,6 +23,7 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
@@ -100,7 +101,13 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, nil
 	}
 
-	cr.SetConditions(xpv1.Available())
+	serverSet := &v1alpha1.ServerSet{}
+	nsName := computeSSetNsName(cr)
+	if err := e.kube.Get(ctx, nsName, serverSet); err != nil {
+		return managed.ExternalObservation{}, err
+	}
+
+	cr.Status.SetConditions(xpv1.Available())
 
 	return managed.ExternalObservation{
 		// Return false when the externalStatefulServerSet resource does not exist. This lets
@@ -194,6 +201,20 @@ func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulS
 // generateNameFrom - generates name consisting of name, kind, index and version/second index
 func generateNameFrom(resourceName, resourceType string, idx, version int) string {
 	return fmt.Sprintf("%s-%s-%d-%d", resourceName, resourceType, idx, version)
+}
+
+func computeSSetNsName(cr *v1alpha1.StatefulServerSet) types.NamespacedName {
+	ssName := cr.Name + "-" + cr.Spec.ForProvider.Template.Metadata.Name
+
+	namespace := "default"
+	if cr.Namespace != "" {
+		namespace = cr.Namespace
+	}
+
+	return types.NamespacedName{
+		Name:      ssName,
+		Namespace: namespace,
+	}
 }
 
 func (e *external) createServerSetCR(ctx context.Context, sssCR *v1alpha1.StatefulServerSet) error {
