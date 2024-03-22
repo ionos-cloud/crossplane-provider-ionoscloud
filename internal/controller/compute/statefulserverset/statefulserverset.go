@@ -146,7 +146,7 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	// ensure that above are already created
 	e.log.Info("Creating the ServerSet CR")
-	if err := e.createServerSetCR(ctx, cr); err != nil {
+	if err := e.createSSetCR(ctx, cr); err != nil {
 		return managed.ExternalCreation{}, err
 	}
 
@@ -217,8 +217,13 @@ func computeSSetNsName(cr *v1alpha1.StatefulServerSet) types.NamespacedName {
 	}
 }
 
-func (e *external) createServerSetCR(ctx context.Context, sssCR *v1alpha1.StatefulServerSet) error {
-	ssCR := &v1alpha1.ServerSet{
+func (e *external) createSSetCR(ctx context.Context, sssCR *v1alpha1.StatefulServerSet) error {
+	ssCR := extractSSetFromSSet(sssCR)
+	return e.kube.Create(ctx, ssCR)
+}
+
+func extractSSetFromSSet(sssCR *v1alpha1.StatefulServerSet) *v1alpha1.ServerSet {
+	return &v1alpha1.ServerSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getSSName(sssCR.Name, sssCR.Spec.ForProvider.Template.Metadata.Name),
 			Namespace: sssCR.Namespace,
@@ -236,7 +241,6 @@ func (e *external) createServerSetCR(ctx context.Context, sssCR *v1alpha1.Statef
 			},
 		},
 	}
-	return e.kube.Create(ctx, ssCR)
 }
 
 func getSSName(sssName, ssName string) string {

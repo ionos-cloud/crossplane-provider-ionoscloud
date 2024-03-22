@@ -5,10 +5,13 @@ import (
 	"reflect"
 	"testing"
 
+	cv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -16,7 +19,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
-func fakeKubeClientObjs(objs ...client.Object) client.WithWatch {
+func fakeKubeClientWithObjs(objs ...client.Object) client.WithWatch {
 	scheme := runtime.NewScheme()
 	v1.AddToScheme(scheme)       // Add the core k8s types to the Scheme
 	v1alpha1.AddToScheme(scheme) // Add our custom types from v1alpha to the Scheme
@@ -42,13 +45,15 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 		{
 			name: "stateful server set is created successfully",
 			fields: fields{
-				kube: fakeKubeClientObjs(),
+				kube: fakeKubeClientWithObjs(),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
 				ctx: context.Background(),
-				mg:  &v1alpha1.StatefulServerSet{},
+				mg:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: "test"}},
 			},
+			want:    managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -62,9 +67,16 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 				t.Errorf("Create() error = %v, wantErr = %v", err, tt.wantErr)
 				return
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Create() got = %v, want = %v", got, tt.want)
 			}
+
+			cr := tt.args.mg.(*v1alpha1.StatefulServerSet)
+			assert.Equal(t, cv1.ReasonCreating, cr.Status.ConditionedStatus.Conditions[0].Reason)
+			assert.Equal(t, cv1.TypeReady, cr.Status.ConditionedStatus.Conditions[0].Type)
+			assert.Equal(t, v1.ConditionFalse, cr.Status.ConditionedStatus.Conditions[0].Status)
+			assert.Equal(t, "test", cr.ObjectMeta.Name)
 		})
 	}
 }
