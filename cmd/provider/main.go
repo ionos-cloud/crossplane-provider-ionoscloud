@@ -50,7 +50,6 @@ func main() {
 		createGracePeriod = app.Flag("create-grace-period", "Grace period for creation of IONOS Cloud resources.").Default("1m").Duration()
 		timeout           = app.Flag("timeout", "Timeout duration cumulatively for all the calls happening in the reconciliation functions.").Default("30m").Duration()
 	)
-	*debug = true
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 	zl := zap.New(zap.UseDevMode(*debug))
 	log := logging.NewLogrLogger(zl.WithName("provider-ionoscloud"))
