@@ -216,7 +216,7 @@ func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulS
 }
 
 func (e *external) ensureLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	e.log.Info("ensuring the lans")
+	e.log.Info("Ensuring the lans")
 	for lanIndex := range cr.Spec.ForProvider.Lans {
 		err := e.LANController.Ensure(ctx, cr, lanIndex)
 		if err != nil {
@@ -224,11 +224,6 @@ func (e *external) ensureLans(ctx context.Context, cr *v1alpha1.StatefulServerSe
 		}
 	}
 	return nil
-}
-
-// generateNameFrom - generates name consisting of name, kind, index and version/second index
-func generateNameFrom(resourceName, resourceType string, idx, version int) string {
-	return fmt.Sprintf("%s-%s-%d-%d", resourceName, resourceType, idx, version)
 }
 
 func areLansUpToDate(cr *v1alpha1.StatefulServerSet, lans []v1alpha1.Lan) (creationUpToDate bool, areUpToDate bool) {

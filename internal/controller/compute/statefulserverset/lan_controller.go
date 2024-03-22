@@ -23,7 +23,7 @@ const resourceLAN = "lan"
 
 type kubeLANControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) (v1alpha1.Lan, error)
-	Get(ctx context.Context, volumeName, ns string) (*v1alpha1.Lan, error)
+	Get(ctx context.Context, lanName, ns string) (*v1alpha1.Lan, error)
 	Delete(ctx context.Context, name, namespace string) error
 	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) error
 	ListLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.LanList, error)
@@ -36,7 +36,7 @@ type kubeLANController struct {
 	log  logging.Logger
 }
 
-// Create creates a volume CR and waits until in reaches AVAILABLE state
+// Create creates a lan CR and waits until in reaches AVAILABLE state
 func (k *kubeLANController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) (v1alpha1.Lan, error) {
 	name := fmt.Sprintf("%s-%s-%d", cr.GetName(), resourceLAN, lanIndex)
 	k.log.Info("Creating LAN", "name", name)
@@ -57,7 +57,7 @@ func (k *kubeLANController) Create(ctx context.Context, cr *v1alpha1.StatefulSer
 	return *kubeLAN, nil
 }
 
-// isLanUpToDate - checks if the lan is up to date and update the kube lan object if needed
+// isLanUpToDate - checks if the lan is up-to-date and update the kube lan object if needed
 func isLanUpToDate(spec *v1alpha1.StatefulServerSetLanSpec, lan *v1alpha1.Lan) bool {
 	switch {
 	case lan.Spec.ForProvider.Ipv6Cidr != spec.IPv6cidr:
@@ -108,29 +108,29 @@ func (k *kubeLANController) ListLans(ctx context.Context, cr *v1alpha1.StatefulS
 	return lans, nil
 }
 
-// Get - returns a volume kubernetes object
-func (k *kubeLANController) Get(ctx context.Context, volumeName, ns string) (*v1alpha1.Lan, error) {
+// Get - returns a lan kubernetes object
+func (k *kubeLANController) Get(ctx context.Context, lanName, ns string) (*v1alpha1.Lan, error) {
 	obj := &v1alpha1.Lan{}
 	err := k.kube.Get(ctx, types.NamespacedName{
 		Namespace: ns,
-		Name:      volumeName,
+		Name:      lanName,
 	}, obj)
 	return obj, err
 }
 
-// Delete - deletes the datavolume k8s client and waits until it is deleted
+// Delete - deletes the lan kube object and waits until it is deleted
 func (k *kubeLANController) Delete(ctx context.Context, name, namespace string) error {
 	condemnedLAN, err := k.Get(ctx, name, namespace)
 	if err != nil {
 		return err
 	}
 	if err := k.kube.Delete(ctx, condemnedLAN); err != nil {
-		return fmt.Errorf("error deleting lan %w", err)
+		return fmt.Errorf("while deleting lan %w", err)
 	}
 	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isLANDeleted, condemnedLAN.Name, namespace)
 }
 
-// isAvailable - checks if a volume is available
+// isAvailable - checks if a lan is available
 func (k *kubeLANController) isAvailable(ctx context.Context, name, namespace string) (bool, error) {
 	obj, err := k.Get(ctx, name, namespace)
 	if err != nil {

@@ -176,3 +176,8 @@ func createVolumeLabelKey(label string, name string) string {
 func getParentResourceName(cr *v1alpha1.StatefulServerSet) string {
 	return cr.Name + "-" + cr.Spec.ForProvider.Template.Metadata.Name
 }
+
+// generateNameFrom - generates name consisting of name, kind, index and version/second index
+func generateNameFrom(resourceName, resourceType string, idx, version int) string {
+	return fmt.Sprintf("%s-%s-%d-%d", resourceName, resourceType, idx, version)
+}
