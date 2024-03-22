@@ -213,8 +213,7 @@ func (k *kubeDataVolumeController) Update(ctx context.Context, cr *v1alpha1.Stat
 
 // isVolumeUpToDate - checks if the lan is up-to-date and update the kube lan object if needed
 func isVolumeUpToDate(spec *v1alpha1.StatefulServerSetVolumeSpec, lan *v1alpha1.Volume) bool {
-	switch {
-	case lan.Spec.ForProvider.Size != spec.Size:
+	if lan.Spec.ForProvider.Size != spec.Size {
 		lan.Spec.ForProvider.Size = spec.Size
 		return false
 	}

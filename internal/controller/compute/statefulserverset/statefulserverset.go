@@ -120,12 +120,12 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// Return false when the externalStatefulServerSet resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
 		// (re)create the resource, or that it has successfully been deleted.
-		ResourceExists: creationLansUpToDate == true && creationVolumesUpToDate == true,
+		ResourceExists: creationLansUpToDate && creationVolumesUpToDate,
 
 		// Return false when the externalStatefulServerSet resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
-		ResourceUpToDate: areLansUpToDate == true && areVolumesUpToDate == true,
+		ResourceUpToDate: areLansUpToDate && areVolumesUpToDate,
 
 		// Return any details that may be required to connect to the externalStatefulServerSet
 		// resource. These will be stored as the connection secret.
