@@ -131,7 +131,6 @@ func (c *externalForwardingRule) Observe(ctx context.Context, mg resource.Manage
 		}
 		return managed.ExternalObservation{}, err
 	}
-	isLateInitialized := forwardingrule.LateInitializer(&cr.Spec.ForProvider, observed)
 	forwardingrule.SetStatus(&cr.Status.AtProvider, observed)
 	cr.Status.AtProvider.ForwardingRuleID = ruleID
 
@@ -143,13 +142,12 @@ func (c *externalForwardingRule) Observe(ctx context.Context, mg resource.Manage
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-
+	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 	return managed.ExternalObservation{
-		ResourceExists:          true,
-		ResourceUpToDate:        forwardingrule.IsUpToDate(cr, observed, listenerIP, targetsIPs),
-		ConnectionDetails:       managed.ConnectionDetails{},
-		ResourceLateInitialized: isLateInitialized,
+		ResourceExists:    true,
+		ResourceUpToDate:  forwardingrule.IsUpToDate(cr, observed, listenerIP, targetsIPs),
+		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
 }
 

@@ -127,40 +127,14 @@ func (cp *APIClient) DeleteForwardingRule(ctx context.Context, datacenterID, nlb
 	return apiResponse, nil
 }
 
-// LateInitializer fills the empty fields in *v1alpha1.ForwardingRuleParameters with
-// values that might have been provided by the API in sdkgo.NetworkLoadBalancerForwardingRule
-func LateInitializer(in *v1alpha1.ForwardingRuleParameters, rule sdkgo.NetworkLoadBalancerForwardingRule) bool {
-	// Don't initialize fields if the API hasn't set anything or
-	// values have already been provided in the NetworkLoadBalancerParameters
-	var lateInitialized bool
-	if rule.Properties == nil {
-		return false
-	}
-	if rule.Properties.HealthCheck != nil {
-		if rule.Properties.HealthCheck.ClientTimeout != nil && in.HealthCheck.ClientTimeout == 0 {
-			in.HealthCheck.ClientTimeout = *rule.Properties.HealthCheck.ClientTimeout
-			lateInitialized = true
-		}
-		if rule.Properties.HealthCheck.ConnectTimeout != nil && in.HealthCheck.ConnectTimeout == 0 {
-			in.HealthCheck.ConnectTimeout = *rule.Properties.HealthCheck.ConnectTimeout
-			lateInitialized = true
-		}
-		if rule.Properties.HealthCheck.TargetTimeout != nil && in.HealthCheck.TargetTimeout == 0 {
-			in.HealthCheck.TargetTimeout = *rule.Properties.HealthCheck.TargetTimeout
-			lateInitialized = true
-		}
-		if rule.Properties.HealthCheck.Retries != nil && in.HealthCheck.Retries == 0 {
-			in.HealthCheck.Retries = *rule.Properties.HealthCheck.Retries
-			lateInitialized = true
-		}
-	}
-	return lateInitialized
-}
-
 // SetStatus sets fields of the ForwardingRuleObservation based on sdkgo.NetworkLoadBalancerForwardingRule
 func SetStatus(in *v1alpha1.ForwardingRuleObservation, rule sdkgo.NetworkLoadBalancerForwardingRule) {
 	if rule.Metadata != nil && rule.Metadata.State != nil {
 		in.State = *rule.Metadata.State
+	}
+	if rule.Properties != nil && rule.Properties.ListenerIp != nil && rule.Properties.ListenerPort != nil {
+		in.ListenerIP = *rule.Properties.ListenerIp
+		in.ListenerPort = *rule.Properties.ListenerPort
 	}
 }
 
@@ -189,7 +163,7 @@ func GenerateUpdateInput(cr *v1alpha1.ForwardingRule, listenerIP string, targets
 }
 
 // IsUpToDate returns true if the ForwardingRule is up-to-date or false otherwise
-func IsUpToDate(cr *v1alpha1.ForwardingRule, observed sdkgo.NetworkLoadBalancerForwardingRule, listenerIp string, targetsIPs map[string]v1alpha1.ForwardingRuleTarget) bool { // nolint:gocyclo
+func IsUpToDate(cr *v1alpha1.ForwardingRule, observed sdkgo.NetworkLoadBalancerForwardingRule, listenerIP string, targetsIPs map[string]v1alpha1.ForwardingRuleTarget) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && observed.Properties == nil:
 		return true
@@ -207,7 +181,7 @@ func IsUpToDate(cr *v1alpha1.ForwardingRule, observed sdkgo.NetworkLoadBalancerF
 		return false
 	case observed.Properties.Protocol != nil && *observed.Properties.Protocol != cr.Spec.ForProvider.Protocol:
 		return false
-	case observed.Properties.ListenerIp != nil && *observed.Properties.ListenerIp != listenerIp:
+	case observed.Properties.ListenerIp != nil && *observed.Properties.ListenerIp != listenerIP:
 		return false
 	case observed.Properties.ListenerPort != nil && *observed.Properties.ListenerPort != cr.Spec.ForProvider.ListenerPort:
 		return false
@@ -245,6 +219,7 @@ func equalTargets(configured map[string]v1alpha1.ForwardingRuleTarget, observed 
 	}
 
 	for _, obsTarget := range *observed {
+		obsTarget := obsTarget
 		if obsTarget.Ip == nil {
 			continue
 		}
@@ -261,9 +236,6 @@ func equalTargets(configured map[string]v1alpha1.ForwardingRuleTarget, observed 
 }
 
 func equalTarget(cr v1alpha1.ForwardingRuleTarget, observed *sdkgo.NetworkLoadBalancerForwardingRuleTarget, ip string) bool {
-	if observed == nil {
-		return true
-	}
 	switch {
 	case observed.Ip != nil && *observed.Ip != ip:
 		return false
@@ -280,9 +252,6 @@ func equalTarget(cr v1alpha1.ForwardingRuleTarget, observed *sdkgo.NetworkLoadBa
 }
 
 func equalTargetHealthCheck(cr v1alpha1.ForwardingRuleTargetHealthCheck, observed *sdkgo.NetworkLoadBalancerForwardingRuleTargetHealthCheck) bool {
-	if observed == nil {
-		return true
-	}
 	switch {
 	case observed.Check != nil && *observed.Check != cr.Check:
 		return false
@@ -310,6 +279,8 @@ func ruleHealthCheckInput(cr v1alpha1.ForwardingRuleHealthCheck) *sdkgo.NetworkL
 func ruleTargetsInput(targetsIPs map[string]v1alpha1.ForwardingRuleTarget) *[]sdkgo.NetworkLoadBalancerForwardingRuleTarget {
 	targetsInput := make([]sdkgo.NetworkLoadBalancerForwardingRuleTarget, 0, len(targetsIPs))
 	for k, v := range targetsIPs {
+		k := k
+		v := v
 		target := sdkgo.NetworkLoadBalancerForwardingRuleTarget{
 			Ip:            &k,
 			Port:          &v.Port,

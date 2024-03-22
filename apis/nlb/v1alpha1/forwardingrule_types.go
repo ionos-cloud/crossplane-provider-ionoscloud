@@ -72,6 +72,7 @@ type ForwardingRuleParameters struct {
 	// HealthCheck options for the forwarding rule health check
 	//
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default={}
 	HealthCheck ForwardingRuleHealthCheck `json:"healthCheck,omitempty"`
 	// Targets is the list of load balanced targets
 	//
@@ -85,7 +86,7 @@ type ForwardingRuleHealthCheck struct {
 	// ClientTimeout the maximum time in milliseconds to wait for the client to acknowledge or send data; default is 50,000 (50 seconds).
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=50
+	// +kubebuilder:default=50000
 	ClientTimeout int32 `json:"clientTimeout,omitempty"`
 	// ConnectTimeout the maximum time in milliseconds to wait for a connection attempt to a target to succeed; default is 5000 (five seconds).
 	//
@@ -95,17 +96,18 @@ type ForwardingRuleHealthCheck struct {
 	// TargetTimeout the maximum time in milliseconds that a target can remain inactive; default is 50,000 (50 seconds).
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=50
+	// +kubebuilder:default=50000
 	TargetTimeout int32 `json:"targetTimeout,omitempty"`
 	// Retries the maximum number of attempts to reconnect to a target after a connection failure. Valid range is 0 to 65535 and default is three reconnection attempts.
 	//
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=3
 	Retries int32 `json:"retries,omitempty"`
 }
 
 // ForwardingRuleTarget structure for the forwarding rule target
 // Required fields for the ForwardingRuleTarget:
-// IP
+// IPCfg (via ID or Reference)
 // Port
 // Weight
 type ForwardingRuleTarget struct {
@@ -135,6 +137,7 @@ type ForwardingRuleTarget struct {
 	// HealthCheck options of the balanced target health check
 	//
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default={}
 	HealthCheck ForwardingRuleTargetHealthCheck `json:"healthCheck,omitempty"`
 }
 
@@ -176,6 +179,8 @@ type IPConfig struct {
 type ForwardingRuleObservation struct {
 	ForwardingRuleID string `json:"forwardingRuleId,omitempty"`
 	State            string `json:"state,omitempty"`
+	ListenerIP       string `json:"listenerIp,omitempty"`
+	ListenerPort     int32  `json:"listenerPort,omitempty"`
 }
 
 // ForwardingRuleSpec defines the desired state of a Network Load Balancer ForwardingRule.
@@ -198,10 +203,9 @@ type ForwardingRuleStatus struct {
 // +kubebuilder:printcolumn:name="DATACENTER ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
 // +kubebuilder:printcolumn:name="NETWORKLOADBALANCER ID",type="string",JSONPath=".spec.forProvider.networkLoadBalancerConfig.networkLoadBalancerId"
 // +kubebuilder:printcolumn:name="FORWARDINGRULE ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
-// +kubebuilder:printcolumn:name="FORWARDINGRULE NAME",type="string",JSONPath=".spec.forProvider.name"
-// +kubebuilder:printcolumn:name="PROTOCOL",priority=1,type="string",JSONPath=".spec.forProvider.protocol"
-// +kubebuilder:printcolumn:name="LISTENER IP",priority=1,type="string",JSONPath=".spec.forProvider.listenerIp"
-// +kubebuilder:printcolumn:name="LISTENER PORT",priority=1,type="string",JSONPath=".spec.forProvider.listenerPort"
+// +kubebuilder:printcolumn:name="PROTOCOL",type="string",JSONPath=".spec.forProvider.protocol"
+// +kubebuilder:printcolumn:name="LISTENER IP",type="string",JSONPath=".status.atProvider.listenerIp"
+// +kubebuilder:printcolumn:name="PORT",type="integer",JSONPath=".status.atProvider.listenerPort"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status

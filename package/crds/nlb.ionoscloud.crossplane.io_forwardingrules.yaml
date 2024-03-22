@@ -34,17 +34,15 @@ spec:
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
       name: FORWARDINGRULE ID
       type: string
-    - jsonPath: .spec.forProvider.name
-      name: FORWARDINGRULE NAME
-      type: string
     - jsonPath: .spec.forProvider.protocol
       name: PROTOCOL
-      priority: 1
       type: string
     - jsonPath: .status.atProvider.listenerIp
       name: LISTENER IP
-      priority: 1
       type: string
+    - jsonPath: .status.atProvider.listenerPort
+      name: PORT
+      type: integer
     - jsonPath: .status.atProvider.state
       name: STATE
       type: string
@@ -198,11 +196,12 @@ spec:
                         type: object
                     type: object
                   healthCheck:
+                    default: {}
                     description: HealthCheck options for the forwarding rule health
                       check
                     properties:
                       clientTimeout:
-                        default: 50
+                        default: 50000
                         description: ClientTimeout the maximum time in milliseconds
                           to wait for the client to acknowledge or send data; default
                           is 50,000 (50 seconds).
@@ -216,13 +215,14 @@ spec:
                         format: int32
                         type: integer
                       retries:
+                        default: 3
                         description: Retries the maximum number of attempts to reconnect
                           to a target after a connection failure. Valid range is 0
                           to 65535 and default is three reconnection attempts.
                         format: int32
                         type: integer
                       targetTimeout:
-                        default: 50
+                        default: 50000
                         description: TargetTimeout the maximum time in milliseconds
                           that a target can remain inactive; default is 50,000 (50
                           seconds).
@@ -442,11 +442,12 @@ spec:
                       description: |-
                         ForwardingRuleTarget structure for the forwarding rule target
                         Required fields for the ForwardingRuleTarget:
-                        IP
+                        IPCfg (via ID or Reference)
                         Port
                         Weight
                       properties:
                         healthCheck:
+                          default: {}
                           description: HealthCheck options of the balanced target
                             health check
                           properties:
@@ -784,6 +785,11 @@ spec:
                 properties:
                   forwardingRuleId:
                     type: string
+                  listenerIp:
+                    type: string
+                  listenerPort:
+                    format: int32
+                    type: integer
                   state:
                     type: string
                 type: object
