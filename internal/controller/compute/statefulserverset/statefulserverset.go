@@ -103,30 +103,29 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 	lans, err := e.LANController.ListLans(ctx, cr)
 	if err != nil {
-		return managed.ExternalObservation{}, err
-	}
-
-	if len(lans.Items) < len(cr.Spec.ForProvider.Lans) {
-		return managed.ExternalObservation{
-			ResourceExists:    false,
-			ResourceUpToDate:  true,
-			ConnectionDetails: managed.ConnectionDetails{},
-		}, nil
+		return managed.ExternalObservation{}, fmt.Errorf("while listing lans %w", err)
 	}
 	creationLansUpToDate, areLansUpToDate := areLansUpToDate(cr, lans.Items)
 
-	cr.SetConditions(xpv1.Available())
+	volumes, err := e.dataVolumeController.ListVolumes(ctx, cr)
+	if err != nil {
+		return managed.ExternalObservation{}, fmt.Errorf("while listing volumes %w", err)
+	}
 
+	creationVolumesUpToDate, areVolumesUpToDate := arDataVolumesUpToDate(cr, volumes.Items)
+
+	cr.SetConditions(xpv1.Available())
+	e.log.Info("Observing the stateful server set", "creationLansUpToDate", creationLansUpToDate, "areLansUpToDate", areLansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate, "areVolumesUpToDate", areVolumesUpToDate)
 	return managed.ExternalObservation{
 		// Return false when the externalStatefulServerSet resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
 		// (re)create the resource, or that it has successfully been deleted.
-		ResourceExists: creationLansUpToDate,
+		ResourceExists: creationLansUpToDate == true && creationVolumesUpToDate == true,
 
 		// Return false when the externalStatefulServerSet resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
-		ResourceUpToDate: areLansUpToDate,
+		ResourceUpToDate: areLansUpToDate == true && areVolumesUpToDate == true,
 
 		// Return any details that may be required to connect to the externalStatefulServerSet
 		// resource. These will be stored as the connection secret.
@@ -169,13 +168,19 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotStatefulServerSet)
 	}
-
+	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
+		for volumeIndex := range cr.Spec.ForProvider.Volumes {
+			_, err := e.dataVolumeController.Update(ctx, cr, replicaIndex, volumeIndex)
+			if err != nil {
+				return managed.ExternalUpdate{}, err
+			}
+		}
+	}
 	for lanIndex := range cr.Spec.ForProvider.Lans {
 		_, err := e.LANController.Update(ctx, cr, lanIndex)
 		if err != nil {
 			return managed.ExternalUpdate{}, err
 		}
-
 	}
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -238,7 +243,25 @@ func areLansUpToDate(cr *v1alpha1.StatefulServerSet, lans []v1alpha1.Lan) (creat
 				if gotLan.Spec.ForProvider.Public != specLan.Spec.DHCP {
 					areUpToDate = false
 				}
-				if gotLan.Spec.ForProvider.Ipv6Cidr != specLan.Spec.IPv6cidr {
+				if specLan.Spec.IPv6cidr != "AUTO" && gotLan.Spec.ForProvider.Ipv6Cidr != specLan.Spec.IPv6cidr {
+					areUpToDate = false
+				}
+			}
+		}
+	}
+	return creationUpToDate, areUpToDate
+}
+
+func arDataVolumesUpToDate(cr *v1alpha1.StatefulServerSet, volumes []v1alpha1.Volume) (creationUpToDate bool, areUpToDate bool) {
+	creationUpToDate = true
+	areUpToDate = true
+	if len(volumes) != len(cr.Spec.ForProvider.Volumes)*2 {
+		creationUpToDate = false
+	}
+	for volumeIndex := range volumes {
+		for _, specVolume := range cr.Spec.ForProvider.Volumes {
+			if generateProviderNameFromIndex(specVolume.Metadata.Name, volumeIndex) == volumes[volumeIndex].Spec.ForProvider.Name {
+				if volumes[volumeIndex].Spec.ForProvider.Size != specVolume.Spec.Size {
 					areUpToDate = false
 				}
 			}
