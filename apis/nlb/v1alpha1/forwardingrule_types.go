@@ -200,7 +200,8 @@ type ForwardingRuleStatus struct {
 // +kubebuilder:printcolumn:name="FORWARDINGRULE ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="FORWARDINGRULE NAME",type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="PROTOCOL",priority=1,type="string",JSONPath=".spec.forProvider.protocol"
-// +kubebuilder:printcolumn:name="LISTENER IP",priority=1,type="string",JSONPath=".status.atProvider.listenerIp"
+// +kubebuilder:printcolumn:name="LISTENER IP",priority=1,type="string",JSONPath=".spec.forProvider.listenerIp"
+// +kubebuilder:printcolumn:name="LISTENER PORT",priority=1,type="string",JSONPath=".spec.forProvider.listenerPort"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status

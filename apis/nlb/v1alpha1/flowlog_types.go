@@ -14,7 +14,6 @@ import (
 // DatacenterCfg (via ID or via reference),
 // NLBCfg (via ID or via reference),
 // Name,
-// Name,
 // Action
 // Direction.
 // Bucket.
@@ -77,7 +76,8 @@ type FlowLogStatus struct {
 // +kubebuilder:printcolumn:name="FLOWLOG ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="FLOWLOG NAME",type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="ACTION",priority=1,type="string",JSONPath=".spec.forProvider.action"
-// +kubebuilder:printcolumn:name="DIRECTION",priority=1,type="string",JSONPath=".status.atProvider.direction"
+// +kubebuilder:printcolumn:name="DIRECTION",priority=1,type="string",JSONPath=".spec.forProvider.direction"
+// +kubebuilder:printcolumn:name="S3BUCKET",priority=1,type="string",JSONPath=".spec.forProvider.bucket"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
