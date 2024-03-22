@@ -312,6 +312,14 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 	if err != nil {
 		return fmt.Errorf("while getting master index %w", err)
 	}
+	err = e.updateOrRecreateVolumes(ctx, cr, volumes, masterIndex)
+	if err != nil {
+		return fmt.Errorf("while updating volumes %w", err)
+	}
+	return nil
+}
+
+func (e *external) updateOrRecreateVolumes(ctx context.Context, cr *v1alpha1.ServerSet, volumes []v1alpha1.Volume, masterIndex int) error {
 	recreateMaster := false
 	for idx := range volumes {
 		update := false
@@ -343,6 +351,7 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 		}
 	}
 	return nil
+
 }
 
 func (e *external) updateByIndex(ctx context.Context, idx int, cr *v1alpha1.ServerSet) error {
