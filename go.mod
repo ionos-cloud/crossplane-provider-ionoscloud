@@ -12,7 +12,7 @@ require (
 	github.com/ionos-cloud/sdk-go-dataplatform v1.0.2
 	github.com/ionos-cloud/sdk-go-dbaas-mongo v1.3.1
 	github.com/ionos-cloud/sdk-go-dbaas-postgres v1.1.2
-	github.com/ionos-cloud/sdk-go/v6 v6.1.4
+	github.com/ionos-cloud/sdk-go/v6 v6.1.11
 	github.com/onsi/gomega v1.30.0
 	github.com/pkg/errors v0.9.1
 	github.com/rung/go-safecast v1.0.1

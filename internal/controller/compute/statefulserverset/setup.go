@@ -35,6 +35,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *u
 					kube: mgr.GetClient(),
 					log:  l,
 				},
+				LANController: &kubeLANController{
+					kube: mgr.GetClient(),
+					log:  l,
+				},
 			}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),

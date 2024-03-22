@@ -31,8 +31,8 @@ import (
 const errNotVolumeSelector = "managed resource is not a Volumeselector custom resource"
 
 const (
-	// VolumeReplicaIndexLabel ionoscloud.com/<serverset_serverset_name>-<resource_type>-index
-	VolumeReplicaIndexLabel = "ionoscloud.com/%s-%s-index"
+	// IndexLabel ionoscloud.com/<serverset_serverset_name>-<resource_type>-index
+	IndexLabel = "ionoscloud.com/%s-%s-index"
 	// VolumeIndexLabel ionoscloud.com/<serverset_serverset_name>-<resource_type>-volumeindex
 	VolumeIndexLabel = "ionoscloud.com/%s-%s-volumeindex"
 )
@@ -254,7 +254,7 @@ func (c *externalVolumeselector) areVolumesAndServersReady(volumeList v1alpha1.V
 func (c *externalVolumeselector) getVolumesAndServers(ctx context.Context, serversetName string, replicaIndex int) (v1alpha1.VolumeList, v1alpha1.ServerList, error) {
 	volumeList := v1alpha1.VolumeList{}
 	serverList := v1alpha1.ServerList{}
-	err := listResFromSSetWithIndex(ctx, c.kube, fmt.Sprintf(VolumeReplicaIndexLabel, serversetName, ResourceDataVolume), replicaIndex, &volumeList)
+	err := listResFromSSetWithIndex(ctx, c.kube, fmt.Sprintf(IndexLabel, serversetName, ResourceDataVolume), replicaIndex, &volumeList)
 	if err != nil {
 		return volumeList, serverList, err
 	}
