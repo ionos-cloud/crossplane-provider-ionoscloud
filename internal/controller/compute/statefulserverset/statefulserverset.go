@@ -22,7 +22,6 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -88,6 +87,7 @@ type external struct {
 	kube                 client.Client
 	service              server.Client
 	dataVolumeController kubeDataVolumeControlManager
+	sSetController       kubeSSetControlManager
 	log                  logging.Logger
 }
 
@@ -145,9 +145,9 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	}
 
 	// ensure that above are already created
-	e.log.Info("Creating the ServerSet CR")
-	if err := e.createSSetCR(ctx, cr); err != nil {
-		return managed.ExternalCreation{}, err
+	e.log.Info("Creating the server set")
+	if err := e.ensureSSet(ctx, cr); err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("while ensuring server set %w", err)
 	}
 
 	// When all conditions are met, the managed resource is considered available
@@ -197,6 +197,14 @@ func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulS
 	}
 	return nil
 }
+func (e *external) ensureSSet(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
+	e.log.Info("Ensuring the server set")
+	err := e.sSetController.Ensure(ctx, cr)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 // generateNameFrom - generates name consisting of name, kind, index and version/second index
 func generateNameFrom(resourceName, resourceType string, idx, version int) string {
@@ -215,34 +223,4 @@ func computeSSetNsName(cr *v1alpha1.StatefulServerSet) types.NamespacedName {
 		Name:      ssName,
 		Namespace: namespace,
 	}
-}
-
-func (e *external) createSSetCR(ctx context.Context, sssCR *v1alpha1.StatefulServerSet) error {
-	ssCR := extractSSetFromSSet(sssCR)
-	return e.kube.Create(ctx, ssCR)
-}
-
-func extractSSetFromSSet(sssCR *v1alpha1.StatefulServerSet) *v1alpha1.ServerSet {
-	return &v1alpha1.ServerSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      getSSName(sssCR.Name, sssCR.Spec.ForProvider.Template.Metadata.Name),
-			Namespace: sssCR.Namespace,
-		},
-		Spec: v1alpha1.ServerSetSpec{
-			ResourceSpec: xpv1.ResourceSpec{
-				ProviderConfigReference: sssCR.GetProviderConfigReference(),
-				ManagementPolicies:      sssCR.GetManagementPolicies(),
-			},
-			ForProvider: v1alpha1.ServerSetParameters{
-				Replicas:           sssCR.Spec.ForProvider.Replicas,
-				DatacenterCfg:      sssCR.Spec.ForProvider.DatacenterCfg,
-				Template:           sssCR.Spec.ForProvider.Template,
-				BootVolumeTemplate: sssCR.Spec.ForProvider.BootVolumeTemplate,
-			},
-		},
-	}
-}
-
-func getSSName(sssName, ssName string) string {
-	return fmt.Sprintf("%s-%s", sssName, ssName)
 }

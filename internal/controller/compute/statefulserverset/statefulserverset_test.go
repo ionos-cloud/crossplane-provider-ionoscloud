@@ -2,7 +2,6 @@ package statefulserverset
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	cv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -15,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
@@ -24,6 +24,13 @@ func fakeKubeClientWithObjs(objs ...client.Object) client.WithWatch {
 	v1.AddToScheme(scheme)       // Add the core k8s types to the Scheme
 	v1alpha1.AddToScheme(scheme) // Add our custom types from v1alpha to the Scheme
 	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
+}
+
+func fakeKubeClientWithFunc(funcs interceptor.Funcs) client.WithWatch {
+	scheme := runtime.NewScheme()
+	v1.AddToScheme(scheme)       // Add the core k8s types to the Scheme
+	v1alpha1.AddToScheme(scheme) // Add our custom types from v1alpha to the Scheme
+	return fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(funcs).Build()
 }
 
 func Test_statefulServerSetController_Create(t *testing.T) {
@@ -68,9 +75,7 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Create() got = %v, want = %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 
 			cr := tt.args.mg.(*v1alpha1.StatefulServerSet)
 			assert.Equal(t, cv1.ReasonCreating, cr.Status.ConditionedStatus.Conditions[0].Reason)
