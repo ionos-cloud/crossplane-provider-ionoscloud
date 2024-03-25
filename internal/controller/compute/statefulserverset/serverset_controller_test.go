@@ -15,16 +15,16 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
-var SomethingWentWrong = errors.New("something went wrong")
+var ErrSomethingWentWrong = errors.New("something went wrong")
 
 func createSSetReturnsError(ctx context.Context, client client.WithWatch, obj client.Object,
 	opts ...client.CreateOption) error {
-	return SomethingWentWrong
+	return ErrSomethingWentWrong
 }
 
 func getSSetReturnsError(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object,
 	opts ...client.GetOption) error {
-	return SomethingWentWrong
+	return ErrSomethingWentWrong
 }
 
 func Test_kubeServerSetController_Ensure(t *testing.T) {
@@ -43,7 +43,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name: "server set not already created, then return no error",
+			name: "server set not yet created, then return no error",
 			fields: fields{
 				kube: fakeKubeClientWithObjs(),
 				log:  logging.NewNopLogger(),
@@ -64,7 +64,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 				ctx: context.Background(),
 				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: "test"}},
 			},
-			wantErr: SomethingWentWrong,
+			wantErr: ErrSomethingWentWrong,
 		},
 		{
 			name: "error received on reading the server set, then return error",
@@ -76,7 +76,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 				ctx: context.Background(),
 				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: "test"}},
 			},
-			wantErr: SomethingWentWrong,
+			wantErr: ErrSomethingWentWrong,
 		},
 	}
 	for _, tt := range tests {
