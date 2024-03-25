@@ -9,7 +9,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/stretchr/testify/assert"
-	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,10 +33,34 @@ func fakeKubeClientWithFunc(funcs interceptor.Funcs) client.WithWatch {
 	return fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(funcs).Build()
 }
 
+const create = "Create"
+const ensure = "Ensure"
+
+type fakeKubeServerSetController struct {
+	methodCallCount map[string]int
+}
+
+func (f *fakeKubeServerSetController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error) {
+	f.methodCallCount[create]++
+	return nil, nil
+}
+
+func (f *fakeKubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
+	f.methodCallCount[ensure]++
+	return nil
+}
+
 func Test_statefulServerSetController_Create(t *testing.T) {
+	sSetCtrl := &fakeKubeServerSetController{
+		methodCallCount: map[string]int{
+			create: 0,
+			ensure: 0,
+		},
+	}
 	type fields struct {
-		kube client.Client
-		log  logging.Logger
+		kube           client.Client
+		log            logging.Logger
+		sSetController kubeSSetControlManager
 	}
 	type args struct {
 		ctx context.Context
@@ -52,8 +76,9 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 		{
 			name: "stateful server set is created successfully",
 			fields: fields{
-				kube: fakeKubeClientWithObjs(),
-				log:  logging.NewNopLogger(),
+				kube:           fakeKubeClientWithObjs(),
+				log:            logging.NewNopLogger(),
+				sSetController: sSetCtrl,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -66,8 +91,9 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &external{
-				kube: tt.fields.kube,
-				log:  tt.fields.log,
+				kube:           tt.fields.kube,
+				log:            tt.fields.log,
+				sSetController: tt.fields.sSetController,
 			}
 			got, err := c.Create(tt.args.ctx, tt.args.mg)
 			if (err != nil) != tt.wantErr {
@@ -82,6 +108,8 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 			assert.Equal(t, cv1.TypeReady, cr.Status.ConditionedStatus.Conditions[0].Type)
 			assert.Equal(t, v1.ConditionFalse, cr.Status.ConditionedStatus.Conditions[0].Status)
 			assert.Equal(t, "test", cr.ObjectMeta.Name)
+			assert.Equal(t, sSetCtrl.methodCallCount[create], 0)
+			assert.Equal(t, sSetCtrl.methodCallCount[ensure], 1)
 		})
 	}
 }
