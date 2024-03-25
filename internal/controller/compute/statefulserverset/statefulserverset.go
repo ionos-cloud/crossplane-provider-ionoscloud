@@ -22,6 +22,7 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
@@ -52,6 +53,7 @@ type connector struct {
 	log                  logging.Logger
 	dataVolumeController kubeDataVolumeControlManager
 	LANController        kubeLANControlManager
+	SSetController       kubeSSetControlManager
 }
 
 // Connect typically produces an ExternalClient by:
@@ -78,6 +80,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		service:              &server.APIClient{IonosServices: svc},
 		dataVolumeController: c.dataVolumeController,
 		LANController:        c.LANController,
+		SSetController:       c.SSetController,
 		log:                  c.log,
 	}, err
 }
@@ -89,6 +92,7 @@ type external struct {
 	service              server.Client
 	dataVolumeController kubeDataVolumeControlManager
 	LANController        kubeLANControlManager
+	SSetController       kubeSSetControlManager
 	log                  logging.Logger
 }
 
@@ -115,7 +119,13 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 	creationLansUpToDate, areLansUpToDate := areLansUpToDate(cr, lans.Items)
 
-	cr.SetConditions(xpv1.Available())
+	sSet := &v1alpha1.ServerSet{}
+	nsName := computeSSetNsName(cr)
+	if err := e.kube.Get(ctx, nsName, sSet); err != nil {
+		return managed.ExternalObservation{}, err
+	}
+
+	cr.Status.SetConditions(xpv1.Available())
 
 	return managed.ExternalObservation{
 		// Return false when the externalStatefulServerSet resource does not exist. This lets
@@ -142,9 +152,8 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	cr.Status.SetConditions(xpv1.Creating())
 
-	e.log.Info("Creating a new ServerSet", "replicas", cr.Spec.ForProvider.Replicas)
+	e.log.Info("Creating a new StatefulServerSet", "name", cr.Name, "replicas", cr.Spec.ForProvider.Replicas)
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
-		e.log.Info("Creating the data volumes")
 		err := e.ensureDataVolumes(ctx, cr, replicaIndex)
 		if err != nil {
 			return managed.ExternalCreation{}, fmt.Errorf("while ensuring data volumes %w", err)
@@ -153,6 +162,10 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	}
 	if err := e.ensureLans(ctx, cr); err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("while ensuring lans %w", err)
+	}
+
+	if err := e.ensureSSet(ctx, cr); err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("while ensuring ServerSet CR %w", err)
 	}
 
 	// When all conditions are met, the managed resource is considered available
@@ -200,6 +213,11 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}); err != nil {
 		return err
 	}
+	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.ServerSet{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		statefulServerSetLabel: cr.Name,
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -213,6 +231,9 @@ func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulS
 		}
 	}
 	return nil
+}
+func (e *external) ensureSSet(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
+	return e.SSetController.Ensure(ctx, cr)
 }
 
 func (e *external) ensureLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
@@ -245,4 +266,14 @@ func areLansUpToDate(cr *v1alpha1.StatefulServerSet, lans []v1alpha1.Lan) (creat
 		}
 	}
 	return creationUpToDate, areUpToDate
+}
+
+func computeSSetNsName(cr *v1alpha1.StatefulServerSet) types.NamespacedName {
+	ssName := getSSetName(cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
+	namespace := cr.Namespace
+
+	return types.NamespacedName{
+		Name:      ssName,
+		Namespace: namespace,
+	}
 }
