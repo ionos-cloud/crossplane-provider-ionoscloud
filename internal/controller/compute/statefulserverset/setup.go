@@ -39,7 +39,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *u
 					kube: mgr.GetClient(),
 					log:  l,
 				},
-				sSetController: &kubeServerSetController{
+				SSetController: &kubeServerSetController{
 					kube: mgr.GetClient(),
 					log:  l,
 				},

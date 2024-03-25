@@ -53,7 +53,7 @@ type connector struct {
 	log                  logging.Logger
 	dataVolumeController kubeDataVolumeControlManager
 	LANController        kubeLANControlManager
-	sSetController       kubeSSetControlManager
+	SSetController       kubeSSetControlManager
 }
 
 // Connect typically produces an ExternalClient by:
@@ -80,7 +80,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		service:              &server.APIClient{IonosServices: svc},
 		dataVolumeController: c.dataVolumeController,
 		LANController:        c.LANController,
-		sSetController:       c.sSetController,
+		SSetController:       c.SSetController,
 		log:                  c.log,
 	}, err
 }
@@ -92,7 +92,7 @@ type external struct {
 	service              server.Client
 	dataVolumeController kubeDataVolumeControlManager
 	LANController        kubeLANControlManager
-	sSetController       kubeSSetControlManager
+	SSetController       kubeSSetControlManager
 	log                  logging.Logger
 }
 
@@ -119,9 +119,9 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 	creationLansUpToDate, areLansUpToDate := areLansUpToDate(cr, lans.Items)
 
-	serverSet := &v1alpha1.ServerSet{}
+	sSet := &v1alpha1.ServerSet{}
 	nsName := computeSSetNsName(cr)
-	if err := e.kube.Get(ctx, nsName, serverSet); err != nil {
+	if err := e.kube.Get(ctx, nsName, sSet); err != nil {
 		return managed.ExternalObservation{}, err
 	}
 
@@ -233,11 +233,7 @@ func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulS
 	return nil
 }
 func (e *external) ensureSSet(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	err := e.sSetController.Ensure(ctx, cr)
-	if err != nil {
-		return err
-	}
-	return nil
+	return e.SSetController.Ensure(ctx, cr)
 }
 
 func (e *external) ensureLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
@@ -273,12 +269,8 @@ func areLansUpToDate(cr *v1alpha1.StatefulServerSet, lans []v1alpha1.Lan) (creat
 }
 
 func computeSSetNsName(cr *v1alpha1.StatefulServerSet) types.NamespacedName {
-	ssName := cr.Name + "-" + cr.Spec.ForProvider.Template.Metadata.Name
-
-	namespace := "default"
-	if cr.Namespace != "" {
-		namespace = cr.Namespace
-	}
+	ssName := getSSetName(cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
+	namespace := cr.Namespace
 
 	return types.NamespacedName{
 		Name:      ssName,

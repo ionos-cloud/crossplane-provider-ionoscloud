@@ -51,7 +51,7 @@ func (f *fakeKubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.S
 }
 
 func Test_statefulServerSetController_Create(t *testing.T) {
-	sSetCtrl := &fakeKubeServerSetController{
+	SSetCtrl := &fakeKubeServerSetController{
 		methodCallCount: map[string]int{
 			create: 0,
 			ensure: 0,
@@ -60,7 +60,7 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 	type fields struct {
 		kube           client.Client
 		log            logging.Logger
-		sSetController kubeSSetControlManager
+		SSetController kubeSSetControlManager
 	}
 	type args struct {
 		ctx context.Context
@@ -78,7 +78,7 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 			fields: fields{
 				kube:           fakeKubeClientWithObjs(),
 				log:            logging.NewNopLogger(),
-				sSetController: sSetCtrl,
+				SSetController: SSetCtrl,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -93,7 +93,7 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 			c := &external{
 				kube:           tt.fields.kube,
 				log:            tt.fields.log,
-				sSetController: tt.fields.sSetController,
+				SSetController: tt.fields.SSetController,
 			}
 			got, err := c.Create(tt.args.ctx, tt.args.mg)
 			if (err != nil) != tt.wantErr {
@@ -108,8 +108,8 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 			assert.Equal(t, cv1.TypeReady, cr.Status.ConditionedStatus.Conditions[0].Type)
 			assert.Equal(t, v1.ConditionFalse, cr.Status.ConditionedStatus.Conditions[0].Status)
 			assert.Equal(t, "test", cr.ObjectMeta.Name)
-			assert.Equal(t, sSetCtrl.methodCallCount[create], 0)
-			assert.Equal(t, sSetCtrl.methodCallCount[ensure], 1)
+			assert.Equal(t, SSetCtrl.methodCallCount[create], 0)
+			assert.Equal(t, SSetCtrl.methodCallCount[ensure], 1)
 		})
 	}
 }

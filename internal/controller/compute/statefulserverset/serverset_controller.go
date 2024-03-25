@@ -27,23 +27,23 @@ type kubeServerSetController struct {
 
 // Create creates a server set CR and waits until in reaches AVAILABLE state
 func (k *kubeServerSetController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error) {
-	ssCR := extractSSetFromSSet(cr)
-	k.log.Info("Creating ServerSet CR", "name", ssCR.Name)
+	SSet := extractSSetFromSSSet(cr)
+	k.log.Info("Creating ServerSet CR", "name", SSet.Name)
 
-	if err := k.kube.Create(ctx, ssCR); err != nil {
+	if err := k.kube.Create(ctx, SSet); err != nil {
 		return nil, err
 	}
 
-	k.log.Info("Finished creating ServerSet CR", "name", ssCR.Name)
-	return ssCR, nil
+	k.log.Info("Finished creating ServerSet CR", "name", SSet.Name)
+	return SSet, nil
 }
 
 // Ensure - creates a server set if it does not exist
 func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	ssName := getSSName(cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
-	k.log.Info("Ensuring ServerSet CR", "name", ssName)
+	SSetName := getSSetName(cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
+	k.log.Info("Ensuring ServerSet CR", "name", SSetName)
 	kubeSSet := &v1alpha1.ServerSet{}
-	err := k.kube.Get(ctx, types.NamespacedName{Name: ssName, Namespace: cr.Namespace}, kubeSSet)
+	err := k.kube.Get(ctx, types.NamespacedName{Name: SSetName, Namespace: cr.Namespace}, kubeSSet)
 
 	switch {
 	case err != nil && apiErrors.IsNotFound(err):
@@ -52,35 +52,35 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 	case err != nil:
 		return err
 	default:
-		k.log.Info("ServerSet already exists", "name", ssName)
+		k.log.Info("ServerSet already exists", "name", SSetName)
 		return nil
 	}
 }
 
-func extractSSetFromSSet(sssCR *v1alpha1.StatefulServerSet) *v1alpha1.ServerSet {
+func extractSSetFromSSSet(sSSet *v1alpha1.StatefulServerSet) *v1alpha1.ServerSet {
 	return &v1alpha1.ServerSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getSSName(sssCR.Name, sssCR.Spec.ForProvider.Template.Metadata.Name),
-			Namespace: sssCR.Namespace,
+			Name:      getSSetName(sSSet.Name, sSSet.Spec.ForProvider.Template.Metadata.Name),
+			Namespace: sSSet.Namespace,
 			Labels: map[string]string{
-				statefulServerSetLabel: sssCR.Name,
+				statefulServerSetLabel: sSSet.Name,
 			},
 		},
 		Spec: v1alpha1.ServerSetSpec{
 			ResourceSpec: xpv1.ResourceSpec{
-				ProviderConfigReference: sssCR.GetProviderConfigReference(),
-				ManagementPolicies:      sssCR.GetManagementPolicies(),
+				ProviderConfigReference: sSSet.GetProviderConfigReference(),
+				ManagementPolicies:      sSSet.GetManagementPolicies(),
 			},
 			ForProvider: v1alpha1.ServerSetParameters{
-				Replicas:           sssCR.Spec.ForProvider.Replicas,
-				DatacenterCfg:      sssCR.Spec.ForProvider.DatacenterCfg,
-				Template:           sssCR.Spec.ForProvider.Template,
-				BootVolumeTemplate: sssCR.Spec.ForProvider.BootVolumeTemplate,
+				Replicas:           sSSet.Spec.ForProvider.Replicas,
+				DatacenterCfg:      sSSet.Spec.ForProvider.DatacenterCfg,
+				Template:           sSSet.Spec.ForProvider.Template,
+				BootVolumeTemplate: sSSet.Spec.ForProvider.BootVolumeTemplate,
 			},
 		},
 	}
 }
 
-func getSSName(sssName, ssName string) string {
-	return fmt.Sprintf("%s-%s", sssName, ssName)
+func getSSetName(sSSettName, sSetName string) string {
+	return fmt.Sprintf("%s-%s", sSSettName, sSetName)
 }

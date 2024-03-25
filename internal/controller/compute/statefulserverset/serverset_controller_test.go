@@ -28,8 +28,8 @@ func getReturnsError(ctx context.Context, client client.WithWatch, key client.Ob
 }
 
 func getReturnsSSet(ctx context.Context, watch client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-	ss := obj.(*v1alpha1.ServerSet)
-	ss.ObjectMeta.ResourceVersion = "1"
+	SSet := obj.(*v1alpha1.ServerSet)
+	SSet.ObjectMeta.ResourceVersion = "1"
 	return nil
 }
 
