@@ -36,14 +36,14 @@ func (k *kubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v
 	volumeSelector, err := k.Get(ctx, vsName, cr.Namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
-			_, err := k.Create(ctx, cr)
+			_, err = k.Create(ctx, cr)
 			return err
 		}
 		return err
 	}
 	if volumeSelector != nil && volumeSelector.Spec.ForProvider.Replicas != cr.Spec.ForProvider.Replicas {
 		volumeSelector.Spec.ForProvider.Replicas = cr.Spec.ForProvider.Replicas
-		if err := k.kube.Update(ctx, volumeSelector); err != nil {
+		if err = k.kube.Update(ctx, volumeSelector); err != nil {
 			return err
 		}
 	}
@@ -54,7 +54,7 @@ func (k *kubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v
 
 // Create creates a volume selector CR and waits until in reaches AVAILABLE state
 func (k *kubeVolumeSelectorController) Create(ctx context.Context, cr *v1alpha1.ServerSet) (v1alpha1.Volumeselector, error) {
-	name := volumeSelectorName
+	name := fmt.Sprintf(volumeSelectorName, cr.Name)
 	k.log.Info("Creating VolumeSelector", "name", name)
 
 	volSelector := fromServerSetToVolumeSelector(cr)
