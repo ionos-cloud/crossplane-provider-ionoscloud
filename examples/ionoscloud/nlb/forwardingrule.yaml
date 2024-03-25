@@ -30,11 +30,11 @@ spec:
     algorithm: ROUND_ROBIN
     protocol: TCP
     targets:
-      - ip:
+      - ipConfig:
           ip: "10.10.10.10"
         port: 31234
         weight: 10
-      - ip:
+      - ipConfig:
           ip: "10.10.10.11"
         port: 31235
         weight: 20

@@ -112,7 +112,7 @@ type ForwardingRuleTarget struct {
 	// IP of the balanced target
 	//
 	// +kubebuilder:validation:Required
-	IPCfg IPConfig `json:"ip"`
+	IPCfg IPConfig `json:"ipConfig"`
 	// Port of the balanced target
 	//
 	// +kubebuilder:validation:Required

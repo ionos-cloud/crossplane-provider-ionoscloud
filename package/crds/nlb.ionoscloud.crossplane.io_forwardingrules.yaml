@@ -469,7 +469,7 @@ spec:
                                 receiving balanced traffic.
                               type: boolean
                           type: object
-                        ip:
+                        ipConfig:
                           description: IP of the balanced target
                           properties:
                             index:
@@ -593,7 +593,7 @@ spec:
                           format: int32
                           type: integer
                       required:
-                      - ip
+                      - ipConfig
                       - port
                       - weight
                       type: object
