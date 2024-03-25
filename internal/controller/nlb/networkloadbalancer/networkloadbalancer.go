@@ -247,11 +247,10 @@ func (c *externalNetworkLoadBalancer) getConfiguredIPs(ctx context.Context, cr *
 
 	publicIPs := make([]string, 0, len(cr.Spec.ForProvider.IpsCfg.IPsBlocksCfg))
 	for _, cfg := range cr.Spec.ForProvider.IpsCfg.IPsBlocksCfg {
-		ips, err := c.ipBlockService.GetIPs(ctx, cfg.IPBlock.IPBlockID)
+		ips, err := c.ipBlockService.GetIPs(ctx, cfg.IPBlock.IPBlockID, cfg.Indexes...)
 		if err != nil {
 			return nil, err
 		}
-		// ips = index(cfg.Indexes, ips)
 		publicIPs = append(publicIPs, ips...)
 	}
 	return publicIPs, nil
@@ -268,7 +267,3 @@ func getConfiguredLanIDs(cr *v1alpha1.NetworkLoadBalancer) (int32, int32, error)
 	}
 	return listenerLanID, targetLanID, nil
 }
-
-// func index(i string, s []string) []string {
-//
-// }

@@ -209,12 +209,11 @@ spec:
                           properties:
                             indexes:
                               description: |-
-                                Indexes can be used to retrieve individual IPs or a range of IPs from the IPBlock
+                                Indexes can be used to retrieve multiple ips from an IPBlock
                                 Starting index is 0. If no index is set, the entire IP set of the block will be assigned.
-                                Individual indexes can be specified: 0,2,5,6,7
-                                Or a range can be provided: firstIndex:lastIndex, one end can be omitted for 'everything from' or 'everything until' behavior
-                                for example: 2:5, :4, 3:
-                              type: string
+                              items:
+                                type: integer
+                              type: array
                             ipBlockConfig:
                               description: IPBlock  used to reference an existing
                                 IPBlock

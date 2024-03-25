@@ -78,12 +78,9 @@ type IPsConfig struct {
 type IPsBlockConfig struct {
 	// IPBlock  used to reference an existing IPBlock
 	IPBlock IPBlockConfig `json:"ipBlockConfig,omitempty"`
-	// Indexes can be used to retrieve individual IPs or a range of IPs from the IPBlock
+	// Indexes can be used to retrieve multiple ips from an IPBlock
 	// Starting index is 0. If no index is set, the entire IP set of the block will be assigned.
-	// Individual indexes can be specified: 0,2,5,6,7
-	// Or a range can be provided: firstIndex:lastIndex, one end can be omitted for 'everything from' or 'everything until' behavior
-	// for example: 2:5, :4, 3:
-	Indexes string `json:"indexes,omitempty"`
+	Indexes []int `json:"indexes,omitempty"`
 }
 
 // NetworkLoadBalancerConfig is used by resources that need to link Network Load Balancers via id or via reference
