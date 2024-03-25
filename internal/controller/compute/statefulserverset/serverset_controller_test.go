@@ -29,7 +29,6 @@ func getReturnsError(ctx context.Context, client client.WithWatch, key client.Ob
 
 func getReturnsSSet(ctx context.Context, watch client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	ss := obj.(*v1alpha1.ServerSet)
-	ss = &v1alpha1.ServerSet{}
 	ss.ObjectMeta.ResourceVersion = "1"
 	return nil
 }
@@ -155,6 +154,9 @@ func Test_kubeServerSetController_Create(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "statefulserverset-serverset",
 					ResourceVersion: "1",
+					Labels: map[string]string{
+						statefulServerSetLabel: "statefulserverset",
+					},
 				},
 				Spec: v1alpha1.ServerSetSpec{
 					ResourceSpec: xpv1.ResourceSpec{

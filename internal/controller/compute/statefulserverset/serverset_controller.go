@@ -27,20 +27,21 @@ type kubeServerSetController struct {
 
 // Create creates a server set CR and waits until in reaches AVAILABLE state
 func (k *kubeServerSetController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error) {
-	k.log.Info("Creating server set CR", "name", cr.Name)
 	ssCR := extractSSetFromSSet(cr)
+	k.log.Info("Creating ServerSet CR", "name", ssCR.Name)
 
 	if err := k.kube.Create(ctx, ssCR); err != nil {
 		return nil, err
 	}
 
+	k.log.Info("Finished creating ServerSet CR", "name", ssCR.Name)
 	return ssCR, nil
 }
 
 // Ensure - creates a server set if it does not exist
 func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
 	ssName := getSSName(cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
-	k.log.Info("Ensuring server set CR", "name", ssName)
+	k.log.Info("Ensuring ServerSet CR", "name", ssName)
 	kubeSSet := &v1alpha1.ServerSet{}
 	err := k.kube.Get(ctx, types.NamespacedName{Name: ssName, Namespace: cr.Namespace}, kubeSSet)
 
@@ -51,7 +52,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 	case err != nil:
 		return err
 	default:
-		k.log.Info("Server set cr already exists", "name", cr.Name)
+		k.log.Info("ServerSet already exists", "name", ssName)
 		return nil
 	}
 }
@@ -61,6 +62,9 @@ func extractSSetFromSSet(sssCR *v1alpha1.StatefulServerSet) *v1alpha1.ServerSet 
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getSSName(sssCR.Name, sssCR.Spec.ForProvider.Template.Metadata.Name),
 			Namespace: sssCR.Namespace,
+			Labels: map[string]string{
+				statefulServerSetLabel: sssCR.Name,
+			},
 		},
 		Spec: v1alpha1.ServerSetSpec{
 			ResourceSpec: xpv1.ResourceSpec{

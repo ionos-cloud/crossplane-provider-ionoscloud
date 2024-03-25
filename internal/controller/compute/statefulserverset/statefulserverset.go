@@ -152,9 +152,8 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	cr.Status.SetConditions(xpv1.Creating())
 
-	e.log.Info("Creating a new ServerSet", "replicas", cr.Spec.ForProvider.Replicas)
+	e.log.Info("Creating a new StatefulServerSet", "name", cr.Name, "replicas", cr.Spec.ForProvider.Replicas)
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
-		e.log.Info("Creating the data volumes")
 		err := e.ensureDataVolumes(ctx, cr, replicaIndex)
 		if err != nil {
 			return managed.ExternalCreation{}, fmt.Errorf("while ensuring data volumes %w", err)
@@ -166,7 +165,7 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	}
 
 	if err := e.ensureSSet(ctx, cr); err != nil {
-		return managed.ExternalCreation{}, fmt.Errorf("while ensuring server set %w", err)
+		return managed.ExternalCreation{}, fmt.Errorf("while ensuring ServerSet CR %w", err)
 	}
 
 	// When all conditions are met, the managed resource is considered available
@@ -214,6 +213,11 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}); err != nil {
 		return err
 	}
+	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.ServerSet{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		statefulServerSetLabel: cr.Name,
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -229,7 +233,6 @@ func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulS
 	return nil
 }
 func (e *external) ensureSSet(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	e.log.Info("Ensuring the server set")
 	err := e.sSetController.Ensure(ctx, cr)
 	if err != nil {
 		return err
