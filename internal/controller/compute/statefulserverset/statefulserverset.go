@@ -52,6 +52,7 @@ type connector struct {
 	usage                resource.Tracker
 	log                  logging.Logger
 	dataVolumeController kubeDataVolumeControlManager
+	LANController        kubeLANControlManager
 	sSetController       kubeSSetControlManager
 }
 
@@ -78,6 +79,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		kube:                 c.kube,
 		service:              &server.APIClient{IonosServices: svc},
 		dataVolumeController: c.dataVolumeController,
+		LANController:        c.LANController,
 		sSetController:       c.sSetController,
 		log:                  c.log,
 	}, err
@@ -89,6 +91,7 @@ type external struct {
 	kube                 client.Client
 	service              server.Client
 	dataVolumeController kubeDataVolumeControlManager
+	LANController        kubeLANControlManager
 	sSetController       kubeSSetControlManager
 	log                  logging.Logger
 }
@@ -102,6 +105,19 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
+	lans, err := e.LANController.ListLans(ctx, cr)
+	if err != nil {
+		return managed.ExternalObservation{}, err
+	}
+
+	if len(lans.Items) < len(cr.Spec.ForProvider.Lans) {
+		return managed.ExternalObservation{
+			ResourceExists:    false,
+			ResourceUpToDate:  true,
+			ConnectionDetails: managed.ConnectionDetails{},
+		}, nil
+	}
+	creationLansUpToDate, areLansUpToDate := areLansUpToDate(cr, lans.Items)
 
 	serverSet := &v1alpha1.ServerSet{}
 	nsName := computeSSetNsName(cr)
@@ -115,12 +131,12 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// Return false when the externalStatefulServerSet resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
 		// (re)create the resource, or that it has successfully been deleted.
-		ResourceExists: true,
+		ResourceExists: creationLansUpToDate,
 
 		// Return false when the externalStatefulServerSet resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
-		ResourceUpToDate: true,
+		ResourceUpToDate: areLansUpToDate,
 
 		// Return any details that may be required to connect to the externalStatefulServerSet
 		// resource. These will be stored as the connection secret.
@@ -143,7 +159,10 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		if err != nil {
 			return managed.ExternalCreation{}, fmt.Errorf("while ensuring data volumes %w", err)
 		}
-		e.log.Info("Creating the lans")
+
+	}
+	if err := e.ensureLans(ctx, cr); err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("while ensuring lans %w", err)
 	}
 
 	if err := e.ensureSSet(ctx, cr); err != nil {
@@ -160,11 +179,18 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	_, ok := mg.(*v1alpha1.StatefulServerSet)
+	cr, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotStatefulServerSet)
 	}
 
+	for lanIndex := range cr.Spec.ForProvider.Lans {
+		_, err := e.LANController.Update(ctx, cr, lanIndex)
+		if err != nil {
+			return managed.ExternalUpdate{}, err
+		}
+
+	}
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
 		// externalStatefulServerSet resource. These will be stored as the connection secret.
@@ -179,6 +205,11 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return errors.New(errNotStatefulServerSet)
 	}
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		statefulServerSetLabel: cr.Name,
+	}); err != nil {
+		return err
+	}
+	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Lan{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		statefulServerSetLabel: cr.Name,
 	}); err != nil {
 		return err
@@ -206,9 +237,36 @@ func (e *external) ensureSSet(ctx context.Context, cr *v1alpha1.StatefulServerSe
 	return nil
 }
 
-// generateNameFrom - generates name consisting of name, kind, index and version/second index
-func generateNameFrom(resourceName, resourceType string, idx, version int) string {
-	return fmt.Sprintf("%s-%s-%d-%d", resourceName, resourceType, idx, version)
+func (e *external) ensureLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
+	e.log.Info("Ensuring the lans")
+	for lanIndex := range cr.Spec.ForProvider.Lans {
+		err := e.LANController.Ensure(ctx, cr, lanIndex)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func areLansUpToDate(cr *v1alpha1.StatefulServerSet, lans []v1alpha1.Lan) (creationUpToDate bool, areUpToDate bool) {
+	creationUpToDate = true
+	areUpToDate = true
+	if len(lans) != len(cr.Spec.ForProvider.Lans) {
+		creationUpToDate = false
+	}
+	for _, gotLan := range lans {
+		for _, specLan := range cr.Spec.ForProvider.Lans {
+			if specLan.Metadata.Name == gotLan.Spec.ForProvider.Name {
+				if gotLan.Spec.ForProvider.Public != specLan.Spec.DHCP {
+					areUpToDate = false
+				}
+				if gotLan.Spec.ForProvider.Ipv6Cidr != specLan.Spec.IPv6cidr {
+					areUpToDate = false
+				}
+			}
+		}
+	}
+	return creationUpToDate, areUpToDate
 }
 
 func computeSSetNsName(cr *v1alpha1.StatefulServerSet) types.NamespacedName {
