@@ -17,14 +17,21 @@ import (
 
 var ErrSomethingWentWrong = errors.New("something went wrong")
 
-func createSSetReturnsError(ctx context.Context, client client.WithWatch, obj client.Object,
+func createReturnsError(ctx context.Context, client client.WithWatch, obj client.Object,
 	opts ...client.CreateOption) error {
 	return ErrSomethingWentWrong
 }
 
-func getSSetReturnsError(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object,
+func getReturnsError(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object,
 	opts ...client.GetOption) error {
 	return ErrSomethingWentWrong
+}
+
+func getReturnsSSet(ctx context.Context, watch client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	ss := obj.(*v1alpha1.ServerSet)
+	ss = &v1alpha1.ServerSet{}
+	ss.ObjectMeta.ResourceVersion = "1"
+	return nil
 }
 
 func Test_kubeServerSetController_Ensure(t *testing.T) {
@@ -57,7 +64,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 		{
 			name: "error received on server set creation, then return error",
 			fields: fields{
-				kube: fakeKubeClientWithFunc(interceptor.Funcs{Get: getSSetReturnsError}),
+				kube: fakeKubeClientWithFunc(interceptor.Funcs{Get: getReturnsError}),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
@@ -69,7 +76,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 		{
 			name: "error received on reading the server set, then return error",
 			fields: fields{
-				kube: fakeKubeClientWithFunc(interceptor.Funcs{Create: createSSetReturnsError}),
+				kube: fakeKubeClientWithFunc(interceptor.Funcs{Create: createReturnsError}),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
@@ -77,6 +84,18 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: "test"}},
 			},
 			wantErr: ErrSomethingWentWrong,
+		},
+		{
+			name: "server set already exists, then return no error",
+			fields: fields{
+				kube: fakeKubeClientWithFunc(interceptor.Funcs{Get: getReturnsSSet}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: "test"}},
+			},
+			wantErr: nil,
 		},
 	}
 	for _, tt := range tests {
