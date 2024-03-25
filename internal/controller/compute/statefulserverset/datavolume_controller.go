@@ -184,7 +184,7 @@ func (k *kubeDataVolumeController) Ensure(ctx context.Context, cr *v1alpha1.Stat
 
 // Update - updates the lan CR and waits until in reaches AVAILABLE state
 func (k *kubeDataVolumeController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
-	name := fmt.Sprintf("%s-%s-%d-%d", cr.GetName(), volumeselector.ResourceDataVolume, replicaIndex, volumeIndex)
+	name := generateNameFrom(cr.GetName(), volumeselector.ResourceDataVolume, replicaIndex, volumeIndex)
 
 	updateKubeDataVolume, err := k.Get(ctx, name, cr.Namespace)
 	if err != nil {
