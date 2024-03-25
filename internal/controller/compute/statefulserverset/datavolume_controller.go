@@ -22,7 +22,9 @@ import (
 
 type kubeDataVolumeControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error)
+	ListVolumes(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.VolumeList, error)
 	Get(ctx context.Context, volumeName, ns string) (*v1alpha1.Volume, error)
+	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error)
 	Delete(ctx context.Context, name, namespace string) error
 	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, version int) error
 }
@@ -53,6 +55,17 @@ func (k *kubeDataVolumeController) Create(ctx context.Context, cr *v1alpha1.Stat
 	k.log.Info("Finished creating Data Volume", "name", name)
 
 	return *kubeVolume, nil
+}
+
+// ListVolumes - lists all volumes for a given StatefulServerSet
+func (k *kubeDataVolumeController) ListVolumes(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.VolumeList, error) {
+	objs := &v1alpha1.VolumeList{}
+	if err := k.kube.List(ctx, objs, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		statefulServerSetLabel: cr.Name,
+	}); err != nil {
+		return nil, err
+	}
+	return objs, nil
 }
 
 // Get - returns a volume kubernetes object
@@ -129,7 +142,7 @@ func fromSSSetToVolume(cr *v1alpha1.StatefulServerSet, name string, replicaIndex
 			},
 			ForProvider: v1alpha1.VolumeParameters{
 				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
-				Name:             name,
+				Name:             generateProviderNameFromIndex(cr.Spec.ForProvider.Volumes[volumeIndex].Metadata.Name, volumeIndex),
 				AvailabilityZone: serverset.GetZoneFromIndex(replicaIndex),
 				Size:             cr.Spec.ForProvider.Volumes[volumeIndex].Spec.Size,
 				Type:             cr.Spec.ForProvider.Volumes[volumeIndex].Spec.Type,
@@ -169,6 +182,44 @@ func (k *kubeDataVolumeController) Ensure(ctx context.Context, cr *v1alpha1.Stat
 	return nil
 }
 
+// Update - updates the lan CR and waits until in reaches AVAILABLE state
+func (k *kubeDataVolumeController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
+	name := generateNameFrom(cr.GetName(), volumeselector.ResourceDataVolume, replicaIndex, volumeIndex)
+
+	updateKubeDataVolume, err := k.Get(ctx, name, cr.Namespace)
+	if err != nil {
+		return v1alpha1.Volume{}, err
+	}
+
+	if isVolumeUpToDate(&cr.Spec.ForProvider.Volumes[volumeIndex].Spec, updateKubeDataVolume) {
+		return v1alpha1.Volume{}, nil
+	}
+
+	k.log.Info("Updating DataVolume", "name", name)
+
+	if err := k.kube.Update(ctx, updateKubeDataVolume); err != nil {
+		return v1alpha1.Volume{}, err
+	}
+	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
+		return v1alpha1.Volume{}, err
+	}
+	updateKubeDataVolume, err = k.Get(ctx, name, cr.Namespace)
+	if err != nil {
+		return v1alpha1.Volume{}, err
+	}
+	k.log.Info("Finished updating DataVolume", "name", name)
+	return *updateKubeDataVolume, nil
+}
+
+// isVolumeUpToDate - checks if the lan is up-to-date and update the kube lan object if needed
+func isVolumeUpToDate(spec *v1alpha1.StatefulServerSetVolumeSpec, lan *v1alpha1.Volume) bool {
+	if lan.Spec.ForProvider.Size != spec.Size {
+		lan.Spec.ForProvider.Size = spec.Size
+		return false
+	}
+	return true
+}
+
 func createVolumeLabelKey(label string, name string) string {
 	return fmt.Sprintf(label, name, volumeselector.ResourceDataVolume)
 }
@@ -180,4 +231,8 @@ func getParentResourceName(cr *v1alpha1.StatefulServerSet) string {
 // generateNameFrom - generates name consisting of name, kind, index and version/second index
 func generateNameFrom(resourceName, resourceType string, idx, version int) string {
 	return fmt.Sprintf("%s-%s-%d-%d", resourceName, resourceType, idx, version)
+}
+
+func generateProviderNameFromIndex(resourceName string, idx int) string {
+	return fmt.Sprintf("%s-%d", resourceName, idx)
 }
