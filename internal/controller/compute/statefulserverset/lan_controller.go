@@ -38,7 +38,7 @@ type kubeLANController struct {
 
 // Create creates a lan CR and waits until in reaches AVAILABLE state
 func (k *kubeLANController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) (v1alpha1.Lan, error) {
-	name := fmt.Sprintf("%s-%s-%d", cr.GetName(), resourceLAN, lanIndex)
+	name := cr.Spec.ForProvider.Lans[lanIndex].Metadata.Name
 	k.log.Info("Creating LAN", "name", name)
 
 	createLAN := fromStatefulServerSetToLAN(cr, name, lanIndex)
