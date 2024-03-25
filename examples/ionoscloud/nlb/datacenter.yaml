@@ -1,0 +1,76 @@
+# Use this file to create a Datacenter CR.
+# Required values for creating a Datacenter CR are:
+# - Location.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: nlbdatacenter
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: nlbDatacenter
+    location: es/vit
+    description: test
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
+metadata:
+  name: nlbipblock
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: nlbIpblock
+    size: 3
+    location: es/vit
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
+metadata:
+  name: nlbrulesipblock
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: nlbRulesIpBlock
+    size: 3
+    location: es/vit
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: listenerlan
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: listenerlan
+    public: true
+    datacenterConfig:
+      datacenterIdRef:
+        name: nlbdatacenter
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: targetlan
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: targetLan
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: nlbdatacenter
+  providerConfigRef:
+    name: example

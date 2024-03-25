@@ -1,0 +1,51 @@
+# Use this file to create a Network Load Balancer ForwardingRule CR.
+# Required values for creating a Network Load Balancer ForwardingRule CR are:
+# - DatacenterConfig (via ID or reference),
+# - NetworkLoadBalancerConfig (via ID or reference)
+# - Name,
+# - Protocol,
+# - ListenerIP (via ID or reference),
+# - ListenerPort
+apiVersion: nlb.ionoscloud.crossplane.io/v1alpha1
+kind: ForwardingRule
+metadata:
+  name: example
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    datacenterConfig:
+      datacenterIdRef:
+        name: nlbdatacenter
+    networkLoadBalancerConfig:
+      networkLoadBalancerIdRef:
+        name: example
+    listenerIpConfig:
+      ipBlock:
+        ipBlockIdRef:
+          name: nlbipblock
+      index: 0
+    name: example
+    listenerPort: 8081
+    algorithm: ROUND_ROBIN
+    protocol: TCP
+    targets:
+      - ip:
+          ip: "10.10.10.10"
+        port: 31234
+        weight: 10
+      - ip:
+          ip: "10.10.10.11"
+        port: 31235
+        weight: 20
+        healthCheck:
+          checkInterval: 3000
+          check: true
+          maintenance: false
+    healthCheck:
+      targetTimeout: 30000
+      retries: 5
+      clientTimeout: 70000
+      connectTimeout: 60000
+  providerConfigRef:
+    name: example
