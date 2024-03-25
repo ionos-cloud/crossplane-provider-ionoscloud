@@ -39,9 +39,10 @@ func (k *kubeServerSetController) Create(ctx context.Context, cr *v1alpha1.State
 
 // Ensure - creates a server set if it does not exist
 func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	k.log.Info("Ensuring server set CR", "name", cr.Name)
+	ssName := getSSName(cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
+	k.log.Info("Ensuring server set CR", "name", ssName)
 	kubeSSet := &v1alpha1.ServerSet{}
-	err := k.kube.Get(ctx, types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}, kubeSSet)
+	err := k.kube.Get(ctx, types.NamespacedName{Name: ssName, Namespace: cr.Namespace}, kubeSSet)
 
 	switch {
 	case err != nil && apiErrors.IsNotFound(err):
@@ -50,7 +51,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 	case err != nil:
 		return err
 	default:
-		k.log.Info("server set cr already exists", "name", cr.Name)
+		k.log.Info("Server set cr already exists", "name", cr.Name)
 		return nil
 	}
 }

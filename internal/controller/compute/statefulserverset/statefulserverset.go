@@ -52,6 +52,7 @@ type connector struct {
 	usage                resource.Tracker
 	log                  logging.Logger
 	dataVolumeController kubeDataVolumeControlManager
+	sSetController       kubeSSetControlManager
 }
 
 // Connect typically produces an ExternalClient by:
@@ -77,6 +78,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		kube:                 c.kube,
 		service:              &server.APIClient{IonosServices: svc},
 		dataVolumeController: c.dataVolumeController,
+		sSetController:       c.sSetController,
 		log:                  c.log,
 	}, err
 }
@@ -144,8 +146,6 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		e.log.Info("Creating the lans")
 	}
 
-	// ensure that above are already created
-	e.log.Info("Creating the server set")
 	if err := e.ensureSSet(ctx, cr); err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("while ensuring server set %w", err)
 	}
