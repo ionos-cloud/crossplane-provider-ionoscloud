@@ -117,8 +117,8 @@ func fromSSSetToVolume(cr *v1alpha1.StatefulServerSet, name string, replicaIndex
 			Labels: map[string]string{
 				statefulServerSetLabel: cr.Name,
 				// todo replace with function
-				fmt.Sprintf(volumeselector.VolumeReplicaIndexLabel, getParentResourceName(cr), volumeselector.ResourceDataVolume): fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(volumeselector.VolumeIndexLabel, getParentResourceName(cr), volumeselector.ResourceDataVolume):        fmt.Sprintf("%d", volumeIndex),
+				fmt.Sprintf(volumeselector.IndexLabel, getParentResourceName(cr), volumeselector.ResourceDataVolume):       fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(volumeselector.VolumeIndexLabel, getParentResourceName(cr), volumeselector.ResourceDataVolume): fmt.Sprintf("%d", volumeIndex),
 			},
 		},
 		Spec: v1alpha1.VolumeSpec{
@@ -154,8 +154,8 @@ func (k *kubeDataVolumeController) Ensure(ctx context.Context, cr *v1alpha1.Stat
 	res := &v1alpha1.VolumeList{}
 
 	if err := k.kube.List(ctx, res, client.MatchingLabels{
-		createVolumeLabelKey(volumeselector.VolumeIndexLabel, getParentResourceName(cr)):        strconv.Itoa(volumeIndex),
-		createVolumeLabelKey(volumeselector.VolumeReplicaIndexLabel, getParentResourceName(cr)): strconv.Itoa(volumeIndex),
+		createVolumeLabelKey(volumeselector.VolumeIndexLabel, getParentResourceName(cr)): strconv.Itoa(volumeIndex),
+		createVolumeLabelKey(volumeselector.IndexLabel, getParentResourceName(cr)):       strconv.Itoa(replicaIndex),
 	}); err != nil {
 		return err
 	}
@@ -175,4 +175,9 @@ func createVolumeLabelKey(label string, name string) string {
 
 func getParentResourceName(cr *v1alpha1.StatefulServerSet) string {
 	return cr.Name + "-" + cr.Spec.ForProvider.Template.Metadata.Name
+}
+
+// generateNameFrom - generates name consisting of name, kind, index and version/second index
+func generateNameFrom(resourceName, resourceType string, idx, version int) string {
+	return fmt.Sprintf("%s-%s-%d-%d", resourceName, resourceType, idx, version)
 }

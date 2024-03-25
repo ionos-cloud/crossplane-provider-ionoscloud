@@ -42,7 +42,7 @@ type StatefulServerSetLanMetadata struct {
 // StatefulServerSetLanSpec are the configurable fields of a StatefulServerSetLanSpec.
 type StatefulServerSetLanSpec struct {
 	// +kubebuilder:validation:Optional
-	IPv6 bool `json:"ipv6"`
+	IPv6cidr string `json:"ipv6cidr"`
 	// +kubebuilder:validation:Optional
 	DHCP bool `json:"dhcp"`
 }
