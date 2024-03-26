@@ -260,7 +260,7 @@ func (c *externalVolumeselector) getVolumesAndServers(ctx context.Context, serve
 	}
 	// get server by index
 
-	err = serverset.ListResFromSSetWithIndex(ctx, c.kube, serverset.ResourceServer, replicaIndex, &serverList)
+	err = serverset.ListResFromSSetWithIndex(ctx, c.kube, serversetName, serverset.ResourceServer, replicaIndex, &serverList)
 	if err != nil {
 		return volumeList, serverList, err
 	}

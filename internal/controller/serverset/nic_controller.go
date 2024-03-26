@@ -123,9 +123,9 @@ func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, re
 			Name:      name,
 			Namespace: cr.GetNamespace(),
 			Labels: map[string]string{
-				serverSetLabel:                         cr.Name,
-				fmt.Sprintf(indexLabel, resourceNIC):   fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(versionLabel, resourceNIC): fmt.Sprintf("%d", version),
+				serverSetLabel: cr.Name,
+				fmt.Sprintf(indexLabel, cr.GetName(), resourceNIC):   fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(versionLabel, cr.GetName(), resourceNIC): fmt.Sprintf("%d", version),
 			},
 		},
 		Spec: v1alpha1.NicSpec{
@@ -152,7 +152,7 @@ func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, re
 func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	k.log.Info("Ensuring NICs", "index", replicaIndex, "version", version)
 	res := &v1alpha1.ServerList{}
-	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, ResourceServer, replicaIndex, version, res); err != nil {
+	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, cr.GetName(), ResourceServer, replicaIndex, version, res); err != nil {
 		return err
 	}
 	servers := res.Items
@@ -172,7 +172,7 @@ func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerS
 // EnsureNIC - creates a NIC if it does not exist
 func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) error {
 	res := &v1alpha1.NicList{}
-	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, resourceNIC, replicaIndex, version, res); err != nil {
+	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, cr.GetName(), resourceNIC, replicaIndex, version, res); err != nil {
 		return err
 	}
 	nic := v1alpha1.Nic{}
