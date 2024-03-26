@@ -112,7 +112,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "LANs and Data Volumes not yet created, then StatefulServerSet CR does not exist and not up to date",
+			name: "LANs and Data Volumes not yet created, then StatefulServerSet CR does not exist and is not up to date",
 			fields: fields{
 				kube:                 fakeKubeClientWithObjs(createSSet()),
 				log:                  logging.NewNopLogger(),
@@ -125,6 +125,44 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 			},
 			want: managed.ExternalObservation{
 				ResourceExists:    false,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "LANs and Data Volumes are up to date, then StatefulServerSet CR exists and is up to date",
+			fields: fields{
+				kube:                 fakeKubeClientWithObjs(createSSet()),
+				log:                  logging.NewNopLogger(),
+				LANController:        fakeKubeLANController{LanList: createLanList(), error: nil},
+				dataVolumeController: fakeKubeDataVolumeController{VolumeList: createVolumeList(), error: nil},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  true,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "LANs are not up to date, then StatefulServerSet CR exists and is not to date",
+			fields: fields{
+				kube:                 fakeKubeClientWithObjs(createSSet()),
+				log:                  logging.NewNopLogger(),
+				LANController:        fakeKubeLANController{LanList: createLanListNotUpToDate(), error: nil},
+				dataVolumeController: fakeKubeDataVolumeController{VolumeList: createVolumeList(), error: nil},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
 				ResourceUpToDate:  false,
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
@@ -147,62 +185,5 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 
 			assert.Equal(t, tt.want, got)
 		})
-	}
-}
-
-func createSSSet() *v1alpha1.StatefulServerSet {
-	return &v1alpha1.StatefulServerSet{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "statefulserverset",
-			Annotations: map[string]string{
-				"crossplane.io/external-name": "test",
-			},
-		},
-		Spec: v1alpha1.StatefulServerSetSpec{
-			ForProvider: v1alpha1.StatefulServerSetParameters{
-				Replicas: 2,
-				Template: createSSetTemplate(),
-				Lans: []v1alpha1.StatefulServerSetLan{
-					{
-						Metadata: v1alpha1.StatefulServerSetLanMetadata{
-							Name: "customer",
-						},
-						Spec: v1alpha1.StatefulServerSetLanSpec{
-							IPv6cidr: "AUTO",
-							DHCP:     true,
-						},
-					},
-					{
-						Metadata: v1alpha1.StatefulServerSetLanMetadata{
-							Name: "management",
-						},
-						Spec: v1alpha1.StatefulServerSetLanSpec{
-							DHCP: false,
-						},
-					},
-				},
-				Volumes: []v1alpha1.StatefulServerSetVolume{
-					{
-						Metadata: v1alpha1.StatefulServerSetVolumeMetadata{
-							Name: "storage_disk",
-						},
-						Spec: v1alpha1.StatefulServerSetVolumeSpec{
-							Size: 10,
-							Type: "SSD",
-						},
-					},
-					{
-						Metadata: v1alpha1.StatefulServerSetVolumeMetadata{
-							Name: "storage_disk_extend_1",
-						},
-						Spec: v1alpha1.StatefulServerSetVolumeSpec{
-							Size: 10,
-							Type: "SSD",
-						},
-					},
-				},
-			},
-		},
 	}
 }

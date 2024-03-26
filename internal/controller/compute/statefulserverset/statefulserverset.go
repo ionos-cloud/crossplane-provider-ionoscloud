@@ -257,7 +257,7 @@ func areLansUpToDate(cr *v1alpha1.StatefulServerSet, lans []v1alpha1.Lan) (creat
 	creationUpToDate = true
 	areUpToDate = true
 	if len(lans) != len(cr.Spec.ForProvider.Lans) {
-		creationUpToDate = false
+		return false, false
 	}
 	for _, gotLan := range lans {
 		for _, specLan := range cr.Spec.ForProvider.Lans {
@@ -277,8 +277,9 @@ func areLansUpToDate(cr *v1alpha1.StatefulServerSet, lans []v1alpha1.Lan) (creat
 func areDataVolumesUpToDate(cr *v1alpha1.StatefulServerSet, volumes []v1alpha1.Volume) (creationUpToDate bool, areUpToDate bool) {
 	creationUpToDate = true
 	areUpToDate = true
-	if len(volumes) != len(cr.Spec.ForProvider.Volumes)*2 {
-		creationUpToDate = false
+	crExpectedNrOfVolumes := len(cr.Spec.ForProvider.Volumes) * cr.Spec.ForProvider.Replicas
+	if len(volumes) != crExpectedNrOfVolumes {
+		return false, false
 	}
 	for volumeIndex := range volumes {
 		for _, specVolume := range cr.Spec.ForProvider.Volumes {
