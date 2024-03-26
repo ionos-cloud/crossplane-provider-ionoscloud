@@ -11,44 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
-
-func fakeKubeClientWithObjs(objs ...client.Object) client.WithWatch {
-	scheme := runtime.NewScheme()
-	v1.AddToScheme(scheme)       // Add the core k8s types to the Scheme
-	v1alpha1.AddToScheme(scheme) // Add our custom types from v1alpha to the Scheme
-	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
-}
-
-func fakeKubeClientWithFunc(funcs interceptor.Funcs) client.WithWatch {
-	scheme := runtime.NewScheme()
-	v1.AddToScheme(scheme)       // Add the core k8s types to the Scheme
-	v1alpha1.AddToScheme(scheme) // Add our custom types from v1alpha to the Scheme
-	return fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(funcs).Build()
-}
-
-const create = "Create"
-const ensure = "Ensure"
-
-type fakeKubeServerSetController struct {
-	methodCallCount map[string]int
-}
-
-func (f *fakeKubeServerSetController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error) {
-	f.methodCallCount[create]++
-	return nil, nil
-}
-
-func (f *fakeKubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	f.methodCallCount[ensure]++
-	return nil
-}
 
 func Test_statefulServerSetController_Create(t *testing.T) {
 	SSetCtrl := &fakeKubeServerSetController{
@@ -111,5 +77,132 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 			assert.Equal(t, SSetCtrl.methodCallCount[create], 0)
 			assert.Equal(t, SSetCtrl.methodCallCount[ensure], 1)
 		})
+	}
+}
+
+func Test_statefulServerSetController_Observe(t *testing.T) {
+	type fields struct {
+		kube                 client.Client
+		log                  logging.Logger
+		LANController        kubeLANControlManager
+		dataVolumeController kubeDataVolumeControlManager
+	}
+	type args struct {
+		ctx context.Context
+		mg  resource.Managed
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    managed.ExternalObservation
+		wantErr bool
+	}{
+		{
+			name: "external name not set on StatefulServerSet CR, then return empty ExternalObservation",
+			fields: fields{
+				kube: fakeKubeClientWithObjs(),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  &v1alpha1.StatefulServerSet{},
+			},
+			want:    managed.ExternalObservation{},
+			wantErr: false,
+		},
+		{
+			name: "LANs and Data Volumes not yet created, then StatefulServerSet CR does not exist and not up to date",
+			fields: fields{
+				kube:                 fakeKubeClientWithObjs(createSSet()),
+				log:                  logging.NewNopLogger(),
+				LANController:        fakeKubeLANController{LanList: v1alpha1.LanList{}, error: nil},
+				dataVolumeController: fakeKubeDataVolumeController{VolumeList: v1alpha1.VolumeList{}, error: nil},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    false,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &external{
+				kube:                 tt.fields.kube,
+				log:                  tt.fields.log,
+				LANController:        tt.fields.LANController,
+				dataVolumeController: tt.fields.dataVolumeController,
+			}
+			got, err := c.Observe(tt.args.ctx, tt.args.mg)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Observer() error = %v, wantErr = %v", err, tt.wantErr)
+				return
+			}
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func createSSSet() *v1alpha1.StatefulServerSet {
+	return &v1alpha1.StatefulServerSet{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "statefulserverset",
+			Annotations: map[string]string{
+				"crossplane.io/external-name": "test",
+			},
+		},
+		Spec: v1alpha1.StatefulServerSetSpec{
+			ForProvider: v1alpha1.StatefulServerSetParameters{
+				Replicas: 2,
+				Template: createSSetTemplate(),
+				Lans: []v1alpha1.StatefulServerSetLan{
+					{
+						Metadata: v1alpha1.StatefulServerSetLanMetadata{
+							Name: "customer",
+						},
+						Spec: v1alpha1.StatefulServerSetLanSpec{
+							IPv6cidr: "AUTO",
+							DHCP:     true,
+						},
+					},
+					{
+						Metadata: v1alpha1.StatefulServerSetLanMetadata{
+							Name: "management",
+						},
+						Spec: v1alpha1.StatefulServerSetLanSpec{
+							DHCP: false,
+						},
+					},
+				},
+				Volumes: []v1alpha1.StatefulServerSetVolume{
+					{
+						Metadata: v1alpha1.StatefulServerSetVolumeMetadata{
+							Name: "storage_disk",
+						},
+						Spec: v1alpha1.StatefulServerSetVolumeSpec{
+							Size: 10,
+							Type: "SSD",
+						},
+					},
+					{
+						Metadata: v1alpha1.StatefulServerSetVolumeMetadata{
+							Name: "storage_disk_extend_1",
+						},
+						Spec: v1alpha1.StatefulServerSetVolumeSpec{
+							Size: 10,
+							Type: "SSD",
+						},
+					},
+				},
+			},
+		},
 	}
 }

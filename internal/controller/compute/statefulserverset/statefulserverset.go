@@ -116,7 +116,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, fmt.Errorf("while listing volumes %w", err)
 	}
 
-	creationVolumesUpToDate, areVolumesUpToDate := arDataVolumesUpToDate(cr, volumes.Items)
+	creationVolumesUpToDate, areVolumesUpToDate := areDataVolumesUpToDate(cr, volumes.Items)
 
 	e.log.Info("Observing the stateful server set", "creationLansUpToDate", creationLansUpToDate, "areLansUpToDate", areLansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate, "areVolumesUpToDate", areVolumesUpToDate)
 	sSet := &v1alpha1.ServerSet{}
@@ -274,7 +274,7 @@ func areLansUpToDate(cr *v1alpha1.StatefulServerSet, lans []v1alpha1.Lan) (creat
 	return creationUpToDate, areUpToDate
 }
 
-func arDataVolumesUpToDate(cr *v1alpha1.StatefulServerSet, volumes []v1alpha1.Volume) (creationUpToDate bool, areUpToDate bool) {
+func areDataVolumesUpToDate(cr *v1alpha1.StatefulServerSet, volumes []v1alpha1.Volume) (creationUpToDate bool, areUpToDate bool) {
 	creationUpToDate = true
 	areUpToDate = true
 	if len(volumes) != len(cr.Spec.ForProvider.Volumes)*2 {

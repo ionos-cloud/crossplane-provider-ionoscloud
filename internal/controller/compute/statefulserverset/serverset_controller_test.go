@@ -150,28 +150,7 @@ func Test_kubeServerSetController_Create(t *testing.T) {
 					},
 				},
 			},
-			want: &v1alpha1.ServerSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:            "statefulserverset-serverset",
-					ResourceVersion: "1",
-					Labels: map[string]string{
-						statefulServerSetLabel: "statefulserverset",
-					},
-				},
-				Spec: v1alpha1.ServerSetSpec{
-					ResourceSpec: xpv1.ResourceSpec{
-						ManagementPolicies:      []xpv1.ManagementAction{"*"},
-						ProviderConfigReference: &xpv1.Reference{Name: "example"},
-					},
-					ForProvider: v1alpha1.ServerSetParameters{
-						Replicas: 2,
-						DatacenterCfg: v1alpha1.DatacenterConfig{
-							DatacenterIDRef: &xpv1.Reference{Name: "example"},
-						},
-						Template: createSSetTemplate(),
-					},
-				},
-			},
+			want: createSSet(),
 		},
 	}
 	for _, tt := range tests {
@@ -184,6 +163,31 @@ func Test_kubeServerSetController_Create(t *testing.T) {
 			assert.Equal(t, tt.wantErr, err)
 			assert.Equal(t, tt.want, got)
 		})
+	}
+}
+
+func createSSet() *v1alpha1.ServerSet {
+	return &v1alpha1.ServerSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "statefulserverset-serverset",
+			ResourceVersion: "1",
+			Labels: map[string]string{
+				statefulServerSetLabel: "statefulserverset",
+			},
+		},
+		Spec: v1alpha1.ServerSetSpec{
+			ResourceSpec: xpv1.ResourceSpec{
+				ManagementPolicies:      []xpv1.ManagementAction{"*"},
+				ProviderConfigReference: &xpv1.Reference{Name: "example"},
+			},
+			ForProvider: v1alpha1.ServerSetParameters{
+				Replicas: 2,
+				DatacenterCfg: v1alpha1.DatacenterConfig{
+					DatacenterIDRef: &xpv1.Reference{Name: "example"},
+				},
+				Template: createSSetTemplate(),
+			},
+		},
 	}
 }
 
