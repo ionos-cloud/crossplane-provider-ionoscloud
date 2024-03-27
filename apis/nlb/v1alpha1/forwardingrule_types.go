@@ -76,7 +76,8 @@ type ForwardingRuleParameters struct {
 	HealthCheck ForwardingRuleHealthCheck `json:"healthCheck,omitempty"`
 	// Targets is the list of load balanced targets
 	//
-	Targets []ForwardingRuleTarget `json:"targets"`
+	// +kubebuilder:validation:Optional
+	Targets []ForwardingRuleTarget `json:"targets,omitempty"`
 }
 
 // ForwardingRuleHealthCheck structure for the forwarding rule health check
