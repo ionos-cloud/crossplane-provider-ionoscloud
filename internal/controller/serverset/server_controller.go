@@ -118,9 +118,9 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volume
 			Name:      getNameFromIndex(cr.Name, ResourceServer, replicaIndex, version),
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
-				serverSetLabel:                            cr.Name,
-				fmt.Sprintf(indexLabel, ResourceServer):   fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(versionLabel, ResourceServer): fmt.Sprintf("%d", version),
+				serverSetLabel: cr.Name,
+				fmt.Sprintf(indexLabel, cr.GetName(), ResourceServer):   fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(versionLabel, cr.GetName(), ResourceServer): fmt.Sprintf("%d", version),
 			},
 		},
 		Spec: v1alpha1.ServerSpec{
@@ -153,7 +153,7 @@ func GetZoneFromIndex(index int) string {
 func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
 	k.log.Info("Ensuring Server", "index", replicaIndex, "version", version)
 	res := &v1alpha1.ServerList{}
-	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, ResourceServer, replicaIndex, version, res); err != nil {
+	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, cr.GetName(), ResourceServer, replicaIndex, version, res); err != nil {
 		return err
 	}
 	servers := res.Items
