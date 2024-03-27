@@ -606,7 +606,6 @@ spec:
                 - name
                 - networkLoadBalancerConfig
                 - protocol
-                - targets
                 type: object
               managementPolicies:
                 default:
