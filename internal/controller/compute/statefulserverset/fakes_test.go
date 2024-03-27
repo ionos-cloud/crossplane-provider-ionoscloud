@@ -21,15 +21,15 @@ const (
 )
 
 type fakeKubeLANController struct {
-	v1alpha1.Lan
-	v1alpha1.LanList
-	error
+	Lan     v1alpha1.Lan
+	LanList v1alpha1.LanList
+	Err     error
 }
 
 type fakeKubeDataVolumeController struct {
-	v1alpha1.Volume
-	v1alpha1.VolumeList
-	error
+	Volume     v1alpha1.Volume
+	VolumeList v1alpha1.VolumeList
+	Err        error
 }
 
 type fakeKubeServerSetController struct {
@@ -37,51 +37,51 @@ type fakeKubeServerSetController struct {
 }
 
 func (f fakeKubeLANController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) (v1alpha1.Lan, error) {
-	return f.Lan, f.error
+	return f.Lan, f.Err
 }
 
 func (f fakeKubeLANController) Get(ctx context.Context, lanName, ns string) (*v1alpha1.Lan, error) {
-	return &f.Lan, f.error
+	return &f.Lan, f.Err
 }
 
 func (f fakeKubeLANController) Delete(ctx context.Context, name, namespace string) error {
-	return f.error
+	return f.Err
 }
 
 func (f fakeKubeLANController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) error {
-	return f.error
+	return f.Err
 }
 
 func (f fakeKubeLANController) ListLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.LanList, error) {
-	return &f.LanList, f.error
+	return &f.LanList, f.Err
 }
 
 func (f fakeKubeLANController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) (v1alpha1.Lan, error) {
-	return f.Lan, f.error
+	return f.Lan, f.Err
 }
 
 func (f fakeKubeDataVolumeController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
-	return f.Volume, f.error
+	return f.Volume, f.Err
 }
 
 func (f fakeKubeDataVolumeController) ListVolumes(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.VolumeList, error) {
-	return &f.VolumeList, f.error
+	return &f.VolumeList, f.Err
 }
 
 func (f fakeKubeDataVolumeController) Get(ctx context.Context, volumeName, ns string) (*v1alpha1.Volume, error) {
-	return &f.Volume, f.error
+	return &f.Volume, f.Err
 }
 
 func (f fakeKubeDataVolumeController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
-	return f.Volume, f.error
+	return f.Volume, f.Err
 }
 
 func (f fakeKubeDataVolumeController) Delete(ctx context.Context, name, namespace string) error {
-	return f.error
+	return f.Err
 }
 
 func (f fakeKubeDataVolumeController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, version int) error {
-	return f.error
+	return f.Err
 }
 
 func (f *fakeKubeServerSetController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error) {
@@ -89,7 +89,7 @@ func (f *fakeKubeServerSetController) Create(ctx context.Context, cr *v1alpha1.S
 	return nil, nil
 }
 
-func (f *fakeKubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, w WaitUntilAvailable) error {
+func (f *fakeKubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, w waitUntilAvailable) error {
 	f.methodCallCount[ensure]++
 	return nil
 }

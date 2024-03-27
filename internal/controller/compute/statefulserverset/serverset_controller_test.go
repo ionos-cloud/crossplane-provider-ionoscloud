@@ -41,7 +41,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 	type args struct {
 		ctx context.Context
 		cr  *v1alpha1.StatefulServerSet
-		w   WaitUntilAvailable
+		w   waitUntilAvailable
 	}
 	tests := []struct {
 		name    string

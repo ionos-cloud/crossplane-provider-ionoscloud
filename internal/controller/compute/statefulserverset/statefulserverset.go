@@ -314,7 +314,7 @@ func computeSSetNsName(cr *v1alpha1.StatefulServerSet) types.NamespacedName {
 }
 
 func areSSetResourcesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
-	servers, err := serverset.GetServersFromServerSet(ctx, kube, getSSetName(cr))
+	servers, err := serverset.GetServersFromSSet(ctx, kube, getSSetName(cr))
 	if err != nil {
 		return false, err
 	}
@@ -322,7 +322,7 @@ func areSSetResourcesUpToDate(ctx context.Context, kube client.Client, cr *v1alp
 		return false, nil
 	}
 	areServersUpToDate := serverset.AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
-	volumes, err := serverset.GetVolumesFromServerSet(ctx, kube, getSSetName(cr))
+	volumes, err := serverset.GetVolumesFromSSet(ctx, kube, getSSetName(cr))
 	if err != nil {
 		return false, err
 	}
@@ -332,7 +332,7 @@ func areSSetResourcesUpToDate(ctx context.Context, kube client.Client, cr *v1alp
 	}
 
 	areNicsUpToDate := false
-	if areNicsUpToDate, err = serverset.AreNicsUpToDate(ctx, kube, getSSetName(cr), cr.Spec.ForProvider.Replicas); err != nil {
+	if areNicsUpToDate, err = serverset.AreNICsUpToDate(ctx, kube, getSSetName(cr), cr.Spec.ForProvider.Replicas); err != nil {
 		return false, err
 	}
 	if !areNicsUpToDate {

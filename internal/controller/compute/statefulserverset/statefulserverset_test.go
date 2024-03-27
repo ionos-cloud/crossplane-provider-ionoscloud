@@ -116,8 +116,8 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 			fields: fields{
 				kube:                 fakeKubeClientWithObjs(createSSet()),
 				log:                  logging.NewNopLogger(),
-				LANController:        fakeKubeLANController{LanList: v1alpha1.LanList{}, error: nil},
-				dataVolumeController: fakeKubeDataVolumeController{VolumeList: v1alpha1.VolumeList{}, error: nil},
+				LANController:        fakeKubeLANController{LanList: v1alpha1.LanList{}},
+				dataVolumeController: fakeKubeDataVolumeController{VolumeList: v1alpha1.VolumeList{}},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -135,8 +135,8 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 			fields: fields{
 				kube:                 fakeKubeClientWithObjs(createSSet()),
 				log:                  logging.NewNopLogger(),
-				LANController:        fakeKubeLANController{LanList: createLanList(), error: nil},
-				dataVolumeController: fakeKubeDataVolumeController{VolumeList: createVolumeList(), error: nil},
+				LANController:        fakeKubeLANController{LanList: createLanList()},
+				dataVolumeController: fakeKubeDataVolumeController{VolumeList: createVolumeList()},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -158,11 +158,9 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 					LanList: createLanListNotUpToDate(
 						LANFieldsUpToDate{isIpv6CidrUpToDate: true},
 					),
-					error: nil,
 				},
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeList(),
-					error:      nil,
 				},
 			},
 			args: args{
@@ -185,11 +183,9 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 					LanList: createLanListNotUpToDate(
 						LANFieldsUpToDate{isPublicUpToDate: true},
 					),
-					error: nil,
 				},
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeList(),
-					error:      nil,
 				},
 			},
 			args: args{
@@ -210,11 +206,9 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				log:  logging.NewNopLogger(),
 				LANController: fakeKubeLANController{
 					LanList: createLanListNotUpToDate(LANFieldsUpToDate{}),
-					error:   nil,
 				},
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeList(),
-					error:      nil,
 				},
 			},
 			args: args{
@@ -235,13 +229,11 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				log:  logging.NewNopLogger(),
 				LANController: fakeKubeLANController{
 					LanList: createLanList(),
-					error:   nil,
 				},
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeListNotUpToDate(
 						VolumeFieldUpToDate{isSizeUpToDate: true},
 					),
-					error: nil,
 				},
 			},
 			args: args{
@@ -262,13 +254,11 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				log:  logging.NewNopLogger(),
 				LANController: fakeKubeLANController{
 					LanList: createLanList(),
-					error:   nil,
 				},
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeListNotUpToDate(
 						VolumeFieldUpToDate{isTypeUpToDate: true},
 					),
-					error: nil,
 				},
 			},
 			args: args{
@@ -289,11 +279,9 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				log:  logging.NewNopLogger(),
 				LANController: fakeKubeLANController{
 					LanList: createLanListNotUpToDate(LANFieldsUpToDate{}),
-					error:   nil,
 				},
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeListNotUpToDate(VolumeFieldUpToDate{}),
-					error:      nil,
 				},
 			},
 			args: args{

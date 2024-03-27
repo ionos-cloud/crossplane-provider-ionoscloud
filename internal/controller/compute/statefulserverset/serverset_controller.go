@@ -18,11 +18,11 @@ import (
 
 type kubeSSetControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error)
-	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, w WaitUntilAvailable) error
+	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, w waitUntilAvailable) error
 	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.ServerSet, error)
 }
 
-type WaitUntilAvailable func(ctx context.Context, timeoutInMinutes time.Duration, fn kube.IsResourceReady, name, namespace string) error
+type waitUntilAvailable func(ctx context.Context, timeoutInMinutes time.Duration, fn kube.IsResourceReady, name, namespace string) error
 
 // kubeServerSetController - kubernetes client wrapper for server set resources
 type kubeServerSetController struct {
@@ -90,7 +90,7 @@ func (k *kubeServerSetController) isAvailable(ctx context.Context, name, namespa
 }
 
 // Ensure - creates a server set if it does not exist
-func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, wait WaitUntilAvailable) error {
+func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, wait waitUntilAvailable) error {
 	SSetName := getSSetName(cr)
 	k.log.Info("Ensuring ServerSet CR", "name", SSetName)
 	kubeSSet := &v1alpha1.ServerSet{}
