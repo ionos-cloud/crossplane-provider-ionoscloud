@@ -11,44 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
-
-func fakeKubeClientWithObjs(objs ...client.Object) client.WithWatch {
-	scheme := runtime.NewScheme()
-	v1.AddToScheme(scheme)       // Add the core k8s types to the Scheme
-	v1alpha1.AddToScheme(scheme) // Add our custom types from v1alpha to the Scheme
-	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
-}
-
-func fakeKubeClientWithFunc(funcs interceptor.Funcs) client.WithWatch {
-	scheme := runtime.NewScheme()
-	v1.AddToScheme(scheme)       // Add the core k8s types to the Scheme
-	v1alpha1.AddToScheme(scheme) // Add our custom types from v1alpha to the Scheme
-	return fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(funcs).Build()
-}
-
-const create = "Create"
-const ensure = "Ensure"
-
-type fakeKubeServerSetController struct {
-	methodCallCount map[string]int
-}
-
-func (f *fakeKubeServerSetController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error) {
-	f.methodCallCount[create]++
-	return nil, nil
-}
-
-func (f *fakeKubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	f.methodCallCount[ensure]++
-	return nil
-}
 
 func Test_statefulServerSetController_Create(t *testing.T) {
 	SSetCtrl := &fakeKubeServerSetController{
@@ -110,6 +76,241 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 			assert.Equal(t, "test", cr.ObjectMeta.Name)
 			assert.Equal(t, SSetCtrl.methodCallCount[create], 0)
 			assert.Equal(t, SSetCtrl.methodCallCount[ensure], 1)
+		})
+	}
+}
+
+func Test_statefulServerSetController_Observe(t *testing.T) {
+	type fields struct {
+		kube                 client.Client
+		log                  logging.Logger
+		LANController        kubeLANControlManager
+		dataVolumeController kubeDataVolumeControlManager
+	}
+	type args struct {
+		ctx context.Context
+		mg  resource.Managed
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    managed.ExternalObservation
+		wantErr bool
+	}{
+		{
+			name: "external name not set on StatefulServerSet CR, then return empty ExternalObservation",
+			fields: fields{
+				kube: fakeKubeClientWithObjs(),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  &v1alpha1.StatefulServerSet{},
+			},
+			want:    managed.ExternalObservation{},
+			wantErr: false,
+		},
+		{
+			name: "LANs and Data Volumes not yet created, then StatefulServerSet CR does not exist and is not up to date",
+			fields: fields{
+				kube:                 fakeKubeClientWithObjs(createSSet()),
+				log:                  logging.NewNopLogger(),
+				LANController:        fakeKubeLANController{LanList: v1alpha1.LanList{}},
+				dataVolumeController: fakeKubeDataVolumeController{VolumeList: v1alpha1.VolumeList{}},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    false,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "LANs and Data Volumes up to date, then StatefulServerSet CR exists and is up to date",
+			fields: fields{
+				kube:                 fakeKubeClientWithObjs(createSSet(), createServer1(), createServer2()),
+				log:                  logging.NewNopLogger(),
+				LANController:        fakeKubeLANController{LanList: createLanList()},
+				dataVolumeController: fakeKubeDataVolumeController{VolumeList: createVolumeList()},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  true,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "LANs not up to date (Public), then StatefulServerSet CR exists and is not up to date",
+			fields: fields{
+				kube: fakeKubeClientWithObjs(createSSet()),
+				log:  logging.NewNopLogger(),
+				LANController: fakeKubeLANController{
+					LanList: createLanListNotUpToDate(
+						LANFieldsUpToDate{isIpv6CidrUpToDate: true},
+					),
+				},
+				dataVolumeController: fakeKubeDataVolumeController{
+					VolumeList: createVolumeList(),
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "LANs not up to date (Ipv6Cidr), then StatefulServerSet CR exists and is not up to date",
+			fields: fields{
+				kube: fakeKubeClientWithObjs(createSSet()),
+				log:  logging.NewNopLogger(),
+				LANController: fakeKubeLANController{
+					LanList: createLanListNotUpToDate(
+						LANFieldsUpToDate{isPublicUpToDate: true},
+					),
+				},
+				dataVolumeController: fakeKubeDataVolumeController{
+					VolumeList: createVolumeList(),
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "LANs not up to date (all), then StatefulServerSet CR exists and is not up to date",
+			fields: fields{
+				kube: fakeKubeClientWithObjs(createSSet()),
+				log:  logging.NewNopLogger(),
+				LANController: fakeKubeLANController{
+					LanList: createLanListNotUpToDate(LANFieldsUpToDate{}),
+				},
+				dataVolumeController: fakeKubeDataVolumeController{
+					VolumeList: createVolumeList(),
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Data Volumes not up to date (type), then StatefulServerSet CR exists and is not up to date",
+			fields: fields{
+				kube: fakeKubeClientWithObjs(createSSet()),
+				log:  logging.NewNopLogger(),
+				LANController: fakeKubeLANController{
+					LanList: createLanList(),
+				},
+				dataVolumeController: fakeKubeDataVolumeController{
+					VolumeList: createVolumeListNotUpToDate(
+						VolumeFieldUpToDate{isSizeUpToDate: true},
+					),
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Data Volumes not up to date (size), then StatefulServerSet CR exists and is not up to date",
+			fields: fields{
+				kube: fakeKubeClientWithObjs(createSSet()),
+				log:  logging.NewNopLogger(),
+				LANController: fakeKubeLANController{
+					LanList: createLanList(),
+				},
+				dataVolumeController: fakeKubeDataVolumeController{
+					VolumeList: createVolumeListNotUpToDate(
+						VolumeFieldUpToDate{isTypeUpToDate: true},
+					),
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "LANs and Data Volumes not up to date, then StatefulServerSet CR exists and is not to date",
+			fields: fields{
+				kube: fakeKubeClientWithObjs(createSSet()),
+				log:  logging.NewNopLogger(),
+				LANController: fakeKubeLANController{
+					LanList: createLanListNotUpToDate(LANFieldsUpToDate{}),
+				},
+				dataVolumeController: fakeKubeDataVolumeController{
+					VolumeList: createVolumeListNotUpToDate(VolumeFieldUpToDate{}),
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &external{
+				kube:                 tt.fields.kube,
+				log:                  tt.fields.log,
+				LANController:        tt.fields.LANController,
+				dataVolumeController: tt.fields.dataVolumeController,
+			}
+			got, err := c.Observe(tt.args.ctx, tt.args.mg)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Observer() error = %v, wantErr = %v", err, tt.wantErr)
+				return
+			}
+
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
