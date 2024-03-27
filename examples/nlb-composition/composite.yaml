@@ -1,0 +1,18 @@
+# Creates creates a Network Load Balancer between a public listener lan and a private target lan
+apiVersion: platform.example.org/v1alpha1
+kind: XNetworkLoadBalancerInstance
+metadata:
+  name: my-nlb-refxr
+spec:
+  parameters:
+    datacenterName: crossplane_nlb_datacenter
+    datacenterLocation: us/las
+    fwRuleListenerPort: 8081
+    fwRuleAlgorithm: ROUND_ROBIN
+    fwRuleTargets:
+      - ip: 100.100.100.110
+        weight: 20
+        port: 8080
+      - ip: 100.100.100.120
+        weight: 20
+        port: 8080
