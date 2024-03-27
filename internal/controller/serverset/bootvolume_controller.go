@@ -119,8 +119,8 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
 				serverSetLabel: cr.Name,
-				fmt.Sprintf(indexLabel, resourceBootVolume):   strconv.Itoa(replicaIndex),
-				fmt.Sprintf(versionLabel, resourceBootVolume): strconv.Itoa(version),
+				fmt.Sprintf(indexLabel, cr.GetName(), resourceBootVolume):    strconv.Itoa(replicaIndex),
+				fmt.Sprintf(versionLabel, cr.GetName(), resourceBootVolume): strconv.Itoa(version),
 			},
 		},
 		Spec: v1alpha1.VolumeSpec{
@@ -147,7 +147,7 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 func (k *kubeBootVolumeController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	k.log.Info("Ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
 	res := &v1alpha1.VolumeList{}
-	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, resourceBootVolume, replicaIndex, version, res); err != nil {
+	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, cr.GetName(), resourceBootVolume, replicaIndex, version, res); err != nil {
 		return err
 	}
 	volumes := res.Items
