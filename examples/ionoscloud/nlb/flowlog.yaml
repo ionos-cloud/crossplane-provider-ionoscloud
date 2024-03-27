@@ -1,0 +1,28 @@
+# Use this file to create an NetworkLoadBalancer Flow Log CR.
+# Required values for creating an NetworkLoadBalancer Flow Log CR are:
+# - DatacenterConfig (via ID or reference),
+# - NetworkLoadBalancerConfig (via ID or reference),
+# - Name,
+# - Action,
+# - Direction,
+# - Bucket,
+apiVersion: nlb.ionoscloud.crossplane.io/v1alpha1
+kind: FlowLog
+metadata:
+  name: example
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    datacenterConfig:
+      datacenterIdRef:
+        name: nlbdatacenter
+    networkLoadBalancerConfig:
+      networkLoadBalancerIdRef:
+        name: example
+    name: example
+    action: ACCEPTED
+    direction: BIDIRECTIONAL
+    bucket: nlb-flowlog-test
+  providerConfigRef:
+    name: example

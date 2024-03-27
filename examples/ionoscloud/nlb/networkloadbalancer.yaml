@@ -1,0 +1,35 @@
+# Use this file to create an NetworkLoadBalancer CR.
+# Required values for creating an NetworkLoadBalancer CR are:
+# - DatacenterConfig (via ID or reference),
+# - Name,
+# - TargetLanConfig (via ID or reference),
+# - ListenerLanConfig (via ID or reference).
+apiVersion: nlb.ionoscloud.crossplane.io/v1alpha1
+kind: NetworkLoadBalancer
+metadata:
+  name: example
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    datacenterConfig:
+     datacenterIdRef:
+       name: nlbdatacenter
+    name: exampleNetworkLoadBalancer
+    targetLanConfig:
+      lanIdRef:
+        name: targetlan
+    listenerLanConfig:
+      lanIdRef:
+        name: listenerlan
+    ipsConfig:
+      ipsBlocksConfig:
+        - ipBlockConfig:
+            ipBlockIdRef:
+              name: nlbipblock
+          indexes: [0, 2]
+    lbPrivateIps:
+      - 10.7.224.220/24
+      - 10.7.223.220/24
+  providerConfigRef:
+    name: example
