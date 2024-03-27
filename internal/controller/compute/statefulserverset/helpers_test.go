@@ -35,6 +35,16 @@ const (
 	serverSetNrOfReplicas = 2
 )
 
+type VolumeFieldUpToDate struct {
+	isSizeUpToDate bool
+	isTypeUpToDate bool
+}
+
+type LANFieldsUpToDate struct {
+	isPublicUpToDate   bool
+	isIpv6CidrUpToDate bool
+}
+
 func createSSSet() *v1alpha1.StatefulServerSet {
 	return &v1alpha1.StatefulServerSet{
 		TypeMeta: metav1.TypeMeta{},
@@ -116,10 +126,70 @@ func createLanList() v1alpha1.LanList {
 	}
 }
 
-func createLanListNotUpToDate() v1alpha1.LanList {
+func createLanListNotUpToDate(l LANFieldsUpToDate) v1alpha1.LanList {
 	lans := createLanList()
-	lans.Items[0].Spec.ForProvider.Public = false
+
+	for idx := range lans.Items {
+		updateFieldIpv6Cidr(l, lans, idx)
+		updateFieldPublic(l, lans, idx)
+	}
 	return lans
+}
+
+func updateFieldPublic(l LANFieldsUpToDate, lans v1alpha1.LanList, idx int) {
+	if !l.isPublicUpToDate {
+		other := findOtherPublic(lans.Items[idx].Spec.ForProvider.Public)
+		lans.Items[idx].Spec.ForProvider.Public = other
+	}
+}
+
+func updateFieldIpv6Cidr(l LANFieldsUpToDate, lans v1alpha1.LanList, idx int) {
+	if !l.isIpv6CidrUpToDate {
+		other := findOtherIpv6Cidr(lans.Items[idx].Spec.ForProvider.Ipv6Cidr)
+		lans.Items[idx].Spec.ForProvider.Ipv6Cidr = other
+	}
+}
+
+func findOtherIpv6Cidr(actual string) string {
+	if actual == "AUTO" {
+		return ""
+	}
+	return "AUTO"
+}
+
+func findOtherPublic(actual bool) bool {
+	return !actual
+}
+
+func createVolumeListNotUpToDate(v VolumeFieldUpToDate) v1alpha1.VolumeList {
+	volumes := createVolumeList()
+
+	for idx := range volumes.Items {
+		updateFieldSize(v, volumes, idx)
+		updateFieldType(v, volumes, idx)
+	}
+
+	return volumes
+}
+
+func updateFieldType(v VolumeFieldUpToDate, volumes v1alpha1.VolumeList, idx int) {
+	if !v.isTypeUpToDate {
+		other := findOtherVolumeType(volumes.Items[idx].Spec.ForProvider.Type)
+		volumes.Items[idx].Spec.ForProvider.Type = other
+	}
+}
+
+func updateFieldSize(v VolumeFieldUpToDate, volumes v1alpha1.VolumeList, idx int) {
+	if !v.isSizeUpToDate {
+		volumes.Items[idx].Spec.ForProvider.Size *= 10
+	}
+}
+
+func findOtherVolumeType(actual string) string {
+	if actual == "SSD" {
+		return "HDD"
+	}
+	return "SSD"
 }
 
 func createVolumeList() v1alpha1.VolumeList {

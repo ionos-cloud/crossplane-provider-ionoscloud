@@ -131,7 +131,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "LANs and Data Volumes are up to date, then StatefulServerSet CR exists and is up to date",
+			name: "LANs and Data Volumes up to date, then StatefulServerSet CR exists and is up to date",
 			fields: fields{
 				kube:                 fakeKubeClientWithObjs(createSSet()),
 				log:                  logging.NewNopLogger(),
@@ -150,12 +150,151 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "LANs are not up to date, then StatefulServerSet CR exists and is not to date",
+			name: "LANs not up to date (Public), then StatefulServerSet CR exists and is not up to date",
 			fields: fields{
-				kube:                 fakeKubeClientWithObjs(createSSet()),
-				log:                  logging.NewNopLogger(),
-				LANController:        fakeKubeLANController{LanList: createLanListNotUpToDate(), error: nil},
-				dataVolumeController: fakeKubeDataVolumeController{VolumeList: createVolumeList(), error: nil},
+				kube: fakeKubeClientWithObjs(createSSet()),
+				log:  logging.NewNopLogger(),
+				LANController: fakeKubeLANController{
+					LanList: createLanListNotUpToDate(
+						LANFieldsUpToDate{isIpv6CidrUpToDate: true},
+					),
+					error: nil,
+				},
+				dataVolumeController: fakeKubeDataVolumeController{
+					VolumeList: createVolumeList(),
+					error:      nil,
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "LANs not up to date (Ipv6Cidr), then StatefulServerSet CR exists and is not up to date",
+			fields: fields{
+				kube: fakeKubeClientWithObjs(createSSet()),
+				log:  logging.NewNopLogger(),
+				LANController: fakeKubeLANController{
+					LanList: createLanListNotUpToDate(
+						LANFieldsUpToDate{isPublicUpToDate: true},
+					),
+					error: nil,
+				},
+				dataVolumeController: fakeKubeDataVolumeController{
+					VolumeList: createVolumeList(),
+					error:      nil,
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "LANs not up to date (all), then StatefulServerSet CR exists and is not up to date",
+			fields: fields{
+				kube: fakeKubeClientWithObjs(createSSet()),
+				log:  logging.NewNopLogger(),
+				LANController: fakeKubeLANController{
+					LanList: createLanListNotUpToDate(LANFieldsUpToDate{}),
+					error:   nil,
+				},
+				dataVolumeController: fakeKubeDataVolumeController{
+					VolumeList: createVolumeList(),
+					error:      nil,
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Data Volumes not up to date (type), then StatefulServerSet CR exists and is not up to date",
+			fields: fields{
+				kube: fakeKubeClientWithObjs(createSSet()),
+				log:  logging.NewNopLogger(),
+				LANController: fakeKubeLANController{
+					LanList: createLanList(),
+					error:   nil,
+				},
+				dataVolumeController: fakeKubeDataVolumeController{
+					VolumeList: createVolumeListNotUpToDate(
+						VolumeFieldUpToDate{isSizeUpToDate: true},
+					),
+					error: nil,
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Data Volumes not up to date (size), then StatefulServerSet CR exists and is not up to date",
+			fields: fields{
+				kube: fakeKubeClientWithObjs(createSSet()),
+				log:  logging.NewNopLogger(),
+				LANController: fakeKubeLANController{
+					LanList: createLanList(),
+					error:   nil,
+				},
+				dataVolumeController: fakeKubeDataVolumeController{
+					VolumeList: createVolumeListNotUpToDate(
+						VolumeFieldUpToDate{isTypeUpToDate: true},
+					),
+					error: nil,
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				mg:  createSSSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "LANs and Data Volumes not up to date, then StatefulServerSet CR exists and is not to date",
+			fields: fields{
+				kube: fakeKubeClientWithObjs(createSSet()),
+				log:  logging.NewNopLogger(),
+				LANController: fakeKubeLANController{
+					LanList: createLanListNotUpToDate(LANFieldsUpToDate{}),
+					error:   nil,
+				},
+				dataVolumeController: fakeKubeDataVolumeController{
+					VolumeList: createVolumeListNotUpToDate(VolumeFieldUpToDate{}),
+					error:      nil,
+				},
 			},
 			args: args{
 				ctx: context.Background(),

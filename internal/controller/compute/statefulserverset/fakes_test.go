@@ -23,6 +23,12 @@ type fakeKubeLANController struct {
 	error
 }
 
+type fakeKubeDataVolumeController struct {
+	v1alpha1.Volume
+	v1alpha1.VolumeList
+	error
+}
+
 func (f fakeKubeLANController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) (v1alpha1.Lan, error) {
 	return f.Lan, f.error
 }
@@ -45,12 +51,6 @@ func (f fakeKubeLANController) ListLans(ctx context.Context, cr *v1alpha1.Statef
 
 func (f fakeKubeLANController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) (v1alpha1.Lan, error) {
 	return f.Lan, f.error
-}
-
-type fakeKubeDataVolumeController struct {
-	v1alpha1.Volume
-	v1alpha1.VolumeList
-	error
 }
 
 func (f fakeKubeDataVolumeController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
