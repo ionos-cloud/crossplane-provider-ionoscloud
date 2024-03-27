@@ -3,6 +3,7 @@ package statefulserverset
 import (
 	"context"
 	"fmt"
+	"time"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -17,9 +18,11 @@ import (
 
 type kubeSSetControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error)
-	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error
+	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, w WaitUntilAvailable) error
 	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.ServerSet, error)
 }
+
+type WaitUntilAvailable func(ctx context.Context, timeoutInMinutes time.Duration, fn kube.IsResourceReady, name, namespace string) error
 
 // kubeServerSetController - kubernetes client wrapper for server set resources
 type kubeServerSetController struct {
@@ -42,12 +45,12 @@ func (k *kubeServerSetController) Create(ctx context.Context, cr *v1alpha1.State
 
 // Update updates a server set CR
 func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.ServerSet, error) {
-	name := getSSetName(cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
+	name := getSSetName(cr)
 	updateObj, err := k.Get(ctx, name, cr.Namespace)
 	if err != nil {
 		return v1alpha1.ServerSet{}, err
 	}
-	areResUpToDate, err := areServersetResourcesUpToDate(ctx, k.kube, cr)
+	areResUpToDate, err := areSSetResourcesUpToDate(ctx, k.kube, cr)
 	if err != nil {
 		return v1alpha1.ServerSet{}, err
 	}
@@ -87,8 +90,8 @@ func (k *kubeServerSetController) isAvailable(ctx context.Context, name, namespa
 }
 
 // Ensure - creates a server set if it does not exist
-func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	SSetName := getSSetName(cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
+func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, wait WaitUntilAvailable) error {
+	SSetName := getSSetName(cr)
 	k.log.Info("Ensuring ServerSet CR", "name", SSetName)
 	kubeSSet := &v1alpha1.ServerSet{}
 	err := k.kube.Get(ctx, types.NamespacedName{Name: SSetName, Namespace: cr.Namespace}, kubeSSet)
@@ -99,7 +102,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 		if err != nil {
 			return err
 		}
-		return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, SSetName, cr.Namespace)
+		return wait(ctx, kube.ResourceReadyTimeout, k.isAvailable, SSetName, cr.Namespace)
 	case err != nil:
 		return err
 	default:
@@ -121,7 +124,7 @@ func (k *kubeServerSetController) Get(ctx context.Context, ssetName, ns string) 
 func extractSSetFromSSSet(sSSet *v1alpha1.StatefulServerSet) *v1alpha1.ServerSet {
 	return &v1alpha1.ServerSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getSSetName(sSSet.Name, sSSet.Spec.ForProvider.Template.Metadata.Name),
+			Name:      getSSetName(sSSet),
 			Namespace: sSSet.Namespace,
 			Labels: map[string]string{
 				statefulServerSetLabel: sSSet.Name,
@@ -142,6 +145,6 @@ func extractSSetFromSSSet(sSSet *v1alpha1.StatefulServerSet) *v1alpha1.ServerSet
 	}
 }
 
-func getSSetName(sSSettName, sSetName string) string {
-	return fmt.Sprintf("%s-%s", sSSettName, sSetName)
+func getSSetName(cr *v1alpha1.StatefulServerSet) string {
+	return fmt.Sprintf("%s-%s", cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
 }

@@ -34,6 +34,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/serverset"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 const (
@@ -125,7 +126,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if err := e.kube.Get(ctx, nsName, sSet); err != nil {
 		return managed.ExternalObservation{}, err
 	}
-	isSsetUpToDate, err := areServersetResourcesUpToDate(ctx, e.kube, cr)
+	isSsetUpToDate, err := areSSetResourcesUpToDate(ctx, e.kube, cr)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -248,7 +249,7 @@ func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulS
 	return nil
 }
 func (e *external) ensureSSet(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	return e.SSetController.Ensure(ctx, cr)
+	return e.SSetController.Ensure(ctx, cr, kube.WaitForResource)
 }
 
 func (e *external) ensureLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
@@ -303,7 +304,7 @@ func areDataVolumesUpToDate(cr *v1alpha1.StatefulServerSet, volumes []v1alpha1.V
 }
 
 func computeSSetNsName(cr *v1alpha1.StatefulServerSet) types.NamespacedName {
-	ssName := getSSetName(cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
+	ssName := getSSetName(cr)
 	namespace := cr.Namespace
 
 	return types.NamespacedName{
@@ -312,8 +313,8 @@ func computeSSetNsName(cr *v1alpha1.StatefulServerSet) types.NamespacedName {
 	}
 }
 
-func areServersetResourcesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
-	servers, err := serverset.GetServersFromServerSet(ctx, kube, getParentResourceName(cr))
+func areSSetResourcesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
+	servers, err := serverset.GetServersFromServerSet(ctx, kube, getSSetName(cr))
 	if err != nil {
 		return false, err
 	}
@@ -321,7 +322,7 @@ func areServersetResourcesUpToDate(ctx context.Context, kube client.Client, cr *
 		return false, nil
 	}
 	areServersUpToDate := serverset.AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
-	volumes, err := serverset.GetVolumesFromServerSet(ctx, kube, getParentResourceName(cr))
+	volumes, err := serverset.GetVolumesFromServerSet(ctx, kube, getSSetName(cr))
 	if err != nil {
 		return false, err
 	}
@@ -331,7 +332,7 @@ func areServersetResourcesUpToDate(ctx context.Context, kube client.Client, cr *
 	}
 
 	areNicsUpToDate := false
-	if areNicsUpToDate, err = serverset.AreNicsUpToDate(ctx, kube, getParentResourceName(cr), cr.Spec.ForProvider.Replicas); err != nil {
+	if areNicsUpToDate, err = serverset.AreNicsUpToDate(ctx, kube, getSSetName(cr), cr.Spec.ForProvider.Replicas); err != nil {
 		return false, err
 	}
 	if !areNicsUpToDate {
