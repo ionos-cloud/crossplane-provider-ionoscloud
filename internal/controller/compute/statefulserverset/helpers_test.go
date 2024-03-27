@@ -14,9 +14,6 @@ const (
 	customerLanIPv6cidr = "AUTO"
 	customerLanDHCP     = true
 
-	managementLanName = "management"
-	managementLanDHCP = false
-
 	dataVolume1Name = "storage_disk"
 	dataVolume1Size = 10
 	dataVolume1Type = "SSD"
@@ -25,14 +22,23 @@ const (
 	dataVolume2Size = 10
 	dataVolume2Type = "SSD"
 
+	datacenterName = "example-datacenter"
+
+	managementLanName = "management"
+	managementLanDHCP = false
+
+	serverSetName         = "serverset"
+	serverSetNrOfReplicas = 2
+	serverSetLabel        = "ionoscloud.com/serverset"
+
 	statefulServerSetName         = "statefulserverset"
 	statefulServerSetExternalName = "test"
 
-	datacenterName = "example-datacenter"
-
-	serverSetName = "serverset"
-
-	serverSetNrOfReplicas = 2
+	server1Name     = serverSetName + "-0"
+	server2Name     = serverSetName + "-1"
+	serverCPUFamily = "INTEL_XEON"
+	serverCores     = 1
+	serverRAM       = 1024
 )
 
 type VolumeFieldUpToDate struct {
@@ -56,7 +62,7 @@ func createSSSet() *v1alpha1.StatefulServerSet {
 		},
 		Spec: v1alpha1.StatefulServerSetSpec{
 			ForProvider: v1alpha1.StatefulServerSetParameters{
-				Replicas: 2,
+				Replicas: serverSetNrOfReplicas,
 				Template: createSSetTemplate(),
 				Lans: []v1alpha1.StatefulServerSetLan{
 					{
@@ -281,6 +287,42 @@ func createSSetTemplate() v1alpha1.ServerSetTemplate {
 				},
 			},
 			BootStorageVolumeRef: "volume-id",
+		},
+	}
+}
+
+func createServer1() *v1alpha1.Server {
+	return createServer(v1alpha1.ServerParameters{
+		Name:      server1Name,
+		Cores:     serverCores,
+		RAM:       serverRAM,
+		CPUFamily: serverCPUFamily,
+	})
+}
+func createServer2() *v1alpha1.Server {
+	return createServer(v1alpha1.ServerParameters{
+		Name:      server2Name,
+		Cores:     serverCores,
+		RAM:       serverRAM,
+		CPUFamily: serverCPUFamily,
+	})
+}
+
+func createServer(parameters v1alpha1.ServerParameters) *v1alpha1.Server {
+	return &v1alpha1.Server{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: parameters.Name,
+			Labels: map[string]string{
+				serverSetLabel: statefulServerSetName + "-" + serverSetName,
+			},
+		},
+		Spec: v1alpha1.ServerSpec{
+			ForProvider: v1alpha1.ServerParameters{
+				Name:      parameters.Name,
+				Cores:     parameters.Cores,
+				RAM:       parameters.RAM,
+				CPUFamily: parameters.CPUFamily,
+			},
 		},
 	}
 }

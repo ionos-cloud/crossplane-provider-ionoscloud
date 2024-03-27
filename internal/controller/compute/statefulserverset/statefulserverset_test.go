@@ -133,7 +133,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 		{
 			name: "LANs and Data Volumes up to date, then StatefulServerSet CR exists and is up to date",
 			fields: fields{
-				kube:                 fakeKubeClientWithObjs(createSSet()),
+				kube:                 fakeKubeClientWithObjs(createSSet(), createServer1(), createServer2()),
 				log:                  logging.NewNopLogger(),
 				LANController:        fakeKubeLANController{LanList: createLanList()},
 				dataVolumeController: fakeKubeDataVolumeController{VolumeList: createVolumeList()},
