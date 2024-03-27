@@ -72,7 +72,7 @@ func isLanUpToDate(spec *v1alpha1.StatefulServerSetLanSpec, lan *v1alpha1.Lan) b
 
 // Update - updates the lan CR and waits until in reaches AVAILABLE state
 func (k *kubeLANController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) (v1alpha1.Lan, error) {
-	name := fmt.Sprintf("%s-%s-%d", cr.GetName(), resourceLAN, lanIndex)
+	name := cr.Spec.ForProvider.Lans[lanIndex].Metadata.Name
 
 	updateKubeLAN, err := k.Get(ctx, name, cr.Namespace)
 	if err != nil {

@@ -3,6 +3,7 @@ package serverset
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -118,8 +119,8 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
 				serverSetLabel: cr.Name,
-				fmt.Sprintf(indexLabel, resourceBootVolume):   fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(versionLabel, resourceBootVolume): fmt.Sprintf("%d", version),
+				fmt.Sprintf(indexLabel, resourceBootVolume):   strconv.Itoa(replicaIndex),
+				fmt.Sprintf(versionLabel, resourceBootVolume): strconv.Itoa(version),
 			},
 		},
 		Spec: v1alpha1.VolumeSpec{

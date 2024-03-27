@@ -12,11 +12,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 type kubeSSetControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error)
 	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error
+	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.ServerSet, error)
 }
 
 // kubeServerSetController - kubernetes client wrapper for server set resources
@@ -38,6 +40,52 @@ func (k *kubeServerSetController) Create(ctx context.Context, cr *v1alpha1.State
 	return SSet, nil
 }
 
+// Update updates a server set CR
+func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.ServerSet, error) {
+	name := getSSetName(cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
+	updateObj, err := k.Get(ctx, name, cr.Namespace)
+	if err != nil {
+		return v1alpha1.ServerSet{}, err
+	}
+	areResUpToDate, err := areServersetResourcesUpToDate(ctx, k.kube, cr)
+	if err != nil {
+		return v1alpha1.ServerSet{}, err
+	}
+	if areResUpToDate {
+		k.log.Info("ServerSet resources are up to date", "name", name)
+		return v1alpha1.ServerSet{}, nil
+	}
+
+	k.log.Info("Updating serverset", "name", name)
+	updateObj.Spec.ForProvider.Template = cr.Spec.ForProvider.Template
+	updateObj.Spec.ForProvider.BootVolumeTemplate = cr.Spec.ForProvider.BootVolumeTemplate
+	if err := k.kube.Update(ctx, updateObj); err != nil {
+		return v1alpha1.ServerSet{}, err
+	}
+
+	updateObj, err = k.Get(ctx, name, cr.Namespace)
+	if err != nil {
+		return v1alpha1.ServerSet{}, err
+	}
+	k.log.Info("Finished updating serverset", "name", name)
+	return *updateObj, nil
+}
+
+// isAvailable - checks if a lan is available
+func (k *kubeServerSetController) isAvailable(ctx context.Context, name, namespace string) (bool, error) {
+	obj, err := k.Get(ctx, name, namespace)
+	if err != nil {
+		if apiErrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if obj != nil && len(obj.Status.AtProvider.ReplicaStatuses) == obj.Spec.ForProvider.Replicas && xpv1.Available() == obj.GetCondition(xpv1.TypeReady) {
+		return true, nil
+	}
+	return false, err
+}
+
 // Ensure - creates a server set if it does not exist
 func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
 	SSetName := getSSetName(cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
@@ -47,14 +95,27 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 
 	switch {
 	case err != nil && apiErrors.IsNotFound(err):
-		_, e := k.Create(ctx, cr)
-		return e
+		_, err := k.Create(ctx, cr)
+		if err != nil {
+			return err
+		}
+		return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, SSetName, cr.Namespace)
 	case err != nil:
 		return err
 	default:
 		k.log.Info("ServerSet already exists", "name", SSetName)
 		return nil
 	}
+}
+
+// Get - returns a serverset kubernetes object
+func (k *kubeServerSetController) Get(ctx context.Context, ssetName, ns string) (*v1alpha1.ServerSet, error) {
+	obj := &v1alpha1.ServerSet{}
+	err := k.kube.Get(ctx, types.NamespacedName{
+		Namespace: ns,
+		Name:      ssetName,
+	}, obj)
+	return obj, err
 }
 
 func extractSSetFromSSSet(sSSet *v1alpha1.StatefulServerSet) *v1alpha1.ServerSet {

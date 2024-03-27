@@ -113,7 +113,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, nil
 	}
 
-	servers, err := e.getServersFromServerSet(ctx, cr.Name)
+	servers, err := GetServersFromServerSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -128,14 +128,14 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		}, nil
 	}
 
-	areServersUpToDate := areServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
+	areServersUpToDate := AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
 
-	volumes, err := e.getVolumesFromServerSet(ctx, cr.Name)
+	volumes, err := GetVolumesFromServerSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
 
-	areVolumesUpToDate := areVolumesUpToDate(cr.Spec.ForProvider, volumes)
+	areVolumesUpToDate := AreVolumesUpToDate(cr.Spec.ForProvider.BootVolumeTemplate, volumes)
 
 	if !areServersUpToDate || !areVolumesUpToDate {
 		return managed.ExternalObservation{
@@ -148,7 +148,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	areNicsUpToDate := false
 	// todo check nic parameters are same as template
-	if areNicsUpToDate, err = e.areNicsUpToDate(ctx, cr); err != nil {
+	if areNicsUpToDate, err = AreNicsUpToDate(ctx, e.kube, cr.GetName(), cr.Spec.ForProvider.Replicas); err != nil {
 		return managed.ExternalObservation{}, err
 	}
 
@@ -274,7 +274,7 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.ServerSet) error {
-	servers, err := e.getServersFromServerSet(ctx, cr.Name)
+	servers, err := GetServersFromServerSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return err
 	}
@@ -304,7 +304,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 // reconcileVolumesFromTemplate updates bootvolume, or deletes and re-creates server, volume and nic if something
 // immutable changes in a bootvolume
 func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha1.ServerSet) error {
-	volumes, err := e.getVolumesFromServerSet(ctx, cr.Name)
+	volumes, err := GetVolumesFromServerSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return err
 	}
@@ -456,8 +456,8 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	return nil
 }
 
-// areServersUpToDate checks if replicas and template params are equal to server obj params
-func areServersUpToDate(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server) bool {
+// AreServersUpToDate checks if replicas and template params are equal to server obj params
+func AreServersUpToDate(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server) bool {
 
 	for _, serverObj := range servers {
 		if serverObj.Spec.ForProvider.Cores != templateParams.Cores {
@@ -474,17 +474,17 @@ func areServersUpToDate(templateParams v1alpha1.ServerSetTemplateSpec, servers [
 	return true
 }
 
-// areVolumesUpToDate
-func areVolumesUpToDate(templateParams v1alpha1.ServerSetParameters, volumes []v1alpha1.Volume) bool {
+// AreVolumesUpToDate checks if replicas and template params are equal to volume obj params
+func AreVolumesUpToDate(templateParams v1alpha1.BootVolumeTemplate, volumes []v1alpha1.Volume) bool {
 
 	for _, volumeObj := range volumes {
-		if volumeObj.Spec.ForProvider.Size != templateParams.BootVolumeTemplate.Spec.Size {
+		if volumeObj.Spec.ForProvider.Size != templateParams.Spec.Size {
 			return false
 		}
-		if volumeObj.Spec.ForProvider.Image != templateParams.BootVolumeTemplate.Spec.Image {
+		if volumeObj.Spec.ForProvider.Image != templateParams.Spec.Image {
 			return false
 		}
-		if volumeObj.Spec.ForProvider.Type != templateParams.BootVolumeTemplate.Spec.Type {
+		if volumeObj.Spec.ForProvider.Type != templateParams.Spec.Type {
 			return false
 		}
 	}
@@ -492,27 +492,25 @@ func areVolumesUpToDate(templateParams v1alpha1.ServerSetParameters, volumes []v
 	return true
 }
 
-// areNicsUpToDate gets nic k8s crs and checks if the correct number of NICs are created
-func (e *external) areNicsUpToDate(ctx context.Context, cr *v1alpha1.ServerSet) (bool, error) {
-	e.log.Info("Ensuring NIC")
-
+// AreNicsUpToDate gets nic k8s crs and checks if the correct number of NICs are created
+func AreNicsUpToDate(ctx context.Context, kube client.Client, serversetName string, noOfReplicas int) (bool, error) {
 	nicList := &v1alpha1.NicList{}
-	if err := e.kube.List(ctx, nicList, client.MatchingLabels{
-		serverSetLabel: cr.Name,
+	if err := kube.List(ctx, nicList, client.MatchingLabels{
+		serverSetLabel: serversetName,
 	}); err != nil {
 		return false, err
 	}
 
-	if len(nicList.Items) != cr.Spec.ForProvider.Replicas {
+	if len(nicList.Items) != noOfReplicas {
 		return false, nil
 	}
 
 	return true, nil
 }
 
-func (e *external) getServersFromServerSet(ctx context.Context, name string) ([]v1alpha1.Server, error) {
+func GetServersFromServerSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Server, error) {
 	serverList := &v1alpha1.ServerList{}
-	if err := e.kube.List(ctx, serverList, client.MatchingLabels{
+	if err := kube.List(ctx, serverList, client.MatchingLabels{
 		serverSetLabel: name,
 	}); err != nil {
 		return nil, err
@@ -521,9 +519,9 @@ func (e *external) getServersFromServerSet(ctx context.Context, name string) ([]
 	return serverList.Items, nil
 }
 
-func (e *external) getVolumesFromServerSet(ctx context.Context, name string) ([]v1alpha1.Volume, error) {
+func GetVolumesFromServerSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Volume, error) {
 	volumeList := &v1alpha1.VolumeList{}
-	if err := e.kube.List(ctx, volumeList, client.MatchingLabels{
+	if err := kube.List(ctx, volumeList, client.MatchingLabels{
 		serverSetLabel: name,
 	}); err != nil {
 		return nil, err

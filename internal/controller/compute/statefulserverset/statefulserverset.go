@@ -33,6 +33,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/serverset"
 )
 
 const (
@@ -124,6 +125,10 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if err := e.kube.Get(ctx, nsName, sSet); err != nil {
 		return managed.ExternalObservation{}, err
 	}
+	isSsetUpToDate, err := areServersetResourcesUpToDate(ctx, e.kube, cr)
+	if err != nil {
+		return managed.ExternalObservation{}, err
+	}
 
 	cr.Status.SetConditions(xpv1.Available())
 
@@ -136,7 +141,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// Return false when the externalStatefulServerSet resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
-		ResourceUpToDate: areLansUpToDate && areVolumesUpToDate,
+		ResourceUpToDate: areLansUpToDate && areVolumesUpToDate && isSsetUpToDate,
 
 		// Return any details that may be required to connect to the externalStatefulServerSet
 		// resource. These will be stored as the connection secret.
@@ -195,6 +200,10 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		if err != nil {
 			return managed.ExternalUpdate{}, err
 		}
+	}
+	_, err := e.SSetController.Update(ctx, cr)
+	if err != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("while updating ServerSet CR %w", err)
 	}
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -301,4 +310,32 @@ func computeSSetNsName(cr *v1alpha1.StatefulServerSet) types.NamespacedName {
 		Name:      ssName,
 		Namespace: namespace,
 	}
+}
+
+func areServersetResourcesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
+	servers, err := serverset.GetServersFromServerSet(ctx, kube, getParentResourceName(cr))
+	if err != nil {
+		return false, err
+	}
+	if len(servers) < cr.Spec.ForProvider.Replicas {
+		return false, nil
+	}
+	areServersUpToDate := serverset.AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
+	volumes, err := serverset.GetVolumesFromServerSet(ctx, kube, getParentResourceName(cr))
+	if err != nil {
+		return false, err
+	}
+	areVolumesUpToDate := serverset.AreVolumesUpToDate(cr.Spec.ForProvider.BootVolumeTemplate, volumes)
+	if !areServersUpToDate || !areVolumesUpToDate {
+		return false, nil
+	}
+
+	areNicsUpToDate := false
+	if areNicsUpToDate, err = serverset.AreNicsUpToDate(ctx, kube, getParentResourceName(cr), cr.Spec.ForProvider.Replicas); err != nil {
+		return false, err
+	}
+	if !areNicsUpToDate {
+		return false, nil
+	}
+	return true, nil
 }
