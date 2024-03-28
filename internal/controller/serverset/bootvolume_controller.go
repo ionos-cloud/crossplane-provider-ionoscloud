@@ -119,7 +119,7 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
 				serverSetLabel: cr.Name,
-				fmt.Sprintf(indexLabel, cr.GetName(), resourceBootVolume):    strconv.Itoa(replicaIndex),
+				fmt.Sprintf(indexLabel, cr.GetName(), resourceBootVolume):   strconv.Itoa(replicaIndex),
 				fmt.Sprintf(versionLabel, cr.GetName(), resourceBootVolume): strconv.Itoa(version),
 			},
 		},
