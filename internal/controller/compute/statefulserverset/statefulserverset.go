@@ -263,44 +263,58 @@ func (e *external) ensureLans(ctx context.Context, cr *v1alpha1.StatefulServerSe
 	return nil
 }
 
-func areLansUpToDate(cr *v1alpha1.StatefulServerSet, lans []v1alpha1.Lan) (creationUpToDate bool, areUpToDate bool) {
-	creationUpToDate = true
-	areUpToDate = true
+func areLansUpToDate(cr *v1alpha1.StatefulServerSet, lans []v1alpha1.Lan) (bool, bool) {
 	if len(lans) != len(cr.Spec.ForProvider.Lans) {
 		return false, false
 	}
+
 	for _, gotLan := range lans {
 		for _, specLan := range cr.Spec.ForProvider.Lans {
-			if specLan.Metadata.Name == gotLan.Spec.ForProvider.Name {
-				if gotLan.Spec.ForProvider.Public != specLan.Spec.DHCP {
-					areUpToDate = false
-				}
-				if specLan.Spec.IPv6cidr != "AUTO" && gotLan.Spec.ForProvider.Ipv6Cidr != specLan.Spec.IPv6cidr {
-					areUpToDate = false
-				}
+			if isALanFieldNotUpToDate(specLan, gotLan) {
+				return true, false
 			}
 		}
 	}
-	return creationUpToDate, areUpToDate
+
+	return true, true
 }
 
-func areDataVolumesUpToDate(cr *v1alpha1.StatefulServerSet, volumes []v1alpha1.Volume) (creationUpToDate bool, areUpToDate bool) {
-	creationUpToDate = true
-	areUpToDate = true
+func isALanFieldNotUpToDate(specLan v1alpha1.StatefulServerSetLan, gotLan v1alpha1.Lan) bool {
+	if specLan.Metadata.Name != gotLan.Spec.ForProvider.Name {
+		return false
+	}
+	if gotLan.Spec.ForProvider.Public != specLan.Spec.DHCP {
+		return true
+	}
+	if specLan.Spec.IPv6cidr != "AUTO" && gotLan.Spec.ForProvider.Ipv6Cidr != specLan.Spec.IPv6cidr {
+		return true
+	}
+	return false
+}
+
+func areDataVolumesUpToDate(cr *v1alpha1.StatefulServerSet, volumes []v1alpha1.Volume) (bool, bool) {
 	crExpectedNrOfVolumes := len(cr.Spec.ForProvider.Volumes) * cr.Spec.ForProvider.Replicas
 	if len(volumes) != crExpectedNrOfVolumes {
 		return false, false
 	}
 	for volumeIndex := range volumes {
 		for _, specVolume := range cr.Spec.ForProvider.Volumes {
-			if generateProviderNameFromIndex(specVolume.Metadata.Name, volumeIndex) == volumes[volumeIndex].Spec.ForProvider.Name {
-				if volumes[volumeIndex].Spec.ForProvider.Size != specVolume.Spec.Size {
-					areUpToDate = false
-				}
+			if isAVolumeFieldNotUpToDate(specVolume, volumeIndex, volumes) {
+				return true, false
 			}
 		}
 	}
-	return creationUpToDate, areUpToDate
+	return true, true
+}
+
+func isAVolumeFieldNotUpToDate(specVolume v1alpha1.StatefulServerSetVolume, volumeIndex int, volumes []v1alpha1.Volume) bool {
+	if generateProviderNameFromIndex(specVolume.Metadata.Name, volumeIndex) != volumes[volumeIndex].Spec.ForProvider.Name {
+		return false
+	}
+	if volumes[volumeIndex].Spec.ForProvider.Size != specVolume.Spec.Size {
+		return true
+	}
+	return false
 }
 
 func computeSSetNsName(cr *v1alpha1.StatefulServerSet) types.NamespacedName {
@@ -319,7 +333,7 @@ func areSSetResourcesUpToDate(ctx context.Context, kube client.Client, cr *v1alp
 		return false, err
 	}
 
-	areBootVolumesUpToDate, err := areBootVolumesUpToDate(ctx, kube, cr, err)
+	areBootVolumesUpToDate, err := areBootVolumesUpToDate(ctx, kube, cr)
 	if !areBootVolumesUpToDate {
 		return false, err
 	}
@@ -345,7 +359,7 @@ func areServersUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.St
 	return serverset.AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers), nil
 }
 
-func areBootVolumesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet, err error) (bool, error) {
+func areBootVolumesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
 	volumes, err := serverset.GetVolumesOfSSet(ctx, kube, getSSetName(cr))
 	if err != nil {
 		return false, err

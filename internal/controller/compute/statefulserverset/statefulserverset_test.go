@@ -367,3 +367,53 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 		})
 	}
 }
+
+func Test_areLansUpToDate(t *testing.T) {
+	type want = struct {
+		creationUpToDate bool
+		areUpToDate      bool
+	}
+
+	tests := []struct {
+		name  string
+		sSSet *v1alpha1.StatefulServerSet
+		lans  []v1alpha1.Lan
+		want  want
+	}{
+		{
+			name:  "No LANs",
+			sSSet: createSSSet(),
+			lans:  []v1alpha1.Lan{},
+			want: want{
+				creationUpToDate: false,
+				areUpToDate:      false,
+			},
+		},
+		{
+			name:  "Different number of LANs",
+			sSSet: createSSSet(),
+			lans:  []v1alpha1.Lan{*createLanDefault()},
+			want: want{
+				creationUpToDate: false,
+				areUpToDate:      false,
+			},
+		},
+		{
+			name:  "Empty StatefulServerSet",
+			sSSet: &v1alpha1.StatefulServerSet{},
+			lans:  createLanList().Items,
+			want: want{
+				creationUpToDate: false,
+				areUpToDate:      false,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			creationUpToDate, areUpToDate := areLansUpToDate(tt.sSSet, tt.lans)
+			assert.Equal(t, tt.want.creationUpToDate, creationUpToDate)
+			assert.Equal(t, tt.want.areUpToDate, areUpToDate)
+		})
+	}
+}

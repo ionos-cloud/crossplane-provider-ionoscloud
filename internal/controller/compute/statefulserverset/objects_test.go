@@ -202,24 +202,33 @@ func createSSetTemplate() v1alpha1.ServerSetTemplate {
 func createLanList() v1alpha1.LanList {
 	return v1alpha1.LanList{
 		Items: []v1alpha1.Lan{
-			{
-				Spec: v1alpha1.LanSpec{
-					ForProvider: v1alpha1.LanParameters{
-						Name:     customerLanName,
-						Public:   customerLanDHCP,
-						Ipv6Cidr: customerLanIPv6cidr,
-					},
-				},
-			},
-			{
-				Spec: v1alpha1.LanSpec{
-					ForProvider: v1alpha1.LanParameters{
-						Name:   managementLanName,
-						Public: managementLanDHCP,
-					},
-				},
-			},
+			*createLAN(v1alpha1.LanParameters{
+				Name:     customerLanName,
+				Public:   customerLanDHCP,
+				Ipv6Cidr: customerLanIPv6cidr,
+			}),
+			*createLAN(v1alpha1.LanParameters{
+				Name:   managementLanName,
+				Public: managementLanDHCP,
+			}),
 		},
+	}
+}
+
+func createLanDefault() *v1alpha1.Lan {
+	return createLAN(v1alpha1.LanParameters{
+		Name:     customerLanName,
+		Public:   customerLanDHCP,
+		Ipv6Cidr: customerLanIPv6cidr,
+	})
+}
+
+func createLAN(parameters v1alpha1.LanParameters) *v1alpha1.Lan {
+	return &v1alpha1.Lan{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: parameters.Name,
+		},
+		Spec: v1alpha1.LanSpec{ForProvider: parameters},
 	}
 }
 
