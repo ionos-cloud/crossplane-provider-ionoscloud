@@ -113,7 +113,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, nil
 	}
 
-	servers, err := GetServersFromSSet(ctx, e.kube, cr.Name)
+	servers, err := GetServersOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -130,7 +130,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	areServersUpToDate := AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
 
-	volumes, err := GetVolumesFromSSet(ctx, e.kube, cr.Name)
+	volumes, err := GetVolumesOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -274,7 +274,7 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.ServerSet) error {
-	servers, err := GetServersFromSSet(ctx, e.kube, cr.Name)
+	servers, err := GetServersOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return err
 	}
@@ -304,7 +304,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 // reconcileVolumesFromTemplate updates bootvolume, or deletes and re-creates server, volume and nic if something
 // immutable changes in a bootvolume
 func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha1.ServerSet) error {
-	volumes, err := GetVolumesFromSSet(ctx, e.kube, cr.Name)
+	volumes, err := GetVolumesOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return err
 	}
@@ -505,8 +505,8 @@ func AreNICsUpToDate(ctx context.Context, kube client.Client, serversetName stri
 	return true, nil
 }
 
-// GetServersFromSSet - gets all servers from a server set
-func GetServersFromSSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Server, error) {
+// GetServersOfSSet - gets all servers of a server set
+func GetServersOfSSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Server, error) {
 	serverList := &v1alpha1.ServerList{}
 	if err := kube.List(ctx, serverList, client.MatchingLabels{
 		serverSetLabel: name,
@@ -517,8 +517,8 @@ func GetServersFromSSet(ctx context.Context, kube client.Client, name string) ([
 	return serverList.Items, nil
 }
 
-// GetVolumesFromSSet - gets all volumes from a server set
-func GetVolumesFromSSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Volume, error) {
+// GetVolumesOfSSet - gets all volumes of a server set
+func GetVolumesOfSSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Volume, error) {
 	volumeList := &v1alpha1.VolumeList{}
 	if err := kube.List(ctx, volumeList, client.MatchingLabels{
 		serverSetLabel: name,
