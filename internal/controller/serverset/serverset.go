@@ -508,6 +508,7 @@ func AreNicsUpToDate(ctx context.Context, kube client.Client, serversetName stri
 	return true, nil
 }
 
+// GetServersFromServerSet - gets servers from a server set based on the ionoscloud.com/serverset label
 func GetServersFromServerSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Server, error) {
 	serverList := &v1alpha1.ServerList{}
 	if err := kube.List(ctx, serverList, client.MatchingLabels{
@@ -519,6 +520,7 @@ func GetServersFromServerSet(ctx context.Context, kube client.Client, name strin
 	return serverList.Items, nil
 }
 
+// GetVolumesFromServerSet - gets volumes from a server set based on the ionoscloud.com/serverset label
 func GetVolumesFromServerSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Volume, error) {
 	volumeList := &v1alpha1.VolumeList{}
 	if err := kube.List(ctx, volumeList, client.MatchingLabels{

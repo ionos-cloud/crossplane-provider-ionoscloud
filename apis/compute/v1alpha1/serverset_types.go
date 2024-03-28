@@ -166,6 +166,7 @@ type ServerSetBootVolumeSpec struct {
 	// The size of the volume in GB.
 	//
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:XValidation:rule="self >= oldSelf", message="Size cannot be decreased once set, only increased"
 	Size float32 `json:"size"`
 	//
 	// +immutable
@@ -177,7 +178,19 @@ type ServerSetBootVolumeSpec struct {
 	// It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
 	//
 	// +immutable
-	UserData string               `json:"userData,omitempty"`
+	UserData string `json:"userData,omitempty"`
+	// Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
+	// Password rules allows all characters from a-z, A-Z, 0-9.
+	//
+	// +immutable
+	// +kubebuilder:validation:Pattern="^[A-Za-z0-9]+$"
+	ImagePassword string `json:"imagePassword,omitempty"`
+	// Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key.
+	// This field may only be set in creation requests. When reading, it always returns null.
+	// SSH keys are only supported if a public Linux image is used for the volume creation.
+	//
+	// +immutable
+	SSHKeys  []string             `json:"sshKeys,omitempty"`
 	Selector metav1.LabelSelector `json:"selector,omitempty"`
 	// UpdateStrategy is the update strategy when changing immutable fields on boot volume. The default value is createBeforeDestroyBootVolume which creates a new bootvolume before deleting the old one
 
@@ -205,12 +218,13 @@ const (
 // +kubebuilder:object:root=true
 
 // A ServerSet is an example API type.
+// +kubebuilder:resource:scope=Cluster,categories=crossplane,shortName=sset;ss
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
+// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud},shortName=ss;sset
 type ServerSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
