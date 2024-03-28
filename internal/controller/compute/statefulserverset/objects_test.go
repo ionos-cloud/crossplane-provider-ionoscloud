@@ -347,6 +347,14 @@ func createVolumeList() v1alpha1.VolumeList {
 		},
 	}
 }
+func createVolumeDefault() *v1alpha1.Volume {
+	volume := createVolume(0, v1alpha1.VolumeParameters{
+		Name: dataVolume2Name,
+		Size: dataVolume2Size,
+		Type: dataVolume2Type,
+	})
+	return &volume
+}
 
 func createVolume(replicaIdx int, parameters v1alpha1.VolumeParameters) v1alpha1.Volume {
 	withNameUpdated := parameters

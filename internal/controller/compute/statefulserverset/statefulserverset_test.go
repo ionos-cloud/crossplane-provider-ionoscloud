@@ -417,3 +417,53 @@ func Test_areLansUpToDate(t *testing.T) {
 		})
 	}
 }
+
+func Test_areDataVolumesUpToDate(t *testing.T) {
+	type want = struct {
+		creationUpToDate bool
+		areUpToDate      bool
+	}
+
+	tests := []struct {
+		name  string
+		sSSet *v1alpha1.StatefulServerSet
+		lans  []v1alpha1.Volume
+		want  want
+	}{
+		{
+			name:  "No Data Volumes",
+			sSSet: createSSSet(),
+			lans:  []v1alpha1.Volume{},
+			want: want{
+				creationUpToDate: false,
+				areUpToDate:      false,
+			},
+		},
+		{
+			name:  "Different number of Data Volumes",
+			sSSet: createSSSet(),
+			lans:  []v1alpha1.Volume{*createVolumeDefault()},
+			want: want{
+				creationUpToDate: false,
+				areUpToDate:      false,
+			},
+		},
+		{
+			name:  "Empty StatefulServerSet",
+			sSSet: &v1alpha1.StatefulServerSet{},
+			lans:  createVolumeList().Items,
+			want: want{
+				creationUpToDate: false,
+				areUpToDate:      false,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			creationUpToDate, areUpToDate := areDataVolumesUpToDate(tt.sSSet, tt.lans)
+			assert.Equal(t, tt.want.creationUpToDate, creationUpToDate)
+			assert.Equal(t, tt.want.areUpToDate, areUpToDate)
+		})
+	}
+}
