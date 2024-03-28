@@ -107,6 +107,14 @@ func fakeKubeClientWithObjs(objs ...client.Object) client.WithWatch {
 	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
 }
 
+func fakeKubeClientWithSSetRelatedObjects() client.WithWatch {
+	return fakeKubeClientWithObjs(
+		createSSet(), createServer1(), createServer2(),
+		createBootVolume1(), createBootVolume2(),
+		createNIC1(), createNIC2(),
+	)
+}
+
 func fakeKubeClientWithFunc(funcs interceptor.Funcs) client.WithWatch {
 	scheme := runtime.NewScheme()
 	v1.AddToScheme(scheme)       // Add the core k8s types to the Scheme

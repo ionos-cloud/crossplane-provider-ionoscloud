@@ -65,12 +65,19 @@ var serverParameters = v1alpha1.ServerParameters{
 
 type VolumeFieldUpToDate struct {
 	isSizeUpToDate bool
-	isTypeUpToDate bool
 }
 
 type LANFieldsUpToDate struct {
 	isPublicUpToDate   bool
 	isIpv6CidrUpToDate bool
+}
+
+type BootVolumeFieldsUpToDate struct {
+	isSizeUpToDate bool
+}
+
+type ServeFieldsUpToDate struct {
+	areCoresUpToDate bool
 }
 
 func createSSSet() *v1alpha1.StatefulServerSet {
@@ -256,30 +263,15 @@ func createVolumeListNotUpToDate(v VolumeFieldUpToDate) v1alpha1.VolumeList {
 
 	for idx := range volumes.Items {
 		updateFieldSize(v, volumes, idx)
-		updateFieldType(v, volumes, idx)
 	}
 
 	return volumes
-}
-
-func updateFieldType(v VolumeFieldUpToDate, volumes v1alpha1.VolumeList, idx int) {
-	if !v.isTypeUpToDate {
-		other := findOtherVolumeType(volumes.Items[idx].Spec.ForProvider.Type)
-		volumes.Items[idx].Spec.ForProvider.Type = other
-	}
 }
 
 func updateFieldSize(v VolumeFieldUpToDate, volumes v1alpha1.VolumeList, idx int) {
 	if !v.isSizeUpToDate {
 		volumes.Items[idx].Spec.ForProvider.Size *= 10
 	}
-}
-
-func findOtherVolumeType(actual string) string {
-	if actual == "SSD" {
-		return "HDD"
-	}
-	return "SSD"
 }
 
 func createBootVolume1() *v1alpha1.Volume {
@@ -289,6 +281,25 @@ func createBootVolume1() *v1alpha1.Volume {
 
 func createBootVolume2() *v1alpha1.Volume {
 	bootVolume := createBootVolume(1, bootVolumeParameters)
+	return bootVolume
+}
+
+func createBootVolume1NotUpToDate() *v1alpha1.Volume {
+	bootVolume := createBootVolumeNotUpToDate(0, BootVolumeFieldsUpToDate{})
+	return bootVolume
+}
+func createBootVolume2NotUpToDate() *v1alpha1.Volume {
+	bootVolume := createBootVolumeNotUpToDate(1, BootVolumeFieldsUpToDate{})
+	return bootVolume
+}
+
+func createBootVolumeNotUpToDate(replicaIdx int, b BootVolumeFieldsUpToDate) *v1alpha1.Volume {
+	bootVolume := createBootVolume(replicaIdx, bootVolumeParameters)
+
+	if !b.isSizeUpToDate {
+		bootVolume.Spec.ForProvider.Size *= 10
+	}
+
 	return bootVolume
 }
 
@@ -329,11 +340,15 @@ func createVolumeList() v1alpha1.VolumeList {
 }
 
 func createVolume(replicaIdx int, parameters v1alpha1.VolumeParameters) v1alpha1.Volume {
+	withNameUpdated := parameters
+	withNameUpdated.Name = nameWithIdx(replicaIdx, parameters.Name)
+
 	return v1alpha1.Volume{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: nameWithIdx(replicaIdx, parameters.Name),
+			Name: withNameUpdated.Name,
 		},
-		Spec: v1alpha1.VolumeSpec{ForProvider: parameters},
+
+		Spec: v1alpha1.VolumeSpec{ForProvider: withNameUpdated},
 	}
 }
 
@@ -342,6 +357,25 @@ func createServer1() *v1alpha1.Server {
 }
 func createServer2() *v1alpha1.Server {
 	return createServer(1, serverParameters)
+}
+
+func createServer1NotUpToDate() *v1alpha1.Server {
+	server := createServerNotUpToDate(0, ServeFieldsUpToDate{})
+	return server
+}
+func createServer2NotUpToDate() *v1alpha1.Server {
+	server := createServerNotUpToDate(1, ServeFieldsUpToDate{})
+	return server
+}
+
+func createServerNotUpToDate(replicaIdx int, b ServeFieldsUpToDate) *v1alpha1.Server {
+	server := createServer(replicaIdx, serverParameters)
+
+	if !b.areCoresUpToDate {
+		server.Spec.ForProvider.Cores *= 2
+	}
+
+	return server
 }
 
 func createServer(replicaIdx int, parameters v1alpha1.ServerParameters) *v1alpha1.Server {
