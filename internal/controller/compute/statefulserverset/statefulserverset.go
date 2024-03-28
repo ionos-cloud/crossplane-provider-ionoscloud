@@ -126,7 +126,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if err := e.kube.Get(ctx, nsName, sSet); err != nil {
 		return managed.ExternalObservation{}, err
 	}
-	isSsetUpToDate, err := areSSetResourcesUpToDate(ctx, e.kube, cr)
+	isSSetUpToDate, err := areSSetResourcesUpToDate(ctx, e.kube, cr)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -142,7 +142,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// Return false when the externalStatefulServerSet resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
-		ResourceUpToDate: areLansUpToDate && areVolumesUpToDate && isSsetUpToDate,
+		ResourceUpToDate: areLansUpToDate && areVolumesUpToDate && isSSetUpToDate,
 
 		// Return any details that may be required to connect to the externalStatefulServerSet
 		// resource. These will be stored as the connection secret.
@@ -314,29 +314,41 @@ func computeSSetNsName(cr *v1alpha1.StatefulServerSet) types.NamespacedName {
 }
 
 func areSSetResourcesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
+	areServersUpToDate, err := areServersUpToDate(ctx, kube, cr)
+	if !areServersUpToDate {
+		return false, err
+	}
+
+	areBootVolumesUpToDate, err := areBootVolumesUpToDate(ctx, kube, cr, err)
+	if !areBootVolumesUpToDate {
+		return false, err
+	}
+
+	areNICSUpToDate, err := serverset.AreNICsUpToDate(ctx, kube, getSSetName(cr), cr.Spec.ForProvider.Replicas)
+	if !areNICSUpToDate {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func areServersUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
 	servers, err := serverset.GetServersOfSSet(ctx, kube, getSSetName(cr))
 	if err != nil {
 		return false, err
 	}
+
 	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return false, nil
 	}
-	areServersUpToDate := serverset.AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
+
+	return serverset.AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers), nil
+}
+
+func areBootVolumesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet, err error) (bool, error) {
 	volumes, err := serverset.GetVolumesOfSSet(ctx, kube, getSSetName(cr))
 	if err != nil {
 		return false, err
 	}
-	areVolumesUpToDate := serverset.AreVolumesUpToDate(cr.Spec.ForProvider.BootVolumeTemplate, volumes)
-	if !areServersUpToDate || !areVolumesUpToDate {
-		return false, nil
-	}
-
-	areNICSUpToDate := false
-	if areNICSUpToDate, err = serverset.AreNICsUpToDate(ctx, kube, getSSetName(cr), cr.Spec.ForProvider.Replicas); err != nil {
-		return false, err
-	}
-	if !areNICSUpToDate {
-		return false, nil
-	}
-	return true, nil
+	return serverset.AreVolumesUpToDate(cr.Spec.ForProvider.BootVolumeTemplate, volumes), nil
 }
