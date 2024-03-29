@@ -41,6 +41,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 	type args struct {
 		ctx context.Context
 		cr  *v1alpha1.StatefulServerSet
+		w   waitUntilAvailable
 	}
 	tests := []struct {
 		name    string
@@ -57,6 +58,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: statefulServerSetName}},
+				w:   fakeWaitUntilAvailable,
 			},
 			wantErr: nil,
 		},
@@ -69,6 +71,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: statefulServerSetName}},
+				w:   fakeWaitUntilAvailable,
 			},
 			wantErr: ErrSomethingWentWrong,
 		},
@@ -81,6 +84,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: statefulServerSetName}},
+				w:   fakeWaitUntilAvailable,
 			},
 			wantErr: ErrSomethingWentWrong,
 		},
@@ -93,6 +97,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: statefulServerSetName}},
+				w:   fakeWaitUntilAvailable,
 			},
 			wantErr: nil,
 		},
@@ -103,7 +108,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 				kube: tt.fields.kube,
 				log:  tt.fields.log,
 			}
-			err := k.Ensure(tt.args.ctx, tt.args.cr)
+			err := k.Ensure(tt.args.ctx, tt.args.cr, tt.args.w)
 			assert.Equal(t, tt.wantErr, err)
 		})
 	}
