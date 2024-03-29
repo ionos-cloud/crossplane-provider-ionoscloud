@@ -106,7 +106,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 	case err != nil:
 		return err
 	default:
-		k.log.Info("ServerSet already exists", "name", SSetName)
+		k.log.Info("ServerSet CR already exists", "name", SSetName)
 		return nil
 	}
 }

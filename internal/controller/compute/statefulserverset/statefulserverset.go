@@ -130,7 +130,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, err
 	}
 
-	e.log.Info("Observing the stateful server set", "creationLansUpToDate", creationLansUpToDate, "areLansUpToDate", areLansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate, "areVolumesUpToDate", areVolumesUpToDate, "isSSetUpToDate", isSSetUpToDate)
+	e.log.Info("Observing the StatefulServerSet CR", "creationLansUpToDate", creationLansUpToDate, "areLansUpToDate", areLansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate, "areVolumesUpToDate", areVolumesUpToDate, "isSSetUpToDate", isSSetUpToDate)
 
 	cr.Status.SetConditions(xpv1.Available())
 
@@ -339,7 +339,7 @@ func areSSetResourcesUpToDate(ctx context.Context, kube client.Client, cr *v1alp
 		return false, err
 	}
 
-	areNICSUpToDate, err := serverset.AreNICsUpToDate(ctx, kube, getSSetName(cr), cr.Spec.ForProvider.Replicas)
+	areNICSUpToDate, err := areNICsUpToDate(ctx, kube, cr)
 	if !areNICSUpToDate {
 		return false, err
 	}
@@ -366,4 +366,18 @@ func areBootVolumesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha
 		return false, err
 	}
 	return serverset.AreVolumesUpToDate(cr.Spec.ForProvider.BootVolumeTemplate, volumes), nil
+}
+
+func areNICsUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
+	nics, err := serverset.GetNICsOfSSet(ctx, kube, getSSetName(cr))
+	if err != nil {
+		return false, err
+	}
+
+	crExpectedNrOfNICs := len(cr.Spec.ForProvider.Template.Spec.NICs) * cr.Spec.ForProvider.Replicas
+	if len(nics) != crExpectedNrOfNICs {
+		return false, nil
+	}
+
+	return serverset.AreNICsUpToDate(), nil
 }
