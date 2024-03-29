@@ -220,21 +220,30 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	if !ok {
 		return errors.New(errNotStatefulServerSet)
 	}
+
+	e.log.Info("Deleting the Data Volumes with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		statefulServerSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
+	e.log.Info("Data Volumes successfully deleted")
+
+	e.log.Info("Deleting the LANs with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Lan{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		statefulServerSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
+	e.log.Info("LANs successfully deleted")
+
+	e.log.Info("Deleting the ServerSets with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.ServerSet{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		statefulServerSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
+	e.log.Info("ServerSets successfully deleted")
 
 	return nil
 }

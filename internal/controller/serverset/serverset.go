@@ -439,30 +439,38 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 
 	cr.SetConditions(xpv1.Deleting())
 	meta.SetExternalName(cr, "")
+
+	e.log.Info("Deleting the NICs with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
+	e.log.Info("NICs successfully deleted")
 
-	// delete all servers
+	e.log.Info("Deleting the Servers with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Server{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
+	e.log.Info("Servers successfully deleted")
 
+	e.log.Info("Deleting the boot Volumes with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
+	e.log.Info("Boot Volumes successfully deleted")
 
+	e.log.Info("Deleting the Volumeselectors with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volumeselector{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
+	e.log.Info("Volumeselectors successfully deleted")
 	return nil
 }
 
