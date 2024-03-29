@@ -671,10 +671,129 @@ spec:
                 description: StatefulServerSetObservation are the observable fields
                   of a StatefulServerSet.
                 properties:
+                  dataVolumeStatus:
+                    items:
+                      description: A VolumeStatus represents the observed state of
+                        a Volume.
+                      properties:
+                        atProvider:
+                          description: VolumeObservation are the observable fields
+                            of a Volume.
+                          properties:
+                            pciSlot:
+                              format: int32
+                              type: integer
+                            state:
+                              type: string
+                            volumeId:
+                              type: string
+                          type: object
+                        conditions:
+                          description: Conditions of the resource.
+                          items:
+                            description: A Condition that may apply to a resource.
+                            properties:
+                              lastTransitionTime:
+                                description: |-
+                                  LastTransitionTime is the last time this condition transitioned from one
+                                  status to another.
+                                format: date-time
+                                type: string
+                              message:
+                                description: |-
+                                  A Message containing details about this condition's last transition from
+                                  one status to another, if any.
+                                type: string
+                              reason:
+                                description: A Reason for this condition's last transition
+                                  from one status to another.
+                                type: string
+                              status:
+                                description: Status of this condition; is it currently
+                                  True, False, or Unknown?
+                                type: string
+                              type:
+                                description: |-
+                                  Type of this condition. At most one of each condition type may apply to
+                                  a resource at any point in time.
+                                type: string
+                            required:
+                            - lastTransitionTime
+                            - reason
+                            - status
+                            - type
+                            type: object
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - type
+                          x-kubernetes-list-type: map
+                      type: object
+                    type: array
+                  lanStatus:
+                    items:
+                      description: A LanStatus represents the observed state of a
+                        Lan.
+                      properties:
+                        atProvider:
+                          description: LanObservation are the observable fields of
+                            a Lan.
+                          properties:
+                            ipFailovers:
+                              description: IPFailovers will be set using IPFailover
+                                CR
+                              items:
+                                type: string
+                              type: array
+                            lanId:
+                              type: string
+                            state:
+                              type: string
+                          type: object
+                        conditions:
+                          description: Conditions of the resource.
+                          items:
+                            description: A Condition that may apply to a resource.
+                            properties:
+                              lastTransitionTime:
+                                description: |-
+                                  LastTransitionTime is the last time this condition transitioned from one
+                                  status to another.
+                                format: date-time
+                                type: string
+                              message:
+                                description: |-
+                                  A Message containing details about this condition's last transition from
+                                  one status to another, if any.
+                                type: string
+                              reason:
+                                description: A Reason for this condition's last transition
+                                  from one status to another.
+                                type: string
+                              status:
+                                description: Status of this condition; is it currently
+                                  True, False, or Unknown?
+                                type: string
+                              type:
+                                description: |-
+                                  Type of this condition. At most one of each condition type may apply to
+                                  a resource at any point in time.
+                                type: string
+                            required:
+                            - lastTransitionTime
+                            - reason
+                            - status
+                            - type
+                            type: object
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - type
+                          x-kubernetes-list-type: map
+                      type: object
+                    type: array
                   replicaStatus:
                     items:
-                      description: StatefulServerSetReplicaStatus are the configurable
-                        fields of a StatefulServerSetReplicaStatus.
+                      description: ServerSetReplicaStatus are the observable fields
+                        of a ServerSetReplicaStatus.
                       properties:
                         errorMessage:
                           description: ErrorMessage relayed from the backend.
@@ -684,13 +803,6 @@ spec:
                           type: string
                         name:
                           type: string
-                        role:
-                          description: Server assigned role
-                          enum:
-                          - ACTIVE
-                          - PASSIVE
-                          - REPLICA
-                          type: string
                         status:
                           enum:
                           - UNKNOWN
@@ -699,7 +811,6 @@ spec:
                           type: string
                       required:
                       - name
-                      - role
                       - status
                       type: object
                     type: array
