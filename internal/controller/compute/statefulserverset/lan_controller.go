@@ -171,7 +171,7 @@ func fromStatefulServerSetToLAN(cr *v1alpha1.StatefulServerSet, name string, lan
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
 				statefulServerSetLabel: cr.Name,
-				fmt.Sprintf(volumeselector.IndexLabel, getParentResourceName(cr), resourceLAN): strconv.Itoa(lanIndex),
+				fmt.Sprintf(volumeselector.IndexLabel, getSSetName(cr), resourceLAN): strconv.Itoa(lanIndex),
 			},
 		},
 		Spec: v1alpha1.LanSpec{
@@ -198,7 +198,7 @@ func (k *kubeLANController) Ensure(ctx context.Context, cr *v1alpha1.StatefulSer
 	k.log.Info("Ensuring LAN", "lanIndex", lanIndex)
 	res := &v1alpha1.LanList{}
 	if err := k.kube.List(ctx, res, client.MatchingLabels{
-		fmt.Sprintf(volumeselector.IndexLabel, getParentResourceName(cr), resourceLAN): strconv.Itoa(lanIndex),
+		fmt.Sprintf(volumeselector.IndexLabel, getSSetName(cr), resourceLAN): strconv.Itoa(lanIndex),
 	}); err != nil {
 		return err
 	}
