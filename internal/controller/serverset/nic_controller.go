@@ -177,7 +177,7 @@ func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerS
 
 // EnsureNIC - creates a NIC if it does not exist
 func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, nicIndex, version int) error {
-	var nic = &v1alpha1.Nic{}
+	var nic *v1alpha1.Nic
 	var err error
 	nic, err = k.Get(ctx, getNicNameFromIndex(cr.Name, cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, resourceNIC, replicaIndex, nicIndex, version), cr.Namespace)
 	if err != nil {
