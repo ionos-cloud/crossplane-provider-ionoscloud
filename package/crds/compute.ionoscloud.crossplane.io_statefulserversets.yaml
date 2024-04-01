@@ -90,6 +90,8 @@ spec:
                               type: string
                             type: object
                           name:
+                            maxLength: 63
+                            pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                             type: string
                         required:
                         - name
@@ -102,7 +104,15 @@ spec:
                             description: |-
                               Image or snapshot ID to be used as template for this volume.
                               Make sure the image selected is compatible with the datacenter's location.
-                              Note: when creating a volume, set image, image alias, or licence type
+                              Note: when creating a volume and setting image, set imagePassword or SSKeys as well.
+                            type: string
+                          imagePassword:
+                            description: |-
+                              Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
+                              Password rules allows all characters from a-z, A-Z, 0-9. Min length 8, max length 50.
+                            maxLength: 50
+                            minLength: 8
+                            pattern: ^[A-Za-z0-9]+$
                             type: string
                           imagePassword:
                             description: |-
@@ -321,6 +331,8 @@ spec:
                                 type: string
                               type: object
                             name:
+                              maxLength: 63
+                              pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                               type: string
                           required:
                           - name
@@ -359,6 +371,8 @@ spec:
                               type: string
                             type: object
                           name:
+                            maxLength: 63
+                            pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                             type: string
                         required:
                         - name
@@ -395,6 +409,8 @@ spec:
                                   type: string
                                 name:
                                   description: todo add descriptions
+                                  maxLength: 63
+                                  pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                                   type: string
                                 reference:
                                   type: string
@@ -411,7 +427,7 @@ spec:
                               however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB,
                               then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
                             format: int32
-                            multipleOf: 256
+                            multipleOf: 1024
                             type: integer
                           volumeMounts:
                             description: |-
@@ -451,6 +467,8 @@ spec:
                                 type: string
                               type: object
                             name:
+                              maxLength: 63
+                              pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                               type: string
                           required:
                           - name
@@ -467,7 +485,8 @@ spec:
                               description: The size of the volume in GB.
                               type: number
                             type:
-                              description: Hardware type of the volume.
+                              description: 'Hardware type of the volume. E.g: HDD;SSD;SSD
+                                Standard;SSD Premium'
                               enum:
                               - HDD
                               - SSD
