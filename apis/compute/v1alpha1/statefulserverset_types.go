@@ -93,17 +93,19 @@ type StatefulServerSetParameters struct {
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:XValidation:rule="self >= oldSelf", message="Replicas can only be increased"
 	Replicas           int                `json:"replicas"`
 	DeploymentStrategy DeploymentStrategy `json:"deploymentStrategy"`
 	// DatacenterConfig contains information about the datacenter resource
 	// on which the server will be created.
 	//
 	// +kubebuilder:validation:Required
-	DatacenterCfg      DatacenterConfig          `json:"datacenterConfig"`
-	Template           ServerSetTemplate         `json:"template"`
-	BootVolumeTemplate BootVolumeTemplate        `json:"bootVolumeTemplate"`
-	Lans               []StatefulServerSetLan    `json:"lans"`
-	Volumes            []StatefulServerSetVolume `json:"volumes"`
+	DatacenterCfg      DatacenterConfig       `json:"datacenterConfig"`
+	Template           ServerSetTemplate      `json:"template"`
+	BootVolumeTemplate BootVolumeTemplate     `json:"bootVolumeTemplate"`
+	Lans               []StatefulServerSetLan `json:"lans"`
+
+	Volumes []StatefulServerSetVolume `json:"volumes"`
 }
 
 // A StatefulServerSetSpec defines the desired state of a StatefulServerSet.
@@ -115,8 +117,6 @@ type StatefulServerSetSpec struct {
 // StatefulServerSetReplicaStatus are the configurable fields of a StatefulServerSetReplicaStatus.
 type StatefulServerSetReplicaStatus struct {
 	// Server assigned role
-	//
-	// +kubebuilder:validation:Enum=ACTIVE;PASSIVE;REPLICA
 	Role string `json:"role"`
 	Name string `json:"name"`
 	// +kubebuilder:validation:Enum=UNKNOWN;READY;ERROR
@@ -129,8 +129,10 @@ type StatefulServerSetReplicaStatus struct {
 // StatefulServerSetObservation are the observable fields of a StatefulServerSet.
 type StatefulServerSetObservation struct {
 	// Replicas is the count of ready replicas.
-	Replicas      int                              `json:"replicas,omitempty"`
-	ReplicaStatus []StatefulServerSetReplicaStatus `json:"replicaStatus,omitempty"`
+	Replicas           int                      `json:"replicas,omitempty"`
+	ReplicaStatus      []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
+	DataVolumeStatuses []VolumeStatus           `json:"dataVolumeStatus,omitempty"`
+	LanStatuses        []LanStatus              `json:"lanStatus,omitempty"`
 }
 
 // A StatefulServerSetStatus represents the observed state of a StatefulServerSet.
@@ -147,7 +149,7 @@ type StatefulServerSetStatus struct {
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
+// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud},shortName=sss;ssset
 type StatefulServerSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

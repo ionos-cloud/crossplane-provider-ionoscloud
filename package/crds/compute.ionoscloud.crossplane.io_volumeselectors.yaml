@@ -15,6 +15,9 @@ spec:
     kind: Volumeselector
     listKind: VolumeselectorList
     plural: volumeselectors
+    shortNames:
+    - vs
+    - volsel
     singular: volumeselector
   scope: Cluster
   versions:

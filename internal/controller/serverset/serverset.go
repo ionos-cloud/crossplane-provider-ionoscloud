@@ -113,64 +113,44 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, nil
 	}
 
-	servers, err := e.getServersFromServerSet(ctx, cr.Name)
+	servers, err := GetServersOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
 
 	e.populateCRStatus(cr, servers)
 
-	if len(servers) < cr.Spec.ForProvider.Replicas {
-		return managed.ExternalObservation{
-			ResourceExists:    false,
-			ResourceUpToDate:  false,
-			ConnectionDetails: managed.ConnectionDetails{},
-		}, nil
-	}
+	allServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
+	areServersUpToDate := AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
 
-	areServersUpToDate := areServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
-
-	volumes, err := e.getVolumesFromServerSet(ctx, cr.Name)
+	volumes, err := GetVolumesOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
+	areBootVolumesUpToDate := AreVolumesUpToDate(cr.Spec.ForProvider.BootVolumeTemplate, volumes)
 
-	areVolumesUpToDate := areVolumesUpToDate(cr.Spec.ForProvider, volumes)
-
-	if !areServersUpToDate || !areVolumesUpToDate {
-		return managed.ExternalObservation{
-			ResourceExists:    true,
-			ResourceUpToDate:  false,
-			ConnectionDetails: managed.ConnectionDetails{},
-			Diff:              "servers are not up to date",
-		}, nil
-	}
-
-	areNicsUpToDate := false
-	// todo check nic parameters are same as template
-	if areNicsUpToDate, err = e.areNicsUpToDate(ctx, cr); err != nil {
+	nics, err := GetNICsOfSSet(ctx, e.kube, cr.Name)
+	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
+	crExpectedNoOfNICs := len(cr.Spec.ForProvider.Template.Spec.NICs) * cr.Spec.ForProvider.Replicas
+	allNicsCreated := len(nics) == crExpectedNoOfNICs
 
-	if !areNicsUpToDate {
-		return managed.ExternalObservation{
-			ResourceExists:    false,
-			ResourceUpToDate:  false,
-			ConnectionDetails: managed.ConnectionDetails{},
-		}, nil
-	}
+	// TODO - at the moment we do not check that fields of nics are updated
+	e.log.Info("Observing the ServerSet CR", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "allServersCreated", allServersCreated, "allNicsCreated", allNicsCreated)
+
 	cr.SetConditions(xpv1.Available())
 
 	return managed.ExternalObservation{
 		// Return false when the externalServerSet resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
 		// (re)create the resource, or that it has successfully been deleted.
-		ResourceExists: true,
+		ResourceExists: allServersCreated && allNicsCreated,
 
 		// Return false when the externalServerSet resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
-		ResourceUpToDate: true,
+		ResourceUpToDate: areServersUpToDate && areBootVolumesUpToDate,
 
 		// Return any details that may be required to connect to the externalServerSet
 		// resource. These will be stored as the connection secret.
@@ -184,7 +164,7 @@ func didNrOfReplicasChange(cr *v1alpha1.ServerSet, replicas []v1alpha1.Server) b
 
 func (e *external) populateCRStatus(cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) {
 	if cr.Status.AtProvider.ReplicaStatuses == nil || didNrOfReplicasChange(cr, serverSetReplicas) {
-		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, cr.Spec.ForProvider.Replicas)
+		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, len(serverSetReplicas))
 	}
 	cr.Status.AtProvider.Replicas = len(serverSetReplicas)
 
@@ -274,7 +254,7 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.ServerSet) error {
-	servers, err := e.getServersFromServerSet(ctx, cr.Name)
+	servers, err := GetServersOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return err
 	}
@@ -304,7 +284,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 // reconcileVolumesFromTemplate updates bootvolume, or deletes and re-creates server, volume and nic if something
 // immutable changes in a bootvolume
 func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha1.ServerSet) error {
-	volumes, err := e.getVolumesFromServerSet(ctx, cr.Name)
+	volumes, err := GetVolumesOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return err
 	}
@@ -351,7 +331,6 @@ func (e *external) updateOrRecreateVolumes(ctx context.Context, cr *v1alpha1.Ser
 		}
 	}
 	return nil
-
 }
 
 func (e *external) updateByIndex(ctx context.Context, idx int, cr *v1alpha1.ServerSet) error {
@@ -429,36 +408,43 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 
 	cr.SetConditions(xpv1.Deleting())
 	meta.SetExternalName(cr, "")
+
+	e.log.Info("Deleting the NICs with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
+	e.log.Info("NICs successfully deleted")
 
-	// delete all servers
+	e.log.Info("Deleting the Servers with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Server{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
+	e.log.Info("Servers successfully deleted")
 
+	e.log.Info("Deleting the boot Volumes with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
+	e.log.Info("Boot Volumes successfully deleted")
 
+	e.log.Info("Deleting the Volume Selectors with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volumeselector{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
+	e.log.Info("Volume Selectors successfully deleted")
 	return nil
 }
 
-// areServersUpToDate checks if replicas and template params are equal to server obj params
-func areServersUpToDate(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server) bool {
-
+// AreServersUpToDate checks if replicas and template params are equal to server obj params
+func AreServersUpToDate(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server) bool {
 	for _, serverObj := range servers {
 		if serverObj.Spec.ForProvider.Cores != templateParams.Cores {
 			return false
@@ -474,17 +460,16 @@ func areServersUpToDate(templateParams v1alpha1.ServerSetTemplateSpec, servers [
 	return true
 }
 
-// areVolumesUpToDate
-func areVolumesUpToDate(templateParams v1alpha1.ServerSetParameters, volumes []v1alpha1.Volume) bool {
-
+// AreVolumesUpToDate checks if template params are equal to volume obj params
+func AreVolumesUpToDate(templateParams v1alpha1.BootVolumeTemplate, volumes []v1alpha1.Volume) bool {
 	for _, volumeObj := range volumes {
-		if volumeObj.Spec.ForProvider.Size != templateParams.BootVolumeTemplate.Spec.Size {
+		if volumeObj.Spec.ForProvider.Size != templateParams.Spec.Size {
 			return false
 		}
-		if volumeObj.Spec.ForProvider.Image != templateParams.BootVolumeTemplate.Spec.Image {
+		if volumeObj.Spec.ForProvider.Image != templateParams.Spec.Image {
 			return false
 		}
-		if volumeObj.Spec.ForProvider.Type != templateParams.BootVolumeTemplate.Spec.Type {
+		if volumeObj.Spec.ForProvider.Type != templateParams.Spec.Type {
 			return false
 		}
 	}
@@ -492,27 +477,10 @@ func areVolumesUpToDate(templateParams v1alpha1.ServerSetParameters, volumes []v
 	return true
 }
 
-// areNicsUpToDate gets nic k8s crs and checks if the correct number of NICs are created
-func (e *external) areNicsUpToDate(ctx context.Context, cr *v1alpha1.ServerSet) (bool, error) {
-	e.log.Info("Ensuring NIC")
-
-	nicList := &v1alpha1.NicList{}
-	if err := e.kube.List(ctx, nicList, client.MatchingLabels{
-		serverSetLabel: cr.Name,
-	}); err != nil {
-		return false, err
-	}
-
-	if len(nicList.Items) != cr.Spec.ForProvider.Replicas {
-		return false, nil
-	}
-
-	return true, nil
-}
-
-func (e *external) getServersFromServerSet(ctx context.Context, name string) ([]v1alpha1.Server, error) {
+// GetServersOfSSet - gets servers from a server set based on the ionoscloud.com/serverset label
+func GetServersOfSSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Server, error) {
 	serverList := &v1alpha1.ServerList{}
-	if err := e.kube.List(ctx, serverList, client.MatchingLabels{
+	if err := kube.List(ctx, serverList, client.MatchingLabels{
 		serverSetLabel: name,
 	}); err != nil {
 		return nil, err
@@ -521,15 +489,28 @@ func (e *external) getServersFromServerSet(ctx context.Context, name string) ([]
 	return serverList.Items, nil
 }
 
-func (e *external) getVolumesFromServerSet(ctx context.Context, name string) ([]v1alpha1.Volume, error) {
+// GetVolumesOfSSet - gets volumes from a server set based on the ionoscloud.com/serverset label
+func GetVolumesOfSSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Volume, error) {
 	volumeList := &v1alpha1.VolumeList{}
-	if err := e.kube.List(ctx, volumeList, client.MatchingLabels{
+	if err := kube.List(ctx, volumeList, client.MatchingLabels{
 		serverSetLabel: name,
 	}); err != nil {
 		return nil, err
 	}
 
 	return volumeList.Items, nil
+}
+
+// GetNICsOfSSet - gets all volumes of a server set
+func GetNICsOfSSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Nic, error) {
+	nicList := &v1alpha1.NicList{}
+	if err := kube.List(ctx, nicList, client.MatchingLabels{
+		serverSetLabel: name,
+	}); err != nil {
+		return nil, err
+	}
+
+	return nicList.Items, nil
 }
 
 // ListResFromSSetWithIndex - lists resources from a server set with a specific index label

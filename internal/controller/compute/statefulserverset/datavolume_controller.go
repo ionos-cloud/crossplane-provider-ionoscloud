@@ -130,8 +130,8 @@ func fromSSSetToVolume(cr *v1alpha1.StatefulServerSet, name string, replicaIndex
 			Labels: map[string]string{
 				statefulServerSetLabel: cr.Name,
 				// todo replace with function
-				fmt.Sprintf(volumeselector.IndexLabel, getParentResourceName(cr), volumeselector.ResourceDataVolume):       fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(volumeselector.VolumeIndexLabel, getParentResourceName(cr), volumeselector.ResourceDataVolume): fmt.Sprintf("%d", volumeIndex),
+				fmt.Sprintf(volumeselector.IndexLabel, getSSetName(cr), volumeselector.ResourceDataVolume):       fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(volumeselector.VolumeIndexLabel, getSSetName(cr), volumeselector.ResourceDataVolume): fmt.Sprintf("%d", volumeIndex),
 			},
 		},
 		Spec: v1alpha1.VolumeSpec{
@@ -167,8 +167,8 @@ func (k *kubeDataVolumeController) Ensure(ctx context.Context, cr *v1alpha1.Stat
 	res := &v1alpha1.VolumeList{}
 
 	if err := k.kube.List(ctx, res, client.MatchingLabels{
-		createVolumeLabelKey(volumeselector.VolumeIndexLabel, getParentResourceName(cr)): strconv.Itoa(volumeIndex),
-		createVolumeLabelKey(volumeselector.IndexLabel, getParentResourceName(cr)):       strconv.Itoa(replicaIndex),
+		createVolumeLabelKey(volumeselector.VolumeIndexLabel, getSSetName(cr)): strconv.Itoa(volumeIndex),
+		createVolumeLabelKey(volumeselector.IndexLabel, getSSetName(cr)):       strconv.Itoa(replicaIndex),
 	}); err != nil {
 		return err
 	}
@@ -222,10 +222,6 @@ func isVolumeUpToDate(spec *v1alpha1.StatefulServerSetVolumeSpec, lan *v1alpha1.
 
 func createVolumeLabelKey(label string, name string) string {
 	return fmt.Sprintf(label, name, volumeselector.ResourceDataVolume)
-}
-
-func getParentResourceName(cr *v1alpha1.StatefulServerSet) string {
-	return cr.Name + "-" + cr.Spec.ForProvider.Template.Metadata.Name
 }
 
 // generateNameFrom - generates name consisting of name, kind, index and version/second index

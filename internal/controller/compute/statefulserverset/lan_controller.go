@@ -72,7 +72,7 @@ func isLanUpToDate(spec *v1alpha1.StatefulServerSetLanSpec, lan *v1alpha1.Lan) b
 
 // Update - updates the lan CR and waits until in reaches AVAILABLE state
 func (k *kubeLANController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) (v1alpha1.Lan, error) {
-	name := fmt.Sprintf("%s-%s-%d", cr.GetName(), resourceLAN, lanIndex)
+	name := cr.Spec.ForProvider.Lans[lanIndex].Metadata.Name
 
 	updateKubeLAN, err := k.Get(ctx, name, cr.Namespace)
 	if err != nil {
@@ -171,7 +171,7 @@ func fromStatefulServerSetToLAN(cr *v1alpha1.StatefulServerSet, name string, lan
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
 				statefulServerSetLabel: cr.Name,
-				fmt.Sprintf(volumeselector.IndexLabel, getParentResourceName(cr), resourceLAN): strconv.Itoa(lanIndex),
+				fmt.Sprintf(volumeselector.IndexLabel, getSSetName(cr), resourceLAN): strconv.Itoa(lanIndex),
 			},
 		},
 		Spec: v1alpha1.LanSpec{
@@ -198,7 +198,7 @@ func (k *kubeLANController) Ensure(ctx context.Context, cr *v1alpha1.StatefulSer
 	k.log.Info("Ensuring LAN", "lanIndex", lanIndex)
 	res := &v1alpha1.LanList{}
 	if err := k.kube.List(ctx, res, client.MatchingLabels{
-		fmt.Sprintf(volumeselector.IndexLabel, getParentResourceName(cr), resourceLAN): strconv.Itoa(lanIndex),
+		fmt.Sprintf(volumeselector.IndexLabel, getSSetName(cr), resourceLAN): strconv.Itoa(lanIndex),
 	}); err != nil {
 		return err
 	}
