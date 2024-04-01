@@ -2010,7 +2010,21 @@ func (in *StatefulServerSetObservation) DeepCopyInto(out *StatefulServerSetObser
 	*out = *in
 	if in.ReplicaStatus != nil {
 		in, out := &in.ReplicaStatus, &out.ReplicaStatus
-		*out = make([]StatefulServerSetReplicaStatus, len(*in))
+		*out = make([]ServerSetReplicaStatus, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.DataVolumeStatuses != nil {
+		in, out := &in.DataVolumeStatuses, &out.DataVolumeStatuses
+		*out = make([]VolumeStatus, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.LanStatuses != nil {
+		in, out := &in.LanStatuses, &out.LanStatuses
+		*out = make([]LanStatus, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

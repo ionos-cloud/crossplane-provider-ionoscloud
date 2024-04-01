@@ -117,8 +117,6 @@ type StatefulServerSetSpec struct {
 // StatefulServerSetReplicaStatus are the configurable fields of a StatefulServerSetReplicaStatus.
 type StatefulServerSetReplicaStatus struct {
 	// Server assigned role
-	//
-	// +kubebuilder:validation:Enum=ACTIVE;PASSIVE;REPLICA
 	Role string `json:"role"`
 	Name string `json:"name"`
 	// +kubebuilder:validation:Enum=UNKNOWN;READY;ERROR
@@ -131,8 +129,10 @@ type StatefulServerSetReplicaStatus struct {
 // StatefulServerSetObservation are the observable fields of a StatefulServerSet.
 type StatefulServerSetObservation struct {
 	// Replicas is the count of ready replicas.
-	Replicas      int                              `json:"replicas,omitempty"`
-	ReplicaStatus []StatefulServerSetReplicaStatus `json:"replicaStatus,omitempty"`
+	Replicas           int                      `json:"replicas,omitempty"`
+	ReplicaStatus      []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
+	DataVolumeStatuses []VolumeStatus           `json:"dataVolumeStatus,omitempty"`
+	LanStatuses        []LanStatus              `json:"lanStatus,omitempty"`
 }
 
 // A StatefulServerSetStatus represents the observed state of a StatefulServerSet.

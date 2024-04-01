@@ -112,12 +112,12 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, fmt.Errorf("while listing lans %w", err)
 	}
 	creationLansUpToDate, areLansUpToDate := areLansUpToDate(cr, lans.Items)
-
+	cr.Status.AtProvider.LanStatuses = setLanStatuses(lans.Items)
 	volumes, err := e.dataVolumeController.ListVolumes(ctx, cr)
 	if err != nil {
 		return managed.ExternalObservation{}, fmt.Errorf("while listing volumes %w", err)
 	}
-
+	cr.Status.AtProvider.DataVolumeStatuses = setVolumeStatuses(volumes.Items)
 	creationVolumesUpToDate, areVolumesUpToDate := areDataVolumesUpToDate(cr, volumes.Items)
 
 	sSet := &v1alpha1.ServerSet{}
@@ -388,5 +388,27 @@ func areNICsUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.State
 		return false, nil
 	}
 
-	return serverset.AreNICsUpToDate(), nil
+	return true, nil
+}
+
+func setVolumeStatuses(volumes []v1alpha1.Volume) []v1alpha1.VolumeStatus {
+	if len(volumes) == 0 {
+		return nil
+	}
+	status := make([]v1alpha1.VolumeStatus, len(volumes))
+	for idx := range volumes {
+		status[idx] = volumes[idx].Status
+	}
+	return status
+}
+
+func setLanStatuses(lans []v1alpha1.Lan) []v1alpha1.LanStatus {
+	if len(lans) == 0 {
+		return nil
+	}
+	status := make([]v1alpha1.LanStatus, len(lans))
+	for idx := range lans {
+		status[idx] = lans[idx].Status
+	}
+	return status
 }
