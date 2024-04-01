@@ -30,7 +30,10 @@ func (c *createBeforeDestroy) update(ctx context.Context, cr *v1alpha1.ServerSet
 		return err
 	}
 	// cleanup - bootvolume, server, nic
-	return c.cleanupCondemned(ctx, cr, replicaIndex, volumeVersion, serverVersion)
+	if err := c.cleanupCondemned(ctx, cr, replicaIndex, volumeVersion, serverVersion); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *createBeforeDestroy) createResources(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
@@ -43,14 +46,17 @@ func (c *createBeforeDestroy) createResources(ctx context.Context, cr *v1alpha1.
 	return c.nicController.EnsureNICs(ctx, cr, index, serverVersion)
 }
 
-func (c *createBeforeDestroy) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
-	err := c.bootVolumeController.Delete(ctx, getNameFromIndex(cr.Name, resourceBootVolume, index, volumeVersion), cr.Namespace)
-	if err != nil {
+func (c *createBeforeDestroy) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, volumeVersion, serverVersion int) error {
+	if err := c.bootVolumeController.Delete(ctx, getNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, volumeVersion), cr.Namespace); err != nil {
 		return err
 	}
-	err = c.serverController.Delete(ctx, getNameFromIndex(cr.Name, ResourceServer, index, serverVersion), cr.Namespace)
-	if err != nil {
+	if err := c.serverController.Delete(ctx, getNameFromIndex(cr.Name, ResourceServer, replicaIndex, serverVersion), cr.Namespace); err != nil {
 		return err
 	}
-	return c.nicController.Delete(ctx, getNameFromIndex(cr.Name, resourceNIC, index, serverVersion), cr.Namespace)
+	for nicIndex := range cr.Spec.ForProvider.Template.Spec.NICs {
+		if err := c.nicController.Delete(ctx, getNicNameFromIndex(cr.Name, cr.Spec.ForProvider.Template.Spec.NICs[replicaIndex].Name, resourceNIC, replicaIndex, nicIndex, serverVersion), cr.Namespace); err != nil {
+			return err
+		}
+	}
+	return nil
 }

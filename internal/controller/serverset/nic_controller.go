@@ -9,6 +9,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"k8s.io/apimachinery/pkg/api/errors"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -18,7 +19,7 @@ import (
 )
 
 type kubeNicControlManager interface {
-	Create(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) (v1alpha1.Nic, error)
+	Create(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, nicIndex, version int) (v1alpha1.Nic, error)
 	Get(ctx context.Context, name, ns string) (*v1alpha1.Nic, error)
 	Delete(ctx context.Context, name, namespace string) error
 	EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error
@@ -30,9 +31,14 @@ type kubeNicController struct {
 	log  logging.Logger
 }
 
+// getNicNameFromIndex - generates name consisting of name, kind and index
+func getNicNameFromIndex(serversetName, resourceName, resourceType string, replicaIndex, nicIndex, version int) string {
+	return fmt.Sprintf("%s-%s-%s-%d-%d-%d", serversetName, resourceName, resourceType, replicaIndex, nicIndex, version)
+}
+
 // Create creates a NIC CR and waits until in reaches AVAILABLE state
-func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) (v1alpha1.Nic, error) {
-	name := getNameFromIndex(cr.Name, resourceNIC, replicaIndex, version)
+func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, nicIndex, version int) (v1alpha1.Nic, error) {
+	name := getNicNameFromIndex(cr.Name, cr.Spec.ForProvider.Template.Spec.NICs[replicaIndex].Name, resourceNIC, replicaIndex, nicIndex, version)
 	k.log.Info("Creating NIC", "name", name)
 	network := v1alpha1.Lan{}
 	if err := k.kube.Get(ctx, types.NamespacedName{
@@ -159,7 +165,7 @@ func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerS
 	// check if the NIC is attached to the server
 	if len(servers) > 0 {
 		for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
-			if err := k.ensure(ctx, cr, servers[0].Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].Reference, replicaIndex, version); err != nil {
+			if err := k.ensure(ctx, cr, servers[0].Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].Reference, replicaIndex, nicx, version); err != nil {
 				return err
 			}
 		}
@@ -170,21 +176,21 @@ func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerS
 }
 
 // EnsureNIC - creates a NIC if it does not exist
-func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, version int) error {
-	res := &v1alpha1.NicList{}
-	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, cr.GetName(), resourceNIC, replicaIndex, version, res); err != nil {
-		return err
-	}
-	nic := v1alpha1.Nic{}
-	if len(res.Items) == 0 {
-		var err error
-		nic, err = k.Create(ctx, cr, serverID, lanName, replicaIndex, version)
-		if err != nil {
+func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, nicIndex, version int) error {
+	var nic = &v1alpha1.Nic{}
+	var err error
+	nic, err = k.Get(ctx, getNicNameFromIndex(cr.Name, cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, resourceNIC, replicaIndex, nicIndex, version), cr.Namespace)
+	if err != nil {
+		if apiErrors.IsNotFound(err) {
+			var err error
+			createdNic, err := k.Create(ctx, cr, serverID, lanName, replicaIndex, nicIndex, version)
+			if err != nil {
+				return err
+			}
+			nic = &createdNic
+		} else {
 			return err
 		}
-	} else {
-		nic = res.Items[0]
-		// NIC found, check if it's attached to the server
 
 	}
 	if !strings.EqualFold(nic.Status.AtProvider.State, ionoscloud.Available) {
