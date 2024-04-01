@@ -1,12 +1,12 @@
 ---
-description: Manages ServerSet Resource on IONOS Cloud.
+description: Manages StatefulServerSet Resource on IONOS Cloud.
 ---
 
-# ServerSet Managed Resource
+# StatefulServerSet Managed Resource
 
 ## Overview
 
-* Resource Name: `ServerSet`
+* Resource Name: `StatefulServerSet`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`
 * Resource Scope: `Cluster`
@@ -22,7 +22,7 @@ It is recommended to clone the repository for easier access to the example files
 Use the following command to create a resource instance. Before applying the file, check the properties defined in the `spec.forProvider` fields:
 
 ```bash
-kubectl apply -f examples/ionoscloud/compute/serverset.yaml
+kubectl apply -f examples/ionoscloud/compute/statefulserverset.yaml
 ```
 
 _Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.
@@ -32,7 +32,7 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 Use the following command to update an instance. Before applying the file, update the properties defined in the `spec.forProvider` fields:
 
 ```bash
-kubectl apply -f examples/ionoscloud/compute/serverset.yaml
+kubectl apply -f examples/ionoscloud/compute/statefulserverset.yaml
 ```
 
 _Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.
@@ -42,11 +42,11 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 Use the following commands to wait for resources to be ready and synced. Update the `<instance-name>` accordingly:
 
 ```bash
-kubectl wait --for=condition=ready serversets.compute.ionoscloud.crossplane.io/<instance-name>
+kubectl wait --for=condition=ready statefulserversets.compute.ionoscloud.crossplane.io/<instance-name>
 ```
 
 ```bash
-kubectl wait --for=condition=synced serversets.compute.ionoscloud.crossplane.io/<instance-name>
+kubectl wait --for=condition=synced statefulserversets.compute.ionoscloud.crossplane.io/<instance-name>
 ```
 
 ### Get
@@ -54,7 +54,7 @@ kubectl wait --for=condition=synced serversets.compute.ionoscloud.crossplane.io/
 Use the following command to get a list of the existing instances:
 
 ```bash
-kubectl get -f serversets.compute.ionoscloud.crossplane.io
+kubectl get -f statefulserversets.compute.ionoscloud.crossplane.io
 ```
 
 _Note_: Use options `--output wide`, `--output json` to get more information about the resource instances.
@@ -64,7 +64,7 @@ _Note_: Use options `--output wide`, `--output json` to get more information abo
 Use the following command to destroy the resources created by applying the file:
 
 ```bash
-kubectl delete -f examples/ionoscloud/compute/serverset.yaml
+kubectl delete -f examples/ionoscloud/compute/statefulserverset.yaml
 ```
 
 _Note_: The command should be run from the root of the `crossplane-provider-ionoscloud` directory.
@@ -200,6 +200,30 @@ is 'IfNotPresent', which will attempt to resolve the reference only when
 the corresponding field is not present. Use 'Always' to resolve the
 reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
+* `deploymentStrategy` (object)
+	* description: DeploymentStrategy describes what strategy should be used to deploy the servers.
+	* properties:
+		* `type` (string)
+			* possible values: "ZONES"
+	* required properties:
+		* `type`
+* `lans` (array)
+	* properties:
+		* `metadata` (object)
+			* description: StatefulServerSetLanMetadata are the configurable fields of a StatefulServerSetLanMetadata.
+			* properties:
+				* `labels` (object)
+				* `name` (string)
+			* required properties:
+				* `name`
+		* `spec` (object)
+			* description: StatefulServerSetLanSpec are the configurable fields of a StatefulServerSetLanSpec.
+			* properties:
+				* `dhcp` (boolean)
+				* `ipv6cidr` (string)
+	* required properties:
+		* `metadata`
+		* `spec`
 * `replicas` (integer)
 	* description: The number of servers that will be created.
 	* minimum: 1.000000
@@ -257,6 +281,33 @@ It must exist in the same data center as the server.
 	* required properties:
 		* `metadata`
 		* `spec`
+* `volumes` (array)
+	* properties:
+		* `metadata` (object)
+			* description: StatefulServerSetVolumeMetadata are the configurable fields of a StatefulServerSetVolumeMetadata.
+			* properties:
+				* `labels` (object)
+				* `name` (string)
+			* required properties:
+				* `name`
+		* `spec` (object)
+			* description: StatefulServerSetVolumeSpec are the configurable fields of a StatefulServerSetVolumeSpec.
+			* properties:
+				* `image` (string)
+					* description: The public image UUID or a public image alias.
+				* `size` (number)
+					* description: The size of the volume in GB.
+				* `type` (string)
+					* description: Hardware type of the volume.
+					* possible values: "HDD";"SSD";"SSD Standard";"SSD Premium"
+				* `userData` (string)
+					* description: The cloud init configuration in base64 encoding.
+			* required properties:
+				* `size`
+				* `type`
+	* required properties:
+		* `metadata`
+		* `spec`
 
 ### Required Properties
 
@@ -264,14 +315,17 @@ The user needs to set the following properties in order to configure the IONOS C
 
 * `bootVolumeTemplate`
 * `datacenterConfig`
+* `deploymentStrategy`
+* `lans`
 * `replicas`
 * `template`
+* `volumes`
 
 ## Resource Definition
 
-The corresponding resource definition can be found [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/package/crds/compute.ionoscloud.crossplane.io_serversets.yaml).
+The corresponding resource definition can be found [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/package/crds/compute.ionoscloud.crossplane.io_statefulserversets.yaml).
 
 ## Resource Instance Example
 
-An example of a resource instance can be found [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples/ionoscloud/compute/serverset.yaml).
+An example of a resource instance can be found [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples/ionoscloud/compute/statefulserverset.yaml).
 
