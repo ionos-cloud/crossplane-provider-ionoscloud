@@ -15,6 +15,9 @@ spec:
     kind: ServerSet
     listKind: ServerSetList
     plural: serversets
+    shortNames:
+    - ss
+    - sset
     singular: serverset
   scope: Cluster
   versions:
@@ -101,6 +104,12 @@ spec:
                               Make sure the image selected is compatible with the datacenter's location.
                               Note: when creating a volume, set image, image alias, or licence type
                             type: string
+                          imagePassword:
+                            description: |-
+                              Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
+                              Password rules allows all characters from a-z, A-Z, 0-9.
+                            pattern: ^[A-Za-z0-9]+$
+                            type: string
                           selector:
                             description: |-
                               A label selector is a label query over a set of resources. The result of matchLabels and
@@ -151,6 +160,17 @@ spec:
                           size:
                             description: The size of the volume in GB.
                             type: number
+                            x-kubernetes-validations:
+                            - message: Size cannot be decreased once set, only increased
+                              rule: self >= oldSelf
+                          sshKeys:
+                            description: |-
+                              Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key.
+                              This field may only be set in creation requests. When reading, it always returns null.
+                              SSH keys are only supported if a public Linux image is used for the volume creation.
+                            items:
+                              type: string
+                            type: array
                           type:
                             enum:
                             - HDD

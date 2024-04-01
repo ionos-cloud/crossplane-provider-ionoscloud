@@ -3,6 +3,7 @@ package serverset
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 type kubeBootVolumeControlManager interface {
@@ -43,7 +45,7 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	if err := k.kube.Create(ctx, &createVolume); err != nil {
 		return v1alpha1.Volume{}, err
 	}
-	if err := WaitForKubeResource(ctx, resourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
+	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
 		return v1alpha1.Volume{}, err
 	}
 	// get the volume again before returning to have the id populated
@@ -75,7 +77,7 @@ func (k *kubeBootVolumeController) Delete(ctx context.Context, name, namespace s
 	if err := k.kube.Delete(ctx, condemnedVolume); err != nil {
 		return fmt.Errorf("error deleting volume %w", err)
 	}
-	return WaitForKubeResource(ctx, resourceReadyTimeout, k.isBootVolumeDeleted, condemnedVolume.Name, namespace)
+	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isBootVolumeDeleted, condemnedVolume.Name, namespace)
 }
 
 // IsVolumeAvailable - checks if a volume is available
@@ -105,20 +107,20 @@ func (k *kubeBootVolumeController) isBootVolumeDeleted(ctx context.Context, name
 			k.log.Info("Volume has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
-		return false, nil
+		return false, err
 	}
 	return false, nil
 }
 
 func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, version int) v1alpha1.Volume {
-	return v1alpha1.Volume{
+	vol := v1alpha1.Volume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
 				serverSetLabel: cr.Name,
-				fmt.Sprintf(indexLabel, resourceBootVolume):   fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(versionLabel, resourceBootVolume): fmt.Sprintf("%d", version),
+				fmt.Sprintf(indexLabel, cr.GetName(), resourceBootVolume):   strconv.Itoa(replicaIndex),
+				fmt.Sprintf(versionLabel, cr.GetName(), resourceBootVolume): strconv.Itoa(version),
 			},
 		},
 		Spec: v1alpha1.VolumeSpec{
@@ -135,23 +137,27 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 				Type:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type,
 				Image:            cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image,
 				UserData:         cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData,
-				// todo add to template(?)
-				ImagePassword: "imagePassword776",
 			},
 		}}
+	if cr.Spec.ForProvider.BootVolumeTemplate.Spec.ImagePassword != "" {
+		vol.Spec.ForProvider.ImagePassword = cr.Spec.ForProvider.BootVolumeTemplate.Spec.ImagePassword
+	}
+	if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.SSHKeys) > 0 {
+		vol.Spec.ForProvider.SSHKeys = cr.Spec.ForProvider.BootVolumeTemplate.Spec.SSHKeys
+	}
+	return vol
 }
 
 // Ensure - creates a boot volume if it does not exist
 func (k *kubeBootVolumeController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	k.log.Info("Ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
 	res := &v1alpha1.VolumeList{}
-	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, resourceBootVolume, replicaIndex, version, res); err != nil {
+	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, cr.GetName(), resourceBootVolume, replicaIndex, version, res); err != nil {
 		return err
 	}
 	volumes := res.Items
 	if len(volumes) == 0 {
-		volume, err := k.Create(ctx, cr, replicaIndex, version)
-		k.log.Info("Volume State", "state", volume.Status.AtProvider.State)
+		_, err := k.Create(ctx, cr, replicaIndex, version)
 		return err
 	}
 	k.log.Info("Finished ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)

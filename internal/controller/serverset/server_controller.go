@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 type kubeServerControlManager interface {
@@ -38,7 +39,7 @@ func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSe
 	if err := k.kube.Create(ctx, &createServer); err != nil {
 		return v1alpha1.Server{}, fmt.Errorf("while creating createServer %w ", err)
 	}
-	if err := WaitForKubeResource(ctx, resourceReadyTimeout, k.isAvailable, createServer.Name, cr.Namespace); err != nil {
+	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createServer.Name, cr.Namespace); err != nil {
 		return v1alpha1.Server{}, fmt.Errorf("while waiting for createServer to be populated %w ", err)
 	}
 	createdServer, err := k.Get(ctx, createServer.Name, cr.Namespace)
@@ -89,7 +90,7 @@ func (k *kubeServerController) Delete(ctx context.Context, name, namespace strin
 	if err := k.kube.Delete(ctx, condemnedServer); err != nil {
 		return fmt.Errorf("error deleting server %w", err)
 	}
-	return WaitForKubeResource(ctx, resourceReadyTimeout, k.isServerDeleted, condemnedServer.Name, namespace)
+	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isServerDeleted, condemnedServer.Name, namespace)
 }
 
 func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namespace string) (bool, error) {
@@ -104,7 +105,7 @@ func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namesp
 			k.log.Info("Server has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
-		return false, nil
+		return false, err
 	}
 	return false, nil
 }
@@ -117,9 +118,9 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volume
 			Name:      getNameFromIndex(cr.Name, ResourceServer, replicaIndex, version),
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
-				serverSetLabel:                            cr.Name,
-				fmt.Sprintf(indexLabel, ResourceServer):   fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(versionLabel, ResourceServer): fmt.Sprintf("%d", version),
+				serverSetLabel: cr.Name,
+				fmt.Sprintf(indexLabel, cr.GetName(), ResourceServer):   fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(versionLabel, cr.GetName(), ResourceServer): fmt.Sprintf("%d", version),
 			},
 		},
 		Spec: v1alpha1.ServerSpec{
@@ -152,7 +153,7 @@ func GetZoneFromIndex(index int) string {
 func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
 	k.log.Info("Ensuring Server", "index", replicaIndex, "version", version)
 	res := &v1alpha1.ServerList{}
-	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, ResourceServer, replicaIndex, version, res); err != nil {
+	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, cr.GetName(), ResourceServer, replicaIndex, version, res); err != nil {
 		return err
 	}
 	servers := res.Items

@@ -31,6 +31,10 @@ type VolumeSelectorParameters struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=1
 	Replicas int `json:"replicas"`
+	// Name of the serverset on which the volume and server will be
+	//
+	// +kubebuilder:validation:Required
+	ServersetName string `json:"serversetName"`
 }
 
 // A VolumeselectorSpec defines the desired state of a Volumeselector.
@@ -58,7 +62,7 @@ type VolumeselectorObservation struct {
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
+// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud},shortName=vs;volsel
 type Volumeselector struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

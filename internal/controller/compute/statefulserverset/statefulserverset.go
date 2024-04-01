@@ -20,23 +20,21 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/pkg/errors"
-	"k8s.io/client-go/util/workqueue"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
+	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/crossplane/crossplane-runtime/pkg/event"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	"github.com/pkg/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
-	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/serverset"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 const (
@@ -44,42 +42,20 @@ const (
 	errTrackPCUsage         = "cannot track ProviderConfig usage"
 )
 
+const statefulServerSetLabel = "ionoscloud.com/statefulServerSet"
+
 // A NoOpService does nothing.
 type NoOpService struct{}
 
-// Setup adds a controller that reconciles StatefulServerSet managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
-	name := managed.ControllerName(v1alpha1.StatefulServerSetGroupKind)
-
-	return ctrl.NewControllerManagedBy(mgr).
-		Named(name).
-		WithOptions(controller.Options{
-			RateLimiter: ratelimiter.NewController(),
-		}).
-		For(&v1alpha1.StatefulServerSet{}).
-		Complete(managed.NewReconciler(mgr,
-			resource.ManagedKind(v1alpha1.StatefulServerSetGroupVersionKind),
-			managed.WithExternalConnecter(&connectorStatefulServerSet{
-				kube:                 mgr.GetClient(),
-				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:                  l,
-				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
-			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
-			managed.WithInitializers(),
-			managed.WithPollInterval(opts.GetPollInterval()),
-			managed.WithTimeout(opts.GetTimeout()),
-			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
-			managed.WithLogger(l.WithValues("controller", name)),
-			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
-}
-
-// A connectorStatefulServerSet is expected to produce an ExternalClient when its Connect method
+// A connector is expected to produce an ExternalClient when its Connect method
 // is called.
-type connectorStatefulServerSet struct {
+type connector struct {
 	kube                 client.Client
 	usage                resource.Tracker
 	log                  logging.Logger
-	isUniqueNamesEnabled bool
+	dataVolumeController kubeDataVolumeControlManager
+	LANController        kubeLANControlManager
+	SSetController       kubeSSetControlManager
 }
 
 // Connect typically produces an ExternalClient by:
@@ -87,7 +63,7 @@ type connectorStatefulServerSet struct {
 // 2. Getting the managed resource's ProviderConfig.
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
-func (c *connectorStatefulServerSet) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
+func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
 	_, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
 		return nil, errors.New(errNotStatefulServerSet)
@@ -98,41 +74,76 @@ func (c *connectorStatefulServerSet) Connect(ctx context.Context, mg resource.Ma
 	}
 
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
-	return &externalStatefulServerSet{
+	if err != nil {
+		return nil, err
+	}
+	return &external{
+		kube:                 c.kube,
 		service:              &server.APIClient{IonosServices: svc},
+		dataVolumeController: c.dataVolumeController,
+		LANController:        c.LANController,
+		SSetController:       c.SSetController,
 		log:                  c.log,
-		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
+	}, err
 }
 
-// An ExternalClient observes, then either creates, updates, or deletes an
-// externalStatefulServerSet resource to ensure it reflects the managed resource's desired state.
-type externalStatefulServerSet struct {
-	// A 'client' used to connect to the externalServer resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
+// external observes, then either creates, updates, or deletes an
+// externalServerSet resource to ensure it reflects the managed resource's desired state.
+type external struct {
+	kube                 client.Client
 	service              server.Client
+	dataVolumeController kubeDataVolumeControlManager
+	LANController        kubeLANControlManager
+	SSetController       kubeSSetControlManager
 	log                  logging.Logger
-	isUniqueNamesEnabled bool
 }
 
-func (c *externalStatefulServerSet) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotStatefulServerSet)
 	}
 
-	// These fmt statements should be removed in the real implementation.
-	fmt.Printf("Observing: %+v", cr)
+	if meta.GetExternalName(cr) == "" {
+		return managed.ExternalObservation{}, nil
+	}
+	lans, err := e.LANController.ListLans(ctx, cr)
+	if err != nil {
+		return managed.ExternalObservation{}, fmt.Errorf("while listing lans %w", err)
+	}
+	creationLansUpToDate, areLansUpToDate := areLansUpToDate(cr, lans.Items)
+	cr.Status.AtProvider.LanStatuses = setLanStatuses(lans.Items)
+	volumes, err := e.dataVolumeController.ListVolumes(ctx, cr)
+	if err != nil {
+		return managed.ExternalObservation{}, fmt.Errorf("while listing volumes %w", err)
+	}
+	cr.Status.AtProvider.DataVolumeStatuses = setVolumeStatuses(volumes.Items)
+	creationVolumesUpToDate, areVolumesUpToDate := areDataVolumesUpToDate(cr, volumes.Items)
+
+	sSet := &v1alpha1.ServerSet{}
+	nsName := computeSSetNsName(cr)
+	if err := e.kube.Get(ctx, nsName, sSet); err != nil {
+		return managed.ExternalObservation{}, err
+	}
+	isSSetUpToDate, err := areSSetResourcesUpToDate(ctx, e.kube, cr)
+	if err != nil {
+		return managed.ExternalObservation{}, err
+	}
+
+	e.log.Info("Observing the StatefulServerSet CR", "creationLansUpToDate", creationLansUpToDate, "areLansUpToDate", areLansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate, "areVolumesUpToDate", areVolumesUpToDate, "isSSetUpToDate", isSSetUpToDate)
+
+	cr.Status.SetConditions(xpv1.Available())
 
 	return managed.ExternalObservation{
 		// Return false when the externalStatefulServerSet resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
 		// (re)create the resource, or that it has successfully been deleted.
-		ResourceExists: true,
+		ResourceExists: creationLansUpToDate && creationVolumesUpToDate,
 
 		// Return false when the externalStatefulServerSet resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
-		ResourceUpToDate: true,
+		ResourceUpToDate: areLansUpToDate && areVolumesUpToDate && isSSetUpToDate,
 
 		// Return any details that may be required to connect to the externalStatefulServerSet
 		// resource. These will be stored as the connection secret.
@@ -140,14 +151,32 @@ func (c *externalStatefulServerSet) Observe(ctx context.Context, mg resource.Man
 	}, nil
 }
 
-func (c *externalStatefulServerSet) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotStatefulServerSet)
 	}
 
-	fmt.Printf("Creating: %+v", cr)
+	cr.Status.SetConditions(xpv1.Creating())
 
+	e.log.Info("Creating a new StatefulServerSet", "name", cr.Name, "replicas", cr.Spec.ForProvider.Replicas)
+	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
+		err := e.ensureDataVolumes(ctx, cr, replicaIndex)
+		if err != nil {
+			return managed.ExternalCreation{}, fmt.Errorf("while ensuring data volumes %w", err)
+		}
+
+	}
+	if err := e.ensureLans(ctx, cr); err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("while ensuring lans %w", err)
+	}
+
+	if err := e.ensureSSet(ctx, cr); err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("while ensuring ServerSet CR %w", err)
+	}
+
+	// When all conditions are met, the managed resource is considered available
+	meta.SetExternalName(cr, cr.Name)
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
 		// externalStatefulServerSet resource. These will be stored as the connection secret.
@@ -155,14 +184,29 @@ func (c *externalStatefulServerSet) Create(ctx context.Context, mg resource.Mana
 	}, nil
 }
 
-func (c *externalStatefulServerSet) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
+func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotStatefulServerSet)
 	}
-
-	fmt.Printf("Updating: %+v", cr)
-
+	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
+		for volumeIndex := range cr.Spec.ForProvider.Volumes {
+			_, err := e.dataVolumeController.Update(ctx, cr, replicaIndex, volumeIndex)
+			if err != nil {
+				return managed.ExternalUpdate{}, err
+			}
+		}
+	}
+	for lanIndex := range cr.Spec.ForProvider.Lans {
+		_, err := e.LANController.Update(ctx, cr, lanIndex)
+		if err != nil {
+			return managed.ExternalUpdate{}, err
+		}
+	}
+	_, err := e.SSetController.Update(ctx, cr)
+	if err != nil {
+		return managed.ExternalUpdate{}, fmt.Errorf("while updating ServerSet CR %w", err)
+	}
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
 		// externalStatefulServerSet resource. These will be stored as the connection secret.
@@ -170,13 +214,201 @@ func (c *externalStatefulServerSet) Update(ctx context.Context, mg resource.Mana
 	}, nil
 }
 
-func (c *externalStatefulServerSet) Delete(ctx context.Context, mg resource.Managed) error {
+func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
+	cr.SetConditions(xpv1.Deleting())
 	if !ok {
 		return errors.New(errNotStatefulServerSet)
 	}
 
-	fmt.Printf("Deleting: %+v", cr)
+	e.log.Info("Deleting the Data Volumes with label", "label", cr.Name)
+	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		statefulServerSetLabel: cr.Name,
+	}); err != nil {
+		return err
+	}
+	e.log.Info("Data Volumes successfully deleted")
+
+	e.log.Info("Deleting the LANs with label", "label", cr.Name)
+	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Lan{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		statefulServerSetLabel: cr.Name,
+	}); err != nil {
+		return err
+	}
+	e.log.Info("LANs successfully deleted")
+
+	e.log.Info("Deleting the ServerSets with label", "label", cr.Name)
+	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.ServerSet{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		statefulServerSetLabel: cr.Name,
+	}); err != nil {
+		return err
+	}
+	e.log.Info("ServerSets successfully deleted")
 
 	return nil
+}
+
+func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex int) error {
+	e.log.Info("Ensuring the data volumes")
+	for volumeIndex := range cr.Spec.ForProvider.Volumes {
+		err := e.dataVolumeController.Ensure(ctx, cr, replicaIndex, volumeIndex)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (e *external) ensureSSet(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
+	return e.SSetController.Ensure(ctx, cr, kube.WaitForResource)
+}
+
+func (e *external) ensureLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
+	e.log.Info("Ensuring the lans")
+	for lanIndex := range cr.Spec.ForProvider.Lans {
+		err := e.LANController.Ensure(ctx, cr, lanIndex)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func areLansUpToDate(cr *v1alpha1.StatefulServerSet, lans []v1alpha1.Lan) (bool, bool) {
+	if len(lans) != len(cr.Spec.ForProvider.Lans) {
+		return false, false
+	}
+
+	for _, gotLan := range lans {
+		for _, specLan := range cr.Spec.ForProvider.Lans {
+			if isALanFieldNotUpToDate(specLan, gotLan) {
+				return true, false
+			}
+		}
+	}
+
+	return true, true
+}
+
+func isALanFieldNotUpToDate(specLan v1alpha1.StatefulServerSetLan, gotLan v1alpha1.Lan) bool {
+	if specLan.Metadata.Name != gotLan.Spec.ForProvider.Name {
+		return false
+	}
+	if gotLan.Spec.ForProvider.Public != specLan.Spec.DHCP {
+		return true
+	}
+	if specLan.Spec.IPv6cidr != "AUTO" && gotLan.Spec.ForProvider.Ipv6Cidr != specLan.Spec.IPv6cidr {
+		return true
+	}
+	return false
+}
+
+func areDataVolumesUpToDate(cr *v1alpha1.StatefulServerSet, volumes []v1alpha1.Volume) (bool, bool) {
+	crExpectedNrOfVolumes := len(cr.Spec.ForProvider.Volumes) * cr.Spec.ForProvider.Replicas
+	if len(volumes) != crExpectedNrOfVolumes {
+		return false, false
+	}
+	for volumeIndex := range volumes {
+		for _, specVolume := range cr.Spec.ForProvider.Volumes {
+			if isAVolumeFieldNotUpToDate(specVolume, volumeIndex, volumes) {
+				return true, false
+			}
+		}
+	}
+	return true, true
+}
+
+func isAVolumeFieldNotUpToDate(specVolume v1alpha1.StatefulServerSetVolume, volumeIndex int, volumes []v1alpha1.Volume) bool {
+	if generateProviderNameFromIndex(specVolume.Metadata.Name, volumeIndex) != volumes[volumeIndex].Spec.ForProvider.Name {
+		return false
+	}
+	if volumes[volumeIndex].Spec.ForProvider.Size != specVolume.Spec.Size {
+		return true
+	}
+	return false
+}
+
+func computeSSetNsName(cr *v1alpha1.StatefulServerSet) types.NamespacedName {
+	ssName := getSSetName(cr)
+	namespace := cr.Namespace
+
+	return types.NamespacedName{
+		Name:      ssName,
+		Namespace: namespace,
+	}
+}
+
+func areSSetResourcesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
+	areServersUpToDate, err := areServersUpToDate(ctx, kube, cr)
+	if !areServersUpToDate {
+		return false, err
+	}
+
+	areBootVolumesUpToDate, err := areBootVolumesUpToDate(ctx, kube, cr)
+	if !areBootVolumesUpToDate {
+		return false, err
+	}
+
+	areNICSUpToDate, err := areNICsUpToDate(ctx, kube, cr)
+	if !areNICSUpToDate {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func areServersUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
+	servers, err := serverset.GetServersOfSSet(ctx, kube, getSSetName(cr))
+	if err != nil {
+		return false, err
+	}
+
+	if len(servers) < cr.Spec.ForProvider.Replicas {
+		return false, nil
+	}
+
+	return serverset.AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers), nil
+}
+
+func areBootVolumesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
+	volumes, err := serverset.GetVolumesOfSSet(ctx, kube, getSSetName(cr))
+	if err != nil {
+		return false, err
+	}
+	return serverset.AreVolumesUpToDate(cr.Spec.ForProvider.BootVolumeTemplate, volumes), nil
+}
+
+func areNICsUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
+	nics, err := serverset.GetNICsOfSSet(ctx, kube, getSSetName(cr))
+	if err != nil {
+		return false, err
+	}
+
+	crExpectedNrOfNICs := len(cr.Spec.ForProvider.Template.Spec.NICs) * cr.Spec.ForProvider.Replicas
+	if len(nics) != crExpectedNrOfNICs {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func setVolumeStatuses(volumes []v1alpha1.Volume) []v1alpha1.VolumeStatus {
+	if len(volumes) == 0 {
+		return nil
+	}
+	status := make([]v1alpha1.VolumeStatus, len(volumes))
+	for idx := range volumes {
+		status[idx] = volumes[idx].Status
+	}
+	return status
+}
+
+func setLanStatuses(lans []v1alpha1.Lan) []v1alpha1.LanStatus {
+	if len(lans) == 0 {
+		return nil
+	}
+	status := make([]v1alpha1.LanStatus, len(lans))
+	for idx := range lans {
+		status[idx] = lans[idx].Status
+	}
+	return status
 }

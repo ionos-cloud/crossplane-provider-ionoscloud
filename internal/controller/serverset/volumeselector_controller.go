@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 type kubeVolumeSelectorManager interface {
@@ -35,14 +36,14 @@ func (k *kubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v
 	volumeSelector, err := k.Get(ctx, vsName, cr.Namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
-			_, err := k.Create(ctx, cr)
+			_, err = k.Create(ctx, cr)
 			return err
 		}
 		return err
 	}
 	if volumeSelector != nil && volumeSelector.Spec.ForProvider.Replicas != cr.Spec.ForProvider.Replicas {
 		volumeSelector.Spec.ForProvider.Replicas = cr.Spec.ForProvider.Replicas
-		if err := k.kube.Update(ctx, volumeSelector); err != nil {
+		if err = k.kube.Update(ctx, volumeSelector); err != nil {
 			return err
 		}
 	}
@@ -53,7 +54,7 @@ func (k *kubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v
 
 // Create creates a volume selector CR and waits until in reaches AVAILABLE state
 func (k *kubeVolumeSelectorController) Create(ctx context.Context, cr *v1alpha1.ServerSet) (v1alpha1.Volumeselector, error) {
-	name := volumeSelectorName
+	name := fmt.Sprintf(volumeSelectorName, cr.Name)
 	k.log.Info("Creating VolumeSelector", "name", name)
 
 	volSelector := fromServerSetToVolumeSelector(cr)
@@ -61,7 +62,7 @@ func (k *kubeVolumeSelectorController) Create(ctx context.Context, cr *v1alpha1.
 	if err := k.kube.Create(ctx, &volSelector); err != nil {
 		return v1alpha1.Volumeselector{}, err
 	}
-	if err := WaitForKubeResource(ctx, resourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
+	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
 		return v1alpha1.Volumeselector{}, err
 	}
 	// get the volume again before returning to have the id populated
@@ -116,7 +117,8 @@ func fromServerSetToVolumeSelector(cr *v1alpha1.ServerSet) v1alpha1.Volumeselect
 				ManagementPolicies: cr.GetManagementPolicies(),
 			},
 			ForProvider: v1alpha1.VolumeSelectorParameters{
-				Replicas: cr.Spec.ForProvider.Replicas,
+				Replicas:      cr.Spec.ForProvider.Replicas,
+				ServersetName: cr.GetName(),
 			},
 		},
 	}

@@ -1,18 +1,33 @@
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: example
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: exampleDatacenter
+    location: us/las
+    description: test
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: StatefulServerSet
 metadata:
   name: sss-example
 spec:
   forProvider:
-    replicas: 2
+    replicas: 1
     deploymentStrategy:
       type: ZONES
     datacenterConfig:
-      datacenterId: ddaaaaa1-cace-4674-ab8d-38b4e4f0c37f
+      datacenterIdRef:
+        name: example
     # This defines the template used for each replica.
     template:
       metadata:
-        name: c123456-cluster-{uuid}-servers
+        name: serverset-name
       spec:
         cpuFamily: AMD_OPTERON
         cores: 4
@@ -20,18 +35,26 @@ spec:
         nics:
           - name: nic-sample
             ipv4: "10.0.0.1/24"
-            reference: examplelan
+#           should reference lan metadata name
+            reference: data
+          - name: nic-mng
+            ipv4: "10.0.0.1/24"
+            reference: management
         volumeMounts:
           - reference: "volume-mount-id"
         bootStorageVolumeRef: "volume-id"
     bootVolumeTemplate:
+      metadata:
+          name: boot-volume
       spec:
         updateStrategy:
           type: "createBeforeDestroyBootVolume"
         image: "28d0fa34-927f-11ee-8008-6202af74e858"
         size: 10
         type: HDD
+        imagePassword: "password1245"
         userData: "" #cloud-config
+        imagePassword: "thisshouldbesecret"
     lans:
       # Three LANs are defined - an internal one (data) with IPv6 enabled and DHCP disabled for DRBD + VRRP traffic,
       # a management network for connectivity to K8S and management as well as
@@ -39,28 +62,28 @@ spec:
       - metadata:
           name: data
         spec:
-          ipv6: true
-          dhcp: false
+          dhcp: true
       - metadata:
           name: management
         spec:
-          ipv6: true
           dhcp: false
       - metadata:
           name: customer
         spec:
-          ipv6: false
+          ipv6cidr: "AUTO"
           dhcp: false
     # The volumes are then defined - a 200GB SSD "system" volume from a
     # custom Linux image, and a separate 4TB SSD volume for storage.
     volumes:
       - metadata:
-          name: storage_disk
+          name: storage-disk
         spec:
-          size: 4096
+          size: 10
           type: SSD
       - metadata:
-          name: storage_disk_extend_1
+          name: storage-disk-extend-1
         spec:
-          size: 1024
+          size: 10
           type: SSD
+  providerConfigRef:
+    name: example
