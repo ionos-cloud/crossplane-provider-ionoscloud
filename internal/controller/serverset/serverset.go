@@ -133,7 +133,8 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-	allNicsCreated := len(nics) == len(cr.Spec.ForProvider.Template.Spec.NICs)*cr.Spec.ForProvider.Replicas
+	crExpectedNoOfNICs := len(cr.Spec.ForProvider.Template.Spec.NICs) * cr.Spec.ForProvider.Replicas
+	allNicsCreated := len(nics) == crExpectedNoOfNICs
 
 	// TODO - at the moment we do not check that fields of nics are updated
 	e.log.Info("Observing the ServerSet CR", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "allServersCreated", allServersCreated, "allNicsCreated", allNicsCreated)
