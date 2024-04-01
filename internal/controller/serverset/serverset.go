@@ -151,24 +151,16 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, err
 	}
 
-	crExpectedNrOfNICs := len(cr.Spec.ForProvider.Template.Spec.NICs) * cr.Spec.ForProvider.Replicas
-	if len(nics) != crExpectedNrOfNICs {
+	crExpectedNoOfNICs := len(cr.Spec.ForProvider.Template.Spec.NICs) * cr.Spec.ForProvider.Replicas
+	if len(nics) != crExpectedNoOfNICs {
 		return managed.ExternalObservation{
 			ResourceExists:    false,
 			ResourceUpToDate:  false,
 			ConnectionDetails: managed.ConnectionDetails{},
 		}, nil
 	}
-	areNICsUpToDate := AreNICsUpToDate()
-	if !areNICsUpToDate {
-		return managed.ExternalObservation{
-			ResourceExists:    true,
-			ResourceUpToDate:  false,
-			ConnectionDetails: managed.ConnectionDetails{},
-		}, nil
-	}
-
-	e.log.Info("Observing the ServerSet CR", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "areNICsUpToDate", areNICsUpToDate)
+	// TODO - at the moment we do not check that fields of nics are updated
+	e.log.Info("Observing the ServerSet CR", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate)
 
 	cr.SetConditions(xpv1.Available())
 
@@ -505,12 +497,6 @@ func AreVolumesUpToDate(templateParams v1alpha1.BootVolumeTemplate, volumes []v1
 		}
 	}
 
-	return true
-}
-
-// AreNICsUpToDate - checks if the template params are equal to the nic obj params
-func AreNICsUpToDate() bool {
-	// ATM we do not check the fields of a NIC for being up to date
 	return true
 }
 

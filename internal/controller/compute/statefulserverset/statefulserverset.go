@@ -388,7 +388,7 @@ func areNICsUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.State
 		return false, nil
 	}
 
-	return serverset.AreNICsUpToDate(), nil
+	return true, nil
 }
 
 func setVolumeStatuses(volumes []v1alpha1.Volume) []v1alpha1.VolumeStatus {
