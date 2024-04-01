@@ -60,6 +60,7 @@ func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.State
 	}
 
 	k.log.Info("Updating serverset", "name", name)
+	updateObj.Spec.ForProvider.Replicas = cr.Spec.ForProvider.Replicas
 	updateObj.Spec.ForProvider.Template = cr.Spec.ForProvider.Template
 	updateObj.Spec.ForProvider.BootVolumeTemplate = cr.Spec.ForProvider.BootVolumeTemplate
 	if err := k.kube.Update(ctx, updateObj); err != nil {

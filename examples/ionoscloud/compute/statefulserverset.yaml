@@ -44,6 +44,8 @@ spec:
           - reference: "volume-mount-id"
         bootStorageVolumeRef: "volume-id"
     bootVolumeTemplate:
+      metadata:
+          name: boot-volume
       spec:
         updateStrategy:
           type: "createBeforeDestroyBootVolume"
@@ -73,12 +75,12 @@ spec:
     # custom Linux image, and a separate 4TB SSD volume for storage.
     volumes:
       - metadata:
-          name: storage_disk
+          name: storage-disk
         spec:
           size: 10
           type: SSD
       - metadata:
-          name: storage_disk_extend_1
+          name: storage-disk-extend-1
         spec:
           size: 10
           type: SSD
