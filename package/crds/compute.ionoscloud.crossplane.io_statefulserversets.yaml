@@ -118,6 +118,8 @@ spec:
                             description: |-
                               Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
                               Password rules allows all characters from a-z, A-Z, 0-9.
+                            maxLength: 50
+                            minLength: 8
                             pattern: ^[A-Za-z0-9]+$
                             type: string
                           selector:
@@ -215,6 +217,9 @@ spec:
                         - size
                         - type
                         type: object
+                        x-kubernetes-validations:
+                        - message: either imagePassword or sshKeys must be set
+                          rule: 'has(self.imagePassword)  || has(self.sshKeys) '
                     required:
                     - spec
                     type: object
