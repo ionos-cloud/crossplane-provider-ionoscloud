@@ -120,47 +120,24 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	e.populateCRStatus(cr, servers)
 
-	if len(servers) < cr.Spec.ForProvider.Replicas {
-		return managed.ExternalObservation{
-			ResourceExists:    false,
-			ResourceUpToDate:  false,
-			ConnectionDetails: managed.ConnectionDetails{},
-		}, nil
-	}
-
+	allServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
 	areServersUpToDate := AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
 
 	volumes, err := GetVolumesOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-
 	areBootVolumesUpToDate := AreVolumesUpToDate(cr.Spec.ForProvider.BootVolumeTemplate, volumes)
-
-	if !areServersUpToDate || !areBootVolumesUpToDate {
-		return managed.ExternalObservation{
-			ResourceExists:    true,
-			ResourceUpToDate:  false,
-			ConnectionDetails: managed.ConnectionDetails{},
-			Diff:              "servers are not up to date",
-		}, nil
-	}
 
 	nics, err := GetNICsOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-
 	crExpectedNoOfNICs := len(cr.Spec.ForProvider.Template.Spec.NICs) * cr.Spec.ForProvider.Replicas
-	if len(nics) != crExpectedNoOfNICs {
-		return managed.ExternalObservation{
-			ResourceExists:    false,
-			ResourceUpToDate:  false,
-			ConnectionDetails: managed.ConnectionDetails{},
-		}, nil
-	}
+	allNicsCreated := len(nics) == crExpectedNoOfNICs
+
 	// TODO - at the moment we do not check that fields of nics are updated
-	e.log.Info("Observing the ServerSet CR", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate)
+	e.log.Info("Observing the ServerSet CR", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "allServersCreated", allServersCreated, "allNicsCreated", allNicsCreated)
 
 	cr.SetConditions(xpv1.Available())
 
@@ -168,12 +145,12 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// Return false when the externalServerSet resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
 		// (re)create the resource, or that it has successfully been deleted.
-		ResourceExists: true,
+		ResourceExists: allServersCreated && allNicsCreated,
 
 		// Return false when the externalServerSet resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
-		ResourceUpToDate: true,
+		ResourceUpToDate: areServersUpToDate && areBootVolumesUpToDate,
 
 		// Return any details that may be required to connect to the externalServerSet
 		// resource. These will be stored as the connection secret.
@@ -456,13 +433,13 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 	e.log.Info("Boot Volumes successfully deleted")
 
-	e.log.Info("Deleting the Volumeselectors with label", "label", cr.Name)
+	e.log.Info("Deleting the Volume Selectors with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volumeselector{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
-	e.log.Info("Volumeselectors successfully deleted")
+	e.log.Info("Volume Selectors successfully deleted")
 	return nil
 }
 
