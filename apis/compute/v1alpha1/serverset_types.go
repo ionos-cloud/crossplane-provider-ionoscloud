@@ -189,11 +189,9 @@ type ServerSetBootVolumeSpec struct {
 	// +immutable
 	UserData string `json:"userData,omitempty"`
 	// Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
-	// Password rules allows all characters from a-z, A-Z, 0-9. Min length 8, max length 50.
+	// Password rules allows all characters from a-z, A-Z, 0-9.
 	//
 	// +immutable
-	// +kubebuilder:validation:MinLength=8
-	// +kubebuilder:validation:MaxLength=50
 	// +kubebuilder:validation:Pattern="^[A-Za-z0-9]+$"
 	ImagePassword string `json:"imagePassword,omitempty"`
 	// Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key.

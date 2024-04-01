@@ -130,7 +130,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, err
 	}
 
-	e.log.Info("Observing the stateful server set", "creationLansUpToDate", creationLansUpToDate, "areLansUpToDate", areLansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate, "areVolumesUpToDate", areVolumesUpToDate, "isSSetUpToDate", isSSetUpToDate)
+	e.log.Info("Observing the StatefulServerSet CR", "creationLansUpToDate", creationLansUpToDate, "areLansUpToDate", areLansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate, "areVolumesUpToDate", areVolumesUpToDate, "isSSetUpToDate", isSSetUpToDate)
 
 	cr.Status.SetConditions(xpv1.Available())
 
@@ -220,21 +220,30 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	if !ok {
 		return errors.New(errNotStatefulServerSet)
 	}
+
+	e.log.Info("Deleting the Data Volumes with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		statefulServerSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
+	e.log.Info("Data Volumes successfully deleted")
+
+	e.log.Info("Deleting the LANs with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Lan{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		statefulServerSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
+	e.log.Info("LANs successfully deleted")
+
+	e.log.Info("Deleting the ServerSets with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.ServerSet{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		statefulServerSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
+	e.log.Info("ServerSets successfully deleted")
 
 	return nil
 }
@@ -339,7 +348,7 @@ func areSSetResourcesUpToDate(ctx context.Context, kube client.Client, cr *v1alp
 		return false, err
 	}
 
-	areNICSUpToDate, err := serverset.AreNICsUpToDate(ctx, kube, getSSetName(cr), cr.Spec.ForProvider.Replicas)
+	areNICSUpToDate, err := areNICsUpToDate(ctx, kube, cr)
 	if !areNICSUpToDate {
 		return false, err
 	}
@@ -366,6 +375,20 @@ func areBootVolumesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha
 		return false, err
 	}
 	return serverset.AreVolumesUpToDate(cr.Spec.ForProvider.BootVolumeTemplate, volumes), nil
+}
+
+func areNICsUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
+	nics, err := serverset.GetNICsOfSSet(ctx, kube, getSSetName(cr))
+	if err != nil {
+		return false, err
+	}
+
+	crExpectedNrOfNICs := len(cr.Spec.ForProvider.Template.Spec.NICs) * cr.Spec.ForProvider.Replicas
+	if len(nics) != crExpectedNrOfNICs {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func setVolumeStatuses(volumes []v1alpha1.Volume) []v1alpha1.VolumeStatus {

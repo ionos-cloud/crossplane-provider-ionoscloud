@@ -43,233 +43,12 @@ const (
 	bootVolumeSize  = 100
 	bootVolumeType  = "HDD"
 	bootVolumeImage = "image"
+
+	server1Name = "serverset-server-0-0"
+	server2Name = "serverset-server-1-0"
+
+	bootVolumeNamePrefix = "boot-volume-"
 )
-
-func createServer(name string) v1alpha1.Server {
-	return v1alpha1.Server{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			Labels: map[string]string{
-				serverSetLabel: serverSetName,
-			},
-		},
-		Status: v1alpha1.ServerStatus{
-			AtProvider: v1alpha1.ServerObservation{
-				State: ionoscloud.Available,
-			},
-		},
-	}
-}
-
-func createNic(name string) v1alpha1.Nic {
-	return v1alpha1.Nic{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			Labels: map[string]string{
-				serverSetLabel: serverSetName,
-			},
-		},
-	}
-}
-
-func createBootVolume(name string) v1alpha1.Volume {
-	return v1alpha1.Volume{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			Labels: map[string]string{
-				serverSetLabel: serverSetName,
-			},
-		},
-		Spec: v1alpha1.VolumeSpec{
-			ForProvider: v1alpha1.VolumeParameters{
-				Image: bootVolumeImage,
-				Type:  bootVolumeType,
-				Size:  bootVolumeSize,
-			},
-		},
-	}
-}
-
-func fakeKubeClientObjs(objs ...client.Object) client.WithWatch {
-	scheme := runtime.NewScheme()
-	v1.AddToScheme(scheme)       // Add the core k8s types to the Scheme
-	v1alpha1.AddToScheme(scheme) // Add our custom types from v1alpha to the Scheme
-	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
-}
-
-func createBasicServerSet() *v1alpha1.ServerSet {
-	return &v1alpha1.ServerSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ServerSet",
-			APIVersion: "v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serverSetName,
-			Namespace: "",
-			Annotations: map[string]string{
-				"crossplane.io/external-name": serverSetName,
-			},
-		},
-		Spec: v1alpha1.ServerSetSpec{
-			ForProvider: v1alpha1.ServerSetParameters{
-				Replicas: 2,
-			},
-		},
-		Status: v1alpha1.ServerSetStatus{},
-	}
-}
-
-func createServerSetWithUpdatedServerSpec() *v1alpha1.ServerSet {
-	return &v1alpha1.ServerSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ServerSet",
-			APIVersion: "v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serverSetName,
-			Namespace: "",
-			Annotations: map[string]string{
-				"crossplane.io/external-name": serverSetName,
-			},
-		},
-		Spec: v1alpha1.ServerSetSpec{
-			ForProvider: v1alpha1.ServerSetParameters{
-				Replicas: 2,
-				Template: v1alpha1.ServerSetTemplate{
-					Spec: v1alpha1.ServerSetTemplateSpec{
-						Cores: 10,
-						RAM:   20480,
-					},
-				},
-			},
-		},
-		Status: v1alpha1.ServerSetStatus{},
-	}
-}
-
-func createServerSetWithUpdatedBootVolume(updatedSpec v1alpha1.ServerSetBootVolumeSpec) *v1alpha1.ServerSet {
-	return &v1alpha1.ServerSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ServerSet",
-			APIVersion: "v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serverSetName,
-			Namespace: "",
-			Annotations: map[string]string{
-				"crossplane.io/external-name": serverSetName,
-			},
-		},
-		Spec: v1alpha1.ServerSetSpec{
-			ForProvider: v1alpha1.ServerSetParameters{
-				Replicas: 2,
-				BootVolumeTemplate: v1alpha1.BootVolumeTemplate{
-					Spec: updatedSpec,
-				},
-			},
-		},
-		Status: v1alpha1.ServerSetStatus{},
-	}
-}
-
-func areEqual(t *testing.T, want, got v1alpha1.ServerSetObservation) {
-	if diff := cmp.Diff(want, got, cmpopts.IgnoreFields(v1alpha1.ServerSetReplicaStatus{}, "LastModified")); diff != "" {
-		t.Errorf("ServerSetObservation() mismatch (-want +got):\n%s", diff)
-	}
-}
-
-func createServerSetWhichUpdatesFrom1ReplicaTo2(serverName string) *v1alpha1.ServerSet {
-	return &v1alpha1.ServerSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ServerSet",
-			APIVersion: "v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serverSetName,
-			Namespace: "",
-			Annotations: map[string]string{
-				"crossplane.io/external-name": serverSetName,
-			},
-		},
-		Spec: v1alpha1.ServerSetSpec{
-			ForProvider: v1alpha1.ServerSetParameters{
-				Replicas: 2,
-			},
-		},
-		Status: v1alpha1.ServerSetStatus{
-			AtProvider: v1alpha1.ServerSetObservation{
-				Replicas: 1,
-				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
-					{
-						Name:         serverName,
-						Status:       statusReady,
-						ErrorMessage: "",
-					},
-				},
-			},
-		},
-	}
-}
-
-func createServerSetWhichUpdatesFrom2ReplicasTo1(serverName1, serverName2 string) *v1alpha1.ServerSet {
-	return &v1alpha1.ServerSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ServerSet",
-			APIVersion: "v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serverSetName,
-			Namespace: "",
-			Annotations: map[string]string{
-				"crossplane.io/external-name": serverSetName,
-			},
-		},
-		Spec: v1alpha1.ServerSetSpec{
-			ForProvider: v1alpha1.ServerSetParameters{
-				Replicas: 1,
-			},
-		},
-		Status: v1alpha1.ServerSetStatus{
-			AtProvider: v1alpha1.ServerSetObservation{
-				Replicas: 2,
-				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
-					{
-						Name:         serverName1,
-						Status:       statusReady,
-						ErrorMessage: "",
-					},
-					{
-						Name:         serverName2,
-						Status:       statusReady,
-						ErrorMessage: "",
-					},
-				},
-			},
-		},
-	}
-}
-
-func createServerSetWithOneReplica(serverName1 string) *v1alpha1.ServerSet {
-	return &v1alpha1.ServerSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ServerSet",
-			APIVersion: "v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serverSetName,
-			Namespace: "",
-			Annotations: map[string]string{
-				"crossplane.io/external-name": serverSetName,
-			},
-		},
-		Spec: v1alpha1.ServerSetSpec{
-			ForProvider: v1alpha1.ServerSetParameters{
-				Replicas: 1,
-			},
-		},
-		Status: v1alpha1.ServerSetStatus{},
-	}
-}
 
 func Test_serverSetController_Observe(t *testing.T) {
 	type fields struct {
@@ -279,12 +58,13 @@ func Test_serverSetController_Observe(t *testing.T) {
 		ctx context.Context
 		cr  *v1alpha1.ServerSet
 	}
-	server1 := createServer("serverset-server-0-0")
-	server2 := createServer("serverset-server-1-0")
+
+	server1 := createServer(server1Name)
+	server2 := createServer(server2Name)
 	nic1 := createNic(server1.Name)
 	nic2 := createNic(server2.Name)
-	bootVolume1 := createBootVolume("boot-volume-" + server1.Name)
-	bootVolume2 := createBootVolume("boot-volume-" + server2.Name)
+	bootVolume1 := createBootVolume(bootVolumeNamePrefix + server1.Name)
+	bootVolume2 := createBootVolume(bootVolumeNamePrefix + server2.Name)
 
 	tests := []struct {
 		name    string
@@ -437,6 +217,22 @@ func Test_serverSetController_Observe(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "nr of nics not up to date, then resource does not exist and is not up to date",
+			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createServerSetWithNrOfNICsUpdated(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    false,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -569,7 +365,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				cr:  createServerSetWithOneReplica(serverWithErrorStatus.Name),
+				cr:  createServerSetWithOneReplica(),
 			},
 			want: v1alpha1.ServerSetObservation{
 				Replicas: 1,
@@ -622,5 +418,165 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 			}
 			areEqual(t, tt.want, got)
 		})
+	}
+}
+
+func createServer(name string) v1alpha1.Server {
+	return v1alpha1.Server{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				serverSetLabel: serverSetName,
+			},
+		},
+		Status: v1alpha1.ServerStatus{
+			AtProvider: v1alpha1.ServerObservation{
+				State: ionoscloud.Available,
+			},
+		},
+	}
+}
+
+func createNic(name string) v1alpha1.Nic {
+	return v1alpha1.Nic{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				serverSetLabel: serverSetName,
+			},
+		},
+	}
+}
+
+func createBootVolume(name string) v1alpha1.Volume {
+	return v1alpha1.Volume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				serverSetLabel: serverSetName,
+			},
+		},
+		Spec: v1alpha1.VolumeSpec{
+			ForProvider: v1alpha1.VolumeParameters{
+				Image: bootVolumeImage,
+				Type:  bootVolumeType,
+				Size:  bootVolumeSize,
+			},
+		},
+	}
+}
+
+func fakeKubeClientObjs(objs ...client.Object) client.WithWatch {
+	scheme := runtime.NewScheme()
+	v1.AddToScheme(scheme)       // Add the core k8s types to the Scheme
+	v1alpha1.AddToScheme(scheme) // Add our custom types from v1alpha to the Scheme
+	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
+}
+
+func createBasicServerSet() *v1alpha1.ServerSet {
+	return &v1alpha1.ServerSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: serverSetName,
+			Annotations: map[string]string{
+				"crossplane.io/external-name": serverSetName,
+			},
+		},
+		Spec: v1alpha1.ServerSetSpec{
+			ForProvider: v1alpha1.ServerSetParameters{
+				Replicas: 2,
+				Template: v1alpha1.ServerSetTemplate{
+					Spec: v1alpha1.ServerSetTemplateSpec{
+						NICs: []v1alpha1.ServerSetTemplateNIC{
+							{
+								Name:      "nic1",
+								IPv4:      "10.0.0.2/24",
+								Reference: "data",
+							},
+						},
+					},
+				},
+			},
+		},
+		Status: v1alpha1.ServerSetStatus{},
+	}
+}
+
+func createServerSetWithUpdatedServerSpec() *v1alpha1.ServerSet {
+	sset := createBasicServerSet()
+	sset.Spec.ForProvider.Template.Spec = v1alpha1.ServerSetTemplateSpec{
+		Cores: 10,
+		RAM:   20480,
+	}
+	return sset
+}
+
+func createServerSetWithUpdatedBootVolume(updatedSpec v1alpha1.ServerSetBootVolumeSpec) *v1alpha1.ServerSet {
+	sset := createBasicServerSet()
+	sset.Spec.ForProvider.BootVolumeTemplate = v1alpha1.BootVolumeTemplate{
+		Spec: updatedSpec,
+	}
+	return sset
+}
+
+func createServerSetWhichUpdatesFrom1ReplicaTo2(serverName string) *v1alpha1.ServerSet {
+	sset := createBasicServerSet()
+	sset.Status = v1alpha1.ServerSetStatus{
+		AtProvider: v1alpha1.ServerSetObservation{
+			Replicas: 1,
+			ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+				{
+					Name:         serverName,
+					Status:       statusReady,
+					ErrorMessage: "",
+				},
+			},
+		},
+	}
+	return sset
+}
+
+func createServerSetWhichUpdatesFrom2ReplicasTo1(serverName1, serverName2 string) *v1alpha1.ServerSet {
+	sset := createServerSetWithOneReplica()
+	sset.Status = v1alpha1.ServerSetStatus{
+		AtProvider: v1alpha1.ServerSetObservation{
+			Replicas: 2,
+			ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+				{
+					Name:         serverName1,
+					Status:       statusReady,
+					ErrorMessage: "",
+				},
+				{
+					Name:         serverName2,
+					Status:       statusReady,
+					ErrorMessage: "",
+				},
+			},
+		},
+	}
+	return sset
+}
+
+func createServerSetWithOneReplica() *v1alpha1.ServerSet {
+	sset := createBasicServerSet()
+	sset.Spec.ForProvider.Replicas = 1
+	return sset
+}
+
+func createServerSetWithNrOfNICsUpdated() *v1alpha1.ServerSet {
+	sset := createBasicServerSet()
+	sset.Spec.ForProvider.Template.Spec.NICs = append(
+		sset.Spec.ForProvider.Template.Spec.NICs, v1alpha1.ServerSetTemplateNIC{
+			Name:      "nic2",
+			IPv4:      "10.0.0.3/24",
+			Reference: "management",
+		})
+
+	return sset
+}
+
+func areEqual(t *testing.T, want, got v1alpha1.ServerSetObservation) {
+	if diff := cmp.Diff(want, got, cmpopts.IgnoreFields(v1alpha1.ServerSetReplicaStatus{}, "LastModified")); diff != "" {
+		t.Errorf("ServerSetObservation() mismatch (-want +got):\n%s", diff)
 	}
 }

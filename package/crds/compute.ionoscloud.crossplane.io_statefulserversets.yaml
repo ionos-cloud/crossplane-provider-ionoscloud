@@ -114,6 +114,12 @@ spec:
                             minLength: 8
                             pattern: ^[A-Za-z0-9]+$
                             type: string
+                          imagePassword:
+                            description: |-
+                              Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
+                              Password rules allows all characters from a-z, A-Z, 0-9.
+                            pattern: ^[A-Za-z0-9]+$
+                            type: string
                           selector:
                             description: |-
                               A label selector is a label query over a set of resources. The result of matchLabels and
