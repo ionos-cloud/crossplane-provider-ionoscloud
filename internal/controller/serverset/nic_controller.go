@@ -182,7 +182,6 @@ func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, 
 	nic, err = k.Get(ctx, getNicNameFromIndex(cr.Name, cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, resourceNIC, replicaIndex, nicIndex, version), cr.Namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
-			var err error
 			createdNic, err := k.Create(ctx, cr, serverID, lanName, replicaIndex, nicIndex, version)
 			if err != nil {
 				return err
