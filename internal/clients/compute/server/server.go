@@ -22,7 +22,7 @@ type APIClient struct {
 // Client is a wrapper around IONOS Service Server methods
 type Client interface {
 	CheckDuplicateServer(ctx context.Context, datacenterID, serverName, cpuFamily string) (*sdkgo.Server, error)
-	CheckDuplicateCubeServer(ctx context.Context, datacenterID, serverName, templateID, cpuFamily string) (*sdkgo.Server, error)
+	CheckDuplicateCubeServer(ctx context.Context, datacenterID, serverName, templateID string) (*sdkgo.Server, error)
 	GetServer(ctx context.Context, datacenterID, serverID string) (sdkgo.Server, *sdkgo.APIResponse, error)
 	CreateServer(ctx context.Context, datacenterID string, server sdkgo.Server) (sdkgo.Server, *sdkgo.APIResponse, error)
 	UpdateServer(ctx context.Context, datacenterID, serverID string, server sdkgo.ServerProperties) (sdkgo.Server, *sdkgo.APIResponse, error)
@@ -70,7 +70,7 @@ func (cp *APIClient) CheckDuplicateServer(ctx context.Context, datacenterID, ser
 }
 
 // CheckDuplicateCubeServer based on serverName, and on the immutable properties
-func (cp *APIClient) CheckDuplicateCubeServer(ctx context.Context, datacenterID, serverName, templateID, cpuFamily string) (*sdkgo.Server, error) { // nolint: gocyclo
+func (cp *APIClient) CheckDuplicateCubeServer(ctx context.Context, datacenterID, serverName, templateID string) (*sdkgo.Server, error) { // nolint: gocyclo
 	servers, _, err := cp.ComputeClient.ServersApi.DatacentersServersGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
@@ -82,11 +82,6 @@ func (cp *APIClient) CheckDuplicateCubeServer(ctx context.Context, datacenterID,
 				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
 					if *nameOk == serverName {
 						// After checking the name, check the immutable properties
-						if cpuFamilyOk, ok := propertiesOk.GetCpuFamilyOk(); ok && cpuFamilyOk != nil && cpuFamily != "" {
-							if cpuFamily != *cpuFamilyOk {
-								return nil, fmt.Errorf("error: found cube server with the name %v, but immutable property cpuFamily different. expected: %v actual: %v", serverName, cpuFamily, *cpuFamilyOk)
-							}
-						}
 						if templateIDOk, ok := propertiesOk.GetTemplateUuidOk(); ok && templateIDOk != nil {
 							if templateID != *templateIDOk {
 								return nil, fmt.Errorf("error: found cube server with the name %v, but immutable property templateId different. expected: %v actual: %v", serverName, templateID, *templateIDOk)
@@ -313,7 +308,6 @@ func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer, templateID string) (
 			Name:             &cr.Spec.ForProvider.Name,
 			TemplateUuid:     &templateID,
 			AvailabilityZone: &cr.Spec.ForProvider.AvailabilityZone,
-			CpuFamily:        &cr.Spec.ForProvider.CPUFamily,
 			Type:             &serverCubeType,
 		},
 		Entities: &sdkgo.ServerEntities{Volumes: &sdkgo.AttachedVolumes{Items: &[]sdkgo.Volume{dasVolumeInput}}},

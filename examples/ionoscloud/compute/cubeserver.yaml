@@ -15,7 +15,6 @@ spec:
   forProvider:
     name: exampleCubeServer
     availabilityZone: AUTO
-    cpuFamily: INTEL_SKYLAKE
     template:
       name: CUBES XS
     volume:

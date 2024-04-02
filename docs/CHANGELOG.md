@@ -4,6 +4,11 @@
   - Add `group` CRD to support CRUD of compute Groups
   - Update `sdk-go` to v6.1.11
 
+- **Fixes**:
+  - Changed fields for `CubeServer` CR:
+      - `cpuFamily` field has been removed as it prevented external resource creation.
+      - `template.name` is now immutable
+
 - **Misc**:
   - Minor `user` CRD refactor
 
