@@ -45,31 +45,27 @@ func Test_kubeLANController_Update(t *testing.T) {
 		{
 			name: "consider ipv6cidr as a change when value is not AUTO",
 			fields: fields{
-				kube: fakeKubeClientWithObjs(createLAN(v1alpha1.LanParameters{
-					Name:     customerLanName,
-					Ipv6Cidr: "2001:db8::/64",
-				})),
-				log: logging.NewNopLogger(),
+				kube: fakeKubeClientWithObjs(createCustomerLANWithIpv6Cidr()),
+				log:  logging.NewNopLogger(),
 			},
 			args: args{
 				ctx: context.Background(),
 				cr: createSSSetWithCustomerLanUpdated(v1alpha1.StatefulServerSetLanSpec{
-					IPv6cidr: "1000:db8::/64",
+					DHCP:     customerLanDHCP,
+					IPv6cidr: customerLanIPv6cidr2,
 				}),
 			},
-			want:    v1alpha1.Lan{},
+			want:    *createCustomerLANWithIpv6CidrUpdated(),
 			wantErr: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k := &kubeLANControllerWithIsAvailableStubbed{
-				KubeLANController: kubeLANController{
-					kube: tt.fields.kube,
-					log:  tt.fields.log,
-				},
+			k := &kubeLANController{
+				kube: tt.fields.kube,
+				log:  tt.fields.log,
 			}
-			got, err := k.KubeLANController.Update(tt.args.ctx, tt.args.cr, tt.args.lanIndex)
+			got, err := k.Update(tt.args.ctx, tt.args.cr, tt.args.lanIndex)
 			assert.Equal(t, tt.wantErr, err)
 			assert.Equalf(t, tt.want, got, "Update(%v, %v, %v)", tt.args.ctx, tt.args.cr, tt.args.lanIndex)
 		})

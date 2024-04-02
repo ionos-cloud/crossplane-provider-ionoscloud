@@ -350,12 +350,7 @@ func areSSetResourcesUpToDate(ctx context.Context, kube client.Client, cr *v1alp
 		return false, err
 	}
 
-	areNICSUpToDate, err := areNICsUpToDate(ctx, kube, cr)
-	if !areNICSUpToDate {
-		return false, err
-	}
-
-	return true, nil
+	return areNICsUpToDate(ctx, kube, cr)
 }
 
 func areServersUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
