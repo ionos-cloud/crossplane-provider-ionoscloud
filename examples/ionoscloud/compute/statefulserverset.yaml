@@ -18,7 +18,7 @@ metadata:
   name: sss-example
 spec:
   forProvider:
-    replicas: 1
+    replicas: 2
     deploymentStrategy:
       type: ZONES
     datacenterConfig:
@@ -48,7 +48,7 @@ spec:
           name: boot-volume
       spec:
         updateStrategy:
-          type: "createBeforeDestroyBootVolume"
+          type: "createBeforeDestroyBootVolume" # createBeforeDestroyBootVolume createAllBeforeDestroy
         image: "28d0fa34-927f-11ee-8008-6202af74e858"
         size: 10
         type: HDD
