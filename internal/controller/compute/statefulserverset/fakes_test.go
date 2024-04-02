@@ -26,6 +26,10 @@ type fakeKubeLANController struct {
 	Err     error
 }
 
+type kubeLANControllerWithIsAvailableStubbed struct {
+	KubeLANController kubeLANController
+}
+
 type fakeKubeDataVolumeController struct {
 	Volume     v1alpha1.Volume
 	VolumeList v1alpha1.VolumeList
@@ -124,4 +128,8 @@ func fakeKubeClientWithFunc(funcs interceptor.Funcs) client.WithWatch {
 
 func fakeWaitUntilAvailable(ctx context.Context, timeoutInMinutes time.Duration, fn kube.IsResourceReady, name, namespace string) error {
 	return nil
+}
+
+func (k *kubeLANControllerWithIsAvailableStubbed) isAvailable(ctx context.Context, name, namespace string) (bool, error) {
+	return true, nil
 }

@@ -216,10 +216,12 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 
 func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
-	cr.SetConditions(xpv1.Deleting())
 	if !ok {
 		return errors.New(errNotStatefulServerSet)
 	}
+
+	cr.SetConditions(xpv1.Deleting())
+	meta.SetExternalName(cr, "")
 
 	e.log.Info("Deleting the Data Volumes with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{

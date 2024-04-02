@@ -80,6 +80,22 @@ type ServeFieldsUpToDate struct {
 	areCoresUpToDate bool
 }
 
+func createSSSetWithCustomerLanUpdated(params v1alpha1.StatefulServerSetLanSpec) *v1alpha1.StatefulServerSet {
+	ssset := createSSSet()
+	lanIdx := getCustomerLanIdx(ssset)
+	ssset.Spec.ForProvider.Lans[lanIdx].Spec = params
+	return ssset
+}
+
+func getCustomerLanIdx(ssset *v1alpha1.StatefulServerSet) int {
+	for lanIdx, lan := range ssset.Spec.ForProvider.Lans {
+		if lan.Metadata.Name == customerLanName {
+			return lanIdx
+		}
+	}
+	return -1
+}
+
 func createSSSet() *v1alpha1.StatefulServerSet {
 	return &v1alpha1.StatefulServerSet{
 		TypeMeta: metav1.TypeMeta{},
@@ -215,7 +231,7 @@ func createLanList() v1alpha1.LanList {
 	}
 }
 
-func createLanDefault() *v1alpha1.Lan {
+func createCustomerLAN() *v1alpha1.Lan {
 	return createLAN(v1alpha1.LanParameters{
 		Name:     customerLanName,
 		Public:   customerLanDHCP,
@@ -410,6 +426,7 @@ func createServer(replicaIdx int, parameters v1alpha1.ServerParameters) *v1alpha
 func createNIC1() *v1alpha1.Nic {
 	return createNIC(0, v1alpha1.NicParameters{})
 }
+
 func createNIC2() *v1alpha1.Nic {
 	return createNIC(1, v1alpha1.NicParameters{})
 }
