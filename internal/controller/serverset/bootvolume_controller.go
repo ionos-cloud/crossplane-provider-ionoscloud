@@ -35,10 +35,10 @@ type kubeBootVolumeController struct {
 // Create creates a volume CR and waits until in reaches AVAILABLE state
 func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Volume, error) {
 	name := getNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, version)
-	k.log.Info("Creating Volume", "name", name)
+	k.log.Info("Creating BootVolume", "name", name)
 	userDataPatcher, err := ccpatch.NewCloudInitPatcher(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData)
 	if err != nil {
-		return v1alpha1.Volume{}, fmt.Errorf("while creating cloud init patcher for volume %s %w", name, err)
+		return v1alpha1.Volume{}, fmt.Errorf("while creating cloud init patcher for BootVolume %s %w", name, err)
 	}
 	createVolume := fromServerSetToVolume(cr, name, replicaIndex, version)
 	createVolume.Spec.ForProvider.UserData = userDataPatcher.Patch("hostname", name).Encode()
@@ -53,7 +53,7 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	if err != nil {
 		return v1alpha1.Volume{}, err
 	}
-	k.log.Info("Finished creating Volume", "name", name)
+	k.log.Info("Finished creating BootVolume", "name", name)
 
 	return *kubeVolume, nil
 }
@@ -75,7 +75,7 @@ func (k *kubeBootVolumeController) Delete(ctx context.Context, name, namespace s
 		return err
 	}
 	if err := k.kube.Delete(ctx, condemnedVolume); err != nil {
-		return fmt.Errorf("error deleting volume %w", err)
+		return fmt.Errorf("error deleting BootVolume %w", err)
 	}
 	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isBootVolumeDeleted, condemnedVolume.Name, namespace)
 }
@@ -96,7 +96,7 @@ func (k *kubeBootVolumeController) isAvailable(ctx context.Context, name, namesp
 }
 
 func (k *kubeBootVolumeController) isBootVolumeDeleted(ctx context.Context, name, namespace string) (bool, error) {
-	k.log.Info("Checking if Volume is deleted", "name", name, "namespace", namespace)
+	k.log.Info("Checking if BootVolume is deleted", "name", name, "namespace", namespace)
 	obj := &v1alpha1.Volume{}
 	err := k.kube.Get(ctx, types.NamespacedName{
 		Namespace: namespace,
@@ -104,7 +104,7 @@ func (k *kubeBootVolumeController) isBootVolumeDeleted(ctx context.Context, name
 	}, obj)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
-			k.log.Info("Volume has been deleted", "name", name, "namespace", namespace)
+			k.log.Info("BootVolume has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
 		return false, err

@@ -148,7 +148,7 @@ func (k *kubeLANController) isAvailable(ctx context.Context, name, namespace str
 }
 
 func (k *kubeLANController) isLANDeleted(ctx context.Context, name, namespace string) (bool, error) {
-	k.log.Info("Checking if lan is deleted", "name", name, "namespace", namespace)
+	k.log.Info("Checking if LAN is deleted", "name", name, "namespace", namespace)
 	obj := &v1alpha1.Lan{}
 	err := k.kube.Get(ctx, types.NamespacedName{
 		Namespace: namespace,
@@ -156,7 +156,7 @@ func (k *kubeLANController) isLANDeleted(ctx context.Context, name, namespace st
 	}, obj)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
-			k.log.Info("lan has been deleted", "name", name, "namespace", namespace)
+			k.log.Info("LAN has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
 		return false, err

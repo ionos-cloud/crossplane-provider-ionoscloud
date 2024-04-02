@@ -89,7 +89,7 @@ func (k *kubeNicController) Get(ctx context.Context, name, ns string) (*v1alpha1
 }
 
 func (k *kubeNicController) isNicDeleted(ctx context.Context, name, namespace string) (bool, error) {
-	k.log.Info("Checking if Nic is deleted", "name", name, "namespace", namespace)
+	k.log.Info("Checking if NIC is deleted", "name", name, "namespace", namespace)
 	nic := &v1alpha1.Nic{}
 	err := k.kube.Get(ctx, types.NamespacedName{
 		Namespace: namespace,
@@ -97,7 +97,7 @@ func (k *kubeNicController) isNicDeleted(ctx context.Context, name, namespace st
 	}, nic)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			k.log.Info("Nic has been deleted", "name", name, "namespace", namespace)
+			k.log.Info("NIC has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
 		return false, err
@@ -188,7 +188,7 @@ func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, 
 
 	}
 	if !strings.EqualFold(nic.Status.AtProvider.State, ionoscloud.Available) {
-		return fmt.Errorf("observedNic %s got state %s but expected %s", nic.GetName(), nic.Status.AtProvider.State, ionoscloud.Available)
+		return fmt.Errorf("observed NIC %s got state %s but expected %s", nic.GetName(), nic.Status.AtProvider.State, ionoscloud.Available)
 	}
 	return nil
 }
