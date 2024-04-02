@@ -43,6 +43,10 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *u
 					kube: mgr.GetClient(),
 					log:  l,
 				},
+				volumeSelectorController: &kubeVolumeSelectorController{
+					kube: mgr.GetClient(),
+					log:  l,
+				},
 			}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),

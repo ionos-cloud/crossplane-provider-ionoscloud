@@ -41,10 +41,6 @@ func SetupServerSet(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter
 					kube: mgr.GetClient(),
 					log:  l,
 				},
-				volumeSelectorController: &kubeVolumeSelectorController{
-					kube: mgr.GetClient(),
-					log:  l,
-				},
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:   l,
 			}),
