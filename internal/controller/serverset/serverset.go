@@ -34,9 +34,9 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
-
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
 const (
@@ -56,13 +56,12 @@ const (
 // A connector is expected to produce an ExternalClient when its Connect method
 // is called.
 type connector struct {
-	kube                     client.Client
-	bootVolumeController     kubeBootVolumeControlManager
-	nicController            kubeNicControlManager
-	serverController         kubeServerControlManager
-	volumeSelectorController kubeVolumeSelectorManager
-	usage                    resource.Tracker
-	log                      logging.Logger
+	kube                 client.Client
+	bootVolumeController kubeBootVolumeControlManager
+	nicController        kubeNicControlManager
+	serverController     kubeServerControlManager
+	usage                resource.Tracker
+	log                  logging.Logger
 }
 
 // Connect typically produces an ExternalClient by:
@@ -81,12 +80,11 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	}
 
 	return &external{
-		kube:                     c.kube,
-		log:                      c.log,
-		bootVolumeController:     c.bootVolumeController,
-		nicController:            c.nicController,
-		serverController:         c.serverController,
-		volumeSelectorController: c.volumeSelectorController,
+		kube:                 c.kube,
+		log:                  c.log,
+		bootVolumeController: c.bootVolumeController,
+		nicController:        c.nicController,
+		serverController:     c.serverController,
 	}, err
 }
 
@@ -96,11 +94,10 @@ type external struct {
 	kube client.Client
 	// A 'client' used to connect to the externalServer resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	bootVolumeController     kubeBootVolumeControlManager
-	nicController            kubeNicControlManager
-	serverController         kubeServerControlManager
-	volumeSelectorController kubeVolumeSelectorManager
-	log                      logging.Logger
+	bootVolumeController kubeBootVolumeControlManager
+	nicController        kubeNicControlManager
+	serverController     kubeServerControlManager
+	log                  logging.Logger
 }
 
 func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -212,10 +209,6 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 			return managed.ExternalCreation{}, err
 		}
 
-	}
-	// volume selector attaches data volumes to the servers created in the serverset
-	if err := e.volumeSelectorController.CreateOrUpdate(ctx, cr); err != nil {
-		return managed.ExternalCreation{}, err
 	}
 
 	// When all conditions are met, the managed resource is considered available
@@ -433,13 +426,6 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 	e.log.Info("Boot Volumes successfully deleted")
 
-	e.log.Info("Deleting the Volume Selectors with label", "label", cr.Name)
-	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volumeselector{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
-		serverSetLabel: cr.Name,
-	}); err != nil {
-		return err
-	}
-	e.log.Info("Volume Selectors successfully deleted")
 	return nil
 }
 

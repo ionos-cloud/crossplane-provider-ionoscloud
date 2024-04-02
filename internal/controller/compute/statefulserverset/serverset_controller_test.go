@@ -3,6 +3,7 @@ package statefulserverset
 import (
 	"context"
 	"testing"
+	"time"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -34,6 +35,8 @@ func getReturnsSSet(ctx context.Context, watch client.WithWatch, key client.Obje
 }
 
 func Test_kubeServerSetController_Ensure(t *testing.T) {
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 	type fields struct {
 		kube client.Client
 		log  logging.Logger
@@ -41,7 +44,6 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 	type args struct {
 		ctx context.Context
 		cr  *v1alpha1.StatefulServerSet
-		w   waitUntilAvailable
 	}
 	tests := []struct {
 		name    string
@@ -56,11 +58,10 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx: ctxWithTimeout,
 				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: statefulServerSetName}},
-				w:   fakeWaitUntilAvailable,
 			},
-			wantErr: nil,
+			wantErr: context.DeadlineExceeded,
 		},
 		{
 			name: "error received on server set creation, then return error",
@@ -71,7 +72,6 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: statefulServerSetName}},
-				w:   fakeWaitUntilAvailable,
 			},
 			wantErr: ErrSomethingWentWrong,
 		},
@@ -84,7 +84,6 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: statefulServerSetName}},
-				w:   fakeWaitUntilAvailable,
 			},
 			wantErr: ErrSomethingWentWrong,
 		},
@@ -97,7 +96,6 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: statefulServerSetName}},
-				w:   fakeWaitUntilAvailable,
 			},
 			wantErr: nil,
 		},
@@ -108,7 +106,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 				kube: tt.fields.kube,
 				log:  tt.fields.log,
 			}
-			err := k.Ensure(tt.args.ctx, tt.args.cr, tt.args.w)
+			err := k.Ensure(tt.args.ctx, tt.args.cr)
 			assert.Equal(t, tt.wantErr, err)
 		})
 	}

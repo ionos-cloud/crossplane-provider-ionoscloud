@@ -23,10 +23,15 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 			ensure: 0,
 		},
 	}
+	volSetCtrl := &fakeKubeVolumeSelectorController{
+		Volume: v1alpha1.Volumeselector{},
+		Err:    nil,
+	}
 	type fields struct {
 		kube           client.Client
 		log            logging.Logger
 		SSetController kubeSSetControlManager
+		volSetCtrl     kubeVolumeSelectorManager
 	}
 	type args struct {
 		ctx context.Context
@@ -45,6 +50,7 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 				kube:           fakeKubeClientWithObjs(),
 				log:            logging.NewNopLogger(),
 				SSetController: SSetCtrl,
+				volSetCtrl:     volSetCtrl,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -57,9 +63,10 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &external{
-				kube:           tt.fields.kube,
-				log:            tt.fields.log,
-				SSetController: tt.fields.SSetController,
+				kube:                     tt.fields.kube,
+				log:                      tt.fields.log,
+				SSetController:           tt.fields.SSetController,
+				volumeSelectorController: tt.fields.volSetCtrl,
 			}
 			got, err := c.Create(tt.args.ctx, tt.args.mg)
 			if (err != nil) != tt.wantErr {

@@ -12,6 +12,3 @@ const (
 	statusUnknown = "UNKNOWN"
 	statusError   = "ERROR"
 )
-
-// <serverset_name>-volume-selector
-const volumeSelectorName = "%s-volume-selector"
