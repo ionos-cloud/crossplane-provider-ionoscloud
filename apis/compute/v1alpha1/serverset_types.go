@@ -162,7 +162,7 @@ type ServerSetBootVolumeMetadata struct {
 }
 
 // ServerSetBootVolumeSpec are the configurable fields of a ServerSetBootVolumeSpec.
-// +kubebuilder:validation:XValidation:rule="has(self.imagePassword)  || has(self.sshKeys) ",message="either imagePassword or sshKeys must be set"
+// +kubebuilder:validation:XValidation:rule="has(self.imagePassword) || has(self.sshKeys)",message="either imagePassword or sshKeys must be set"
 type ServerSetBootVolumeSpec struct {
 	// Image or snapshot ID to be used as template for this volume.
 	// Make sure the image selected is compatible with the datacenter's location.
