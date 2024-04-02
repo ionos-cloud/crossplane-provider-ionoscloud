@@ -663,4 +663,8 @@ spec:
     served: true
     storage: true
     subresources:
+      scale:
+        labelSelectorPath: .status.selector
+        specReplicasPath: .spec.forProvider.replicas
+        statusReplicasPath: .status.atProvider.replicas
       status: {}

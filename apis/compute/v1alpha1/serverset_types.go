@@ -162,7 +162,7 @@ type ServerSetBootVolumeMetadata struct {
 }
 
 // ServerSetBootVolumeSpec are the configurable fields of a ServerSetBootVolumeSpec.
-// +kubebuilder:validation:XValidation :rule="hasOneOf", message="One of `imagePassword` or `sshKeys` must be set"
+// +kubebuilder:validation:XValidation:rule="has(self.imagePassword) || has(self.sshKeys)",message="either imagePassword or sshKeys must be set"
 type ServerSetBootVolumeSpec struct {
 	// Image or snapshot ID to be used as template for this volume.
 	// Make sure the image selected is compatible with the datacenter's location.
@@ -192,6 +192,8 @@ type ServerSetBootVolumeSpec struct {
 	// Password rules allows all characters from a-z, A-Z, 0-9.
 	//
 	// +immutable
+	// +kubebuilder:validation:MinLength=8
+	// +kubebuilder:validation:MaxLength=50
 	// +kubebuilder:validation:Pattern="^[A-Za-z0-9]+$"
 	ImagePassword string `json:"imagePassword,omitempty"`
 	// Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key.
@@ -234,6 +236,7 @@ const (
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud},shortName=ss;sset
+// +kubebuilder:subresource:scale:specpath=.spec.forProvider.replicas,statuspath=.status.atProvider.replicas,selectorpath=.status.selector
 type ServerSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
