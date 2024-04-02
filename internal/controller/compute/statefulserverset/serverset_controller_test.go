@@ -38,9 +38,8 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	type fields struct {
-		kube           client.Client
-		log            logging.Logger
-		ssetController kubeSSetControlManager
+		kube client.Client
+		log  logging.Logger
 	}
 	type args struct {
 		ctx context.Context
