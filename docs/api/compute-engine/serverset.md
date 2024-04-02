@@ -81,6 +81,7 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* properties:
 				* `labels` (object)
 				* `name` (string)
+					* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 			* required properties:
 				* `name`
 		* `spec` (object)
@@ -89,7 +90,7 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 				* `image` (string)
 					* description: Image or snapshot ID to be used as template for this volume.
 Make sure the image selected is compatible with the datacenter's location.
-Note: when creating a volume, set image, image alias, or licence type
+Note: when creating a volume and setting image, set imagePassword or SSKeys as well.
 				* `imagePassword` (string)
 					* description: Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
 Password rules allows all characters from a-z, A-Z, 0-9.
@@ -126,6 +127,7 @@ operator is "In", and the values array contains only "value". The requirements a
 This field may only be set in creation requests. When reading, it always returns null.
 SSH keys are only supported if a public Linux image is used for the volume creation.
 				* `type` (string)
+					* description: Changing type re-creates either the bootvolume, or the bootvolume, server and nic depending on the UpdateStrategy chosen`
 					* possible values: "HDD";"SSD";"SSD Standard";"SSD Premium";"DAS";"ISO"
 				* `updateStrategy` (object)
 					* description: UpdateStrategy is the update strategy for the boot volume.
@@ -211,14 +213,12 @@ reference on every reconcile.
 			* properties:
 				* `labels` (object)
 				* `name` (string)
+					* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 			* required properties:
 				* `name`
 		* `spec` (object)
 			* description: ServerSetTemplateSpec are the configurable fields of a ServerSetTemplateSpec.
 			* properties:
-				* `bootStorageVolumeRef` (string)
-					* description: The reference to the boot volume.
-It must exist in the same data center as the server.
 				* `cores` (integer)
 					* description: The total number of cores for the server.
 					* format: int32
@@ -232,6 +232,7 @@ available CPU architectures can be retrieved from the datacenter resource.
 						* `ipv4` (string)
 						* `name` (string)
 							* description: todo add descriptions
+							* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 						* `reference` (string)
 					* required properties:
 						* `ipv4`
@@ -242,16 +243,8 @@ available CPU architectures can be retrieved from the datacenter resource.
 however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB,
 then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
 					* format: int32
-					* multiple of: 256.000000
-				* `volumeMounts` (array)
-					* description: The reference to the boot volume.
-It must exist in the same data center as the server.
-					* properties:
-						* `reference` (string)
-					* required properties:
-						* `reference`
+					* multiple of: 1024.000000
 			* required properties:
-				* `bootStorageVolumeRef`
 				* `cores`
 				* `ram`
 	* required properties:
