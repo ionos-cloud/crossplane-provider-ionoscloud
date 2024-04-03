@@ -42,7 +42,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
-const errNotFlowLog = "managed resource is not a NetworkLoadBalancer FlowLog"
+var errNotFlowLog = errors.New("managed resource is not a NetworkLoadBalancer FlowLog")
 
 // Setup adds a controller that reconciles FlowLog managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
@@ -87,7 +87,7 @@ type connectorFlowLog struct {
 func (c *connectorFlowLog) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
 	_, ok := mg.(*v1alpha1.FlowLog)
 	if !ok {
-		return nil, errors.New(errNotFlowLog)
+		return nil, errNotFlowLog
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalFlowLog{
@@ -109,7 +109,7 @@ type externalFlowLog struct {
 func (c *externalFlowLog) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
 	cr, ok := mg.(*v1alpha1.FlowLog)
 	if !ok {
-		return managed.ExternalObservation{}, errors.New(errNotFlowLog)
+		return managed.ExternalObservation{}, errNotFlowLog
 	}
 	flowLogID := meta.GetExternalName(cr)
 	if flowLogID == "" {
@@ -139,7 +139,7 @@ func (c *externalFlowLog) Observe(ctx context.Context, mg resource.Managed) (man
 func (c *externalFlowLog) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint: gocyclo
 	cr, ok := mg.(*v1alpha1.FlowLog)
 	if !ok {
-		return managed.ExternalCreation{}, errors.New(errNotFlowLog)
+		return managed.ExternalCreation{}, errNotFlowLog
 	}
 	cr.SetConditions(xpv1.Creating())
 	// Check external name in order to avoid duplicates,
@@ -181,7 +181,7 @@ func (c *externalFlowLog) Create(ctx context.Context, mg resource.Managed) (mana
 func (c *externalFlowLog) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
 	cr, ok := mg.(*v1alpha1.FlowLog)
 	if !ok {
-		return managed.ExternalUpdate{}, errors.New(errNotFlowLog)
+		return managed.ExternalUpdate{}, errNotFlowLog
 	}
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalUpdate{}, nil
@@ -198,7 +198,7 @@ func (c *externalFlowLog) Update(ctx context.Context, mg resource.Managed) (mana
 func (c *externalFlowLog) Delete(ctx context.Context, mg resource.Managed) error {
 	cr, ok := mg.(*v1alpha1.FlowLog)
 	if !ok {
-		return errors.New(errNotFlowLog)
+		return errNotFlowLog
 	}
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == compute.DESTROYING {
