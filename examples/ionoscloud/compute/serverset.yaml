@@ -98,3 +98,11 @@ spec:
 #        todo - add userdata in volume creation
         userData: "" #cloud-config
         imagePassword: "thisshouldbesecret"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-lease
+  namespace: default
+data:
+  identity: "serverset-server-0-0"

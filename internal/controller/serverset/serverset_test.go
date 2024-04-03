@@ -276,8 +276,6 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 	nic1 := createNic(server1.Name)
 	nic2 := createNic(server2.Name)
 
-	fakeKubeClient := fakeKubeClientObjs(&server1, &server2, &nic1, &nic2)
-
 	tests := []struct {
 		name    string
 		fields  fields
@@ -288,7 +286,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 		{
 			name: "serverset status is populated correctly",
 			fields: fields{
-				kube: fakeKubeClient,
+				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2),
 			},
 			args: args{
 				ctx: context.Background(),
