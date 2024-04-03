@@ -32,7 +32,7 @@ type kubeVolumeSelectorController struct {
 // CreateOrUpdate - creates a boot volume if it does not exist, or updates it if replicas changed
 func (k *kubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v1alpha1.ServerSet) error {
 	vsName := fmt.Sprintf(volumeSelectorName, cr.Name)
-	k.log.Info("CreateOrUpdate BootVolume", "name", vsName)
+	k.log.Info("CreateOrUpdate VolumeSelector", "name", vsName)
 	volumeSelector, err := k.Get(ctx, vsName, cr.Namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
@@ -47,7 +47,7 @@ func (k *kubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v
 			return err
 		}
 	}
-	k.log.Info("Finished CreateOrUpdate volume selector", "name", vsName)
+	k.log.Info("Finished CreateOrUpdate VolumeSelector", "name", vsName)
 
 	return nil
 }

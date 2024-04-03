@@ -2,8 +2,10 @@ package statefulserverset
 
 import (
 	"fmt"
+	"strconv"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
@@ -15,9 +17,11 @@ const (
 	bootVolumeImage = "ubuntu-20.04"
 	bootVolumeType  = "SSD"
 
-	customerLanName     = "customer"
-	customerLanIPv6cidr = "AUTO"
-	customerLanDHCP     = true
+	customerLanName         = "customer"
+	customerLanIPv6cidrAuto = "AUTO"
+	customerLanIPv6cidr1    = "1000:db8::/64"
+	customerLanIPv6cidr2    = "2000:db8::/64"
+	customerLanDHCP         = true
 
 	dataVolume1Name = "storage_disk"
 	dataVolume1Size = 10
@@ -28,6 +32,8 @@ const (
 	dataVolume2Type = "SSD"
 
 	datacenterName = "example-datacenter"
+
+	lanResourceVersion = 1
 
 	managementLanName = "management"
 	managementLanDHCP = false
@@ -80,6 +86,22 @@ type ServeFieldsUpToDate struct {
 	areCoresUpToDate bool
 }
 
+func createSSSetWithCustomerLanUpdated(params v1alpha1.StatefulServerSetLanSpec) *v1alpha1.StatefulServerSet {
+	ssset := createSSSet()
+	lanIdx := getCustomerLanIdx(ssset)
+	ssset.Spec.ForProvider.Lans[lanIdx].Spec = params
+	return ssset
+}
+
+func getCustomerLanIdx(ssset *v1alpha1.StatefulServerSet) int {
+	for lanIdx, lan := range ssset.Spec.ForProvider.Lans {
+		if lan.Metadata.Name == customerLanName {
+			return lanIdx
+		}
+	}
+	return -1
+}
+
 func createSSSet() *v1alpha1.StatefulServerSet {
 	return &v1alpha1.StatefulServerSet{
 		TypeMeta: metav1.TypeMeta{},
@@ -106,7 +128,7 @@ func createSSSet() *v1alpha1.StatefulServerSet {
 							Name: customerLanName,
 						},
 						Spec: v1alpha1.StatefulServerSetLanSpec{
-							IPv6cidr: customerLanIPv6cidr,
+							IPv6cidr: customerLanIPv6cidrAuto,
 							DHCP:     customerLanDHCP,
 						},
 					},
@@ -205,7 +227,7 @@ func createLanList() v1alpha1.LanList {
 			*createLAN(v1alpha1.LanParameters{
 				Name:     customerLanName,
 				Public:   customerLanDHCP,
-				Ipv6Cidr: customerLanIPv6cidr,
+				Ipv6Cidr: customerLanIPv6cidrAuto,
 			}),
 			*createLAN(v1alpha1.LanParameters{
 				Name:   managementLanName,
@@ -215,20 +237,46 @@ func createLanList() v1alpha1.LanList {
 	}
 }
 
-func createLanDefault() *v1alpha1.Lan {
+func createCustomerLANWithIpv6CidrUpdated() *v1alpha1.Lan {
+	lan := createCustomerLANWithIpv6Cidr()
+	lan.ResourceVersion = strconv.Itoa(lanResourceVersion + 1)
+	lan.Spec.ForProvider.Ipv6Cidr = customerLanIPv6cidr2
+	return lan
+}
+
+func createCustomerLANWithIpv6Cidr() *v1alpha1.Lan {
+	lan := createCustomerLAN()
+	lan.Spec.ForProvider.Ipv6Cidr = customerLanIPv6cidr1
+	lan.Status = v1alpha1.LanStatus{
+		AtProvider: v1alpha1.LanObservation{
+			LanID: "lan-id",
+			State: ionoscloud.Available,
+		},
+	}
+	return lan
+}
+
+func createCustomerLAN() *v1alpha1.Lan {
 	return createLAN(v1alpha1.LanParameters{
 		Name:     customerLanName,
 		Public:   customerLanDHCP,
-		Ipv6Cidr: customerLanIPv6cidr,
+		Ipv6Cidr: customerLanIPv6cidrAuto,
 	})
 }
 
 func createLAN(parameters v1alpha1.LanParameters) *v1alpha1.Lan {
 	return &v1alpha1.Lan{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: parameters.Name,
+			Name:            parameters.Name,
+			ResourceVersion: strconv.Itoa(lanResourceVersion),
 		},
 		Spec: v1alpha1.LanSpec{ForProvider: parameters},
+		Status: v1alpha1.LanStatus{
+			AtProvider: v1alpha1.LanObservation{
+				LanID: "lan-id",
+				State: ionoscloud.Available,
+			},
+		},
 	}
 }
 
@@ -410,6 +458,7 @@ func createServer(replicaIdx int, parameters v1alpha1.ServerParameters) *v1alpha
 func createNIC1() *v1alpha1.Nic {
 	return createNIC(0, v1alpha1.NicParameters{})
 }
+
 func createNIC2() *v1alpha1.Nic {
 	return createNIC(1, v1alpha1.NicParameters{})
 }
