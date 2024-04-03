@@ -168,12 +168,34 @@ func (e *external) populateCRStatus(cr *v1alpha1.ServerSet, serverSetReplicas []
 	for i := range serverSetReplicas {
 		replicaStatus := computeStatus(serverSetReplicas[i].Status.AtProvider.State)
 		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{
+			Role:         fetchRole(e, serverSetReplicas[i]),
 			Name:         serverSetReplicas[i].Name,
 			Status:       replicaStatus,
 			ErrorMessage: "",
 			LastModified: metav1.Now(),
 		}
 	}
+}
+
+func fetchRole(e *external, replica v1alpha1.Server) string {
+	ns := "default"
+	if replica.Namespace != "" {
+		ns = replica.Namespace
+	}
+
+	cfgLease := &v1.ConfigMap{}
+	err := e.kube.Get(context.Background(), client.ObjectKey{Namespace: ns, Name: "config-lease"}, cfgLease)
+	if err != nil {
+		e.log.Info("error fetching config lease, will default to PASSIVE role", "error", err)
+		return string(v1alpha1.Passive)
+	}
+
+	if cfgLease.Data["identity"] == replica.Name {
+		return string(v1alpha1.Active)
+	}
+
+	// if it is not in the config map then it is has Passive role
+	return string(v1alpha1.Passive)
 }
 
 func computeStatus(state string) string {

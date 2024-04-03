@@ -286,6 +286,34 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 		{
 			name: "serverset status is populated correctly",
 			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, createConfigLeaseMap()),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			want: v1alpha1.ServerSetObservation{
+				Replicas: 2,
+				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+					{
+						Name:         server1.Name,
+						Status:       statusReady,
+						Role:         "ACTIVE",
+						ErrorMessage: "",
+					},
+					{
+						Name:         server2.Name,
+						Status:       statusReady,
+						Role:         "PASSIVE",
+						ErrorMessage: "",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "config-lease map missing, then roles default to PASSIVE",
+			fields: fields{
 				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2),
 			},
 			args: args{
@@ -298,11 +326,41 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					{
 						Name:         server1.Name,
 						Status:       statusReady,
+						Role:         "PASSIVE",
 						ErrorMessage: "",
 					},
 					{
 						Name:         server2.Name,
 						Status:       statusReady,
+						Role:         "PASSIVE",
+						ErrorMessage: "",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "replicas not in config-lease, then roles default to PASSIVE",
+			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, createConfigLeaseMapDoesNotContainAnyReplica()),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			want: v1alpha1.ServerSetObservation{
+				Replicas: 2,
+				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+					{
+						Name:         server1.Name,
+						Status:       statusReady,
+						Role:         "PASSIVE",
+						ErrorMessage: "",
+					},
+					{
+						Name:         server2.Name,
+						Status:       statusReady,
+						Role:         "PASSIVE",
 						ErrorMessage: "",
 					},
 				},
@@ -576,5 +634,25 @@ func createServerSetWithNrOfNICsUpdated() *v1alpha1.ServerSet {
 func areEqual(t *testing.T, want, got v1alpha1.ServerSetObservation) {
 	if diff := cmp.Diff(want, got, cmpopts.IgnoreFields(v1alpha1.ServerSetReplicaStatus{}, "LastModified")); diff != "" {
 		t.Errorf("ServerSetObservation() mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func createConfigLeaseMapDoesNotContainAnyReplica() *v1.ConfigMap {
+	cm := createConfigLeaseMap()
+	cm.Data = map[string]string{
+		"identity": "some-other-server",
+	}
+	return cm
+}
+
+func createConfigLeaseMap() *v1.ConfigMap {
+	return &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "config-lease",
+			Namespace: "default",
+		},
+		Data: map[string]string{
+			"identity": "serverset-server-0-0",
+		},
 	}
 }

@@ -25,6 +25,13 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
+type Role string
+
+const (
+	Active  Role = "ACTIVE"
+	Passive Role = "PASSIVE"
+)
+
 // ServerSetParameters are the configurable fields of a ServerSet.
 type ServerSetParameters struct {
 	// The number of servers that will be created.
