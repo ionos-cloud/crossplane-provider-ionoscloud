@@ -129,9 +129,6 @@ func (c *externalNetworkLoadBalancer) Observe(ctx context.Context, mg resource.M
 	isLateInitialized := networkloadbalancer.LateInitializer(&cr.Spec.ForProvider, observed)
 	networkloadbalancer.SetStatus(&cr.Status.AtProvider, observed)
 	cr.Status.AtProvider.NetworkLoadBalancerID = networkLoadBalancerID
-	if err != nil {
-		return managed.ExternalObservation{}, err
-	}
 	listenerLanID, targetLanID, err := getConfiguredLanIDs(cr)
 	if err != nil {
 		return managed.ExternalObservation{}, err
