@@ -61,14 +61,6 @@ type ServerSetTemplateSpec struct {
 	// +kubebuilder:validation:MultipleOf=1024
 	// +kubebuilder:validation:Required
 	RAM int32 `json:"ram"`
-	// The reference to the boot volume.
-	// It must exist in the same data center as the server.
-	// +kubebuilder:validation:Required
-	BootStorageVolumeRef string `json:"bootStorageVolumeRef"`
-	// The reference to the boot volume.
-	// It must exist in the same data center as the server.
-	// +kubebuilder:validation:Required
-	VolumeMounts []ServerSetTemplateVolumeMount `json:"volumeMounts,omitempty"`
 	// NICs are the network interfaces of the server.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1

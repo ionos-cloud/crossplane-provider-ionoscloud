@@ -104,22 +104,12 @@ spec:
                             description: |-
                               Image or snapshot ID to be used as template for this volume.
                               Make sure the image selected is compatible with the datacenter's location.
-                              Note: when creating a bootvolume and setting image, set imagePassword or SSKeys as well.
-                            type: string
-                          imagePassword:
-                            description: |-
-                              Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
-                              Password rules allows all characters from a-z, A-Z, 0-9. Min length 8, max length 50.
-                            maxLength: 50
-                            minLength: 8
-                            pattern: ^[A-Za-z0-9]+$
+                              Note: when creating a volume and setting image, set imagePassword or SSKeys as well.
                             type: string
                           imagePassword:
                             description: |-
                               Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
                               Password rules allows all characters from a-z, A-Z, 0-9.
-                            maxLength: 50
-                            minLength: 8
                             pattern: ^[A-Za-z0-9]+$
                             type: string
                           selector:
@@ -184,6 +174,9 @@ spec:
                               type: string
                             type: array
                           type:
+                            description: Changing type re-creates either the bootvolume,
+                              or the bootvolume, server and nic depending on the UpdateStrategy
+                              chosen`
                             enum:
                             - HDD
                             - SSD
@@ -217,9 +210,6 @@ spec:
                         - size
                         - type
                         type: object
-                        x-kubernetes-validations:
-                        - message: either imagePassword or sshKeys must be set
-                          rule: 'has(self.imagePassword)  || has(self.sshKeys) '
                     required:
                     - spec
                     type: object
@@ -338,11 +328,6 @@ spec:
                         description: ServerSetTemplateSpec are the configurable fields
                           of a ServerSetTemplateSpec.
                         properties:
-                          bootStorageVolumeRef:
-                            description: |-
-                              The reference to the boot volume.
-                              It must exist in the same data center as the server.
-                            type: string
                           cores:
                             description: The total number of cores for the server.
                             format: int32
@@ -386,23 +371,7 @@ spec:
                             format: int32
                             multipleOf: 1024
                             type: integer
-                          volumeMounts:
-                            description: |-
-                              The reference to the boot volume.
-                              It must exist in the same data center as the server.
-                            items:
-                              description: |-
-                                ServerSetTemplateVolumeMount are the configurable fields of a ServerSetTemplateVolumeMount.
-                                It is used to mount a volume to a server.
-                              properties:
-                                reference:
-                                  type: string
-                              required:
-                              - reference
-                              type: object
-                            type: array
                         required:
-                        - bootStorageVolumeRef
                         - cores
                         - ram
                         type: object

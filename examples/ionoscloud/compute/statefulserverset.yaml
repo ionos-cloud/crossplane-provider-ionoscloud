@@ -40,9 +40,6 @@ spec:
           - name: nic-mng
             ipv4: "10.0.0.1/24"
             reference: management
-        volumeMounts:
-          - reference: "volume-mount-id"
-        bootStorageVolumeRef: "volume-id"
     bootVolumeTemplate:
       metadata:
           name: boot-volume

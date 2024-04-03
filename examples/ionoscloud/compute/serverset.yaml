@@ -86,9 +86,6 @@ spec:
           - name: nic-sample2
             ipv4: "10.0.0.1/24"
             reference: examplelan2
-        volumeMounts:
-          - reference: "volume-mount-id"
-        bootStorageVolumeRef: "volume-id"
     bootVolumeTemplate:
       spec:
         updateStrategy:
