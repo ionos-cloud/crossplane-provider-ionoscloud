@@ -221,7 +221,6 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 
 	cr.SetConditions(xpv1.Deleting())
-	meta.SetExternalName(cr, "")
 
 	e.log.Info("Deleting the DataVolumes with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
@@ -229,7 +228,6 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}); err != nil {
 		return err
 	}
-	e.log.Info("DataVolumes successfully deleted")
 
 	e.log.Info("Deleting the LANs with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Lan{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
@@ -237,15 +235,13 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}); err != nil {
 		return err
 	}
-	e.log.Info("LANs successfully deleted")
 
-	e.log.Info("Deleting the ServerSets with label", "label", cr.Name)
+	e.log.Info("Deleting the ServerSet with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.ServerSet{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		statefulServerSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
-	e.log.Info("ServerSets successfully deleted")
 
 	return nil
 }
