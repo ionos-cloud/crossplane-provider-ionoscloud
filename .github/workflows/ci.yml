@@ -62,6 +62,38 @@ jobs:
         with:
           version: ${{ env.GOLANGCI_VERSION }}
           args: --timeout 10m0s --verbose --out-format=colored-line-number
+  unit-tests:
+    runs-on: ubuntu-20.04
+    needs: detect-noop
+    if: needs.detect-noop.outputs.noop != 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+      - name: Find the Go Build Cache
+        id: go
+        run: echo "::set-output name=cache::$(make go.cachedir)"
+      - name: Cache the Go Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.go.outputs.cache }}
+          key: ${{ runner.os }}-build-lint-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-lint-
+      - name: Cache Go Dependencies
+        uses: actions/cache@v2
+        with:
+          path: .work/pkg
+          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-
+      - name: Vendor Dependencies
+        run: make vendor vendor.check
+      - name: Run Unit Tests
+        run: make test
 
   e2e-tests:
     runs-on: ubuntu-20.04
