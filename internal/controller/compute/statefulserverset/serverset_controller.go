@@ -3,7 +3,6 @@ package statefulserverset
 import (
 	"context"
 	"fmt"
-	"time"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -18,11 +17,9 @@ import (
 
 type kubeSSetControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error)
-	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, w waitUntilAvailable) error
+	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error
 	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.ServerSet, error)
 }
-
-type waitUntilAvailable func(ctx context.Context, timeoutInMinutes time.Duration, fn kube.IsResourceReady, name, namespace string) error
 
 // kubeServerSetController - kubernetes client wrapper for server set resources
 type kubeServerSetController struct {
@@ -91,7 +88,7 @@ func (k *kubeServerSetController) isAvailable(ctx context.Context, name, namespa
 }
 
 // Ensure - creates a server set if it does not exist
-func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, wait waitUntilAvailable) error {
+func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
 	SSetName := getSSetName(cr)
 	k.log.Info("Ensuring ServerSet", "name", SSetName)
 	kubeSSet := &v1alpha1.ServerSet{}
@@ -103,7 +100,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 		if err != nil {
 			return err
 		}
-		return wait(ctx, kube.ResourceReadyTimeout, k.isAvailable, SSetName, cr.Namespace)
+		return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, SSetName, cr.Namespace)
 	case err != nil:
 		return err
 	default:

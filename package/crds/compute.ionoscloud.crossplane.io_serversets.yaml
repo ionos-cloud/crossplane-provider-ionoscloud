@@ -90,6 +90,8 @@ spec:
                               type: string
                             type: object
                           name:
+                            maxLength: 63
+                            pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                             type: string
                         required:
                         - name
@@ -102,7 +104,13 @@ spec:
                             description: |-
                               Image or snapshot ID to be used as template for this volume.
                               Make sure the image selected is compatible with the datacenter's location.
-                              Note: when creating a volume, set image, image alias, or licence type
+                              Note: when creating a volume and setting image, set imagePassword or SSKeys as well.
+                            type: string
+                          imagePassword:
+                            description: |-
+                              Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
+                              Password rules allows all characters from a-z, A-Z, 0-9.
+                            pattern: ^[A-Za-z0-9]+$
                             type: string
                           imagePassword:
                             description: |-
@@ -172,6 +180,9 @@ spec:
                               type: string
                             type: array
                           type:
+                            description: Changing type re-creates either the bootvolume,
+                              or the bootvolume, server and nic depending on the UpdateStrategy
+                              chosen`
                             enum:
                             - HDD
                             - SSD
@@ -313,6 +324,8 @@ spec:
                               type: string
                             type: object
                           name:
+                            maxLength: 63
+                            pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                             type: string
                         required:
                         - name
@@ -321,11 +334,6 @@ spec:
                         description: ServerSetTemplateSpec are the configurable fields
                           of a ServerSetTemplateSpec.
                         properties:
-                          bootStorageVolumeRef:
-                            description: |-
-                              The reference to the boot volume.
-                              It must exist in the same data center as the server.
-                            type: string
                           cores:
                             description: The total number of cores for the server.
                             format: int32
@@ -349,6 +357,8 @@ spec:
                                   type: string
                                 name:
                                   description: todo add descriptions
+                                  maxLength: 63
+                                  pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                                   type: string
                                 reference:
                                   type: string
@@ -368,25 +378,9 @@ spec:
                               however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB,
                               then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
                             format: int32
-                            multipleOf: 256
+                            multipleOf: 1024
                             type: integer
-                          volumeMounts:
-                            description: |-
-                              The reference to the boot volume.
-                              It must exist in the same data center as the server.
-                            items:
-                              description: |-
-                                ServerSetTemplateVolumeMount are the configurable fields of a ServerSetTemplateVolumeMount.
-                                It is used to mount a volume to a server.
-                              properties:
-                                reference:
-                                  type: string
-                              required:
-                              - reference
-                              type: object
-                            type: array
                         required:
-                        - bootStorageVolumeRef
                         - cores
                         - ram
                         type: object
@@ -647,4 +641,8 @@ spec:
     served: true
     storage: true
     subresources:
+      scale:
+        labelSelectorPath: .status.selector
+        specReplicasPath: .spec.forProvider.replicas
+        statusReplicasPath: .status.atProvider.replicas
       status: {}

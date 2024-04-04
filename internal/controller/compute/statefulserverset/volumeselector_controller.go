@@ -1,4 +1,4 @@
-package serverset
+package statefulserverset
 
 import (
 	"context"
@@ -18,9 +18,12 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
+// volumeSelectorName <serverset_name>-volume-selector
+const volumeSelectorName = "%s-volume-selector"
+
 type kubeVolumeSelectorManager interface {
 	Get(ctx context.Context, name, ns string) (*v1alpha1.Volumeselector, error)
-	CreateOrUpdate(ctx context.Context, cr *v1alpha1.ServerSet) error
+	CreateOrUpdate(ctx context.Context, cr *v1alpha1.StatefulServerSet) error
 }
 
 // kubeBootVolumeController - kubernetes client wrapper  for server resources
@@ -29,8 +32,18 @@ type kubeVolumeSelectorController struct {
 	log  logging.Logger
 }
 
+// Get - returns a volume selector kubernetes object
+func (k *kubeVolumeSelectorController) Get(ctx context.Context, name, ns string) (*v1alpha1.Volumeselector, error) {
+	obj := &v1alpha1.Volumeselector{}
+	err := k.kube.Get(ctx, types.NamespacedName{
+		Namespace: ns,
+		Name:      name,
+	}, obj)
+	return obj, err
+}
+
 // CreateOrUpdate - creates a boot volume if it does not exist, or updates it if replicas changed
-func (k *kubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v1alpha1.ServerSet) error {
+func (k *kubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
 	vsName := fmt.Sprintf(volumeSelectorName, cr.Name)
 	k.log.Info("CreateOrUpdate VolumeSelector", "name", vsName)
 	volumeSelector, err := k.Get(ctx, vsName, cr.Namespace)
@@ -53,11 +66,11 @@ func (k *kubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v
 }
 
 // Create creates a volume selector CR and waits until in reaches AVAILABLE state
-func (k *kubeVolumeSelectorController) Create(ctx context.Context, cr *v1alpha1.ServerSet) (v1alpha1.Volumeselector, error) {
+func (k *kubeVolumeSelectorController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.Volumeselector, error) {
 	name := fmt.Sprintf(volumeSelectorName, cr.Name)
 	k.log.Info("Creating VolumeSelector", "name", name)
 
-	volSelector := fromServerSetToVolumeSelector(cr)
+	volSelector := fromStatefulServerSetToVolumeSelector(cr)
 	volSelector.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
 	if err := k.kube.Create(ctx, &volSelector); err != nil {
 		return v1alpha1.Volumeselector{}, err
@@ -90,17 +103,7 @@ func (k *kubeVolumeSelectorController) isAvailable(ctx context.Context, name, na
 	return false, err
 }
 
-// Get - returns a volume selector kubernetes object
-func (k *kubeVolumeSelectorController) Get(ctx context.Context, name, ns string) (*v1alpha1.Volumeselector, error) {
-	obj := &v1alpha1.Volumeselector{}
-	err := k.kube.Get(ctx, types.NamespacedName{
-		Namespace: ns,
-		Name:      name,
-	}, obj)
-	return obj, err
-}
-
-func fromServerSetToVolumeSelector(cr *v1alpha1.ServerSet) v1alpha1.Volumeselector {
+func fromStatefulServerSetToVolumeSelector(cr *v1alpha1.StatefulServerSet) v1alpha1.Volumeselector {
 	return v1alpha1.Volumeselector{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf(volumeSelectorName, cr.GetName()),
@@ -109,7 +112,7 @@ func fromServerSetToVolumeSelector(cr *v1alpha1.ServerSet) v1alpha1.Volumeselect
 				Time: time.Now(),
 			},
 			Labels: map[string]string{
-				serverSetLabel: cr.GetName(),
+				statefulServerSetLabel: cr.GetName(),
 			},
 		},
 		Spec: v1alpha1.VolumeselectorSpec{
@@ -118,7 +121,7 @@ func fromServerSetToVolumeSelector(cr *v1alpha1.ServerSet) v1alpha1.Volumeselect
 			},
 			ForProvider: v1alpha1.VolumeSelectorParameters{
 				Replicas:      cr.Spec.ForProvider.Replicas,
-				ServersetName: cr.GetName(),
+				ServersetName: getSSetName(cr),
 			},
 		},
 	}

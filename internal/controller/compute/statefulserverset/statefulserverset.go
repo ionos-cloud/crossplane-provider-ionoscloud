@@ -34,7 +34,6 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/serverset"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 const (
@@ -50,12 +49,13 @@ type NoOpService struct{}
 // A connector is expected to produce an ExternalClient when its Connect method
 // is called.
 type connector struct {
-	kube                 client.Client
-	usage                resource.Tracker
-	log                  logging.Logger
-	dataVolumeController kubeDataVolumeControlManager
-	LANController        kubeLANControlManager
-	SSetController       kubeSSetControlManager
+	kube                     client.Client
+	usage                    resource.Tracker
+	log                      logging.Logger
+	dataVolumeController     kubeDataVolumeControlManager
+	LANController            kubeLANControlManager
+	SSetController           kubeSSetControlManager
+	volumeSelectorController kubeVolumeSelectorManager
 }
 
 // Connect typically produces an ExternalClient by:
@@ -78,24 +78,26 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		return nil, err
 	}
 	return &external{
-		kube:                 c.kube,
-		service:              &server.APIClient{IonosServices: svc},
-		dataVolumeController: c.dataVolumeController,
-		LANController:        c.LANController,
-		SSetController:       c.SSetController,
-		log:                  c.log,
+		kube:                     c.kube,
+		service:                  &server.APIClient{IonosServices: svc},
+		dataVolumeController:     c.dataVolumeController,
+		LANController:            c.LANController,
+		SSetController:           c.SSetController,
+		volumeSelectorController: c.volumeSelectorController,
+		log:                      c.log,
 	}, err
 }
 
 // external observes, then either creates, updates, or deletes an
 // externalServerSet resource to ensure it reflects the managed resource's desired state.
 type external struct {
-	kube                 client.Client
-	service              server.Client
-	dataVolumeController kubeDataVolumeControlManager
-	LANController        kubeLANControlManager
-	SSetController       kubeSSetControlManager
-	log                  logging.Logger
+	kube                     client.Client
+	service                  server.Client
+	dataVolumeController     kubeDataVolumeControlManager
+	LANController            kubeLANControlManager
+	SSetController           kubeSSetControlManager
+	volumeSelectorController kubeVolumeSelectorManager
+	log                      logging.Logger
 }
 
 func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -168,11 +170,16 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	}
 	if err := e.ensureLans(ctx, cr); err != nil {
-		return managed.ExternalCreation{}, fmt.Errorf("while ensuring lans %w", err)
+		return managed.ExternalCreation{}, fmt.Errorf("while ensuring LANs %w", err)
 	}
 
-	if err := e.ensureSSet(ctx, cr); err != nil {
-		return managed.ExternalCreation{}, fmt.Errorf("while ensuring ServerSet CR %w", err)
+	if err := e.SSetController.Ensure(ctx, cr); err != nil {
+		return managed.ExternalCreation{}, fmt.Errorf("while ensuring ServerSet %w", err)
+	}
+
+	// volume selector attaches data volumes to the servers created in the serverset
+	if err := e.volumeSelectorController.CreateOrUpdate(ctx, cr); err != nil {
+		return managed.ExternalCreation{}, err
 	}
 
 	// When all conditions are met, the managed resource is considered available
@@ -216,11 +223,10 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 
 func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
+	cr.SetConditions(xpv1.Deleting())
 	if !ok {
 		return errors.New(errNotStatefulServerSet)
 	}
-
-	cr.SetConditions(xpv1.Deleting())
 
 	e.log.Info("Deleting the DataVolumes with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
@@ -243,6 +249,13 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return err
 	}
 
+	e.log.Info("Deleting the VolumeSelectors with label", "label", cr.Name)
+	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volumeselector{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		statefulServerSetLabel: cr.Name,
+	}); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -256,12 +269,13 @@ func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulS
 	}
 	return nil
 }
+
 func (e *external) ensureSSet(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	return e.SSetController.Ensure(ctx, cr, kube.WaitForResource)
+	return e.SSetController.Ensure(ctx, cr)
 }
 
 func (e *external) ensureLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	e.log.Info("Ensuring the lans")
+	e.log.Info("Ensuring the LANs")
 	for lanIndex := range cr.Spec.ForProvider.Lans {
 		err := e.LANController.Ensure(ctx, cr, lanIndex)
 		if err != nil {
@@ -346,7 +360,12 @@ func areSSetResourcesUpToDate(ctx context.Context, kube client.Client, cr *v1alp
 		return false, err
 	}
 
-	return areNICsUpToDate(ctx, kube, cr)
+	areNICSUpToDate, err := areNICsUpToDate(ctx, kube, cr)
+	if !areNICSUpToDate {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func areServersUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {

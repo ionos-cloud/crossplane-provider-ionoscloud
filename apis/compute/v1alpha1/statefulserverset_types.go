@@ -34,6 +34,8 @@ type DeploymentStrategy struct {
 // StatefulServerSetLanMetadata are the configurable fields of a StatefulServerSetLanMetadata.
 type StatefulServerSetLanMetadata struct {
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+	// +kubebuilder:validation:MaxLength=63
 	Name string `json:"name"`
 	// +kubebuilder:validation:Optional
 	Labels map[string]string `json:"labels,omitempty"`
@@ -56,6 +58,8 @@ type StatefulServerSetLan struct {
 // StatefulServerSetVolumeMetadata are the configurable fields of a StatefulServerSetVolumeMetadata.
 type StatefulServerSetVolumeMetadata struct {
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+	// +kubebuilder:validation:MaxLength=63
 	Name string `json:"name"`
 	// +kubebuilder:validation:Optional
 	Labels map[string]string `json:"labels,omitempty"`
@@ -71,7 +75,7 @@ type StatefulServerSetVolumeSpec struct {
 	//
 	// +kubebuilder:validation:Required
 	Size float32 `json:"size"`
-	// Hardware type of the volume.
+	// Hardware type of the volume. E.g: HDD;SSD;SSD Standard;SSD Premium
 	//
 	// +immutable
 	// +kubebuilder:validation:Enum=HDD;SSD;SSD Standard;SSD Premium
@@ -104,7 +108,6 @@ type StatefulServerSetParameters struct {
 	Template           ServerSetTemplate      `json:"template"`
 	BootVolumeTemplate BootVolumeTemplate     `json:"bootVolumeTemplate"`
 	Lans               []StatefulServerSetLan `json:"lans"`
-
 	Volumes []StatefulServerSetVolume `json:"volumes"`
 }
 
@@ -150,6 +153,7 @@ type StatefulServerSetStatus struct {
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud},shortName=sss;ssset
+// +kubebuilder:subresource:scale:specpath=.spec.forProvider.replicas,statuspath=.status.atProvider.replicas,selectorpath=.status.selector
 type StatefulServerSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -32,6 +32,11 @@ type fakeKubeDataVolumeController struct {
 	Err        error
 }
 
+type fakeKubeVolumeSelectorController struct {
+	Volume v1alpha1.Volumeselector
+	Err    error
+}
+
 type fakeKubeServerSetController struct {
 	methodCallCount map[string]int
 }
@@ -89,7 +94,7 @@ func (f *fakeKubeServerSetController) Create(ctx context.Context, cr *v1alpha1.S
 	return nil, nil
 }
 
-func (f *fakeKubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, w waitUntilAvailable) error {
+func (f *fakeKubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
 	f.methodCallCount[ensure]++
 	return nil
 }
@@ -98,6 +103,14 @@ func (f *fakeKubeServerSetController) Update(ctx context.Context, cr *v1alpha1.S
 	f.methodCallCount[update]++
 	return v1alpha1.ServerSet{}, nil
 
+}
+
+func (f fakeKubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
+	return f.Err
+}
+
+func (f fakeKubeVolumeSelectorController) Get(ctx context.Context, name, ns string) (*v1alpha1.Volumeselector, error) {
+	return &f.Volume, f.Err
 }
 
 func fakeKubeClientWithObjs(objs ...client.Object) client.WithWatch {

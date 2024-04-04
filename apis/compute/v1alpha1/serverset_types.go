@@ -58,17 +58,9 @@ type ServerSetTemplateSpec struct {
 	// however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB,
 	// then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
 	//
-	// +kubebuilder:validation:MultipleOf=256
+	// +kubebuilder:validation:MultipleOf=1024
 	// +kubebuilder:validation:Required
 	RAM int32 `json:"ram"`
-	// The reference to the boot volume.
-	// It must exist in the same data center as the server.
-	// +kubebuilder:validation:Required
-	BootStorageVolumeRef string `json:"bootStorageVolumeRef"`
-	// The reference to the boot volume.
-	// It must exist in the same data center as the server.
-	// +kubebuilder:validation:Required
-	VolumeMounts []ServerSetTemplateVolumeMount `json:"volumeMounts,omitempty"`
 	// NICs are the network interfaces of the server.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
@@ -81,6 +73,8 @@ type ServerSetTemplateNIC struct {
 	// todo add descriptions
 	//
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+	// +kubebuilder:validation:MaxLength=63
 	Name string `json:"name"`
 	// +kubebuilder:validation:Required
 	IPv4 string `json:"ipv4"`
@@ -106,6 +100,8 @@ type ServerSetTemplate struct {
 // ServerSetMetadata are the configurable fields of a ServerSetMetadata.
 type ServerSetMetadata struct {
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+	// +kubebuilder:validation:MaxLength=63
 	Name string `json:"name"`
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
@@ -151,24 +147,29 @@ type BootVolumeTemplate struct {
 // ServerSetBootVolumeMetadata are the configurable fields of a ServerSetBootVolumeMetadata.
 type ServerSetBootVolumeMetadata struct {
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+	// +kubebuilder:validation:MaxLength=63
 	Name string `json:"name"`
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // ServerSetBootVolumeSpec are the configurable fields of a ServerSetBootVolumeSpec.
+// +kubebuilder:validation:XValidation:rule="has(self.imagePassword) || has(self.sshKeys)",message="either imagePassword or sshKeys must be set"
 type ServerSetBootVolumeSpec struct {
 	// Image or snapshot ID to be used as template for this volume.
 	// Make sure the image selected is compatible with the datacenter's location.
-	// Note: when creating a volume, set image, image alias, or licence type
+	// Note: when creating a volume and setting image, set imagePassword or SSKeys as well.
 	//
 	// +immutable
+	// +kubebuilder:validation:Required
 	Image string `json:"image,omitempty"`
 	// The size of the volume in GB.
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:XValidation:rule="self >= oldSelf", message="Size cannot be decreased once set, only increased"
 	Size float32 `json:"size"`
+	// Changing type re-creates either the bootvolume, or the bootvolume, server and nic depending on the UpdateStrategy chosen`
 	//
 	// +immutable
 	// +kubebuilder:validation:Enum=HDD;SSD;SSD Standard;SSD Premium;DAS;ISO
@@ -184,6 +185,8 @@ type ServerSetBootVolumeSpec struct {
 	// Password rules allows all characters from a-z, A-Z, 0-9.
 	//
 	// +immutable
+	// +kubebuilder:validation:MinLength=8
+	// +kubebuilder:validation:MaxLength=50
 	// +kubebuilder:validation:Pattern="^[A-Za-z0-9]+$"
 	ImagePassword string `json:"imagePassword,omitempty"`
 	// Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key.
@@ -195,7 +198,7 @@ type ServerSetBootVolumeSpec struct {
 	Selector metav1.LabelSelector `json:"selector,omitempty"`
 	// UpdateStrategy is the update strategy when changing immutable fields on boot volume. The default value is createBeforeDestroyBootVolume which creates a new bootvolume before deleting the old one
 
-	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Required
 	UpdateStrategy UpdateStrategy `json:"updateStrategy,omitempty"`
 }
 
@@ -226,6 +229,7 @@ const (
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud},shortName=ss;sset
+// +kubebuilder:subresource:scale:specpath=.spec.forProvider.replicas,statuspath=.status.atProvider.replicas,selectorpath=.status.selector
 type ServerSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

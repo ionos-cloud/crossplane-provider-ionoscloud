@@ -211,12 +211,6 @@ func createSSetTemplate() v1alpha1.ServerSetTemplate {
 					Reference: nicLAN,
 				},
 			},
-			VolumeMounts: []v1alpha1.ServerSetTemplateVolumeMount{
-				{
-					Reference: "volume-mount-id",
-				},
-			},
-			BootStorageVolumeRef: "volume-id",
 		},
 	}
 }
