@@ -270,10 +270,6 @@ func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulS
 	return nil
 }
 
-func (e *external) ensureSSet(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	return e.SSetController.Ensure(ctx, cr)
-}
-
 func (e *external) ensureLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
 	e.log.Info("Ensuring the LANs")
 	for lanIndex := range cr.Spec.ForProvider.Lans {

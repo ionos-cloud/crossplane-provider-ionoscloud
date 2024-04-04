@@ -2,7 +2,6 @@ package statefulserverset
 
 import (
 	"context"
-	"time"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -11,7 +10,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 const (
@@ -133,8 +131,4 @@ func fakeKubeClientWithFunc(funcs interceptor.Funcs) client.WithWatch {
 	v1.AddToScheme(scheme)       // Add the core k8s types to the Scheme
 	v1alpha1.AddToScheme(scheme) // Add our custom types from v1alpha to the Scheme
 	return fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(funcs).Build()
-}
-
-func fakeWaitUntilAvailable(ctx context.Context, timeoutInMinutes time.Duration, fn kube.IsResourceReady, name, namespace string) error {
-	return nil
 }
