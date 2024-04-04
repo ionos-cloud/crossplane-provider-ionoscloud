@@ -74,9 +74,9 @@ func Test_serverSetController_Observe(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "servers, nics and configMap for reading the role created, then resource exists and it is up to date",
+			name: "servers, nics and boot volumes created, then resource exists and it is up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2),
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -382,11 +382,13 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					{
 						Name:         server1.Name,
 						Status:       statusReady,
+						Role:         "PASSIVE",
 						ErrorMessage: "",
 					},
 					{
 						Name:         server2.Name,
 						Status:       statusReady,
+						Role:         "PASSIVE",
 						ErrorMessage: "",
 					},
 				},
@@ -408,6 +410,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					{
 						Name:         server1.Name,
 						Status:       statusReady,
+						Role:         "PASSIVE",
 						ErrorMessage: "",
 					},
 				},
@@ -429,6 +432,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					{
 						Name:         serverWithErrorStatus.Name,
 						Status:       statusError,
+						Role:         "PASSIVE",
 						ErrorMessage: "",
 					},
 				},
@@ -450,6 +454,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					{
 						Name:         serverWithUnknownStatus.Name,
 						Status:       statusUnknown,
+						Role:         "PASSIVE",
 						ErrorMessage: "",
 					},
 				},

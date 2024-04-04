@@ -25,10 +25,14 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
+// Role is the role of a ServerSet Replica. It can be ACTIVE or PASSIVE. The default value is PASSIVE.
+// When a ServerSet Replica has role ACTIVE, it is the primary server and is used to serve the traffic.
 type Role string
 
 const (
-	Active  Role = "ACTIVE"
+	// Active means that the ServerSet Replica is the primary server and is used to serve the traffic.
+	Active Role = "ACTIVE"
+	// Passive means that the ServerSet Replica is the secondary server and is not used to serve the traffic.
 	Passive Role = "PASSIVE"
 )
 
@@ -76,8 +80,6 @@ type ServerSetTemplateSpec struct {
 
 // ServerSetTemplateNIC are the configurable fields of a ServerSetTemplateNIC.
 type ServerSetTemplateNIC struct {
-	// todo add descriptions
-	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
 	// +kubebuilder:validation:MaxLength=63
