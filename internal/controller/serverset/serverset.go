@@ -115,7 +115,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, err
 	}
 
-	e.populateReplicasStatuses(cr, servers)
+	e.populateReplicasStatuses(ctx, cr, servers)
 
 	allServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
 	areServersUpToDate := AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
@@ -159,7 +159,7 @@ func didNrOfReplicasChange(cr *v1alpha1.ServerSet, replicas []v1alpha1.Server) b
 	return len(replicas) != cr.Status.AtProvider.Replicas
 }
 
-func (e *external) populateReplicasStatuses(cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) {
+func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) {
 	if cr.Status.AtProvider.ReplicaStatuses == nil || didNrOfReplicasChange(cr, serverSetReplicas) {
 		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, len(serverSetReplicas))
 	}
@@ -168,7 +168,7 @@ func (e *external) populateReplicasStatuses(cr *v1alpha1.ServerSet, serverSetRep
 	for i := range serverSetReplicas {
 		replicaStatus := computeStatus(serverSetReplicas[i].Status.AtProvider.State)
 		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{
-			Role:         fetchRole(e, serverSetReplicas[i]),
+			Role:         fetchRole(ctx, e, serverSetReplicas[i]),
 			Name:         serverSetReplicas[i].Name,
 			Status:       replicaStatus,
 			ErrorMessage: "",
@@ -177,14 +177,14 @@ func (e *external) populateReplicasStatuses(cr *v1alpha1.ServerSet, serverSetRep
 	}
 }
 
-func fetchRole(e *external, replica v1alpha1.Server) string {
+func fetchRole(ctx context.Context, e *external, replica v1alpha1.Server) string {
 	ns := "default"
 	if replica.Namespace != "" {
 		ns = replica.Namespace
 	}
 
 	cfgLease := &v1.ConfigMap{}
-	err := e.kube.Get(context.Background(), client.ObjectKey{Namespace: ns, Name: "config-lease"}, cfgLease)
+	err := e.kube.Get(ctx, client.ObjectKey{Namespace: ns, Name: "config-lease"}, cfgLease)
 	if err != nil {
 		e.log.Info("error fetching config lease, will default to PASSIVE role", "error", err)
 		return string(v1alpha1.Passive)
