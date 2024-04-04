@@ -37,14 +37,14 @@ func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSe
 	k.log.Info("Creating Server", "name", createServer.Name)
 
 	if err := k.kube.Create(ctx, &createServer); err != nil {
-		return v1alpha1.Server{}, fmt.Errorf("while creating createServer %w ", err)
+		return v1alpha1.Server{}, fmt.Errorf("while creating Server %w ", err)
 	}
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createServer.Name, cr.Namespace); err != nil {
 		return v1alpha1.Server{}, fmt.Errorf("while waiting for createServer to be populated %w ", err)
 	}
 	createdServer, err := k.Get(ctx, createServer.Name, cr.Namespace)
 	if err != nil {
-		return v1alpha1.Server{}, fmt.Errorf("while getting createServer %w ", err)
+		return v1alpha1.Server{}, fmt.Errorf("while getting created Server %w ", err)
 	}
 	k.log.Info("Finished creating Server", "name", createServer.Name)
 

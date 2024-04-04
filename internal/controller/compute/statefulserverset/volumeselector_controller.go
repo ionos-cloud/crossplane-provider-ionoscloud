@@ -32,10 +32,20 @@ type kubeVolumeSelectorController struct {
 	log  logging.Logger
 }
 
+// Get - returns a volume selector kubernetes object
+func (k *kubeVolumeSelectorController) Get(ctx context.Context, name, ns string) (*v1alpha1.Volumeselector, error) {
+	obj := &v1alpha1.Volumeselector{}
+	err := k.kube.Get(ctx, types.NamespacedName{
+		Namespace: ns,
+		Name:      name,
+	}, obj)
+	return obj, err
+}
+
 // CreateOrUpdate - creates a boot volume if it does not exist, or updates it if replicas changed
 func (k *kubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
 	vsName := fmt.Sprintf(volumeSelectorName, cr.Name)
-	k.log.Info("CreateOrUpdate BootVolume", "name", vsName)
+	k.log.Info("CreateOrUpdate VolumeSelector", "name", vsName)
 	volumeSelector, err := k.Get(ctx, vsName, cr.Namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
@@ -50,7 +60,7 @@ func (k *kubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v
 			return err
 		}
 	}
-	k.log.Info("Finished CreateOrUpdate volume selector", "name", vsName)
+	k.log.Info("Finished CreateOrUpdate VolumeSelector", "name", vsName)
 
 	return nil
 }
@@ -91,16 +101,6 @@ func (k *kubeVolumeSelectorController) isAvailable(ctx context.Context, name, na
 		return true, nil
 	}
 	return false, err
-}
-
-// Get - returns a volume selector kubernetes object
-func (k *kubeVolumeSelectorController) Get(ctx context.Context, name, ns string) (*v1alpha1.Volumeselector, error) {
-	obj := &v1alpha1.Volumeselector{}
-	err := k.kube.Get(ctx, types.NamespacedName{
-		Namespace: ns,
-		Name:      name,
-	}, obj)
-	return obj, err
 }
 
 func fromStatefulServerSetToVolumeSelector(cr *v1alpha1.StatefulServerSet) v1alpha1.Volumeselector {

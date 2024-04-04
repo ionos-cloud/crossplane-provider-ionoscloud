@@ -38,7 +38,7 @@ type kubeDataVolumeController struct {
 // Create creates a volume CR and waits until in reaches AVAILABLE state
 func (k *kubeDataVolumeController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
 	name := generateNameFrom(cr.Name, volumeselector.ResourceDataVolume, replicaIndex, volumeIndex)
-	k.log.Info("Creating Data Volume", "name", name)
+	k.log.Info("Creating DataVolume", "name", name)
 
 	createVolume := fromSSSetToVolume(cr, name, replicaIndex, volumeIndex)
 	if err := k.kube.Create(ctx, &createVolume); err != nil {
@@ -52,7 +52,7 @@ func (k *kubeDataVolumeController) Create(ctx context.Context, cr *v1alpha1.Stat
 	if err != nil {
 		return v1alpha1.Volume{}, err
 	}
-	k.log.Info("Finished creating Data Volume", "name", name)
+	k.log.Info("Finished creating DataVolume", "name", name)
 
 	return *kubeVolume, nil
 }
@@ -85,7 +85,7 @@ func (k *kubeDataVolumeController) Delete(ctx context.Context, name, namespace s
 		return err
 	}
 	if err := k.kube.Delete(ctx, condemnedVolume); err != nil {
-		return fmt.Errorf("error deleting data volume %w", err)
+		return fmt.Errorf("error deleting DataVolume %w", err)
 	}
 	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isDataVolumeDeleted, condemnedVolume.Name, namespace)
 }
@@ -106,7 +106,7 @@ func (k *kubeDataVolumeController) isAvailable(ctx context.Context, name, namesp
 }
 
 func (k *kubeDataVolumeController) isDataVolumeDeleted(ctx context.Context, name, namespace string) (bool, error) {
-	k.log.Info("Checking if data volume is deleted", "name", name, "namespace", namespace)
+	k.log.Info("Checking if DataVolume is deleted", "name", name, "namespace", namespace)
 	obj := &v1alpha1.Volume{}
 	err := k.kube.Get(ctx, types.NamespacedName{
 		Namespace: namespace,
@@ -114,7 +114,7 @@ func (k *kubeDataVolumeController) isDataVolumeDeleted(ctx context.Context, name
 	}, obj)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
-			k.log.Info("Data volume has been deleted", "name", name, "namespace", namespace)
+			k.log.Info("DataVolume has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
 		return false, err

@@ -165,16 +165,16 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
 		err := e.ensureDataVolumes(ctx, cr, replicaIndex)
 		if err != nil {
-			return managed.ExternalCreation{}, fmt.Errorf("while ensuring data volumes %w", err)
+			return managed.ExternalCreation{}, fmt.Errorf("while ensuring DataVolumes %w", err)
 		}
 
 	}
 	if err := e.ensureLans(ctx, cr); err != nil {
-		return managed.ExternalCreation{}, fmt.Errorf("while ensuring lans %w", err)
+		return managed.ExternalCreation{}, fmt.Errorf("while ensuring LANs %w", err)
 	}
 
 	if err := e.SSetController.Ensure(ctx, cr); err != nil {
-		return managed.ExternalCreation{}, fmt.Errorf("while ensuring ServerSet CR %w", err)
+		return managed.ExternalCreation{}, fmt.Errorf("while ensuring ServerSet %w", err)
 	}
 
 	// volume selector attaches data volumes to the servers created in the serverset
@@ -228,13 +228,12 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return errors.New(errNotStatefulServerSet)
 	}
 
-	e.log.Info("Deleting the Data Volumes with label", "label", cr.Name)
+	e.log.Info("Deleting the DataVolumes with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		statefulServerSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
-	e.log.Info("Data Volumes successfully deleted")
 
 	e.log.Info("Deleting the LANs with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Lan{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
@@ -242,29 +241,26 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}); err != nil {
 		return err
 	}
-	e.log.Info("LANs successfully deleted")
 
-	e.log.Info("Deleting the ServerSets with label", "label", cr.Name)
+	e.log.Info("Deleting the ServerSet with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.ServerSet{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		statefulServerSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
-	e.log.Info("ServerSets successfully deleted")
 
-	e.log.Info("Deleting the Volume Selectors with label", "label", cr.Name)
+	e.log.Info("Deleting the VolumeSelectors with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volumeselector{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		statefulServerSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
-	e.log.Info("Volume Selectors successfully deleted")
 
 	return nil
 }
 
 func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex int) error {
-	e.log.Info("Ensuring the data volumes")
+	e.log.Info("Ensuring the DataVolumes")
 	for volumeIndex := range cr.Spec.ForProvider.Volumes {
 		err := e.dataVolumeController.Ensure(ctx, cr, replicaIndex, volumeIndex)
 		if err != nil {
@@ -275,7 +271,7 @@ func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulS
 }
 
 func (e *external) ensureLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	e.log.Info("Ensuring the lans")
+	e.log.Info("Ensuring the LANs")
 	for lanIndex := range cr.Spec.ForProvider.Lans {
 		err := e.LANController.Ensure(ctx, cr, lanIndex)
 		if err != nil {

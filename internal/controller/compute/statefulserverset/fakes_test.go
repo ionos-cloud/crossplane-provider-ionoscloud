@@ -103,10 +103,6 @@ func (f *fakeKubeServerSetController) Update(ctx context.Context, cr *v1alpha1.S
 
 }
 
-func (f *fakeKubeServerSetController) IsAvailable(ctx context.Context, name, namespace string) (bool, error) {
-	return true, nil
-}
-
 func (f fakeKubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
 	return f.Err
 }
