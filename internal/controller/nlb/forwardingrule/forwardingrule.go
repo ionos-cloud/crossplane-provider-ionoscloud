@@ -124,7 +124,7 @@ func (c *externalForwardingRule) Observe(ctx context.Context, mg resource.Manage
 	}
 	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
 	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
-	observed, _, err := c.service.GetForwardingRuleByID(ctx, datacenterID, nlbID, ruleID)
+	observed, err := c.service.GetForwardingRuleByID(ctx, datacenterID, nlbID, ruleID)
 	if err != nil {
 		if errors.Is(err, forwardingrule.ErrNotFound) {
 			return managed.ExternalObservation{}, nil
@@ -194,7 +194,7 @@ func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed
 	}
 
 	ruleInput := forwardingrule.GenerateCreateInput(cr, listenerIP, targetsIPs)
-	newInstance, _, err := c.service.CreateForwardingRule(ctx, datacenterID, nlbID, ruleInput)
+	newInstance, err := c.service.CreateForwardingRule(ctx, datacenterID, nlbID, ruleInput)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -224,7 +224,7 @@ func (c *externalForwardingRule) Update(ctx context.Context, mg resource.Managed
 		return managed.ExternalUpdate{}, err
 	}
 	ruleInput := forwardingrule.GenerateUpdateInput(cr, listenerIP, targetsIPs)
-	_, _, err = c.service.UpdateForwardingRule(ctx, datacenterID, nlbID, ruleID, ruleInput)
+	_, err = c.service.UpdateForwardingRule(ctx, datacenterID, nlbID, ruleID, ruleInput)
 
 	return managed.ExternalUpdate{}, err
 }
@@ -241,7 +241,7 @@ func (c *externalForwardingRule) Delete(ctx context.Context, mg resource.Managed
 	}
 	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
 	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
-	_, err := c.service.DeleteForwardingRule(ctx, datacenterID, nlbID, cr.Status.AtProvider.ForwardingRuleID)
+	err := c.service.DeleteForwardingRule(ctx, datacenterID, nlbID, cr.Status.AtProvider.ForwardingRuleID)
 	if !errors.Is(err, forwardingrule.ErrNotFound) {
 		return err
 	}

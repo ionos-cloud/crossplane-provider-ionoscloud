@@ -40,10 +40,10 @@ type APIClient struct {
 // Client is a wrapper around IONOS Service Network Load Balancer ForwardingRule methods
 type Client interface {
 	CheckDuplicateForwardingRule(ctx context.Context, datacenterID, nlbID, ruleName string) (string, error)
-	GetForwardingRuleByID(ctx context.Context, datacenterID, nlbID, ruleID string) (sdkgo.NetworkLoadBalancerForwardingRule, *sdkgo.APIResponse, error)
-	CreateForwardingRule(ctx context.Context, datacenterID, nlbID string, rule sdkgo.NetworkLoadBalancerForwardingRule) (sdkgo.NetworkLoadBalancerForwardingRule, *sdkgo.APIResponse, error)
-	UpdateForwardingRule(ctx context.Context, datacenterID, nlbID, ruleID string, ruleProperties sdkgo.NetworkLoadBalancerForwardingRuleProperties) (sdkgo.NetworkLoadBalancerForwardingRule, *sdkgo.APIResponse, error)
-	DeleteForwardingRule(ctx context.Context, datacenterID, nlbID, ruleID string) (*sdkgo.APIResponse, error)
+	GetForwardingRuleByID(ctx context.Context, datacenterID, nlbID, ruleID string) (sdkgo.NetworkLoadBalancerForwardingRule, error)
+	CreateForwardingRule(ctx context.Context, datacenterID, nlbID string, rule sdkgo.NetworkLoadBalancerForwardingRule) (sdkgo.NetworkLoadBalancerForwardingRule, error)
+	UpdateForwardingRule(ctx context.Context, datacenterID, nlbID, ruleID string, ruleProperties sdkgo.NetworkLoadBalancerForwardingRuleProperties) (sdkgo.NetworkLoadBalancerForwardingRule, error)
+	DeleteForwardingRule(ctx context.Context, datacenterID, nlbID, ruleID string) error
 }
 
 // CheckDuplicateForwardingRule returns the ID of the duplicate Forwarding Rule if any,
@@ -77,7 +77,7 @@ func (cp *APIClient) CheckDuplicateForwardingRule(ctx context.Context, datacente
 }
 
 // GetForwardingRuleByID based on Datacenter ID, NetworkLoadBalancer ID and ForwardingRule ID
-func (cp *APIClient) GetForwardingRuleByID(ctx context.Context, datacenterID, nlbID, ruleID string) (sdkgo.NetworkLoadBalancerForwardingRule, *sdkgo.APIResponse, error) {
+func (cp *APIClient) GetForwardingRuleByID(ctx context.Context, datacenterID, nlbID, ruleID string) (sdkgo.NetworkLoadBalancerForwardingRule, error) {
 	rule, apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersForwardingrulesFindByForwardingRuleId(ctx, datacenterID, nlbID, ruleID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		err = ErrNotFound
@@ -85,46 +85,46 @@ func (cp *APIClient) GetForwardingRuleByID(ctx context.Context, datacenterID, nl
 			err = fmt.Errorf(ruleGetByIDErr, err)
 		}
 	}
-	return rule, apiResponse, err
+	return rule, err
 }
 
 // CreateForwardingRule based on Datacenter ID, NetworkLoadBalancer ID and ForwardingRule
-func (cp *APIClient) CreateForwardingRule(ctx context.Context, datacenterID, nlbID string, rule sdkgo.NetworkLoadBalancerForwardingRule) (sdkgo.NetworkLoadBalancerForwardingRule, *sdkgo.APIResponse, error) {
+func (cp *APIClient) CreateForwardingRule(ctx context.Context, datacenterID, nlbID string, rule sdkgo.NetworkLoadBalancerForwardingRule) (sdkgo.NetworkLoadBalancerForwardingRule, error) {
 	rule, apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersForwardingrulesPost(ctx, datacenterID, nlbID).NetworkLoadBalancerForwardingRule(rule).Execute()
 	if err != nil {
-		return sdkgo.NetworkLoadBalancerForwardingRule{}, apiResponse, fmt.Errorf(ruleCreateErr, err)
+		return sdkgo.NetworkLoadBalancerForwardingRule{}, fmt.Errorf(ruleCreateErr, err)
 	}
 	if err = compute.WaitForRequest(ctx, cp.ComputeClient, apiResponse); err != nil {
-		return sdkgo.NetworkLoadBalancerForwardingRule{}, apiResponse, fmt.Errorf(ruleCreateWaitErr, err)
+		return sdkgo.NetworkLoadBalancerForwardingRule{}, fmt.Errorf(ruleCreateWaitErr, err)
 	}
-	return rule, apiResponse, err
+	return rule, err
 }
 
 // UpdateForwardingRule based on Datacenter ID, NetworkLoadBalancer ID, ForwardingRule ID and ForwardingRule
-func (cp *APIClient) UpdateForwardingRule(ctx context.Context, datacenterID, nlbID, ruleID string, ruleProperties sdkgo.NetworkLoadBalancerForwardingRuleProperties) (sdkgo.NetworkLoadBalancerForwardingRule, *sdkgo.APIResponse, error) {
+func (cp *APIClient) UpdateForwardingRule(ctx context.Context, datacenterID, nlbID, ruleID string, ruleProperties sdkgo.NetworkLoadBalancerForwardingRuleProperties) (sdkgo.NetworkLoadBalancerForwardingRule, error) {
 	rule, apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersForwardingrulesPatch(ctx, datacenterID, nlbID, ruleID).NetworkLoadBalancerForwardingRuleProperties(ruleProperties).Execute()
 	if err != nil {
-		return sdkgo.NetworkLoadBalancerForwardingRule{}, apiResponse, fmt.Errorf(ruleUpdateErr, err)
+		return sdkgo.NetworkLoadBalancerForwardingRule{}, fmt.Errorf(ruleUpdateErr, err)
 	}
 	if err = compute.WaitForRequest(ctx, cp.ComputeClient, apiResponse); err != nil {
-		return sdkgo.NetworkLoadBalancerForwardingRule{}, apiResponse, fmt.Errorf(ruleUpdateWaitErr, err)
+		return sdkgo.NetworkLoadBalancerForwardingRule{}, fmt.Errorf(ruleUpdateWaitErr, err)
 	}
-	return rule, apiResponse, nil
+	return rule, nil
 }
 
 // DeleteForwardingRule based on Datacenter ID, NetworkLoadBalancer ID and ForwardingRule ID
-func (cp *APIClient) DeleteForwardingRule(ctx context.Context, datacenterID, nlbID, ruleID string) (*sdkgo.APIResponse, error) {
+func (cp *APIClient) DeleteForwardingRule(ctx context.Context, datacenterID, nlbID, ruleID string) error {
 	apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersForwardingrulesDelete(ctx, datacenterID, nlbID, ruleID).Execute()
 	if err != nil {
 		if apiResponse.HttpNotFound() {
-			return apiResponse, ErrNotFound
+			return ErrNotFound
 		}
-		return apiResponse, fmt.Errorf(ruleDeleteErr, err)
+		return fmt.Errorf(ruleDeleteErr, err)
 	}
 	if err = compute.WaitForRequest(ctx, cp.ComputeClient, apiResponse); err != nil {
-		return apiResponse, fmt.Errorf(ruleDeleteWaitErr, err)
+		return fmt.Errorf(ruleDeleteWaitErr, err)
 	}
-	return apiResponse, nil
+	return nil
 }
 
 // SetStatus sets fields of the ForwardingRuleObservation based on sdkgo.NetworkLoadBalancerForwardingRule

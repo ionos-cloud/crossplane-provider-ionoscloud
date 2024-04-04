@@ -306,7 +306,7 @@ func TestNLBFlowLogCreate(t *testing.T) {
 			mock: func(ctx context.Context, client *flowlogmock.MockNLBFlowLog) {
 				client.EXPECT().
 					CheckDuplicateFlowLog(ctx, "nlb-dc-id", "nlb-id", "fl-name").
-					Return("", errors.New("duplicate flow log  check error"))
+					Return("", errors.New("duplicate flow log check error"))
 
 			},
 		},
