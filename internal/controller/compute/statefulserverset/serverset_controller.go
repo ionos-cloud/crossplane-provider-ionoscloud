@@ -30,13 +30,13 @@ type kubeServerSetController struct {
 // Create creates a server set CR and waits until in reaches AVAILABLE state
 func (k *kubeServerSetController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error) {
 	SSet := extractSSetFromSSSet(cr)
-	k.log.Info("Creating ServerSet CR", "name", SSet.Name)
+	k.log.Info("Creating ServerSet", "name", SSet.Name)
 
 	if err := k.kube.Create(ctx, SSet); err != nil {
 		return nil, err
 	}
 
-	k.log.Info("Finished creating ServerSet CR", "name", SSet.Name)
+	k.log.Info("Finished creating ServerSet", "name", SSet.Name)
 	return SSet, nil
 }
 
@@ -56,7 +56,7 @@ func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.State
 		return v1alpha1.ServerSet{}, nil
 	}
 
-	k.log.Info("Updating serverset", "name", name)
+	k.log.Info("Updating ServerSet", "name", name)
 	updateObj.Spec.ForProvider.Replicas = cr.Spec.ForProvider.Replicas
 	updateObj.Spec.ForProvider.Template = cr.Spec.ForProvider.Template
 	updateObj.Spec.ForProvider.BootVolumeTemplate = cr.Spec.ForProvider.BootVolumeTemplate
@@ -68,7 +68,7 @@ func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.State
 	if err != nil {
 		return v1alpha1.ServerSet{}, err
 	}
-	k.log.Info("Finished updating serverset", "name", name)
+	k.log.Info("Finished updating ServerSet", "name", name)
 	return *updateObj, nil
 }
 
@@ -87,10 +87,10 @@ func (k *kubeServerSetController) isAvailable(ctx context.Context, name, namespa
 	return false, err
 }
 
-// Ensure - creates a server set if it does not exist and waits until it is ready
+// Ensure - creates a server set if it does not exist
 func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
 	SSetName := getSSetName(cr)
-	k.log.Info("Ensuring ServerSet CR", "name", SSetName)
+	k.log.Info("Ensuring ServerSet", "name", SSetName)
 	kubeSSet := &v1alpha1.ServerSet{}
 	err := k.kube.Get(ctx, types.NamespacedName{Name: SSetName, Namespace: cr.Namespace}, kubeSSet)
 
@@ -104,7 +104,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 	case err != nil:
 		return err
 	default:
-		k.log.Info("ServerSet CR already exists", "name", SSetName)
+		k.log.Info("ServerSet already exists", "name", SSetName)
 		return nil
 	}
 }

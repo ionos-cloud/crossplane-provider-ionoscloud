@@ -409,13 +409,19 @@ spec:
                                   type: string
                                 reference:
                                   type: string
+                                vnetId:
+                                  type: string
                               required:
                               - ipv4
                               - name
                               - reference
+                              - vnetId
                               type: object
                             minItems: 1
                             type: array
+                            x-kubernetes-validations:
+                            - message: Value is Immutable
+                              rule: self == oldSelf
                           ram:
                             description: |-
                               The memory size for the server in MB, such as 2048. Size must be specified in multiples of 256 MB with a minimum of 256 MB.

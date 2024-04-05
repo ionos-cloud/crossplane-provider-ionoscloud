@@ -399,7 +399,7 @@ func Test_areLansUpToDate(t *testing.T) {
 		{
 			name:  "Different number of LANs",
 			sSSet: createSSSet(),
-			lans:  []v1alpha1.Lan{*createLanDefault()},
+			lans:  []v1alpha1.Lan{*createCustomerLAN()},
 			want: want{
 				creationUpToDate: false,
 				areUpToDate:      false,

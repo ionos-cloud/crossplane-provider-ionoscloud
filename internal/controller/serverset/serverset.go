@@ -117,7 +117,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	e.populateReplicasStatuses(ctx, cr, servers)
 
-	allServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
+	areServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
 	areServersUpToDate := AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
 
 	volumes, err := GetVolumesOfSSet(ctx, e.kube, cr.Name)
@@ -131,10 +131,10 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, err
 	}
 	crExpectedNoOfNICs := len(cr.Spec.ForProvider.Template.Spec.NICs) * cr.Spec.ForProvider.Replicas
-	allNicsCreated := len(nics) == crExpectedNoOfNICs
+	areNICsCreated := len(nics) == crExpectedNoOfNICs
 
 	// TODO - at the moment we do not check that fields of nics are updated
-	e.log.Info("Observing the ServerSet CR", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "allServersCreated", allServersCreated, "allNicsCreated", allNicsCreated)
+	e.log.Info("Observing the ServerSet", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "areServersCreated", areServersCreated, "areNICsCreated", areNICsCreated)
 
 	cr.SetConditions(xpv1.Available())
 
@@ -142,7 +142,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// Return false when the externalServerSet resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
 		// (re)create the resource, or that it has successfully been deleted.
-		ResourceExists: allServersCreated && allNicsCreated,
+		ResourceExists: areServersCreated && areNICsCreated,
 
 		// Return false when the externalServerSet resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
@@ -438,15 +438,20 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}); err != nil {
 		return err
 	}
-	e.log.Info("Servers successfully deleted")
 
-	e.log.Info("Deleting the boot Volumes with label", "label", cr.Name)
+	e.log.Info("Deleting the BootVolumes with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
 		serverSetLabel: cr.Name,
 	}); err != nil {
 		return err
 	}
-	e.log.Info("Boot Volumes successfully deleted")
+
+	e.log.Info("Deleting the VolumeSelectors with label", "label", cr.Name)
+	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volumeselector{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+		serverSetLabel: cr.Name,
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }
