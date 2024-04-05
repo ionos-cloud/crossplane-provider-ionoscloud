@@ -430,7 +430,6 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}); err != nil {
 		return err
 	}
-	e.log.Info("NICs successfully deleted")
 
 	e.log.Info("Deleting the Servers with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Server{}, client.InNamespace(cr.Namespace), client.MatchingLabels{

@@ -82,9 +82,11 @@ spec:
         nics:
           - name: nic-sample
             ipv4: "10.0.0.1/24"
+            vnetId: "3330fa34-927f-11ee-8008-6202af74e858"
             reference: examplelan
           - name: nic-sample2
             ipv4: "10.0.0.1/24"
+            vnetId: "3330fa34-927f-11ee-8008-6202af74e858"
             reference: examplelan2
     bootVolumeTemplate:
       spec:
@@ -105,4 +107,4 @@ metadata:
   name: config-lease
   namespace: default
 data:
-  identity: "serverset-server-0-0"
+  identity: "sss-example-serverset-name-server-0-0"

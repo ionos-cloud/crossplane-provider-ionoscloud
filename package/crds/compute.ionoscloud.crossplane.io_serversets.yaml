@@ -355,7 +355,6 @@ spec:
                                 ipv4:
                                   type: string
                                 name:
-                                  description: todo add descriptions
                                   maxLength: 63
                                   pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                                   type: string
@@ -586,7 +585,6 @@ spec:
                           enum:
                           - ACTIVE
                           - PASSIVE
-                          - REPLICA
                           type: string
                         status:
                           enum:
