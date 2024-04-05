@@ -79,6 +79,8 @@ type ServerSetTemplateNIC struct {
 	// +kubebuilder:validation:Required
 	IPv4 string `json:"ipv4"`
 	// +kubebuilder:validation:Required
+	VNetID string `json:"vnetId"`
+	// +kubebuilder:validation:Required
 	Reference string `json:"reference"`
 }
 

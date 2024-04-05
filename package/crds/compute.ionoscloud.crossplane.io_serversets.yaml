@@ -361,10 +361,13 @@ spec:
                                   type: string
                                 reference:
                                   type: string
+                                vnetId:
+                                  type: string
                               required:
                               - ipv4
                               - name
                               - reference
+                              - vnetId
                               type: object
                             minItems: 1
                             type: array
