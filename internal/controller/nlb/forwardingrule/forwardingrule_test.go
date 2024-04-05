@@ -4,9 +4,7 @@ package forwardingrule
 import (
 	"cmp"
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"reflect"
 	"slices"
 	"testing"
@@ -24,6 +22,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/nlb/forwardingrule"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/mock/clients/compute/ipblock"
 	forwardingrulemock "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/mock/clients/nlb/forwardingrule"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 func TestNLBForwardingRuleObserve(t *testing.T) {
@@ -463,8 +462,9 @@ func TestNLBForwardingRuleCreate(t *testing.T) {
 				}
 				return mg
 			}(),
-			want:    managed.ExternalCreation{},
-			wantErr: true,
+			want:             managed.ExternalCreation{},
+			wantErr:          true,
+			wantExternalName: "",
 			mock: func(ctx context.Context, fwRuleClient *forwardingrulemock.MockClient, ipBlockClient *ipblock.MockClient) {
 				fwRuleClient.EXPECT().
 					CheckDuplicateForwardingRule(ctx, "nlb-dc-id", "nlb-id", "fr-name").
@@ -494,7 +494,7 @@ func TestNLBForwardingRuleCreate(t *testing.T) {
 				}
 				createInput := forwardingrule.GenerateCreateInput(crInput, "10.20.30.40", targetIps)
 				fwRuleClient.EXPECT().
-					CreateForwardingRule(ctx, "nlb-dc-id", "nlb-id", gomock.GotFormatterAdapter(forwardingRuleGotFormatter{}, forwardingRuleMatcher(createInput))).
+					CreateForwardingRule(ctx, "nlb-dc-id", "nlb-id", utils.MatchFuncDefaultFormatter(createInput, matches)).
 					Return(ionoscloud.NetworkLoadBalancerForwardingRule{Id: pstr("new-fr-id")}, nil)
 			},
 		},
@@ -554,7 +554,7 @@ func TestNLBForwardingRuleCreate(t *testing.T) {
 				}
 				createInput := forwardingrule.GenerateCreateInput(crInput, "10.20.30.40", targetIps)
 				fwRuleClient.EXPECT().
-					CreateForwardingRule(ctx, "nlb-dc-id", "nlb-id", gomock.GotFormatterAdapter(forwardingRuleGotFormatter{}, forwardingRuleMatcher(createInput))).
+					CreateForwardingRule(ctx, "nlb-dc-id", "nlb-id", utils.MatchFuncDefaultFormatter(createInput, matches)).
 					Return(ionoscloud.NetworkLoadBalancerForwardingRule{}, errors.New("forwarding rule creation error"))
 			},
 		},
@@ -677,7 +677,7 @@ func TestNLBForwardingRuleUpdate(t *testing.T) {
 				}
 				updateInput := forwardingrule.GenerateUpdateInput(crInput, "10.20.30.40", targetIps)
 				fwRuleClient.EXPECT().
-					UpdateForwardingRule(ctx, "nlb-dc-id", "nlb-id", "fr-id", gomock.GotFormatterAdapter(forwardingRuleGotFormatter{}, forwardingRulePropertiesMatcher(updateInput))).
+					UpdateForwardingRule(ctx, "nlb-dc-id", "nlb-id", "fr-id", utils.MatchFuncDefaultFormatter(updateInput, matchesProperties)).
 					Return(ionoscloud.NetworkLoadBalancerForwardingRule{}, nil)
 			},
 		},
@@ -725,8 +725,8 @@ func TestNLBForwardingRuleUpdate(t *testing.T) {
 				}
 				updateInput := forwardingrule.GenerateUpdateInput(crInput, "10.20.30.40", targetIps)
 				fwRuleClient.EXPECT().
-					UpdateForwardingRule(ctx, "nlb-dc-id", "nlb-id", "fr-id", gomock.GotFormatterAdapter(forwardingRuleGotFormatter{}, forwardingRulePropertiesMatcher(updateInput))).
-					Return(ionoscloud.NetworkLoadBalancerForwardingRule{}, errors.New("forwarding rule creation error"))
+					UpdateForwardingRule(ctx, "nlb-dc-id", "nlb-id", "fr-id", utils.MatchFuncDefaultFormatter(updateInput, matchesProperties)).
+					Return(ionoscloud.NetworkLoadBalancerForwardingRule{}, errors.New("forwarding rule update error"))
 			},
 		},
 	}
@@ -886,65 +886,52 @@ var defaultFwRuleTargetHealthCheckCR = v1alpha1.ForwardingRuleTargetHealthCheck{
 	Maintenance:   false,
 }
 
-type forwardingRuleMatcher ionoscloud.NetworkLoadBalancerForwardingRule
-type forwardingRulePropertiesMatcher ionoscloud.NetworkLoadBalancerForwardingRuleProperties
-
-func (f forwardingRulePropertiesMatcher) Matches(x any) bool {
-	fm, ok := x.(ionoscloud.NetworkLoadBalancerForwardingRuleProperties)
+func matchesProperties(want, got any) bool {
+	w, ok := want.(ionoscloud.NetworkLoadBalancerForwardingRuleProperties)
 	if !ok {
 		return false
 	}
-	xm := ionoscloud.NetworkLoadBalancerForwardingRule{Properties: &fm}
-	properties := ionoscloud.NetworkLoadBalancerForwardingRuleProperties(f)
-	return forwardingRuleMatcher(ionoscloud.NetworkLoadBalancerForwardingRule{Properties: &properties}).Matches(xm)
-}
-
-func (f forwardingRulePropertiesMatcher) String() string {
-	return mustMarshal(f)
-}
-
-func (f forwardingRuleMatcher) Matches(x any) bool {
-	fm, ok := x.(ionoscloud.NetworkLoadBalancerForwardingRule)
+	g, ok := got.(ionoscloud.NetworkLoadBalancerForwardingRuleProperties)
 	if !ok {
 		return false
 	}
 
 	// sort Targets to ensure elements are ordered since the lists are built from a map iteration
-	if fm.Properties.Targets != nil && f.Properties.Targets != nil {
+	if w.Targets != nil && g.Targets != nil {
 		slices.SortStableFunc(
-			*fm.Properties.Targets,
+			*w.Targets,
 			func(a, b ionoscloud.NetworkLoadBalancerForwardingRuleTarget) int {
 				return cmp.Compare(*a.Ip, *b.Ip)
 			},
 		)
 		slices.SortStableFunc(
-			*f.Properties.Targets,
+			*g.Targets,
 			func(a, b ionoscloud.NetworkLoadBalancerForwardingRuleTarget) int {
 				return cmp.Compare(*a.Ip, *b.Ip)
 			},
 		)
 	}
-	s := reflect.DeepEqual(ionoscloud.NetworkLoadBalancerForwardingRule(f), fm)
-	if !s {
-		fmt.Println()
+	return reflect.DeepEqual(w, g)
+}
+
+func matches(want, got any) bool {
+	w, ok := want.(ionoscloud.NetworkLoadBalancerForwardingRule)
+	if !ok {
+		return false
 	}
-	return s
-}
-
-func (f forwardingRuleMatcher) String() string {
-	return mustMarshal(f)
-}
-
-type forwardingRuleGotFormatter struct{}
-
-func (n forwardingRuleGotFormatter) Got(got any) string {
-	return mustMarshal(got)
-}
-
-func mustMarshal(data interface{}) string {
-	bytes, err := json.Marshal(data)
-	if err != nil {
-		panic(err)
+	g, ok := got.(ionoscloud.NetworkLoadBalancerForwardingRule)
+	if !ok {
+		return false
 	}
-	return string(bytes)
+
+	switch {
+	case w.Properties != nil && g.Properties == nil:
+		return false
+	case w.Properties == nil && g.Properties != nil:
+		return false
+	case w.Properties == nil && g.Properties == nil:
+		return true
+	}
+
+	return matchesProperties(*w.Properties, *g.Properties)
 }

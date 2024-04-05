@@ -3,7 +3,6 @@ package networkloadbalancer
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"testing"
 
@@ -20,6 +19,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/nlb/networkloadbalancer"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/mock/clients/compute/ipblock"
 	networkloadbalancermock "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/mock/clients/nlb/networkloadbalancer"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 func TestNetworkLoadBalancerObserve(t *testing.T) {
@@ -497,7 +497,7 @@ func TestNetworkLoadBalancerCreate(t *testing.T) {
 						"133.100.100.0", "133.100.100.2", "133.100.100.4"},
 				)
 				nlbClient.EXPECT().
-					CreateNetworkLoadBalancer(ctx, "nlb-dc-id", sdkNlbEqWithFormatter(createInput)).
+					CreateNetworkLoadBalancer(ctx, "nlb-dc-id", utils.MatchEqDefaultFormatter(createInput)).
 					Return(ionoscloud.NetworkLoadBalancer{Id: pstr("new-nlb-id")}, nil)
 			},
 		},
@@ -663,7 +663,7 @@ func TestNetworkLoadBalancerUpdate(t *testing.T) {
 						"133.100.100.0", "133.100.100.2", "133.100.100.4"},
 				)
 				nlbClient.EXPECT().
-					UpdateNetworkLoadBalancer(ctx, "nlb-dc-id", "nlb-id", sdkNlbPropertiesEqWithFormatter(updateInput)).
+					UpdateNetworkLoadBalancer(ctx, "nlb-dc-id", "nlb-id", utils.MatchEqDefaultFormatter(updateInput)).
 					Return(ionoscloud.NetworkLoadBalancer{}, nil)
 			},
 		},
@@ -717,7 +717,7 @@ func TestNetworkLoadBalancerUpdate(t *testing.T) {
 						"133.100.100.0", "133.100.100.2", "133.100.100.4"},
 				)
 				nlbClient.EXPECT().
-					UpdateNetworkLoadBalancer(ctx, "nlb-dc-id", "nlb-id", sdkNlbPropertiesEqWithFormatter(updateInput)).
+					UpdateNetworkLoadBalancer(ctx, "nlb-dc-id", "nlb-id", utils.MatchEqDefaultFormatter(updateInput)).
 					Return(ionoscloud.NetworkLoadBalancer{}, errors.New("network load balancer update error"))
 			},
 		},
@@ -839,20 +839,4 @@ func TestNetworkLoadBalancerDelete(t *testing.T) {
 }
 
 var pi32 = ionoscloud.PtrInt32
-var pbool = ionoscloud.PtrBool
 var pstr = ionoscloud.PtrString
-
-func sdkNlbEqWithFormatter(nlb ionoscloud.NetworkLoadBalancer) gomock.Matcher {
-	return gomock.GotFormatterAdapter(gomock.GotFormatterFunc(mustMarshal), gomock.WantFormatter(gomock.StringerFunc(func() string { return mustMarshal(nlb) }), gomock.Eq(nlb)))
-}
-func sdkNlbPropertiesEqWithFormatter(nlb ionoscloud.NetworkLoadBalancerProperties) gomock.Matcher {
-	return gomock.GotFormatterAdapter(gomock.GotFormatterFunc(mustMarshal), gomock.WantFormatter(gomock.StringerFunc(func() string { return mustMarshal(nlb) }), gomock.Eq(nlb)))
-}
-
-func mustMarshal(data interface{}) string {
-	bytes, err := json.Marshal(data)
-	if err != nil {
-		panic(err)
-	}
-	return string(bytes)
-}
