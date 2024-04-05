@@ -18,13 +18,13 @@ package serverset
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,7 +74,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "servers, nics and boot volumes created, then resource exists and it is up to date",
+			name: "servers, nics and boot volumes created",
 			fields: fields{
 				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
 			},
@@ -90,7 +90,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "servers not created, then resource does not exist and is not up to date",
+			name: "servers not created",
 			fields: fields{
 				kube: fakeKubeClientObjs(),
 			},
@@ -106,7 +106,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "servers not up to date, then resource exists and is not up to date",
+			name: "servers not up to date",
 			fields: fields{
 				kube: fakeKubeClientObjs(&server1, &server2),
 			},
@@ -118,14 +118,13 @@ func Test_serverSetController_Observe(t *testing.T) {
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
 				ConnectionDetails: managed.ConnectionDetails{},
-				Diff:              "servers are not up to date",
 			},
 			wantErr: false,
 		},
 		{
-			name: "boot volume image is not up to date, then resource exists and is not up to date",
+			name: "boot volume image is not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2),
+				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, &bootVolume1, &bootVolume2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -139,14 +138,13 @@ func Test_serverSetController_Observe(t *testing.T) {
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
 				ConnectionDetails: managed.ConnectionDetails{},
-				Diff:              "servers are not up to date",
 			},
 			wantErr: false,
 		},
 		{
-			name: "boot volume size is not up to date, then resource exists and is not up to date",
+			name: "boot volume size is not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2),
+				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, &bootVolume1, &bootVolume2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -160,14 +158,13 @@ func Test_serverSetController_Observe(t *testing.T) {
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
 				ConnectionDetails: managed.ConnectionDetails{},
-				Diff:              "servers are not up to date",
 			},
 			wantErr: false,
 		},
 		{
-			name: "boot volume type is not up to date, then resource exists and is not up to date",
+			name: "boot volume type is not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2),
+				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, &bootVolume1, &bootVolume2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -181,12 +178,11 @@ func Test_serverSetController_Observe(t *testing.T) {
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
 				ConnectionDetails: managed.ConnectionDetails{},
-				Diff:              "servers are not up to date",
 			},
 			wantErr: false,
 		},
 		{
-			name: "servers < replica count, then resource does not exist and is not up to date",
+			name: "servers < replica count",
 			fields: fields{
 				kube: fakeKubeClientObjs(&server1),
 			},
@@ -202,7 +198,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "nics not created, then resource does not exist and is not up to date",
+			name: "nics not created",
 			fields: fields{
 				kube: fakeKubeClientObjs(&server1, &server2),
 			},
@@ -218,7 +214,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "nr of nics not up to date, then resource does not exist and is not up to date",
+			name: "nr of nics not up to date",
 			fields: fields{
 				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2),
 			},
@@ -248,9 +244,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 				t.Errorf("Observe() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Observe() got = %v, want %v", got, tt.want)
-			}
+			assert.Equalf(t, tt.want, got, "Observe() mismatch")
 		})
 	}
 }
@@ -440,7 +434,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Status of the server not among known ones, then status of replica is also UNKNOWN",
+			name: "status of the server not among known ones, then status of replica is also UNKNOWN",
 			fields: fields{
 				kube: fakeKubeClientObjs(&serverWithUnknownStatus, &nic1),
 			},
@@ -554,6 +548,13 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 								Reference: "data",
 							},
 						},
+					},
+				},
+				BootVolumeTemplate: v1alpha1.BootVolumeTemplate{
+					Spec: v1alpha1.ServerSetBootVolumeSpec{
+						Size:  bootVolumeSize,
+						Image: bootVolumeImage,
+						Type:  bootVolumeType,
 					},
 				},
 			},
