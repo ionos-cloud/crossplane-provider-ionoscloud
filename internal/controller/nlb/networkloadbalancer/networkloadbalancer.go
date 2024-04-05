@@ -119,7 +119,7 @@ func (c *externalNetworkLoadBalancer) Observe(ctx context.Context, mg resource.M
 	if networkLoadBalancerID == "" {
 		return managed.ExternalObservation{}, nil
 	}
-	observed, _, err := c.service.GetNetworkLoadBalancerByID(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, networkLoadBalancerID)
+	observed, err := c.service.GetNetworkLoadBalancerByID(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, networkLoadBalancerID)
 	if err != nil {
 		if errors.Is(err, networkloadbalancer.ErrNotFound) {
 			return managed.ExternalObservation{}, nil
@@ -153,6 +153,11 @@ func (c *externalNetworkLoadBalancer) Create(ctx context.Context, mg resource.Ma
 		return managed.ExternalCreation{}, errors.New(errNotNetworkLoadBalancer)
 	}
 	cr.SetConditions(xpv1.Creating())
+	// Check external name in order to avoid duplicates,
+	// since the creation requests take longer than other resources.
+	if meta.GetExternalName(cr) != "" {
+		return managed.ExternalCreation{}, nil
+	}
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalCreation{}, nil
 	}
@@ -172,16 +177,16 @@ func (c *externalNetworkLoadBalancer) Create(ctx context.Context, mg resource.Ma
 			return managed.ExternalCreation{}, nil
 		}
 	}
-	ips, err := c.getConfiguredIPs(ctx, cr)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
 	listenerLanID, targetLanID, err := getConfiguredLanIDs(cr)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
+	ips, err := c.getConfiguredIPs(ctx, cr)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
 	nlbInput := networkloadbalancer.GenerateCreateInput(cr, listenerLanID, targetLanID, ips)
-	newInstance, _, err := c.service.CreateNetworkLoadBalancer(ctx, datacenterID, nlbInput)
+	newInstance, err := c.service.CreateNetworkLoadBalancer(ctx, datacenterID, nlbInput)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -202,16 +207,16 @@ func (c *externalNetworkLoadBalancer) Update(ctx context.Context, mg resource.Ma
 
 	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
 	nlbID := cr.Status.AtProvider.NetworkLoadBalancerID
-	publicIPs, err := c.getConfiguredIPs(ctx, cr)
-	if err != nil {
-		return managed.ExternalUpdate{}, err
-	}
 	listenerLanID, targetLanID, err := getConfiguredLanIDs(cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
+	publicIPs, err := c.getConfiguredIPs(ctx, cr)
+	if err != nil {
+		return managed.ExternalUpdate{}, err
+	}
 	nlbInput := networkloadbalancer.GenerateUpdateInput(cr, listenerLanID, targetLanID, publicIPs)
-	_, _, err = c.service.UpdateNetworkLoadBalancer(ctx, datacenterID, nlbID, nlbInput)
+	_, err = c.service.UpdateNetworkLoadBalancer(ctx, datacenterID, nlbID, nlbInput)
 
 	return managed.ExternalUpdate{}, err
 }
@@ -228,7 +233,7 @@ func (c *externalNetworkLoadBalancer) Delete(ctx context.Context, mg resource.Ma
 	}
 	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
 	nlbID := cr.Status.AtProvider.NetworkLoadBalancerID
-	_, err := c.service.DeleteNetworkLoadBalancer(ctx, datacenterID, nlbID)
+	err := c.service.DeleteNetworkLoadBalancer(ctx, datacenterID, nlbID)
 	if !errors.Is(err, networkloadbalancer.ErrNotFound) {
 		return err
 	}
