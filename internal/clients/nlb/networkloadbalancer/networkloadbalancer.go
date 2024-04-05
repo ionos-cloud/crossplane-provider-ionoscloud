@@ -38,10 +38,10 @@ type APIClient struct {
 // Client is a wrapper around IONOS Service Network Load Balancer methods
 type Client interface {
 	CheckDuplicateNetworkLoadBalancer(ctx context.Context, datacenterID, nlbName string) (string, error)
-	GetNetworkLoadBalancerByID(ctx context.Context, datacenterID, NetworkLoadBalancerID string) (sdkgo.NetworkLoadBalancer, *sdkgo.APIResponse, error)
-	CreateNetworkLoadBalancer(ctx context.Context, datacenterID string, nlb sdkgo.NetworkLoadBalancer) (sdkgo.NetworkLoadBalancer, *sdkgo.APIResponse, error)
-	UpdateNetworkLoadBalancer(ctx context.Context, datacenterID, nlbID string, nlbProperties sdkgo.NetworkLoadBalancerProperties) (sdkgo.NetworkLoadBalancer, *sdkgo.APIResponse, error)
-	DeleteNetworkLoadBalancer(ctx context.Context, datacenterID, nlbID string) (*sdkgo.APIResponse, error)
+	GetNetworkLoadBalancerByID(ctx context.Context, datacenterID, NetworkLoadBalancerID string) (sdkgo.NetworkLoadBalancer, error)
+	CreateNetworkLoadBalancer(ctx context.Context, datacenterID string, nlb sdkgo.NetworkLoadBalancer) (sdkgo.NetworkLoadBalancer, error)
+	UpdateNetworkLoadBalancer(ctx context.Context, datacenterID, nlbID string, nlbProperties sdkgo.NetworkLoadBalancerProperties) (sdkgo.NetworkLoadBalancer, error)
+	DeleteNetworkLoadBalancer(ctx context.Context, datacenterID, nlbID string) error
 }
 
 // CheckDuplicateNetworkLoadBalancer returns the ID of the duplicate Network Load Balancer if any,
@@ -75,7 +75,7 @@ func (cp *APIClient) CheckDuplicateNetworkLoadBalancer(ctx context.Context, data
 }
 
 // GetNetworkLoadBalancerByID based on Datacenter ID and NetworkLoadBalancer ID
-func (cp *APIClient) GetNetworkLoadBalancerByID(ctx context.Context, datacenterID, nlbID string) (sdkgo.NetworkLoadBalancer, *sdkgo.APIResponse, error) {
+func (cp *APIClient) GetNetworkLoadBalancerByID(ctx context.Context, datacenterID, nlbID string) (sdkgo.NetworkLoadBalancer, error) {
 	nlb, apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersFindByNetworkLoadBalancerId(ctx, datacenterID, nlbID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		err = ErrNotFound
@@ -83,46 +83,46 @@ func (cp *APIClient) GetNetworkLoadBalancerByID(ctx context.Context, datacenterI
 			err = fmt.Errorf(nlbGetByIDErr, err)
 		}
 	}
-	return nlb, apiResponse, err
+	return nlb, err
 }
 
 // CreateNetworkLoadBalancer based on Datacenter ID and NetworkLoadBalancer
-func (cp *APIClient) CreateNetworkLoadBalancer(ctx context.Context, datacenterID string, nlb sdkgo.NetworkLoadBalancer) (sdkgo.NetworkLoadBalancer, *sdkgo.APIResponse, error) {
+func (cp *APIClient) CreateNetworkLoadBalancer(ctx context.Context, datacenterID string, nlb sdkgo.NetworkLoadBalancer) (sdkgo.NetworkLoadBalancer, error) {
 	nlb, apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersPost(ctx, datacenterID).NetworkLoadBalancer(nlb).Execute()
 	if err != nil {
-		return sdkgo.NetworkLoadBalancer{}, apiResponse, fmt.Errorf(nlbCreateErr, err)
+		return sdkgo.NetworkLoadBalancer{}, fmt.Errorf(nlbCreateErr, err)
 	}
 	if err = compute.WaitForRequest(ctx, cp.ComputeClient, apiResponse); err != nil {
-		return sdkgo.NetworkLoadBalancer{}, apiResponse, fmt.Errorf(nlbCreateWaitErr, err)
+		return sdkgo.NetworkLoadBalancer{}, fmt.Errorf(nlbCreateWaitErr, err)
 	}
-	return nlb, apiResponse, nil
+	return nlb, nil
 }
 
 // UpdateNetworkLoadBalancer based on  Datacenter ID, NetworkLoadBalancer ID and NetworkLoadBalancerProperties
-func (cp *APIClient) UpdateNetworkLoadBalancer(ctx context.Context, datacenterID, nlbID string, nlbProperties sdkgo.NetworkLoadBalancerProperties) (sdkgo.NetworkLoadBalancer, *sdkgo.APIResponse, error) {
+func (cp *APIClient) UpdateNetworkLoadBalancer(ctx context.Context, datacenterID, nlbID string, nlbProperties sdkgo.NetworkLoadBalancerProperties) (sdkgo.NetworkLoadBalancer, error) {
 	nlb, apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersPatch(ctx, datacenterID, nlbID).NetworkLoadBalancerProperties(nlbProperties).Execute()
 	if err != nil {
-		return sdkgo.NetworkLoadBalancer{}, apiResponse, fmt.Errorf(nlbUpdateErr, err)
+		return sdkgo.NetworkLoadBalancer{}, fmt.Errorf(nlbUpdateErr, err)
 	}
 	if err = compute.WaitForRequest(ctx, cp.ComputeClient, apiResponse); err != nil {
-		return sdkgo.NetworkLoadBalancer{}, apiResponse, fmt.Errorf(nlbUpdateWaitErr, err)
+		return sdkgo.NetworkLoadBalancer{}, fmt.Errorf(nlbUpdateWaitErr, err)
 	}
-	return nlb, apiResponse, nil
+	return nlb, nil
 }
 
 // DeleteNetworkLoadBalancer based on Datacenter ID and NetworkLoadBalancer ID
-func (cp *APIClient) DeleteNetworkLoadBalancer(ctx context.Context, datacenterID, nlbID string) (*sdkgo.APIResponse, error) {
+func (cp *APIClient) DeleteNetworkLoadBalancer(ctx context.Context, datacenterID, nlbID string) error {
 	apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersDelete(ctx, datacenterID, nlbID).Execute()
 	if err != nil {
 		if apiResponse.HttpNotFound() {
-			return apiResponse, ErrNotFound
+			return ErrNotFound
 		}
-		return apiResponse, fmt.Errorf(nlbDeleteErr, err)
+		return fmt.Errorf(nlbDeleteErr, err)
 	}
 	if err = compute.WaitForRequest(ctx, cp.ComputeClient, apiResponse); err != nil {
-		return apiResponse, fmt.Errorf(nlbDeleteWaitErr, err)
+		return fmt.Errorf(nlbDeleteWaitErr, err)
 	}
-	return apiResponse, nil
+	return nil
 }
 
 // LateInitializer fills the empty fields in *v1alpha1.NetworkLoadBalancerParameters with
