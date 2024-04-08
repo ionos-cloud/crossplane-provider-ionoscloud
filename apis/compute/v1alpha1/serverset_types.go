@@ -121,6 +121,7 @@ type ServerSetMetadata struct {
 // ServerSetObservation are the observable fields of a ServerSet.
 type ServerSetObservation struct {
 	// Replicas is the count of ready replicas.
+	// +kubebuilder:validation:Minimum=1
 	Replicas        int                      `json:"replicas,omitempty"`
 	ReplicaStatuses []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
 }

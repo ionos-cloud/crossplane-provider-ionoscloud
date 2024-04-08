@@ -828,6 +828,7 @@ spec:
                     type: array
                   replicas:
                     description: Replicas is the count of ready replicas.
+                    minimum: 1
                     type: integer
                 type: object
               conditions:
