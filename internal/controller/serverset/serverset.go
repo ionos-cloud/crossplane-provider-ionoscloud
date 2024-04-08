@@ -118,7 +118,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	e.populateReplicasStatuses(ctx, cr, servers)
 
 	areServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
-	areServersUpToDate := AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
+	areServersUpToDate := AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers, areServersCreated)
 
 	volumes, err := GetVolumesOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
@@ -456,7 +456,7 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 }
 
 // AreServersUpToDate checks if replicas and template params are equal to server obj params
-func AreServersUpToDate(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server) bool {
+func AreServersUpToDate(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server, created bool) bool {
 	if len(servers) == 0 {
 		return false
 	}

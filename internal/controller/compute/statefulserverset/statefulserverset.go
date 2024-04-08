@@ -374,7 +374,7 @@ func areServersUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.St
 		return false, nil
 	}
 
-	return serverset.AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers), nil
+	return serverset.AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers, false), nil
 }
 
 func areBootVolumesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
