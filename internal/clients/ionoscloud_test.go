@@ -1,6 +1,9 @@
 package clients
 
 import (
+	"fmt"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/version"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -15,21 +18,20 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
 )
 
-// TODO: Fix this tests in https://github.com/ionos-cloud/crossplane-provider-ionoscloud/issues/204
-// const (
-//	hostnameFromSecret = "https://host"
-//	hostnameFromEnv    = "http://host-from-env"
-// )
-//
-// func setComputeDefaults(cfg *ionos.Configuration) {
-//	cfg.HTTPClient = http.DefaultClient
-//	cfg.UserAgent = fmt.Sprintf("%v/%v_ionos-cloud-sdk-go/v%v", UserAgent, version.Version, ionos.Version)
-// }
-//
-// func setDbaaSDefaults(cfg *ionosdbaas.Configuration) {
-//	cfg.HTTPClient = http.DefaultClient
-//	cfg.UserAgent = fmt.Sprintf("%v/%v_ionos-cloud-sdk-go-dbaas-postgres/v%v", UserAgent, version.Version, ionosdbaas.Version)
-// }
+const (
+	hostnameFromSecret = "https://host"
+	hostnameFromEnv    = "http://host-from-env"
+)
+
+func setComputeDefaults(cfg *ionos.Configuration) {
+	cfg.HTTPClient = http.DefaultClient
+	cfg.UserAgent = fmt.Sprintf("%v/%v_ionos-cloud-sdk-go/v%v", UserAgent, version.Version, ionos.Version)
+}
+
+func setDbaaSDefaults(cfg *ionosdbaas.Configuration) {
+	cfg.HTTPClient = http.DefaultClient
+	cfg.UserAgent = fmt.Sprintf("%v/%v_ionos-cloud-sdk-go-dbaas-postgres/v%v", UserAgent, version.Version, ionosdbaas.Version)
+}
 
 func TestNewIonosClient(t *testing.T) {
 
@@ -50,69 +52,68 @@ func TestNewIonosClient(t *testing.T) {
 			wantComputeConfig: nil,
 			wantErr:           true,
 		},
-		// TODO: Fix this tests in https://github.com/ionos-cloud/crossplane-provider-ionoscloud/issues/204
-		// {
-		//	name: "basic auth",
-		//	args: args{data: []byte(`{"user": "username","password": "cGFzc3dvcmQ="}`)},
-		//	wantComputeConfig: func() *ionos.Configuration {
-		//		cfg := ionos.NewConfiguration("username", "password", "", "")
-		//		setComputeDefaults(cfg)
-		//		return cfg
-		//	}(),
-		//	wantDbaasConfig: func() *ionosdbaas.Configuration {
-		//		cfg := ionosdbaas.NewConfiguration("username", "password", "", "")
-		//		setDbaaSDefaults(cfg)
-		//		return cfg
-		//	}(),
-		//	wantErr: false,
-		// },
-		// {
-		//	name: "2fa token auth and host url",
-		//	args: args{data: []byte(`{"user": "username","password": "cGFzc3dvcmQ=", "token": "token", "host_url":"https://host"}`)},
-		//	wantComputeConfig: func() *ionos.Configuration {
-		//		cfg := ionos.NewConfiguration("username", "password", "token", hostnameFromSecret)
-		//		setComputeDefaults(cfg)
-		//		return cfg
-		//	}(),
-		//	wantDbaasConfig: func() *ionosdbaas.Configuration {
-		//		cfg := ionosdbaas.NewConfiguration("username", "password", "token", hostnameFromSecret)
-		//		setDbaaSDefaults(cfg)
-		//		return cfg
-		//	}(),
-		//	wantErr: false,
-		// },
-		// {
-		//	name: "2fa token auth and global host url",
-		//	env:  map[string]string{"IONOS_API_URL": "http://host-from-env"},
-		//	args: args{data: []byte(`{"user": "username","password": "cGFzc3dvcmQ=", "token": "token"}`)},
-		//	wantComputeConfig: func() *ionos.Configuration {
-		//		cfg := ionos.NewConfiguration("username", "password", "token", hostnameFromEnv)
-		//		setComputeDefaults(cfg)
-		//		return cfg
-		//	}(),
-		//	wantDbaasConfig: func() *ionosdbaas.Configuration {
-		//		cfg := ionosdbaas.NewConfiguration("username", "password", "token", hostnameFromEnv)
-		//		setDbaaSDefaults(cfg)
-		//		return cfg
-		//	}(),
-		//	wantErr: false,
-		// },
-		// {
-		//	name: "2fa token auth dont overwrite secret specific with global host url",
-		//	env:  map[string]string{"IONOS_API_URL": hostnameFromEnv},
-		//	args: args{data: []byte(`{"user": "username","password": "cGFzc3dvcmQ=", "token": "token", "host_url":"https://host"}`)},
-		//	wantComputeConfig: func() *ionos.Configuration {
-		//		cfg := ionos.NewConfiguration("username", "password", "token", hostnameFromSecret)
-		//		setComputeDefaults(cfg)
-		//		return cfg
-		//	}(),
-		//	wantDbaasConfig: func() *ionosdbaas.Configuration {
-		//		cfg := ionosdbaas.NewConfiguration("username", "password", "token", hostnameFromSecret)
-		//		setDbaaSDefaults(cfg)
-		//		return cfg
-		//	}(),
-		//	wantErr: false,
-		// },
+		{
+			name: "basic auth",
+			args: args{data: []byte(`{"user": "username","password": "cGFzc3dvcmQ="}`)},
+			wantComputeConfig: func() *ionos.Configuration {
+				cfg := ionos.NewConfiguration("username", "password", "", "")
+				setComputeDefaults(cfg)
+				return cfg
+			}(),
+			wantDbaasConfig: func() *ionosdbaas.Configuration {
+				cfg := ionosdbaas.NewConfiguration("username", "password", "", "")
+				setDbaaSDefaults(cfg)
+				return cfg
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "2fa token auth and host url",
+			args: args{data: []byte(`{"user": "username","password": "cGFzc3dvcmQ=", "token": "token", "host_url":"https://host"}`)},
+			wantComputeConfig: func() *ionos.Configuration {
+				cfg := ionos.NewConfiguration("username", "password", "token", hostnameFromSecret)
+				setComputeDefaults(cfg)
+				return cfg
+			}(),
+			wantDbaasConfig: func() *ionosdbaas.Configuration {
+				cfg := ionosdbaas.NewConfiguration("username", "password", "token", hostnameFromSecret)
+				setDbaaSDefaults(cfg)
+				return cfg
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "2fa token auth and global host url",
+			env:  map[string]string{"IONOS_API_URL": "http://host-from-env"},
+			args: args{data: []byte(`{"user": "username","password": "cGFzc3dvcmQ=", "token": "token"}`)},
+			wantComputeConfig: func() *ionos.Configuration {
+				cfg := ionos.NewConfiguration("username", "password", "token", hostnameFromEnv)
+				setComputeDefaults(cfg)
+				return cfg
+			}(),
+			wantDbaasConfig: func() *ionosdbaas.Configuration {
+				cfg := ionosdbaas.NewConfiguration("username", "password", "token", hostnameFromEnv)
+				setDbaaSDefaults(cfg)
+				return cfg
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "2fa token auth dont overwrite secret specific with global host url",
+			env:  map[string]string{"IONOS_API_URL": hostnameFromEnv},
+			args: args{data: []byte(`{"user": "username","password": "cGFzc3dvcmQ=", "token": "token", "host_url":"https://host"}`)},
+			wantComputeConfig: func() *ionos.Configuration {
+				cfg := ionos.NewConfiguration("username", "password", "token", hostnameFromSecret)
+				setComputeDefaults(cfg)
+				return cfg
+			}(),
+			wantDbaasConfig: func() *ionosdbaas.Configuration {
+				cfg := ionosdbaas.NewConfiguration("username", "password", "token", hostnameFromSecret)
+				setDbaaSDefaults(cfg)
+				return cfg
+			}(),
+			wantErr: false,
+		},
 		{
 			name:              "malformed json",
 			args:              args{data: []byte(`{"user": "foo",`)},
@@ -151,8 +152,16 @@ func TestNewIonosClient(t *testing.T) {
 			}
 			if tt.wantComputeConfig != nil {
 				require.NotNil(t, got)
-				assert.Equal(t, tt.wantComputeConfig, got.ComputeClient.GetConfig())
-				assert.Equal(t, tt.wantDbaasConfig, got.DBaaSPostgresClient.GetConfig())
+				ccfg := got.ComputeClient.GetConfig()
+				dcfg := got.DBaaSPostgresClient.GetConfig()
+				// Drop Logger from the comparison as log.Logger structs cannot be compared with DeepEqual
+				ccfg.Logger = nil
+				dcfg.Logger = nil
+				tt.wantComputeConfig.Logger = nil
+				tt.wantDbaasConfig.Logger = nil
+
+				assert.Equal(t, tt.wantComputeConfig, ccfg)
+				assert.Equal(t, tt.wantDbaasConfig, dcfg)
 			} else {
 				assert.Nil(t, got)
 			}
