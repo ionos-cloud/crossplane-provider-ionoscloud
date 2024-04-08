@@ -18,13 +18,13 @@ package serverset
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,9 +74,9 @@ func Test_serverSetController_Observe(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "servers, nics and configMap for reading the role created, then resource exists and it is up to date",
+			name: "servers, nics and boot volumes created",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2),
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -90,7 +90,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "servers not created, then resource does not exist and is not up to date",
+			name: "servers not created",
 			fields: fields{
 				kube: fakeKubeClientObjs(),
 			},
@@ -106,7 +106,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "servers not up to date, then resource exists and is not up to date",
+			name: "servers not up to date",
 			fields: fields{
 				kube: fakeKubeClientObjs(&server1, &server2),
 			},
@@ -118,14 +118,13 @@ func Test_serverSetController_Observe(t *testing.T) {
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
 				ConnectionDetails: managed.ConnectionDetails{},
-				Diff:              "servers are not up to date",
 			},
 			wantErr: false,
 		},
 		{
-			name: "boot volume image is not up to date, then resource exists and is not up to date",
+			name: "boot volume image is not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2),
+				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, &bootVolume1, &bootVolume2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -139,14 +138,13 @@ func Test_serverSetController_Observe(t *testing.T) {
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
 				ConnectionDetails: managed.ConnectionDetails{},
-				Diff:              "servers are not up to date",
 			},
 			wantErr: false,
 		},
 		{
-			name: "boot volume size is not up to date, then resource exists and is not up to date",
+			name: "boot volume size is not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2),
+				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, &bootVolume1, &bootVolume2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -160,14 +158,13 @@ func Test_serverSetController_Observe(t *testing.T) {
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
 				ConnectionDetails: managed.ConnectionDetails{},
-				Diff:              "servers are not up to date",
 			},
 			wantErr: false,
 		},
 		{
-			name: "boot volume type is not up to date, then resource exists and is not up to date",
+			name: "boot volume type is not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2),
+				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, &bootVolume1, &bootVolume2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -181,12 +178,11 @@ func Test_serverSetController_Observe(t *testing.T) {
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
 				ConnectionDetails: managed.ConnectionDetails{},
-				Diff:              "servers are not up to date",
 			},
 			wantErr: false,
 		},
 		{
-			name: "servers < replica count, then resource does not exist and is not up to date",
+			name: "servers < replica count",
 			fields: fields{
 				kube: fakeKubeClientObjs(&server1),
 			},
@@ -202,7 +198,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "nics not created, then resource does not exist and is not up to date",
+			name: "nics not created",
 			fields: fields{
 				kube: fakeKubeClientObjs(&server1, &server2),
 			},
@@ -218,7 +214,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "nr of nics not up to date, then resource does not exist and is not up to date",
+			name: "nr of nics not up to date",
 			fields: fields{
 				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2),
 			},
@@ -248,9 +244,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 				t.Errorf("Observe() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Observe() got = %v, want %v", got, tt.want)
-			}
+			assert.Equalf(t, tt.want, got, "Observe() mismatch")
 		})
 	}
 }
@@ -276,8 +270,6 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 	nic1 := createNic(server1.Name)
 	nic2 := createNic(server2.Name)
 
-	fakeKubeClient := fakeKubeClientObjs(&server1, &server2, &nic1, &nic2)
-
 	tests := []struct {
 		name    string
 		fields  fields
@@ -288,7 +280,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 		{
 			name: "serverset status is populated correctly",
 			fields: fields{
-				kube: fakeKubeClient,
+				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, createConfigLeaseMap()),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -300,11 +292,69 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					{
 						Name:         server1.Name,
 						Status:       statusReady,
+						Role:         "ACTIVE",
 						ErrorMessage: "",
 					},
 					{
 						Name:         server2.Name,
 						Status:       statusReady,
+						Role:         "PASSIVE",
+						ErrorMessage: "",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "config-lease map missing, then roles default to PASSIVE",
+			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			want: v1alpha1.ServerSetObservation{
+				Replicas: 2,
+				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+					{
+						Name:         server1.Name,
+						Status:       statusReady,
+						Role:         "PASSIVE",
+						ErrorMessage: "",
+					},
+					{
+						Name:         server2.Name,
+						Status:       statusReady,
+						Role:         "PASSIVE",
+						ErrorMessage: "",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "replicas not in config-lease, then roles default to PASSIVE",
+			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, createConfigLeaseMapDoesNotContainAnyReplica()),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			want: v1alpha1.ServerSetObservation{
+				Replicas: 2,
+				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+					{
+						Name:         server1.Name,
+						Status:       statusReady,
+						Role:         "PASSIVE",
+						ErrorMessage: "",
+					},
+					{
+						Name:         server2.Name,
+						Status:       statusReady,
+						Role:         "PASSIVE",
 						ErrorMessage: "",
 					},
 				},
@@ -326,11 +376,13 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					{
 						Name:         server1.Name,
 						Status:       statusReady,
+						Role:         "PASSIVE",
 						ErrorMessage: "",
 					},
 					{
 						Name:         server2.Name,
 						Status:       statusReady,
+						Role:         "PASSIVE",
 						ErrorMessage: "",
 					},
 				},
@@ -352,6 +404,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					{
 						Name:         server1.Name,
 						Status:       statusReady,
+						Role:         "PASSIVE",
 						ErrorMessage: "",
 					},
 				},
@@ -373,6 +426,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					{
 						Name:         serverWithErrorStatus.Name,
 						Status:       statusError,
+						Role:         "PASSIVE",
 						ErrorMessage: "",
 					},
 				},
@@ -380,7 +434,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Status of the server not among known ones, then status of replica is also UNKNOWN",
+			name: "status of the server not among known ones, then status of replica is also UNKNOWN",
 			fields: fields{
 				kube: fakeKubeClientObjs(&serverWithUnknownStatus, &nic1),
 			},
@@ -394,6 +448,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					{
 						Name:         serverWithUnknownStatus.Name,
 						Status:       statusUnknown,
+						Role:         "PASSIVE",
 						ErrorMessage: "",
 					},
 				},
@@ -495,6 +550,13 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 						},
 					},
 				},
+				BootVolumeTemplate: v1alpha1.BootVolumeTemplate{
+					Spec: v1alpha1.ServerSetBootVolumeSpec{
+						Size:  bootVolumeSize,
+						Image: bootVolumeImage,
+						Type:  bootVolumeType,
+					},
+				},
 			},
 		},
 		Status: v1alpha1.ServerSetStatus{},
@@ -578,5 +640,25 @@ func createServerSetWithNrOfNICsUpdated() *v1alpha1.ServerSet {
 func areEqual(t *testing.T, want, got v1alpha1.ServerSetObservation) {
 	if diff := cmp.Diff(want, got, cmpopts.IgnoreFields(v1alpha1.ServerSetReplicaStatus{}, "LastModified")); diff != "" {
 		t.Errorf("ServerSetObservation() mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func createConfigLeaseMapDoesNotContainAnyReplica() *v1.ConfigMap {
+	cm := createConfigLeaseMap()
+	cm.Data = map[string]string{
+		"identity": "some-other-server",
+	}
+	return cm
+}
+
+func createConfigLeaseMap() *v1.ConfigMap {
+	return &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "config-lease",
+			Namespace: "default",
+		},
+		Data: map[string]string{
+			"identity": "serverset-server-0-0",
+		},
 	}
 }

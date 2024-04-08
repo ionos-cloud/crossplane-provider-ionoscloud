@@ -35,10 +35,12 @@ spec:
         nics:
           - name: nic-sample
             ipv4: "10.0.0.1/24"
+            vnetId: "3330fa34-927f-11ee-8008-6202af74e858"
 #           should reference lan metadata name
             reference: data
           - name: nic-mng
             ipv4: "10.0.0.1/24"
+            vnetId: "3330fa34-927f-11ee-8008-6202af74e858"
             reference: management
     bootVolumeTemplate:
       metadata:
@@ -83,3 +85,11 @@ spec:
           type: SSD
   providerConfigRef:
     name: example
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-lease
+  namespace: default
+data:
+  identity: "sss-example-serverset-name-server-0-0"

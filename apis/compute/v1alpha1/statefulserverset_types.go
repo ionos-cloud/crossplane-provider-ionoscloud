@@ -132,6 +132,7 @@ type StatefulServerSetReplicaStatus struct {
 // StatefulServerSetObservation are the observable fields of a StatefulServerSet.
 type StatefulServerSetObservation struct {
 	// Replicas is the count of ready replicas.
+	// +kubebuilder:validation:Minimum=1
 	Replicas           int                      `json:"replicas,omitempty"`
 	ReplicaStatus      []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
 	DataVolumeStatuses []VolumeStatus           `json:"dataVolumeStatus,omitempty"`

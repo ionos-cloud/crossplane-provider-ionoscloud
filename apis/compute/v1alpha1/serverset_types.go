@@ -25,6 +25,17 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
+// Role is the role of a ServerSet Replica. It can be ACTIVE or PASSIVE. The default value is PASSIVE.
+// When a ServerSet Replica has role ACTIVE, it is the primary server and is used to serve the traffic.
+type Role string
+
+const (
+	// Active means that the ServerSet Replica is the primary server and is used to serve the traffic.
+	Active Role = "ACTIVE"
+	// Passive means that the ServerSet Replica is the secondary server and is not used to serve the traffic.
+	Passive Role = "PASSIVE"
+)
+
 // ServerSetParameters are the configurable fields of a ServerSet.
 type ServerSetParameters struct {
 	// The number of servers that will be created.
@@ -70,8 +81,6 @@ type ServerSetTemplateSpec struct {
 
 // ServerSetTemplateNIC are the configurable fields of a ServerSetTemplateNIC.
 type ServerSetTemplateNIC struct {
-	// todo add descriptions
-	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
 	// +kubebuilder:validation:MaxLength=63
@@ -112,12 +121,15 @@ type ServerSetMetadata struct {
 // ServerSetObservation are the observable fields of a ServerSet.
 type ServerSetObservation struct {
 	// Replicas is the count of ready replicas.
+	// +kubebuilder:validation:Minimum=1
 	Replicas        int                      `json:"replicas,omitempty"`
 	ReplicaStatuses []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
 }
 
 // ServerSetReplicaStatus are the observable fields of a ServerSetReplicaStatus.
 type ServerSetReplicaStatus struct {
+	// +kubebuilder:validation:Enum=ACTIVE;PASSIVE
+	Role Role   `json:"role"`
 	Name string `json:"name"`
 	// +kubebuilder:validation:Enum=UNKNOWN;READY;ERROR
 	Status string `json:"status"`

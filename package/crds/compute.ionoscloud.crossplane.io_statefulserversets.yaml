@@ -403,7 +403,6 @@ spec:
                                 ipv4:
                                   type: string
                                 name:
-                                  description: todo add descriptions
                                   maxLength: 63
                                   pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                                   type: string
@@ -807,6 +806,14 @@ spec:
                           type: string
                         name:
                           type: string
+                        role:
+                          description: |-
+                            Role is the role of a ServerSet Replica. It can be ACTIVE or PASSIVE. The default value is PASSIVE.
+                            When a ServerSet Replica has role ACTIVE, it is the primary server and is used to serve the traffic.
+                          enum:
+                          - ACTIVE
+                          - PASSIVE
+                          type: string
                         status:
                           enum:
                           - UNKNOWN
@@ -815,11 +822,13 @@ spec:
                           type: string
                       required:
                       - name
+                      - role
                       - status
                       type: object
                     type: array
                   replicas:
                     description: Replicas is the count of ready replicas.
+                    minimum: 1
                     type: integer
                 type: object
               conditions:

@@ -115,7 +115,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, err
 	}
 
-	e.populateCRStatus(cr, servers)
+	e.populateReplicasStatuses(ctx, cr, servers)
 
 	areServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
 	areServersUpToDate := AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
@@ -159,7 +159,7 @@ func didNrOfReplicasChange(cr *v1alpha1.ServerSet, replicas []v1alpha1.Server) b
 	return len(replicas) != cr.Status.AtProvider.Replicas
 }
 
-func (e *external) populateCRStatus(cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) {
+func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) {
 	if cr.Status.AtProvider.ReplicaStatuses == nil || didNrOfReplicasChange(cr, serverSetReplicas) {
 		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, len(serverSetReplicas))
 	}
@@ -168,12 +168,34 @@ func (e *external) populateCRStatus(cr *v1alpha1.ServerSet, serverSetReplicas []
 	for i := range serverSetReplicas {
 		replicaStatus := computeStatus(serverSetReplicas[i].Status.AtProvider.State)
 		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{
+			Role:         fetchRole(ctx, e, serverSetReplicas[i]),
 			Name:         serverSetReplicas[i].Name,
 			Status:       replicaStatus,
 			ErrorMessage: "",
 			LastModified: metav1.Now(),
 		}
 	}
+}
+
+func fetchRole(ctx context.Context, e *external, replica v1alpha1.Server) v1alpha1.Role {
+	ns := "default"
+	if replica.Namespace != "" {
+		ns = replica.Namespace
+	}
+
+	cfgLease := &v1.ConfigMap{}
+	err := e.kube.Get(ctx, client.ObjectKey{Namespace: ns, Name: "config-lease"}, cfgLease)
+	if err != nil {
+		e.log.Info("error fetching config lease, will default to PASSIVE role", "error", err)
+		return v1alpha1.Passive
+	}
+
+	if cfgLease.Data["identity"] == replica.Name {
+		return v1alpha1.Active
+	}
+
+	// if it is not in the config map then it is has Passive role
+	return v1alpha1.Passive
 }
 
 func computeStatus(state string) string {
@@ -408,7 +430,6 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}); err != nil {
 		return err
 	}
-	e.log.Info("NICs successfully deleted")
 
 	e.log.Info("Deleting the Servers with label", "label", cr.Name)
 	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Server{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
@@ -436,6 +457,10 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 
 // AreServersUpToDate checks if replicas and template params are equal to server obj params
 func AreServersUpToDate(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server) bool {
+	if len(servers) == 0 {
+		return false
+	}
+
 	for _, serverObj := range servers {
 		if serverObj.Spec.ForProvider.Cores != templateParams.Cores {
 			return false
@@ -453,6 +478,10 @@ func AreServersUpToDate(templateParams v1alpha1.ServerSetTemplateSpec, servers [
 
 // AreVolumesUpToDate checks if template params are equal to volume obj params
 func AreVolumesUpToDate(templateParams v1alpha1.BootVolumeTemplate, volumes []v1alpha1.Volume) bool {
+	if len(volumes) == 0 {
+		return false
+	}
+
 	for _, volumeObj := range volumes {
 		if volumeObj.Spec.ForProvider.Size != templateParams.Spec.Size {
 			return false
