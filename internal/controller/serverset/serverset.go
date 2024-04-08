@@ -177,7 +177,7 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 	}
 }
 
-func fetchRole(ctx context.Context, e *external, replica v1alpha1.Server) string {
+func fetchRole(ctx context.Context, e *external, replica v1alpha1.Server) v1alpha1.Role {
 	ns := "default"
 	if replica.Namespace != "" {
 		ns = replica.Namespace
@@ -187,15 +187,15 @@ func fetchRole(ctx context.Context, e *external, replica v1alpha1.Server) string
 	err := e.kube.Get(ctx, client.ObjectKey{Namespace: ns, Name: "config-lease"}, cfgLease)
 	if err != nil {
 		e.log.Info("error fetching config lease, will default to PASSIVE role", "error", err)
-		return string(v1alpha1.Passive)
+		return v1alpha1.Passive
 	}
 
 	if cfgLease.Data["identity"] == replica.Name {
-		return string(v1alpha1.Active)
+		return v1alpha1.Active
 	}
 
 	// if it is not in the config map then it is has Passive role
-	return string(v1alpha1.Passive)
+	return v1alpha1.Passive
 }
 
 func computeStatus(state string) string {

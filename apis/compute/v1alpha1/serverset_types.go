@@ -128,7 +128,7 @@ type ServerSetObservation struct {
 // ServerSetReplicaStatus are the observable fields of a ServerSetReplicaStatus.
 type ServerSetReplicaStatus struct {
 	// +kubebuilder:validation:Enum=ACTIVE;PASSIVE
-	Role string `json:"role"`
+	Role Role   `json:"role"`
 	Name string `json:"name"`
 	// +kubebuilder:validation:Enum=UNKNOWN;READY;ERROR
 	Status string `json:"status"`

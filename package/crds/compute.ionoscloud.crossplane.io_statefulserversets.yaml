@@ -807,6 +807,9 @@ spec:
                         name:
                           type: string
                         role:
+                          description: |-
+                            Role is the role of a ServerSet Replica. It can be ACTIVE or PASSIVE. The default value is PASSIVE.
+                            When a ServerSet Replica has role ACTIVE, it is the primary server and is used to serve the traffic.
                           enum:
                           - ACTIVE
                           - PASSIVE
