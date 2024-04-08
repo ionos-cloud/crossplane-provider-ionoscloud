@@ -52,7 +52,7 @@ const (
 // Setup adds a controller that reconciles ForwardingRule managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.ForwardingRuleGroupKind)
-
+	r := event.NewAPIRecorder(mgr.GetEventRecorderFor(name))
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
@@ -62,6 +62,7 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *u
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.ForwardingRuleGroupVersionKind),
 			managed.WithExternalConnecter(&connectorForwardingRule{
+				eventRecorder:        r,
 				kube:                 mgr.GetClient(),
 				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:                  l,
@@ -72,12 +73,13 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *u
 			managed.WithPollInterval(opts.GetPollInterval()),
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithLogger(l.WithValues("controller", name)),
-			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
+			managed.WithRecorder(r)))
 }
 
 // A connectorForwardingRule is expected to produce an ExternalClient when its Connect method
 // is called.
 type connectorForwardingRule struct {
+	eventRecorder        event.Recorder
 	kube                 client.Client
 	usage                resource.Tracker
 	log                  logging.Logger
@@ -96,6 +98,7 @@ func (c *connectorForwardingRule) Connect(ctx context.Context, mg resource.Manag
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalForwardingRule{
+		eventRecorder:        c.eventRecorder,
 		service:              &forwardingrule.APIClient{IonosServices: svc},
 		ipBlockService:       &ipblock.APIClient{IonosServices: svc},
 		log:                  c.log,
@@ -107,6 +110,7 @@ func (c *connectorForwardingRule) Connect(ctx context.Context, mg resource.Manag
 type externalForwardingRule struct {
 	// A 'client' used to connect to the externalForwardingRule resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
+	eventRecorder        event.Recorder
 	service              forwardingrule.Client
 	ipBlockService       ipblock.Client
 	log                  logging.Logger
@@ -267,16 +271,31 @@ func (c *externalForwardingRule) getConfiguredTargetsIPs(ctx context.Context, cr
 
 	targets := cr.Spec.ForProvider.Targets
 	targetsMap := map[string]v1alpha1.ForwardingRuleTarget{}
+	var ip string
+	var duplicateTargetIP bool
 	for _, t := range targets {
-		if t.IPCfg.IP != "" {
-			targetsMap[t.IPCfg.IP] = t
+		ip = t.IPCfg.IP
+
+		if ip == "" {
+			ips, err := c.ipBlockService.GetIPs(ctx, t.IPCfg.IPBlockID, int(t.IPCfg.Index))
+			if err != nil {
+				return nil, fmt.Errorf(errGetTargetsIPs, err)
+			}
+			targetsMap[ips[0]] = t
 			continue
 		}
-		ip, err := c.ipBlockService.GetIPs(ctx, t.IPCfg.IPBlockID, int(t.IPCfg.Index))
-		if err != nil {
-			return nil, fmt.Errorf(errGetTargetsIPs, err)
+
+		// User specified IPs are deduplicated
+		// Log and emit a warning if the same private IP is used for multiple targets
+		if !duplicateTargetIP {
+			if _, duplicateTargetIP = targetsMap[ip]; duplicateTargetIP {
+				msg := fmt.Errorf("duplicate ip for forwarding rule targets: %s", ip)
+				c.log.Info(msg.Error())
+				c.eventRecorder.Event(cr, event.Warning("DuplicateTargetIp", msg))
+			}
 		}
-		targetsMap[ip[0]] = t
+
+		targetsMap[ip] = t
 	}
 	return targetsMap, nil
 }
