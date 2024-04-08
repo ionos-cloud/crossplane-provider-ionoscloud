@@ -25,6 +25,7 @@ eval $(make --no-print-directory -C ${projectdir} build.vars)
 REGISTRY=${REGISTRY:-ghcr.io}
 ORG_NAME=${ORG_NAME:-ionos-cloud}
 BUILD_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}"
+PACKAGE_IMAGE="crossplane.io/inttests/${PROJECT_NAME}:${VERSION}"
 CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller"
 
 # ------------------------------
@@ -70,7 +71,8 @@ echo_step "setting up local package cache"
 CACHE_PATH="${projectdir}/.work/inttest-package-cache"
 mkdir -p "${CACHE_PATH}"
 echo "created cache dir at ${CACHE_PATH}"
-docker save "${BUILD_IMAGE}" -o "${CACHE_PATH}/${PACKAGE_NAME}.xpkg" && chmod 644 "${CACHE_PATH}/${PACKAGE_NAME}.xpkg"
+docker tag "${BUILD_IMAGE}" "${PACKAGE_IMAGE}"
+"${UP}" xpkg xp-extract --from-daemon "${PACKAGE_IMAGE}" -o "${CACHE_PATH}/${PACKAGE_NAME}.gz" && chmod 644 "${CACHE_PATH}/${PACKAGE_NAME}.gz"
 
 # create kind cluster with extra mounts
 KIND_NODE_IMAGE="kindest/node:${KIND_NODE_IMAGE_TAG}"
@@ -94,11 +96,6 @@ echo "${KIND_CONFIG}" | "${KIND}" create cluster --name="${K8S_CLUSTER}" --wait=
 sleep 5
 "${KIND}" load docker-image "${PACKAGE_CONTROLLER_IMAGE}" --name="${K8S_CLUSTER}"
 "${KIND}" load docker-image "${PACKAGE_PROVIDER_IMAGE}" --name="${K8S_CLUSTER}"
-
-# files are not synced properly from host to kind node container on Jenkins, so
-# we must manually copy image from host to node
-echo_step "pre-cache package by copying to kind node"
-docker cp "${CACHE_PATH}/${PACKAGE_NAME}.xpkg" "${K8S_CLUSTER}-control-plane":"/cache/${PACKAGE_NAME}.xpkg"
 
 echo_step "create crossplane-system namespace"
 "${KUBECTL}" create ns crossplane-system
@@ -148,8 +145,7 @@ echo_step "installing crossplane from stable channel"
 "${HELM3}" version
 "${HELM3}" repo add crossplane-stable https://charts.crossplane.io/stable --force-update
 # TODO: this is a hotfix until the latest stable version is supported
-#chart_version="$("${HELM3}" search repo crossplane-stable/crossplane --devel | awk 'FNR == 2 {print $2}')"
-chart_version="1.6.4"
+chart_version="$("${HELM3}" search repo crossplane-stable/crossplane --devel | awk 'FNR == 2 {print $2}')"
 echo_info "using crossplane version ${chart_version}"
 echo
 # we replace empty dir with our PVC so that the /cache dir in the kind node
