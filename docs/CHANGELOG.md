@@ -1,4 +1,10 @@
-## [1.0.10] (March 2024) upcoming release
+## [1.0.11] (TBD )
+- Add `NLB` managed resources:
+    - `Network Load Balancer`
+    - `Forwarding Rule`
+    - `Flowlog`
+
+## [1.0.10] (March 2024)
 - **Features**:
   - Allow conversion between schema types and go types 
   - Add `group` CRD to support CRUD of compute Groups
