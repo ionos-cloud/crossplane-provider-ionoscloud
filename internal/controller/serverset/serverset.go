@@ -184,7 +184,7 @@ func fetchRole(ctx context.Context, e *external, replica v1alpha1.Server) v1alph
 	}
 
 	cfgLease := &v1.ConfigMap{}
-	err := e.kube.Get(context.Background(), client.ObjectKey{Namespace: ns, Name: "config-lease"}, cfgLease)
+	err := e.kube.Get(ctx, client.ObjectKey{Namespace: ns, Name: "config-lease"}, cfgLease)
 	if err != nil {
 		e.log.Info("error fetching config lease, will default to PASSIVE role", "error", err)
 		return v1alpha1.Passive
