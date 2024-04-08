@@ -2,11 +2,12 @@ package clients
 
 import (
 	"fmt"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/version"
 	"net/http"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/version"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	ionosdbaas "github.com/ionos-cloud/sdk-go-dbaas-postgres"
