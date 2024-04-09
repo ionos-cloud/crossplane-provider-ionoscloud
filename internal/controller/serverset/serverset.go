@@ -169,9 +169,13 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 	for i := range serverSetReplicas {
 		errMsg := ""
 		replicaStatus := computeStatus(serverSetReplicas[i].Status.AtProvider.State)
-		if replicaStatus == statusError {
-			errMsg = fmt.Sprintf("Error in the replica with id %d", i)
+
+		nrOfConditions := len(serverSetReplicas[i].Status.Conditions)
+		if nrOfConditions > 0 && serverSetReplicas[i].Status.Conditions[nrOfConditions-1].Reason == "ReconcileError" {
+			replicaStatus = statusError
+			errMsg = serverSetReplicas[i].Status.Conditions[nrOfConditions-1].Message
 		}
+
 		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{
 			Role:         fetchRole(ctx, e, serverSetReplicas[i]),
 			Name:         serverSetReplicas[i].Name,
