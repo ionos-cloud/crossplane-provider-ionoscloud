@@ -45,9 +45,9 @@ const (
 
 	server1Name        = "serverset-server-0-0"
 	server2Name        = "serverset-server-1-0"
-	serverSetCpuFamily = "AMD_OPTERON"
+	serverSetCPUFamily = "AMD_OPTERON"
 	serverSetCores     = 2
-	serverSetRam       = 4096
+	serverSetRAM       = 4096
 	serverSetName      = "serverset"
 
 	bootVolumeNamePrefix = "boot-volume-"
@@ -118,7 +118,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
 					CPUFamily: "INTEL_XEON",
 					Cores:     serverSetCores,
-					RAM:       serverSetRam,
+					RAM:       serverSetRAM,
 				}),
 			},
 			want: managed.ExternalObservation{
@@ -136,9 +136,9 @@ func Test_serverSetController_Observe(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
-					CPUFamily: serverSetCpuFamily,
+					CPUFamily: serverSetCPUFamily,
 					Cores:     10,
-					RAM:       serverSetRam,
+					RAM:       serverSetRAM,
 				}),
 			},
 			want: managed.ExternalObservation{
@@ -156,7 +156,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
-					CPUFamily: serverSetCpuFamily,
+					CPUFamily: serverSetCPUFamily,
 					Cores:     serverSetCores,
 					RAM:       8192,
 				}),
@@ -539,8 +539,8 @@ func createServer(name string) v1alpha1.Server {
 		Spec: v1alpha1.ServerSpec{
 			ForProvider: v1alpha1.ServerParameters{
 				Cores:     serverSetCores,
-				RAM:       serverSetRam,
-				CPUFamily: serverSetCpuFamily,
+				RAM:       serverSetRAM,
+				CPUFamily: serverSetCPUFamily,
 			},
 		},
 	}
@@ -596,8 +596,8 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 				Template: v1alpha1.ServerSetTemplate{
 					Spec: v1alpha1.ServerSetTemplateSpec{
 						Cores:     serverSetCores,
-						RAM:       serverSetRam,
-						CPUFamily: serverSetCpuFamily,
+						RAM:       serverSetRAM,
+						CPUFamily: serverSetCPUFamily,
 						NICs: []v1alpha1.ServerSetTemplateNIC{
 							{
 								Name:      "nic1",
