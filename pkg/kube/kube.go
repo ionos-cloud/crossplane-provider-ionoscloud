@@ -11,8 +11,11 @@ import (
 
 // ResourceReadyTimeout time to wait for resource to be ready
 const ResourceReadyTimeout = 30 * time.Minute
+
+// ServersetReadyTimeout time to wait for serverset to be ready, higher than individual resources
 const ServersetReadyTimeout = 1 * time.Hour
 
+// ErrExternalCreateFailed error when external create fails, so we know to delete kube object
 var ErrExternalCreateFailed = errors.New("external create failed")
 
 // Implements lower level functions to interact with kubernetes

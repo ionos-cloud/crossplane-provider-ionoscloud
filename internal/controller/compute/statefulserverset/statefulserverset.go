@@ -21,14 +21,12 @@ import (
 	"fmt"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	apiErrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/pkg/errors"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
@@ -122,10 +120,8 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 	cr.Status.AtProvider.DataVolumeStatuses = setVolumeStatuses(volumes.Items)
 	creationVolumesUpToDate, areVolumesUpToDate := areDataVolumesUpToDate(cr, volumes.Items)
-
-	sSet := &v1alpha1.ServerSet{}
-	nsName := computeSSetNsName(cr)
-	if err := e.kube.Get(ctx, nsName, sSet); err != nil {
+	_, err = e.SSetController.Get(ctx, getSSetName(cr), cr.Namespace)
+	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			return managed.ExternalObservation{
 				ResourceExists: false,
@@ -339,16 +335,6 @@ func isAVolumeFieldNotUpToDate(specVolume v1alpha1.StatefulServerSetVolume, volu
 		return true
 	}
 	return false
-}
-
-func computeSSetNsName(cr *v1alpha1.StatefulServerSet) types.NamespacedName {
-	ssName := getSSetName(cr)
-	namespace := cr.Namespace
-
-	return types.NamespacedName{
-		Name:      ssName,
-		Namespace: namespace,
-	}
 }
 
 func areSSetResourcesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {

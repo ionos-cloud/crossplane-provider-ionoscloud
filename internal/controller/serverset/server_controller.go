@@ -80,9 +80,6 @@ func (k *kubeServerController) isAvailable(ctx context.Context, name, namespace 
 			return false, nil
 		}
 	}
-	if obj == nil {
-		return false, nil
-	}
 	if obj.Annotations[meta.AnnotationKeyExternalCreateFailed] != "" {
 		return false, kube.ErrExternalCreateFailed
 	}

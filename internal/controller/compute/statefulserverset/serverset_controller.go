@@ -21,6 +21,7 @@ type kubeSSetControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error)
 	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error
 	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.ServerSet, error)
+	Get(ctx context.Context, ssetName, ns string) (*v1alpha1.ServerSet, error)
 }
 
 // kubeServerSetController - kubernetes client wrapper for server set resources
