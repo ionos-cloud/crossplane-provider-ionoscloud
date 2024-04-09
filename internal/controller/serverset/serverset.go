@@ -124,6 +124,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
+	areBootVolumesCreated := len(volumes) == cr.Spec.ForProvider.Replicas
 	areBootVolumesUpToDate := AreVolumesUpToDate(cr.Spec.ForProvider.BootVolumeTemplate, volumes)
 
 	nics, err := GetNICsOfSSet(ctx, e.kube, cr.Name)
@@ -134,7 +135,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	areNICsCreated := len(nics) == crExpectedNoOfNICs
 
 	// TODO - at the moment we do not check that fields of nics are updated
-	e.log.Info("Observing the ServerSet", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "areServersCreated", areServersCreated, "areNICsCreated", areNICsCreated)
+	e.log.Info("Observing the ServerSet", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "areServersCreated", areServersCreated, "areBootVolumesCreated", areBootVolumesCreated, "areNICsCreated", areNICsCreated)
 
 	cr.SetConditions(xpv1.Available())
 
@@ -142,7 +143,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// Return false when the externalServerSet resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
 		// (re)create the resource, or that it has successfully been deleted.
-		ResourceExists: areServersCreated && areNICsCreated,
+		ResourceExists: areServersCreated && areNICsCreated && areBootVolumesCreated,
 
 		// Return false when the externalServerSet resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
@@ -461,10 +462,6 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 
 // AreServersUpToDate checks if replicas and template params are equal to server obj params
 func AreServersUpToDate(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server) bool {
-	if len(servers) == 0 {
-		return false
-	}
-
 	for _, serverObj := range servers {
 		if serverObj.Spec.ForProvider.Cores != templateParams.Cores {
 			return false
@@ -482,10 +479,6 @@ func AreServersUpToDate(templateParams v1alpha1.ServerSetTemplateSpec, servers [
 
 // AreVolumesUpToDate checks if template params are equal to volume obj params
 func AreVolumesUpToDate(templateParams v1alpha1.BootVolumeTemplate, volumes []v1alpha1.Volume) bool {
-	if len(volumes) == 0 {
-		return false
-	}
-
 	for _, volumeObj := range volumes {
 		if volumeObj.Spec.ForProvider.Size != templateParams.Spec.Size {
 			return false

@@ -39,13 +39,16 @@ import (
 )
 
 const (
-	serverSetName   = "serverset"
 	bootVolumeSize  = 100
 	bootVolumeType  = "HDD"
 	bootVolumeImage = "image"
 
-	server1Name = "serverset-server-0-0"
-	server2Name = "serverset-server-1-0"
+	server1Name        = "serverset-server-0-0"
+	server2Name        = "serverset-server-1-0"
+	serverSetCpuFamily = "AMD_OPTERON"
+	serverSetCores     = 2
+	serverSetRam       = 4096
+	serverSetName      = "serverset"
 
 	bootVolumeNamePrefix = "boot-volume-"
 )
@@ -100,19 +103,63 @@ func Test_serverSetController_Observe(t *testing.T) {
 			},
 			want: managed.ExternalObservation{
 				ResourceExists:    false,
+				ResourceUpToDate:  true,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "server CPU family not up to date",
+			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily: "INTEL_XEON",
+					Cores:     serverSetCores,
+					RAM:       serverSetRam,
+				}),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
 				ResourceUpToDate:  false,
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
 		},
 		{
-			name: "servers not up to date",
+			name: "server cores not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2),
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
 			},
 			args: args{
 				ctx: context.Background(),
-				cr:  createServerSetWithUpdatedServerSpec(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily: serverSetCpuFamily,
+					Cores:     10,
+					RAM:       serverSetRam,
+				}),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "server RAM not up to date",
+			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily: serverSetCpuFamily,
+					Cores:     serverSetCores,
+					RAM:       8192,
+				}),
 			},
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
@@ -124,7 +171,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "boot volume image is not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, &bootVolume1, &bootVolume2),
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -144,7 +191,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "boot volume size is not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, &bootVolume1, &bootVolume2),
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -164,7 +211,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "boot volume type is not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, &bootVolume1, &bootVolume2),
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -192,7 +239,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			},
 			want: managed.ExternalObservation{
 				ResourceExists:    false,
-				ResourceUpToDate:  false,
+				ResourceUpToDate:  true,
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -200,7 +247,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "nics not created",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2),
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -208,7 +255,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			},
 			want: managed.ExternalObservation{
 				ResourceExists:    false,
-				ResourceUpToDate:  false,
+				ResourceUpToDate:  true,
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -216,7 +263,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "nr of nics not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2),
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -224,7 +271,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			},
 			want: managed.ExternalObservation{
 				ResourceExists:    false,
-				ResourceUpToDate:  false,
+				ResourceUpToDate:  true,
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -489,6 +536,13 @@ func createServer(name string) v1alpha1.Server {
 				State: ionoscloud.Available,
 			},
 		},
+		Spec: v1alpha1.ServerSpec{
+			ForProvider: v1alpha1.ServerParameters{
+				Cores:     serverSetCores,
+				RAM:       serverSetRam,
+				CPUFamily: serverSetCpuFamily,
+			},
+		},
 	}
 }
 
@@ -541,6 +595,9 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 				Replicas: 2,
 				Template: v1alpha1.ServerSetTemplate{
 					Spec: v1alpha1.ServerSetTemplateSpec{
+						Cores:     serverSetCores,
+						RAM:       serverSetRam,
+						CPUFamily: serverSetCpuFamily,
 						NICs: []v1alpha1.ServerSetTemplateNIC{
 							{
 								Name:      "nic1",
@@ -563,12 +620,11 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 	}
 }
 
-func createServerSetWithUpdatedServerSpec() *v1alpha1.ServerSet {
+func createServerSetWithUpdatedServerSpec(spec v1alpha1.ServerSetTemplateSpec) *v1alpha1.ServerSet {
 	sset := createBasicServerSet()
-	sset.Spec.ForProvider.Template.Spec = v1alpha1.ServerSetTemplateSpec{
-		Cores: 10,
-		RAM:   20480,
-	}
+	sset.Spec.ForProvider.Template.Spec.Cores = spec.Cores
+	sset.Spec.ForProvider.Template.Spec.RAM = spec.RAM
+	sset.Spec.ForProvider.Template.Spec.CPUFamily = spec.CPUFamily
 	return sset
 }
 
