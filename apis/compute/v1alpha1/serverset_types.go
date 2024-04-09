@@ -38,7 +38,7 @@ const (
 
 // ServerSetParameters are the configurable fields of a ServerSet.
 type ServerSetParameters struct {
-	// The number of servers that will be created.
+	// The number of servers that will be created. Cannot be decreased once set, only increased.
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=1
@@ -128,6 +128,7 @@ type ServerSetObservation struct {
 
 // ServerSetReplicaStatus are the observable fields of a ServerSetReplicaStatus.
 type ServerSetReplicaStatus struct {
+	xpv1.ResourceStatus `json:",inline"`
 	// +kubebuilder:validation:Enum=ACTIVE;PASSIVE
 	Role Role   `json:"role"`
 	Name string `json:"name"`
@@ -237,6 +238,9 @@ const (
 
 // A ServerSet is an example API type.
 // +kubebuilder:resource:scope=Cluster,categories=crossplane,shortName=sset;ss
+// +kubebuilder:printcolumn:name="Datacenter ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
+// +kubebuilder:printcolumn:name="REPLICAS",type="integer",JSONPath=".status.atProvider.replicas"
+// +kubebuilder:printcolumn:name="servers",priority=1,type="string",JSONPath=".status.atProvider.replicaStatus"
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"

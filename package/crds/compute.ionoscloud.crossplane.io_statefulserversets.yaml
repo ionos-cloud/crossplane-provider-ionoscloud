@@ -22,6 +22,16 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.forProvider.datacenterConfig.datacenterId
+      name: Datacenter ID
+      type: string
+    - jsonPath: .status.atProvider.replicas
+      name: REPLICAS
+      type: integer
+    - jsonPath: .status.atProvider.replicaStatus
+      name: servers
+      priority: 1
+      type: string
     - jsonPath: .status.conditions[?(@.type=='Ready')].status
       name: READY
       type: string
@@ -352,7 +362,8 @@ spec:
                       type: object
                     type: array
                   replicas:
-                    description: The number of servers that will be created.
+                    description: The number of servers that will be created. Cannot
+                      be decreased once set, only increased. Has a minimum of 1.
                     minimum: 1
                     type: integer
                     x-kubernetes-validations:
@@ -476,6 +487,7 @@ spec:
                               - SSD
                               - SSD Standard
                               - SSD Premium
+                              example: SSD
                               type: string
                             userData:
                               description: The cloud init configuration in base64
@@ -674,6 +686,45 @@ spec:
                 description: StatefulServerSetObservation are the observable fields
                   of a StatefulServerSet.
                 properties:
+                  conditions:
+                    description: Conditions of the resource.
+                    items:
+                      description: A Condition that may apply to a resource.
+                      properties:
+                        lastTransitionTime:
+                          description: |-
+                            LastTransitionTime is the last time this condition transitioned from one
+                            status to another.
+                          format: date-time
+                          type: string
+                        message:
+                          description: |-
+                            A Message containing details about this condition's last transition from
+                            one status to another, if any.
+                          type: string
+                        reason:
+                          description: A Reason for this condition's last transition
+                            from one status to another.
+                          type: string
+                        status:
+                          description: Status of this condition; is it currently True,
+                            False, or Unknown?
+                          type: string
+                        type:
+                          description: |-
+                            Type of this condition. At most one of each condition type may apply to
+                            a resource at any point in time.
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - reason
+                      - status
+                      - type
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - type
+                    x-kubernetes-list-type: map
                   dataVolumeStatus:
                     items:
                       description: A VolumeStatus represents the observed state of
@@ -798,6 +849,45 @@ spec:
                       description: ServerSetReplicaStatus are the observable fields
                         of a ServerSetReplicaStatus.
                       properties:
+                        conditions:
+                          description: Conditions of the resource.
+                          items:
+                            description: A Condition that may apply to a resource.
+                            properties:
+                              lastTransitionTime:
+                                description: |-
+                                  LastTransitionTime is the last time this condition transitioned from one
+                                  status to another.
+                                format: date-time
+                                type: string
+                              message:
+                                description: |-
+                                  A Message containing details about this condition's last transition from
+                                  one status to another, if any.
+                                type: string
+                              reason:
+                                description: A Reason for this condition's last transition
+                                  from one status to another.
+                                type: string
+                              status:
+                                description: Status of this condition; is it currently
+                                  True, False, or Unknown?
+                                type: string
+                              type:
+                                description: |-
+                                  Type of this condition. At most one of each condition type may apply to
+                                  a resource at any point in time.
+                                type: string
+                            required:
+                            - lastTransitionTime
+                            - reason
+                            - status
+                            - type
+                            type: object
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - type
+                          x-kubernetes-list-type: map
                         errorMessage:
                           description: ErrorMessage relayed from the backend.
                           type: string
@@ -828,7 +918,6 @@ spec:
                     type: array
                   replicas:
                     description: Replicas is the count of ready replicas.
-                    minimum: 1
                     type: integer
                 type: object
               conditions:

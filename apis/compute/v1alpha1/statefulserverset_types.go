@@ -80,6 +80,7 @@ type StatefulServerSetVolumeSpec struct {
 	// +immutable
 	// +kubebuilder:validation:Enum=HDD;SSD;SSD Standard;SSD Premium
 	// +kubebuilder:validation:Required
+	// +kubebuilder:example=SSD
 	Type string `json:"type"`
 	// The cloud init configuration in base64 encoding.
 	UserData string `json:"userData,omitempty"`
@@ -93,7 +94,7 @@ type StatefulServerSetVolume struct {
 
 // StatefulServerSetParameters are the configurable fields of a StatefulServerSet.
 type StatefulServerSetParameters struct {
-	// The number of servers that will be created.
+	// The number of servers that will be created. Cannot be decreased once set, only increased. Has a minimum of 1.
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=1
@@ -131,8 +132,8 @@ type StatefulServerSetReplicaStatus struct {
 
 // StatefulServerSetObservation are the observable fields of a StatefulServerSet.
 type StatefulServerSetObservation struct {
+	xpv1.ResourceStatus `json:",inline"`
 	// Replicas is the count of ready replicas.
-	// +kubebuilder:validation:Minimum=1
 	Replicas           int                      `json:"replicas,omitempty"`
 	ReplicaStatus      []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
 	DataVolumeStatuses []VolumeStatus           `json:"dataVolumeStatus,omitempty"`
@@ -148,6 +149,9 @@ type StatefulServerSetStatus struct {
 // +kubebuilder:object:root=true
 
 // A StatefulServerSet is an example API type.
+// +kubebuilder:printcolumn:name="Datacenter ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
+// +kubebuilder:printcolumn:name="REPLICAS",type="integer",JSONPath=".status.atProvider.replicas"
+// +kubebuilder:printcolumn:name="servers",priority=1,type="string",JSONPath=".status.atProvider.replicaStatus"
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"

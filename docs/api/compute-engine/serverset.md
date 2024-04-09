@@ -203,7 +203,7 @@ the corresponding field is not present. Use 'Always' to resolve the
 reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `replicas` (integer)
-	* description: The number of servers that will be created.
+	* description: The number of servers that will be created. Cannot be decreased once set, only increased.
 	* minimum: 1.000000
 * `template` (object)
 	* description: ServerSetTemplate are the configurable fields of a ServerSetTemplate.
@@ -231,13 +231,14 @@ available CPU architectures can be retrieved from the datacenter resource.
 					* properties:
 						* `ipv4` (string)
 						* `name` (string)
-							* description: todo add descriptions
 							* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 						* `reference` (string)
+						* `vnetId` (string)
 					* required properties:
 						* `ipv4`
 						* `name`
 						* `reference`
+						* `vnetId`
 				* `ram` (integer)
 					* description: The memory size for the server in MB, such as 2048. Size must be specified in multiples of 256 MB with a minimum of 256 MB.
 however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB,

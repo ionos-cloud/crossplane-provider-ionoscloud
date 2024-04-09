@@ -81,7 +81,9 @@ func (k *kubeServerSetController) isAvailable(ctx context.Context, name, namespa
 		}
 		return false, err
 	}
-	if obj != nil && len(obj.Status.AtProvider.ReplicaStatuses) == obj.Spec.ForProvider.Replicas && xpv1.Available() == obj.GetCondition(xpv1.TypeReady) {
+	isAvailable := obj.GetCondition(xpv1.TypeReady)
+
+	if obj != nil && (len(obj.Status.AtProvider.ReplicaStatuses) == obj.Spec.ForProvider.Replicas) && (isAvailable.Equal(xpv1.Available())) {
 		return true, nil
 	}
 	return false, err
@@ -100,7 +102,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 		if err != nil {
 			return err
 		}
-		return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, SSetName, cr.Namespace)
+		return kube.WaitForResource(ctx, kube.ServersetReadyTimeout, k.isAvailable, SSetName, cr.Namespace)
 	case err != nil:
 		return err
 	default:
