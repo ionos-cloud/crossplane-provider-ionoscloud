@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 // ResourceReadyTimeout time to wait for resource to be ready
 const ResourceReadyTimeout = 30 * time.Minute
 const ServersetReadyTimeout = 1 * time.Hour
+
+var ErrExternalCreateFailed = errors.New("external create failed")
 
 // Implements lower level functions to interact with kubernetes
 

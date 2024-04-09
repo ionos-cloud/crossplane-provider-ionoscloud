@@ -22,6 +22,7 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -125,6 +126,11 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	sSet := &v1alpha1.ServerSet{}
 	nsName := computeSSetNsName(cr)
 	if err := e.kube.Get(ctx, nsName, sSet); err != nil {
+		if apiErrors.IsNotFound(err) {
+			return managed.ExternalObservation{
+				ResourceExists: false,
+			}, nil
+		}
 		return managed.ExternalObservation{}, err
 	}
 	isSSetUpToDate, err := areSSetResourcesUpToDate(ctx, e.kube, cr)

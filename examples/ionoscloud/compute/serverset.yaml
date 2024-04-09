@@ -89,6 +89,8 @@ spec:
             vnetId: "3330fa34-927f-11ee-8008-6202af74e858"
             reference: examplelan2
     bootVolumeTemplate:
+      metadata:
+        name: volumeboot
       spec:
         updateStrategy:
 #          createBeforeDestroyBootVolume createAllBeforeDestroy
