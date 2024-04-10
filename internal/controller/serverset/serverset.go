@@ -170,10 +170,10 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 		errMsg := ""
 		replicaStatus := computeStatus(serverSetReplicas[i].Status.AtProvider.State)
 
-		nrOfConditions := len(serverSetReplicas[i].Status.Conditions)
-		if nrOfConditions > 0 && serverSetReplicas[i].Status.Conditions[nrOfConditions-1].Reason == "ReconcileError" {
+		noOfConditions := len(serverSetReplicas[i].Status.Conditions)
+		if noOfConditions > 0 && serverSetReplicas[i].Status.Conditions[noOfConditions-1].Reason == xpv1.ReasonReconcileError {
+			errMsg = serverSetReplicas[i].Status.Conditions[noOfConditions-1].Message
 			replicaStatus = statusError
-			errMsg = serverSetReplicas[i].Status.Conditions[nrOfConditions-1].Message
 		}
 
 		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{

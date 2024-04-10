@@ -20,6 +20,7 @@ import (
 	"context"
 	"testing"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/google/go-cmp/cmp"
@@ -51,6 +52,8 @@ const (
 	serverSetName      = "serverset"
 
 	bootVolumeNamePrefix = "boot-volume-"
+
+	reconcileErrorMsg = "some reconcile error happened"
 )
 
 func Test_serverSetController_Observe(t *testing.T) {
@@ -461,7 +464,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 		{
 			name: "status of the server is failure, then status of replica is ERROR",
 			fields: fields{
-				kube: fakeKubeClientObjs(&serverWithErrorStatus, &nic1),
+				kube: fakeKubeClientObjs(&serverWithErrorStatus),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -475,6 +478,28 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Status:       statusError,
 						Role:         "PASSIVE",
 						ErrorMessage: "",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "error message on the server is, then status of replica is ERROR and error message is populated",
+			fields: fields{
+				kube: fakeKubeClientObjs(createServerWithReconcileErrorMsg()),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createServerSetWithOneReplica(),
+			},
+			want: v1alpha1.ServerSetObservation{
+				Replicas: 1,
+				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+					{
+						Name:         serverWithErrorStatus.Name,
+						Status:       statusError,
+						Role:         "PASSIVE",
+						ErrorMessage: reconcileErrorMsg,
 					},
 				},
 			},
@@ -717,4 +742,16 @@ func createConfigLeaseMap() *v1.ConfigMap {
 			"identity": "serverset-server-0-0",
 		},
 	}
+}
+
+func createServerWithReconcileErrorMsg() *v1alpha1.Server {
+	server := createServer("serverset-server-1-0")
+	server.Status.AtProvider.State = ionoscloud.Failed
+	server.Status.ResourceStatus.Conditions = []xpv1.Condition{
+		{
+			Reason:  xpv1.ReasonReconcileError,
+			Message: reconcileErrorMsg,
+		},
+	}
+	return &server
 }
