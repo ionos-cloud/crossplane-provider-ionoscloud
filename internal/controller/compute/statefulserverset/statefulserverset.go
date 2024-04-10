@@ -173,8 +173,10 @@ func (e *external) setSSetStatusOnCR(ctx context.Context, cr *v1alpha1.StatefulS
 			return err
 		}
 	}
-	cr.Status.AtProvider.ReplicaStatus = sSet.Status.AtProvider.ReplicaStatuses
-	cr.Status.AtProvider.Replicas = sSet.Status.AtProvider.Replicas
+	if sSet != nil {
+		cr.Status.AtProvider.ReplicaStatus = sSet.Status.AtProvider.ReplicaStatuses
+		cr.Status.AtProvider.Replicas = sSet.Status.AtProvider.Replicas
+	}
 	return nil
 }
 
