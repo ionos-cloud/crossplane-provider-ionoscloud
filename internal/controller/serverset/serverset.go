@@ -167,13 +167,13 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 	cr.Status.AtProvider.Replicas = len(serverSetReplicas)
 
 	for i := range serverSetReplicas {
-		errMsg := ""
 		replicaStatus := computeStatus(serverSetReplicas[i].Status.AtProvider.State)
+		errMsg := ""
 
-		noOfConditions := len(serverSetReplicas[i].Status.Conditions)
-		if noOfConditions > 0 && serverSetReplicas[i].Status.Conditions[noOfConditions-1].Reason == xpv1.ReasonReconcileError {
-			errMsg = serverSetReplicas[i].Status.Conditions[noOfConditions-1].Message
+		lastCondition, err := getLastCondition(serverSetReplicas[i])
+		if err == nil && lastCondition.Reason == xpv1.ReasonReconcileError {
 			replicaStatus = statusError
+			errMsg = lastCondition.Message
 		}
 
 		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{
@@ -184,6 +184,14 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 			LastModified: metav1.Now(),
 		}
 	}
+}
+
+func getLastCondition(server v1alpha1.Server) (xpv1.Condition, error) {
+	noOfConditions := len(server.Status.Conditions)
+	if noOfConditions > 0 {
+		return server.Status.Conditions[noOfConditions-1], nil
+	}
+	return xpv1.Condition{}, errors.New("no conditions found")
 }
 
 func fetchRole(ctx context.Context, e *external, replica v1alpha1.Server) v1alpha1.Role {
