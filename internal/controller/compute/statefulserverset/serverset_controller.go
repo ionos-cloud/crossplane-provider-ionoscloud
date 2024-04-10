@@ -50,9 +50,7 @@ func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.State
 	if err != nil {
 		return v1alpha1.ServerSet{}, err
 	}
-	if updateObj.Annotations[meta.AnnotationKeyExternalCreateFailed] != "" {
-		return v1alpha1.ServerSet{}, kube.ErrExternalCreateFailed
-	}
+
 	areResUpToDate, err := areSSetResourcesUpToDate(ctx, k.kube, cr)
 	if err != nil {
 		return v1alpha1.ServerSet{}, err
@@ -107,7 +105,9 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 	k.log.Info("Ensuring ServerSet", "name", SSetName)
 	kubeSSet := &v1alpha1.ServerSet{}
 	err := k.kube.Get(ctx, types.NamespacedName{Name: SSetName, Namespace: cr.Namespace}, kubeSSet)
-
+	if kubeSSet != nil && kubeSSet.Annotations[meta.AnnotationKeyExternalCreateFailed] != "" {
+		return kube.ErrExternalCreateFailed
+	}
 	switch {
 	case err != nil && apiErrors.IsNotFound(err):
 		_, err := k.Create(ctx, cr)
