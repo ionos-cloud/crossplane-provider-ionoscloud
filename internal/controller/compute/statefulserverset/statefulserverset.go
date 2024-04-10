@@ -127,6 +127,8 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if err := e.kube.Get(ctx, nsName, sSet); err != nil {
 		return managed.ExternalObservation{}, err
 	}
+	setSSetStatusOnCR(cr, sSet)
+
 	isSSetUpToDate, err := areSSetResourcesUpToDate(ctx, e.kube, cr)
 	if err != nil {
 		return managed.ExternalObservation{}, err
@@ -151,6 +153,11 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// resource. These will be stored as the connection secret.
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
+}
+
+func setSSetStatusOnCR(cr *v1alpha1.StatefulServerSet, sSet *v1alpha1.ServerSet) {
+	cr.Status.AtProvider.ReplicaStatus = sSet.Status.AtProvider.ReplicaStatuses
+	cr.Status.AtProvider.Replicas = sSet.Status.AtProvider.Replicas
 }
 
 func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
