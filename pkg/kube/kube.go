@@ -10,7 +10,9 @@ import (
 
 // ResourceReadyTimeout time to wait for resource to be ready
 const ResourceReadyTimeout = 30 * time.Minute
-const ServersetReadyTimeout = 1 * time.Hour
+
+// ServerSetReadyTimeout time to wait for serverset to be ready
+const ServerSetReadyTimeout = 1 * time.Hour
 
 // Implements lower level functions to interact with kubernetes
 
