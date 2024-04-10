@@ -170,19 +170,14 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		// Servers should have unique names per datacenter.
 		// Check if there are any existing servers with the same name.
 		// If there are multiple, an error will be returned.
-		instance, err := c.service.CheckDuplicateCubeServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
-			cr.Spec.ForProvider.Name, templateID, cr.Spec.ForProvider.CPUFamily)
+		cubeDuplicateID, err := c.service.CheckDuplicateCubeServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.Name, templateID)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}
-		serverID, err := c.service.GetServerID(instance)
-		if err != nil {
-			return managed.ExternalCreation{}, err
-		}
-		if serverID != "" {
+		if cubeDuplicateID != "" {
 			// "Import" existing server.
-			cr.Status.AtProvider.ServerID = serverID
-			meta.SetExternalName(cr, serverID)
+			cr.Status.AtProvider.ServerID = cubeDuplicateID
+			meta.SetExternalName(cr, cubeDuplicateID)
 			return managed.ExternalCreation{}, nil
 		}
 	}
