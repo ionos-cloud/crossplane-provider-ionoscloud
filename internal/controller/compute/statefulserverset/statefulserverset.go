@@ -121,6 +121,15 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	cr.Status.AtProvider.DataVolumeStatuses = setVolumeStatuses(volumes.Items)
 	creationVolumesUpToDate, areVolumesUpToDate := areDataVolumesUpToDate(cr, volumes.Items)
 	creationServerSetUpToDate, isServerSetUpToDate, err := e.isServerSetUpToDate(ctx, cr)
+
+	sSet := &v1alpha1.ServerSet{}
+	nsName := computeSSetNsName(cr)
+	if err := e.kube.Get(ctx, nsName, sSet); err != nil {
+		return managed.ExternalObservation{}, err
+	}
+	setSSetStatusOnCR(cr, sSet)
+
+	isSSetUpToDate, err := areSSetResourcesUpToDate(ctx, e.kube, cr)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -159,6 +168,11 @@ func (e *external) isServerSetUpToDate(ctx context.Context, cr *v1alpha1.Statefu
 		return true, true, err
 	}
 	return true, serverUpToDate, err
+}
+
+func setSSetStatusOnCR(cr *v1alpha1.StatefulServerSet, sSet *v1alpha1.ServerSet) {
+	cr.Status.AtProvider.ReplicaStatus = sSet.Status.AtProvider.ReplicaStatuses
+	cr.Status.AtProvider.Replicas = sSet.Status.AtProvider.Replicas
 }
 
 func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
