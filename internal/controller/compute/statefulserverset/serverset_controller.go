@@ -50,6 +50,9 @@ func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.State
 	if err != nil {
 		return v1alpha1.ServerSet{}, err
 	}
+	if updateObj.Annotations[meta.AnnotationKeyExternalCreateFailed] != "" {
+		return v1alpha1.ServerSet{}, kube.ErrExternalCreateFailed
+	}
 	areResUpToDate, err := areSSetResourcesUpToDate(ctx, k.kube, cr)
 	if err != nil {
 		return v1alpha1.ServerSet{}, err
