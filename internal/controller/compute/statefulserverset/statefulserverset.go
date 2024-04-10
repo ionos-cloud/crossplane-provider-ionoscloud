@@ -122,17 +122,13 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	creationVolumesUpToDate, areVolumesUpToDate := areDataVolumesUpToDate(cr, volumes.Items)
 	creationServerSetUpToDate, isServerSetUpToDate, err := e.isServerSetUpToDate(ctx, cr)
 
-	sSet := &v1alpha1.ServerSet{}
-	nsName := computeSSetNsName(cr)
-	if err := e.kube.Get(ctx, nsName, sSet); err != nil {
-		return managed.ExternalObservation{}, err
+	sSet, err := e.SSetController.Get(ctx, getSSetName(cr), cr.Namespace)
+	if err != nil {
+		if !apiErrors.IsNotFound(err) {
+			return managed.ExternalObservation{}, err
+		}
 	}
 	setSSetStatusOnCR(cr, sSet)
-
-	isSSetUpToDate, err := areSSetResourcesUpToDate(ctx, e.kube, cr)
-	if err != nil {
-		return managed.ExternalObservation{}, err
-	}
 
 	e.log.Info("Observing the StatefulServerSet", "creationLansUpToDate", creationLansUpToDate, "areLansUpToDate", areLansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate,
 		"areVolumesUpToDate", areVolumesUpToDate, "creationServerSetUpToDate", creationServerSetUpToDate, "isServerSetUpToDate", isServerSetUpToDate)
