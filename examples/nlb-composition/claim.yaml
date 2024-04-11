@@ -2,13 +2,12 @@
 apiVersion: platform.example.org/v1alpha1
 kind: NetworkLoadBalancerInstance
 metadata:
-  # Claims are namespaced scoped, comparing with XR.
-#  namespace: crossplane-system
+  namespace: crossplane-system
   name: my-nlb-ref
 spec:
   parameters:
     datacenterName: crossplane_nlb_datacenter
-    datacenterLocation: us/las
+    datacenterLocation: es/vit
     fwRuleListenerPort: 8081
     fwRuleAlgorithm: ROUND_ROBIN
     fwRuleTargets:

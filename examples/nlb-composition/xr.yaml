@@ -6,7 +6,7 @@ metadata:
 spec:
   parameters:
     datacenterName: crossplane_nlb_datacenter
-    datacenterLocation: us/las
+    datacenterLocation: es/vit
     fwRuleListenerPort: 8081
     fwRuleAlgorithm: ROUND_ROBIN
     fwRuleTargets:
