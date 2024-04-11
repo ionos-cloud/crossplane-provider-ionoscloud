@@ -170,8 +170,8 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 		replicaStatus := computeStatus(serverSetReplicas[i].Status.AtProvider.State)
 		errMsg := ""
 
-		lastCondition, err := getLastCondition(serverSetReplicas[i])
-		if err == nil && lastCondition.Reason == xpv1.ReasonReconcileError {
+		lastCondition := getLastCondition(serverSetReplicas[i])
+		if lastCondition.Reason == xpv1.ReasonReconcileError {
 			replicaStatus = statusError
 			errMsg = lastCondition.Message
 		}
@@ -186,12 +186,12 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 	}
 }
 
-func getLastCondition(server v1alpha1.Server) (xpv1.Condition, error) {
+func getLastCondition(server v1alpha1.Server) xpv1.Condition {
 	noOfConditions := len(server.Status.Conditions)
 	if noOfConditions > 0 {
-		return server.Status.Conditions[noOfConditions-1], nil
+		return server.Status.Conditions[noOfConditions-1]
 	}
-	return xpv1.Condition{}, errors.New("no conditions found")
+	return xpv1.Condition{}
 }
 
 func fetchRole(ctx context.Context, e *external, replica v1alpha1.Server) v1alpha1.Role {
