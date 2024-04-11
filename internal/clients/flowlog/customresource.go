@@ -10,7 +10,7 @@ import (
 // customResource allows comparison and input generation for flow logs of different custom resources
 type customResource interface {
 	SetState(string)
-	GetName() string
+	GetFlowLogName() string
 	GetAction() string
 	GetDirection() string
 	GetBucket() string
@@ -31,7 +31,7 @@ func GenerateCreateInput(cr customResource) sdkgo.FlowLog {
 
 // GenerateUpdateInput returns sdkgo.FlowLogProperties for Update requests based on CR spec
 func GenerateUpdateInput(cr customResource) sdkgo.FlowLogProperties {
-	name := cr.GetName()
+	name := cr.GetFlowLogName()
 	action := cr.GetAction()
 	direction := cr.GetDirection()
 	bucket := cr.GetBucket()
@@ -62,7 +62,7 @@ func IsUpToDate(cr customResource, observed sdkgo.FlowLog) bool { // nolint:gocy
 
 // EqualFlowLogProperties compares a target flow log customResource to the observed sdkgo.FlowLogProperties
 func EqualFlowLogProperties(target customResource, observed sdkgo.FlowLogProperties) bool {
-	return compare.EqualString(target.GetName(), observed.GetName()) &&
+	return compare.EqualString(target.GetFlowLogName(), observed.GetName()) &&
 		compare.EqualString(target.GetAction(), observed.GetAction()) &&
 		compare.EqualString(target.GetDirection(), observed.GetDirection()) &&
 		compare.EqualString(target.GetBucket(), observed.GetBucket())

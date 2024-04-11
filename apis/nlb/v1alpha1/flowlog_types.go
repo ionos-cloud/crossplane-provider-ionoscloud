@@ -90,8 +90,8 @@ type FlowLog struct {
 	Status FlowLogStatus `json:"status,omitempty"`
 }
 
-// GetName returns the name of the flow log
-func (f *FlowLog) GetName() string {
+// GetFlowLogName returns the name of the flow log
+func (f *FlowLog) GetFlowLogName() string {
 	return f.Spec.ForProvider.Name
 }
 
