@@ -22,7 +22,7 @@ spec:
   forProvider:
     name: exampleIpBlock
     size: 2
-    location: de/txl
+    location: es/vit
   providerConfigRef:
     name: example
 EOF
@@ -52,7 +52,7 @@ spec:
   forProvider:
     name: exampleIpBlockUpdate
     size: 2
-    location: de/txl
+    location: es/vit
   providerConfigRef:
     name: example
 EOF
@@ -81,7 +81,7 @@ spec:
   forProvider:
     name: exampleIpBlockUpdate
     size: 2
-    location: de/txl
+    location: es/vit
   providerConfigRef:
     name: example
 EOF
@@ -134,7 +134,7 @@ spec:
     - "*"
   forProvider:
     name: testdatacenter
-    location: de/txl
+    location: es/vit
   providerConfigRef:
     name: example
 EOF
@@ -163,7 +163,7 @@ spec:
     - "*"
   forProvider:
     name: Test Datacenter CR
-    location: de/txl
+    location: es/vit
     description: e2e crossplane testing
   providerConfigRef:
     name: example
@@ -191,7 +191,7 @@ spec:
     - "*"
   forProvider:
     name: Test Datacenter CR
-    location: de/txl
+    location: es/vit
     description: e2e crossplane testing
   providerConfigRef:
     name: example
