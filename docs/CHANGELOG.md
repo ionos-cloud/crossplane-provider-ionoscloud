@@ -1,8 +1,14 @@
 ## [1.0.11] (TBD )
-- Add `NLB` managed resources:
+- **Features**:
+  - Add `NLB` managed resources:
     - `Network Load Balancer`
     - `Forwarding Rule`
     - `Flowlog`
+
+- **Fixes**:
+  - Changed fields for `CubeServer` CR:
+  - `cpuFamily` field has been removed as it prevented external resource creation.
+  - `template.name` is now immutable
 
 ## [1.0.10] (March 2024)
 - **Features**:
