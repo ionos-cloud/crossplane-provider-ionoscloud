@@ -102,7 +102,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 		if err != nil {
 			return err
 		}
-		return kube.WaitForResource(ctx, kube.ServersetReadyTimeout, k.isAvailable, SSetName, cr.Namespace)
+		return kube.WaitForResource(ctx, kube.ServerSetReadyTimeout, k.isAvailable, SSetName, cr.Namespace)
 	case err != nil:
 		return err
 	default:
