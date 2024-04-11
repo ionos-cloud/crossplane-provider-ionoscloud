@@ -108,30 +108,10 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
-	lans, err := e.LANController.ListLans(ctx, cr)
-	if err != nil {
-		return managed.ExternalObservation{}, fmt.Errorf("while listing lans %w", err)
-	}
-	creationLansUpToDate, areLansUpToDate := areLansUpToDate(cr, lans.Items)
-	cr.Status.AtProvider.LanStatuses = setLanStatuses(lans.Items)
-	volumes, err := e.dataVolumeController.ListVolumes(ctx, cr)
-	if err != nil {
-		return managed.ExternalObservation{}, fmt.Errorf("while listing volumes %w", err)
-	}
-	cr.Status.AtProvider.DataVolumeStatuses = setVolumeStatuses(volumes.Items)
-	creationVolumesUpToDate, areVolumesUpToDate := areDataVolumesUpToDate(cr, volumes.Items)
-
-	creationServerSetUpToDate, isServerSetUpToDate, err := e.isServerSetUpToDate(ctx, cr)
+	areResourcesCreated, areResourcesUpdated, err := e.observeResourcesUpdateStatus(ctx, cr)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-	err = e.setSSetStatusOnCR(ctx, cr)
-	if err != nil {
-		return managed.ExternalObservation{}, err
-	}
-
-	e.log.Info("Observing the StatefulServerSet", "creationLansUpToDate", creationLansUpToDate, "areLansUpToDate", areLansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate,
-		"areVolumesUpToDate", areVolumesUpToDate, "creationServerSetUpToDate", creationServerSetUpToDate, "isServerSetUpToDate", isServerSetUpToDate)
 
 	cr.Status.SetConditions(xpv1.Available())
 
@@ -139,17 +119,51 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// Return false when the externalStatefulServerSet resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
 		// (re)create the resource, or that it has successfully been deleted.
-		ResourceExists: creationLansUpToDate && creationVolumesUpToDate && creationServerSetUpToDate,
+		ResourceExists: areResourcesCreated,
 
 		// Return false when the externalStatefulServerSet resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
-		ResourceUpToDate: areLansUpToDate && areVolumesUpToDate && isServerSetUpToDate,
+		ResourceUpToDate: areResourcesUpdated,
 
 		// Return any details that may be required to connect to the externalStatefulServerSet
 		// resource. These will be stored as the connection secret.
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
+}
+
+func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha1.StatefulServerSet) (areResourcesCreated, areResourcesUpdated bool, err error) {
+
+	// ******************* LANS *******************
+	lans, err := e.LANController.ListLans(ctx, cr)
+	if err != nil {
+		return false, false, fmt.Errorf("while listing lans %w", err)
+	}
+	creationLansUpToDate, areLansUpToDate := areLansUpToDate(cr, lans.Items)
+	cr.Status.AtProvider.LanStatuses = setLanStatuses(lans.Items)
+
+	// ******************* VOLUMES *******************
+	volumes, err := e.dataVolumeController.ListVolumes(ctx, cr)
+	if err != nil {
+		return false, false, fmt.Errorf("while listing volumes %w", err)
+	}
+	creationVolumesUpToDate, areVolumesUpToDate := areDataVolumesUpToDate(cr, volumes.Items)
+	cr.Status.AtProvider.DataVolumeStatuses = setVolumeStatuses(volumes.Items)
+
+	// ******************* SERVERSET *******************
+	creationServerSetUpToDate, isServerSetUpToDate, err := e.isServerSetUpToDate(ctx, cr)
+	if err != nil {
+		return false, false, err
+	}
+	err = e.setSSetStatusOnCR(ctx, cr)
+	if err != nil {
+		return false, false, err
+	}
+
+	e.log.Info("Observing the StatefulServerSet", "creationLansUpToDate", creationLansUpToDate, "areLansUpToDate", areLansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate,
+		"areVolumesUpToDate", areVolumesUpToDate, "creationServerSetUpToDate", creationServerSetUpToDate, "isServerSetUpToDate", isServerSetUpToDate)
+
+	return creationLansUpToDate && creationVolumesUpToDate && creationServerSetUpToDate, areLansUpToDate && areVolumesUpToDate && isServerSetUpToDate, nil
 }
 
 func (e *external) isServerSetUpToDate(ctx context.Context, cr *v1alpha1.StatefulServerSet) (creationServerUpToDate bool, serverUpToDate bool, err error) {
