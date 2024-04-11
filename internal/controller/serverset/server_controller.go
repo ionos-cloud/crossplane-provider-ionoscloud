@@ -7,7 +7,6 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -80,7 +79,7 @@ func (k *kubeServerController) isAvailable(ctx context.Context, name, namespace 
 			return false, nil
 		}
 	}
-	if obj.Annotations[meta.AnnotationKeyExternalCreateFailed] != "" {
+	if !kube.IsSuccessfullyCreated(obj) {
 		return false, kube.ErrExternalCreateFailed
 	}
 	if obj.Status.AtProvider.ServerID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {

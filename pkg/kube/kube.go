@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
+	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -32,4 +34,8 @@ func WaitForResource(ctx context.Context, timeoutInMinutes time.Duration, fn IsR
 	return wait.PollUntilContextTimeout(ctx, pollInterval, timeoutInMinutes, true, func(context.Context) (bool, error) {
 		return fn(ctx, name, namespace)
 	})
+}
+
+func IsSuccessfullyCreated(obj resource.Managed) bool {
+	return obj.GetAnnotations()[meta.AnnotationKeyExternalCreateFailed] == ""
 }

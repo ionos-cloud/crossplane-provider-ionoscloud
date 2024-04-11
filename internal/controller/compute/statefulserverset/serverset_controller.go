@@ -7,7 +7,6 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -88,7 +87,7 @@ func (k *kubeServerSetController) isAvailable(ctx context.Context, name, namespa
 	if obj == nil {
 		return false, nil
 	}
-	if obj.Annotations[meta.AnnotationKeyExternalCreateFailed] != "" {
+	if !kube.IsSuccessfullyCreated(obj) {
 		// todo add here the internal ReconcileError if possible
 		return false, kube.ErrExternalCreateFailed
 	}
@@ -105,7 +104,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 	k.log.Info("Ensuring ServerSet", "name", SSetName)
 	kubeSSet := &v1alpha1.ServerSet{}
 	err := k.kube.Get(ctx, types.NamespacedName{Name: SSetName, Namespace: cr.Namespace}, kubeSSet)
-	if kubeSSet != nil && kubeSSet.Annotations[meta.AnnotationKeyExternalCreateFailed] != "" {
+	if kubeSSet != nil && !kube.IsSuccessfullyCreated(kubeSSet) {
 		return kube.ErrExternalCreateFailed
 	}
 	switch {
@@ -167,21 +166,21 @@ func getSSetName(cr *v1alpha1.StatefulServerSet) string {
 	return fmt.Sprintf("%s-%s", cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
 }
 
-// Delete - deletes the server k8s client and waits until it is deleted
+// Delete - deletes the serverset k8s object and waits until it is deleted
 func (k *kubeServerSetController) Delete(ctx context.Context, name, namespace string) error {
-	condemnedServer, err := k.Get(ctx, name, namespace)
+	serverset, err := k.Get(ctx, name, namespace)
 	if err != nil {
 		return err
 	}
-	if err := k.kube.Delete(ctx, condemnedServer); err != nil {
-		return fmt.Errorf("error deleting server %w", err)
+	if err := k.kube.Delete(ctx, serverset); err != nil {
+		return fmt.Errorf("while deleting serverset %w", err)
 	}
-	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isServerDeleted, condemnedServer.Name, namespace)
+	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isDeleted, serverset.Name, namespace)
 }
 
-func (k *kubeServerSetController) isServerDeleted(ctx context.Context, name, namespace string) (bool, error) {
+func (k *kubeServerSetController) isDeleted(ctx context.Context, name, namespace string) (bool, error) {
 	k.log.Info("Checking if Serverset is deleted", "name", name, "namespace", namespace)
-	obj := &v1alpha1.Server{}
+	obj := &v1alpha1.ServerSet{}
 	err := k.kube.Get(ctx, types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,

@@ -166,18 +166,18 @@ func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha
 	return creationLansUpToDate && creationVolumesUpToDate && creationServerSetUpToDate, areLansUpToDate && areVolumesUpToDate && isServerSetUpToDate, nil
 }
 
-func (e *external) isServerSetUpToDate(ctx context.Context, cr *v1alpha1.StatefulServerSet) (creationServerUpToDate bool, serverUpToDate bool, err error) {
+func (e *external) isServerSetUpToDate(ctx context.Context, cr *v1alpha1.StatefulServerSet) (creationServerUpToDate bool, serversetUpToDate bool, err error) {
 	_, err = e.SSetController.Get(ctx, getSSetName(cr), cr.Namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			return false, false, nil
 		}
 	}
-	serverUpToDate, err = areSSetResourcesUpToDate(ctx, e.kube, cr)
+	serversetUpToDate, err = areSSetResourcesUpToDate(ctx, e.kube, cr)
 	if err != nil {
-		return true, true, err
+		return false, false, err
 	}
-	return true, serverUpToDate, err
+	return true, serversetUpToDate, err
 }
 
 func (e *external) setSSetStatusOnCR(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
