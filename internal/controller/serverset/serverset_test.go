@@ -22,11 +22,11 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,9 +40,15 @@ import (
 )
 
 const (
-	bootVolumeSize  = 100
-	bootVolumeType  = "HDD"
-	bootVolumeImage = "image"
+	bootVolumeSize       = 100
+	bootVolumeType       = "HDD"
+	bootVolumeImage      = "image"
+	bootVolumeNamePrefix = "boot-volume-"
+
+	ensure     = "Ensure"
+	ensureNICs = "EnsureNICs"
+
+	noReplicas = 2
 
 	server1Name        = "serverset-server-0-0"
 	server2Name        = "serverset-server-1-0"
@@ -50,8 +56,6 @@ const (
 	serverSetCores     = 2
 	serverSetRAM       = 4096
 	serverSetName      = "serverset"
-
-	bootVolumeNamePrefix = "boot-volume-"
 
 	reconcileErrorMsg = "some reconcile error happened"
 )
@@ -548,6 +552,123 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 	}
 }
 
+func Test_serverSetController_Create(t *testing.T) {
+	bootVolumeCtrl := &fakeKubeBootVolumeControlManager{
+		methodCallCount: map[string]int{
+			ensure: 0,
+		},
+	}
+	serverCtrl := &fakeKubeServerControlManager{
+		methodCallCount: map[string]int{
+			ensure: 0,
+		},
+	}
+	nicCtrl := &fakeKubeNicControlManager{
+		methodCallCount: map[string]int{
+			ensureNICs: 0,
+		},
+	}
+
+	type fields struct {
+		kube                 client.Client
+		bootVolumeController kubeBootVolumeControlManager
+		nicController        kubeNicControlManager
+		serverController     kubeServerControlManager
+		log                  logging.Logger
+	}
+	type args struct {
+		ctx context.Context
+		cr  *v1alpha1.ServerSet
+	}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    managed.ExternalCreation
+		wantErr error
+	}{
+		{
+			name: "serverset successfully created",
+			fields: fields{
+				log:                  logging.NewNopLogger(),
+				kube:                 fakeKubeClientObjs(),
+				bootVolumeController: bootVolumeCtrl,
+				serverController:     serverCtrl,
+				nicController:        nicCtrl,
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			want: managed.ExternalCreation{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &external{
+				kube:                 tt.fields.kube,
+				bootVolumeController: tt.fields.bootVolumeController,
+				nicController:        tt.fields.nicController,
+				serverController:     tt.fields.serverController,
+				log:                  tt.fields.log,
+			}
+
+			got, err := e.Create(tt.args.ctx, tt.args.cr)
+
+			assertions := assert.New(t)
+			assertions.Equalf(noReplicas, bootVolumeCtrl.methodCallCount[ensure], "bootVolumeController.Ensure() method should be called once")
+			assertions.Equalf(noReplicas, serverCtrl.methodCallCount[ensure], "serverController.Ensure() method should be called once")
+			assertions.Equalf(noReplicas, nicCtrl.methodCallCount[ensureNICs], "nicController.EnsureNICs() method should be called once")
+			assertions.Equalf(tt.wantErr, err, "Wrong error")
+			assertions.Equalf(tt.want, got, "Wrong response")
+			assertions.Equalf(serverSetName, tt.args.cr.ObjectMeta.Annotations[meta.AnnotationKeyExternalName], "ServerSet should have external name set to its name")
+			assertions.Equalf(1, len(tt.args.cr.Status.Conditions), "ServerSet should have one condition")
+			assertCondition(t, xpv1.Creating(), tt.args.cr.Status.Conditions[0], "ServerSet has wrong condition")
+		})
+	}
+}
+
+func assertCondition(t *testing.T, expected xpv1.Condition, actual xpv1.Condition, msg string) {
+	ignoreFields := cmpopts.IgnoreFields(xpv1.Condition{}, "LastTransitionTime")
+	if diff := cmp.Diff(expected, actual, ignoreFields); diff != "" {
+		t.Errorf("%s (-want +got):\n%s", msg, diff)
+	}
+}
+
+type fakeKubeBootVolumeControlManager struct {
+	kubeBootVolumeControlManager
+	methodCallCount map[string]int
+}
+
+func (f fakeKubeBootVolumeControlManager) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+	f.methodCallCount[ensure]++
+	return nil
+}
+
+type fakeKubeServerControlManager struct {
+	kubeServerControlManager
+	methodCallCount map[string]int
+}
+
+func (f fakeKubeServerControlManager) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
+	f.methodCallCount[ensure]++
+	return nil
+}
+
+type fakeKubeNicControlManager struct {
+	kubeNicControlManager
+	methodCallCount map[string]int
+}
+
+func (f fakeKubeNicControlManager) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+	f.methodCallCount[ensureNICs]++
+	return nil
+}
+
 func createServer(name string) v1alpha1.Server {
 	return v1alpha1.Server{
 		ObjectMeta: metav1.ObjectMeta{
@@ -617,7 +738,7 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 		},
 		Spec: v1alpha1.ServerSetSpec{
 			ForProvider: v1alpha1.ServerSetParameters{
-				Replicas: 2,
+				Replicas: noReplicas,
 				Template: v1alpha1.ServerSetTemplate{
 					Spec: v1alpha1.ServerSetTemplateSpec{
 						Cores:     serverSetCores,
