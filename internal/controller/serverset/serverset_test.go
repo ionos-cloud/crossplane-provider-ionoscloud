@@ -20,6 +20,7 @@ import (
 	"context"
 	"testing"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/google/go-cmp/cmp"
@@ -39,15 +40,20 @@ import (
 )
 
 const (
-	serverSetName   = "serverset"
 	bootVolumeSize  = 100
 	bootVolumeType  = "HDD"
 	bootVolumeImage = "image"
 
-	server1Name = "serverset-server-0-0"
-	server2Name = "serverset-server-1-0"
+	server1Name        = "serverset-server-0-0"
+	server2Name        = "serverset-server-1-0"
+	serverSetCPUFamily = "AMD_OPTERON"
+	serverSetCores     = 2
+	serverSetRAM       = 4096
+	serverSetName      = "serverset"
 
 	bootVolumeNamePrefix = "boot-volume-"
+
+	reconcileErrorMsg = "some reconcile error happened"
 )
 
 func Test_serverSetController_Observe(t *testing.T) {
@@ -100,19 +106,63 @@ func Test_serverSetController_Observe(t *testing.T) {
 			},
 			want: managed.ExternalObservation{
 				ResourceExists:    false,
+				ResourceUpToDate:  true,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "server CPU family not up to date",
+			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily: "INTEL_XEON",
+					Cores:     serverSetCores,
+					RAM:       serverSetRAM,
+				}),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
 				ResourceUpToDate:  false,
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
 		},
 		{
-			name: "servers not up to date",
+			name: "server cores not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2),
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
 			},
 			args: args{
 				ctx: context.Background(),
-				cr:  createServerSetWithUpdatedServerSpec(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily: serverSetCPUFamily,
+					Cores:     10,
+					RAM:       serverSetRAM,
+				}),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "server RAM not up to date",
+			fields: fields{
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily: serverSetCPUFamily,
+					Cores:     serverSetCores,
+					RAM:       8192,
+				}),
 			},
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
@@ -124,7 +174,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "boot volume image is not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, &bootVolume1, &bootVolume2),
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -144,7 +194,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "boot volume size is not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, &bootVolume1, &bootVolume2),
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -164,7 +214,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "boot volume type is not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, &bootVolume1, &bootVolume2),
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -192,7 +242,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			},
 			want: managed.ExternalObservation{
 				ResourceExists:    false,
-				ResourceUpToDate:  false,
+				ResourceUpToDate:  true,
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -200,7 +250,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "nics not created",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2),
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -208,7 +258,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			},
 			want: managed.ExternalObservation{
 				ResourceExists:    false,
-				ResourceUpToDate:  false,
+				ResourceUpToDate:  true,
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -216,7 +266,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "nr of nics not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2),
+				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -224,7 +274,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			},
 			want: managed.ExternalObservation{
 				ResourceExists:    false,
-				ResourceUpToDate:  false,
+				ResourceUpToDate:  true,
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -414,7 +464,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 		{
 			name: "status of the server is failure, then status of replica is ERROR",
 			fields: fields{
-				kube: fakeKubeClientObjs(&serverWithErrorStatus, &nic1),
+				kube: fakeKubeClientObjs(&serverWithErrorStatus),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -428,6 +478,28 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Status:       statusError,
 						Role:         "PASSIVE",
 						ErrorMessage: "",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "error message on the server is, then status of replica is ERROR and error message is populated",
+			fields: fields{
+				kube: fakeKubeClientObjs(createServerWithReconcileErrorMsg()),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createServerSetWithOneReplica(),
+			},
+			want: v1alpha1.ServerSetObservation{
+				Replicas: 1,
+				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+					{
+						Name:         serverWithErrorStatus.Name,
+						Status:       statusError,
+						Role:         "PASSIVE",
+						ErrorMessage: reconcileErrorMsg,
 					},
 				},
 			},
@@ -489,6 +561,13 @@ func createServer(name string) v1alpha1.Server {
 				State: ionoscloud.Available,
 			},
 		},
+		Spec: v1alpha1.ServerSpec{
+			ForProvider: v1alpha1.ServerParameters{
+				Cores:     serverSetCores,
+				RAM:       serverSetRAM,
+				CPUFamily: serverSetCPUFamily,
+			},
+		},
 	}
 }
 
@@ -541,6 +620,9 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 				Replicas: 2,
 				Template: v1alpha1.ServerSetTemplate{
 					Spec: v1alpha1.ServerSetTemplateSpec{
+						Cores:     serverSetCores,
+						RAM:       serverSetRAM,
+						CPUFamily: serverSetCPUFamily,
 						NICs: []v1alpha1.ServerSetTemplateNIC{
 							{
 								Name:      "nic1",
@@ -563,12 +645,11 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 	}
 }
 
-func createServerSetWithUpdatedServerSpec() *v1alpha1.ServerSet {
+func createServerSetWithUpdatedServerSpec(spec v1alpha1.ServerSetTemplateSpec) *v1alpha1.ServerSet {
 	sset := createBasicServerSet()
-	sset.Spec.ForProvider.Template.Spec = v1alpha1.ServerSetTemplateSpec{
-		Cores: 10,
-		RAM:   20480,
-	}
+	sset.Spec.ForProvider.Template.Spec.Cores = spec.Cores
+	sset.Spec.ForProvider.Template.Spec.RAM = spec.RAM
+	sset.Spec.ForProvider.Template.Spec.CPUFamily = spec.CPUFamily
 	return sset
 }
 
@@ -661,4 +742,16 @@ func createConfigLeaseMap() *v1.ConfigMap {
 			"identity": "serverset-server-0-0",
 		},
 	}
+}
+
+func createServerWithReconcileErrorMsg() *v1alpha1.Server {
+	server := createServer("serverset-server-1-0")
+	server.Status.AtProvider.State = ionoscloud.Failed
+	server.Status.ResourceStatus.Conditions = []xpv1.Condition{
+		{
+			Reason:  xpv1.ReasonReconcileError,
+			Message: reconcileErrorMsg,
+		},
+	}
+	return &server
 }

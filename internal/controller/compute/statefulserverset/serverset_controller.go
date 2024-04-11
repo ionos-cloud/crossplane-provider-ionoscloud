@@ -114,8 +114,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 		if err != nil {
 			return err
 		}
-
-		if err = kube.WaitForResource(ctx, kube.ServersetReadyTimeout, k.isAvailable, SSetName, cr.Namespace); err != nil {
+		if err = kube.WaitForResource(ctx, kube.ServerSetReadyTimeout, k.isAvailable, SSetName, cr.Namespace); err != nil {
 			if errors.Is(err, kube.ErrExternalCreateFailed) {
 				_ = k.Delete(ctx, SSetName, cr.Namespace)
 			}
