@@ -36,6 +36,7 @@ func WaitForResource(ctx context.Context, timeoutInMinutes time.Duration, fn IsR
 	})
 }
 
+// IsSuccessfullyCreated checks if the object was successfully created
 func IsSuccessfullyCreated(obj resource.Managed) bool {
 	return obj.GetAnnotations()[meta.AnnotationKeyExternalCreateFailed] == ""
 }

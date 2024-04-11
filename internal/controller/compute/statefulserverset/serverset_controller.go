@@ -115,7 +115,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 		}
 		if err = kube.WaitForResource(ctx, kube.ServerSetReadyTimeout, k.isAvailable, SSetName, cr.Namespace); err != nil {
 			if errors.Is(err, kube.ErrExternalCreateFailed) {
-				_ = k.Delete(ctx, SSetName, cr.Namespace)
+				_ = k.delete(ctx, SSetName, cr.Namespace)
 			}
 			return err
 		}
@@ -166,8 +166,8 @@ func getSSetName(cr *v1alpha1.StatefulServerSet) string {
 	return fmt.Sprintf("%s-%s", cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
 }
 
-// Delete - deletes the serverset k8s object and waits until it is deleted
-func (k *kubeServerSetController) Delete(ctx context.Context, name, namespace string) error {
+// delete - deletes the serverset k8s object and waits until it is deleted
+func (k *kubeServerSetController) delete(ctx context.Context, name, namespace string) error {
 	serverset, err := k.Get(ctx, name, namespace)
 	if err != nil {
 		return err
