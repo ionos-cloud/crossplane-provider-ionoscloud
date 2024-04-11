@@ -25,7 +25,7 @@ spec:
     - "*"
   forProvider:
     name: exampleDatacenter
-    location: de/txl
+    location: es/vit
     description: test
   providerConfigRef:
     name: example
@@ -65,7 +65,7 @@ spec:
             name: examplelandbaasmongo
         cidr:
           - 192.168.1.100/24
-    location: de/txl
+    location: es/vit
     instances: 1
     templateID: 6b78ea06-ee0e-4689-998c-fc9c46e781f6
     synchronizationMode: ASYNCHRONOUS
@@ -105,7 +105,7 @@ spec:
             name: examplelandbaasmongo
         cidr:
           - 192.168.1.100/24
-    location: de/txl
+    location: es/vit
     instances: 1
     templateID: 6b78ea06-ee0e-4689-998c-fc9c46e781f6
     synchronizationMode: ASYNCHRONOUS
@@ -164,7 +164,7 @@ spec:
     - "*"
   forProvider:
     name: exampleDatacenter
-    location: de/txl
+    location: es/vit
     description: test
   providerConfigRef:
     name: example
@@ -204,7 +204,7 @@ spec:
             name: examplelandbaasmongo
         cidr:
           - 192.168.1.100/24
-    location: de/txl
+    location: es/vit
     instances: 1
     templateID: 6b78ea06-ee0e-4689-998c-fc9c46e781f6
     synchronizationMode: ASYNCHRONOUS
