@@ -20,13 +20,11 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
-	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -211,7 +209,7 @@ func fetchRole(ctx context.Context, e *external, replica v1alpha1.Server) v1alph
 		return v1alpha1.Active
 	}
 
-	// if it is not in the config map then it is has Passive role
+	// if it is not in the config map then it has Passive role
 	return v1alpha1.Passive
 }
 
@@ -320,15 +318,21 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 	if err != nil {
 		return err
 	}
-	masterIndex, err := e.getIdentityFromConfigMap(ctx, *cr)
-	if err != nil {
-		return fmt.Errorf("while getting master index %w", err)
-	}
+	masterIndex := getIdentityFromStatus(cr.Status.AtProvider.ReplicaStatuses)
 	err = e.updateOrRecreateVolumes(ctx, cr, volumes, masterIndex)
 	if err != nil {
 		return fmt.Errorf("while updating volumes %w", err)
 	}
 	return nil
+}
+
+func getIdentityFromStatus(statuses []v1alpha1.ServerSetReplicaStatus) int {
+	for idx := range statuses {
+		if statuses[idx].Role == v1alpha1.Active {
+			return idx
+		}
+	}
+	return -1
 }
 
 func (e *external) updateOrRecreateVolumes(ctx context.Context, cr *v1alpha1.ServerSet, volumes []v1alpha1.Volume, masterIndex int) error {
@@ -372,34 +376,6 @@ func (e *external) updateByIndex(ctx context.Context, idx int, cr *v1alpha1.Serv
 	}
 	updater := e.getUpdaterByStrategy(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UpdateStrategy.Stype)
 	return updater.update(ctx, cr, idx, volumeVersion, serverVersion)
-}
-
-func (e *external) getIdentityFromConfigMap(ctx context.Context, cr v1alpha1.ServerSet) (int, error) {
-	configMap := &v1.ConfigMap{}
-	if cr.Namespace == "" {
-		cr.Namespace = "default"
-	}
-	err := e.kube.Get(ctx, client.ObjectKey{Namespace: cr.Namespace, Name: "config-lease"}, configMap)
-	if err != nil {
-		if apiErrors.IsNotFound(err) {
-			return -1, nil
-		}
-		return -1, err
-	}
-
-	masterIndex := -1
-	if configMap.Data["identity"] != "" {
-		sliceOfValues := strings.Split(configMap.Data["identity"], "-")
-		if len(sliceOfValues) > 2 {
-			tmpIndex, err := strconv.Atoi(sliceOfValues[2])
-			// annoying, but we need to check if the index is valid
-			if err == nil {
-				masterIndex = tmpIndex
-			}
-		}
-	}
-
-	return masterIndex, nil
 }
 
 func (e *external) getUpdaterByStrategy(strategyType v1alpha1.UpdateStrategyType) updater {
