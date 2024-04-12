@@ -190,7 +190,6 @@ func (c *externalNetworkLoadBalancer) Create(ctx context.Context, mg resource.Ma
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	cr.Status.AtProvider.NetworkLoadBalancerID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
 
 	return managed.ExternalCreation{}, nil

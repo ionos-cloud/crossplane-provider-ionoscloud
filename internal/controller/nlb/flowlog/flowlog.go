@@ -172,7 +172,6 @@ func (c *externalFlowLog) Create(ctx context.Context, mg resource.Managed) (mana
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	cr.Status.AtProvider.FlowLogID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
 
 	return managed.ExternalCreation{}, nil

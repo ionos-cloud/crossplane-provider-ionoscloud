@@ -202,8 +202,8 @@ func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	cr.Status.AtProvider.ForwardingRuleID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
+
 	return managed.ExternalCreation{}, nil
 }
 
