@@ -18,11 +18,12 @@ package serverset
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -60,6 +61,23 @@ const (
 
 	reconcileErrorMsg = "some reconcile error happened"
 )
+
+var errAnErrorWasReceived = errors.New("an error was received")
+
+type fakeKubeBootVolumeControlManager struct {
+	kubeBootVolumeControlManager
+	mock.Mock
+}
+
+type fakeKubeServerControlManager struct {
+	kubeServerControlManager
+	mock.Mock
+}
+
+type fakeKubeNicControlManager struct {
+	kubeNicControlManager
+	mock.Mock
+}
 
 func Test_serverSetController_Observe(t *testing.T) {
 	type fields struct {
@@ -578,9 +596,9 @@ func Test_serverSetController_Create(t *testing.T) {
 			fields: fields{
 				log:                  logging.NewNopLogger(),
 				kube:                 fakeKubeClientObjs(),
-				bootVolumeController: fakeBootVolumeCtrl(),
-				serverController:     fakeServerCtrl(),
-				nicController:        fakeNicCtrl(),
+				bootVolumeController: fakeBootVolumeCtrlEnsureMethod(noReplicas),
+				serverController:     fakeServerCtrlEnsureMethod(noReplicas),
+				nicController:        fakeNicCtrlEnsureNICsMethod(noReplicas),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -590,6 +608,90 @@ func Test_serverSetController_Create(t *testing.T) {
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: nil,
+		},
+		{
+			name: "too many volumes returned for the same index",
+			fields: fields{
+				log: logging.NewNopLogger(),
+				kube: fakeKubeClientObjs(
+					createBootVolumeWithIndex("boot-volume1", 0),
+					createBootVolumeWithIndex("boot-volume2", 0)),
+				bootVolumeController: fakeBootVolumeCtrlEnsureMethod(0),
+				serverController:     fakeServerCtrlEnsureMethod(0),
+				nicController:        fakeNicCtrlEnsureNICsMethod(0),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			want:    managed.ExternalCreation{},
+			wantErr: errors.New("found too many volumes for index 0"),
+		},
+		{
+			name: "error when ensuring boot volume",
+			fields: fields{
+				log:                  logging.NewNopLogger(),
+				kube:                 fakeKubeClientObjs(),
+				bootVolumeController: fakeBootVolumeCtrlEnsureMethodReturnsErr(),
+				serverController:     fakeServerCtrlEnsureMethod(0),
+				nicController:        fakeNicCtrlEnsureNICsMethod(0),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			want:    managed.ExternalCreation{},
+			wantErr: errAnErrorWasReceived,
+		},
+		{
+			name: "too many servers returned for the same index",
+			fields: fields{
+				log: logging.NewNopLogger(),
+				kube: fakeKubeClientObjs(
+					createServerWithIndex("server1", 0),
+					createServerWithIndex("server2", 0)),
+				bootVolumeController: fakeBootVolumeCtrlEnsureMethod(1),
+				serverController:     fakeServerCtrlEnsureMethod(0),
+				nicController:        fakeNicCtrlEnsureNICsMethod(0),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			want:    managed.ExternalCreation{},
+			wantErr: errors.New("found too many servers for index 0"),
+		},
+		{
+			name: "error when ensuring server",
+			fields: fields{
+				log:                  logging.NewNopLogger(),
+				kube:                 fakeKubeClientObjs(),
+				bootVolumeController: fakeBootVolumeCtrlEnsureMethod(0),
+				serverController:     fakeServerCtrlEnsureMethodReturnsErr(),
+				nicController:        fakeNicCtrlEnsureNICsMethod(0),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			want:    managed.ExternalCreation{},
+			wantErr: errAnErrorWasReceived,
+		},
+		{
+			name: "error when ensuring NICs",
+			fields: fields{
+				log:                  logging.NewNopLogger(),
+				kube:                 fakeKubeClientObjs(),
+				bootVolumeController: fakeBootVolumeCtrlEnsureMethod(1),
+				serverController:     fakeServerCtrlEnsureMethod(1),
+				nicController:        fakeNicCtrlEnsureNICsMethodReturnsErr(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			want:    managed.ExternalCreation{},
+			wantErr: errAnErrorWasReceived,
 		},
 	}
 	for _, tt := range tests {
@@ -616,38 +718,71 @@ func Test_serverSetController_Create(t *testing.T) {
 
 			assertions.Equalf(tt.wantErr, err, "Wrong error")
 			assertions.Equalf(tt.want, got, "Wrong response")
-			assertions.Equalf(serverSetName, tt.args.cr.ObjectMeta.Annotations[meta.AnnotationKeyExternalName], "ServerSet should have external name set to its name")
 			assertions.Equalf(1, len(tt.args.cr.Status.Conditions), "ServerSet should have one condition")
 			assertCondition(t, xpv1.Creating(), tt.args.cr.Status.Conditions[0], "ServerSet has wrong condition")
 		})
 	}
 }
 
-func fakeBootVolumeCtrl() kubeBootVolumeControlManager {
+func fakeBootVolumeCtrlEnsureMethod(timesCalled int) kubeBootVolumeControlManager {
 	bootVolumeCtrl := new(fakeKubeBootVolumeControlManager)
-	bootVolumeCtrl.
-		On(ensure, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(nil).
-		Times(noReplicas)
+	if timesCalled > 0 {
+		bootVolumeCtrl.
+			On(ensure, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			Return(nil).
+			Times(timesCalled)
+	}
 	return bootVolumeCtrl
 
 }
 
-func fakeServerCtrl() kubeServerControlManager {
+func fakeBootVolumeCtrlEnsureMethodReturnsErr() kubeBootVolumeControlManager {
+	bootVolumeCtrl := new(fakeKubeBootVolumeControlManager)
+	bootVolumeCtrl.
+		On(ensure, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(errAnErrorWasReceived).
+		Times(1)
+	return bootVolumeCtrl
+}
+
+func fakeServerCtrlEnsureMethod(timesCalled int) kubeServerControlManager {
 	serverCtrl := new(fakeKubeServerControlManager)
-	serverCtrl.
-		On(ensure, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(nil).
-		Times(noReplicas)
+	if timesCalled > 0 {
+		serverCtrl.
+			On(ensure, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			Return(nil).
+			Times(timesCalled)
+	}
 	return serverCtrl
 }
 
-func fakeNicCtrl() kubeNicControlManager {
+func fakeServerCtrlEnsureMethodReturnsErr() kubeServerControlManager {
+	serverCtrl := new(fakeKubeServerControlManager)
+	serverCtrl.
+		On(ensure, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(errAnErrorWasReceived).
+		Times(1)
+	return serverCtrl
+}
+
+func fakeNicCtrlEnsureNICsMethod(timesCalled int) kubeNicControlManager {
+	nicCtrl := new(fakeKubeNicControlManager)
+	if timesCalled > 0 {
+		nicCtrl.
+			On(ensureNICs, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			Return(nil).
+			Times(noReplicas)
+	}
+	return nicCtrl
+}
+
+func fakeNicCtrlEnsureNICsMethodReturnsErr() kubeNicControlManager {
 	nicCtrl := new(fakeKubeNicControlManager)
 	nicCtrl.
 		On(ensureNICs, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(nil).
-		Times(noReplicas)
+		Return(errAnErrorWasReceived).
+		Times(1)
+
 	return nicCtrl
 }
 
@@ -656,21 +791,6 @@ func assertCondition(t *testing.T, expected xpv1.Condition, actual xpv1.Conditio
 	if diff := cmp.Diff(expected, actual, ignoreFields); diff != "" {
 		t.Errorf("%s (-want +got):\n%s", msg, diff)
 	}
-}
-
-type fakeKubeBootVolumeControlManager struct {
-	kubeBootVolumeControlManager
-	mock.Mock
-}
-
-type fakeKubeServerControlManager struct {
-	kubeServerControlManager
-	mock.Mock
-}
-
-type fakeKubeNicControlManager struct {
-	kubeNicControlManager
-	mock.Mock
 }
 
 func (f *fakeKubeBootVolumeControlManager) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
@@ -738,6 +858,13 @@ func createBootVolume(name string) v1alpha1.Volume {
 			},
 		},
 	}
+}
+
+func createBootVolumeWithIndex(name string, index int) *v1alpha1.Volume {
+	volume := createBootVolume(name)
+	indexLabelBootVolume := fmt.Sprintf(indexLabel, serverSetName, resourceBootVolume)
+	volume.ObjectMeta.Labels[indexLabelBootVolume] = fmt.Sprintf("%d", index)
+	return &volume
 }
 
 func fakeKubeClientObjs(objs ...client.Object) client.WithWatch {
@@ -893,5 +1020,12 @@ func createServerWithReconcileErrorMsg() *v1alpha1.Server {
 			Message: reconcileErrorMsg,
 		},
 	}
+	return &server
+}
+
+func createServerWithIndex(name string, index int) *v1alpha1.Server {
+	server := createServer(name)
+	indexLabelBootVolume := fmt.Sprintf(indexLabel, serverSetName, ResourceServer)
+	server.ObjectMeta.Labels[indexLabelBootVolume] = fmt.Sprintf("%d", index)
 	return &server
 }

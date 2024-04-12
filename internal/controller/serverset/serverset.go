@@ -565,10 +565,10 @@ func getVersionsFromVolumeAndServer(ctx context.Context, kube client.Client, ser
 		return volumeVersion, serverVersion, err
 	}
 	if len(volumeResources.Items) > 1 {
-		return volumeVersion, serverVersion, fmt.Errorf("found too many volumes for index %d ", replicaIndex)
+		return volumeVersion, serverVersion, fmt.Errorf("found too many volumes for index %d", replicaIndex)
 	}
 	if len(volumeResources.Items) == 0 {
-		return volumeVersion, serverVersion, fmt.Errorf("found no volumes for index %d ", replicaIndex)
+		return volumeVersion, serverVersion, fmt.Errorf("found no volumes for index %d", replicaIndex)
 	}
 	serverResources := &v1alpha1.ServerList{}
 	err = ListResFromSSetWithIndex(ctx, kube, serversetName, ResourceServer, replicaIndex, serverResources)
@@ -576,10 +576,10 @@ func getVersionsFromVolumeAndServer(ctx context.Context, kube client.Client, ser
 		return volumeVersion, serverVersion, err
 	}
 	if len(serverResources.Items) > 1 {
-		return volumeVersion, serverVersion, fmt.Errorf("found too many servers for index %d ", replicaIndex)
+		return volumeVersion, serverVersion, fmt.Errorf("found too many servers for index %d", replicaIndex)
 	}
 	if len(serverResources.Items) == 0 {
-		return volumeVersion, serverVersion, fmt.Errorf("found no servers for index %d ", replicaIndex)
+		return volumeVersion, serverVersion, fmt.Errorf("found no servers for index %d", replicaIndex)
 	}
 
 	condemnedVolume := volumeResources.Items[0]
@@ -602,7 +602,7 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.S
 		return err
 	}
 	if len(resSrv.Items) > 1 {
-		return fmt.Errorf("found too many servers for index %d ", replicaIndex)
+		return fmt.Errorf("found too many servers for index %d", replicaIndex)
 	}
 	if len(resSrv.Items) == 0 {
 		res := &v1alpha1.VolumeList{}
@@ -617,6 +617,7 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.S
 				return err
 			}
 		}
+
 		if err := e.serverController.Ensure(ctx, cr, replicaIndex, version, volumeVersion); err != nil {
 			return err
 		}
@@ -634,7 +635,7 @@ func (e *external) ensureBootVolumeByIndex(ctx context.Context, cr *v1alpha1.Ser
 		return err
 	}
 	if len(res.Items) > 1 {
-		return fmt.Errorf("found too many volumes for index %d ", replicaIndex)
+		return fmt.Errorf("found too many volumes for index %d", replicaIndex)
 	}
 	if len(res.Items) == 0 {
 		if err := e.bootVolumeController.Ensure(ctx, cr, replicaIndex, version); err != nil {
