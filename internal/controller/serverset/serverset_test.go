@@ -27,6 +27,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -553,22 +554,6 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 }
 
 func Test_serverSetController_Create(t *testing.T) {
-	bootVolumeCtrl := &fakeKubeBootVolumeControlManager{
-		methodCallCount: map[string]int{
-			ensure: 0,
-		},
-	}
-	serverCtrl := &fakeKubeServerControlManager{
-		methodCallCount: map[string]int{
-			ensure: 0,
-		},
-	}
-	nicCtrl := &fakeKubeNicControlManager{
-		methodCallCount: map[string]int{
-			ensureNICs: 0,
-		},
-	}
-
 	type fields struct {
 		kube                 client.Client
 		bootVolumeController kubeBootVolumeControlManager
@@ -593,9 +578,9 @@ func Test_serverSetController_Create(t *testing.T) {
 			fields: fields{
 				log:                  logging.NewNopLogger(),
 				kube:                 fakeKubeClientObjs(),
-				bootVolumeController: bootVolumeCtrl,
-				serverController:     serverCtrl,
-				nicController:        nicCtrl,
+				bootVolumeController: fakeBootVolumeCtrl(),
+				serverController:     fakeServerCtrl(),
+				nicController:        fakeNicCtrl(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -620,9 +605,15 @@ func Test_serverSetController_Create(t *testing.T) {
 			got, err := e.Create(tt.args.ctx, tt.args.cr)
 
 			assertions := assert.New(t)
-			assertions.Equalf(noReplicas, bootVolumeCtrl.methodCallCount[ensure], "bootVolumeController.Ensure() method should be called once")
-			assertions.Equalf(noReplicas, serverCtrl.methodCallCount[ensure], "serverController.Ensure() method should be called once")
-			assertions.Equalf(noReplicas, nicCtrl.methodCallCount[ensureNICs], "nicController.EnsureNICs() method should be called once")
+			fakeBootVolumeCtrl := tt.fields.bootVolumeController.(*fakeKubeBootVolumeControlManager)
+			fakeBootVolumeCtrl.AssertExpectations(t)
+
+			fakeServerCtrl := tt.fields.serverController.(*fakeKubeServerControlManager)
+			fakeServerCtrl.AssertExpectations(t)
+
+			fakeNicCtrl := tt.fields.nicController.(*fakeKubeNicControlManager)
+			fakeNicCtrl.AssertExpectations(t)
+
 			assertions.Equalf(tt.wantErr, err, "Wrong error")
 			assertions.Equalf(tt.want, got, "Wrong response")
 			assertions.Equalf(serverSetName, tt.args.cr.ObjectMeta.Annotations[meta.AnnotationKeyExternalName], "ServerSet should have external name set to its name")
@@ -630,6 +621,34 @@ func Test_serverSetController_Create(t *testing.T) {
 			assertCondition(t, xpv1.Creating(), tt.args.cr.Status.Conditions[0], "ServerSet has wrong condition")
 		})
 	}
+}
+
+func fakeBootVolumeCtrl() kubeBootVolumeControlManager {
+	bootVolumeCtrl := new(fakeKubeBootVolumeControlManager)
+	bootVolumeCtrl.
+		On(ensure, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil).
+		Times(noReplicas)
+	return bootVolumeCtrl
+
+}
+
+func fakeServerCtrl() kubeServerControlManager {
+	serverCtrl := new(fakeKubeServerControlManager)
+	serverCtrl.
+		On(ensure, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil).
+		Times(noReplicas)
+	return serverCtrl
+}
+
+func fakeNicCtrl() kubeNicControlManager {
+	nicCtrl := new(fakeKubeNicControlManager)
+	nicCtrl.
+		On(ensureNICs, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil).
+		Times(noReplicas)
+	return nicCtrl
 }
 
 func assertCondition(t *testing.T, expected xpv1.Condition, actual xpv1.Condition, msg string) {
@@ -641,32 +660,32 @@ func assertCondition(t *testing.T, expected xpv1.Condition, actual xpv1.Conditio
 
 type fakeKubeBootVolumeControlManager struct {
 	kubeBootVolumeControlManager
-	methodCallCount map[string]int
-}
-
-func (f fakeKubeBootVolumeControlManager) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
-	f.methodCallCount[ensure]++
-	return nil
+	mock.Mock
 }
 
 type fakeKubeServerControlManager struct {
 	kubeServerControlManager
-	methodCallCount map[string]int
-}
-
-func (f fakeKubeServerControlManager) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
-	f.methodCallCount[ensure]++
-	return nil
+	mock.Mock
 }
 
 type fakeKubeNicControlManager struct {
 	kubeNicControlManager
-	methodCallCount map[string]int
+	mock.Mock
 }
 
-func (f fakeKubeNicControlManager) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
-	f.methodCallCount[ensureNICs]++
-	return nil
+func (f fakeKubeBootVolumeControlManager) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+	args := f.Called(ctx, cr, replicaIndex, version)
+	return args.Error(0)
+}
+
+func (f fakeKubeServerControlManager) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
+	args := f.Called(ctx, cr, replicaIndex, version, volumeVersion)
+	return args.Error(0)
+}
+
+func (f *fakeKubeNicControlManager) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+	args := f.Called(ctx, cr, replicaIndex, version)
+	return args.Error(0)
 }
 
 func createServer(name string) v1alpha1.Server {

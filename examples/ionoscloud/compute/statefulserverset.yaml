@@ -60,7 +60,7 @@ spec:
       - metadata:
           name: data
         spec:
-          dhcp: true
+
       - metadata:
           name: management
         spec:
