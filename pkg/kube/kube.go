@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
+	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -13,6 +16,9 @@ const ResourceReadyTimeout = 30 * time.Minute
 
 // ServerSetReadyTimeout time to wait for serverset to be ready
 const ServerSetReadyTimeout = 1 * time.Hour
+
+// ErrExternalCreateFailed error when external create fails, so we know to delete kube object
+var ErrExternalCreateFailed = errors.New("external create failed")
 
 // Implements lower level functions to interact with kubernetes
 
@@ -28,4 +34,9 @@ func WaitForResource(ctx context.Context, timeoutInMinutes time.Duration, fn IsR
 	return wait.PollUntilContextTimeout(ctx, pollInterval, timeoutInMinutes, true, func(context.Context) (bool, error) {
 		return fn(ctx, name, namespace)
 	})
+}
+
+// IsSuccessfullyCreated checks if the object was successfully created
+func IsSuccessfullyCreated(obj resource.Managed) bool {
+	return obj.GetAnnotations()[meta.AnnotationKeyExternalCreateFailed] == ""
 }

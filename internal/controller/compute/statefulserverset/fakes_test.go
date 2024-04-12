@@ -87,6 +87,10 @@ func (f fakeKubeDataVolumeController) Ensure(ctx context.Context, cr *v1alpha1.S
 	return f.Err
 }
 
+func (f *fakeKubeServerSetController) Get(ctx context.Context, ssetName, ns string) (*v1alpha1.ServerSet, error) {
+	return nil, nil
+}
+
 func (f *fakeKubeServerSetController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error) {
 	f.methodCallCount[create]++
 	return nil, nil

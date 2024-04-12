@@ -93,6 +93,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 		log                  logging.Logger
 		LANController        kubeLANControlManager
 		dataVolumeController kubeDataVolumeControlManager
+		ssetController       kubeSSetControlManager
 	}
 	type args struct {
 		ctx context.Context
@@ -125,6 +126,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				log:                  logging.NewNopLogger(),
 				LANController:        fakeKubeLANController{LanList: v1alpha1.LanList{}},
 				dataVolumeController: fakeKubeDataVolumeController{VolumeList: v1alpha1.VolumeList{}},
+				ssetController:       &fakeKubeServerSetController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -144,6 +146,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				log:                  logging.NewNopLogger(),
 				LANController:        fakeKubeLANController{LanList: createLanList()},
 				dataVolumeController: fakeKubeDataVolumeController{VolumeList: createVolumeList()},
+				ssetController:       &fakeKubeServerSetController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -169,6 +172,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeList(),
 				},
+				ssetController: &fakeKubeServerSetController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -194,6 +198,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeList(),
 				},
+				ssetController: &fakeKubeServerSetController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -217,6 +222,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeList(),
 				},
+				ssetController: &fakeKubeServerSetController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -240,6 +246,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeListNotUpToDate(VolumeFieldUpToDate{}),
 				},
+				ssetController: &fakeKubeServerSetController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -263,6 +270,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeListNotUpToDate(VolumeFieldUpToDate{}),
 				},
+				ssetController: &fakeKubeServerSetController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -290,6 +298,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeList(),
 				},
+				ssetController: &fakeKubeServerSetController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -317,6 +326,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeList(),
 				},
+				ssetController: &fakeKubeServerSetController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -344,6 +354,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeList(),
 				},
+				ssetController: &fakeKubeServerSetController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -364,6 +375,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				log:                  tt.fields.log,
 				LANController:        tt.fields.LANController,
 				dataVolumeController: tt.fields.dataVolumeController,
+				SSetController:       tt.fields.ssetController,
 			}
 			got, err := c.Observe(tt.args.ctx, tt.args.mg)
 			if (err != nil) != tt.wantErr {

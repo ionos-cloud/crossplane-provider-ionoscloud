@@ -2,6 +2,7 @@ package statefulserverset
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -19,6 +20,7 @@ type kubeSSetControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error)
 	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error
 	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.ServerSet, error)
+	Get(ctx context.Context, ssetName, ns string) (*v1alpha1.ServerSet, error)
 }
 
 // kubeServerSetController - kubernetes client wrapper for server set resources
@@ -47,6 +49,7 @@ func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.State
 	if err != nil {
 		return v1alpha1.ServerSet{}, err
 	}
+
 	areResUpToDate, err := areSSetResourcesUpToDate(ctx, k.kube, cr)
 	if err != nil {
 		return v1alpha1.ServerSet{}, err
@@ -81,9 +84,15 @@ func (k *kubeServerSetController) isAvailable(ctx context.Context, name, namespa
 		}
 		return false, err
 	}
-	isAvailable := obj.GetCondition(xpv1.TypeReady)
-
-	if obj != nil && (len(obj.Status.AtProvider.ReplicaStatuses) == obj.Spec.ForProvider.Replicas) && (isAvailable.Equal(xpv1.Available())) {
+	if obj == nil {
+		return false, nil
+	}
+	if !kube.IsSuccessfullyCreated(obj) {
+		// todo add here the internal ReconcileError if possible
+		return false, kube.ErrExternalCreateFailed
+	}
+	if (len(obj.Status.AtProvider.ReplicaStatuses) == obj.Spec.ForProvider.Replicas) &&
+		(obj.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())) {
 		return true, nil
 	}
 	return false, err
@@ -95,20 +104,28 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 	k.log.Info("Ensuring ServerSet", "name", SSetName)
 	kubeSSet := &v1alpha1.ServerSet{}
 	err := k.kube.Get(ctx, types.NamespacedName{Name: SSetName, Namespace: cr.Namespace}, kubeSSet)
-
+	if kubeSSet != nil && !kube.IsSuccessfullyCreated(kubeSSet) {
+		return kube.ErrExternalCreateFailed
+	}
 	switch {
 	case err != nil && apiErrors.IsNotFound(err):
 		_, err := k.Create(ctx, cr)
 		if err != nil {
 			return err
 		}
-		return kube.WaitForResource(ctx, kube.ServerSetReadyTimeout, k.isAvailable, SSetName, cr.Namespace)
+		if err = kube.WaitForResource(ctx, kube.ServerSetReadyTimeout, k.isAvailable, SSetName, cr.Namespace); err != nil {
+			if errors.Is(err, kube.ErrExternalCreateFailed) {
+				_ = k.delete(ctx, SSetName, cr.Namespace)
+			}
+			return err
+		}
 	case err != nil:
 		return err
 	default:
 		k.log.Info("ServerSet already exists", "name", SSetName)
 		return nil
 	}
+	return nil
 }
 
 // Get - returns a serverset kubernetes object
@@ -147,4 +164,33 @@ func extractSSetFromSSSet(sSSet *v1alpha1.StatefulServerSet) *v1alpha1.ServerSet
 
 func getSSetName(cr *v1alpha1.StatefulServerSet) string {
 	return fmt.Sprintf("%s-%s", cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
+}
+
+// delete - deletes the serverset k8s object and waits until it is deleted
+func (k *kubeServerSetController) delete(ctx context.Context, name, namespace string) error {
+	serverset, err := k.Get(ctx, name, namespace)
+	if err != nil {
+		return err
+	}
+	if err := k.kube.Delete(ctx, serverset); err != nil {
+		return fmt.Errorf("while deleting serverset %w", err)
+	}
+	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isDeleted, serverset.Name, namespace)
+}
+
+func (k *kubeServerSetController) isDeleted(ctx context.Context, name, namespace string) (bool, error) {
+	k.log.Info("Checking if Serverset is deleted", "name", name, "namespace", namespace)
+	obj := &v1alpha1.ServerSet{}
+	err := k.kube.Get(ctx, types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}, obj)
+	if err != nil {
+		if apiErrors.IsNotFound(err) {
+			k.log.Info("Serverset has been deleted", "name", name, "namespace", namespace)
+			return true, nil
+		}
+		return false, err
+	}
+	return false, nil
 }

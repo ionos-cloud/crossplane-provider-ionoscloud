@@ -8,7 +8,8 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/pkg/errors"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,7 +41,10 @@ func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSe
 		return v1alpha1.Server{}, fmt.Errorf("while creating Server %w ", err)
 	}
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createServer.Name, cr.Namespace); err != nil {
-		return v1alpha1.Server{}, fmt.Errorf("while waiting for createServer to be populated %w ", err)
+		if errors.Is(err, kube.ErrExternalCreateFailed) {
+			_ = k.Delete(ctx, createServer.Name, cr.Namespace)
+		}
+		return v1alpha1.Server{}, fmt.Errorf("while waiting for Server to be populated %w ", err)
 	}
 	createdServer, err := k.Get(ctx, createServer.Name, cr.Namespace)
 	if err != nil {
@@ -71,13 +75,17 @@ func (k *kubeServerController) isAvailable(ctx context.Context, name, namespace 
 		Name:      name,
 	}, obj)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apiErrors.IsNotFound(err) {
 			return false, nil
 		}
 	}
-	if obj != nil && obj.Status.AtProvider.ServerID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
+	if !kube.IsSuccessfullyCreated(obj) {
+		return false, kube.ErrExternalCreateFailed
+	}
+	if obj.Status.AtProvider.ServerID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
 		return true, nil
 	}
+
 	return false, err
 }
 
@@ -101,7 +109,7 @@ func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namesp
 		Name:      name,
 	}, obj)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apiErrors.IsNotFound(err) {
 			k.log.Info("Server has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
