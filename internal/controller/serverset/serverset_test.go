@@ -673,12 +673,12 @@ type fakeKubeNicControlManager struct {
 	mock.Mock
 }
 
-func (f fakeKubeBootVolumeControlManager) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+func (f *fakeKubeBootVolumeControlManager) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	args := f.Called(ctx, cr, replicaIndex, version)
 	return args.Error(0)
 }
 
-func (f fakeKubeServerControlManager) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
+func (f *fakeKubeServerControlManager) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
 	args := f.Called(ctx, cr, replicaIndex, version, volumeVersion)
 	return args.Error(0)
 }

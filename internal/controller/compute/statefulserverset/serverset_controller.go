@@ -72,7 +72,7 @@ func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.State
 	return *updateObj, nil
 }
 
-// isAvailable - checks if a lan is available
+// isAvailable - checks if the server set is available
 func (k *kubeServerSetController) isAvailable(ctx context.Context, name, namespace string) (bool, error) {
 	obj, err := k.Get(ctx, name, namespace)
 	if err != nil {
