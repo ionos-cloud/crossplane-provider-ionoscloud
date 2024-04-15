@@ -156,7 +156,7 @@ func lateInitializer(in *v1alpha1.LanParameters, lan *sdkgo.Lan) { // nolint:goc
 		}
 	}
 }
-func (c *externalLan) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (c *externalLan) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint:gocyclo
 	cr, ok := mg.(*v1alpha1.Lan)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotLan)
