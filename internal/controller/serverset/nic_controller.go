@@ -38,8 +38,7 @@ func getNicNameFromIndex(serversetName, resourceName, resourceType string, repli
 
 // Create creates a NIC CR and waits until in reaches AVAILABLE state
 func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, nicIndex, version int) (v1alpha1.Nic, error) {
-	serverSetNic := cr.Spec.ForProvider.Template.Spec.NICs[nicIndex]
-	name := getNicNameFromIndex(cr.Name, serverSetNic.Name, resourceNIC, replicaIndex, nicIndex, version)
+	name := getNicNameFromIndex(cr.Name, cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, resourceNIC, replicaIndex, nicIndex, version)
 	k.log.Info("Creating NIC", "name", name)
 	network := v1alpha1.Lan{}
 	if err := k.kube.Get(ctx, types.NamespacedName{
@@ -50,7 +49,7 @@ func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, 
 	}
 	lanID := network.Status.AtProvider.LanID
 	// no NIC found, create one
-	createNic := fromServerSetToNic(cr, name, serverID, lanID, serverSetNic, replicaIndex, version)
+	createNic := fromServerSetToNic(cr, name, serverID, lanID, replicaIndex, nicIndex, version)
 	if err := k.kube.Create(ctx, &createNic); err != nil {
 		return v1alpha1.Nic{}, err
 	}
@@ -124,7 +123,8 @@ func (k *kubeNicController) Delete(ctx context.Context, name, namespace string) 
 	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isNicDeleted, condemnedVolume.Name, namespace)
 }
 
-func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, serverSetNic v1alpha1.ServerSetTemplateNIC, replicaIndex, version int) v1alpha1.Nic {
+func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, replicaIndex, nicIndex, version int) v1alpha1.Nic {
+	serverSetNic := cr.Spec.ForProvider.Template.Spec.NICs[nicIndex]
 	nic := v1alpha1.Nic{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
