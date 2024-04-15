@@ -63,8 +63,8 @@ func isLanUpToDate(spec *v1alpha1.StatefulServerSetLanSpec, lan *v1alpha1.Lan) b
 	case spec.IPv6cidr != "AUTO" && lan.Spec.ForProvider.Ipv6Cidr != spec.IPv6cidr:
 		lan.Spec.ForProvider.Ipv6Cidr = spec.IPv6cidr
 		return false
-	case lan.Spec.ForProvider.Public != spec.DHCP:
-		lan.Spec.ForProvider.Public = spec.DHCP
+	case lan.Spec.ForProvider.Public != spec.Public:
+		lan.Spec.ForProvider.Public = spec.Public
 		return false
 	}
 	return true
@@ -183,7 +183,7 @@ func fromStatefulServerSetToLAN(cr *v1alpha1.StatefulServerSet, name string, lan
 			ForProvider: v1alpha1.LanParameters{
 				DatacenterCfg: cr.Spec.ForProvider.DatacenterCfg,
 				Name:          cr.Spec.ForProvider.Lans[lanIndex].Metadata.Name,
-				Public:        cr.Spec.ForProvider.Lans[lanIndex].Spec.DHCP,
+				Public:        cr.Spec.ForProvider.Lans[lanIndex].Spec.Public,
 			},
 		}}
 

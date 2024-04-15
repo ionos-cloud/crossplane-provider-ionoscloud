@@ -33,15 +33,12 @@ spec:
         cores: 4
         ram: 1024 # (32*storageTB)
         nics:
-          - name: nic-sample
-            ipv4: "10.0.0.1/24"
-            vnetId: "3330fa34-927f-11ee-8008-6202af74e858"
+          - name: nic-customer
+            ipv4: "10.7.222.5"
+            dhcp: true
+            vnetId: "2c59d77a-210e-4f0d-93ae-f79b40db304b"
 #           should reference lan metadata name
-            reference: data
-          - name: nic-mng
-            ipv4: "10.0.0.1/24"
-            vnetId: "3330fa34-927f-11ee-8008-6202af74e858"
-            reference: management
+            reference: customer
     bootVolumeTemplate:
       metadata:
           name: boot-volume
@@ -60,16 +57,16 @@ spec:
       - metadata:
           name: data
         spec:
-          dhcp: true
+          public: true
       - metadata:
           name: management
         spec:
-          dhcp: false
+          public: false
       - metadata:
           name: customer
         spec:
           ipv6cidr: "AUTO"
-          dhcp: false
+          public: false
     # The volumes are then defined - a 200GB SSD "system" volume from a
     # custom Linux image, and a separate 4TB SSD volume for storage.
     volumes:
