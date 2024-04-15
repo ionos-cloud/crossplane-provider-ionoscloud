@@ -2,7 +2,6 @@ package serverset
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -17,15 +16,15 @@ import (
 
 const (
 	ip                        = "10.0.0.2/24"
-	vnetId                    = "679070ab-1ebc-46ef-b9f7-c43c1ed9f6e9"
+	vnetID                    = "679070ab-1ebc-46ef-b9f7-c43c1ed9f6e9"
 	serverSetNicIndexLabel    = "ionoscloud.com/serverset-nic-index"
 	serverSetNicVersionLabel  = "ionoscloud.com/serverset-nic-version"
-	nicWithVnetAndIpV4Name    = "serverset-nic1-nic-1-0-0"
-	nicWithoutVnetAndIpV4Name = "serverset-nic2-nic-1-0-0"
-	nicId                     = "bc59d87e-17cc-4313-b55b-6603884f9d97"
-	serverId                  = "07a7e712-fc36-43ca-bc8f-76c05861ff8b"
+	nicWithVNetAndIPV4Name    = "serverset-nic1-nic-1-0-0"
+	nicWithoutVNetAndIPV4Name = "serverset-nic2-nic-1-0-0"
+	nicID                     = "bc59d87e-17cc-4313-b55b-6603884f9d97"
+	serverID                  = "07a7e712-fc36-43ca-bc8f-76c05861ff8b"
 	lanName                   = "lan1"
-	lanId                     = "1"
+	lanID                     = "1"
 )
 
 func Test_kubeNicController_Create(t *testing.T) {
@@ -52,37 +51,37 @@ func Test_kubeNicController_Create(t *testing.T) {
 		{
 			name: "The fields are populated correctly",
 			fields: fields{
-				kube: fakeKubeClient(interceptor.Funcs{Create: createWithVNetAndIpV4ReturnsErrorForUnexpectedNICs, Get: getPopulatesFieldsAndReturnsNoError}),
+				kube: fakeKubeClient(interceptor.Funcs{Create: createWithVNetAndIPV4ReturnsErrorForUnexpectedNICs, Get: getPopulatesFieldsAndReturnsNoError}),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
 				ctx:          context.Background(),
-				cr:           createServerSetWithVNetAndIpV4(),
-				serverID:     serverId,
+				cr:           createServerSetWithVNetAndIPV4(),
+				serverID:     serverID,
 				lanName:      lanName,
 				replicaIndex: 1,
 				nicIndex:     0,
 				version:      0,
 			},
-			want:    *createWantedNicWithVNetAndIpV4(),
+			want:    *createWantedNicWithVNetAndIPV4(),
 			wantErr: false,
 		},
 		{
 			name: "The fields vnet and ipv4 are optional",
 			fields: fields{
-				kube: fakeKubeClient(interceptor.Funcs{Create: createWithoutVNetAndIpV4ReturnsErrorForUnexpectedNICs, Get: getPopulatesFieldsAndReturnsNoError}),
+				kube: fakeKubeClient(interceptor.Funcs{Create: createWithoutVNetAndIPV4ReturnsErrorForUnexpectedNICs, Get: getPopulatesFieldsAndReturnsNoError}),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
 				ctx:          context.Background(),
-				cr:           createServerSetWithoutVNetAndIpV4(),
-				serverID:     serverId,
+				cr:           createServerSetWithoutVNetAndIPV4(),
+				serverID:     serverID,
 				lanName:      lanName,
 				replicaIndex: 1,
 				nicIndex:     0,
 				version:      0,
 			},
-			want:    *createWantedNicWithoutVNetAndIpV4(),
+			want:    *createWantedNicWithoutVNetAndIPV4(),
 			wantErr: false,
 		},
 	}
@@ -104,15 +103,15 @@ func Test_kubeNicController_Create(t *testing.T) {
 	}
 }
 
-func createServerSetWithVNetAndIpV4() *v1alpha1.ServerSet {
+func createServerSetWithVNetAndIPV4() *v1alpha1.ServerSet {
 	s := createBasicServerSet()
 	for nicIndex := range s.Spec.ForProvider.Template.Spec.NICs {
-		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].VNetID = vnetId
+		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].VNetID = vnetID
 	}
 	return s
 }
 
-func createServerSetWithoutVNetAndIpV4() *v1alpha1.ServerSet {
+func createServerSetWithoutVNetAndIPV4() *v1alpha1.ServerSet {
 	s := createBasicServerSet()
 	s.Spec.ForProvider.Template.Spec.NICs = []v1alpha1.ServerSetTemplateNIC{
 		{
@@ -132,67 +131,68 @@ func populateBasicNicMetadataAndSpec(nic *v1alpha1.Nic, nicName string) {
 		serverSetNicVersionLabel: "0",
 	}
 	nic.Spec.ForProvider.Name = nicName
-	nic.Spec.ForProvider.ServerCfg.ServerID = serverId
-	nic.Spec.ForProvider.LanCfg.LanID = lanId
+	nic.Spec.ForProvider.ServerCfg.ServerID = serverID
+	nic.Spec.ForProvider.LanCfg.LanID = lanID
 	nic.Spec.ForProvider.Dhcp = true
 }
 
-func populateVNetAndIpV4(nic *v1alpha1.Nic) {
-	nic.Spec.ForProvider.Vnet = vnetId
+func populateVNetAndIPV4(nic *v1alpha1.Nic) {
+	nic.Spec.ForProvider.Vnet = vnetID
 	nic.Spec.ForProvider.IpsCfg.IPs = []string{ip}
 }
 
 func makeNicAvailable(nic *v1alpha1.Nic) {
-	nic.Status.AtProvider.NicID = nicId
+	nic.Status.AtProvider.NicID = nicID
 	nic.Status.AtProvider.State = ionoscloud.Available
 }
 
-func createWantedNicWithVNetAndIpV4() *v1alpha1.Nic {
+func createWantedNicWithVNetAndIPV4() *v1alpha1.Nic {
 	nic := &v1alpha1.Nic{}
-	populateBasicNicMetadataAndSpec(nic, nicWithVnetAndIpV4Name)
-	populateVNetAndIpV4(nic)
+	populateBasicNicMetadataAndSpec(nic, nicWithVNetAndIPV4Name)
+	populateVNetAndIPV4(nic)
 	makeNicAvailable(nic)
 	return nic
 }
 
-func createWantedNicWithoutVNetAndIpV4() *v1alpha1.Nic {
+func createWantedNicWithoutVNetAndIPV4() *v1alpha1.Nic {
 	nic := &v1alpha1.Nic{}
-	populateBasicNicMetadataAndSpec(nic, nicWithoutVnetAndIpV4Name)
+	populateBasicNicMetadataAndSpec(nic, nicWithoutVNetAndIPV4Name)
 	makeNicAvailable(nic)
 	return nic
 }
 
-func createWithVNetAndIpV4ReturnsErrorForUnexpectedNICs(_ context.Context, _ client.WithWatch, obj client.Object, _ ...client.CreateOption) error {
+func createWithVNetAndIPV4ReturnsErrorForUnexpectedNICs(_ context.Context, _ client.WithWatch, obj client.Object, _ ...client.CreateOption) error {
 	expectedNic := &v1alpha1.Nic{}
-	populateBasicNicMetadataAndSpec(expectedNic, nicWithVnetAndIpV4Name)
-	populateVNetAndIpV4(expectedNic)
+	populateBasicNicMetadataAndSpec(expectedNic, nicWithVNetAndIPV4Name)
+	populateVNetAndIPV4(expectedNic)
 	if diff := cmp.Diff(obj.(*v1alpha1.Nic), expectedNic); diff != "" {
-		return errors.New(fmt.Sprintf("create was called with an unexpected NIC.\n Expected %#v.\n Got %#v", expectedNic, obj.(*v1alpha1.Nic)))
+		return fmt.Errorf("create was called with an unexpected NIC.\n Expected %#v.\n Got %#v", expectedNic, obj.(*v1alpha1.Nic))
 	}
 	return nil
 }
 
-func createWithoutVNetAndIpV4ReturnsErrorForUnexpectedNICs(_ context.Context, _ client.WithWatch, obj client.Object, _ ...client.CreateOption) error {
+func createWithoutVNetAndIPV4ReturnsErrorForUnexpectedNICs(_ context.Context, _ client.WithWatch, obj client.Object, _ ...client.CreateOption) error {
 	expectedNic := &v1alpha1.Nic{}
-	populateBasicNicMetadataAndSpec(expectedNic, nicWithoutVnetAndIpV4Name)
+	populateBasicNicMetadataAndSpec(expectedNic, nicWithoutVNetAndIPV4Name)
 	if diff := cmp.Diff(obj.(*v1alpha1.Nic), expectedNic); diff != "" {
-		return errors.New(fmt.Sprintf("create was called with an unexpected NIC.\n Expected %#v \n Got %#v", expectedNic, obj.(*v1alpha1.Nic)))
+		return fmt.Errorf("create was called with an unexpected NIC.\n Expected %#v \n Got %#v", expectedNic, obj.(*v1alpha1.Nic))
 	}
 	return nil
 }
 
 func getPopulatesFieldsAndReturnsNoError(_ context.Context, _ client.WithWatch, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
-	if key.Name == lanName {
+	switch key.Name {
+	case lanName:
 		lan := obj.(*v1alpha1.Lan)
-		lan.Status.AtProvider.LanID = lanId
-	} else if key.Name == nicWithVnetAndIpV4Name {
+		lan.Status.AtProvider.LanID = lanID
+	case nicWithVNetAndIPV4Name:
 		nic := obj.(*v1alpha1.Nic)
-		populateBasicNicMetadataAndSpec(nic, nicWithVnetAndIpV4Name)
-		populateVNetAndIpV4(nic)
+		populateBasicNicMetadataAndSpec(nic, nicWithVNetAndIPV4Name)
+		populateVNetAndIPV4(nic)
 		makeNicAvailable(nic)
-	} else if key.Name == nicWithoutVnetAndIpV4Name {
+	case nicWithoutVNetAndIPV4Name:
 		nic := obj.(*v1alpha1.Nic)
-		populateBasicNicMetadataAndSpec(nic, nicWithoutVnetAndIpV4Name)
+		populateBasicNicMetadataAndSpec(nic, nicWithoutVNetAndIPV4Name)
 		makeNicAvailable(nic)
 	}
 	return nil
