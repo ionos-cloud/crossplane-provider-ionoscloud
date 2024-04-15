@@ -103,6 +103,7 @@ type ServerObservation struct {
 	VolumeID  string `json:"volumeId,omitempty"`
 	State     string `json:"state,omitempty"`
 	CPUFamily string `json:"cpuFamily,omitempty"`
+	Name      string `json:"name,omitempty"`
 }
 
 // A ServerSpec defines the desired state of a Server.

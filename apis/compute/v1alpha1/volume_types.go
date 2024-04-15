@@ -162,6 +162,7 @@ type VolumeObservation struct {
 	VolumeID string `json:"volumeId,omitempty"`
 	State    string `json:"state,omitempty"`
 	PCISlot  int32  `json:"pciSlot,omitempty"`
+	Name     string `json:"name,omitempty"`
 }
 
 // A VolumeSpec defines the desired state of a Volume.

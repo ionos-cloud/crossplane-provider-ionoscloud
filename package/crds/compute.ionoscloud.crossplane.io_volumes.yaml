@@ -551,6 +551,8 @@ spec:
               atProvider:
                 description: VolumeObservation are the observable fields of a Volume.
                 properties:
+                  name:
+                    type: string
                   pciSlot:
                     format: int32
                     type: integer
