@@ -81,9 +81,12 @@ type ServerSetTemplateSpec struct {
 
 // ServerSetTemplateNIC are the configurable fields of a ServerSetTemplateNIC.
 type ServerSetTemplateNIC struct {
+	// Name of the NIC. Replica index, NIC index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{nicIndex}-{version}.
+	// Version increases if the NIC is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the NIC is re-created and the version is increased.
+	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
-	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:MaxLength=50
 	Name string `json:"name"`
 	// +kubebuilder:validation:Required
 	IPv4 string `json:"ipv4"`
@@ -110,9 +113,12 @@ type ServerSetTemplate struct {
 
 // ServerSetMetadata are the configurable fields of a ServerSetMetadata.
 type ServerSetMetadata struct {
+	// Name of the Server. Replica index and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}
+	// Version increases if the Server is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the Server is re-created and the version is increased.
+	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
-	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:MaxLength=55
 	Name string `json:"name"`
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
@@ -160,9 +166,12 @@ type BootVolumeTemplate struct {
 
 // ServerSetBootVolumeMetadata are the configurable fields of a ServerSetBootVolumeMetadata.
 type ServerSetBootVolumeMetadata struct {
+	// Name of the BootVolume. Replica index, volume index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}. Version increases if the bootvolume is
+	// re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
+	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
-	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:MaxLength=55
 	Name string `json:"name"`
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
