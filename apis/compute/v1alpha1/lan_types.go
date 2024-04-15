@@ -84,6 +84,7 @@ type LanObservation struct {
 	IPFailovers []string `json:"ipFailovers,omitempty"`
 	LanID       string   `json:"lanId,omitempty"`
 	State       string   `json:"state,omitempty"`
+	Name        string   `json:"name,omitempty"`
 }
 
 // A LanSpec defines the desired state of a Lan.
