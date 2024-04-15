@@ -476,7 +476,7 @@ spec:
                             name:
                               description: 'Name from which the Volume name will be
                                 generated. Replica index will be appended. Resulting
-                                name will be in format: {name}-{replicaIndex}'
+                                name will be in format: {name}-{replicaIndex}-{version}'
                               maxLength: 55
                               pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                               type: string

@@ -59,7 +59,7 @@ type StatefulServerSetLan struct {
 
 // StatefulServerSetVolumeMetadata are the configurable fields of a StatefulServerSetVolumeMetadata.
 type StatefulServerSetVolumeMetadata struct {
-	// Name from which the Volume name will be generated. Replica index will be appended. Resulting name will be in format: {name}-{replicaIndex}
+	// Name from which the Volume name will be generated. Replica index will be appended. Resulting name will be in format: {name}-{replicaIndex}-{version}
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
 	// +kubebuilder:validation:MaxLength=55
