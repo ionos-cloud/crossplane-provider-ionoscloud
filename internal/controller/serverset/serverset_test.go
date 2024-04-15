@@ -666,7 +666,7 @@ func Test_serverSetController_Create(t *testing.T) {
 			fields: fields{
 				log:                  logging.NewNopLogger(),
 				kube:                 fakeKubeClientObjs(),
-				bootVolumeController: fakeBootVolumeCtrlEnsureMethod(0),
+				bootVolumeController: fakeBootVolumeCtrlEnsureMethod(1),
 				serverController:     fakeServerCtrlEnsureMethodReturnsErr(),
 				nicController:        fakeNicCtrlEnsureNICsMethod(0),
 			},
