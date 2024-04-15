@@ -470,7 +470,7 @@ func createNIC(replicaIdx int, parameters v1alpha1.NicParameters) *v1alpha1.Nic 
 }
 
 func computeSSSetOwnerLabel() string {
-	return fmt.Sprintf("%s", serverSetName)
+	return serverSetName
 }
 
 func nameWithIdx(replicaIdx int, name string) string {
