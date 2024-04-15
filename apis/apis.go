@@ -27,6 +27,7 @@ import (
 	mongov1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/mongo/v1alpha1"
 	postgresv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/postgres/v1alpha1"
 	k8sv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
+	nlbv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/nlb/v1alpha1"
 	templatev1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 )
 
@@ -41,6 +42,7 @@ func init() {
 		albv1alpha1.SchemeBuilder.AddToScheme,
 		backupv1alpha1.SchemeBuilder.AddToScheme,
 		dataplatformv1alpha1.SchemeBuilder.AddToScheme,
+		nlbv1alpha1.SchemeBuilder.AddToScheme,
 	)
 }
 

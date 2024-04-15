@@ -45,6 +45,9 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgresuser"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/k8s/k8scluster"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/k8s/k8snodepool"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/nlb/flowlog"
+	nlbforwardingrule "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/nlb/forwardingrule"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/nlb/networkloadbalancer"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 
@@ -82,6 +85,9 @@ var controllers = []controllerSetup{
 	dataplatformcluster.Setup,
 	dataplatformnodepool.Setup,
 	group.Setup,
+	networkloadbalancer.Setup,
+	flowlog.Setup,
+	nlbforwardingrule.Setup,
 }
 
 // Setup creates all IONOS Cloud controllers with the supplied logger
