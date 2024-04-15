@@ -271,9 +271,9 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
+
 	if err := e.reconcileVolumesFromTemplate(ctx, cr); err != nil {
 		return managed.ExternalUpdate{}, err
-
 	}
 
 	return managed.ExternalUpdate{

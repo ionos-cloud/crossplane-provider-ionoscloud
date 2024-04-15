@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -32,7 +33,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -79,6 +79,12 @@ type fakeKubeNicControlManager struct {
 	mock.Mock
 }
 
+type fakeKubeClient struct {
+	client.Client
+	mock.Mock
+	t *testing.T
+}
+
 func Test_serverSetController_Observe(t *testing.T) {
 	type fields struct {
 		kube client.Client
@@ -90,10 +96,10 @@ func Test_serverSetController_Observe(t *testing.T) {
 
 	server1 := createServer(server1Name)
 	server2 := createServer(server2Name)
-	nic1 := createNic(server1.Name)
-	nic2 := createNic(server2.Name)
-	bootVolume1 := createBootVolume(bootVolumeNamePrefix + server1.Name)
-	bootVolume2 := createBootVolume(bootVolumeNamePrefix + server2.Name)
+	nic1 := createNic(server1Name)
+	nic2 := createNic(server2Name)
+	bootVolume1 := createBootVolume(bootVolumeNamePrefix + server1Name)
+	bootVolume2 := createBootVolume(bootVolumeNamePrefix + server2Name)
 
 	tests := []struct {
 		name    string
@@ -105,7 +111,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "servers, nics and boot volumes created",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -137,7 +143,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "server CPU family not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -157,7 +163,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "server cores not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -177,7 +183,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "server RAM not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -197,7 +203,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "boot volume image is not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -217,7 +223,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "boot volume size is not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -237,7 +243,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "boot volume type is not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -257,7 +263,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "servers < replica count",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1),
+				kube: fakeKubeClientObjs(server1),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -273,7 +279,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "nics not created",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2),
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -289,7 +295,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "nr of nics not up to date",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &bootVolume1, &bootVolume2, &nic1, &nic2),
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -353,7 +359,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 		{
 			name: "serverset status is populated correctly",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, createConfigLeaseMap()),
+				kube: fakeKubeClientObjs(server1, server2, nic1, nic2, createConfigLeaseMap()),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -381,7 +387,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 		{
 			name: "config-lease map missing, then roles default to PASSIVE",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2),
+				kube: fakeKubeClientObjs(server1, server2, nic1, nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -409,7 +415,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 		{
 			name: "replicas not in config-lease, then roles default to PASSIVE",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2, createConfigLeaseMapDoesNotContainAnyReplica()),
+				kube: fakeKubeClientObjs(server1, server2, nic1, nic2, createConfigLeaseMapDoesNotContainAnyReplica()),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -437,7 +443,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 		{
 			name: "replica count increases, then number of replica status is increased",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &server2, &nic1, &nic2),
+				kube: fakeKubeClientObjs(server1, server2, nic1, nic2),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -465,7 +471,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 		{
 			name: "replica count decreases, then number of replica status is decreased",
 			fields: fields{
-				kube: fakeKubeClientObjs(&server1, &nic1),
+				kube: fakeKubeClientObjs(server1, nic1),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -487,7 +493,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 		{
 			name: "status of the server is failure, then status of replica is ERROR",
 			fields: fields{
-				kube: fakeKubeClientObjs(&serverWithErrorStatus),
+				kube: fakeKubeClientObjs(serverWithErrorStatus),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -531,7 +537,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 		{
 			name: "status of the server not among known ones, then status of replica is also UNKNOWN",
 			fields: fields{
-				kube: fakeKubeClientObjs(&serverWithUnknownStatus, &nic1),
+				kube: fakeKubeClientObjs(serverWithUnknownStatus, nic1),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -592,7 +598,7 @@ func Test_serverSetController_Create(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name: "serverset successfully created",
+			name: "server set successfully created",
 			fields: fields{
 				log:                  logging.NewNopLogger(),
 				kube:                 fakeKubeClientObjs(),
@@ -724,6 +730,229 @@ func Test_serverSetController_Create(t *testing.T) {
 	}
 }
 
+func Test_serverSetController_Update(t *testing.T) {
+	type fields struct {
+		kube                 client.Client
+		bootVolumeController kubeBootVolumeControlManager
+		nicController        kubeNicControlManager
+		serverController     kubeServerControlManager
+		log                  logging.Logger
+	}
+	type args struct {
+		ctx context.Context
+		cr  *v1alpha1.ServerSet
+	}
+	tests := []struct {
+		name            string
+		fields          fields
+		args            args
+		wantErr         error
+		want            managed.ExternalUpdate
+		wantUpdateCalls int
+	}{
+		{
+			name: "server set successfully updated (no changes)",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodObjs(&v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantUpdateCalls: 0,
+		},
+		{
+			name: "server set successfully updated (CPU Family changed)",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodObjs(&v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily: "INTEL_XEON",
+					Cores:     serverSetCores,
+					RAM:       serverSetRAM,
+				}),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantUpdateCalls: 2,
+		},
+		{
+			name: "server set successfully updated (Cores changed)",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodObjs(&v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily: serverSetCPUFamily,
+					Cores:     10,
+					RAM:       serverSetRAM,
+				}),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantUpdateCalls: 2,
+		},
+		{
+			name: "server set successfully updated (RAM changed)",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodObjs(&v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily: serverSetCPUFamily,
+					Cores:     serverSetCores,
+					RAM:       8192,
+				}),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantUpdateCalls: 2,
+		},
+		{
+			name: "server set successfully updated (boot volume size changed)",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodObjs(&v1alpha1.Volume{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedBootVolume(v1alpha1.ServerSetBootVolumeSpec{
+					Size:  200,
+					Image: bootVolumeImage,
+					Type:  bootVolumeType,
+				}),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantUpdateCalls: 2,
+		},
+		{
+			name: "server set successfully updated (boot volume image changed)",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodObjs(&v1alpha1.Volume{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedBootVolume(v1alpha1.ServerSetBootVolumeSpec{
+					Size:  bootVolumeSize,
+					Image: "newImage",
+					Type:  bootVolumeType,
+				}),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantUpdateCalls: 2,
+		},
+		{
+			name: "failure in kube client when updating server",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodReturnsError(),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily: "INTEL_XEON",
+					Cores:     serverSetCores,
+					RAM:       serverSetRAM,
+				}),
+			},
+			wantErr:         fmt.Errorf("error updating server %w", errAnErrorWasReceived),
+			want:            managed.ExternalUpdate{},
+			wantUpdateCalls: 1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.fields.kube.(*fakeKubeClient).t = t
+			e := &external{
+				kube:                 tt.fields.kube,
+				bootVolumeController: tt.fields.bootVolumeController,
+				nicController:        tt.fields.nicController,
+				serverController:     tt.fields.serverController,
+				log:                  tt.fields.log,
+			}
+
+			got, err := e.Update(tt.args.ctx, tt.args.cr)
+
+			assertions := assert.New(t)
+			assertions.Equalf(tt.wantErr, err, "Wrong error")
+			assertions.Equalf(tt.want, got, "Wrong response")
+			assertions.Equalf(0, len(tt.args.cr.Status.Conditions), "ServerSet should not have any conditions")
+			assertKubeClientUpdateCalls(t, tt.fields.kube, tt.wantUpdateCalls)
+		})
+	}
+}
+
+func assertKubeClientUpdateCalls(t *testing.T, kube client.Client, expectedNoOfCalls int) {
+	kubeClient := kube.(*fakeKubeClient)
+	kubeClient.AssertNumberOfCalls(t, "Update", expectedNoOfCalls)
+}
+
+func fakeKubeClientUpdateMethodReturnsError() client.Client {
+	kubeClient := fakeKubeClient{
+		Client: fakeKubeClientObjs(createServer("server1"), createServer("server2")),
+	}
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(errAnErrorWasReceived)
+	return &kubeClient
+}
+
+func fakeKubeClientUpdateMethod() client.Client {
+	kubeClient := fakeKubeClient{
+		Client: fakeKubeClientObjs(
+			createServer("server1"), createServer("server2"),
+			createBootVolume("boot-volume-server1"), createBootVolume("boot-volume-server2"),
+			createNic("nic-server1"), createNic("nic-server2")),
+	}
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	return &kubeClient
+}
+
+func fakeKubeClientUpdateMethodObjs(expectedObj client.Object) client.Client {
+	kubeClient := fakeKubeClient{
+		Client: fakeKubeClientObjs(
+			createServer("server1"), createServer("server2"),
+			createBootVolume("boot-volume-server1"), createBootVolume("boot-volume-server2"),
+			createNic("nic-server1"), createNic("nic-server2")),
+	}
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+		arg1 := args.Get(1)
+		if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObj) {
+			kubeClient.t.Errorf("Update called with unexpeted type: want=%v, got=%v", reflect.TypeOf(expectedObj), reflect.TypeOf(arg1))
+		}
+	}).Return(nil)
+
+	return &kubeClient
+}
+
+func (f *fakeKubeClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+	args := f.Called(ctx, obj, opts)
+	return args.Error(0)
+}
+
 func fakeBootVolumeCtrlEnsureMethod(timesCalled int) kubeBootVolumeControlManager {
 	bootVolumeCtrl := new(fakeKubeBootVolumeControlManager)
 	if timesCalled > 0 {
@@ -808,8 +1037,8 @@ func (f *fakeKubeNicControlManager) EnsureNICs(ctx context.Context, cr *v1alpha1
 	return args.Error(0)
 }
 
-func createServer(name string) v1alpha1.Server {
-	return v1alpha1.Server{
+func createServer(name string) *v1alpha1.Server {
+	return &v1alpha1.Server{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Labels: map[string]string{
@@ -831,8 +1060,8 @@ func createServer(name string) v1alpha1.Server {
 	}
 }
 
-func createNic(name string) v1alpha1.Nic {
-	return v1alpha1.Nic{
+func createNic(name string) *v1alpha1.Nic {
+	return &v1alpha1.Nic{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Labels: map[string]string{
@@ -842,8 +1071,8 @@ func createNic(name string) v1alpha1.Nic {
 	}
 }
 
-func createBootVolume(name string) v1alpha1.Volume {
-	return v1alpha1.Volume{
+func createBootVolume(name string) *v1alpha1.Volume {
+	return &v1alpha1.Volume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Labels: map[string]string{
@@ -864,7 +1093,7 @@ func createBootVolumeWithIndex(name string, index int) *v1alpha1.Volume {
 	volume := createBootVolume(name)
 	indexLabelBootVolume := fmt.Sprintf(indexLabel, serverSetName, resourceBootVolume)
 	volume.ObjectMeta.Labels[indexLabelBootVolume] = fmt.Sprintf("%d", index)
-	return &volume
+	return volume
 }
 
 func fakeKubeClientObjs(objs ...client.Object) client.WithWatch {
@@ -1020,12 +1249,12 @@ func createServerWithReconcileErrorMsg() *v1alpha1.Server {
 			Message: reconcileErrorMsg,
 		},
 	}
-	return &server
+	return server
 }
 
 func createServerWithIndex(name string, index int) *v1alpha1.Server {
 	server := createServer(name)
 	indexLabelBootVolume := fmt.Sprintf(indexLabel, serverSetName, ResourceServer)
 	server.ObjectMeta.Labels[indexLabelBootVolume] = fmt.Sprintf("%d", index)
-	return &server
+	return server
 }

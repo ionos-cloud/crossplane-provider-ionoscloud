@@ -16,7 +16,7 @@ import (
 	computev1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
-func fakeKubeClient(functions interceptor.Funcs) client.WithWatch {
+func fakeKubeClientFuncs(functions interceptor.Funcs) client.WithWatch {
 	scheme, _ := computev1alpha1.SchemeBuilder.Build()
 	return fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(functions).Build()
 }
@@ -54,7 +54,7 @@ func Test_kubeBootVolumeController_Create(t *testing.T) {
 		{
 			name: "expect success and status is populated",
 			fields: fields{
-				kube: fakeKubeClient(interceptor.Funcs{Get: getVolumePopulateStatus}),
+				kube: fakeKubeClientFuncs(interceptor.Funcs{Get: getVolumePopulateStatus}),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
@@ -74,7 +74,7 @@ func Test_kubeBootVolumeController_Create(t *testing.T) {
 		{
 			name: "kube object creation failed expect error",
 			fields: fields{
-				kube: fakeKubeClient(interceptor.Funcs{Create: createVolumeReturnsError}),
+				kube: fakeKubeClientFuncs(interceptor.Funcs{Create: createVolumeReturnsError}),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
