@@ -621,7 +621,7 @@ func (e *external) ensureBootVolumeByIndex(ctx context.Context, cr *v1alpha1.Ser
 	return nil
 }
 
-// getNameFromIndex - generates name consisting of name, kind and index
-func getNameFromIndex(resourceName string, idx, version int) string {
+// getNameFrom - generates name for a resource
+func getNameFrom(resourceName string, idx, version int) string {
 	return fmt.Sprintf("%s-%d-%d", resourceName, idx, version)
 }

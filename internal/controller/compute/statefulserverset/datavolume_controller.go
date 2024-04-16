@@ -224,7 +224,7 @@ func createVolumeLabelKey(label string, name string) string {
 	return fmt.Sprintf(label, name, volumeselector.ResourceDataVolume)
 }
 
-// generateNameFrom - generates name consisting of name, kind, index and version/second index
+// generateNameFrom - generates name for a volume
 func generateNameFrom(resourceName string, idx, version int) string {
 	return fmt.Sprintf("%s-%d-%d", resourceName, idx, version)
 }

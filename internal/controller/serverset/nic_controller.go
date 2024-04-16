@@ -31,7 +31,7 @@ type kubeNicController struct {
 	log  logging.Logger
 }
 
-// getNicName - generates name consisting of name, kind and index
+// getNicName - generates name for a NIC
 func getNicName(resourceName string, replicaIndex, nicIndex, version int) string {
 	return fmt.Sprintf("%s-%d-%d-%d", resourceName, replicaIndex, nicIndex, version)
 }

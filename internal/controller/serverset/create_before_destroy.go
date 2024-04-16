@@ -47,10 +47,10 @@ func (c *createBeforeDestroy) createResources(ctx context.Context, cr *v1alpha1.
 }
 
 func (c *createBeforeDestroy) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, volumeVersion, serverVersion int) error {
-	if err := c.bootVolumeController.Delete(ctx, getNameFromIndex(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion), cr.Namespace); err != nil {
+	if err := c.bootVolumeController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion), cr.Namespace); err != nil {
 		return err
 	}
-	if err := c.serverController.Delete(ctx, getNameFromIndex(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, serverVersion), cr.Namespace); err != nil {
+	if err := c.serverController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, serverVersion), cr.Namespace); err != nil {
 		return err
 	}
 	for nicIndex := range cr.Spec.ForProvider.Template.Spec.NICs {
