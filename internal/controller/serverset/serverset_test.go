@@ -894,6 +894,7 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 							{
 								Name:      "nic1",
 								IPv4:      "10.0.0.2/24",
+								DHCP:      true,
 								Reference: "data",
 							},
 						},
@@ -979,6 +980,7 @@ func createServerSetWithNrOfNICsUpdated() *v1alpha1.ServerSet {
 		sset.Spec.ForProvider.Template.Spec.NICs, v1alpha1.ServerSetTemplateNIC{
 			Name:      "nic2",
 			IPv4:      "10.0.0.3/24",
+			DHCP:      true,
 			Reference: "management",
 		})
 
