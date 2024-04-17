@@ -369,6 +369,8 @@ spec:
                               description: ServerSetTemplateNIC are the configurable
                                 fields of a ServerSetTemplateNIC.
                               properties:
+                                dhcp:
+                                  type: boolean
                                 ipv4:
                                   type: string
                                 name:
@@ -383,10 +385,9 @@ spec:
                                 vnetId:
                                   type: string
                               required:
-                              - ipv4
+                              - dhcp
                               - name
                               - reference
-                              - vnetId
                               type: object
                             minItems: 1
                             type: array

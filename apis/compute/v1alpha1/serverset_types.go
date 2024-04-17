@@ -88,10 +88,12 @@ type ServerSetTemplateNIC struct {
 	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
 	// +kubebuilder:validation:MaxLength=50
 	Name string `json:"name"`
+	// +kubebuilder:validation:Optional
+	IPv4 string `json:"ipv4,omitempty"`
 	// +kubebuilder:validation:Required
-	IPv4 string `json:"ipv4"`
-	// +kubebuilder:validation:Required
-	VNetID string `json:"vnetId"`
+	DHCP bool `json:"dhcp"`
+	// +kubebuilder:validation:Optional
+	VNetID string `json:"vnetId,omitempty"`
 	// +kubebuilder:validation:Required
 	Reference string `json:"reference"`
 }

@@ -48,7 +48,7 @@ type StatefulServerSetLanSpec struct {
 	// +kubebuilder:validation:Optional
 	IPv6cidr string `json:"ipv6cidr"`
 	// +kubebuilder:validation:Optional
-	DHCP bool `json:"dhcp"`
+	Public bool `json:"public"`
 }
 
 // StatefulServerSetLan are the configurable fields of a StatefulServerSetLan.

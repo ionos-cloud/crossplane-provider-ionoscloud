@@ -342,7 +342,7 @@ func isALanFieldNotUpToDate(specLan v1alpha1.StatefulServerSetLan, gotLan v1alph
 	if specLan.Metadata.Name != gotLan.Spec.ForProvider.Name {
 		return false
 	}
-	if gotLan.Spec.ForProvider.Public != specLan.Spec.DHCP {
+	if gotLan.Spec.ForProvider.Public != specLan.Spec.Public {
 		return true
 	}
 	if specLan.Spec.IPv6cidr != "AUTO" && gotLan.Spec.ForProvider.Ipv6Cidr != specLan.Spec.IPv6cidr {

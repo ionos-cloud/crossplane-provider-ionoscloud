@@ -357,10 +357,10 @@ spec:
                           description: StatefulServerSetLanSpec are the configurable
                             fields of a StatefulServerSetLanSpec.
                           properties:
-                            dhcp:
-                              type: boolean
                             ipv6cidr:
                               type: string
+                            public:
+                              type: boolean
                           type: object
                       required:
                       - metadata
@@ -420,6 +420,8 @@ spec:
                               description: ServerSetTemplateNIC are the configurable
                                 fields of a ServerSetTemplateNIC.
                               properties:
+                                dhcp:
+                                  type: boolean
                                 ipv4:
                                   type: string
                                 name:
@@ -434,10 +436,9 @@ spec:
                                 vnetId:
                                   type: string
                               required:
-                              - ipv4
+                              - dhcp
                               - name
                               - reference
-                              - vnetId
                               type: object
                             minItems: 1
                             type: array

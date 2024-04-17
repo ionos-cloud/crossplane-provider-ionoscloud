@@ -229,16 +229,16 @@ available CPU architectures can be retrieved from the datacenter resource.
 				* `nics` (array)
 					* description: NICs are the network interfaces of the server.
 					* properties:
+						* `dhcp` (boolean)
 						* `ipv4` (string)
 						* `name` (string)
 							* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 						* `reference` (string)
 						* `vnetId` (string)
 					* required properties:
-						* `ipv4`
+						* `dhcp`
 						* `name`
 						* `reference`
-						* `vnetId`
 				* `ram` (integer)
 					* description: The memory size for the server in MB, such as 2048. Size must be specified in multiples of 256 MB with a minimum of 256 MB.
 however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB,
