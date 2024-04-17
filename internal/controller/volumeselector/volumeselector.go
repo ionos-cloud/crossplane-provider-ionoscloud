@@ -132,8 +132,7 @@ func (c *externalVolumeselector) Observe(ctx context.Context, mg resource.Manage
 			}
 		}
 	}
-	cr.Status.AtProvider.State = sdkgo.Available
-	cr.Status.SetConditions(xpv1.Available())
+
 	return managed.ExternalObservation{
 		ResourceExists:    true,
 		ResourceUpToDate:  true,
@@ -174,8 +173,9 @@ func (c *externalVolumeselector) Update(ctx context.Context, mg resource.Managed
 				return managed.ExternalUpdate{}, err
 			}
 		}
-
 	}
+	cr.Status.AtProvider.State = sdkgo.Available
+	cr.Status.SetConditions(xpv1.Available())
 	return managed.ExternalUpdate{}, nil
 }
 
