@@ -47,11 +47,11 @@ const (
 	bootVolumeImage      = "image"
 	bootVolumeNamePrefix = "boot-volume-"
 
-	delete     = "Delete"
-	ensure     = "Ensure"
-	ensureNICs = "EnsureNICs"
-	get        = "Get"
-	update     = "Update"
+	deleteMethod     = "Delete"
+	ensureMethod     = "Ensure"
+	ensureNICsMethod = "EnsureNICs"
+	getMethod        = "Get"
+	updateMethod     = "Update"
 
 	noReplicas = 2
 
@@ -97,7 +97,7 @@ type kubeNicControlManagerFake struct {
 	mock.Mock
 }
 
-type fakeKubeClient struct {
+type kubeClientFake struct {
 	client.Client
 	mock.Mock
 	t *testing.T
@@ -845,26 +845,6 @@ func Test_serverSetController_Update(t *testing.T) {
 			wantUpdateCalls: 2,
 		},
 		{
-			name: "server set successfully updated (boot volume size changed)",
-			fields: fields{
-				kube: fakeKubeClientUpdateMethod(&v1alpha1.Volume{}),
-				log:  logging.NewNopLogger(),
-			},
-			args: args{
-				ctx: context.Background(),
-				cr: createServerSetWithUpdatedBootVolumeUsingDefaultStrategy(v1alpha1.ServerSetBootVolumeSpec{
-					Size:  200,
-					Image: bootVolumeImage,
-					Type:  bootVolumeType,
-				}),
-			},
-			wantErr: nil,
-			want: managed.ExternalUpdate{
-				ConnectionDetails: managed.ConnectionDetails{},
-			},
-			wantUpdateCalls: 2,
-		},
-		{
 			name: "failure in kube client when updating server",
 			fields: fields{
 				kube: fakeKubeClientUpdateMethodReturnsError(),
@@ -885,7 +865,7 @@ func Test_serverSetController_Update(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.fields.kube.(*fakeKubeClient).t = t
+			tt.fields.kube.(*kubeClientFake).t = t
 			e := &external{
 				kube:                 tt.fields.kube,
 				bootVolumeController: tt.fields.bootVolumeController,
@@ -900,7 +880,7 @@ func Test_serverSetController_Update(t *testing.T) {
 			assertions.Equalf(tt.wantErr, err, "Wrong error")
 			assertions.Equalf(tt.want, got, "Wrong response")
 			assertions.Equalf(0, len(tt.args.cr.Status.Conditions), "ServerSet should not have any conditions")
-			kubeClient := tt.fields.kube.(*fakeKubeClient)
+			kubeClient := tt.fields.kube.(*kubeClientFake)
 			kubeClient.AssertNumberOfCalls(t, "Update", tt.wantUpdateCalls)
 		})
 	}
@@ -927,7 +907,7 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 		wantCalls map[ServiceMethodName]int
 	}{
 		{
-			name: "boot volume updated using default strategy (boot volume image changed)",
+			name: "updated using default strategy (image changed)",
 			fields: fields{
 				kube:                 fakeKubeClientUpdateMethodForBootVolume(),
 				bootVolumeController: fakeBootVolumeCtrl(),
@@ -948,20 +928,15 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantCalls: map[ServiceMethodName]int{
-				kubeUpdate:       0,
-				serverEnsure:     0,
-				serverDelete:     0,
 				serverGet:        2,
 				serverUpdate:     2,
 				bootVolumeEnsure: 2,
 				bootVolumeDelete: 2,
 				bootVolumeGet:    2,
-				nicEnsureNICs:    0,
-				nicDelete:        0,
 			},
 		},
 		{
-			name: "boot volume updated using default strategy (boot volume type changed)",
+			name: "updated using default strategy (type changed)",
 			fields: fields{
 				kube:                 fakeKubeClientUpdateMethodForBootVolume(),
 				bootVolumeController: fakeBootVolumeCtrl(),
@@ -982,20 +957,15 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantCalls: map[ServiceMethodName]int{
-				kubeUpdate:       0,
-				serverEnsure:     0,
-				serverDelete:     0,
 				serverGet:        2,
 				serverUpdate:     2,
 				bootVolumeEnsure: 2,
 				bootVolumeDelete: 2,
 				bootVolumeGet:    2,
-				nicEnsureNICs:    0,
-				nicDelete:        0,
 			},
 		},
 		{
-			name: "boot volume updated using createAllBeforeDestroy strategy (boot volume type changed)",
+			name: "updated using createAllBeforeDestroy strategy (type changed)",
 			fields: fields{
 				kube:                 fakeKubeClientUpdateMethodForBootVolume(),
 				bootVolumeController: fakeBootVolumeCtrl(),
@@ -1016,22 +986,114 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantCalls: map[ServiceMethodName]int{
-				kubeUpdate:       0,
 				serverEnsure:     2,
 				serverDelete:     2,
-				serverGet:        0,
-				serverUpdate:     0,
 				bootVolumeEnsure: 2,
 				bootVolumeDelete: 2,
-				bootVolumeGet:    0,
 				nicEnsureNICs:    2,
 				nicDelete:        2,
+			},
+		},
+		{
+			name: "updated (size changed)",
+			fields: fields{
+				kube:                 fakeKubeClientUpdateMethod(&v1alpha1.Volume{}),
+				bootVolumeController: fakeBootVolumeCtrl(),
+				nicController:        fakeNicCtrl(),
+				serverController:     fakeServerCtrl(),
+				log:                  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedBootVolumeUsingDefaultStrategy(v1alpha1.ServerSetBootVolumeSpec{
+					Size:  200,
+					Image: bootVolumeImage,
+					Type:  bootVolumeType,
+				}),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantCalls: map[ServiceMethodName]int{
+				kubeUpdate: 2,
+			},
+		},
+		{
+			name: "failed to update (size changed)",
+			fields: fields{
+				kube:                 fakeKubeClientUpdateMethodReturnsError(),
+				bootVolumeController: fakeBootVolumeCtrl(),
+				nicController:        fakeNicCtrl(),
+				serverController:     fakeServerCtrl(),
+				log:                  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedBootVolumeUsingDefaultStrategy(v1alpha1.ServerSetBootVolumeSpec{
+					Size:  200,
+					Image: bootVolumeImage,
+					Type:  bootVolumeType,
+				}),
+			},
+			wantErr: fmt.Errorf("while updating volumes %w", fmt.Errorf("error updating server %w", errAnErrorWasReceived)),
+			want:    managed.ExternalUpdate{},
+			wantCalls: map[ServiceMethodName]int{
+				kubeUpdate: 1,
+			},
+		},
+		{
+			name: "failed to update using default strategy (type changed)",
+			fields: fields{
+				kube:                 fakeKubeClientUpdateMethodForBootVolume(),
+				bootVolumeController: fakeBootVolumeCtrlEnsureMethodReturnsErr(),
+				nicController:        fakeNicCtrl(),
+				serverController:     fakeServerCtrl(),
+				log:                  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedBootVolumeUsingDefaultStrategy(v1alpha1.ServerSetBootVolumeSpec{
+					Size:  bootVolumeSize,
+					Image: bootVolumeImage,
+					Type:  "SSD",
+				}),
+			},
+			wantErr: fmt.Errorf("while updating volumes %w", errAnErrorWasReceived),
+			want:    managed.ExternalUpdate{},
+			wantCalls: map[ServiceMethodName]int{
+				bootVolumeEnsure: 1,
+			},
+		},
+		{
+			name: "active Replica updated last (type changed)",
+			fields: fields{
+				kube:                 fakeKubeClientUpdateMethodForBootVolume(),
+				bootVolumeController: fakeBootVolumeCtrl(),
+				nicController:        fakeNicCtrl(),
+				serverController:     fakeServerCtrl(),
+				log:                  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedBootRoleInStatus(v1alpha1.ServerSetBootVolumeSpec{
+					Size:  bootVolumeSize,
+					Image: bootVolumeImage,
+					Type:  "SSD",
+				}),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantCalls: map[ServiceMethodName]int{
+				bootVolumeEnsure: 1,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.fields.kube.(*fakeKubeClient).t = t
+			tt.fields.kube.(*kubeClientFake).t = t
 			e := &external{
 				kube:                 tt.fields.kube,
 				bootVolumeController: tt.fields.bootVolumeController,
@@ -1047,37 +1109,40 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 			assertions.Equalf(tt.want, got, "Wrong response")
 			assertions.Equalf(0, len(tt.args.cr.Status.Conditions), "ServerSet should not have any conditions")
 
-			kubeClient := tt.fields.kube.(*fakeKubeClient)
-			kubeClient.AssertNumberOfCalls(t, update, tt.wantCalls[kubeUpdate])
+			kubeClient := tt.fields.kube.(*kubeClientFake)
+			kubeClient.AssertNumberOfCalls(t, updateMethod, tt.wantCalls[kubeUpdate])
 
 			bootVolumeCtrl := tt.fields.bootVolumeController.(*kubeBootVolumeControlManagerFake)
-			bootVolumeCtrl.AssertNumberOfCalls(t, ensure, tt.wantCalls[bootVolumeEnsure])
-			bootVolumeCtrl.AssertNumberOfCalls(t, delete, tt.wantCalls[bootVolumeDelete])
-			bootVolumeCtrl.AssertNumberOfCalls(t, get, tt.wantCalls[bootVolumeGet])
+			bootVolumeCtrl.AssertNumberOfCalls(t, ensureMethod, tt.wantCalls[bootVolumeEnsure])
+			bootVolumeCtrl.AssertNumberOfCalls(t, deleteMethod, tt.wantCalls[bootVolumeDelete])
+			bootVolumeCtrl.AssertNumberOfCalls(t, getMethod, tt.wantCalls[bootVolumeGet])
 
 			serverController := tt.fields.serverController.(*kubeServerControlManagerFake)
-			serverController.AssertNumberOfCalls(t, ensure, tt.wantCalls[serverEnsure])
-			serverController.AssertNumberOfCalls(t, delete, tt.wantCalls[serverDelete])
-			serverController.AssertNumberOfCalls(t, get, tt.wantCalls[serverGet])
-			serverController.AssertNumberOfCalls(t, update, tt.wantCalls[serverUpdate])
+			serverController.AssertNumberOfCalls(t, ensureMethod, tt.wantCalls[serverEnsure])
+			serverController.AssertNumberOfCalls(t, deleteMethod, tt.wantCalls[serverDelete])
+			serverController.AssertNumberOfCalls(t, getMethod, tt.wantCalls[serverGet])
+			serverController.AssertNumberOfCalls(t, updateMethod, tt.wantCalls[serverUpdate])
 
 			nicCtrl := tt.fields.nicController.(*kubeNicControlManagerFake)
-			nicCtrl.AssertNumberOfCalls(t, ensureNICs, tt.wantCalls[nicEnsureNICs])
-			nicCtrl.AssertNumberOfCalls(t, delete, tt.wantCalls[nicDelete])
+			nicCtrl.AssertNumberOfCalls(t, ensureNICsMethod, tt.wantCalls[nicEnsureNICs])
+			nicCtrl.AssertNumberOfCalls(t, deleteMethod, tt.wantCalls[nicDelete])
 		})
 	}
 }
 
 func fakeKubeClientUpdateMethodReturnsError() client.Client {
-	kubeClient := fakeKubeClient{
-		Client: fakeKubeClientObjs(createServer("server1"), createServer("server2")),
+	kubeClient := kubeClientFake{
+		Client: fakeKubeClientObjs(
+			createServer("server1"), createServer("server2"),
+			createBootVolume("boot-volume-server1"), createBootVolume("boot-volume-server2"),
+			createNic("nic-server1"), createNic("nic-server2")),
 	}
 	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(errAnErrorWasReceived)
 	return &kubeClient
 }
 
 func fakeKubeClientUpdateMethod(expectedObj client.Object) client.Client {
-	kubeClient := fakeKubeClient{
+	kubeClient := kubeClientFake{
 		Client: fakeKubeClientObjs(
 			createServer("server1"), createServer("server2"),
 			createBootVolume("boot-volume-server1"), createBootVolume("boot-volume-server2"),
@@ -1113,7 +1178,7 @@ func fakeKubeClientUpdateMethodForBootVolume() client.Client {
 	bootVolume2.Labels[computeIndexLabel(resourceBootVolume)] = one
 	bootVolume2.Labels[computeVersionLabel(resourceBootVolume)] = zero
 
-	kubeClient := fakeKubeClient{
+	kubeClient := kubeClientFake{
 		Client: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2,
 			createNic("nic-server1"), createNic("nic-server2")),
 	}
@@ -1139,7 +1204,7 @@ func computeVersionLabel(resourceType string) string {
 	return fmt.Sprintf(versionLabel, serverSetName, resourceType)
 }
 
-func (f *fakeKubeClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+func (f *kubeClientFake) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
 	args := f.Called(ctx, obj, opts)
 	return args.Error(0)
 }
@@ -1148,7 +1213,7 @@ func fakeBootVolumeCtrlEnsureMethod(timesCalled int) kubeBootVolumeControlManage
 	bootVolumeCtrl := new(kubeBootVolumeControlManagerFake)
 	if timesCalled > 0 {
 		bootVolumeCtrl.
-			On(ensure, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			On(ensureMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 			Return(nil).
 			Times(timesCalled)
 	}
@@ -1158,9 +1223,9 @@ func fakeBootVolumeCtrlEnsureMethod(timesCalled int) kubeBootVolumeControlManage
 func fakeBootVolumeCtrl() kubeBootVolumeControlManager {
 	bootVolumeCtrl := new(kubeBootVolumeControlManagerFake)
 	bootVolumeCtrl.
-		On(ensure, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).
-		On(get, mock.Anything, mock.Anything, mock.Anything).Return(&v1alpha1.Volume{}, nil).
-		On(delete, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		On(ensureMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).
+		On(getMethod, mock.Anything, mock.Anything, mock.Anything).Return(&v1alpha1.Volume{}, nil).
+		On(deleteMethod, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	return bootVolumeCtrl
 
 }
@@ -1168,7 +1233,7 @@ func fakeBootVolumeCtrl() kubeBootVolumeControlManager {
 func fakeBootVolumeCtrlEnsureMethodReturnsErr() kubeBootVolumeControlManager {
 	bootVolumeCtrl := new(kubeBootVolumeControlManagerFake)
 	bootVolumeCtrl.
-		On(ensure, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		On(ensureMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(errAnErrorWasReceived).
 		Times(1)
 	return bootVolumeCtrl
@@ -1178,7 +1243,7 @@ func fakeServerCtrlEnsureMethod(timesCalled int) kubeServerControlManager {
 	serverCtrl := new(kubeServerControlManagerFake)
 	if timesCalled > 0 {
 		serverCtrl.
-			On(ensure, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			On(ensureMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 			Return(nil).
 			Times(timesCalled)
 	}
@@ -1188,17 +1253,17 @@ func fakeServerCtrlEnsureMethod(timesCalled int) kubeServerControlManager {
 func fakeServerCtrl() kubeServerControlManager {
 	serverCtrl := new(kubeServerControlManagerFake)
 	serverCtrl.
-		On(ensure, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).
-		On(delete, mock.Anything, mock.Anything, mock.Anything).Return(nil).
-		On(update, mock.Anything, mock.Anything).Return(nil).
-		On(get, mock.Anything, mock.Anything, mock.Anything).Return(&v1alpha1.Server{}, nil)
+		On(ensureMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).
+		On(deleteMethod, mock.Anything, mock.Anything, mock.Anything).Return(nil).
+		On(updateMethod, mock.Anything, mock.Anything).Return(nil).
+		On(getMethod, mock.Anything, mock.Anything, mock.Anything).Return(&v1alpha1.Server{}, nil)
 	return serverCtrl
 }
 
 func fakeServerCtrlEnsureMethodReturnsErr() kubeServerControlManager {
 	serverCtrl := new(kubeServerControlManagerFake)
 	serverCtrl.
-		On(ensure, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		On(ensureMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(errAnErrorWasReceived).
 		Times(1)
 	return serverCtrl
@@ -1208,7 +1273,7 @@ func fakeNicCtrlEnsureNICsMethod(timesCalled int) kubeNicControlManager {
 	nicCtrl := new(kubeNicControlManagerFake)
 	if timesCalled > 0 {
 		nicCtrl.
-			On(ensureNICs, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			On(ensureNICsMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 			Return(nil).
 			Times(noReplicas)
 	}
@@ -1218,7 +1283,7 @@ func fakeNicCtrlEnsureNICsMethod(timesCalled int) kubeNicControlManager {
 func fakeNicCtrlEnsureNICsMethodReturnsErr() kubeNicControlManager {
 	nicCtrl := new(kubeNicControlManagerFake)
 	nicCtrl.
-		On(ensureNICs, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		On(ensureNICsMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(errAnErrorWasReceived).
 		Times(1)
 
@@ -1227,8 +1292,8 @@ func fakeNicCtrlEnsureNICsMethodReturnsErr() kubeNicControlManager {
 func fakeNicCtrl() kubeNicControlManager {
 	nicCtrl := new(kubeNicControlManagerFake)
 	nicCtrl.
-		On(ensureNICs, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).
-		On(delete, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		On(ensureNICsMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).
+		On(deleteMethod, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	return nicCtrl
 }
 
@@ -1400,6 +1465,21 @@ func createServerSetWithUpdatedBootVolumeUsingDefaultStrategy(updatedSpec v1alph
 	sset := createBasicServerSet()
 	sset.Spec.ForProvider.BootVolumeTemplate = v1alpha1.BootVolumeTemplate{
 		Spec: updatedSpec,
+	}
+	return sset
+}
+
+func createServerSetWithUpdatedBootRoleInStatus(updatedSpec v1alpha1.ServerSetBootVolumeSpec) *v1alpha1.ServerSet {
+	sset := createServerSetWithUpdatedBootVolumeUsingDefaultStrategy(updatedSpec)
+	sset.Status.AtProvider.ReplicaStatuses = []v1alpha1.ServerSetReplicaStatus{
+		{
+			Name: "server1",
+			Role: v1alpha1.Active,
+		},
+		{
+			Name: "server2",
+			Role: v1alpha1.Passive,
+		},
 	}
 	return sset
 }
