@@ -163,7 +163,7 @@ func extractSSetFromSSSet(sSSet *v1alpha1.StatefulServerSet) *v1alpha1.ServerSet
 }
 
 func getSSetName(cr *v1alpha1.StatefulServerSet) string {
-	return fmt.Sprintf("%s-%s", cr.Name, cr.Spec.ForProvider.Template.Metadata.Name)
+	return cr.Spec.ForProvider.Template.Metadata.Name
 }
 
 // delete - deletes the serverset k8s object and waits until it is deleted

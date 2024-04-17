@@ -27,10 +27,10 @@ spec:
     # This defines the template used for each replica.
     template:
       metadata:
-        name: serverset-name
+        name: server-name
       spec:
         cpuFamily: AMD_OPTERON
-        cores: 4
+        cores: 1
         ram: 1024 # (32*storageTB)
         nics:
           - name: nic-customer
@@ -44,7 +44,7 @@ spec:
           name: boot-volume
       spec:
         updateStrategy:
-          type: "createBeforeDestroyBootVolume" # createBeforeDestroyBootVolume createAllBeforeDestroy
+          type: "createAllBeforeDestroy" # createBeforeDestroyBootVolume createAllBeforeDestroy
         image: "28d0fa34-927f-11ee-8008-6202af74e858"
         size: 10
         type: HDD
@@ -89,4 +89,4 @@ metadata:
   name: config-lease
   namespace: default
 data:
-  identity: "sss-example-serverset-name-server-0-0"
+  identity: "server-name-0-0"

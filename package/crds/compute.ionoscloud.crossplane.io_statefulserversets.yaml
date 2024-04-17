@@ -100,7 +100,10 @@ spec:
                               type: string
                             type: object
                           name:
-                            maxLength: 63
+                            description: |-
+                              Name of the BootVolume. Replica index, volume index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}. Version increases if the bootvolume is
+                              re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
+                            maxLength: 55
                             pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                             type: string
                         required:
@@ -341,7 +344,10 @@ spec:
                                 type: string
                               type: object
                             name:
-                              maxLength: 63
+                              description: 'Name from which the LAN name will be generated.
+                                Index will be appended. Resulting name will be in
+                                format: {name}-{replicaIndex}'
+                              maxLength: 55
                               pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                               type: string
                           required:
@@ -382,7 +388,10 @@ spec:
                               type: string
                             type: object
                           name:
-                            maxLength: 63
+                            description: |-
+                              Name of the Server. Replica index and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}
+                              Version increases if the Server is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the Server is re-created and the version is increased.
+                            maxLength: 55
                             pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                             type: string
                         required:
@@ -416,7 +425,10 @@ spec:
                                 ipv4:
                                   type: string
                                 name:
-                                  maxLength: 63
+                                  description: |-
+                                    Name of the NIC. Replica index, NIC index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{nicIndex}-{version}.
+                                    Version increases if the NIC is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the NIC is re-created and the version is increased.
+                                  maxLength: 50
                                   pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                                   type: string
                                 reference:
@@ -463,7 +475,10 @@ spec:
                                 type: string
                               type: object
                             name:
-                              maxLength: 63
+                              description: 'Name from which the Volume name will be
+                                generated. Replica index will be appended. Resulting
+                                name will be in format: {name}-{replicaIndex}-{version}'
+                              maxLength: 55
                               pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                               type: string
                           required:
@@ -478,7 +493,8 @@ spec:
                                 alias.
                               type: string
                             size:
-                              description: The size of the volume in GB.
+                              description: The size of the volume in GB. Disk size
+                                can only be increased.
                               type: number
                             type:
                               description: 'Hardware type of the volume. E.g: HDD;SSD;SSD

@@ -34,7 +34,7 @@ type kubeBootVolumeController struct {
 
 // Create creates a volume CR and waits until in reaches AVAILABLE state
 func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Volume, error) {
-	name := getNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, version)
+	name := getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, version)
 	k.log.Info("Creating BootVolume", "name", name)
 	userDataPatcher, err := ccpatch.NewCloudInitPatcher(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData)
 	if err != nil {
