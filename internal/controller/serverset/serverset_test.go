@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"testing"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -87,14 +88,29 @@ type kubeBootVolumeControlManagerFake struct {
 	mock.Mock
 }
 
+type kubeBootVolumeCallTracker struct {
+	kubeBootVolumeControlManager
+	lastMethodCall map[ServiceMethodName][]any
+}
+
 type kubeServerControlManagerFake struct {
 	kubeServerControlManager
 	mock.Mock
 }
 
+type kubeServerCallTracker struct {
+	kubeServerControlManager
+	lastMethodCall map[ServiceMethodName][]any
+}
+
 type kubeNicControlManagerFake struct {
 	kubeNicControlManager
 	mock.Mock
+}
+
+type kubeNicCallTracker struct {
+	kubeNicControlManager
+	lastMethodCall map[ServiceMethodName][]any
 }
 
 type kubeClientFake struct {
@@ -1065,31 +1081,6 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				bootVolumeEnsure: 1,
 			},
 		},
-		{
-			name: "active Replica updated last (type changed)",
-			fields: fields{
-				kube:                 fakeKubeClientUpdateMethodForBootVolume(),
-				bootVolumeController: fakeBootVolumeCtrl(),
-				nicController:        fakeNicCtrl(),
-				serverController:     fakeServerCtrl(),
-				log:                  logging.NewNopLogger(),
-			},
-			args: args{
-				ctx: context.Background(),
-				cr: createServerSetWithUpdatedBootRoleInStatus(v1alpha1.ServerSetBootVolumeSpec{
-					Size:  bootVolumeSize,
-					Image: bootVolumeImage,
-					Type:  "SSD",
-				}),
-			},
-			wantErr: nil,
-			want: managed.ExternalUpdate{
-				ConnectionDetails: managed.ConnectionDetails{},
-			},
-			wantCalls: map[ServiceMethodName]int{
-				bootVolumeEnsure: 1,
-			},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1130,6 +1121,99 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 	}
 }
 
+func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_defaultUpdateStrategy(t *testing.T) {
+	const thirdArg = 2
+	const secondArg = 1
+	ctx := context.Background()
+	cr := createServerSetWithUpdatedBootVolumeUsingDefaultStrategy(v1alpha1.ServerSetBootVolumeSpec{
+		Size:  bootVolumeSize,
+		Image: bootVolumeImage,
+		Type:  "SSD",
+	})
+	bootVolumes := []v1alpha1.Volume{
+		*createBootVolumeWithIndexLabels("serverset-bootvolume-0-0", 0),
+		*createBootVolumeWithIndexLabels("serverset-bootvolume-1-0", 1),
+	}
+	masterIndex := 0
+	e := external{
+		kube: fakeKubeClientUpdateMethodForBootVolume(),
+		bootVolumeController: &kubeBootVolumeCallTracker{
+			lastMethodCall: make(map[ServiceMethodName][]any),
+		},
+		serverController: &kubeServerCallTracker{
+			lastMethodCall: make(map[ServiceMethodName][]any),
+		},
+		log: logging.NewNopLogger(),
+	}
+
+	err := e.updateOrRecreateVolumes(ctx, cr, bootVolumes, masterIndex)
+
+	assertions := assert.New(t)
+	assertions.NoError(err, "Expected no error")
+
+	kubeClient := e.kube.(*kubeClientFake)
+	kubeClient.AssertNumberOfCalls(t, updateMethod, 0)
+
+	bootVolumeController := e.bootVolumeController.(*kubeBootVolumeCallTracker)
+	assertions.Equal(masterIndex, bootVolumeController.lastMethodCall[ensureMethod][thirdArg])
+	assertions.Equal("serverset-bootvolume-0-1", bootVolumeController.lastMethodCall[getMethod][secondArg])
+	assertions.Equal("serverset-bootvolume-0-0", bootVolumeController.lastMethodCall[deleteMethod][secondArg])
+
+	serverController := e.serverController.(*kubeServerCallTracker)
+	assertions.Equal("serverset-server-0-0", serverController.lastMethodCall[getMethod][secondArg])
+	actualServer := serverController.lastMethodCall[updateMethod][secondArg].(*v1alpha1.Server)
+	assertions.Equal("serverset-bootvolume-0-1-uuid", actualServer.Spec.ForProvider.VolumeCfg.VolumeID)
+}
+
+func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_createBeforeDestroyUpdateStrategy(t *testing.T) {
+	const thirdArg = 2
+	const secondArg = 1
+	ctx := context.Background()
+	cr := createServerSetWithUpdatedBootVolumeUsingStrategy(v1alpha1.ServerSetBootVolumeSpec{
+		Size:  bootVolumeSize,
+		Image: bootVolumeImage,
+		Type:  "SSD"}, v1alpha1.UpdateStrategy{Stype: v1alpha1.CreateAllBeforeDestroy},
+	)
+	bootVolumes := []v1alpha1.Volume{
+		*createBootVolumeWithIndexLabels("serverset-bootvolume-0-0", 0),
+		*createBootVolumeWithIndexLabels("serverset-bootvolume-1-0", 1),
+	}
+	masterIndex := 0
+	e := external{
+		kube: fakeKubeClientUpdateMethodForBootVolume(),
+		bootVolumeController: &kubeBootVolumeCallTracker{
+			lastMethodCall: make(map[ServiceMethodName][]any),
+		},
+		serverController: &kubeServerCallTracker{
+			lastMethodCall: make(map[ServiceMethodName][]any),
+		},
+		nicController: &kubeNicCallTracker{
+			lastMethodCall: make(map[ServiceMethodName][]any),
+		},
+		log: logging.NewNopLogger(),
+	}
+
+	err := e.updateOrRecreateVolumes(ctx, cr, bootVolumes, masterIndex)
+
+	assertions := assert.New(t)
+	assertions.NoError(err, "Expected no error")
+
+	kubeClient := e.kube.(*kubeClientFake)
+	kubeClient.AssertNumberOfCalls(t, updateMethod, 0)
+
+	bootVolumeController := e.bootVolumeController.(*kubeBootVolumeCallTracker)
+	assertions.Equal(masterIndex, bootVolumeController.lastMethodCall[ensureMethod][thirdArg])
+	assertions.Equal("serverset-bootvolume-0-0", bootVolumeController.lastMethodCall[deleteMethod][secondArg])
+
+	serverController := e.serverController.(*kubeServerCallTracker)
+	assertions.Equal(masterIndex, serverController.lastMethodCall[ensureMethod][thirdArg])
+	assertions.Equal("serverset-server-0-0", serverController.lastMethodCall[deleteMethod][secondArg])
+
+	nicController := e.nicController.(*kubeNicCallTracker)
+	assertions.Equal(masterIndex, nicController.lastMethodCall[ensureNICsMethod][thirdArg])
+	assertions.Equal("serverset-nic1-nic-0-0-0", nicController.lastMethodCall[deleteMethod][secondArg])
+}
+
 func fakeKubeClientUpdateMethodReturnsError() client.Client {
 	kubeClient := kubeClientFake{
 		Client: fakeKubeClientObjs(
@@ -1159,28 +1243,8 @@ func fakeKubeClientUpdateMethod(expectedObj client.Object) client.Client {
 }
 
 func fakeKubeClientUpdateMethodForBootVolume() client.Client {
-	zero := "0"
-	one := "1"
-
-	server1 := createServer("server1")
-	server1.Labels[computeIndexLabel(ResourceServer)] = zero
-	server1.Labels[computeVersionLabel(ResourceServer)] = zero
-
-	server2 := createServer("server2")
-	server2.Labels[computeIndexLabel(ResourceServer)] = one
-	server2.Labels[computeVersionLabel(ResourceServer)] = zero
-
-	bootVolume1 := createBootVolume("boot-volume-server1")
-	bootVolume1.Labels[computeIndexLabel(resourceBootVolume)] = zero
-	bootVolume1.Labels[computeVersionLabel(resourceBootVolume)] = zero
-
-	bootVolume2 := createBootVolume("boot-volume-server2")
-	bootVolume2.Labels[computeIndexLabel(resourceBootVolume)] = one
-	bootVolume2.Labels[computeVersionLabel(resourceBootVolume)] = zero
-
 	kubeClient := kubeClientFake{
-		Client: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2,
-			createNic("nic-server1"), createNic("nic-server2")),
+		Client: kubeClientWithObjsForBootVolume(),
 	}
 
 	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -1194,6 +1258,25 @@ func fakeKubeClientUpdateMethodForBootVolume() client.Client {
 	}).Return(nil)
 
 	return &kubeClient
+}
+
+func kubeClientWithObjsForBootVolume() client.WithWatch {
+	zero := "0"
+	one := "1"
+
+	server1 := createServer("server1")
+	server1.Labels[computeIndexLabel(ResourceServer)] = zero
+	server1.Labels[computeVersionLabel(ResourceServer)] = zero
+
+	server2 := createServer("server2")
+	server2.Labels[computeIndexLabel(ResourceServer)] = one
+	server2.Labels[computeVersionLabel(ResourceServer)] = zero
+
+	bootVolume1 := createBootVolumeWithIndexLabels("boot-volume-server1", 0)
+	bootVolume2 := createBootVolumeWithIndexLabels("boot-volume-server2", 1)
+
+	return fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2,
+		createNic("nic-server1"), createNic("nic-server2"))
 }
 
 func computeIndexLabel(resourceType string) string {
@@ -1319,6 +1402,23 @@ func (f *kubeBootVolumeControlManagerFake) Delete(ctx context.Context, name, ns 
 	return args.Error(0)
 }
 
+func (f *kubeBootVolumeCallTracker) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+	f.lastMethodCall[ensureMethod] = []any{ctx, cr, replicaIndex, version}
+	return nil
+}
+
+func (f *kubeBootVolumeCallTracker) Get(ctx context.Context, name, ns string) (*v1alpha1.Volume, error) {
+	f.lastMethodCall[getMethod] = []any{ctx, name, ns}
+	volume := v1alpha1.Volume{}
+	volume.Status.AtProvider.VolumeID = name + "-uuid"
+	return &volume, nil
+}
+
+func (f *kubeBootVolumeCallTracker) Delete(ctx context.Context, name, ns string) error {
+	f.lastMethodCall[deleteMethod] = []any{ctx, name, ns}
+	return nil
+}
+
 func (f *kubeServerControlManagerFake) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
 	args := f.Called(ctx, cr, replicaIndex, version, volumeVersion)
 	return args.Error(0)
@@ -1339,6 +1439,26 @@ func (f *kubeServerControlManagerFake) Delete(ctx context.Context, name, ns stri
 	return args.Error(0)
 }
 
+func (f *kubeServerCallTracker) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
+	f.lastMethodCall[ensureMethod] = []any{ctx, cr, replicaIndex, version, volumeVersion}
+	return nil
+}
+
+func (f *kubeServerCallTracker) Get(ctx context.Context, name, ns string) (*v1alpha1.Server, error) {
+	f.lastMethodCall[getMethod] = []any{ctx, name, ns}
+	return &v1alpha1.Server{}, nil
+}
+
+func (f *kubeServerCallTracker) Update(ctx context.Context, cr *v1alpha1.Server) error {
+	f.lastMethodCall[updateMethod] = []any{ctx, cr}
+	return nil
+}
+
+func (f *kubeServerCallTracker) Delete(ctx context.Context, name, ns string) error {
+	f.lastMethodCall[deleteMethod] = []any{ctx, name, ns}
+	return nil
+}
+
 func (f *kubeNicControlManagerFake) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
 	args := f.Called(ctx, cr, replicaIndex, version)
 	return args.Error(0)
@@ -1347,6 +1467,16 @@ func (f *kubeNicControlManagerFake) EnsureNICs(ctx context.Context, cr *v1alpha1
 func (f *kubeNicControlManagerFake) Delete(ctx context.Context, name, ns string) error {
 	args := f.Called(ctx, name, ns)
 	return args.Error(0)
+}
+
+func (f *kubeNicCallTracker) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+	f.lastMethodCall[ensureNICsMethod] = []any{ctx, cr, replicaIndex, version}
+	return nil
+}
+
+func (f *kubeNicCallTracker) Delete(ctx context.Context, name, ns string) error {
+	f.lastMethodCall[deleteMethod] = []any{ctx, name, ns}
+	return nil
 }
 
 func createServer(name string) *v1alpha1.Server {
@@ -1399,6 +1529,13 @@ func createBootVolume(name string) *v1alpha1.Volume {
 			},
 		},
 	}
+}
+
+func createBootVolumeWithIndexLabels(name string, index int) *v1alpha1.Volume {
+	volume := createBootVolume(name)
+	volume.ObjectMeta.Labels[computeIndexLabel(resourceBootVolume)] = strconv.Itoa(index)
+	volume.ObjectMeta.Labels[computeVersionLabel(resourceBootVolume)] = "0"
+	return volume
 }
 
 func createBootVolumeWithIndex(name string, index int) *v1alpha1.Volume {
@@ -1465,21 +1602,6 @@ func createServerSetWithUpdatedBootVolumeUsingDefaultStrategy(updatedSpec v1alph
 	sset := createBasicServerSet()
 	sset.Spec.ForProvider.BootVolumeTemplate = v1alpha1.BootVolumeTemplate{
 		Spec: updatedSpec,
-	}
-	return sset
-}
-
-func createServerSetWithUpdatedBootRoleInStatus(updatedSpec v1alpha1.ServerSetBootVolumeSpec) *v1alpha1.ServerSet {
-	sset := createServerSetWithUpdatedBootVolumeUsingDefaultStrategy(updatedSpec)
-	sset.Status.AtProvider.ReplicaStatuses = []v1alpha1.ServerSetReplicaStatus{
-		{
-			Name: "server1",
-			Role: v1alpha1.Active,
-		},
-		{
-			Name: "server2",
-			Role: v1alpha1.Passive,
-		},
 	}
 	return sset
 }
