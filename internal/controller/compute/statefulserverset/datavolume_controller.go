@@ -37,7 +37,7 @@ type kubeDataVolumeController struct {
 
 // Create creates a volume CR and waits until in reaches AVAILABLE state
 func (k *kubeDataVolumeController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
-	name := generateNameFrom(cr.Name, volumeselector.ResourceDataVolume, replicaIndex, volumeIndex)
+	name := generateNameFrom(cr.Spec.ForProvider.Volumes[volumeIndex].Metadata.Name, replicaIndex, volumeIndex)
 	k.log.Info("Creating DataVolume", "name", name)
 
 	createVolume := fromSSSetToVolume(cr, name, replicaIndex, volumeIndex)
@@ -184,7 +184,7 @@ func (k *kubeDataVolumeController) Ensure(ctx context.Context, cr *v1alpha1.Stat
 
 // Update - updates the lan CR and waits until in reaches AVAILABLE state
 func (k *kubeDataVolumeController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
-	name := generateNameFrom(cr.GetName(), volumeselector.ResourceDataVolume, replicaIndex, volumeIndex)
+	name := generateNameFrom(cr.Spec.ForProvider.Volumes[volumeIndex].Metadata.Name, replicaIndex, volumeIndex)
 
 	updateKubeDataVolume, err := k.Get(ctx, name, cr.Namespace)
 	if err != nil {
@@ -224,9 +224,9 @@ func createVolumeLabelKey(label string, name string) string {
 	return fmt.Sprintf(label, name, volumeselector.ResourceDataVolume)
 }
 
-// generateNameFrom - generates name consisting of name, kind, index and version/second index
-func generateNameFrom(resourceName, resourceType string, idx, version int) string {
-	return fmt.Sprintf("%s-%s-%d-%d", resourceName, resourceType, idx, version)
+// generateNameFrom - generates name for a volume
+func generateNameFrom(resourceName string, idx, version int) string {
+	return fmt.Sprintf("%s-%d-%d", resourceName, idx, version)
 }
 
 func generateProviderNameFromIndex(resourceName string, idx int) string {

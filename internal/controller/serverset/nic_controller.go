@@ -31,14 +31,14 @@ type kubeNicController struct {
 	log  logging.Logger
 }
 
-// getNicNameFromIndex - generates name consisting of name, kind and index
-func getNicNameFromIndex(serversetName, resourceName, resourceType string, replicaIndex, nicIndex, version int) string {
-	return fmt.Sprintf("%s-%s-%s-%d-%d-%d", serversetName, resourceName, resourceType, replicaIndex, nicIndex, version)
+// getNicName - generates name for a NIC
+func getNicName(resourceName string, replicaIndex, nicIndex, version int) string {
+	return fmt.Sprintf("%s-%d-%d-%d", resourceName, replicaIndex, nicIndex, version)
 }
 
 // Create creates a NIC CR and waits until in reaches AVAILABLE state
 func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, nicIndex, version int) (v1alpha1.Nic, error) {
-	name := getNicNameFromIndex(cr.Name, cr.Spec.ForProvider.Template.Spec.NICs[replicaIndex].Name, resourceNIC, replicaIndex, nicIndex, version)
+	name := getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, version)
 	k.log.Info("Creating NIC", "name", name)
 	network := v1alpha1.Lan{}
 	if err := k.kube.Get(ctx, types.NamespacedName{
@@ -49,7 +49,7 @@ func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, 
 	}
 	lanID := network.Status.AtProvider.LanID
 	// no NIC found, create one
-	createNic := fromServerSetToNic(cr, name, serverID, lanID, replicaIndex, version)
+	createNic := fromServerSetToNic(cr, name, serverID, lanID, replicaIndex, nicIndex, version)
 	if err := k.kube.Create(ctx, &createNic); err != nil {
 		return v1alpha1.Nic{}, err
 	}
@@ -123,13 +123,15 @@ func (k *kubeNicController) Delete(ctx context.Context, name, namespace string) 
 	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isNicDeleted, condemnedVolume.Name, namespace)
 }
 
-func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, replicaIndex, version int) v1alpha1.Nic {
-	return v1alpha1.Nic{
+func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, replicaIndex, nicIndex, version int) v1alpha1.Nic {
+	serverSetNic := cr.Spec.ForProvider.Template.Spec.NICs[nicIndex]
+	nic := v1alpha1.Nic{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: cr.GetNamespace(),
 			Labels: map[string]string{
 				serverSetLabel: cr.Name,
+				// TODO: This label should be nicIndex instead of replicaIndex later
 				fmt.Sprintf(indexLabel, cr.GetName(), resourceNIC):   fmt.Sprintf("%d", replicaIndex),
 				fmt.Sprintf(versionLabel, cr.GetName(), resourceNIC): fmt.Sprintf("%d", version),
 			},
@@ -149,9 +151,17 @@ func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, re
 				LanCfg: v1alpha1.LanConfig{
 					LanID: lanID,
 				},
+				Dhcp: serverSetNic.DHCP,
 			},
 		},
 	}
+	if serverSetNic.VNetID != "" {
+		nic.Spec.ForProvider.Vnet = serverSetNic.VNetID
+	}
+	if serverSetNic.IPv4 != "" {
+		nic.Spec.ForProvider.IpsCfg.IPs = []string{serverSetNic.IPv4}
+	}
+	return nic
 }
 
 // EnsureNICs - creates NICS if they do not exist
@@ -179,7 +189,7 @@ func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerS
 func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, nicIndex, version int) error {
 	var nic *v1alpha1.Nic
 	var err error
-	nic, err = k.Get(ctx, getNicNameFromIndex(cr.Name, cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, resourceNIC, replicaIndex, nicIndex, version), cr.Namespace)
+	nic, err = k.Get(ctx, getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, version), cr.Namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			createdNic, err := k.Create(ctx, cr, serverID, lanName, replicaIndex, nicIndex, version)

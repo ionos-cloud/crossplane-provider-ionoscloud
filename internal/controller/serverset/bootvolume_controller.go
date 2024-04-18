@@ -9,6 +9,7 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
+	"github.com/pkg/errors"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,7 +35,7 @@ type kubeBootVolumeController struct {
 
 // Create creates a volume CR and waits until in reaches AVAILABLE state
 func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Volume, error) {
-	name := getNameFromIndex(cr.Name, resourceBootVolume, replicaIndex, version)
+	name := getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, version)
 	k.log.Info("Creating BootVolume", "name", name)
 	userDataPatcher, err := ccpatch.NewCloudInitPatcher(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData)
 	if err != nil {
@@ -46,7 +47,10 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 		return v1alpha1.Volume{}, err
 	}
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
-		return v1alpha1.Volume{}, err
+		if errors.Is(err, kube.ErrExternalCreateFailed) {
+			_ = k.Delete(ctx, createVolume.Name, cr.Namespace)
+		}
+		return v1alpha1.Volume{}, fmt.Errorf("while waiting for BootVolume to be populated %w ", err)
 	}
 	// get the volume again before returning to have the id populated
 	kubeVolume, err := k.Get(ctx, name, cr.Namespace)
@@ -88,6 +92,9 @@ func (k *kubeBootVolumeController) isAvailable(ctx context.Context, name, namesp
 			return false, nil
 		}
 		return false, err
+	}
+	if !kube.IsSuccessfullyCreated(obj) {
+		return false, kube.ErrExternalCreateFailed
 	}
 	if obj != nil && obj.Status.AtProvider.VolumeID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
 		return true, nil

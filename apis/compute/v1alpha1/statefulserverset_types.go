@@ -33,9 +33,11 @@ type DeploymentStrategy struct {
 
 // StatefulServerSetLanMetadata are the configurable fields of a StatefulServerSetLanMetadata.
 type StatefulServerSetLanMetadata struct {
+	// Name from which the LAN name will be generated. Index will be appended. Resulting name will be in format: {name}-{replicaIndex}
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
-	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:MaxLength=55
+	// +immutable
 	Name string `json:"name"`
 	// +kubebuilder:validation:Optional
 	Labels map[string]string `json:"labels,omitempty"`
@@ -46,7 +48,7 @@ type StatefulServerSetLanSpec struct {
 	// +kubebuilder:validation:Optional
 	IPv6cidr string `json:"ipv6cidr"`
 	// +kubebuilder:validation:Optional
-	DHCP bool `json:"dhcp"`
+	Public bool `json:"public"`
 }
 
 // StatefulServerSetLan are the configurable fields of a StatefulServerSetLan.
@@ -57,9 +59,10 @@ type StatefulServerSetLan struct {
 
 // StatefulServerSetVolumeMetadata are the configurable fields of a StatefulServerSetVolumeMetadata.
 type StatefulServerSetVolumeMetadata struct {
+	// Name from which the Volume name will be generated. Replica index will be appended. Resulting name will be in format: {name}-{replicaIndex}-{version}
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
-	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:MaxLength=55
 	Name string `json:"name"`
 	// +kubebuilder:validation:Optional
 	Labels map[string]string `json:"labels,omitempty"`
@@ -71,7 +74,7 @@ type StatefulServerSetVolumeSpec struct {
 	//
 	// +kubebuilder:validation:Optional
 	Image string `json:"image,omitempty"`
-	// The size of the volume in GB.
+	// The size of the volume in GB. Disk size can only be increased.
 	//
 	// +kubebuilder:validation:Required
 	Size float32 `json:"size"`

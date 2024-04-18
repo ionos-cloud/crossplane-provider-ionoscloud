@@ -21,7 +21,7 @@ const (
 	customerLanIPv6cidrAuto = "AUTO"
 	customerLanIPv6cidr1    = "1000:db8::/64"
 	customerLanIPv6cidr2    = "2000:db8::/64"
-	customerLanDHCP         = true
+	customerLanPublic       = true
 
 	dataVolume1Name = "storage_disk"
 	dataVolume1Size = 10
@@ -35,8 +35,8 @@ const (
 
 	lanResourceVersion = 1
 
-	managementLanName = "management"
-	managementLanDHCP = false
+	managementLanName   = "management"
+	managementLanPublic = false
 
 	nicName = "nic-1"
 	nicIPv4 = "10.0.0.1/24"
@@ -129,7 +129,7 @@ func createSSSet() *v1alpha1.StatefulServerSet {
 						},
 						Spec: v1alpha1.StatefulServerSetLanSpec{
 							IPv6cidr: customerLanIPv6cidrAuto,
-							DHCP:     customerLanDHCP,
+							Public:   customerLanPublic,
 						},
 					},
 					{
@@ -137,7 +137,7 @@ func createSSSet() *v1alpha1.StatefulServerSet {
 							Name: managementLanName,
 						},
 						Spec: v1alpha1.StatefulServerSetLanSpec{
-							DHCP: managementLanDHCP,
+							Public: managementLanPublic,
 						},
 					},
 				},
@@ -208,6 +208,7 @@ func createSSetTemplate() v1alpha1.ServerSetTemplate {
 				{
 					Name:      nicName,
 					IPv4:      nicIPv4,
+					DHCP:      true,
 					Reference: nicLAN,
 				},
 			},
@@ -220,12 +221,12 @@ func createLanList() v1alpha1.LanList {
 		Items: []v1alpha1.Lan{
 			*createLAN(v1alpha1.LanParameters{
 				Name:     customerLanName,
-				Public:   customerLanDHCP,
+				Public:   customerLanPublic,
 				Ipv6Cidr: customerLanIPv6cidrAuto,
 			}),
 			*createLAN(v1alpha1.LanParameters{
 				Name:   managementLanName,
-				Public: managementLanDHCP,
+				Public: managementLanPublic,
 			}),
 		},
 	}
@@ -253,7 +254,7 @@ func createCustomerLANWithIpv6Cidr() *v1alpha1.Lan {
 func createCustomerLAN() *v1alpha1.Lan {
 	return createLAN(v1alpha1.LanParameters{
 		Name:     customerLanName,
-		Public:   customerLanDHCP,
+		Public:   customerLanPublic,
 		Ipv6Cidr: customerLanIPv6cidrAuto,
 	})
 }
@@ -470,7 +471,7 @@ func createNIC(replicaIdx int, parameters v1alpha1.NicParameters) *v1alpha1.Nic 
 }
 
 func computeSSSetOwnerLabel() string {
-	return fmt.Sprintf("%s-%s", statefulServerSetName, serverSetName)
+	return serverSetName
 }
 
 func nameWithIdx(replicaIdx int, name string) string {

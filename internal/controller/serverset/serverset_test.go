@@ -1131,8 +1131,8 @@ func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_d
 		Type:  "SSD",
 	})
 	bootVolumes := []v1alpha1.Volume{
-		*createBootVolumeWithIndexLabels("serverset-bootvolume-0-0", 0),
-		*createBootVolumeWithIndexLabels("serverset-bootvolume-1-0", 1),
+		*createBootVolumeWithIndexLabels("bootvolumename-0-0", 0),
+		*createBootVolumeWithIndexLabels("bootvolumename-1-0", 1),
 	}
 	masterIndex := 0
 	e := external{
@@ -1156,13 +1156,13 @@ func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_d
 
 	bootVolumeController := e.bootVolumeController.(*kubeBootVolumeCallTracker)
 	assertions.Equal(masterIndex, bootVolumeController.lastMethodCall[ensureMethod][thirdArg])
-	assertions.Equal("serverset-bootvolume-0-1", bootVolumeController.lastMethodCall[getMethod][secondArg])
-	assertions.Equal("serverset-bootvolume-0-0", bootVolumeController.lastMethodCall[deleteMethod][secondArg])
+	assertions.Equal("bootvolumename-0-1", bootVolumeController.lastMethodCall[getMethod][secondArg])
+	assertions.Equal("bootvolumename-0-0", bootVolumeController.lastMethodCall[deleteMethod][secondArg])
 
 	serverController := e.serverController.(*kubeServerCallTracker)
-	assertions.Equal("serverset-server-0-0", serverController.lastMethodCall[getMethod][secondArg])
+	assertions.Equal("servername-0-0", serverController.lastMethodCall[getMethod][secondArg])
 	actualServer := serverController.lastMethodCall[updateMethod][secondArg].(*v1alpha1.Server)
-	assertions.Equal("serverset-bootvolume-0-1-uuid", actualServer.Spec.ForProvider.VolumeCfg.VolumeID)
+	assertions.Equal("bootvolumename-0-1-uuid", actualServer.Spec.ForProvider.VolumeCfg.VolumeID)
 }
 
 func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_createBeforeDestroyUpdateStrategy(t *testing.T) {
@@ -1175,8 +1175,8 @@ func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_c
 		Type:  "SSD"}, v1alpha1.UpdateStrategy{Stype: v1alpha1.CreateAllBeforeDestroy},
 	)
 	bootVolumes := []v1alpha1.Volume{
-		*createBootVolumeWithIndexLabels("serverset-bootvolume-0-0", 0),
-		*createBootVolumeWithIndexLabels("serverset-bootvolume-1-0", 1),
+		*createBootVolumeWithIndexLabels("bootvolumename-0-0", 0),
+		*createBootVolumeWithIndexLabels("bootvolumename-1-0", 1),
 	}
 	masterIndex := 0
 	e := external{
@@ -1203,15 +1203,15 @@ func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_c
 
 	bootVolumeController := e.bootVolumeController.(*kubeBootVolumeCallTracker)
 	assertions.Equal(masterIndex, bootVolumeController.lastMethodCall[ensureMethod][thirdArg])
-	assertions.Equal("serverset-bootvolume-0-0", bootVolumeController.lastMethodCall[deleteMethod][secondArg])
+	assertions.Equal("bootvolumename-0-0", bootVolumeController.lastMethodCall[deleteMethod][secondArg])
 
 	serverController := e.serverController.(*kubeServerCallTracker)
 	assertions.Equal(masterIndex, serverController.lastMethodCall[ensureMethod][thirdArg])
-	assertions.Equal("serverset-server-0-0", serverController.lastMethodCall[deleteMethod][secondArg])
+	assertions.Equal("servername-0-0", serverController.lastMethodCall[deleteMethod][secondArg])
 
 	nicController := e.nicController.(*kubeNicCallTracker)
 	assertions.Equal(masterIndex, nicController.lastMethodCall[ensureNICsMethod][thirdArg])
-	assertions.Equal("serverset-nic1-nic-0-0-0", nicController.lastMethodCall[deleteMethod][secondArg])
+	assertions.Equal("nic1-0-0-0", nicController.lastMethodCall[deleteMethod][secondArg])
 }
 
 func fakeKubeClientUpdateMethodReturnsError() client.Client {
@@ -1564,6 +1564,9 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 			ForProvider: v1alpha1.ServerSetParameters{
 				Replicas: noReplicas,
 				Template: v1alpha1.ServerSetTemplate{
+					Metadata: v1alpha1.ServerSetMetadata{
+						Name: "servername",
+					},
 					Spec: v1alpha1.ServerSetTemplateSpec{
 						Cores:     serverSetCores,
 						RAM:       serverSetRAM,
@@ -1572,12 +1575,16 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 							{
 								Name:      "nic1",
 								IPv4:      "10.0.0.2/24",
+								DHCP:      true,
 								Reference: "data",
 							},
 						},
 					},
 				},
 				BootVolumeTemplate: v1alpha1.BootVolumeTemplate{
+					Metadata: v1alpha1.ServerSetBootVolumeMetadata{
+						Name: "bootvolumename",
+					},
 					Spec: v1alpha1.ServerSetBootVolumeSpec{
 						Size:  bootVolumeSize,
 						Image: bootVolumeImage,
@@ -1600,9 +1607,7 @@ func createServerSetWithUpdatedServerSpec(spec v1alpha1.ServerSetTemplateSpec) *
 
 func createServerSetWithUpdatedBootVolumeUsingDefaultStrategy(updatedSpec v1alpha1.ServerSetBootVolumeSpec) *v1alpha1.ServerSet {
 	sset := createBasicServerSet()
-	sset.Spec.ForProvider.BootVolumeTemplate = v1alpha1.BootVolumeTemplate{
-		Spec: updatedSpec,
-	}
+	sset.Spec.ForProvider.BootVolumeTemplate.Spec = updatedSpec
 	return sset
 }
 
@@ -1663,6 +1668,7 @@ func createServerSetWithNrOfNICsUpdated() *v1alpha1.ServerSet {
 		sset.Spec.ForProvider.Template.Spec.NICs, v1alpha1.ServerSetTemplateNIC{
 			Name:      "nic2",
 			IPv4:      "10.0.0.3/24",
+			DHCP:      true,
 			Reference: "management",
 		})
 

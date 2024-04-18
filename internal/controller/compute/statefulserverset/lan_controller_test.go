@@ -51,7 +51,7 @@ func Test_kubeLANController_Update(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				cr: createSSSetWithCustomerLanUpdated(v1alpha1.StatefulServerSetLanSpec{
-					DHCP:     customerLanDHCP,
+					Public:   customerLanPublic,
 					IPv6cidr: customerLanIPv6cidr2,
 				}),
 			},

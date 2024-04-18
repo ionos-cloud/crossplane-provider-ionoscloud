@@ -59,7 +59,21 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 			},
 			args: args{
 				ctx: ctxWithTimeout,
-				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: statefulServerSetName}},
+				cr: &v1alpha1.StatefulServerSet{
+					TypeMeta:   metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{Name: statefulServerSetName},
+					Spec: v1alpha1.StatefulServerSetSpec{
+						ResourceSpec: xpv1.ResourceSpec{},
+						ForProvider: v1alpha1.StatefulServerSetParameters{
+							Template: v1alpha1.ServerSetTemplate{
+								Metadata: v1alpha1.ServerSetMetadata{
+									Name: "name",
+								},
+							},
+						},
+					},
+					Status: v1alpha1.StatefulServerSetStatus{},
+				},
 			},
 			wantErr: context.DeadlineExceeded,
 		},
