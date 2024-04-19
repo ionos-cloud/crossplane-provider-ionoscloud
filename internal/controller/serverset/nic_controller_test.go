@@ -54,7 +54,7 @@ func Test_kubeNicController_Create(t *testing.T) {
 		{
 			name: "The fields are populated correctly",
 			fields: fields{
-				kube: fakeKubeClient(interceptor.Funcs{Create: createWithVNetAndIPV4ReturnsErrorForUnexpectedNICs, Get: getPopulatesFieldsAndReturnsNoError}),
+				kube: fakeKubeClientFuncs(interceptor.Funcs{Create: createWithVNetAndIPV4ReturnsErrorForUnexpectedNICs, Get: getPopulatesFieldsAndReturnsNoError}),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
@@ -72,7 +72,7 @@ func Test_kubeNicController_Create(t *testing.T) {
 		{
 			name: "The fields vnet and ipv4 are optional",
 			fields: fields{
-				kube: fakeKubeClient(interceptor.Funcs{Create: createWithoutVNetAndIPV4ReturnsErrorForUnexpectedNICs, Get: getPopulatesFieldsAndReturnsNoError}),
+				kube: fakeKubeClientFuncs(interceptor.Funcs{Create: createWithoutVNetAndIPV4ReturnsErrorForUnexpectedNICs, Get: getPopulatesFieldsAndReturnsNoError}),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{

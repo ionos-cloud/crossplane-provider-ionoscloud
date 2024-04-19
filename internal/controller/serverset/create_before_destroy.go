@@ -54,7 +54,7 @@ func (c *createBeforeDestroy) cleanupCondemned(ctx context.Context, cr *v1alpha1
 		return err
 	}
 	for nicIndex := range cr.Spec.ForProvider.Template.Spec.NICs {
-		if err := c.nicController.Delete(ctx, getNicName(cr.Spec.ForProvider.Template.Spec.NICs[replicaIndex].Name, replicaIndex, nicIndex, serverVersion), cr.Namespace); err != nil {
+		if err := c.nicController.Delete(ctx, getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, serverVersion), cr.Namespace); err != nil {
 			return err
 		}
 	}
