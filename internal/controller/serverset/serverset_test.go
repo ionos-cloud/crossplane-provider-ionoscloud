@@ -1214,6 +1214,68 @@ func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_c
 	assertions.Equal("nic1-0-0-0", nicController.lastMethodCall[deleteMethod][secondArg])
 }
 
+func Test_serverSetController_Delete(t *testing.T) {
+	type fields struct {
+		kube client.Client
+		log  logging.Logger
+	}
+	type args struct {
+		ctx context.Context
+		cr  *v1alpha1.ServerSet
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr error
+	}{
+		{
+			name: "server set successfully deleted",
+			fields: fields{
+				kube: fakeKubeClientDeleteMethod(),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &external{
+				kube: tt.fields.kube,
+				log:  tt.fields.log,
+			}
+
+			err := e.Delete(tt.args.ctx, tt.args.cr)
+
+			assertions := assert.New(t)
+			assertions.Equalf(tt.wantErr, err, "Wrong error")
+			assertions.Equalf("", tt.args.cr.ObjectMeta.Annotations["AnnotationKeyExternalName"], "ExternalName annotation should be empty")
+			assertions.Equalf(1, len(tt.args.cr.Status.Conditions), "ServerSet should have one condition")
+			assertCondition(t, xpv1.Deleting(), tt.args.cr.Status.Conditions[0], "ServerSet has wrong condition")
+
+			kubeClient := tt.fields.kube.(*kubeClientFake)
+			kubeClient.AssertNumberOfCalls(t, "DeleteAllOf", 4)
+			kubeClient.AssertExpectations(t)
+		})
+	}
+}
+
+func fakeKubeClientDeleteMethod() client.Client {
+	kubeClient := kubeClientFake{}
+	kubeClient.On("DeleteAllOf",
+		mock.Anything,
+		mock.Anything,
+		[]client.DeleteAllOfOption{
+			client.InNamespace(""),
+			client.MatchingLabels{serverSetLabel: serverSetName},
+		},
+	).Return(nil)
+	return &kubeClient
+}
+
 func fakeKubeClientUpdateMethodReturnsError() client.Client {
 	kubeClient := kubeClientFake{
 		Client: fakeKubeClientObjs(
@@ -1288,6 +1350,11 @@ func computeVersionLabel(resourceType string) string {
 }
 
 func (f *kubeClientFake) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+	args := f.Called(ctx, obj, opts)
+	return args.Error(0)
+}
+
+func (f *kubeClientFake) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
 	args := f.Called(ctx, obj, opts)
 	return args.Error(0)
 }
