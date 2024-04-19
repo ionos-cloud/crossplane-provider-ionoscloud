@@ -81,6 +81,15 @@ const (
 	nicDelete        ServiceMethodName = "kubeNicControlManager.Delete"
 )
 
+type crType string
+
+const (
+	nic            crType = "Nic"
+	server         crType = "Server"
+	volume         crType = "Volume"
+	volumeSelector crType = "VolumeSelector"
+)
+
 var errAnErrorWasReceived = errors.New("an error was received")
 
 type kubeBootVolumeControlManagerFake struct {
@@ -116,7 +125,8 @@ type kubeNicCallTracker struct {
 type kubeClientFake struct {
 	client.Client
 	mock.Mock
-	t *testing.T
+	t                 *testing.T
+	crShouldReturnErr map[crType]bool
 }
 
 func Test_serverSetController_Observe(t *testing.T) {
@@ -1224,21 +1234,76 @@ func Test_serverSetController_Delete(t *testing.T) {
 		cr  *v1alpha1.ServerSet
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr error
+		name        string
+		fields      fields
+		args        args
+		wantErr     error
+		wantNoCalls int
 	}{
 		{
-			name: "server set successfully deleted",
+			name: "success",
 			fields: fields{
-				kube: fakeKubeClientDeleteMethod(),
+				kube: fakeKubeClientDeleteAllOfMethod(),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
 				ctx: context.Background(),
 				cr:  createBasicServerSet(),
 			},
+			wantErr:     nil,
+			wantNoCalls: 4,
+		},
+		{
+			name: "failure (error when deleting the NICs)",
+			fields: fields{
+				kube: fakeKubeClientDeleteAllOfMethodReturnError(nic),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			wantErr:     errAnErrorWasReceived,
+			wantNoCalls: 1,
+		},
+		{
+			name: "failure (error when deleting the Servers)",
+			fields: fields{
+				kube: fakeKubeClientDeleteAllOfMethodReturnError(server),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			wantErr:     errAnErrorWasReceived,
+			wantNoCalls: 2,
+		},
+		{
+			name: "failure (error when deleting the BootVolumes)",
+			fields: fields{
+				kube: fakeKubeClientDeleteAllOfMethodReturnError(volume),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			wantErr:     errAnErrorWasReceived,
+			wantNoCalls: 3,
+		},
+		{
+			name: "failure (error when deleting the VolumeSelectors)",
+			fields: fields{
+				kube: fakeKubeClientDeleteAllOfMethodReturnError(volumeSelector),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			wantErr:     errAnErrorWasReceived,
+			wantNoCalls: 4,
 		},
 	}
 	for _, tt := range tests {
@@ -1257,13 +1322,13 @@ func Test_serverSetController_Delete(t *testing.T) {
 			assertCondition(t, xpv1.Deleting(), tt.args.cr.Status.Conditions[0], "ServerSet has wrong condition")
 
 			kubeClient := tt.fields.kube.(*kubeClientFake)
-			kubeClient.AssertNumberOfCalls(t, "DeleteAllOf", 4)
+			kubeClient.AssertNumberOfCalls(t, "DeleteAllOf", tt.wantNoCalls)
 			kubeClient.AssertExpectations(t)
 		})
 	}
 }
 
-func fakeKubeClientDeleteMethod() client.Client {
+func fakeKubeClientDeleteAllOfMethod() client.Client {
 	kubeClient := kubeClientFake{}
 	kubeClient.On("DeleteAllOf",
 		mock.Anything,
@@ -1274,6 +1339,13 @@ func fakeKubeClientDeleteMethod() client.Client {
 		},
 	).Return(nil)
 	return &kubeClient
+}
+
+func fakeKubeClientDeleteAllOfMethodReturnError(typeWhenToReturnErr crType) client.Client {
+	kubeClient := fakeKubeClientDeleteAllOfMethod()
+	kubeClient.(*kubeClientFake).crShouldReturnErr = make(map[crType]bool)
+	kubeClient.(*kubeClientFake).crShouldReturnErr[typeWhenToReturnErr] = true
+	return kubeClient
 }
 
 func fakeKubeClientUpdateMethodReturnsError() client.Client {
@@ -1356,7 +1428,25 @@ func (f *kubeClientFake) Update(ctx context.Context, obj client.Object, opts ...
 
 func (f *kubeClientFake) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
 	args := f.Called(ctx, obj, opts)
+	if f.shouldReturnError(obj) {
+		return errAnErrorWasReceived
+	}
 	return args.Error(0)
+}
+
+func (f *kubeClientFake) shouldReturnError(obj client.Object) bool {
+	switch obj.(type) {
+	case *v1alpha1.Server:
+		return f.crShouldReturnErr[server]
+	case *v1alpha1.Nic:
+		return f.crShouldReturnErr[nic]
+	case *v1alpha1.Volume:
+		return f.crShouldReturnErr[volume]
+	case *v1alpha1.Volumeselector:
+		return f.crShouldReturnErr[volumeSelector]
+	default:
+		return false
+	}
 }
 
 func fakeBootVolumeCtrlEnsureMethod(timesCalled int) kubeBootVolumeControlManager {
