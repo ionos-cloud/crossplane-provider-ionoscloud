@@ -1,4 +1,4 @@
-## [1.0.11] (TBD )
+## [1.0.11] (April 2024)
 - **Features**:
   - Add `NLB` managed resources:
     - `Network Load Balancer`
@@ -7,8 +7,13 @@
 
 - **Fixes**:
   - Changed fields for `CubeServer` CR:
-  - `cpuFamily` field has been removed as it prevented external resource creation.
-  - `template.name` is now immutable
+    - `cpuFamily` field has been removed as it prevented external resource creation.
+    - `template.name` is now immutable
+
+- **Misc**:
+    - Added local registry usage example
+    - Changed e2e tests location to es/vit
+    - Renamed `Private Cross Connect` to `Cross Connect` in `pcc` documentation
 
 ## [1.0.10] (March 2024)
 - **Features**:
