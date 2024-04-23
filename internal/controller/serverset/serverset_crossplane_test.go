@@ -21,8 +21,8 @@ import (
 )
 
 func Test_serverSet_Create(t *testing.T) {
-	objList := func(obj client.ObjectList) error { return nil }
-	fakeObj := func(obj client.Object) error {
+	fakeObjList := func(obj client.ObjectList) error { return nil }
+	fakeGetObj := func(obj client.Object) error {
 		switch obj.(type) {
 		case *v1alpha1.Server:
 			res := obj.(*v1alpha1.Server)
@@ -65,31 +65,31 @@ func Test_serverSet_Create(t *testing.T) {
 			name: "server set successfully created",
 			fields: fields{
 				kube: &test.MockClient{
-					MockList: test.NewMockListFn(nil, objList),
+					MockList: test.NewMockListFn(nil, fakeObjList),
 				},
 				log: logging.NewNopLogger(),
 				mg:  &fake.Managed{},
 				bootVolumeController: &kubeBootVolumeController{
 					kube: &test.MockClient{
 						MockCreate: test.NewMockCreateFn(nil),
-						MockList:   test.NewMockListFn(nil, objList),
-						MockGet:    test.NewMockGetFn(nil, fakeObj),
+						MockList:   test.NewMockListFn(nil, fakeObjList),
+						MockGet:    test.NewMockGetFn(nil, fakeGetObj),
 					},
 					log: logging.NewNopLogger(),
 				},
 				serverController: &kubeServerController{
 					kube: &test.MockClient{
 						MockCreate: test.NewMockCreateFn(nil),
-						MockList:   test.NewMockListFn(nil, objList),
-						MockGet:    test.NewMockGetFn(nil, fakeObj),
+						MockList:   test.NewMockListFn(nil, fakeObjList),
+						MockGet:    test.NewMockGetFn(nil, fakeGetObj),
 					},
 					log: logging.NewNopLogger(),
 				},
 				nicController: &kubeNicController{
 					kube: &test.MockClient{
 						MockCreate: test.NewMockCreateFn(nil),
-						MockList:   test.NewMockListFn(nil, objList),
-						MockGet:    test.NewMockGetFn(nil, fakeObj),
+						MockList:   test.NewMockListFn(nil, fakeObjList),
+						MockGet:    test.NewMockGetFn(nil, fakeGetObj),
 					},
 					log: logging.NewNopLogger(),
 				},
@@ -130,14 +130,14 @@ func Test_serverSet_Create(t *testing.T) {
 			name: "external create failed",
 			fields: fields{
 				kube: &test.MockClient{
-					MockList: test.NewMockListFn(nil, objList),
+					MockList: test.NewMockListFn(nil, fakeObjList),
 				},
 				log: logging.NewNopLogger(),
 				mg:  &fake.Managed{},
 				bootVolumeController: &kubeBootVolumeController{
 					kube: &test.MockClient{
 						MockCreate: test.NewMockCreateFn(nil),
-						MockList:   test.NewMockListFn(nil, objList),
+						MockList:   test.NewMockListFn(nil, fakeObjList),
 						MockGet: test.NewMockGetFn(nil, func(obj client.Object) error {
 							volume := obj.(*v1alpha1.Volume)
 							annotations := make(map[string]string)
@@ -160,14 +160,14 @@ func Test_serverSet_Create(t *testing.T) {
 			name: "bad cloud init",
 			fields: fields{
 				kube: &test.MockClient{
-					MockList: test.NewMockListFn(nil, objList),
+					MockList: test.NewMockListFn(nil, fakeObjList),
 				},
 				log: logging.NewNopLogger(),
 				mg:  &fake.Managed{},
 				bootVolumeController: &kubeBootVolumeController{
 					kube: &test.MockClient{
 						MockCreate: test.NewMockCreateFn(nil),
-						MockList:   test.NewMockListFn(nil, objList),
+						MockList:   test.NewMockListFn(nil, fakeObjList),
 						MockGet: test.NewMockGetFn(nil, func(obj client.Object) error {
 							volume := obj.(*v1alpha1.Volume)
 							annotations := make(map[string]string)
