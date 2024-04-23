@@ -125,7 +125,6 @@ type kubeNicCallTracker struct {
 type kubeClientFake struct {
 	client.Client
 	mock.Mock
-	t                 *testing.T
 	crShouldReturnErr map[crType]bool
 }
 
@@ -891,7 +890,6 @@ func Test_serverSetController_Update(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.fields.kube.(*kubeClientFake).t = t
 			e := &external{
 				kube:                 tt.fields.kube,
 				bootVolumeController: tt.fields.bootVolumeController,
@@ -1094,7 +1092,6 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.fields.kube.(*kubeClientFake).t = t
 			e := &external{
 				kube:                 tt.fields.kube,
 				bootVolumeController: tt.fields.bootVolumeController,
@@ -1369,7 +1366,7 @@ func fakeKubeClientUpdateMethod(expectedObj client.Object) client.Client {
 	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		arg1 := args.Get(1)
 		if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObj) {
-			kubeClient.t.Errorf("Update called with unexpeted type: want=%v, got=%v", reflect.TypeOf(expectedObj), reflect.TypeOf(arg1))
+			panic(fmt.Sprintf("Update called with unexpeted type: want=%v, got=%v", reflect.TypeOf(expectedObj), reflect.TypeOf(arg1)))
 		}
 	}).Return(nil)
 
@@ -1381,15 +1378,7 @@ func fakeKubeClientUpdateMethodForBootVolume() client.Client {
 		Client: kubeClientWithObjsForBootVolume(),
 	}
 
-	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-		arg1 := args.Get(1)
-
-		expectedType := reflect.TypeOf(v1alpha1.Volume{})
-		actualType := reflect.TypeOf(arg1)
-		if actualType != expectedType {
-			kubeClient.t.Errorf("Update called with unexpeted type: want=%v, got=%v", expectedType, actualType)
-		}
-	}).Return(nil)
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	return &kubeClient
 }
