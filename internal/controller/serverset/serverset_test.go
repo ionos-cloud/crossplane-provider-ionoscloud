@@ -81,6 +81,15 @@ const (
 	nicDelete        ServiceMethodName = "kubeNicControlManager.Delete"
 )
 
+type crType string
+
+const (
+	nic            crType = "Nic"
+	server         crType = "Server"
+	volume         crType = "Volume"
+	volumeSelector crType = "VolumeSelector"
+)
+
 var errAnErrorWasReceived = errors.New("an error was received")
 
 type kubeBootVolumeControlManagerFake struct {
@@ -116,7 +125,7 @@ type kubeNicCallTracker struct {
 type kubeClientFake struct {
 	client.Client
 	mock.Mock
-	t *testing.T
+	crShouldReturnErr map[crType]bool
 }
 
 func Test_serverSetController_Observe(t *testing.T) {
@@ -881,7 +890,6 @@ func Test_serverSetController_Update(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.fields.kube.(*kubeClientFake).t = t
 			e := &external{
 				kube:                 tt.fields.kube,
 				bootVolumeController: tt.fields.bootVolumeController,
@@ -1084,7 +1092,6 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.fields.kube.(*kubeClientFake).t = t
 			e := &external{
 				kube:                 tt.fields.kube,
 				bootVolumeController: tt.fields.bootVolumeController,
@@ -1214,6 +1221,130 @@ func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_c
 	assertions.Equal("nic1-0-0-0", nicController.lastMethodCall[deleteMethod][secondArg])
 }
 
+func Test_serverSetController_Delete(t *testing.T) {
+	type fields struct {
+		kube client.Client
+		log  logging.Logger
+	}
+	type args struct {
+		ctx context.Context
+		cr  *v1alpha1.ServerSet
+	}
+	tests := []struct {
+		name        string
+		fields      fields
+		args        args
+		wantErr     error
+		wantNoCalls int
+	}{
+		{
+			name: "success",
+			fields: fields{
+				kube: fakeKubeClientDeleteAllOfMethod(),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			wantErr:     nil,
+			wantNoCalls: 4,
+		},
+		{
+			name: "failure (error when deleting the NICs)",
+			fields: fields{
+				kube: fakeKubeClientDeleteAllOfMethodReturnError(nic),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			wantErr:     errAnErrorWasReceived,
+			wantNoCalls: 1,
+		},
+		{
+			name: "failure (error when deleting the Servers)",
+			fields: fields{
+				kube: fakeKubeClientDeleteAllOfMethodReturnError(server),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			wantErr:     errAnErrorWasReceived,
+			wantNoCalls: 2,
+		},
+		{
+			name: "failure (error when deleting the BootVolumes)",
+			fields: fields{
+				kube: fakeKubeClientDeleteAllOfMethodReturnError(volume),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			wantErr:     errAnErrorWasReceived,
+			wantNoCalls: 3,
+		},
+		{
+			name: "failure (error when deleting the VolumeSelectors)",
+			fields: fields{
+				kube: fakeKubeClientDeleteAllOfMethodReturnError(volumeSelector),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			wantErr:     errAnErrorWasReceived,
+			wantNoCalls: 4,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &external{
+				kube: tt.fields.kube,
+				log:  tt.fields.log,
+			}
+
+			err := e.Delete(tt.args.ctx, tt.args.cr)
+
+			assertions := assert.New(t)
+			assertions.Equalf(tt.wantErr, err, "Wrong error")
+			assertions.Equalf("", tt.args.cr.ObjectMeta.Annotations["AnnotationKeyExternalName"], "ExternalName annotation should be empty")
+			assertions.Equalf(1, len(tt.args.cr.Status.Conditions), "ServerSet should have one condition")
+			assertCondition(t, xpv1.Deleting(), tt.args.cr.Status.Conditions[0], "ServerSet has wrong condition")
+
+			kubeClient := tt.fields.kube.(*kubeClientFake)
+			kubeClient.AssertNumberOfCalls(t, "DeleteAllOf", tt.wantNoCalls)
+			kubeClient.AssertExpectations(t)
+		})
+	}
+}
+
+func fakeKubeClientDeleteAllOfMethod() client.Client {
+	kubeClient := kubeClientFake{}
+	kubeClient.On("DeleteAllOf",
+		mock.Anything,
+		mock.Anything,
+		[]client.DeleteAllOfOption{
+			client.InNamespace(""),
+			client.MatchingLabels{serverSetLabel: serverSetName},
+		},
+	).Return(nil)
+	return &kubeClient
+}
+
+func fakeKubeClientDeleteAllOfMethodReturnError(typeWhenToReturnErr crType) client.Client {
+	kubeClient := fakeKubeClientDeleteAllOfMethod()
+	kubeClient.(*kubeClientFake).crShouldReturnErr = make(map[crType]bool)
+	kubeClient.(*kubeClientFake).crShouldReturnErr[typeWhenToReturnErr] = true
+	return kubeClient
+}
+
 func fakeKubeClientUpdateMethodReturnsError() client.Client {
 	kubeClient := kubeClientFake{
 		Client: fakeKubeClientObjs(
@@ -1235,7 +1366,7 @@ func fakeKubeClientUpdateMethod(expectedObj client.Object) client.Client {
 	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		arg1 := args.Get(1)
 		if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObj) {
-			kubeClient.t.Errorf("Update called with unexpeted type: want=%v, got=%v", reflect.TypeOf(expectedObj), reflect.TypeOf(arg1))
+			panic(fmt.Sprintf("Update called with unexpeted type: want=%v, got=%v", reflect.TypeOf(expectedObj), reflect.TypeOf(arg1)))
 		}
 	}).Return(nil)
 
@@ -1247,15 +1378,7 @@ func fakeKubeClientUpdateMethodForBootVolume() client.Client {
 		Client: kubeClientWithObjsForBootVolume(),
 	}
 
-	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-		arg1 := args.Get(1)
-
-		expectedType := reflect.TypeOf(v1alpha1.Volume{})
-		actualType := reflect.TypeOf(arg1)
-		if actualType != expectedType {
-			kubeClient.t.Errorf("Update called with unexpeted type: want=%v, got=%v", expectedType, actualType)
-		}
-	}).Return(nil)
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	return &kubeClient
 }
@@ -1290,6 +1413,29 @@ func computeVersionLabel(resourceType string) string {
 func (f *kubeClientFake) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
 	args := f.Called(ctx, obj, opts)
 	return args.Error(0)
+}
+
+func (f *kubeClientFake) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
+	args := f.Called(ctx, obj, opts)
+	if f.shouldReturnError(obj) {
+		return errAnErrorWasReceived
+	}
+	return args.Error(0)
+}
+
+func (f *kubeClientFake) shouldReturnError(obj client.Object) bool {
+	switch obj.(type) {
+	case *v1alpha1.Server:
+		return f.crShouldReturnErr[server]
+	case *v1alpha1.Nic:
+		return f.crShouldReturnErr[nic]
+	case *v1alpha1.Volume:
+		return f.crShouldReturnErr[volume]
+	case *v1alpha1.Volumeselector:
+		return f.crShouldReturnErr[volumeSelector]
+	default:
+		return false
+	}
 }
 
 func fakeBootVolumeCtrlEnsureMethod(timesCalled int) kubeBootVolumeControlManager {
