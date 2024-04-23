@@ -23,17 +23,14 @@ import (
 func Test_serverSet_Create(t *testing.T) {
 	fakeObjList := func(obj client.ObjectList) error { return nil }
 	fakeGetObj := func(obj client.Object) error {
-		switch obj.(type) {
+		switch res := obj.(type) {
 		case *v1alpha1.Server:
-			res := obj.(*v1alpha1.Server)
 			res.Status.AtProvider.State = "AVAILABLE"
 			res.Status.AtProvider.ServerID = "test-id"
 		case *v1alpha1.Volume:
-			res := obj.(*v1alpha1.Volume)
 			res.Status.AtProvider.State = "AVAILABLE"
 			res.Status.AtProvider.VolumeID = "test-id"
 		case *v1alpha1.Nic:
-			res := obj.(*v1alpha1.Nic)
 			res.Status.AtProvider.State = "AVAILABLE"
 			res.Status.AtProvider.NicID = "test-id"
 		}
@@ -41,8 +38,6 @@ func Test_serverSet_Create(t *testing.T) {
 	}
 	type fields struct {
 		kube                 client.Client
-		secretRefFieldPath   string
-		toggleFieldPath      string
 		mg                   resource.Managed
 		bootVolumeController kubeBootVolumeControlManager
 		nicController        kubeNicControlManager
@@ -109,8 +104,7 @@ func Test_serverSet_Create(t *testing.T) {
 				kube: &test.MockClient{
 					MockList: test.NewMockListFn(nil, func(obj client.ObjectList) error {
 						vols := obj.(*v1alpha1.VolumeList)
-						vols.Items = append(vols.Items, v1alpha1.Volume{})
-						vols.Items = append(vols.Items, v1alpha1.Volume{})
+						vols.Items = append(append(vols.Items, v1alpha1.Volume{}), v1alpha1.Volume{})
 						return nil
 					}),
 				},
