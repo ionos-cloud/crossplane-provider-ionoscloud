@@ -36,6 +36,7 @@ spec:
           - name: nic-customer
             ipv4: "10.7.222.5"
             dhcp: true
+            dhcpv6: false
             vnetId: "2c59d77a-210e-4f0d-93ae-f79b40db304b"
 #           should reference lan metadata name
             reference: customer
