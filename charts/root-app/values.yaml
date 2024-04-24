@@ -1,3 +1,0 @@
-crossplane:
-  provider:
-    packages: [ghcr.io/ionos-cloud/crossplane-provider-ionoscloud:v1.0.10]
