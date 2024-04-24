@@ -40,7 +40,7 @@ spec:
     cores: 4
     ram: 2048
     availabilityZone: AUTO
-    cpuFamily: AMD_OPTERON
+    cpuFamily: INTEL_SKYLAKE
     datacenterConfig:
       datacenterIdRef:
         name: datacenter
