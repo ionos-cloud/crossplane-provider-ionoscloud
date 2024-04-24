@@ -1,0 +1,8 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  name: crossplane-system
+  labels:
+    argocd.argoproj.io/managed-by: argocd
