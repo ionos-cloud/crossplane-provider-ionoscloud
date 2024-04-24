@@ -15,4 +15,5 @@ spec:
       server: "*"
   sourceRepos:
     - "*"
-
+  sourceNamespaces:
+    - argocd
