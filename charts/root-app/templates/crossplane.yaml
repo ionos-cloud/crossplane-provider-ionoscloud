@@ -10,6 +10,10 @@ spec:
     repoURL: https://charts.crossplane.io/stable
     chart: crossplane
     targetRevision: 1.15.2
+    helm:
+      valuesObject:
+        provider:
+          packages: [ghcr.io/ionos-cloud/crossplane-provider-ionoscloud:v1.0.10]
   destination:
     server: https://kubernetes.default.svc
     namespace: crossplane-system

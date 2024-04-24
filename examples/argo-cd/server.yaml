@@ -1,0 +1,70 @@
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: datacenter
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: argocd-crossplane-example
+    location: es/vit
+    description: test
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: lan
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: lan
+    public: true
+    datacenterConfig:
+      datacenterIdRef:
+        name: datacenter
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Server
+metadata:
+  name: server
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: argocd-crossplane-example
+    cores: 4
+    ram: 2048
+    availabilityZone: AUTO
+    cpuFamily: AMD_OPTERON
+    datacenterConfig:
+      datacenterIdRef:
+        name: datacenter
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Nic
+metadata:
+  name: nic
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: nic
+    dhcp: true
+    lanConfig:
+      lanIdRef:
+        name: lan
+    datacenterConfig:
+      datacenterIdRef:
+        name: datacenter
+    serverConfig:
+      serverIdRef:
+        name: server
+  providerConfigRef:
+    name: example
