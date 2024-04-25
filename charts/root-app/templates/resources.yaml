@@ -12,6 +12,4 @@ spec:
     targetRevision: feat/argocd
   destination:
     server: https://kubernetes.default.svc
-  syncPolicy:
-    automated:
-      selfHeal: true
+  syncPolicy: {}

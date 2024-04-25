@@ -1,0 +1,3 @@
+crossplane:
+  provider:
+    packages: [kind-registry:5000/ionos-cloud/crossplane-provider-ionoscloud:local]

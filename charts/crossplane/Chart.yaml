@@ -1,5 +1,5 @@
 apiVersion: v2
-name: argo-cd
+name: crossplane
 description: "Wrapper chart for installing crossplane and the ionoscloud crossplane provider"
 version: 1.0.0
 dependencies:
