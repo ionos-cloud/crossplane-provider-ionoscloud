@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: crossplane-resources
+  name: crossplane-server
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
     repoURL: https://github.com/ionos-cloud/crossplane-provider-ionoscloud.git
-    path: examples/argo-cd
+    path: examples/argo-cd/server
     targetRevision: feat/argocd
   destination:
     server: https://kubernetes.default.svc
