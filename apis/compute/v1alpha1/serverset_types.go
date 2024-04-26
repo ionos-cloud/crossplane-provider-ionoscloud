@@ -93,7 +93,7 @@ type ServerSetTemplateNIC struct {
 	IPv4 string `json:"ipv4,omitempty"`
 	// +kubebuilder:validation:Required
 	DHCP bool `json:"dhcp"`
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	DHCPv6 bool `json:"dhcpv6"`
 	// +kubebuilder:validation:Optional
 	VNetID string `json:"vnetId,omitempty"`

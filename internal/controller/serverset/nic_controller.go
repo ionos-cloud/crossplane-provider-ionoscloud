@@ -40,16 +40,15 @@ func getNicName(resourceName string, replicaIndex, nicIndex, version int) string
 func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, nicIndex, version int) (v1alpha1.Nic, error) {
 	name := getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, version)
 	k.log.Info("Creating NIC", "name", name)
-	network := v1alpha1.Lan{}
+	lan := v1alpha1.Lan{}
 	if err := k.kube.Get(ctx, types.NamespacedName{
 		Namespace: cr.GetNamespace(),
 		Name:      lanName,
-	}, &network); err != nil {
+	}, &lan); err != nil {
 		return v1alpha1.Nic{}, err
 	}
-	lanID := network.Status.AtProvider.LanID
 	// no NIC found, create one
-	createNic := fromServerSetToNic(cr, name, serverID, lanID, replicaIndex, nicIndex, version)
+	createNic := fromServerSetToNic(cr, name, serverID, lan, replicaIndex, nicIndex, version)
 	if err := k.kube.Create(ctx, &createNic); err != nil {
 		return v1alpha1.Nic{}, err
 	}
@@ -123,7 +122,7 @@ func (k *kubeNicController) Delete(ctx context.Context, name, namespace string) 
 	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isNicDeleted, condemnedVolume.Name, namespace)
 }
 
-func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, replicaIndex, nicIndex, version int) v1alpha1.Nic {
+func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID string, lan v1alpha1.Lan, replicaIndex, nicIndex, version int) v1alpha1.Nic {
 	serverSetNic := cr.Spec.ForProvider.Template.Spec.NICs[nicIndex]
 	nic := v1alpha1.Nic{
 		ObjectMeta: metav1.ObjectMeta{
@@ -149,12 +148,16 @@ func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID, lanID string, re
 					ServerID: serverID,
 				},
 				LanCfg: v1alpha1.LanConfig{
-					LanID: lanID,
+					LanID: lan.Status.AtProvider.LanID,
 				},
 				Dhcp: serverSetNic.DHCP,
 			},
 		},
 	}
+	if lan.Spec.ForProvider.Ipv6Cidr != "" {
+		nic.Spec.ForProvider.DhcpV6 = serverSetNic.DHCPv6
+	}
+
 	if serverSetNic.VNetID != "" {
 		nic.Spec.ForProvider.Vnet = serverSetNic.VNetID
 	}
