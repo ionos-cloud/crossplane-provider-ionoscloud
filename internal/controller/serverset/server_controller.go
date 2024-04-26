@@ -8,7 +8,6 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
-	"github.com/pkg/errors"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -41,9 +40,7 @@ func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSe
 		return v1alpha1.Server{}, fmt.Errorf("while creating Server %w ", err)
 	}
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createServer.Name, cr.Namespace); err != nil {
-		if errors.Is(err, kube.ErrExternalCreateFailed) {
-			_ = k.Delete(ctx, createServer.Name, cr.Namespace)
-		}
+		_ = k.Delete(ctx, createServer.Name, cr.Namespace)
 		return v1alpha1.Server{}, fmt.Errorf("while waiting for Server to be populated %w ", err)
 	}
 	createdServer, err := k.Get(ctx, createServer.Name, cr.Namespace)

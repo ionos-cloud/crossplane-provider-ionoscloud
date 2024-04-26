@@ -2,7 +2,6 @@ package statefulserverset
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -114,9 +113,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 			return err
 		}
 		if err = kube.WaitForResource(ctx, kube.ServerSetReadyTimeout, k.isAvailable, SSetName, cr.Namespace); err != nil {
-			if errors.Is(err, kube.ErrExternalCreateFailed) {
-				_ = k.delete(ctx, SSetName, cr.Namespace)
-			}
+			_ = k.delete(ctx, SSetName, cr.Namespace)
 			return err
 		}
 	case err != nil:

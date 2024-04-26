@@ -597,10 +597,11 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.S
 		if err := e.serverController.Ensure(ctx, cr, replicaIndex, version, volumeVersion); err != nil {
 			return err
 		}
-		if err := e.nicController.EnsureNICs(ctx, cr, replicaIndex, version); err != nil {
-			return err
-		}
 	}
+	if err := e.nicController.EnsureNICs(ctx, cr, replicaIndex, version); err != nil {
+		return err
+	}
+
 	return nil
 }
 
