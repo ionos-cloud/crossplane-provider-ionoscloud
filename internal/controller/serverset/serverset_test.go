@@ -645,8 +645,8 @@ func Test_serverSetController_Create(t *testing.T) {
 			fields: fields{
 				log:                  logging.NewNopLogger(),
 				kube:                 fakeKubeClientObjs(),
-				bootVolumeController: fakeBootVolumeCtrlEnsureMethod(noReplicas),
-				serverController:     fakeServerCtrlEnsureMethod(noReplicas),
+				bootVolumeController: fakeBootVolumeCtrlGetEnsure(),
+				serverController:     fakeServerCtrlGetEnsure(),
 				nicController:        fakeNicCtrlEnsureNICsMethod(noReplicas),
 			},
 			args: args{
@@ -665,7 +665,7 @@ func Test_serverSetController_Create(t *testing.T) {
 				kube: fakeKubeClientObjs(
 					createBootVolumeWithIndex("boot-volume1", 0),
 					createBootVolumeWithIndex("boot-volume2", 0)),
-				bootVolumeController: fakeBootVolumeCtrlEnsureMethod(0),
+				bootVolumeController: new(kubeBootVolumeControlManagerFake),
 				serverController:     fakeServerCtrlEnsureMethod(0),
 				nicController:        fakeNicCtrlEnsureNICsMethod(0),
 			},
@@ -682,15 +682,15 @@ func Test_serverSetController_Create(t *testing.T) {
 				log:                  logging.NewNopLogger(),
 				kube:                 fakeKubeClientObjs(),
 				bootVolumeController: fakeBootVolumeCtrlEnsureMethodReturnsErr(),
-				serverController:     fakeServerCtrlEnsureMethod(0),
-				nicController:        fakeNicCtrlEnsureNICsMethod(0),
+				serverController:     fakeServerCtrlEnsureMethod(1),
+				nicController:        fakeNicCtrlEnsureNICsMethodBasic(),
 			},
 			args: args{
 				ctx: context.Background(),
 				cr:  createBasicServerSet(),
 			},
 			want:    managed.ExternalCreation{},
-			wantErr: errAnErrorWasReceived,
+			wantErr: fmt.Errorf("while ensuring bootVolume (%w)", errAnErrorWasReceived),
 		},
 		{
 			name: "too many servers returned for the same index",
@@ -699,7 +699,7 @@ func Test_serverSetController_Create(t *testing.T) {
 				kube: fakeKubeClientObjs(
 					createServerWithIndex("server1", 0),
 					createServerWithIndex("server2", 0)),
-				bootVolumeController: fakeBootVolumeCtrlEnsureMethod(1),
+				bootVolumeController: new(kubeBootVolumeControlManagerFake),
 				serverController:     fakeServerCtrlEnsureMethod(0),
 				nicController:        fakeNicCtrlEnsureNICsMethod(0),
 			},
@@ -715,7 +715,7 @@ func Test_serverSetController_Create(t *testing.T) {
 			fields: fields{
 				log:                  logging.NewNopLogger(),
 				kube:                 fakeKubeClientObjs(),
-				bootVolumeController: fakeBootVolumeCtrlEnsureMethod(1),
+				bootVolumeController: new(kubeBootVolumeControlManagerFake),
 				serverController:     fakeServerCtrlEnsureMethodReturnsErr(),
 				nicController:        fakeNicCtrlEnsureNICsMethod(0),
 			},
@@ -731,7 +731,7 @@ func Test_serverSetController_Create(t *testing.T) {
 			fields: fields{
 				log:                  logging.NewNopLogger(),
 				kube:                 fakeKubeClientObjs(),
-				bootVolumeController: fakeBootVolumeCtrlEnsureMethod(1),
+				bootVolumeController: new(kubeBootVolumeControlManagerFake),
 				serverController:     fakeServerCtrlEnsureMethod(1),
 				nicController:        fakeNicCtrlEnsureNICsMethodReturnsErr(),
 			},
@@ -1016,6 +1016,9 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				bootVolumeDelete: 2,
 				nicEnsureNICs:    2,
 				nicDelete:        2,
+				bootVolumeGet:    2,
+				serverGet:        2,
+				serverUpdate:     2,
 			},
 		},
 		{
@@ -1440,13 +1443,20 @@ func (f *kubeClientFake) shouldReturnError(obj client.Object) bool {
 
 func fakeBootVolumeCtrlEnsureMethod(timesCalled int) kubeBootVolumeControlManager {
 	bootVolumeCtrl := new(kubeBootVolumeControlManagerFake)
-	if timesCalled > 0 {
-		bootVolumeCtrl.
-			On(ensureMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-			Return(nil).
-			Times(timesCalled)
-	}
+	bootVolumeCtrl.
+		On(ensureMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil).
+		Times(timesCalled)
 	return bootVolumeCtrl
+}
+
+func fakeBootVolumeCtrlGetEnsure() kubeBootVolumeControlManager {
+	bootVolumeCtrl := new(kubeBootVolumeControlManagerFake)
+	bootVolumeCtrl.
+		On(ensureMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).
+		On(getMethod, mock.Anything, mock.Anything, mock.Anything).Return(&v1alpha1.Volume{}, nil)
+	return bootVolumeCtrl
+
 }
 
 func fakeBootVolumeCtrl() kubeBootVolumeControlManager {
@@ -1478,6 +1488,14 @@ func fakeServerCtrlEnsureMethod(timesCalled int) kubeServerControlManager {
 	}
 	return serverCtrl
 }
+func fakeServerCtrlGetEnsure() kubeServerControlManager {
+	serverCtrl := new(kubeServerControlManagerFake)
+	serverCtrl.
+		On(ensureMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).
+		On(updateMethod, mock.Anything, mock.Anything).Return(nil).
+		On(getMethod, mock.Anything, mock.Anything, mock.Anything).Return(&v1alpha1.Server{}, nil)
+	return serverCtrl
+}
 
 func fakeServerCtrl() kubeServerControlManager {
 	serverCtrl := new(kubeServerControlManagerFake)
@@ -1496,6 +1514,15 @@ func fakeServerCtrlEnsureMethodReturnsErr() kubeServerControlManager {
 		Return(errAnErrorWasReceived).
 		Times(1)
 	return serverCtrl
+}
+
+func fakeNicCtrlEnsureNICsMethodBasic() kubeNicControlManager {
+	nicCtrl := new(kubeNicControlManagerFake)
+	nicCtrl.
+		On(ensureNICsMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil).
+		Times(0)
+	return nicCtrl
 }
 
 func fakeNicCtrlEnsureNICsMethod(timesCalled int) kubeNicControlManager {
