@@ -141,11 +141,12 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volume
 				RAM:              cr.Spec.ForProvider.Template.Spec.RAM,
 				AvailabilityZone: GetZoneFromIndex(replicaIndex),
 				CPUFamily:        cr.Spec.ForProvider.Template.Spec.CPUFamily,
-				VolumeCfg: v1alpha1.VolumeConfig{
-					VolumeIDRef: &xpv1.Reference{
-						Name: getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion),
-					},
-				},
+				// todo revert if we go back to attaching volume on server creation
+				// VolumeCfg: v1alpha1.VolumeConfig{
+				// 	VolumeIDRef: &xpv1.Reference{
+				// 		Name: getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion),
+				// 	},
+				// },
 			},
 		}}
 }

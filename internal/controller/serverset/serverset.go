@@ -132,7 +132,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	crExpectedNoOfNICs := len(cr.Spec.ForProvider.Template.Spec.NICs) * cr.Spec.ForProvider.Replicas
 	areNICsCreated := len(nics) == crExpectedNoOfNICs
 
-	// TODO - at the moment we do not check that fields of nics are updated
+	// at the moment we do not check that fields of nics are updated, because nic fields are immutable
 	e.log.Info("Observing the ServerSet", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "areServersCreated", areServersCreated, "areBootVolumesCreated", areBootVolumesCreated, "areNICsCreated", areNICsCreated)
 
 	cr.SetConditions(xpv1.Available())
@@ -236,16 +236,21 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	// for n times of cr.Spec.Replicas, create a server
 	// for each server, create a volume
 	e.log.Info("Creating a new ServerSet", "replicas", cr.Spec.ForProvider.Replicas)
-	version := 0
 	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
-		if err := e.ensureBootVolumeByIndex(ctx, cr, i, version); err != nil {
+		volumeVersion, serverVersion, err := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), i)
+		if err != nil && !errors.Is(err, errNoVolumesFound) {
+			return managed.ExternalCreation{}, err
+		}
+		if err := e.ensureServerAndNicByIndex(ctx, cr, i, serverVersion); err != nil {
 			return managed.ExternalCreation{}, err
 		}
 
-		if err := e.ensureServerAndNicByIndex(ctx, cr, i, version); err != nil {
-			return managed.ExternalCreation{}, err
+		if err := e.ensureBootVolumeByIndex(ctx, cr, i, volumeVersion); err != nil {
+			return managed.ExternalCreation{}, fmt.Errorf("while ensuring bootVolume for index %s (%w)", err, i)
 		}
-
+		if err := e.attachBootVolume(ctx, cr, i, serverVersion, volumeVersion); err != nil {
+			return managed.ExternalCreation{}, fmt.Errorf("while attaching volume to server for index %s (%w)", err, i)
+		}
 	}
 
 	// When all conditions are met, the managed resource is considered available
@@ -255,6 +260,20 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		// externalServerSet resource. These will be stored as the connection secret.
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
+}
+
+func (e *external) attachBootVolume(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, serverVersion, volumeVersion int) error {
+	bootVolume, err := e.bootVolumeController.Get(ctx, getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion), cr.Namespace)
+	if err != nil {
+		return err
+	}
+
+	server, err := e.serverController.Get(ctx, getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, serverVersion), cr.Namespace)
+	if err != nil {
+		return err
+	}
+	server.Spec.ForProvider.VolumeCfg.VolumeID = bootVolume.Status.AtProvider.VolumeID
+	return e.serverController.Update(ctx, server)
 }
 
 func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
@@ -533,6 +552,8 @@ func listResFromSSetWithIndexAndVersion(ctx context.Context, kube client.Client,
 	})
 }
 
+var errNoVolumesFound = errors.New("no volumes found")
+
 // getVersionsFromVolumeAndServer checks that there is only one server and volume and returns their version
 func getVersionsFromVolumeAndServer(ctx context.Context, kube client.Client, serversetName string, replicaIndex int) (volumeVersion int, serverVersion int, err error) {
 	volumeResources := &v1alpha1.VolumeList{}
@@ -544,7 +565,7 @@ func getVersionsFromVolumeAndServer(ctx context.Context, kube client.Client, ser
 		return volumeVersion, serverVersion, fmt.Errorf("found too many volumes for index %d", replicaIndex)
 	}
 	if len(volumeResources.Items) == 0 {
-		return volumeVersion, serverVersion, fmt.Errorf("found no volumes for index %d", replicaIndex)
+		return volumeVersion, serverVersion, fmt.Errorf("for index %d %w", replicaIndex, errNoVolumesFound)
 	}
 	serverResources := &v1alpha1.ServerList{}
 	err = ListResFromSSetWithIndex(ctx, kube, serversetName, ResourceServer, replicaIndex, serverResources)
