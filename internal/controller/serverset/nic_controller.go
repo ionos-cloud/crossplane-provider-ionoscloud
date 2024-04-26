@@ -161,9 +161,6 @@ func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID string, lan v1alp
 	if serverSetNic.VNetID != "" {
 		nic.Spec.ForProvider.Vnet = serverSetNic.VNetID
 	}
-	if serverSetNic.IPv4 != "" {
-		nic.Spec.ForProvider.IpsCfg.IPs = []string{serverSetNic.IPv4}
-	}
 	return nic
 }
 

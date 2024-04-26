@@ -424,8 +424,6 @@ spec:
                                   type: boolean
                                 dhcpv6:
                                   type: boolean
-                                ipv4:
-                                  type: string
                                 name:
                                   description: |-
                                     Name of the NIC. Replica index, NIC index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{nicIndex}-{version}.
@@ -439,7 +437,6 @@ spec:
                                   type: string
                               required:
                               - dhcp
-                              - dhcpv6
                               - name
                               - reference
                               type: object

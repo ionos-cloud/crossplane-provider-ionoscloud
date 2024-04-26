@@ -39,7 +39,6 @@ const (
 	managementLanPublic = false
 
 	nicName = "nic-1"
-	nicIPv4 = "10.0.0.1/24"
 	nicLAN  = "examplelan"
 
 	serverSetName         = "serverset"
@@ -207,7 +206,6 @@ func createSSetTemplate() v1alpha1.ServerSetTemplate {
 			NICs: []v1alpha1.ServerSetTemplateNIC{
 				{
 					Name:      nicName,
-					IPv4:      nicIPv4,
 					DHCP:      true,
 					Reference: nicLAN,
 				},
