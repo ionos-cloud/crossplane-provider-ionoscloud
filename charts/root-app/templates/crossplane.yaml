@@ -1,16 +1,49 @@
+{{/*# From online public registries example*/}}
+{{/*apiVersion: argoproj.io/v1alpha1*/}}
+{{/*kind: Application*/}}
+{{/*metadata:*/}}
+{{/*  name: crossplane*/}}
+{{/*  finalizers:*/}}
+{{/*    - resources-finalizer.argocd.argoproj.io*/}}
+{{/*  labels:*/}}
+{{/*    installation: online*/}}
+{{/*spec:*/}}
+{{/*  project: default*/}}
+{{/*  source:*/}}
+{{/*    repoURL: https://github.com/ionos-cloud/crossplane-provider-ionoscloud.git*/}}
+{{/*    path: charts/crossplane*/}}
+{{/*    targetRevision: feat/argocd*/}}
+{{/*    helm:*/}}
+{{/*      valueFiles:*/}}
+{{/*  destination:*/}}
+{{/*    server: https://kubernetes.default.svc*/}}
+{{/*    namespace: crossplane-system*/}}
+{{/*  syncPolicy: {}*/}}
+---
+# From local/private registries example
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: crossplane
   finalizers:
     - resources-finalizer.argocd.argoproj.io
+  labels:
+    installation: offline
 spec:
   project: default
   source:
     repoURL: https://github.com/ionos-cloud/crossplane-provider-ionoscloud.git
-    path: charts/crossplane
+    path: charts/crossplane-ag
     targetRevision: feat/argocd
   destination:
     server: https://kubernetes.default.svc
     namespace: crossplane-system
-  syncPolicy: {}
+  syncPolicy:
+    # When empty, just sets resource tracking on the created namespace
+    managedNamespaceMetadata:
+      labels:
+      annotations:
+    syncOptions:
+      - CreateNamespace=true
+    automated:
+      selfHeal: true
