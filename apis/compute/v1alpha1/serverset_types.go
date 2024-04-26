@@ -80,7 +80,7 @@ type ServerSetTemplateSpec struct {
 }
 
 // ServerSetTemplateNIC are the configurable fields of a ServerSetTemplateNIC.
-// +kubebuilder:validation:XValidation:rule="(self.dhcp == false && self.dhcpv6 == false) || (self.dhcp != self.dhcpv6)", message="Only one of 'dhcp' or 'dhcpv6' can be set to true"
+// +kubebuilder:validation:XValidation:rule="!has(self.dhcpv6) || (self.dhcp == false && self.dhcpv6 == false) || (self.dhcp != self.dhcpv6)", message="Only one of 'dhcp' or 'dhcpv6' can be set to true"
 type ServerSetTemplateNIC struct {
 	// Name of the NIC. Replica index, NIC index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{nicIndex}-{version}.
 	// Version increases if the NIC is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the NIC is re-created and the version is increased.

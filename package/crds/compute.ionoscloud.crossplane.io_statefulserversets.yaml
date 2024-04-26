@@ -443,8 +443,8 @@ spec:
                               x-kubernetes-validations:
                               - message: Only one of 'dhcp' or 'dhcpv6' can be set
                                   to true
-                                rule: (self.dhcp == false && self.dhcpv6 == false)
-                                  || (self.dhcp != self.dhcpv6)
+                                rule: '!has(self.dhcpv6) || (self.dhcp == false &&
+                                  self.dhcpv6 == false) || (self.dhcp != self.dhcpv6)'
                             minItems: 1
                             type: array
                             x-kubernetes-validations:

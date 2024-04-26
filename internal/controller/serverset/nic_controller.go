@@ -48,7 +48,7 @@ func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, 
 		return v1alpha1.Nic{}, err
 	}
 	// no NIC found, create one
-	createNic := fromServerSetToNic(cr, name, serverID, lan, replicaIndex, nicIndex, version)
+	createNic := k.fromServerSetToNic(cr, name, serverID, lan, replicaIndex, nicIndex, version)
 	if err := k.kube.Create(ctx, &createNic); err != nil {
 		return v1alpha1.Nic{}, err
 	}
@@ -122,7 +122,7 @@ func (k *kubeNicController) Delete(ctx context.Context, name, namespace string) 
 	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isNicDeleted, condemnedVolume.Name, namespace)
 }
 
-func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID string, lan v1alpha1.Lan, replicaIndex, nicIndex, version int) v1alpha1.Nic {
+func (k *kubeNicController) fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID string, lan v1alpha1.Lan, replicaIndex, nicIndex, version int) v1alpha1.Nic {
 	serverSetNic := cr.Spec.ForProvider.Template.Spec.NICs[nicIndex]
 	nic := v1alpha1.Nic{
 		ObjectMeta: metav1.ObjectMeta{
@@ -156,6 +156,8 @@ func fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID string, lan v1alp
 	}
 	if lan.Spec.ForProvider.Ipv6Cidr != "" {
 		nic.Spec.ForProvider.DhcpV6 = serverSetNic.DHCPv6
+	} else {
+		k.log.Debug("DHCPv6 will not be set on the NIC since Ipv6Cidr is not set on the LAN", "lan", lan.Name, "nic", nic.Name)
 	}
 
 	if serverSetNic.VNetID != "" {

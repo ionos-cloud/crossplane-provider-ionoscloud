@@ -196,7 +196,12 @@ func Test_fromServerSetToNic(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := fromServerSetToNic(tt.args.cr, tt.args.name, tt.args.serverID, tt.args.lan, tt.args.replicaIndex, tt.args.nicIndex, tt.args.version)
+			k := kubeNicController{
+				log:  logging.NewNopLogger(),
+				kube: fakeKubeClientObjs(),
+			}
+
+			got := k.fromServerSetToNic(tt.args.cr, tt.args.name, tt.args.serverID, tt.args.lan, tt.args.replicaIndex, tt.args.nicIndex, tt.args.version)
 			assert.Equal(t, tt.want, got)
 		})
 	}
