@@ -357,6 +357,29 @@ spec:
                     items:
                       type: string
                     type: array
+                  substitutions:
+                    description: |-
+                      Substitutions are used to replace placeholders in the cloud-init configuration.
+                      The property is immutable and is only allowed to be set on creation of a new a volume.
+                    items:
+                      properties:
+                        additionalProperties:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        name:
+                          type: string
+                        type:
+                          type: string
+                        unique:
+                          type: boolean
+                      required:
+                      - additionalProperties
+                      - name
+                      - type
+                      - unique
+                      type: object
+                    type: array
                   type:
                     description: |-
                       Hardware type of the volume.
