@@ -246,10 +246,10 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		}
 
 		if err := e.ensureBootVolumeByIndex(ctx, cr, i, volumeVersion); err != nil {
-			return managed.ExternalCreation{}, fmt.Errorf("while ensuring bootVolume for index %s (%w)", err, i)
+			return managed.ExternalCreation{}, fmt.Errorf("while ensuring bootVolume (%w)", err)
 		}
 		if err := e.attachBootVolume(ctx, cr, i, serverVersion, volumeVersion); err != nil {
-			return managed.ExternalCreation{}, fmt.Errorf("while attaching volume to server for index %s (%w)", err, i)
+			return managed.ExternalCreation{}, fmt.Errorf("while attaching volume to server (%w)", err)
 		}
 	}
 

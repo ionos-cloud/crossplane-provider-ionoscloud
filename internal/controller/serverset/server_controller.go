@@ -18,7 +18,7 @@ import (
 )
 
 type kubeServerControlManager interface {
-	Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) (v1alpha1.Server, error)
+	Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Server, error)
 	Get(ctx context.Context, name, ns string) (*v1alpha1.Server, error)
 	Delete(ctx context.Context, name, namespace string) error
 	Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error
@@ -32,8 +32,8 @@ type kubeServerController struct {
 }
 
 // Create creates a server CR and waits until in reaches AVAILABLE state
-func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) (v1alpha1.Server, error) {
-	createServer := fromServerSetToServer(cr, replicaIndex, version, volumeVersion)
+func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Server, error) {
+	createServer := fromServerSetToServer(cr, replicaIndex, version)
 	k.log.Info("Creating Server", "name", createServer.Name)
 
 	if err := k.kube.Create(ctx, &createServer); err != nil {
@@ -117,7 +117,7 @@ func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namesp
 
 // fromServerSetToServer is a conversion function that converts a ServerSet resource to a Server resource
 // attaches a bootvolume to the server based on replicaIndex
-func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) v1alpha1.Server {
+func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version int) v1alpha1.Server {
 	return v1alpha1.Server{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, version),
@@ -168,7 +168,7 @@ func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSe
 		return nil
 	}
 
-	_, err := k.Create(ctx, cr, replicaIndex, version, volumeVersion)
+	_, err := k.Create(ctx, cr, replicaIndex, version)
 	if err != nil {
 		return err
 	}
