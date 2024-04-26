@@ -58,6 +58,27 @@ func (c *CloudInitPatcher) Patch(key string, value any) *CloudInitPatcher {
 	return c
 }
 
+// SetEnv sets an environment variable in the cloud-init data
+// within the "environment" key
+func (c *CloudInitPatcher) SetEnv(key string, value string) *CloudInitPatcher {
+	if c.data["environment"] == nil {
+		c.data["environment"] = make(map[string]interface{})
+	}
+
+	c.data["environment"].(map[string]interface{})[key] = value
+
+	return c
+}
+
+// GetEnv returns the value of an environment variable in the cloud-init data
+func (c *CloudInitPatcher) GetEnv(key string) string {
+	if c.data["environment"] == nil {
+		return ""
+	}
+
+	return c.data["environment"].(map[string]interface{})[key].(string)
+}
+
 // Get returns the value of a key in the cloud-init data
 func (c *CloudInitPatcher) Get(key string) any {
 	return c.data[key]

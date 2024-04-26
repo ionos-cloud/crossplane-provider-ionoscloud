@@ -90,3 +90,30 @@ func TestPatchInvalidUserdataMalformedData(t *testing.T) {
 	_, err := ccpatch.NewCloudInitPatcher(base64.StdEncoding.EncodeToString([]byte(invalid)))
 	require.Error(t, err)
 }
+
+func TestPatchSetEnv(t *testing.T) {
+	encoded := base64.StdEncoding.EncodeToString([]byte(rawUserData))
+
+	patcher, err := ccpatch.NewCloudInitPatcher(encoded)
+	require.NoError(t, err)
+
+	patcher.SetEnv("key", "value")
+	require.Equal(t, "value", patcher.GetEnv("key"))
+
+	// Test String()
+	require.Contains(t, patcher.String(), "key: value")
+
+	// Test Encode()
+	encoded = patcher.Encode()
+	require.NotEmpty(t, encoded)
+
+	// decode and check if the patch was successful
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	require.NoError(t, err)
+
+	data := make(map[string]interface{})
+	err = yaml.Unmarshal(decoded, &data)
+	require.NoError(t, err)
+
+	require.Equal(t, "value", data["environment"].(map[string]interface{})["key"])
+}
