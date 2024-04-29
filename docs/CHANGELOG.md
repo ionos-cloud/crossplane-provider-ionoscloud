@@ -1,3 +1,7 @@
+## [1.0.12] (April 2024)
+- **Fixes**:
+ - Fix NPE on posql user creation
+
 ## [1.0.11] (April 2024)
 - **Features**:
   - Add `NLB` managed resources:

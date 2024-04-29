@@ -302,9 +302,9 @@ func IsUserUpToDate(cr *v1alpha1.PostgresUser, user ionoscloud.UserResource) boo
 		return false
 	case cr != nil && user.Properties == nil:
 		return false
-	case user.Properties.Username != nil && *user.Properties.Username != cr.Spec.ForProvider.Credentials.Username:
+	case cr != nil && user.Properties.Username != nil && *user.Properties.Username != cr.Spec.ForProvider.Credentials.Username:
 		return false
-	case user.Properties.Username != nil && *user.Properties.Password != cr.Spec.ForProvider.Credentials.Password:
+	case cr != nil && user.Properties.Password != nil && *user.Properties.Password != cr.Spec.ForProvider.Credentials.Password:
 		return false
 	default:
 		return true
