@@ -4,29 +4,31 @@ import (
 	"math/big"
 	"net"
 	"strings"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 )
 
 func init() {
-	RegisterSubstitution(&ipv6Address{})
+	substitution.RegisterSubstitution(&ipv6Address{})
 }
 
 type ipv6Address struct{}
 
-var _ SubstitutionHandler = &ipv6Address{}
+var _ substitution.Handler = &ipv6Address{}
 
 func (i *ipv6Address) Type() string {
 	return "ipv6Address"
 }
 
-func (i *ipv6Address) WriteState(identifier Identifier, state *GlobalState, sub Substitution) error {
+func (i *ipv6Address) WriteState(identifier substitution.Identifier, state *substitution.GlobalState, sub substitution.Substitution) error {
 	value, ok := sub.AdditionalProperties["cidr"]
 	if !ok {
-		return ErrMissingCIDR
+		return substitution.ErrMissingCIDR
 	}
 
 	used := []string{}
 
-	state.Each(func(key Identifier, state []State) {
+	state.Each(func(key substitution.Identifier, state []substitution.State) {
 		for _, s := range state {
 			if s.Key == sub.Key {
 				used = append(used, s.Value)

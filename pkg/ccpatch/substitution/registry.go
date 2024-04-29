@@ -1,14 +1,18 @@
-package ccpatch
+package substitution
 
-type SubstitutionHandler interface {
+// Identifier is used to identify the state of the current replica
+type Identifier string
+
+// Handler defines the interface for a substitution handler
+type Handler interface {
 	Type() string
 	WriteState(identifier Identifier, state *GlobalState, sub Substitution) error
 }
 
-var registeredSubstitutions = make(map[string]SubstitutionHandler)
+var registeredSubstitutions = make(map[string]Handler)
 
 // RegisterSubstitution registers a new substitution
-func RegisterSubstitution(sub SubstitutionHandler) {
+func RegisterSubstitution(sub Handler) {
 	if sub == nil {
 		panic("cannot register a nil substitution")
 	}
@@ -21,6 +25,6 @@ func RegisterSubstitution(sub SubstitutionHandler) {
 }
 
 // GetSubstitution returns a substitution by its type
-func GetSubstitution(subType string) SubstitutionHandler {
+func GetSubstitution(subType string) Handler {
 	return registeredSubstitutions[subType]
 }

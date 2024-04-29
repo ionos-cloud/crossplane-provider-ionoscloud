@@ -2,32 +2,28 @@ package ccpatch
 
 import (
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"net"
-)
 
-var (
-	// ErrMissingCIDR is returned when the CIDR is missing
-	ErrMissingCIDR = errors.New("missing CIDR")
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 )
 
 func init() {
-	RegisterSubstitution(&ipv4Address{})
+	substitution.RegisterSubstitution(&ipv4Address{})
 }
 
 type ipv4Address struct{}
 
-var _ SubstitutionHandler = &ipv4Address{}
+var _ substitution.Handler = &ipv4Address{}
 
 func (i *ipv4Address) Type() string {
 	return "ipv4Address"
 }
 
-func (i *ipv4Address) WriteState(identifier Identifier, state *GlobalState, sub Substitution) error {
+func (i *ipv4Address) WriteState(identifier substitution.Identifier, state *substitution.GlobalState, sub substitution.Substitution) error {
 	value, ok := sub.AdditionalProperties["cidr"]
 	if !ok {
-		return ErrMissingCIDR
+		return substitution.ErrMissingCIDR
 	}
 
 	ip, err := randomIPv4FromCIDR(value)
@@ -66,7 +62,7 @@ jump:
 	ip = net.IPv4(r[0], r[1], r[2], r[3])
 
 	if ip.Equal(ipnet.IP) /*|| ip.Equal(broadcast) */ {
-		// we got unlucky. The host portion of our ipv4 address was
+		// we got unlucky. Theu host portion of our ipv4 address was
 		// either all 0s (the network address) or all 1s (the broadcast address)
 		goto jump
 	}

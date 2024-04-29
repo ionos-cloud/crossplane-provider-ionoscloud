@@ -4,10 +4,11 @@ import (
 	"testing"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 )
 
 var (
-	substitutions = []ccpatch.Substitution{
+	substitutions = []substitution.Substitution{
 		{
 			Type:   "ipv4Address",
 			Key:    "$ipv4Address",
@@ -21,13 +22,13 @@ var (
 
 func TestSubstitutionManager(t *testing.T) {
 	// Identifier is used to lookup the state of the current replica
-	identifier := ccpatch.Identifier("replica-1")
-	replica2 := ccpatch.Identifier("replica-2")
+	identifier := substitution.Identifier("replica-1")
+	replica2 := substitution.Identifier("replica-2")
 
 	// Global state of the substitutions
-	globalState := ccpatch.GlobalState{
-		identifier: []ccpatch.State{},
-		replica2: []ccpatch.State{
+	globalState := substitution.GlobalState{
+		identifier: []substitution.State{},
+		replica2: []substitution.State{
 			{
 				Key:   "ipv4Address",
 				Value: "10.0.0.1",

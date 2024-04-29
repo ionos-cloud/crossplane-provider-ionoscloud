@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 	"github.com/stretchr/testify/require"
 )
 
 func TestIPv6AddressSuccess(t *testing.T) {
-	handler := ccpatch.GetSubstitution("ipv6Address")
+	handler := substitution.GetSubstitution("ipv6Address")
 	if handler == nil {
 		t.Errorf("ipv6Address handler not found")
 		return
@@ -17,9 +17,9 @@ func TestIPv6AddressSuccess(t *testing.T) {
 
 	total := 10
 
-	state := &ccpatch.GlobalState{}
+	state := &substitution.GlobalState{}
 	for i := 0; i < total; i++ {
-		handler.WriteState(ccpatch.Identifier(fmt.Sprintf("machine-%v", i)), state, ccpatch.Substitution{
+		handler.WriteState(substitution.Identifier(fmt.Sprintf("machine-%v", i)), state, substitution.Substitution{
 			Type:   "ipv6Address",
 			Key:    "$ipv6Address",
 			Unique: true,
@@ -30,7 +30,7 @@ func TestIPv6AddressSuccess(t *testing.T) {
 	}
 
 	require.Equal(t, total, state.Len())
-	state.Each(func(identifier ccpatch.Identifier, state []ccpatch.State) {
+	state.Each(func(identifier substitution.Identifier, state []substitution.State) {
 		require.Len(t, state, 1)
 		require.Contains(t, state[0].Value, "fc00:1::")
 		require.Equal(t, state[0].Key, "$ipv6Address")
