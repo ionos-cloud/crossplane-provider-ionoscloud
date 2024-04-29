@@ -43,3 +43,5 @@ patcher, err := ccpatch.NewCloudInitPatcherWithSubstitutions(raw, identifier, su
 
 // save State in crd status
 ```
+
+Take a look at [func TestSubstitutionManager(t *testing.T) {](./substitutions_test.go#L39-L40)
