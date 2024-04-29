@@ -1,3 +1,11 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: psqlcreds
+  namespace: crossplane-system
+data:
+  credentials: eyJ1c2VybmFtZSI6InRlc3R1c2VyMiIsInBhc3N3b3JkIjoidGVzdHBhc3N3b3JkIn0=
+---
 # Use this file to create Datacenter, Lan and DBaaS Postgres Cluster CRs.
 # Required values for creating a Datacenter CR are:
 # - Location.
@@ -9,7 +17,7 @@ spec:
   managementPolicies:
     - "*"
   forProvider:
-    name: exampleDatacenter
+    name: postgresDatacenter
     location: de/txl
     description: test
   providerConfigRef:
@@ -70,7 +78,7 @@ spec:
         namespace: crossplane-system
         name: psqlcreds
         key: credentials
-    location: de/txl
+    location: es/vit
     instances: 1
     cores: 2
     ram: 2048

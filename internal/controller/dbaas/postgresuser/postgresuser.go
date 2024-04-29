@@ -21,8 +21,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/google/go-cmp/cmp"
+	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/bcrypt"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -124,16 +125,13 @@ func (u *externalUser) Observe(ctx context.Context, mg resource.Managed) (manage
 		}
 		return managed.ExternalObservation{}, fmt.Errorf("failed to get postgres user by id. err: %w", err)
 	}
-
-	current := cr.Spec.ForProvider.DeepCopy()
-
+	lateInitialized := u.lateInitialize(ctx, cr)
 	cr.Status.AtProvider.UserID = meta.GetExternalName(cr)
-
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        postgrescluster.IsUserUpToDate(cr, observed),
+		ResourceUpToDate:        postgrescluster.IsUserUpToDate(cr, observed) && !lateInitialized,
 		ConnectionDetails:       managed.ConnectionDetails{},
-		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		ResourceLateInitialized: lateInitialized,
 	}, nil
 }
 
@@ -146,17 +144,13 @@ func (u *externalUser) Create(ctx context.Context, mg resource.Managed) (managed
 	cr.SetConditions(xpv1.Creating())
 
 	clusterID := cr.Spec.ForProvider.ClusterCfg.ClusterID
-
+	// Get credentials from spec initially
 	instanceInput := postgrescluster.GenerateCreateUserInput(cr)
-	// time to get the credentials from the secret
-	if instanceInput.Properties.Password != nil || *instanceInput.Properties.Password == "" {
-		data, err := resource.CommonCredentialExtractor(ctx, cr.Spec.ForProvider.Credentials.Source, u.client, cr.Spec.ForProvider.Credentials.CommonCredentialSelectors)
+	// Overwrite with values retrieved from Secret
+	if cr.Spec.ForProvider.Credentials.Source != "" && cr.Spec.ForProvider.Credentials.Source != xpv1.CredentialsSourceNone {
+		creds, err := u.readCredentials(ctx, cr)
 		if err != nil {
-			return managed.ExternalCreation{}, errors.Wrap(err, "cannot get psql credentials")
-		}
-		creds := v1alpha1.DBUser{}
-		if err := json.Unmarshal(data, &creds); err != nil {
-			return managed.ExternalCreation{}, fmt.Errorf("failed to decode psql credentials: %w", err)
+			return managed.ExternalCreation{}, err
 		}
 		*instanceInput.Properties.Username = creds.Username
 		*instanceInput.Properties.Password = creds.Password
@@ -175,10 +169,6 @@ func (u *externalUser) Create(ctx context.Context, mg resource.Managed) (managed
 		return creation, retErr
 	}
 
-	// Set External Name
-	if instanceInput.Properties.Username != nil {
-		cr.Status.AtProvider.UserID = *instanceInput.Properties.Username
-	}
 	meta.SetExternalName(cr, *newInstance.Properties.Username)
 	return creation, nil
 }
@@ -192,18 +182,21 @@ func (u *externalUser) Update(ctx context.Context, mg resource.Managed) (managed
 
 	clusterID := cr.Spec.ForProvider.ClusterCfg.ClusterID
 	userName := meta.GetExternalName(cr)
-	instanceInput, err := postgrescluster.GenerateUpdateUserInput(cr)
-	if err != nil {
-		return managed.ExternalUpdate{}, err
+	instanceInput := postgrescluster.GenerateUpdateUserInput(cr)
+	// Password from credential source overrides value from the Spec
+	// This is because the API does not return a password value, so we cannot trigger password changes by comparing observed password to spec password.
+	// If the password f
+	if cr.Spec.ForProvider.Credentials.Source != "" && cr.Spec.ForProvider.Credentials.Source != xpv1.CredentialsSourceNone {
+		creds, err := u.readCredentials(ctx, cr)
+		if err != nil {
+			return managed.ExternalUpdate{}, err
+		}
+		instanceInput.Properties.Password = ionoscloud.PtrString(creds.Password)
 	}
 	if instanceInput.Properties.Password != nil && *instanceInput.Properties.Password == "" {
-		data, err := resource.CommonCredentialExtractor(ctx, cr.Spec.ForProvider.Credentials.Source, u.client, cr.Spec.ForProvider.Credentials.CommonCredentialSelectors)
+		creds, err := u.readCredentials(ctx, cr)
 		if err != nil {
-			return managed.ExternalUpdate{}, errors.Wrap(err, "cannot get psql credentials")
-		}
-		creds := v1alpha1.DBUser{}
-		if err := json.Unmarshal(data, &creds); err != nil {
-			return managed.ExternalUpdate{}, fmt.Errorf("failed to decode psql credentials: %w", err)
+			return managed.ExternalUpdate{}, err
 		}
 		*instanceInput.Properties.Password = creds.Password
 	}
@@ -235,4 +228,38 @@ func (u *externalUser) Delete(ctx context.Context, mg resource.Managed) error {
 		return fmt.Errorf("failed to delete postgres user. error: %w", err)
 	}
 	return nil
+}
+
+func (u *externalUser) readCredentials(ctx context.Context, cr *v1alpha1.PostgresUser) (v1alpha1.DBUser, error) {
+	creds := v1alpha1.DBUser{}
+
+	data, err := resource.CommonCredentialExtractor(ctx, cr.Spec.ForProvider.Credentials.Source, u.client, cr.Spec.ForProvider.Credentials.CommonCredentialSelectors)
+	if err != nil {
+		return v1alpha1.DBUser{}, errors.Wrap(err, "cannot get psql credentials")
+	}
+	if err = json.Unmarshal(data, &creds); err != nil {
+		return v1alpha1.DBUser{}, fmt.Errorf("failed to decode psql credentials: %w", err)
+	}
+	return creds, nil
+}
+
+// If credentials are supplied through credentials Source, set the hashed password to the Spec
+func (u *externalUser) lateInitialize(ctx context.Context, cr *v1alpha1.PostgresUser) bool {
+	if cr.Spec.ForProvider.Credentials.Source == "" || cr.Spec.ForProvider.Credentials.Source == xpv1.CredentialsSourceNone {
+		return false
+	}
+	creds, err := u.readCredentials(ctx, cr)
+	if err != nil {
+		return false
+	}
+	var hash []byte
+	if hash, err = bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.MinCost); err != nil {
+		return false
+	}
+	if err = bcrypt.CompareHashAndPassword([]byte(cr.Spec.ForProvider.Credentials.Password), []byte(creds.Password)); err == nil {
+		return false
+	}
+	hashStr := string(hash)
+	cr.Spec.ForProvider.Credentials.Password = hashStr
+	return true
 }
