@@ -1441,15 +1441,6 @@ func (f *kubeClientFake) shouldReturnError(obj client.Object) bool {
 	}
 }
 
-func fakeBootVolumeCtrlEnsureMethod(timesCalled int) kubeBootVolumeControlManager {
-	bootVolumeCtrl := new(kubeBootVolumeControlManagerFake)
-	bootVolumeCtrl.
-		On(ensureMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(nil).
-		Times(timesCalled)
-	return bootVolumeCtrl
-}
-
 func fakeBootVolumeCtrlGetEnsure() kubeBootVolumeControlManager {
 	bootVolumeCtrl := new(kubeBootVolumeControlManagerFake)
 	bootVolumeCtrl.
