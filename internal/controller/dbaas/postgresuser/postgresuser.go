@@ -127,6 +127,7 @@ func (u *externalUser) Observe(ctx context.Context, mg resource.Managed) (manage
 	}
 	lateInitialized := u.lateInitialize(ctx, cr)
 	cr.Status.AtProvider.UserID = meta.GetExternalName(cr)
+	cr.SetConditions(xpv1.Available())
 	return managed.ExternalObservation{
 		ResourceExists:          true,
 		ResourceUpToDate:        postgrescluster.IsUserUpToDate(cr, observed) && !lateInitialized,
@@ -185,20 +186,12 @@ func (u *externalUser) Update(ctx context.Context, mg resource.Managed) (managed
 	instanceInput := postgrescluster.GenerateUpdateUserInput(cr)
 	// Password from credential source overrides value from the Spec
 	// This is because the API does not return a password value, so we cannot trigger password changes by comparing observed password to spec password.
-	// If the password f
 	if cr.Spec.ForProvider.Credentials.Source != "" && cr.Spec.ForProvider.Credentials.Source != xpv1.CredentialsSourceNone {
 		creds, err := u.readCredentials(ctx, cr)
 		if err != nil {
 			return managed.ExternalUpdate{}, err
 		}
 		instanceInput.Properties.Password = ionoscloud.PtrString(creds.Password)
-	}
-	if instanceInput.Properties.Password != nil && *instanceInput.Properties.Password == "" {
-		creds, err := u.readCredentials(ctx, cr)
-		if err != nil {
-			return managed.ExternalUpdate{}, err
-		}
-		*instanceInput.Properties.Password = creds.Password
 	}
 
 	_, apiResponse, err := u.service.UpdateUser(ctx, clusterID, userName, *instanceInput)
