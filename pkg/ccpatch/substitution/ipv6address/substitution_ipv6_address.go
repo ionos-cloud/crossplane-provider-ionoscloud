@@ -32,13 +32,15 @@ func (i *ipv6Address) WriteState(identifier substitution.Identifier, gs *substit
 
 	used := []string{}
 
-	gs.Each(func(key substitution.Identifier, state []substitution.State) {
-		for _, s := range state {
-			if s.Key == sub.Key {
-				used = append(used, s.Value)
+	if sub.Unique {
+		gs.Each(func(key substitution.Identifier, state []substitution.State) {
+			for _, s := range state {
+				if s.Key == sub.Key {
+					used = append(used, s.Value)
+				}
 			}
-		}
-	})
+		})
+	}
 
 	nip, err := getNextIPv6(value, used)
 	if err != nil {

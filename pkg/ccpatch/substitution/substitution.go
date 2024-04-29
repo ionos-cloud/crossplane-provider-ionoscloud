@@ -13,6 +13,7 @@ type Substitution struct {
 	AdditionalProperties map[string]string `json:"additionalProperties" yaml:"additionalProperties"`
 }
 
+// ReplaceByState replaces the placeholders in the target string with the values from the state
 func ReplaceByState(identifier Identifier, gs *GlobalState, target string) (string, error) {
 	output := target
 

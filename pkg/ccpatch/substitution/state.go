@@ -4,6 +4,10 @@ package substitution
 // it's a map of index to a list of substitutions
 type GlobalState map[Identifier][]State
 
+func NewGlobalState() *GlobalState {
+	return &GlobalState{}
+}
+
 // Each iterates over the global state and calls the provided function
 func (gs GlobalState) Each(f func(Identifier, []State)) {
 	for k, v := range gs {
