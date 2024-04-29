@@ -1,23 +1,30 @@
 package ccpatch_test
 
 import (
+	"encoding/base64"
 	"testing"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
+	"github.com/stretchr/testify/require"
 )
 
 var (
 	substitutions = []substitution.Substitution{
 		{
-			Type:   "ipv4Address",
-			Key:    "$ipv4Address",
+			Type:   "ipv6Address",
+			Key:    "$ipv6Address",
 			Unique: true,
 			AdditionalProperties: map[string]string{
-				"cidr": "10.0.0.0/24",
+				"cidr": "fc00:1::1/64",
 			},
 		},
 	}
+
+	substitionInput = `#cloud-config
+hostname: $ipv6Address
+`
+	substitionOutput = "#cloud-config\nhostname: fc00:1::2\n"
 )
 
 func TestSubstitutionManager(t *testing.T) {
@@ -26,20 +33,25 @@ func TestSubstitutionManager(t *testing.T) {
 	replica2 := substitution.Identifier("replica-2")
 
 	// Global state of the substitutions
-	globalState := substitution.GlobalState{
+	globalState := &substitution.GlobalState{
 		identifier: []substitution.State{},
 		replica2: []substitution.State{
 			{
-				Key:   "ipv4Address",
-				Value: "10.0.0.1",
+				Key:   "$ipv6Address",
+				Value: "fc00:1::1",
 			},
 		},
 	}
 
 	// Contents of the cloud-init configuration
-	contents := `#cloud-config
-hostname: $ipv4Address
-`
 
-	ccpatch.NewSubstitutionManager(string(identifier), substitutions, globalState, contents)
+	encoded := base64.StdEncoding.EncodeToString([]byte(substitionInput))
+
+	cp, err := ccpatch.NewCloudInitPatcherWithSubstitutions(
+		encoded,
+		identifier,
+		substitutions, globalState,
+	)
+	require.NoError(t, err)
+	require.Equal(t, cp.String(), substitionOutput)
 }

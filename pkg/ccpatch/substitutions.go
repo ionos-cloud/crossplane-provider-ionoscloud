@@ -4,18 +4,18 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 )
 
-func NewSubstitutionManager(identifier string, substitutions []substitution.Substitution, globalState substitution.GlobalState, contents string) {
-	// Identifier is used to lookup the state of the current replica
+// buildState is a helper function to build the state of the substitutions
+func buildState(identifier substitution.Identifier, s []substitution.Substitution, gs *substitution.GlobalState) error {
+	for _, sub := range s {
+		handler := substitution.GetSubstitution(sub.Type)
+		if handler == nil {
+			continue
+		}
 
-	for _, substitution := range substitutions {
-		// Check if the substitution is unique
-		// if it is, check if it already exists in the global state
-		// if it does, use the value from the global state
-		// if it doesn't, generate a new value and add it to the global state
-
-		// Replace the placeholders in the cloud-init configuration
-		// with the generated values
-
-		_ = substitution
+		if err := handler.WriteState(identifier, gs, sub); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }

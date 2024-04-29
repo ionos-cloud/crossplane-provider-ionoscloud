@@ -39,6 +39,18 @@ func (gs GlobalState) Len() int {
 	return len(gs)
 }
 
+// Exists checks if a key exists in the global state
+func (gs GlobalState) Exists(identifier Identifier, key string) bool {
+	state := gs.GetByIdentifier(identifier)
+	for _, s := range state {
+		if s.Key == key {
+			return true
+		}
+	}
+
+	return false
+}
+
 // State keeps track of "Key" to generated "Value".
 type State struct {
 	Key   string

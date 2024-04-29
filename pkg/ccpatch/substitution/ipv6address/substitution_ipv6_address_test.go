@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 	"github.com/stretchr/testify/require"
 )
@@ -35,4 +36,6 @@ func TestIPv6AddressSuccess(t *testing.T) {
 		require.Contains(t, state[0].Value, "fc00:1::")
 		require.Equal(t, state[0].Key, "$ipv6Address")
 	})
+
+	spew.Dump(state)
 }

@@ -20,15 +20,19 @@ func (i *ipv6Address) Type() string {
 	return "ipv6Address"
 }
 
-func (i *ipv6Address) WriteState(identifier substitution.Identifier, state *substitution.GlobalState, sub substitution.Substitution) error {
+func (i *ipv6Address) WriteState(identifier substitution.Identifier, gs *substitution.GlobalState, sub substitution.Substitution) error {
 	value, ok := sub.AdditionalProperties["cidr"]
 	if !ok {
 		return substitution.ErrMissingCIDR
 	}
 
+	if gs.Exists(identifier, sub.Key) {
+		return nil
+	}
+
 	used := []string{}
 
-	state.Each(func(key substitution.Identifier, state []substitution.State) {
+	gs.Each(func(key substitution.Identifier, state []substitution.State) {
 		for _, s := range state {
 			if s.Key == sub.Key {
 				used = append(used, s.Value)
@@ -41,7 +45,7 @@ func (i *ipv6Address) WriteState(identifier substitution.Identifier, state *subs
 		return err
 	}
 
-	state.Set(identifier, sub.Key, nip.String())
+	gs.Set(identifier, sub.Key, nip.String())
 
 	return nil
 }

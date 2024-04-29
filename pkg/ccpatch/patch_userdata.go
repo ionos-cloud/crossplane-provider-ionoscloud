@@ -48,6 +48,28 @@ func NewCloudInitPatcherWithSubstitutions(raw string, identifier substitution.Id
 	patcher.substitutions = substitutions
 	patcher.globalState = globalState
 
+	if err := buildState(
+		patcher.identifier,
+		patcher.substitutions,
+		patcher.globalState,
+	); err != nil {
+		return nil, err
+	}
+
+	patcher.decoded, err = substitution.ReplaceByState(
+		patcher.identifier,
+		patcher.globalState,
+		patcher.decoded,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// write patched decoded back to data
+	if err := yaml.Unmarshal([]byte(patcher.decoded), &patcher.data); err != nil {
+		return nil, fmt.Errorf("%w (%w)", ErrMalformedData, err)
+	}
+
 	return patcher, nil
 }
 
