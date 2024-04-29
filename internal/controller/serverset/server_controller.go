@@ -8,7 +8,6 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
-	"github.com/pkg/errors"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -19,7 +18,7 @@ import (
 )
 
 type kubeServerControlManager interface {
-	Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) (v1alpha1.Server, error)
+	Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Server, error)
 	Get(ctx context.Context, name, ns string) (*v1alpha1.Server, error)
 	Delete(ctx context.Context, name, namespace string) error
 	Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error
@@ -33,17 +32,15 @@ type kubeServerController struct {
 }
 
 // Create creates a server CR and waits until in reaches AVAILABLE state
-func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) (v1alpha1.Server, error) {
-	createServer := fromServerSetToServer(cr, replicaIndex, version, volumeVersion)
+func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Server, error) {
+	createServer := fromServerSetToServer(cr, replicaIndex, version)
 	k.log.Info("Creating Server", "name", createServer.Name)
 
 	if err := k.kube.Create(ctx, &createServer); err != nil {
 		return v1alpha1.Server{}, fmt.Errorf("while creating Server %w ", err)
 	}
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createServer.Name, cr.Namespace); err != nil {
-		if errors.Is(err, kube.ErrExternalCreateFailed) {
-			_ = k.Delete(ctx, createServer.Name, cr.Namespace)
-		}
+		_ = k.Delete(ctx, createServer.Name, cr.Namespace)
 		return v1alpha1.Server{}, fmt.Errorf("while waiting for Server to be populated %w ", err)
 	}
 	createdServer, err := k.Get(ctx, createServer.Name, cr.Namespace)
@@ -120,7 +117,7 @@ func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namesp
 
 // fromServerSetToServer is a conversion function that converts a ServerSet resource to a Server resource
 // attaches a bootvolume to the server based on replicaIndex
-func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) v1alpha1.Server {
+func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version int) v1alpha1.Server {
 	return v1alpha1.Server{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, version),
@@ -144,11 +141,12 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volume
 				RAM:              cr.Spec.ForProvider.Template.Spec.RAM,
 				AvailabilityZone: GetZoneFromIndex(replicaIndex),
 				CPUFamily:        cr.Spec.ForProvider.Template.Spec.CPUFamily,
-				VolumeCfg: v1alpha1.VolumeConfig{
-					VolumeIDRef: &xpv1.Reference{
-						Name: getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion),
-					},
-				},
+				// todo revert if we go back to attaching volume on server creation
+				// VolumeCfg: v1alpha1.VolumeConfig{
+				// 	VolumeIDRef: &xpv1.Reference{
+				// 		Name: getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion),
+				// 	},
+				// },
 			},
 		}}
 }
@@ -170,7 +168,7 @@ func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSe
 		return nil
 	}
 
-	_, err := k.Create(ctx, cr, replicaIndex, version, volumeVersion)
+	_, err := k.Create(ctx, cr, replicaIndex, version)
 	if err != nil {
 		return err
 	}

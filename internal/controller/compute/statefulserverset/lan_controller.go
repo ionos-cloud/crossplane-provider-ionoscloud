@@ -46,7 +46,8 @@ func (k *kubeLANController) Create(ctx context.Context, cr *v1alpha1.StatefulSer
 		return v1alpha1.Lan{}, err
 	}
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
-		return v1alpha1.Lan{}, err
+		_ = k.Delete(ctx, name, cr.Namespace)
+		return v1alpha1.Lan{}, fmt.Errorf("while waiting for LAN to be populated %w ", err)
 	}
 	kubeLAN, err := k.Get(ctx, name, cr.Namespace)
 	if err != nil {
@@ -140,6 +141,9 @@ func (k *kubeLANController) isAvailable(ctx context.Context, name, namespace str
 			return false, nil
 		}
 		return false, err
+	}
+	if !kube.IsSuccessfullyCreated(obj) {
+		return false, kube.ErrExternalCreateFailed
 	}
 	if obj != nil && obj.Status.AtProvider.LanID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
 		return true, nil

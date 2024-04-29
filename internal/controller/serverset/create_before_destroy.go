@@ -37,12 +37,27 @@ func (c *createBeforeDestroy) update(ctx context.Context, cr *v1alpha1.ServerSet
 }
 
 func (c *createBeforeDestroy) createResources(ctx context.Context, cr *v1alpha1.ServerSet, index, volumeVersion, serverVersion int) error {
-	if err := c.bootVolumeController.Ensure(ctx, cr, index, volumeVersion); err != nil {
-		return err
-	}
 	if err := c.serverController.Ensure(ctx, cr, index, serverVersion, volumeVersion); err != nil {
 		return err
 	}
+	if err := c.bootVolumeController.Ensure(ctx, cr, index, volumeVersion); err != nil {
+		return err
+	}
+
+	bootVolume, err := c.bootVolumeController.Get(ctx, getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, index, volumeVersion), cr.Namespace)
+	if err != nil {
+		return err
+	}
+
+	server, err := c.serverController.Get(ctx, getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, index, serverVersion), cr.Namespace)
+	if err != nil {
+		return err
+	}
+	server.Spec.ForProvider.VolumeCfg.VolumeID = bootVolume.Status.AtProvider.VolumeID
+	if err := c.serverController.Update(ctx, server); err != nil {
+		return err
+	}
+
 	return c.nicController.EnsureNICs(ctx, cr, index, serverVersion)
 }
 

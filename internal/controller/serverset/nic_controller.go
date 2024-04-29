@@ -51,12 +51,13 @@ func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, 
 	// no NIC found, create one
 	createNic := fromServerSetToNic(cr, name, serverID, lanID, replicaIndex, nicIndex, version)
 	if err := k.kube.Create(ctx, &createNic); err != nil {
-		return v1alpha1.Nic{}, err
+		return v1alpha1.Nic{}, fmt.Errorf("while creating NIC %w ", err)
 	}
 
 	err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createNic.Name, cr.Namespace)
 	if err != nil {
-		return v1alpha1.Nic{}, err
+		_ = k.Delete(ctx, createNic.Name, cr.Namespace)
+		return v1alpha1.Nic{}, fmt.Errorf("while waiting for NIC to be populated %w ", err)
 	}
 	createdNic, err := k.Get(ctx, createNic.Name, cr.Namespace)
 	if err != nil {
@@ -75,6 +76,10 @@ func (k *kubeNicController) isAvailable(ctx context.Context, name, namespace str
 		}
 		return false, err
 	}
+	if !kube.IsSuccessfullyCreated(obj) {
+		return false, kube.ErrExternalCreateFailed
+	}
+
 	if obj != nil && obj.Status.AtProvider.NicID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
 		return true, nil
 	}
