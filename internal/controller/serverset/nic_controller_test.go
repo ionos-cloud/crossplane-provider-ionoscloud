@@ -61,7 +61,7 @@ func Test_kubeNicController_Create(t *testing.T) {
 			},
 			args: args{
 				ctx:          context.Background(),
-				cr:           createServerSetWithVNetAndIPV4(),
+				cr:           createServerSetWithVNet(),
 				serverID:     serverID,
 				lanName:      lanName,
 				replicaIndex: 1,
@@ -127,7 +127,7 @@ func Test_fromServerSetToNic(t *testing.T) {
 		{
 			name: "The fields are populated correctly",
 			args: args{
-				cr:       createServerSetWithVNetAndIPV4(),
+				cr:       createServerSetWithVNet(),
 				name:     nicName,
 				serverID: serverID,
 				lan:      *createLan(v1alpha1.LanParameters{}),
@@ -154,7 +154,7 @@ func Test_fromServerSetToNic(t *testing.T) {
 				Name:      nicName,
 				ServerCfg: v1alpha1.ServerConfig{ServerID: serverID},
 				LanCfg:    v1alpha1.LanConfig{LanID: lanID},
-				DhcpV6:    false,
+				DhcpV6:    ionoscloud.PtrBool(false),
 			}),
 		},
 		{
@@ -172,7 +172,7 @@ func Test_fromServerSetToNic(t *testing.T) {
 				Name:      nicName,
 				ServerCfg: v1alpha1.ServerConfig{ServerID: serverID},
 				LanCfg:    v1alpha1.LanConfig{LanID: lanID},
-				DhcpV6:    true,
+				DhcpV6:    ionoscloud.PtrBool(true),
 			}),
 		},
 		{
@@ -190,7 +190,7 @@ func Test_fromServerSetToNic(t *testing.T) {
 				Name:      nicName,
 				ServerCfg: v1alpha1.ServerConfig{ServerID: serverID},
 				LanCfg:    v1alpha1.LanConfig{LanID: lanID},
-				DhcpV6:    true,
+				DhcpV6:    ionoscloud.PtrBool(true),
 			}),
 		},
 	}
@@ -207,7 +207,7 @@ func Test_fromServerSetToNic(t *testing.T) {
 	}
 }
 
-func createServerSetWithVNetAndIPV4() *v1alpha1.ServerSet {
+func createServerSetWithVNet() *v1alpha1.ServerSet {
 	s := createBasicServerSet()
 	for nicIndex := range s.Spec.ForProvider.Template.Spec.NICs {
 		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].VNetID = vnetID
@@ -230,7 +230,7 @@ func createServerSetWithoutVNetAndIPV4() *v1alpha1.ServerSet {
 func createServerSetWithDhcpV6() *v1alpha1.ServerSet {
 	s := createBasicServerSet()
 	for nicIndex := range s.Spec.ForProvider.Template.Spec.NICs {
-		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].DHCPv6 = true
+		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].DHCPv6 = ionoscloud.PtrBool(true)
 		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].Reference = dataLAN
 	}
 	return s

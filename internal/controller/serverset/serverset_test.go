@@ -1675,7 +1675,7 @@ func createNic(params v1alpha1.NicParameters) *v1alpha1.Nic {
 	if params.Dhcp != false {
 		nic.Spec.ForProvider.Dhcp = params.Dhcp
 	}
-	if params.DhcpV6 != false {
+	if params.DhcpV6 != nil && *params.DhcpV6 != false {
 		nic.Spec.ForProvider.DhcpV6 = params.DhcpV6
 	}
 	if params.FirewallActive != false {
@@ -1709,7 +1709,7 @@ func createBasicNic() *v1alpha1.Nic {
 				Name:           "test-nic",
 				IpsCfg:         v1alpha1.IPsConfigs{},
 				Dhcp:           false,
-				DhcpV6:         false,
+				DhcpV6:         nil,
 				FirewallActive: false,
 				FirewallType:   "",
 				Vnet:           "",
