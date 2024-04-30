@@ -9,7 +9,6 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
-	"github.com/pkg/errors"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -47,9 +46,7 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 		return v1alpha1.Volume{}, err
 	}
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
-		if errors.Is(err, kube.ErrExternalCreateFailed) {
-			_ = k.Delete(ctx, createVolume.Name, cr.Namespace)
-		}
+		_ = k.Delete(ctx, createVolume.Name, cr.Namespace)
 		return v1alpha1.Volume{}, fmt.Errorf("while waiting for BootVolume to be populated %w ", err)
 	}
 	// get the volume again before returning to have the id populated
