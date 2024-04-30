@@ -4,7 +4,7 @@ metadata:
   name: psqlcreds2
   namespace: crossplane-system
 data:
-  credentials: eyJ1c2VybmFtZSI6InVzZXJmb3J0ZXN0aW5nMSIsInBhc3N3b3JkIjoicGFzc3dvcmQxMjM0NTU1MyJ9
+  credentials: eyJ1c2VybmFtZSI6InRlc3R1c2VyMTIzNDU2IiwicGFzc3dvcmQiOiJwYXNzd29yZDEyMzQ1NTUzIn0=
 ---
 # User 1
 apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
