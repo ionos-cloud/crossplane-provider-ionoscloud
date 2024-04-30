@@ -22,8 +22,7 @@ spec:
         name: psqlcreds2
         key: credentials
     clusterConfig:
-      ClusterIdRef:
-        name: example
+      ClusterId: 6fdc61f1-0b27-4c92-8598-b8909f11d2f4
   providerConfigRef:
     name: example
 ---
@@ -41,7 +40,6 @@ spec:
       username: testusernosecret
       password: cleartextpassword
     clusterConfig:
-      ClusterIdRef:
-        name: example
+      ClusterId: 6fdc61f1-0b27-4c92-8598-b8909f11d2f4
   providerConfigRef:
     name: example
