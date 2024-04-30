@@ -215,19 +215,7 @@ func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, 
 	return nil
 }
 
-// func GetNameAndPCISlotFromNIC(ctx context.Context, kube client.Client, name, namespace string) (int32, error) {
-// 	obj := &v1alpha1.Nic{}
-// 	err := kube.Get(ctx, types.NamespacedName{
-// 		Namespace: namespace,
-// 		Name:      name,
-// 	}, obj)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-// 	return obj.Status.AtProvider.PCISlot, nil
-// }
-
-func GetNameAndPCISlotFromNIC(ctx context.Context, kube client.Client, serversetName string, replicaIndex, nicIndex int) (name string, pciSlot int32, err error) {
+func getNameAndPCISlotFromNIC(ctx context.Context, kube client.Client, serversetName string, replicaIndex, nicIndex int) (name string, pciSlot int32, err error) {
 	obj := &v1alpha1.NicList{}
 	err = kube.List(ctx, obj, client.MatchingLabels{
 		fmt.Sprintf(indexLabel, serversetName, resourceNIC):    strconv.Itoa(replicaIndex),
@@ -239,5 +227,5 @@ func GetNameAndPCISlotFromNIC(ctx context.Context, kube client.Client, serverset
 	if len(obj.Items) > 0 {
 		return obj.Items[0].Spec.ForProvider.Name, obj.Items[0].Status.AtProvider.PCISlot, nil
 	}
-	return "", 0, fmt.Errorf("no nics found for serversetName %s and replicaIndex %s", serversetName, replicaIndex)
+	return "", 0, fmt.Errorf("no nics found for serversetName %s and replicaIndex %d", serversetName, replicaIndex)
 }

@@ -66,7 +66,10 @@ jump:
 	remainder := ones % 8
 
 	r := make([]byte, 4)
-	rand.Read(r)
+	_, err = rand.Read(r)
+	if err != nil {
+		return nil, fmt.Errorf("while reading %w", err)
+	}
 
 	for i := 0; i <= quotient; i++ {
 		if i == quotient {
