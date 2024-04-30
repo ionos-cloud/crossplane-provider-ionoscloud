@@ -64,7 +64,7 @@ spec:
       - metadata:
           name: customer
         spec:
-          ipv6cidr: ""
+          ipv6cidr: "AUTO"
           public: false
     # The volumes are then defined - a 200GB SSD "system" volume from a
     # custom Linux image, and a separate 4TB SSD volume for storage.

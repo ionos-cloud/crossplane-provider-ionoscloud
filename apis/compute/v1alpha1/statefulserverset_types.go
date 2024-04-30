@@ -133,14 +133,19 @@ type StatefulServerSetReplicaStatus struct {
 	LastModified metav1.Time `json:"lastModified,omitempty"`
 }
 
+type StatefulServerSetLanStatus struct {
+	LanStatus     `json:",inline"`
+	IPv6CIDRBlock string `json:"ipv6CidrBlock,omitempty"`
+}
+
 // StatefulServerSetObservation are the observable fields of a StatefulServerSet.
 type StatefulServerSetObservation struct {
 	xpv1.ResourceStatus `json:",inline"`
 	// Replicas is the count of ready replicas.
-	Replicas           int                      `json:"replicas,omitempty"`
-	ReplicaStatus      []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
-	DataVolumeStatuses []VolumeStatus           `json:"dataVolumeStatus,omitempty"`
-	LanStatuses        []LanStatus              `json:"lanStatus,omitempty"`
+	Replicas           int                          `json:"replicas,omitempty"`
+	ReplicaStatus      []ServerSetReplicaStatus     `json:"replicaStatus,omitempty"`
+	DataVolumeStatuses []VolumeStatus               `json:"dataVolumeStatus,omitempty"`
+	LanStatuses        []StatefulServerSetLanStatus `json:"lanStatus,omitempty"`
 }
 
 // A StatefulServerSetStatus represents the observed state of a StatefulServerSet.
