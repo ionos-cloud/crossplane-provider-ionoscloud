@@ -448,15 +448,15 @@ func eqClusterConnections(cr *v1alpha1.MongoCluster, observed ionoscloud.Cluster
 		return false
 	}
 
-	observedConnSet := map[struct{ dcId, lanId string }][]string{}
+	observedConnSet := map[struct{ cdID, lanID string }][]string{}
 	for _, observedConn := range *observed.Properties.Connections {
 		if observedConn.DatacenterId != nil && observedConn.LanId != nil && observedConn.CidrList != nil {
-			observedConnSet[struct{ dcId, lanId string }{*observedConn.DatacenterId, *observedConn.LanId}] = *observedConn.CidrList
+			observedConnSet[struct{ cdID, lanID string }{*observedConn.DatacenterId, *observedConn.LanId}] = *observedConn.CidrList
 		}
 	}
-	configuredConnSet := map[struct{ dcId, lanId string }][]string{}
+	configuredConnSet := map[struct{ cdID, lanID string }][]string{}
 	for _, configuredConn := range cr.Spec.ForProvider.Connections {
-		configuredConnSet[struct{ dcId, lanId string }{dcId: configuredConn.DatacenterCfg.DatacenterID, lanId: configuredConn.LanCfg.LanID}] = configuredConn.CidrList
+		configuredConnSet[struct{ cdID, lanID string }{cdID: configuredConn.DatacenterCfg.DatacenterID, lanID: configuredConn.LanCfg.LanID}] = configuredConn.CidrList
 	}
 
 	return maps.EqualFunc(configuredConnSet, observedConnSet, slices.Equal[[]string])
