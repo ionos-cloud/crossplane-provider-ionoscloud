@@ -81,6 +81,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* properties:
 				* `labels` (object)
 				* `name` (string)
+					* description: Name of the BootVolume. Replica index, volume index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}. Version increases if the bootvolume is
+re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
 					* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 			* required properties:
 				* `name`
@@ -126,6 +128,20 @@ operator is "In", and the values array contains only "value". The requirements a
 					* description: Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key.
 This field may only be set in creation requests. When reading, it always returns null.
 SSH keys are only supported if a public Linux image is used for the volume creation.
+				* `substitutions` (array)
+					* description: Substitutions are used to replace placeholders in the cloud-init configuration.
+The property is immutable and is only allowed to be set on creation of a new a volume.
+					* properties:
+						* `additionalProperties` (object)
+						* `key` (string)
+						* `type` (string)
+							* possible values: "ipv4Address";"ipv6Address"
+						* `unique` (boolean)
+					* required properties:
+						* `additionalProperties`
+						* `key`
+						* `type`
+						* `unique`
 				* `type` (string)
 					* description: Changing type re-creates either the bootvolume, or the bootvolume, server and nic depending on the UpdateStrategy chosen`
 					* possible values: "HDD";"SSD";"SSD Standard";"SSD Premium";"DAS";"ISO"
@@ -216,6 +232,7 @@ reference on every reconcile.
 			* properties:
 				* `labels` (object)
 				* `name` (string)
+					* description: Name from which the LAN name will be generated. Index will be appended. Resulting name will be in format: {name}-{replicaIndex}
 					* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 			* required properties:
 				* `name`
@@ -238,6 +255,8 @@ reference on every reconcile.
 			* properties:
 				* `labels` (object)
 				* `name` (string)
+					* description: Name of the Server. Replica index and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}
+Version increases if the Server is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the Server is re-created and the version is increased.
 					* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 			* required properties:
 				* `name`
@@ -257,6 +276,8 @@ available CPU architectures can be retrieved from the datacenter resource.
 						* `dhcp` (boolean)
 						* `ipv4` (string)
 						* `name` (string)
+							* description: Name of the NIC. Replica index, NIC index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{nicIndex}-{version}.
+Version increases if the NIC is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the NIC is re-created and the version is increased.
 							* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 						* `reference` (string)
 						* `vnetId` (string)
@@ -283,6 +304,7 @@ then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size 
 			* properties:
 				* `labels` (object)
 				* `name` (string)
+					* description: Name from which the Volume name will be generated. Replica index will be appended. Resulting name will be in format: {name}-{replicaIndex}-{version}
 					* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 			* required properties:
 				* `name`
@@ -292,7 +314,7 @@ then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size 
 				* `image` (string)
 					* description: The public image UUID or a public image alias.
 				* `size` (number)
-					* description: The size of the volume in GB.
+					* description: The size of the volume in GB. Disk size can only be increased.
 				* `type` (string)
 					* description: Hardware type of the volume. E.g: HDD;SSD;SSD Standard;SSD Premium
 					* possible values: "HDD";"SSD";"SSD Standard";"SSD Premium"
