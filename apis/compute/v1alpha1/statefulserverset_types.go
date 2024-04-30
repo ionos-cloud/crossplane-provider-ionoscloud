@@ -133,6 +133,7 @@ type StatefulServerSetReplicaStatus struct {
 	LastModified metav1.Time `json:"lastModified,omitempty"`
 }
 
+// StatefulServerSetLanStatus contains the status of a LAN.
 type StatefulServerSetLanStatus struct {
 	LanStatus     `json:",inline"`
 	IPv6CIDRBlock string `json:"ipv6CidrBlock,omitempty"`

@@ -809,6 +809,8 @@ spec:
                     type: array
                   lanStatus:
                     items:
+                      description: StatefulServerSetLanStatus contains the status
+                        of a LAN.
                       properties:
                         atProvider:
                           description: LanObservation are the observable fields of
