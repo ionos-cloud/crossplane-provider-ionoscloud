@@ -55,8 +55,8 @@ const (
 	serverCores     = 1
 	serverRAM       = 1024
 
-	volumeId1 = "volume-id-1"
-	volumeId2 = "volume-id-2"
+	volumeID1 = "volume-id-1"
+	volumeID2 = "volume-id-2"
 )
 
 var bootVolumeParameters = v1alpha1.VolumeParameters{
@@ -394,11 +394,22 @@ func createVolumeList() v1alpha1.VolumeList {
 	}
 }
 
+func createVolumeWithWrongIndexLabel() *v1alpha1.Volume {
+	volume := createVolumeWithStatus()
+	volume.Labels = map[string]string{
+		"wronglabel": "0",
+	}
+	return volume
+}
+
 func create2VolumesWithStatuses() []v1alpha1.Volume {
 	volume1 := createVolumeWithStatus()
 	volume2 := createVolumeWithStatus()
+	volume2.Labels = map[string]string{
+		fmt.Sprintf("ionoscloud.com/%s-datavolume-index", serverSetName): "1",
+	}
 	volume2.Status.AtProvider = v1alpha1.VolumeObservation{
-		VolumeID: volumeId2,
+		VolumeID: volumeID2,
 		State:    stateBusy,
 		PCISlot:  2,
 		Name:     dataVolume2Name,
@@ -409,10 +420,13 @@ func create2VolumesWithStatuses() []v1alpha1.Volume {
 
 func createVolumeWithStatus() *v1alpha1.Volume {
 	volume := createVolumeDefault()
+	volume.Labels = map[string]string{
+		fmt.Sprintf("ionoscloud.com/%s-datavolume-index", serverSetName): "0",
+	}
 	volume.Status = v1alpha1.VolumeStatus{
 		ResourceStatus: xpv1.ResourceStatus{},
 		AtProvider: v1alpha1.VolumeObservation{
-			VolumeID: volumeId1,
+			VolumeID: volumeID1,
 			State:    stateAvailable,
 			PCISlot:  1,
 			Name:     dataVolume1Name,

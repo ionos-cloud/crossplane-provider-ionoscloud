@@ -576,7 +576,7 @@ func Test_computeVolumeStatuses(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want []v1alpha1.VolumeStatus
+		want []v1alpha1.StatefulServerSetVolumeStatus
 	}{
 		{
 			name: "empty list",
@@ -590,46 +590,53 @@ func Test_computeVolumeStatuses(t *testing.T) {
 					*createVolumeWithStatus(),
 				},
 			},
-			want: []v1alpha1.VolumeStatus{
+			want: []v1alpha1.StatefulServerSetVolumeStatus{
 				{
-					ResourceStatus: cv1.ResourceStatus{},
-					AtProvider: v1alpha1.VolumeObservation{
-						VolumeID: volumeId1,
-						State:    stateAvailable,
-						PCISlot:  1,
-						Name:     dataVolume1Name,
-					},
+					VolumeID:   volumeID1,
+					State:      stateAvailable,
+					PCISlot:    1,
+					ReplicaIdx: 0,
+				},
+			},
+		},
+		{
+			name: "wrong volume index label",
+			args: args{
+				volumes: []v1alpha1.Volume{
+					*createVolumeWithWrongIndexLabel(),
+				},
+			},
+			want: []v1alpha1.StatefulServerSetVolumeStatus{
+				{
+					VolumeID:   volumeID1,
+					State:      stateAvailable,
+					PCISlot:    1,
+					ReplicaIdx: -1,
 				},
 			},
 		},
 		{
 			name: "status for multiple volumes",
 			args: args{volumes: create2VolumesWithStatuses()},
-			want: []v1alpha1.VolumeStatus{
+			want: []v1alpha1.StatefulServerSetVolumeStatus{
 				{
-					ResourceStatus: cv1.ResourceStatus{},
-					AtProvider: v1alpha1.VolumeObservation{
-						VolumeID: volumeId1,
-						State:    stateAvailable,
-						PCISlot:  1,
-						Name:     dataVolume1Name,
-					},
+					VolumeID:   volumeID1,
+					State:      stateAvailable,
+					PCISlot:    1,
+					ReplicaIdx: 0,
 				},
 				{
-					ResourceStatus: cv1.ResourceStatus{},
-					AtProvider: v1alpha1.VolumeObservation{
-						VolumeID: volumeId2,
-						State:    stateBusy,
-						PCISlot:  2,
-						Name:     dataVolume2Name,
-					},
+					VolumeID:   volumeID2,
+					State:      stateBusy,
+					PCISlot:    2,
+					ReplicaIdx: 1,
 				},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := computeVolumeStatuses(tt.args.volumes)
+			got := computeVolumeStatuses(serverSetName, tt.args.volumes)
 			assert.Equal(t, tt.want, got)
 		})
 	}

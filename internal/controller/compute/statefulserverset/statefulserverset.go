@@ -33,6 +33,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/serverset"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/volumeselector"
 )
 
 const (
@@ -148,7 +149,7 @@ func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha
 		return false, false, fmt.Errorf("while listing volumes %w", err)
 	}
 	creationVolumesUpToDate, areVolumesUpToDate := areDataVolumesUpToDate(cr, volumes.Items)
-	cr.Status.AtProvider.DataVolumeStatuses = computeVolumeStatuses(volumes.Items)
+	cr.Status.AtProvider.DataVolumeStatuses = computeVolumeStatuses(cr.Name, volumes.Items)
 
 	// ******************* SERVERSET *******************
 	creationServerSetUpToDate, isServerSetUpToDate, err := e.isServerSetUpToDate(ctx, cr)
@@ -188,7 +189,7 @@ func (e *external) setSSetStatusOnCR(ctx context.Context, cr *v1alpha1.StatefulS
 		}
 	}
 	if sSet != nil {
-		cr.Status.AtProvider.ReplicaStatus = sSet.Status.AtProvider.ReplicaStatuses
+		cr.Status.AtProvider.ReplicaStatuses = sSet.Status.AtProvider.ReplicaStatuses
 		cr.Status.AtProvider.Replicas = sSet.Status.AtProvider.Replicas
 	}
 	return nil
@@ -430,15 +431,28 @@ func areNICsUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.State
 	return true, nil
 }
 
-func computeVolumeStatuses(volumes []v1alpha1.Volume) []v1alpha1.VolumeStatus {
+func computeVolumeStatuses(crName string, volumes []v1alpha1.Volume) []v1alpha1.StatefulServerSetVolumeStatus {
 	if len(volumes) == 0 {
 		return nil
 	}
-	status := make([]v1alpha1.VolumeStatus, len(volumes))
+	status := make([]v1alpha1.StatefulServerSetVolumeStatus, len(volumes))
 	for idx := range volumes {
-		status[idx] = volumes[idx].Status
+		status[idx].VolumeID = volumes[idx].Status.AtProvider.VolumeID
+		status[idx].State = volumes[idx].Status.AtProvider.State
+		status[idx].PCISlot = volumes[idx].Status.AtProvider.PCISlot
+		status[idx].ReplicaIdx = computeReplicaIdx(crName, volumes[idx])
 	}
 	return status
+}
+
+func computeReplicaIdx(crName string, volume v1alpha1.Volume) int32 {
+	idxLabel := fmt.Sprintf(volumeselector.IndexLabel, crName, volumeselector.ResourceDataVolume)
+	idxLabelValue := volume.Labels[idxLabel]
+	var replicaIdx int32
+	if _, err := fmt.Sscan(idxLabelValue, &replicaIdx); err != nil {
+		return -1
+	}
+	return replicaIdx
 }
 
 func computeLanStatuses(lans []v1alpha1.Lan) []v1alpha1.StatefulServerSetLanStatus {

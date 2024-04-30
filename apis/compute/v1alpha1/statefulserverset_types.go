@@ -133,6 +133,14 @@ type StatefulServerSetReplicaStatus struct {
 	LastModified metav1.Time `json:"lastModified,omitempty"`
 }
 
+// StatefulServerSetVolumeStatus contains the status of a Volume.
+type StatefulServerSetVolumeStatus struct {
+	VolumeID   string `json:"volumeId"`
+	State      string `json:"state,omitempty"`
+	PCISlot    int32  `json:"pciSlot,omitempty"`
+	ReplicaIdx int32  `json:"replicaIdx,omitempty"`
+}
+
 // StatefulServerSetLanStatus contains the status of a LAN.
 type StatefulServerSetLanStatus struct {
 	LanStatus     `json:",inline"`
@@ -143,10 +151,10 @@ type StatefulServerSetLanStatus struct {
 type StatefulServerSetObservation struct {
 	xpv1.ResourceStatus `json:",inline"`
 	// Replicas is the count of ready replicas.
-	Replicas           int                          `json:"replicas,omitempty"`
-	ReplicaStatus      []ServerSetReplicaStatus     `json:"replicaStatus,omitempty"`
-	DataVolumeStatuses []VolumeStatus               `json:"dataVolumeStatus,omitempty"`
-	LanStatuses        []StatefulServerSetLanStatus `json:"lanStatus,omitempty"`
+	Replicas           int                             `json:"replicas,omitempty"`
+	ReplicaStatuses    []ServerSetReplicaStatus        `json:"replicaStatuses,omitempty"`
+	DataVolumeStatuses []StatefulServerSetVolumeStatus `json:"dataVolumeStatuses,omitempty"`
+	LanStatuses        []StatefulServerSetLanStatus    `json:"lanStatuses,omitempty"`
 }
 
 // A StatefulServerSetStatus represents the observed state of a StatefulServerSet.
