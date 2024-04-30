@@ -15,21 +15,3 @@ spec:
   syncPolicy:
     automated:
       selfHeal: true
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: crossplane-postgres-cluster
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/ionos-cloud/crossplane-provider-ionoscloud.git
-    path: examples/argo-cd/pgsql-cluster
-    targetRevision: feat/argocd
-  destination:
-    server: https://kubernetes.default.svc
-  syncPolicy:
-    automated:
-      selfHeal: true
