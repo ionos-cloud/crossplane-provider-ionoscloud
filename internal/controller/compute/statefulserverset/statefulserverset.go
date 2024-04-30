@@ -140,7 +140,7 @@ func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha
 		return false, false, fmt.Errorf("while listing lans %w", err)
 	}
 	creationLansUpToDate, areLansUpToDate := areLansUpToDate(cr, lans.Items)
-	cr.Status.AtProvider.LanStatuses = setLanStatuses(lans.Items)
+	cr.Status.AtProvider.LanStatuses = computeLanStatuses(lans.Items)
 
 	// ******************* VOLUMES *******************
 	volumes, err := e.dataVolumeController.ListVolumes(ctx, cr)
@@ -345,7 +345,7 @@ func isALanFieldNotUpToDate(specLan v1alpha1.StatefulServerSetLan, gotLan v1alph
 	if gotLan.Spec.ForProvider.Public != specLan.Spec.Public {
 		return true
 	}
-	if specLan.Spec.IPv6cidr != "AUTO" && gotLan.Spec.ForProvider.Ipv6Cidr != specLan.Spec.IPv6cidr {
+	if specLan.Spec.IPv6cidr != v1alpha1.LANAuto && gotLan.Spec.ForProvider.Ipv6Cidr != specLan.Spec.IPv6cidr {
 		return true
 	}
 	return false
@@ -441,13 +441,14 @@ func setVolumeStatuses(volumes []v1alpha1.Volume) []v1alpha1.VolumeStatus {
 	return status
 }
 
-func setLanStatuses(lans []v1alpha1.Lan) []v1alpha1.LanStatus {
+func computeLanStatuses(lans []v1alpha1.Lan) []v1alpha1.StatefulServerSetLanStatus {
 	if len(lans) == 0 {
 		return nil
 	}
-	status := make([]v1alpha1.LanStatus, len(lans))
+	status := make([]v1alpha1.StatefulServerSetLanStatus, len(lans))
 	for idx := range lans {
-		status[idx] = lans[idx].Status
+		status[idx].LanStatus = lans[idx].Status
+		status[idx].IPv6CIDRBlock = lans[idx].Spec.ForProvider.Ipv6Cidr
 	}
 	return status
 }

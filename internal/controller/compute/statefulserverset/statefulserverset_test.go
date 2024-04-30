@@ -486,3 +486,85 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 		})
 	}
 }
+
+func Test_computeLanStatuses(t *testing.T) {
+	type args struct {
+		lans []v1alpha1.Lan
+	}
+	tests := []struct {
+		name string
+		args args
+		want []v1alpha1.StatefulServerSetLanStatus
+	}{
+		{
+			name: "IPv6CIDRBlock empty",
+			args: args{
+				lans: []v1alpha1.Lan{
+					{
+						Status: v1alpha1.LanStatus{
+							AtProvider: v1alpha1.LanObservation{
+								IPFailovers: nil,
+								LanID:       "1",
+								State:       "AVAILABLE",
+								Name:        "management",
+							},
+						},
+					},
+				},
+			},
+			want: []v1alpha1.StatefulServerSetLanStatus{
+				{
+					LanStatus: v1alpha1.LanStatus{
+						AtProvider: v1alpha1.LanObservation{
+							IPFailovers: nil,
+							LanID:       "1",
+							State:       "AVAILABLE",
+							Name:        "management",
+						},
+					},
+					IPv6CIDRBlock: "",
+				},
+			},
+		},
+		{
+			name: "IPv6CIDRBlock present",
+			args: args{
+				lans: []v1alpha1.Lan{
+					{
+						Spec: v1alpha1.LanSpec{
+							ForProvider: v1alpha1.LanParameters{
+								Ipv6Cidr: "2607:b500:201:cb01::/64"},
+						},
+						Status: v1alpha1.LanStatus{
+							AtProvider: v1alpha1.LanObservation{
+								IPFailovers: nil,
+								LanID:       "1",
+								State:       "AVAILABLE",
+								Name:        "management",
+							},
+						},
+					},
+				},
+			},
+			want: []v1alpha1.StatefulServerSetLanStatus{
+				{
+					LanStatus: v1alpha1.LanStatus{
+						AtProvider: v1alpha1.LanObservation{
+							IPFailovers: nil,
+							LanID:       "1",
+							State:       "AVAILABLE",
+							Name:        "management",
+						},
+					},
+					IPv6CIDRBlock: "2607:b500:201:cb01::/64",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := computeLanStatuses(tt.args.lans)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

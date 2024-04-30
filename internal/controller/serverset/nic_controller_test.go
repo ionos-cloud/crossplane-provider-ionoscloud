@@ -8,8 +8,8 @@ import (
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/google/go-cmp/cmp"
-
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 
@@ -18,16 +18,18 @@ import (
 )
 
 const (
-	ip                        = "10.0.0.2/24"
-	vnetID                    = "679070ab-1ebc-46ef-b9f7-c43c1ed9f6e9"
-	serverSetNicIndexLabel    = "ionoscloud.com/serverset-nic-index"
-	serverSetNicVersionLabel  = "ionoscloud.com/serverset-nic-version"
-	nicWithVNetAndIPV4Name    = "nic1-1-0-0"
-	nicWithoutVNetAndIPV4Name = "nic2-1-0-0"
-	nicID                     = "bc59d87e-17cc-4313-b55b-6603884f9d97"
-	serverID                  = "07a7e712-fc36-43ca-bc8f-76c05861ff8b"
-	lanName                   = "lan1"
-	lanID                     = "1"
+	vnetID                   = "679070ab-1ebc-46ef-b9f7-c43c1ed9f6e9"
+	serverSetNicIndexLabel   = "ionoscloud.com/serverset-nic-index"
+	serverSetNicVersionLabel = "ionoscloud.com/serverset-nic-version"
+	nicName                  = "nic-0-0-0"
+	nicWithVNetName          = "nic1-1-0-0"
+	nicWithoutVNetName       = "nic2-1-0-0"
+	nicID                    = "bc59d87e-17cc-4313-b55b-6603884f9d97"
+	serverID                 = "07a7e712-fc36-43ca-bc8f-76c05861ff8b"
+	lanName                  = "lan1"
+	lanID                    = "1"
+	dataLAN                  = "data"
+	dataLANIpv6CIDR          = "fd00:0:0:1::/64"
 )
 
 func Test_kubeNicController_Create(t *testing.T) {
@@ -59,20 +61,20 @@ func Test_kubeNicController_Create(t *testing.T) {
 			},
 			args: args{
 				ctx:          context.Background(),
-				cr:           createServerSetWithVNetAndIPV4(),
+				cr:           createServerSetWithVNet(),
 				serverID:     serverID,
 				lanName:      lanName,
 				replicaIndex: 1,
 				nicIndex:     0,
 				version:      0,
 			},
-			want:    *createWantedNicWithVNetAndIPV4(),
+			want:    *createWantedNicWithVNet(),
 			wantErr: false,
 		},
 		{
 			name: "The fields vnet and ipv4 are optional",
 			fields: fields{
-				kube: fakeKubeClientFuncs(interceptor.Funcs{Create: createWithoutVNetAndIPV4ReturnsErrorForUnexpectedNICs, Get: getPopulatesFieldsAndReturnsNoError}),
+				kube: fakeKubeClientFuncs(interceptor.Funcs{Create: createWithoutVNetReturnsErrorForUnexpectedNICs, Get: getPopulatesFieldsAndReturnsNoError}),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
@@ -84,7 +86,7 @@ func Test_kubeNicController_Create(t *testing.T) {
 				nicIndex:     0,
 				version:      0,
 			},
-			want:    *createWantedNicWithoutVNetAndIPV4(),
+			want:    *createWantedNicWithoutVNet(),
 			wantErr: false,
 		},
 	}
@@ -106,7 +108,106 @@ func Test_kubeNicController_Create(t *testing.T) {
 	}
 }
 
-func createServerSetWithVNetAndIPV4() *v1alpha1.ServerSet {
+func Test_fromServerSetToNic(t *testing.T) {
+	type args struct {
+		cr           *v1alpha1.ServerSet
+		name         string
+		serverID     string
+		lan          v1alpha1.Lan
+		replicaIndex int
+		nicIndex     int
+		version      int
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want v1alpha1.Nic
+	}{
+		{
+			name: "The fields are populated correctly",
+			args: args{
+				cr:       createServerSetWithVNet(),
+				name:     nicName,
+				serverID: serverID,
+				lan:      *createLan(v1alpha1.LanParameters{}),
+			},
+			want: *createNic(v1alpha1.NicParameters{
+				Name:      nicName,
+				ServerCfg: v1alpha1.ServerConfig{ServerID: serverID},
+				LanCfg:    v1alpha1.LanConfig{LanID: lanID},
+				Vnet:      vnetID,
+			}),
+		},
+		{
+			name: "DhcpV6 not set if Ipv6Cidr not set on LAN",
+			args: args{
+				cr:       createServerSetWithDhcpV6(),
+				name:     nicName,
+				serverID: serverID,
+				lan: *createLan(v1alpha1.LanParameters{
+					Name:     dataLAN,
+					Ipv6Cidr: "",
+				}),
+			},
+			want: *createNic(v1alpha1.NicParameters{
+				Name:      nicName,
+				ServerCfg: v1alpha1.ServerConfig{ServerID: serverID},
+				LanCfg:    v1alpha1.LanConfig{LanID: lanID},
+				DhcpV6:    ionoscloud.PtrBool(false),
+			}),
+		},
+		{
+			name: "DhcpV6 set if Ipv6Cidr (AUTO) set on LAN",
+			args: args{
+				cr:       createServerSetWithDhcpV6(),
+				name:     nicName,
+				serverID: serverID,
+				lan: *createLan(v1alpha1.LanParameters{
+					Name:     dataLAN,
+					Ipv6Cidr: v1alpha1.LANAuto,
+				}),
+			},
+			want: *createNic(v1alpha1.NicParameters{
+				Name:      nicName,
+				ServerCfg: v1alpha1.ServerConfig{ServerID: serverID},
+				LanCfg:    v1alpha1.LanConfig{LanID: lanID},
+				DhcpV6:    ionoscloud.PtrBool(true),
+			}),
+		},
+		{
+			name: "DhcpV6 set if Ipv6Cidr (IPV6 CIDR block) set on LAN",
+			args: args{
+				cr:       createServerSetWithDhcpV6(),
+				name:     nicName,
+				serverID: serverID,
+				lan: *createLan(v1alpha1.LanParameters{
+					Name:     dataLAN,
+					Ipv6Cidr: dataLANIpv6CIDR,
+				}),
+			},
+			want: *createNic(v1alpha1.NicParameters{
+				Name:      nicName,
+				ServerCfg: v1alpha1.ServerConfig{ServerID: serverID},
+				LanCfg:    v1alpha1.LanConfig{LanID: lanID},
+				DhcpV6:    ionoscloud.PtrBool(true),
+			}),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			k := kubeNicController{
+				log:  logging.NewNopLogger(),
+				kube: fakeKubeClientObjs(),
+			}
+
+			got := k.fromServerSetToNic(tt.args.cr, tt.args.name, tt.args.serverID, tt.args.lan, tt.args.replicaIndex, tt.args.nicIndex, tt.args.version)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func createServerSetWithVNet() *v1alpha1.ServerSet {
 	s := createBasicServerSet()
 	for nicIndex := range s.Spec.ForProvider.Template.Spec.NICs {
 		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].VNetID = vnetID
@@ -119,9 +220,18 @@ func createServerSetWithoutVNetAndIPV4() *v1alpha1.ServerSet {
 	s.Spec.ForProvider.Template.Spec.NICs = []v1alpha1.ServerSetTemplateNIC{
 		{
 			Name:      "nic2",
-			DHCP:      true,
+			DHCP:      false,
 			Reference: "data",
 		},
+	}
+	return s
+}
+
+func createServerSetWithDhcpV6() *v1alpha1.ServerSet {
+	s := createBasicServerSet()
+	for nicIndex := range s.Spec.ForProvider.Template.Spec.NICs {
+		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].DHCPv6 = ionoscloud.PtrBool(true)
+		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].Reference = dataLAN
 	}
 	return s
 }
@@ -136,12 +246,7 @@ func populateBasicNicMetadataAndSpec(nic *v1alpha1.Nic, nicName string) {
 	nic.Spec.ForProvider.Name = nicName
 	nic.Spec.ForProvider.ServerCfg.ServerID = serverID
 	nic.Spec.ForProvider.LanCfg.LanID = lanID
-	nic.Spec.ForProvider.Dhcp = true
-}
-
-func populateVNetAndIPV4(nic *v1alpha1.Nic) {
-	nic.Spec.ForProvider.Vnet = vnetID
-	nic.Spec.ForProvider.IpsCfg.IPs = []string{ip}
+	nic.Spec.ForProvider.Dhcp = false
 }
 
 func makeNicAvailable(nic *v1alpha1.Nic) {
@@ -149,34 +254,34 @@ func makeNicAvailable(nic *v1alpha1.Nic) {
 	nic.Status.AtProvider.State = ionoscloud.Available
 }
 
-func createWantedNicWithVNetAndIPV4() *v1alpha1.Nic {
+func createWantedNicWithVNet() *v1alpha1.Nic {
 	nic := &v1alpha1.Nic{}
-	populateBasicNicMetadataAndSpec(nic, nicWithVNetAndIPV4Name)
-	populateVNetAndIPV4(nic)
+	populateBasicNicMetadataAndSpec(nic, nicWithVNetName)
+	nic.Spec.ForProvider.Vnet = vnetID
 	makeNicAvailable(nic)
 	return nic
 }
 
-func createWantedNicWithoutVNetAndIPV4() *v1alpha1.Nic {
+func createWantedNicWithoutVNet() *v1alpha1.Nic {
 	nic := &v1alpha1.Nic{}
-	populateBasicNicMetadataAndSpec(nic, nicWithoutVNetAndIPV4Name)
+	populateBasicNicMetadataAndSpec(nic, nicWithoutVNetName)
 	makeNicAvailable(nic)
 	return nic
 }
 
 func createWithVNetAndIPV4ReturnsErrorForUnexpectedNICs(_ context.Context, _ client.WithWatch, obj client.Object, _ ...client.CreateOption) error {
 	expectedNic := &v1alpha1.Nic{}
-	populateBasicNicMetadataAndSpec(expectedNic, nicWithVNetAndIPV4Name)
-	populateVNetAndIPV4(expectedNic)
+	populateBasicNicMetadataAndSpec(expectedNic, nicWithVNetName)
+	expectedNic.Spec.ForProvider.Vnet = vnetID
 	if diff := cmp.Diff(obj.(*v1alpha1.Nic), expectedNic); diff != "" {
 		return fmt.Errorf("create was called with an unexpected NIC.\n Expected %#v.\n Got %#v", expectedNic, obj.(*v1alpha1.Nic))
 	}
 	return nil
 }
 
-func createWithoutVNetAndIPV4ReturnsErrorForUnexpectedNICs(_ context.Context, _ client.WithWatch, obj client.Object, _ ...client.CreateOption) error {
+func createWithoutVNetReturnsErrorForUnexpectedNICs(_ context.Context, _ client.WithWatch, obj client.Object, _ ...client.CreateOption) error {
 	expectedNic := &v1alpha1.Nic{}
-	populateBasicNicMetadataAndSpec(expectedNic, nicWithoutVNetAndIPV4Name)
+	populateBasicNicMetadataAndSpec(expectedNic, nicWithoutVNetName)
 	if diff := cmp.Diff(obj.(*v1alpha1.Nic), expectedNic); diff != "" {
 		return fmt.Errorf("create was called with an unexpected NIC.\n Expected %#v \n Got %#v", expectedNic, obj.(*v1alpha1.Nic))
 	}
@@ -188,15 +293,52 @@ func getPopulatesFieldsAndReturnsNoError(_ context.Context, _ client.WithWatch, 
 	case lanName:
 		lan := obj.(*v1alpha1.Lan)
 		lan.Status.AtProvider.LanID = lanID
-	case nicWithVNetAndIPV4Name:
+	case nicWithVNetName:
 		nic := obj.(*v1alpha1.Nic)
-		populateBasicNicMetadataAndSpec(nic, nicWithVNetAndIPV4Name)
-		populateVNetAndIPV4(nic)
+		populateBasicNicMetadataAndSpec(nic, nicWithVNetName)
+		nic.Spec.ForProvider.Vnet = vnetID
 		makeNicAvailable(nic)
-	case nicWithoutVNetAndIPV4Name:
+	case nicWithoutVNetName:
 		nic := obj.(*v1alpha1.Nic)
-		populateBasicNicMetadataAndSpec(nic, nicWithoutVNetAndIPV4Name)
+		populateBasicNicMetadataAndSpec(nic, nicWithoutVNetName)
 		makeNicAvailable(nic)
 	}
 	return nil
+}
+
+func createLan(params v1alpha1.LanParameters) *v1alpha1.Lan {
+	lan := &v1alpha1.Lan{
+		Status: v1alpha1.LanStatus{
+			AtProvider: v1alpha1.LanObservation{
+				LanID: lanID,
+			},
+		},
+		Spec: v1alpha1.LanSpec{
+			ForProvider: v1alpha1.LanParameters{
+				DatacenterCfg: v1alpha1.DatacenterConfig{},
+				Name:          "test-lan",
+				Pcc:           v1alpha1.PccConfig{},
+				Public:        false,
+				Ipv6Cidr:      "",
+			},
+		},
+	}
+
+	if params.DatacenterCfg != (v1alpha1.DatacenterConfig{}) {
+		lan.Spec.ForProvider.DatacenterCfg = params.DatacenterCfg
+	}
+	if params.Name != "" {
+		lan.Spec.ForProvider.Name = params.Name
+	}
+	if params.Pcc != (v1alpha1.PccConfig{}) {
+		lan.Spec.ForProvider.Pcc = params.Pcc
+	}
+	if params.Public != false {
+		lan.Spec.ForProvider.Public = params.Public
+	}
+	if params.Ipv6Cidr != "" {
+		lan.Spec.ForProvider.Ipv6Cidr = params.Ipv6Cidr
+	}
+
+	return lan
 }

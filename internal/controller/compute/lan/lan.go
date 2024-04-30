@@ -149,8 +149,8 @@ func lateInitializer(in *v1alpha1.LanParameters, lan *sdkgo.Lan) { // nolint:goc
 	}
 	// Add Properties to the Spec, if they were set by the API
 	if lan.Properties != nil {
-		if lan.Properties.Ipv6CidrBlock != nil && in.Ipv6Cidr == "AUTO" {
-			if in.Ipv6Cidr == "" || in.Ipv6Cidr == "AUTO" {
+		if lan.Properties.Ipv6CidrBlock != nil && in.Ipv6Cidr == v1alpha1.LANAuto {
+			if in.Ipv6Cidr == "" || in.Ipv6Cidr == v1alpha1.LANAuto {
 				in.Ipv6Cidr = *lan.Properties.Ipv6CidrBlock
 			}
 		}

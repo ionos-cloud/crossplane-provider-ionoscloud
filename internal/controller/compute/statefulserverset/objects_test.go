@@ -18,7 +18,7 @@ const (
 	bootVolumeType  = "SSD"
 
 	customerLanName         = "customer"
-	customerLanIPv6cidrAuto = "AUTO"
+	customerLanIPv6cidrAuto = v1alpha1.LANAuto
 	customerLanIPv6cidr1    = "1000:db8::/64"
 	customerLanIPv6cidr2    = "2000:db8::/64"
 	customerLanPublic       = true
@@ -39,7 +39,6 @@ const (
 	managementLanPublic = false
 
 	nicName = "nic-1"
-	nicIPv4 = "10.0.0.1/24"
 	nicLAN  = "examplelan"
 
 	serverSetName         = "serverset"
@@ -207,7 +206,6 @@ func createSSetTemplate() v1alpha1.ServerSetTemplate {
 			NICs: []v1alpha1.ServerSetTemplateNIC{
 				{
 					Name:      nicName,
-					IPv4:      nicIPv4,
 					DHCP:      true,
 					Reference: nicLAN,
 				},
@@ -300,10 +298,10 @@ func updateFieldIpv6Cidr(l LANFieldsUpToDate, lans v1alpha1.LanList, idx int) {
 }
 
 func findOtherIpv6Cidr(actual string) string {
-	if actual == "AUTO" {
+	if actual == v1alpha1.LANAuto {
 		return ""
 	}
-	return "AUTO"
+	return v1alpha1.LANAuto
 }
 
 func findOtherPublic(actual bool) bool {

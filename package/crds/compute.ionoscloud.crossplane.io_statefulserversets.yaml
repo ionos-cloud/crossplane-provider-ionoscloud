@@ -422,8 +422,8 @@ spec:
                               properties:
                                 dhcp:
                                   type: boolean
-                                ipv4:
-                                  type: string
+                                dhcpv6:
+                                  type: boolean
                                 name:
                                   description: |-
                                     Name of the NIC. Replica index, NIC index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{nicIndex}-{version}.
@@ -440,6 +440,11 @@ spec:
                               - name
                               - reference
                               type: object
+                              x-kubernetes-validations:
+                              - message: Only one of 'dhcp' or 'dhcpv6' can be set
+                                  to true
+                                rule: '!has(self.dhcpv6) || (self.dhcp == false &&
+                                  self.dhcpv6 == false) || (self.dhcp != self.dhcpv6)'
                             minItems: 1
                             type: array
                             x-kubernetes-validations:
@@ -804,8 +809,8 @@ spec:
                     type: array
                   lanStatus:
                     items:
-                      description: A LanStatus represents the observed state of a
-                        Lan.
+                      description: StatefulServerSetLanStatus contains the status
+                        of a LAN.
                       properties:
                         atProvider:
                           description: LanObservation are the observable fields of
@@ -863,6 +868,8 @@ spec:
                           x-kubernetes-list-map-keys:
                           - type
                           x-kubernetes-list-type: map
+                        ipv6CidrBlock:
+                          type: string
                       type: object
                     type: array
                   replicaStatus:

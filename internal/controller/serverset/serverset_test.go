@@ -139,8 +139,8 @@ func Test_serverSetController_Observe(t *testing.T) {
 
 	server1 := createServer(server1Name)
 	server2 := createServer(server2Name)
-	nic1 := createNic(server1Name)
-	nic2 := createNic(server2Name)
+	nic1 := createNic(v1alpha1.NicParameters{Name: server1Name})
+	nic2 := createNic(v1alpha1.NicParameters{Name: server2Name})
 	bootVolume1 := createBootVolume(bootVolumeNamePrefix + server1Name)
 	bootVolume2 := createBootVolume(bootVolumeNamePrefix + server2Name)
 
@@ -389,8 +389,8 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 	serverWithUnknownStatus := createServer("serverset-server-1-0")
 	serverWithUnknownStatus.Status.AtProvider.State = "new-state"
 
-	nic1 := createNic(server1.Name)
-	nic2 := createNic(server2.Name)
+	nic1 := createNic(v1alpha1.NicParameters{Name: server1.Name})
+	nic2 := createNic(v1alpha1.NicParameters{Name: server2.Name})
 
 	tests := []struct {
 		name    string
@@ -1353,7 +1353,9 @@ func fakeKubeClientUpdateMethodReturnsError() client.Client {
 		Client: fakeKubeClientObjs(
 			createServer("server1"), createServer("server2"),
 			createBootVolume("boot-volume-server1"), createBootVolume("boot-volume-server2"),
-			createNic("nic-server1"), createNic("nic-server2")),
+			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
+			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
+		),
 	}
 	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(errAnErrorWasReceived)
 	return &kubeClient
@@ -1364,7 +1366,9 @@ func fakeKubeClientUpdateMethod(expectedObj client.Object) client.Client {
 		Client: fakeKubeClientObjs(
 			createServer("server1"), createServer("server2"),
 			createBootVolume("boot-volume-server1"), createBootVolume("boot-volume-server2"),
-			createNic("nic-server1"), createNic("nic-server2")),
+			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
+			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
+		),
 	}
 	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		arg1 := args.Get(1)
@@ -1402,7 +1406,8 @@ func kubeClientWithObjsForBootVolume() client.WithWatch {
 	bootVolume2 := createBootVolumeWithIndexLabels("boot-volume-server2", 1)
 
 	return fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2,
-		createNic("nic-server1"), createNic("nic-server2"))
+		createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
+		createNic(v1alpha1.NicParameters{Name: "nic-server2"}))
 }
 
 func computeIndexLabel(resourceType string) string {
@@ -1666,12 +1671,66 @@ func createServer(name string) *v1alpha1.Server {
 	}
 }
 
-func createNic(name string) *v1alpha1.Nic {
+func createNic(params v1alpha1.NicParameters) *v1alpha1.Nic {
+	nic := createBasicNic()
+
+	if params.Name != "" {
+		nic.ObjectMeta.Name = params.Name
+		nic.Spec.ForProvider.Name = params.Name
+	}
+	if params.DatacenterCfg != (v1alpha1.DatacenterConfig{}) {
+		nic.Spec.ForProvider.DatacenterCfg = params.DatacenterCfg
+	}
+	if params.ServerCfg != (v1alpha1.ServerConfig{}) {
+		nic.Spec.ForProvider.ServerCfg = params.ServerCfg
+	}
+	if params.LanCfg != (v1alpha1.LanConfig{}) {
+		nic.Spec.ForProvider.LanCfg = params.LanCfg
+	}
+	if !reflect.DeepEqual(params.IpsCfg, v1alpha1.IPsConfigs{}) {
+		nic.Spec.ForProvider.IpsCfg = params.IpsCfg
+	}
+	if params.Dhcp != false {
+		nic.Spec.ForProvider.Dhcp = params.Dhcp
+	}
+	if params.DhcpV6 != nil && *params.DhcpV6 != false {
+		nic.Spec.ForProvider.DhcpV6 = params.DhcpV6
+	}
+	if params.FirewallActive != false {
+		nic.Spec.ForProvider.FirewallActive = params.FirewallActive
+	}
+	if params.FirewallType != "" {
+		nic.Spec.ForProvider.FirewallType = params.FirewallType
+	}
+	if params.Vnet != "" {
+		nic.Spec.ForProvider.Vnet = params.Vnet
+	}
+
+	return nic
+}
+
+func createBasicNic() *v1alpha1.Nic {
 	return &v1alpha1.Nic{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name: "test-nic",
 			Labels: map[string]string{
-				serverSetLabel: serverSetName,
+				serverSetLabel:           serverSetName,
+				serverSetNicIndexLabel:   "0",
+				serverSetNicVersionLabel: "0",
+			},
+		},
+		Spec: v1alpha1.NicSpec{
+			ForProvider: v1alpha1.NicParameters{
+				DatacenterCfg:  v1alpha1.DatacenterConfig{},
+				ServerCfg:      v1alpha1.ServerConfig{},
+				LanCfg:         v1alpha1.LanConfig{},
+				Name:           "test-nic",
+				IpsCfg:         v1alpha1.IPsConfigs{},
+				Dhcp:           false,
+				DhcpV6:         nil,
+				FirewallActive: false,
+				FirewallType:   "",
+				Vnet:           "",
 			},
 		},
 	}
@@ -1738,9 +1797,8 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 						NICs: []v1alpha1.ServerSetTemplateNIC{
 							{
 								Name:      "nic1",
-								IPv4:      "10.0.0.2/24",
-								DHCP:      true,
-								Reference: "data",
+								DHCP:      false,
+								Reference: "user",
 							},
 						},
 					},
@@ -1831,7 +1889,6 @@ func createServerSetWithNrOfNICsUpdated() *v1alpha1.ServerSet {
 	sset.Spec.ForProvider.Template.Spec.NICs = append(
 		sset.Spec.ForProvider.Template.Spec.NICs, v1alpha1.ServerSetTemplateNIC{
 			Name:      "nic2",
-			IPv4:      "10.0.0.3/24",
 			DHCP:      true,
 			Reference: "management",
 		})
