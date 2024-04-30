@@ -148,7 +148,7 @@ func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha
 		return false, false, fmt.Errorf("while listing volumes %w", err)
 	}
 	creationVolumesUpToDate, areVolumesUpToDate := areDataVolumesUpToDate(cr, volumes.Items)
-	cr.Status.AtProvider.DataVolumeStatuses = setVolumeStatuses(volumes.Items)
+	cr.Status.AtProvider.DataVolumeStatuses = computeVolumeStatuses(volumes.Items)
 
 	// ******************* SERVERSET *******************
 	creationServerSetUpToDate, isServerSetUpToDate, err := e.isServerSetUpToDate(ctx, cr)
@@ -430,7 +430,7 @@ func areNICsUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.State
 	return true, nil
 }
 
-func setVolumeStatuses(volumes []v1alpha1.Volume) []v1alpha1.VolumeStatus {
+func computeVolumeStatuses(volumes []v1alpha1.Volume) []v1alpha1.VolumeStatus {
 	if len(volumes) == 0 {
 		return nil
 	}

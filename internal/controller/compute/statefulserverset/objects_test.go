@@ -47,11 +47,16 @@ const (
 
 	statefulServerSetName         = "statefulserverset"
 	statefulServerSetExternalName = "test"
+	stateAvailable                = "AVAILABLE"
+	stateBusy                     = "BUSY"
 
 	serverName      = "server"
 	serverCPUFamily = "INTEL_XEON"
 	serverCores     = 1
 	serverRAM       = 1024
+
+	volumeId1 = "volume-id-1"
+	volumeId2 = "volume-id-2"
 )
 
 var bootVolumeParameters = v1alpha1.VolumeParameters{
@@ -388,6 +393,34 @@ func createVolumeList() v1alpha1.VolumeList {
 		},
 	}
 }
+
+func create2VolumesWithStatuses() []v1alpha1.Volume {
+	volume1 := createVolumeWithStatus()
+	volume2 := createVolumeWithStatus()
+	volume2.Status.AtProvider = v1alpha1.VolumeObservation{
+		VolumeID: volumeId2,
+		State:    stateBusy,
+		PCISlot:  2,
+		Name:     dataVolume2Name,
+	}
+
+	return []v1alpha1.Volume{*volume1, *volume2}
+}
+
+func createVolumeWithStatus() *v1alpha1.Volume {
+	volume := createVolumeDefault()
+	volume.Status = v1alpha1.VolumeStatus{
+		ResourceStatus: xpv1.ResourceStatus{},
+		AtProvider: v1alpha1.VolumeObservation{
+			VolumeID: volumeId1,
+			State:    stateAvailable,
+			PCISlot:  1,
+			Name:     dataVolume1Name,
+		},
+	}
+	return volume
+}
+
 func createVolumeDefault() *v1alpha1.Volume {
 	volume := createVolume(0, v1alpha1.VolumeParameters{
 		Name: dataVolume2Name,

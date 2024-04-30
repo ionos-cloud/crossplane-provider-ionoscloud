@@ -568,3 +568,69 @@ func Test_computeLanStatuses(t *testing.T) {
 		})
 	}
 }
+
+func Test_computeVolumeStatuses(t *testing.T) {
+	type args struct {
+		volumes []v1alpha1.Volume
+	}
+	tests := []struct {
+		name string
+		args args
+		want []v1alpha1.VolumeStatus
+	}{
+		{
+			name: "empty list",
+			args: args{volumes: []v1alpha1.Volume{}},
+			want: nil,
+		},
+		{
+			name: "status for one volume",
+			args: args{
+				volumes: []v1alpha1.Volume{
+					*createVolumeWithStatus(),
+				},
+			},
+			want: []v1alpha1.VolumeStatus{
+				{
+					ResourceStatus: cv1.ResourceStatus{},
+					AtProvider: v1alpha1.VolumeObservation{
+						VolumeID: volumeId1,
+						State:    stateAvailable,
+						PCISlot:  1,
+						Name:     dataVolume1Name,
+					},
+				},
+			},
+		},
+		{
+			name: "status for multiple volumes",
+			args: args{volumes: create2VolumesWithStatuses()},
+			want: []v1alpha1.VolumeStatus{
+				{
+					ResourceStatus: cv1.ResourceStatus{},
+					AtProvider: v1alpha1.VolumeObservation{
+						VolumeID: volumeId1,
+						State:    stateAvailable,
+						PCISlot:  1,
+						Name:     dataVolume1Name,
+					},
+				},
+				{
+					ResourceStatus: cv1.ResourceStatus{},
+					AtProvider: v1alpha1.VolumeObservation{
+						VolumeID: volumeId2,
+						State:    stateBusy,
+						PCISlot:  2,
+						Name:     dataVolume2Name,
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := computeVolumeStatuses(tt.args.volumes)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
