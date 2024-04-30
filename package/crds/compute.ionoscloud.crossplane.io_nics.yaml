@@ -190,7 +190,7 @@ spec:
                     description: Indicates if the NIC will reserve an IP using DHCP.
                     type: boolean
                   dhcpv6:
-                    description: Indicates if the NIC will reserve an IP using DHCPv6.
+                    description: Indicates if the NIC will reserve an IPv6 using DHCP.
                     type: boolean
                   firewallActive:
                     description: |-

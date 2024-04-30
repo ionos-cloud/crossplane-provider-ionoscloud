@@ -35,6 +35,7 @@ spec:
         nics:
           - name: nic-customer
             dhcp: false
+            dhcpv6: false
 #           should reference lan metadata name
             reference: customer
     bootVolumeTemplate:
