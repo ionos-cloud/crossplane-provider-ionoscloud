@@ -763,6 +763,8 @@ spec:
                         volumeId:
                           type: string
                       required:
+                      - pciSlot
+                      - replicaIdx
                       - volumeId
                       type: object
                     type: array

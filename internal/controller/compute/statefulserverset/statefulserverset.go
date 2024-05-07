@@ -149,7 +149,7 @@ func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha
 		return false, false, fmt.Errorf("while listing volumes %w", err)
 	}
 	creationVolumesUpToDate, areVolumesUpToDate := areDataVolumesUpToDate(cr, volumes.Items)
-	cr.Status.AtProvider.DataVolumeStatuses = computeVolumeStatuses(cr.Name, volumes.Items)
+	cr.Status.AtProvider.DataVolumeStatuses = computeVolumeStatuses(cr.Spec.ForProvider.Template.Metadata.Name, volumes.Items)
 
 	// ******************* SERVERSET *******************
 	creationServerSetUpToDate, isServerSetUpToDate, err := e.isServerSetUpToDate(ctx, cr)
@@ -431,7 +431,7 @@ func areNICsUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.State
 	return true, nil
 }
 
-func computeVolumeStatuses(crName string, volumes []v1alpha1.Volume) []v1alpha1.StatefulServerSetVolumeStatus {
+func computeVolumeStatuses(serverName string, volumes []v1alpha1.Volume) []v1alpha1.StatefulServerSetVolumeStatus {
 	if len(volumes) == 0 {
 		return nil
 	}
@@ -440,7 +440,7 @@ func computeVolumeStatuses(crName string, volumes []v1alpha1.Volume) []v1alpha1.
 		status[idx].VolumeID = volumes[idx].Status.AtProvider.VolumeID
 		status[idx].State = volumes[idx].Status.AtProvider.State
 		status[idx].PCISlot = volumes[idx].Status.AtProvider.PCISlot
-		status[idx].ReplicaIdx = computeReplicaIdx(crName, volumes[idx])
+		status[idx].ReplicaIdx = computeReplicaIdx(serverName, volumes[idx])
 	}
 	return status
 }

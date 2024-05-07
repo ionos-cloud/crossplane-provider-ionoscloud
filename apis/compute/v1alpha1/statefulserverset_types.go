@@ -137,8 +137,8 @@ type StatefulServerSetReplicaStatus struct {
 type StatefulServerSetVolumeStatus struct {
 	VolumeID   string `json:"volumeId"`
 	State      string `json:"state,omitempty"`
-	PCISlot    int32  `json:"pciSlot,omitempty"`
-	ReplicaIdx int32  `json:"replicaIdx,omitempty"`
+	PCISlot    int32  `json:"pciSlot"`
+	ReplicaIdx int32  `json:"replicaIdx"`
 }
 
 // StatefulServerSetLanStatus contains the status of a LAN.
