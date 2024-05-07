@@ -151,4 +151,3 @@ repositories:
      name: chartmuseum
      type: helm
      url: http://chartmuseum:8080
-#     url: https://chartmuseum:8080
