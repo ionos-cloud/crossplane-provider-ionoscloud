@@ -148,6 +148,7 @@ argo-cd:
 # -- Repositories list to be used by applications
 repositories:
    chartmuseum:
-     url: http://chartmuseum:8080
      name: chartmuseum
      type: helm
+#     url: http://chartmuseum:8080
+     url: https://chartmuseum:8080

@@ -5,4 +5,5 @@ version: 1.0.0
 dependencies:
   - name: crossplane
     version: 1.15.2-mirrored
-    repository: http://chartmuseum:8080
+#    repository: http://chartmuseum:8080
+    repository: https://chartmuseum:8080
