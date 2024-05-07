@@ -323,7 +323,6 @@ spec:
                     type: string
                 required:
                 - active
-                - groupIDs
                 - secAuthActive
                 type: object
               conditions:
