@@ -1,3 +1,9 @@
+## [1.0.12] (May 2024)
+- **Fixes**:
+    - Fixes for `MongoUser` and `PostgresUser`:
+        - Panic caused by improper dereference of `password` pointer
+        - Passwords that are provided via `Secrets` no longer appear in clear text in the resource `spec`
+
 ## [1.0.11] (April 2024)
 - **Features**:
   - Add `NLB` managed resources:

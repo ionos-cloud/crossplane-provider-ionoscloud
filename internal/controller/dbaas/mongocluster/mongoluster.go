@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -130,8 +129,7 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 		return managed.ExternalObservation{}, fmt.Errorf("failed to get mongo cluster by id. err: %w", err)
 	}
 
-	current := cr.Spec.ForProvider.DeepCopy()
-	mongo.LateInitializer(&cr.Spec.ForProvider, &observed)
+	lateInitialized := mongo.LateInitializer(&cr.Spec.ForProvider, &observed)
 
 	cr.Status.AtProvider.ClusterID = meta.GetExternalName(cr)
 	if observed.Metadata != nil && observed.Metadata.State != nil {
@@ -144,7 +142,7 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 		ResourceExists:          true,
 		ResourceUpToDate:        mongo.IsClusterUpToDate(cr, observed),
 		ConnectionDetails:       managed.ConnectionDetails{},
-		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		ResourceLateInitialized: lateInitialized,
 	}, nil
 }
 
