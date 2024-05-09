@@ -160,10 +160,14 @@ func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha
 		return false, false, err
 	}
 
+	creationVSUpToDate, err := e.isVolumeSelectorUpToDate(ctx, cr)
+	if err != nil {
+		return false, false, err
+	}
 	e.log.Info("Observing the StatefulServerSet", "creationLansUpToDate", creationLansUpToDate, "areLansUpToDate", areLansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate,
-		"areVolumesUpToDate", areVolumesUpToDate, "creationServerSetUpToDate", creationServerSetUpToDate, "isServerSetUpToDate", isServerSetUpToDate)
+		"areVolumesUpToDate", areVolumesUpToDate, "creationServerSetUpToDate", creationServerSetUpToDate, "isServerSetUpToDate", isServerSetUpToDate, "creationVSUpToDate", creationVSUpToDate)
 
-	return creationLansUpToDate && creationVolumesUpToDate && creationServerSetUpToDate, areLansUpToDate && areVolumesUpToDate && isServerSetUpToDate, nil
+	return creationLansUpToDate && creationVolumesUpToDate && creationServerSetUpToDate && creationVSUpToDate, areLansUpToDate && areVolumesUpToDate && isServerSetUpToDate, nil
 }
 
 func (e *external) isServerSetUpToDate(ctx context.Context, cr *v1alpha1.StatefulServerSet) (creationServerUpToDate bool, serversetUpToDate bool, err error) {
@@ -178,6 +182,19 @@ func (e *external) isServerSetUpToDate(ctx context.Context, cr *v1alpha1.Statefu
 		return false, false, err
 	}
 	return true, serversetUpToDate, err
+}
+
+func (e *external) isVolumeSelectorUpToDate(ctx context.Context, cr *v1alpha1.StatefulServerSet) (creationVSUpToDate bool, err error) {
+	vsName := fmt.Sprintf(volumeSelectorName, cr.Name)
+	_, err = e.volumeSelectorController.Get(ctx, vsName, cr.Namespace)
+	if err != nil {
+		if apiErrors.IsNotFound(err) {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
+	return true, nil
 }
 
 func (e *external) setSSetStatusOnCR(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
