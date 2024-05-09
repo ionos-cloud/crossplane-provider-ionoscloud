@@ -81,6 +81,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* properties:
 				* `labels` (object)
 				* `name` (string)
+					* description: Name of the BootVolume. Replica index, volume index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}. Version increases if the bootvolume is
+re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
 					* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 			* required properties:
 				* `name`
@@ -213,6 +215,8 @@ reference on every reconcile.
 			* properties:
 				* `labels` (object)
 				* `name` (string)
+					* description: Name of the Server. Replica index and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}
+Version increases if the Server is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the Server is re-created and the version is increased.
 					* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 			* required properties:
 				* `name`
@@ -232,6 +236,8 @@ available CPU architectures can be retrieved from the datacenter resource.
 						* `dhcp` (boolean)
 						* `ipv4` (string)
 						* `name` (string)
+							* description: Name of the NIC. Replica index, NIC index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{nicIndex}-{version}.
+Version increases if the NIC is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the NIC is re-created and the version is increased.
 							* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 						* `reference` (string)
 						* `vnetId` (string)
