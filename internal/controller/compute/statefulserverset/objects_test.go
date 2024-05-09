@@ -406,7 +406,7 @@ func create2VolumesWithStatuses() []v1alpha1.Volume {
 	volume1 := createVolumeWithStatus()
 	volume2 := createVolumeWithStatus()
 	volume2.Labels = map[string]string{
-		fmt.Sprintf("ionoscloud.com/%s-datavolume-index", serverSetName): "1",
+		fmt.Sprintf("ionoscloud.com/%s-datavolume-index", serverName): "1",
 	}
 	volume2.Status.AtProvider = v1alpha1.VolumeObservation{
 		VolumeID: volumeID2,
@@ -421,7 +421,7 @@ func create2VolumesWithStatuses() []v1alpha1.Volume {
 func createVolumeWithStatus() *v1alpha1.Volume {
 	volume := createVolumeDefault()
 	volume.Labels = map[string]string{
-		fmt.Sprintf("ionoscloud.com/%s-datavolume-index", serverSetName): "0",
+		fmt.Sprintf("ionoscloud.com/%s-datavolume-index", serverName): "0",
 	}
 	volume.Status = v1alpha1.VolumeStatus{
 		ResourceStatus: xpv1.ResourceStatus{},
