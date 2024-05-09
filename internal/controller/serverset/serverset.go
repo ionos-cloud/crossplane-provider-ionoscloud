@@ -174,14 +174,50 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 			errMsg = lastCondition.Message
 		}
 
+		replicaIdx := ComputeReplicaIdx(fmt.Sprintf(indexLabel, cr.Name, ResourceServer), serverSetReplicas[i].Labels)
+		nicStatues, _ := computeNicStatuses(ctx, e, cr.Name, replicaIdx)
 		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{
 			Role:         fetchRole(ctx, e, serverSetReplicas[i]),
 			Name:         serverSetReplicas[i].Name,
+			Index:        replicaIdx,
+			NICStatuses:  nicStatues,
 			Status:       replicaStatus,
 			ErrorMessage: errMsg,
 			LastModified: metav1.Now(),
 		}
 	}
+}
+
+func computeNicStatuses(ctx context.Context, e *external, crName string, replicaIndex int) ([]v1alpha1.ServerSetNICStatus, error) {
+	nics, err := GetNICsOfSSet(ctx, e.kube, crName)
+	if err != nil {
+		return []v1alpha1.ServerSetNICStatus{}, err
+	}
+
+	nicsOfReplica := keepOnlyNicsOfReplica(nics, replicaIndex, crName)
+
+	nicStatuses := make([]v1alpha1.ServerSetNICStatus, len(nicsOfReplica))
+	for i, nic := range nicsOfReplica {
+		nicStatuses[i].Name = nic.Name
+		nicStatuses[i].PCISlot = int(nic.Status.AtProvider.PCISlot)
+		nicStatuses[i].NICID = nic.Status.AtProvider.NicID
+	}
+
+	return nicStatuses, nil
+}
+
+func keepOnlyNicsOfReplica(nics []v1alpha1.Nic, serverIndex int, serverName string) []v1alpha1.Nic {
+	filteredNICs := []v1alpha1.Nic{}
+	indexLabelValue := fmt.Sprintf(indexLabel, serverName, resourceNIC)
+	indexAsString := strconv.Itoa(serverIndex)
+	for _, nic := range nics {
+
+		if nic.Labels[indexLabelValue] == indexAsString {
+			filteredNICs = append(filteredNICs, nic)
+		}
+	}
+
+	return filteredNICs
 }
 
 func getLastCondition(server v1alpha1.Server) xpv1.Condition {
@@ -646,4 +682,14 @@ func (e *external) ensureBootVolumeByIndex(ctx context.Context, cr *v1alpha1.Ser
 // getNameFrom - generates name for a resource
 func getNameFrom(resourceName string, idx, version int) string {
 	return fmt.Sprintf("%s-%d-%d", resourceName, idx, version)
+}
+
+// ComputeReplicaIdx - extracts the replica index from the labels
+func ComputeReplicaIdx(idxLabel string, labels map[string]string) int {
+	idxLabelValue := labels[idxLabel]
+	var replicaIdx int
+	if _, err := fmt.Sscan(idxLabelValue, &replicaIdx); err != nil {
+		return -1
+	}
+	return replicaIdx
 }

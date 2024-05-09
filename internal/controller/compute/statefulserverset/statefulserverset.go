@@ -439,20 +439,11 @@ func computeVolumeStatuses(serverName string, volumes []v1alpha1.Volume) []v1alp
 	for idx := range volumes {
 		status[idx].VolumeID = volumes[idx].Status.AtProvider.VolumeID
 		status[idx].State = volumes[idx].Status.AtProvider.State
-		status[idx].PCISlot = volumes[idx].Status.AtProvider.PCISlot
-		status[idx].ReplicaIdx = computeReplicaIdx(serverName, volumes[idx])
+		status[idx].PCISlot = int(volumes[idx].Status.AtProvider.PCISlot)
+		idxLabel := fmt.Sprintf(volumeselector.IndexLabel, serverName, volumeselector.ResourceDataVolume)
+		status[idx].ReplicaIndex = serverset.ComputeReplicaIdx(idxLabel, volumes[idx].Labels)
 	}
 	return status
-}
-
-func computeReplicaIdx(crName string, volume v1alpha1.Volume) int32 {
-	idxLabel := fmt.Sprintf(volumeselector.IndexLabel, crName, volumeselector.ResourceDataVolume)
-	idxLabelValue := volume.Labels[idxLabel]
-	var replicaIdx int32
-	if _, err := fmt.Sscan(idxLabelValue, &replicaIdx); err != nil {
-		return -1
-	}
-	return replicaIdx
 }
 
 func computeLanStatuses(lans []v1alpha1.Lan) []v1alpha1.StatefulServerSetLanStatus {

@@ -134,17 +134,26 @@ type ServerSetObservation struct {
 	ReplicaStatuses []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
 }
 
-// ServerSetReplicaStatus are the observable fields of a ServerSetReplicaStatus.
+// ServerSetReplicaStatus contains the status of a Server Replica.
 type ServerSetReplicaStatus struct {
 	xpv1.ResourceStatus `json:",inline"`
 	// +kubebuilder:validation:Enum=ACTIVE;PASSIVE
-	Role Role   `json:"role"`
-	Name string `json:"name"`
+	Role        Role                 `json:"role"`
+	Name        string               `json:"name"`
+	Index       int                  `json:"index"`
+	NICStatuses []ServerSetNICStatus `json:"nicStatus,omitempty"`
 	// +kubebuilder:validation:Enum=UNKNOWN;READY;ERROR
 	Status string `json:"status"`
 	// ErrorMessage relayed from the backend.
 	ErrorMessage string      `json:"errorMessage,omitempty"`
 	LastModified metav1.Time `json:"lastModified,omitempty"`
+}
+
+// ServerSetNICStatus contains the status of a Server's Nic.
+type ServerSetNICStatus struct {
+	Name    string `json:"name"`
+	NICID   string `json:"nicId"`
+	PCISlot int    `json:"pciSlot"`
 }
 
 // A ServerSetSpec defines the desired state of a ServerSet.

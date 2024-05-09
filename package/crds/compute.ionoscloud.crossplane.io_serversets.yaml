@@ -596,8 +596,8 @@ spec:
                 properties:
                   replicaStatus:
                     items:
-                      description: ServerSetReplicaStatus are the observable fields
-                        of a ServerSetReplicaStatus.
+                      description: ServerSetReplicaStatus contains the status of a
+                        Server Replica.
                       properties:
                         conditions:
                           description: Conditions of the resource.
@@ -641,11 +641,30 @@ spec:
                         errorMessage:
                           description: ErrorMessage relayed from the backend.
                           type: string
+                        index:
+                          type: integer
                         lastModified:
                           format: date-time
                           type: string
                         name:
                           type: string
+                        nicStatus:
+                          items:
+                            description: ServerSetNICStatus contains the status of
+                              a Server's Nic.
+                            properties:
+                              name:
+                                type: string
+                              nicId:
+                                type: string
+                              pciSlot:
+                                type: integer
+                            required:
+                            - name
+                            - nicId
+                            - pciSlot
+                            type: object
+                          type: array
                         role:
                           description: |-
                             Role is the role of a ServerSet Replica. It can be ACTIVE or PASSIVE. The default value is PASSIVE.
@@ -661,6 +680,7 @@ spec:
                           - ERROR
                           type: string
                       required:
+                      - index
                       - name
                       - role
                       - status

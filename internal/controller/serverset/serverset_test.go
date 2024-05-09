@@ -55,6 +55,8 @@ const (
 	updateMethod     = "Update"
 
 	noReplicas = 2
+	nic1UUID   = "nic1UUID"
+	nic2UUID   = "nic2UUID"
 
 	server1Name        = "serverset-server-0-0"
 	server2Name        = "serverset-server-1-0"
@@ -62,8 +64,11 @@ const (
 	serverSetCores     = 2
 	serverSetRAM       = 4096
 	serverSetName      = "serverset"
+	serverName         = "server-name"
 
 	reconcileErrorMsg = "some reconcile error happened"
+
+	pciSlot = 2
 )
 
 type ServiceMethodName string
@@ -382,15 +387,23 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 
 	server1 := createServer("serverset-server-0-0")
 	server2 := createServer("serverset-server-1-0")
+	label := fmt.Sprintf(indexLabel, serverSetName, ResourceServer)
+	server2.Labels[label] = "1"
 
-	serverWithErrorStatus := createServer("serverset-server-1-0")
+	serverWithErrorStatus := createServer("serverset-server-0-0")
 	serverWithErrorStatus.Status.AtProvider.State = ionoscloud.Failed
 
-	serverWithUnknownStatus := createServer("serverset-server-1-0")
+	serverWithUnknownStatus := createServer("serverset-server-0-0")
 	serverWithUnknownStatus.Status.AtProvider.State = "new-state"
 
 	nic1 := createNic(v1alpha1.NicParameters{Name: server1.Name})
+	nic1.Status.AtProvider.NicID = nic1UUID
+	nic1.Status.AtProvider.PCISlot = pciSlot
+	nic1.Labels[serverSetNicIndexLabel] = "0"
 	nic2 := createNic(v1alpha1.NicParameters{Name: server2.Name})
+	nic2.Status.AtProvider.NicID = nic2UUID
+	nic2.Status.AtProvider.PCISlot = pciSlot
+	nic2.Labels[serverSetNicIndexLabel] = "1"
 
 	tests := []struct {
 		name    string
@@ -412,15 +425,31 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				Replicas: 2,
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
-						Name:         server1.Name,
-						Status:       statusReady,
-						Role:         "ACTIVE",
+						Name:   server1.Name,
+						Status: statusReady,
+						Role:   "ACTIVE",
+						Index:  0,
+						NICStatuses: []v1alpha1.ServerSetNICStatus{
+							{
+								Name:    nic1.Name,
+								NICID:   nic1UUID,
+								PCISlot: pciSlot,
+							},
+						},
 						ErrorMessage: "",
 					},
 					{
-						Name:         server2.Name,
-						Status:       statusReady,
-						Role:         "PASSIVE",
+						Name:   server2.Name,
+						Status: statusReady,
+						Role:   "PASSIVE",
+						Index:  1,
+						NICStatuses: []v1alpha1.ServerSetNICStatus{
+							{
+								Name:    nic2.Name,
+								NICID:   nic2UUID,
+								PCISlot: pciSlot,
+							},
+						},
 						ErrorMessage: "",
 					},
 				},
@@ -440,15 +469,31 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				Replicas: 2,
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
-						Name:         server1.Name,
-						Status:       statusReady,
-						Role:         "PASSIVE",
+						Name:   server1.Name,
+						Status: statusReady,
+						Role:   "PASSIVE",
+						Index:  0,
+						NICStatuses: []v1alpha1.ServerSetNICStatus{
+							{
+								Name:    nic1.Name,
+								NICID:   nic1UUID,
+								PCISlot: pciSlot,
+							},
+						},
 						ErrorMessage: "",
 					},
 					{
-						Name:         server2.Name,
-						Status:       statusReady,
-						Role:         "PASSIVE",
+						Name:   server2.Name,
+						Status: statusReady,
+						Role:   "PASSIVE",
+						Index:  1,
+						NICStatuses: []v1alpha1.ServerSetNICStatus{
+							{
+								Name:    nic2.Name,
+								NICID:   nic2UUID,
+								PCISlot: pciSlot,
+							},
+						},
 						ErrorMessage: "",
 					},
 				},
@@ -468,15 +513,31 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				Replicas: 2,
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
-						Name:         server1.Name,
-						Status:       statusReady,
-						Role:         "PASSIVE",
+						Name:   server1.Name,
+						Status: statusReady,
+						Role:   "PASSIVE",
+						Index:  0,
+						NICStatuses: []v1alpha1.ServerSetNICStatus{
+							{
+								Name:    nic1.Name,
+								NICID:   nic1UUID,
+								PCISlot: pciSlot,
+							},
+						},
 						ErrorMessage: "",
 					},
 					{
-						Name:         server2.Name,
-						Status:       statusReady,
-						Role:         "PASSIVE",
+						Name:   server2.Name,
+						Status: statusReady,
+						Role:   "PASSIVE",
+						Index:  1,
+						NICStatuses: []v1alpha1.ServerSetNICStatus{
+							{
+								Name:    nic2.Name,
+								NICID:   nic2UUID,
+								PCISlot: pciSlot,
+							},
+						},
 						ErrorMessage: "",
 					},
 				},
@@ -496,15 +557,31 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				Replicas: 2,
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
-						Name:         server1.Name,
-						Status:       statusReady,
-						Role:         "PASSIVE",
+						Name:   server1.Name,
+						Status: statusReady,
+						Role:   "PASSIVE",
+						Index:  0,
+						NICStatuses: []v1alpha1.ServerSetNICStatus{
+							{
+								Name:    nic1.Name,
+								NICID:   nic1UUID,
+								PCISlot: pciSlot,
+							},
+						},
 						ErrorMessage: "",
 					},
 					{
-						Name:         server2.Name,
-						Status:       statusReady,
-						Role:         "PASSIVE",
+						Name:   server2.Name,
+						Status: statusReady,
+						Role:   "PASSIVE",
+						Index:  1,
+						NICStatuses: []v1alpha1.ServerSetNICStatus{
+							{
+								Name:    nic2.Name,
+								NICID:   nic2UUID,
+								PCISlot: pciSlot,
+							},
+						},
 						ErrorMessage: "",
 					},
 				},
@@ -524,9 +601,17 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				Replicas: 1,
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
-						Name:         server1.Name,
-						Status:       statusReady,
-						Role:         "PASSIVE",
+						Name:   server1.Name,
+						Status: statusReady,
+						Role:   "PASSIVE",
+						Index:  0,
+						NICStatuses: []v1alpha1.ServerSetNICStatus{
+							{
+								Name:    nic1.Name,
+								NICID:   nic1UUID,
+								PCISlot: pciSlot,
+							},
+						},
 						ErrorMessage: "",
 					},
 				},
@@ -549,6 +634,8 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Name:         serverWithErrorStatus.Name,
 						Status:       statusError,
 						Role:         "PASSIVE",
+						Index:        0,
+						NICStatuses:  []v1alpha1.ServerSetNICStatus{},
 						ErrorMessage: "",
 					},
 				},
@@ -571,6 +658,8 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Name:         serverWithErrorStatus.Name,
 						Status:       statusError,
 						Role:         "PASSIVE",
+						Index:        0,
+						NICStatuses:  []v1alpha1.ServerSetNICStatus{},
 						ErrorMessage: reconcileErrorMsg,
 					},
 				},
@@ -584,15 +673,23 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				cr:  createServerSetWhichUpdatesFrom2ReplicasTo1(serverWithUnknownStatus.Name, server2.Name),
+				cr:  createServerSetWithOneReplica(),
 			},
 			want: v1alpha1.ServerSetObservation{
 				Replicas: 1,
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
-						Name:         serverWithUnknownStatus.Name,
-						Status:       statusUnknown,
-						Role:         "PASSIVE",
+						Name:   serverWithUnknownStatus.Name,
+						Status: statusUnknown,
+						Role:   "PASSIVE",
+						Index:  0,
+						NICStatuses: []v1alpha1.ServerSetNICStatus{
+							{
+								Name:    nic1.Name,
+								NICID:   nic1UUID,
+								PCISlot: pciSlot,
+							},
+						},
 						ErrorMessage: "",
 					},
 				},
@@ -1170,7 +1267,7 @@ func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_d
 	assertions.Equal("bootvolumename-0-0", bootVolumeController.lastMethodCall[deleteMethod][secondArg])
 
 	serverController := e.serverController.(*kubeServerCallTracker)
-	assertions.Equal("servername-0-0", serverController.lastMethodCall[getMethod][secondArg])
+	assertions.Equal("server-name-0-0", serverController.lastMethodCall[getMethod][secondArg])
 	actualServer := serverController.lastMethodCall[updateMethod][secondArg].(*v1alpha1.Server)
 	assertions.Equal("bootvolumename-0-1-uuid", actualServer.Spec.ForProvider.VolumeCfg.VolumeID)
 }
@@ -1217,7 +1314,7 @@ func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_c
 
 	serverController := e.serverController.(*kubeServerCallTracker)
 	assertions.Equal(masterIndex, serverController.lastMethodCall[ensureMethod][thirdArg])
-	assertions.Equal("servername-0-0", serverController.lastMethodCall[deleteMethod][secondArg])
+	assertions.Equal("server-name-0-0", serverController.lastMethodCall[deleteMethod][secondArg])
 
 	nicController := e.nicController.(*kubeNicCallTracker)
 	assertions.Equal(masterIndex, nicController.lastMethodCall[ensureNICsMethod][thirdArg])
@@ -1654,6 +1751,7 @@ func createServer(name string) *v1alpha1.Server {
 			Name: name,
 			Labels: map[string]string{
 				serverSetLabel: serverSetName,
+				fmt.Sprintf(indexLabel, serverSetName, ResourceServer): "0",
 			},
 		},
 		Status: v1alpha1.ServerStatus{
@@ -1788,7 +1886,7 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 				Replicas: noReplicas,
 				Template: v1alpha1.ServerSetTemplate{
 					Metadata: v1alpha1.ServerSetMetadata{
-						Name: "servername",
+						Name: serverName,
 					},
 					Spec: v1alpha1.ServerSetTemplateSpec{
 						Cores:     serverSetCores,
@@ -1923,7 +2021,7 @@ func createConfigLeaseMap() *v1.ConfigMap {
 }
 
 func createServerWithReconcileErrorMsg() *v1alpha1.Server {
-	server := createServer("serverset-server-1-0")
+	server := createServer("serverset-server-0-0")
 	server.Status.AtProvider.State = ionoscloud.Failed
 	server.Status.ResourceStatus.Conditions = []xpv1.Condition{
 		{
