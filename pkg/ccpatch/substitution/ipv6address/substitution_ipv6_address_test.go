@@ -20,14 +20,15 @@ func TestIPv6AddressSuccess(t *testing.T) {
 
 	state := &substitution.GlobalState{}
 	for i := 0; i < total; i++ {
-		handler.WriteState(substitution.Identifier(fmt.Sprintf("machine-%v", i)), state, substitution.Substitution{
+		err := handler.WriteState(substitution.Identifier(fmt.Sprintf("machine-%v", i)), state, substitution.Substitution{
 			Type:   "ipv6Address",
 			Key:    "$ipv6Address",
 			Unique: true,
 			AdditionalProperties: map[string]string{
-				"cidr": "fc00:1::1/64",
+				"cidr": "fc00:1::/64",
 			},
 		})
+		require.NoError(t, err)
 	}
 
 	require.Equal(t, total, state.Len())
