@@ -1,5 +1,6 @@
 package v1alpha1
 
+// Substitution defines the substitution configuration
 type Substitution struct {
 	// +kubebuilder:validation:Required
 	// +immutable

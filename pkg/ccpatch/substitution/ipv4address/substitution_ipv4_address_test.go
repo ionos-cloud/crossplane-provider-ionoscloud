@@ -9,7 +9,7 @@ import (
 func TestIPv4AddressSuccess(t *testing.T) {
 	handler := substitution.GetSubstitution("ipv4Address")
 	state := &substitution.GlobalState{}
-	handler.WriteState(substitution.Identifier("machine-0"), state, substitution.Substitution{
+	err := handler.WriteState("machine-0", state, substitution.Substitution{
 		Type:   "ipv4Address",
 		Key:    "$ipv4Address",
 		Unique: true,
@@ -17,5 +17,7 @@ func TestIPv4AddressSuccess(t *testing.T) {
 			"cidr": "10.0.0.0/24",
 		},
 	})
-
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }

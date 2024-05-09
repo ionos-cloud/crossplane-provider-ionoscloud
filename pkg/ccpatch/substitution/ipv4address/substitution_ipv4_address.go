@@ -85,7 +85,7 @@ jump:
 		used,
 		ip.String(),
 	) /*|| ip.Equal(broadcast) */ {
-		// we got unlucky. Theu host portion of our ipv4 address was
+		// we got unlucky. The host portion of our ipv4 address was
 		// either all 0s (the network address) or all 1s (the broadcast address)
 		goto jump
 	}

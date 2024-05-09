@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 )
 
 func TestIPv6AddressSuccess(t *testing.T) {
@@ -20,7 +21,7 @@ func TestIPv6AddressSuccess(t *testing.T) {
 
 	state := &substitution.GlobalState{}
 	for i := 0; i < total; i++ {
-		handler.WriteState(substitution.Identifier(fmt.Sprintf("machine-%v", i)), state, substitution.Substitution{
+		err := handler.WriteState(substitution.Identifier(fmt.Sprintf("machine-%v", i)), state, substitution.Substitution{
 			Type:   "ipv6Address",
 			Key:    "$ipv6Address",
 			Unique: true,
@@ -28,6 +29,9 @@ func TestIPv6AddressSuccess(t *testing.T) {
 				"cidr": "fc00:1::1/64",
 			},
 		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 	}
 
 	require.Equal(t, total, state.Len())

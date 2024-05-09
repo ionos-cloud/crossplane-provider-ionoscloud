@@ -4,6 +4,7 @@ package substitution
 // it's a map of index to a list of substitutions
 type GlobalState map[Identifier][]State
 
+// NewGlobalState returns a new global state
 func NewGlobalState() *GlobalState {
 	return &GlobalState{}
 }
