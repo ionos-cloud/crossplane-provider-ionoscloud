@@ -132,7 +132,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}, nil
 }
 
-func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha1.StatefulServerSet) (areResourcesCreated, areResourcesUpdated bool, err error) {
+func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha1.StatefulServerSet) (areResourcesCreated, areResourcesUpdated bool, err error) { // nolint:gocyclo
 
 	// ******************* LANS *******************
 	lans, err := e.LANController.ListLans(ctx, cr)
@@ -160,6 +160,7 @@ func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha
 		return false, false, err
 	}
 
+	// ******************* VOLUMESELECTOR *******************
 	creationVSUpToDate, err := e.isVolumeSelectorUpToDate(ctx, cr)
 	if err != nil {
 		return false, false, err
@@ -190,9 +191,8 @@ func (e *external) isVolumeSelectorUpToDate(ctx context.Context, cr *v1alpha1.St
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			return false, nil
-		} else {
-			return false, err
 		}
+		return false, err
 	}
 	return true, nil
 }
