@@ -94,11 +94,12 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 
 func Test_statefulServerSetController_Observe(t *testing.T) {
 	type fields struct {
-		kube                 client.Client
-		log                  logging.Logger
-		LANController        kubeLANControlManager
-		dataVolumeController kubeDataVolumeControlManager
-		ssetController       kubeSSetControlManager
+		kube                     client.Client
+		log                      logging.Logger
+		LANController            kubeLANControlManager
+		dataVolumeController     kubeDataVolumeControlManager
+		ssetController           kubeSSetControlManager
+		volumeselectorController kubeVolumeSelectorManager
 	}
 	type args struct {
 		ctx context.Context
@@ -127,11 +128,12 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 		{
 			name: "LANs and Data Volumes not yet created, then StatefulServerSet does not exist and is not up to date",
 			fields: fields{
-				kube:                 fakeKubeClientWithSSetRelatedObjects(),
-				log:                  logging.NewNopLogger(),
-				LANController:        fakeKubeLANController{LanList: v1alpha1.LanList{}},
-				dataVolumeController: fakeKubeDataVolumeController{VolumeList: v1alpha1.VolumeList{}},
-				ssetController:       &fakeKubeServerSetController{},
+				kube:                     fakeKubeClientWithSSetRelatedObjects(),
+				log:                      logging.NewNopLogger(),
+				LANController:            fakeKubeLANController{LanList: v1alpha1.LanList{}},
+				dataVolumeController:     fakeKubeDataVolumeController{VolumeList: v1alpha1.VolumeList{}},
+				ssetController:           &fakeKubeServerSetController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -147,11 +149,12 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 		{
 			name: "LANs, Data Volumes and ServerSet up to date, then StatefulServerSet exists and is up to date",
 			fields: fields{
-				kube:                 fakeKubeClientWithSSetRelatedObjects(),
-				log:                  logging.NewNopLogger(),
-				LANController:        fakeKubeLANController{LanList: createLanList()},
-				dataVolumeController: fakeKubeDataVolumeController{VolumeList: createVolumeList()},
-				ssetController:       &fakeKubeServerSetController{},
+				kube:                     fakeKubeClientWithSSetRelatedObjects(),
+				log:                      logging.NewNopLogger(),
+				LANController:            fakeKubeLANController{LanList: createLanList()},
+				dataVolumeController:     fakeKubeDataVolumeController{VolumeList: createVolumeList()},
+				ssetController:           &fakeKubeServerSetController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -177,7 +180,8 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeList(),
 				},
-				ssetController: &fakeKubeServerSetController{},
+				ssetController:           &fakeKubeServerSetController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -203,7 +207,8 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeList(),
 				},
-				ssetController: &fakeKubeServerSetController{},
+				ssetController:           &fakeKubeServerSetController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -227,7 +232,8 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeList(),
 				},
-				ssetController: &fakeKubeServerSetController{},
+				ssetController:           &fakeKubeServerSetController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -251,7 +257,8 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeListNotUpToDate(VolumeFieldUpToDate{}),
 				},
-				ssetController: &fakeKubeServerSetController{},
+				ssetController:           &fakeKubeServerSetController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -275,7 +282,8 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeListNotUpToDate(VolumeFieldUpToDate{}),
 				},
-				ssetController: &fakeKubeServerSetController{},
+				ssetController:           &fakeKubeServerSetController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -303,7 +311,8 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeList(),
 				},
-				ssetController: &fakeKubeServerSetController{},
+				ssetController:           &fakeKubeServerSetController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -331,7 +340,8 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeList(),
 				},
-				ssetController: &fakeKubeServerSetController{},
+				ssetController:           &fakeKubeServerSetController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -359,7 +369,8 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				dataVolumeController: fakeKubeDataVolumeController{
 					VolumeList: createVolumeList(),
 				},
-				ssetController: &fakeKubeServerSetController{},
+				ssetController:           &fakeKubeServerSetController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -376,11 +387,12 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &external{
-				kube:                 tt.fields.kube,
-				log:                  tt.fields.log,
-				LANController:        tt.fields.LANController,
-				dataVolumeController: tt.fields.dataVolumeController,
-				SSetController:       tt.fields.ssetController,
+				kube:                     tt.fields.kube,
+				log:                      tt.fields.log,
+				LANController:            tt.fields.LANController,
+				dataVolumeController:     tt.fields.dataVolumeController,
+				SSetController:           tt.fields.ssetController,
+				volumeSelectorController: tt.fields.volumeselectorController,
 			}
 			got, err := c.Observe(tt.args.ctx, tt.args.mg)
 			if (err != nil) != tt.wantErr {
@@ -670,11 +682,12 @@ func Test_Observe_CRStatus(t *testing.T) {
 		{
 			name: "datacenter is not available",
 			fields: fields{
-				kube:                 fakeKubeClientWithObjs(createDatacenterNotAvailable()),
-				LANController:        fakeKubeLANController{},
-				dataVolumeController: fakeKubeDataVolumeController{},
-				SSetController:       &fakeKubeServerSetController{},
-				log:                  logging.NewNopLogger(),
+				kube:                     fakeKubeClientWithObjs(createDatacenterNotAvailable()),
+				LANController:            fakeKubeLANController{},
+				dataVolumeController:     fakeKubeDataVolumeController{},
+				SSetController:           &fakeKubeServerSetController{},
+				volumeSelectorController: fakeKubeVolumeSelectorController{},
+				log:                      logging.NewNopLogger(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -685,11 +698,12 @@ func Test_Observe_CRStatus(t *testing.T) {
 		{
 			name: "datacenter is available",
 			fields: fields{
-				kube:                 fakeKubeClientWithObjs(createDatacenterAvailable()),
-				LANController:        fakeKubeLANController{},
-				dataVolumeController: fakeKubeDataVolumeController{},
-				SSetController:       &fakeKubeServerSetController{},
-				log:                  logging.NewNopLogger(),
+				kube:                     fakeKubeClientWithObjs(createDatacenterAvailable()),
+				LANController:            fakeKubeLANController{},
+				dataVolumeController:     fakeKubeDataVolumeController{},
+				SSetController:           &fakeKubeServerSetController{},
+				volumeSelectorController: fakeKubeVolumeSelectorController{},
+				log:                      logging.NewNopLogger(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -700,11 +714,12 @@ func Test_Observe_CRStatus(t *testing.T) {
 		{
 			name: "datacenter not found",
 			fields: fields{
-				kube:                 fakeKubeClientWithObjs(),
-				LANController:        fakeKubeLANController{},
-				dataVolumeController: fakeKubeDataVolumeController{},
-				SSetController:       &fakeKubeServerSetController{},
-				log:                  logging.NewNopLogger(),
+				kube:                     fakeKubeClientWithObjs(),
+				LANController:            fakeKubeLANController{},
+				dataVolumeController:     fakeKubeDataVolumeController{},
+				SSetController:           &fakeKubeServerSetController{},
+				volumeSelectorController: fakeKubeVolumeSelectorController{},
+				log:                      logging.NewNopLogger(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -715,11 +730,12 @@ func Test_Observe_CRStatus(t *testing.T) {
 		{
 			name: "datacenter name not in CR",
 			fields: fields{
-				kube:                 fakeKubeClientWithObjs(createDatacenterAvailable()),
-				LANController:        fakeKubeLANController{},
-				dataVolumeController: fakeKubeDataVolumeController{},
-				SSetController:       &fakeKubeServerSetController{},
-				log:                  logging.NewNopLogger(),
+				kube:                     fakeKubeClientWithObjs(createDatacenterAvailable()),
+				LANController:            fakeKubeLANController{},
+				dataVolumeController:     fakeKubeDataVolumeController{},
+				SSetController:           &fakeKubeServerSetController{},
+				volumeSelectorController: fakeKubeVolumeSelectorController{},
+				log:                      logging.NewNopLogger(),
 			},
 			args: args{
 				ctx: context.Background(),
