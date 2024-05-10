@@ -429,11 +429,12 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Status: statusReady,
 						Role:   "ACTIVE",
 						Index:  0,
-						NICStatuses: []v1alpha1.ServerSetNICStatus{
+						NICStatuses: []v1alpha1.NicStatus{
 							{
-								Name:    nic1.Name,
-								NICID:   nic1UUID,
-								PCISlot: pciSlot,
+								AtProvider: v1alpha1.NicObservation{
+									NicID:   nic1UUID,
+									PCISlot: pciSlot,
+								},
 							},
 						},
 						ErrorMessage: "",
@@ -443,11 +444,12 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Status: statusReady,
 						Role:   "PASSIVE",
 						Index:  1,
-						NICStatuses: []v1alpha1.ServerSetNICStatus{
+						NICStatuses: []v1alpha1.NicStatus{
 							{
-								Name:    nic2.Name,
-								NICID:   nic2UUID,
-								PCISlot: pciSlot,
+								AtProvider: v1alpha1.NicObservation{
+									NicID:   nic2UUID,
+									PCISlot: pciSlot,
+								},
 							},
 						},
 						ErrorMessage: "",
@@ -473,11 +475,12 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Status: statusReady,
 						Role:   "PASSIVE",
 						Index:  0,
-						NICStatuses: []v1alpha1.ServerSetNICStatus{
+						NICStatuses: []v1alpha1.NicStatus{
 							{
-								Name:    nic1.Name,
-								NICID:   nic1UUID,
-								PCISlot: pciSlot,
+								AtProvider: v1alpha1.NicObservation{
+									NicID:   nic1UUID,
+									PCISlot: pciSlot,
+								},
 							},
 						},
 						ErrorMessage: "",
@@ -487,11 +490,12 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Status: statusReady,
 						Role:   "PASSIVE",
 						Index:  1,
-						NICStatuses: []v1alpha1.ServerSetNICStatus{
+						NICStatuses: []v1alpha1.NicStatus{
 							{
-								Name:    nic2.Name,
-								NICID:   nic2UUID,
-								PCISlot: pciSlot,
+								AtProvider: v1alpha1.NicObservation{
+									NicID:   nic2UUID,
+									PCISlot: pciSlot,
+								},
 							},
 						},
 						ErrorMessage: "",
@@ -517,11 +521,12 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Status: statusReady,
 						Role:   "PASSIVE",
 						Index:  0,
-						NICStatuses: []v1alpha1.ServerSetNICStatus{
+						NICStatuses: []v1alpha1.NicStatus{
 							{
-								Name:    nic1.Name,
-								NICID:   nic1UUID,
-								PCISlot: pciSlot,
+								AtProvider: v1alpha1.NicObservation{
+									NicID:   nic1UUID,
+									PCISlot: pciSlot,
+								},
 							},
 						},
 						ErrorMessage: "",
@@ -531,11 +536,12 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Status: statusReady,
 						Role:   "PASSIVE",
 						Index:  1,
-						NICStatuses: []v1alpha1.ServerSetNICStatus{
+						NICStatuses: []v1alpha1.NicStatus{
 							{
-								Name:    nic2.Name,
-								NICID:   nic2UUID,
-								PCISlot: pciSlot,
+								AtProvider: v1alpha1.NicObservation{
+									NicID:   nic2UUID,
+									PCISlot: pciSlot,
+								},
 							},
 						},
 						ErrorMessage: "",
@@ -561,11 +567,12 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Status: statusReady,
 						Role:   "PASSIVE",
 						Index:  0,
-						NICStatuses: []v1alpha1.ServerSetNICStatus{
+						NICStatuses: []v1alpha1.NicStatus{
 							{
-								Name:    nic1.Name,
-								NICID:   nic1UUID,
-								PCISlot: pciSlot,
+								AtProvider: v1alpha1.NicObservation{
+									NicID:   nic1UUID,
+									PCISlot: pciSlot,
+								},
 							},
 						},
 						ErrorMessage: "",
@@ -575,11 +582,12 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Status: statusReady,
 						Role:   "PASSIVE",
 						Index:  1,
-						NICStatuses: []v1alpha1.ServerSetNICStatus{
+						NICStatuses: []v1alpha1.NicStatus{
 							{
-								Name:    nic2.Name,
-								NICID:   nic2UUID,
-								PCISlot: pciSlot,
+								AtProvider: v1alpha1.NicObservation{
+									NicID:   nic2UUID,
+									PCISlot: pciSlot,
+								},
 							},
 						},
 						ErrorMessage: "",
@@ -605,11 +613,12 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Status: statusReady,
 						Role:   "PASSIVE",
 						Index:  0,
-						NICStatuses: []v1alpha1.ServerSetNICStatus{
+						NICStatuses: []v1alpha1.NicStatus{
 							{
-								Name:    nic1.Name,
-								NICID:   nic1UUID,
-								PCISlot: pciSlot,
+								AtProvider: v1alpha1.NicObservation{
+									NicID:   nic1UUID,
+									PCISlot: pciSlot,
+								},
 							},
 						},
 						ErrorMessage: "",
@@ -635,7 +644,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Status:       statusError,
 						Role:         "PASSIVE",
 						Index:        0,
-						NICStatuses:  []v1alpha1.ServerSetNICStatus{},
+						NICStatuses:  []v1alpha1.NicStatus{},
 						ErrorMessage: "",
 					},
 				},
@@ -659,7 +668,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Status:       statusError,
 						Role:         "PASSIVE",
 						Index:        0,
-						NICStatuses:  []v1alpha1.ServerSetNICStatus{},
+						NICStatuses:  []v1alpha1.NicStatus{},
 						ErrorMessage: reconcileErrorMsg,
 					},
 				},
@@ -683,11 +692,12 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Status: statusUnknown,
 						Role:   "PASSIVE",
 						Index:  0,
-						NICStatuses: []v1alpha1.ServerSetNICStatus{
+						NICStatuses: []v1alpha1.NicStatus{
 							{
-								Name:    nic1.Name,
-								NICID:   nic1UUID,
-								PCISlot: pciSlot,
+								AtProvider: v1alpha1.NicObservation{
+									NicID:   nic1UUID,
+									PCISlot: pciSlot,
+								},
 							},
 						},
 						ErrorMessage: "",

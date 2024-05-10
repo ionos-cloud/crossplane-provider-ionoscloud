@@ -609,9 +609,14 @@ func Test_computeVolumeStatuses(t *testing.T) {
 			},
 			want: []v1alpha1.StatefulServerSetVolumeStatus{
 				{
-					VolumeID:     volumeID1,
-					State:        stateAvailable,
-					PCISlot:      1,
+					VolumeStatus: v1alpha1.VolumeStatus{
+						AtProvider: v1alpha1.VolumeObservation{
+							Name:     "storage_disk",
+							VolumeID: volumeID1,
+							State:    stateAvailable,
+							PCISlot:  1,
+						},
+					},
 					ReplicaIndex: 0,
 				},
 			},
@@ -625,9 +630,14 @@ func Test_computeVolumeStatuses(t *testing.T) {
 			},
 			want: []v1alpha1.StatefulServerSetVolumeStatus{
 				{
-					VolumeID:     volumeID1,
-					State:        stateAvailable,
-					PCISlot:      1,
+					VolumeStatus: v1alpha1.VolumeStatus{
+						AtProvider: v1alpha1.VolumeObservation{
+							Name:     "storage_disk",
+							VolumeID: volumeID1,
+							State:    stateAvailable,
+							PCISlot:  1,
+						},
+					},
 					ReplicaIndex: -1,
 				},
 			},
@@ -637,16 +647,26 @@ func Test_computeVolumeStatuses(t *testing.T) {
 			args: args{volumes: create2VolumesWithStatuses()},
 			want: []v1alpha1.StatefulServerSetVolumeStatus{
 				{
-					VolumeID:     volumeID1,
-					State:        stateAvailable,
-					PCISlot:      1,
+					VolumeStatus: v1alpha1.VolumeStatus{
+						AtProvider: v1alpha1.VolumeObservation{
+							Name:     "storage_disk",
+							VolumeID: volumeID1,
+							State:    stateAvailable,
+							PCISlot:  1,
+						},
+					},
 					ReplicaIndex: 0,
 				},
 				{
-					VolumeID:     volumeID2,
-					State:        stateBusy,
-					PCISlot:      2,
-					ReplicaIndex: 1,
+					VolumeStatus: v1alpha1.VolumeStatus{
+						AtProvider: v1alpha1.VolumeObservation{
+							Name:     "storage_disk_extend_1",
+							VolumeID: volumeID2,
+							State:    stateBusy,
+							PCISlot:  2,
+						},
+					},
+					ReplicaIndex: 0,
 				},
 			},
 		},

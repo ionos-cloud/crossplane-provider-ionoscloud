@@ -479,9 +479,7 @@ func computeVolumeStatuses(serverName string, volumes []v1alpha1.Volume) []v1alp
 	}
 	status := make([]v1alpha1.StatefulServerSetVolumeStatus, len(volumes))
 	for idx := range volumes {
-		status[idx].VolumeID = volumes[idx].Status.AtProvider.VolumeID
-		status[idx].State = volumes[idx].Status.AtProvider.State
-		status[idx].PCISlot = int(volumes[idx].Status.AtProvider.PCISlot)
+		status[idx].VolumeStatus = volumes[idx].Status
 		idxLabel := fmt.Sprintf(volumeselector.IndexLabel, serverName, volumeselector.ResourceDataVolume)
 		status[idx].ReplicaIndex = serverset.ComputeReplicaIdx(idxLabel, volumes[idx].Labels)
 	}

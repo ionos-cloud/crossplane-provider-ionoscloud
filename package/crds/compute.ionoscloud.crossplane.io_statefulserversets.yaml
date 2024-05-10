@@ -752,18 +752,63 @@ spec:
                       description: StatefulServerSetVolumeStatus contains the status
                         of a Volume.
                       properties:
-                        pciSlot:
-                          type: integer
+                        atProvider:
+                          description: VolumeObservation are the observable fields
+                            of a Volume.
+                          properties:
+                            name:
+                              type: string
+                            pciSlot:
+                              format: int32
+                              type: integer
+                            state:
+                              type: string
+                            volumeId:
+                              type: string
+                          type: object
+                        conditions:
+                          description: Conditions of the resource.
+                          items:
+                            description: A Condition that may apply to a resource.
+                            properties:
+                              lastTransitionTime:
+                                description: |-
+                                  LastTransitionTime is the last time this condition transitioned from one
+                                  status to another.
+                                format: date-time
+                                type: string
+                              message:
+                                description: |-
+                                  A Message containing details about this condition's last transition from
+                                  one status to another, if any.
+                                type: string
+                              reason:
+                                description: A Reason for this condition's last transition
+                                  from one status to another.
+                                type: string
+                              status:
+                                description: Status of this condition; is it currently
+                                  True, False, or Unknown?
+                                type: string
+                              type:
+                                description: |-
+                                  Type of this condition. At most one of each condition type may apply to
+                                  a resource at any point in time.
+                                type: string
+                            required:
+                            - lastTransitionTime
+                            - reason
+                            - status
+                            - type
+                            type: object
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - type
+                          x-kubernetes-list-type: map
                         replicaIndex:
                           type: integer
-                        state:
-                          type: string
-                        volumeId:
-                          type: string
                       required:
-                      - pciSlot
                       - replicaIndex
-                      - volumeId
                       type: object
                     type: array
                   lanStatuses:
@@ -887,19 +932,66 @@ spec:
                           type: string
                         nicStatus:
                           items:
-                            description: ServerSetNICStatus contains the status of
-                              a Server's Nic.
+                            description: A NicStatus represents the observed state
+                              of a Nic.
                             properties:
-                              name:
-                                type: string
-                              nicId:
-                                type: string
-                              pciSlot:
-                                type: integer
-                            required:
-                            - name
-                            - nicId
-                            - pciSlot
+                              atProvider:
+                                description: NicObservation are the observable fields
+                                  of a Nic.
+                                properties:
+                                  ips:
+                                    items:
+                                      type: string
+                                    type: array
+                                  mac:
+                                    type: string
+                                  nicId:
+                                    type: string
+                                  pciSlot:
+                                    format: int32
+                                    type: integer
+                                  state:
+                                    type: string
+                                type: object
+                              conditions:
+                                description: Conditions of the resource.
+                                items:
+                                  description: A Condition that may apply to a resource.
+                                  properties:
+                                    lastTransitionTime:
+                                      description: |-
+                                        LastTransitionTime is the last time this condition transitioned from one
+                                        status to another.
+                                      format: date-time
+                                      type: string
+                                    message:
+                                      description: |-
+                                        A Message containing details about this condition's last transition from
+                                        one status to another, if any.
+                                      type: string
+                                    reason:
+                                      description: A Reason for this condition's last
+                                        transition from one status to another.
+                                      type: string
+                                    status:
+                                      description: Status of this condition; is it
+                                        currently True, False, or Unknown?
+                                      type: string
+                                    type:
+                                      description: |-
+                                        Type of this condition. At most one of each condition type may apply to
+                                        a resource at any point in time.
+                                      type: string
+                                  required:
+                                  - lastTransitionTime
+                                  - reason
+                                  - status
+                                  - type
+                                  type: object
+                                type: array
+                                x-kubernetes-list-map-keys:
+                                - type
+                                x-kubernetes-list-type: map
                             type: object
                           type: array
                         role:
