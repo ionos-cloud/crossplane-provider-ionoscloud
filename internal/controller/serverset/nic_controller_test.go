@@ -101,9 +101,6 @@ func Test_kubeNicController_Create(t *testing.T) {
 				return
 			}
 			assert.Equal(t, tt.want, got)
-			//if !reflect.DeepEqual(got, tt.want) {
-			//	t.Errorf("Create() got = %v, want %v", got, tt.want)
-			//}
 		})
 	}
 }
