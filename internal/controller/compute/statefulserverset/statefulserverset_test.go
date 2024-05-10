@@ -8,12 +8,17 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
 )
 
 func Test_statefulServerSetController_Create(t *testing.T) {
@@ -639,5 +644,111 @@ func Test_computeVolumeStatuses(t *testing.T) {
 			got := computeVolumeStatuses(serverName, tt.args.volumes)
 			assert.Equal(t, tt.want, got)
 		})
+	}
+}
+
+func Test_Observe_CRStatus(t *testing.T) {
+	type fields struct {
+		kube                     client.Client
+		service                  server.Client
+		dataVolumeController     kubeDataVolumeControlManager
+		LANController            kubeLANControlManager
+		SSetController           kubeSSetControlManager
+		volumeSelectorController kubeVolumeSelectorManager
+		log                      logging.Logger
+	}
+	type args struct {
+		ctx context.Context
+		cr  *v1alpha1.StatefulServerSet
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   []cv1.Condition
+	}{
+		{
+			name: "datacenter is not available",
+			fields: fields{
+				kube:                 fakeKubeClientWithObjs(createDatacenterNotAvailable()),
+				LANController:        fakeKubeLANController{},
+				dataVolumeController: fakeKubeDataVolumeController{},
+				SSetController:       &fakeKubeServerSetController{},
+				log:                  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createSSSet(),
+			},
+			want: []cv1.Condition{xpv1.Unavailable()},
+		},
+		{
+			name: "datacenter is available",
+			fields: fields{
+				kube:                 fakeKubeClientWithObjs(createDatacenterAvailable()),
+				LANController:        fakeKubeLANController{},
+				dataVolumeController: fakeKubeDataVolumeController{},
+				SSetController:       &fakeKubeServerSetController{},
+				log:                  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createSSSet(),
+			},
+			want: []cv1.Condition{xpv1.Available()},
+		},
+		{
+			name: "datacenter not found",
+			fields: fields{
+				kube:                 fakeKubeClientWithObjs(),
+				LANController:        fakeKubeLANController{},
+				dataVolumeController: fakeKubeDataVolumeController{},
+				SSetController:       &fakeKubeServerSetController{},
+				log:                  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createSSSet(),
+			},
+			want: []cv1.Condition{xpv1.Unavailable()},
+		},
+		{
+			name: "datacenter name not in CR",
+			fields: fields{
+				kube:                 fakeKubeClientWithObjs(createDatacenterAvailable()),
+				LANController:        fakeKubeLANController{},
+				dataVolumeController: fakeKubeDataVolumeController{},
+				SSetController:       &fakeKubeServerSetController{},
+				log:                  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createSSSetWithoutDatacenterRef(),
+			},
+			want: []cv1.Condition{xpv1.Unavailable()},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &external{
+				kube:                     tt.fields.kube,
+				service:                  tt.fields.service,
+				dataVolumeController:     tt.fields.dataVolumeController,
+				LANController:            tt.fields.LANController,
+				SSetController:           tt.fields.SSetController,
+				volumeSelectorController: tt.fields.volumeSelectorController,
+				log:                      tt.fields.log,
+			}
+			_, err := e.Observe(tt.args.ctx, tt.args.cr)
+			assert.NoError(t, err)
+			assertConditions(t, tt.want, tt.args.cr.Status.ConditionedStatus.Conditions)
+		})
+	}
+}
+
+func assertConditions(t *testing.T, expected []xpv1.Condition, actual []xpv1.Condition) {
+	ignoreFields := cmpopts.IgnoreFields(xpv1.Condition{}, "LastTransitionTime")
+	if diff := cmp.Diff(expected, actual, ignoreFields); diff != "" {
+		t.Errorf("(-want +got):\n%s", diff)
 	}
 }

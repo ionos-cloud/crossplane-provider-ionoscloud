@@ -90,6 +90,12 @@ type ServeFieldsUpToDate struct {
 	areCoresUpToDate bool
 }
 
+func createSSSetWithoutDatacenterRef() *v1alpha1.StatefulServerSet {
+	ssset := createSSSet()
+	ssset.Spec.ForProvider.DatacenterCfg = v1alpha1.DatacenterConfig{}
+	return ssset
+}
+
 func createSSSetWithCustomerLanUpdated(params v1alpha1.StatefulServerSetLanSpec) *v1alpha1.StatefulServerSet {
 	ssset := createSSSet()
 	lanIdx := getCustomerLanIdx(ssset)
@@ -117,6 +123,9 @@ func createSSSet() *v1alpha1.StatefulServerSet {
 		},
 		Spec: v1alpha1.StatefulServerSetSpec{
 			ForProvider: v1alpha1.StatefulServerSetParameters{
+				DatacenterCfg: v1alpha1.DatacenterConfig{
+					DatacenterIDRef: &xpv1.Reference{Name: datacenterName},
+				},
 				Replicas: serverSetNrOfReplicas,
 				Template: createSSetTemplate(),
 				BootVolumeTemplate: v1alpha1.BootVolumeTemplate{
@@ -196,7 +205,6 @@ func createSSet() *v1alpha1.ServerSet {
 }
 
 func createSSetTemplate() v1alpha1.ServerSetTemplate {
-
 	return v1alpha1.ServerSetTemplate{
 		Metadata: v1alpha1.ServerSetMetadata{
 			Name: serverSetName,
@@ -521,4 +529,24 @@ func computeSSSetOwnerLabel() string {
 
 func nameWithIdx(replicaIdx int, name string) string {
 	return fmt.Sprintf("%s-%d", name, replicaIdx)
+}
+
+func createDatacenterNotAvailable() *v1alpha1.Datacenter {
+	datacenter := createBasicDatacenter()
+	datacenter.Status.ConditionedStatus.Conditions = []xpv1.Condition{xpv1.Unavailable()}
+	return datacenter
+}
+
+func createDatacenterAvailable() *v1alpha1.Datacenter {
+	datacenter := createBasicDatacenter()
+	datacenter.Status.ConditionedStatus.Conditions = []xpv1.Condition{xpv1.Available()}
+	return datacenter
+}
+
+func createBasicDatacenter() *v1alpha1.Datacenter {
+	return &v1alpha1.Datacenter{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: datacenterName,
+		},
+	}
 }

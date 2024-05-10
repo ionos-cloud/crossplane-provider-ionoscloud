@@ -27,6 +27,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/pkg/errors"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
@@ -114,7 +115,11 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, err
 	}
 
-	cr.Status.SetConditions(xpv1.Available())
+	if isDatacenterReady(ctx, cr, e) {
+		cr.Status.SetConditions(xpv1.Available())
+	} else {
+		cr.Status.SetConditions(xpv1.Unavailable())
+	}
 
 	return managed.ExternalObservation{
 		// Return false when the externalStatefulServerSet resource does not exist. This lets
@@ -131,6 +136,26 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// resource. These will be stored as the connection secret.
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
+}
+
+func isDatacenterReady(ctx context.Context, cr *v1alpha1.StatefulServerSet, e *external) bool {
+	datacenter := &v1alpha1.Datacenter{}
+
+	if cr.Spec.ForProvider.DatacenterCfg.DatacenterIDRef == nil {
+		e.log.Debug("Datacenter name not provided in StatefulServerSet")
+		return false
+	}
+
+	err := e.kube.Get(ctx, types.NamespacedName{
+		Namespace: cr.Namespace,
+		Name:      cr.Spec.ForProvider.DatacenterCfg.DatacenterIDRef.Name,
+	}, datacenter)
+	if err != nil {
+		e.log.Debug("Datacenter not found", "error", err)
+		return false
+	}
+
+	return datacenter.Status.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())
 }
 
 func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha1.StatefulServerSet) (areResourcesCreated, areResourcesUpdated bool, err error) {
