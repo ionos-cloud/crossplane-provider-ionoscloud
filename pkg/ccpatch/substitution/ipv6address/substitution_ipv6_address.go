@@ -1,10 +1,11 @@
 package ccpatch
 
 import (
-	"math/big"
+	"fmt"
 	"net"
 	"strings"
 
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/ipnet"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 )
 
@@ -54,33 +55,27 @@ func (i *ipv6Address) WriteState(identifier substitution.Identifier, gs *substit
 
 // getNextIPv6 calculates the next usable IPv6 address based on the CIDR and used addresses list
 func getNextIPv6(cidr string, usedAddresses []string) (net.IP, error) {
-	_, ipnet, err := net.ParseCIDR(cidr)
+	gen, err := ipnet.New(cidr)
 	if err != nil {
 		return nil, err
 	}
 
-	nextIP := big.NewInt(0).SetBytes(ipnet.IP)
+	if !isUsedIPv6(gen.IP, usedAddresses) {
+		return gen.IP, nil
+	}
 
-	// Calculate the first host address within the CIDR range
-	start := big.NewInt(1)
-	nextIP.Add(nextIP, start)
-
-	// Increment the nextIP until finding an unused IP address
 	for {
-		// Convert the nextIP to IPv6 format
-		nextIPBytes := nextIP.Bytes()
-		nextIPBytesPadded := make([]byte, net.IPv6len)
-		copy(nextIPBytesPadded[net.IPv6len-len(nextIPBytes):], nextIPBytes)
-		nextIPAddr := net.IP(nextIPBytesPadded)
-
-		// Check if the next IP address is within the CIDR range and not in the usedAddresses list
-		if ipnet.Contains(nextIPAddr) && !isUsedIPv6(nextIPAddr, usedAddresses) {
-			return nextIPAddr, nil
+		nextIP := gen.Next()
+		if !isUsedIPv6(nextIP, usedAddresses) {
+			return nextIP, nil
 		}
 
-		// Increment the nextIP
-		nextIP.Add(nextIP, big.NewInt(1))
+		if nextIP == nil {
+			break
+		}
 	}
+
+	return nil, fmt.Errorf("no more available IPv6 addresses in %s", cidr)
 }
 
 // isUsedIPv6 checks if an IPv6 address is in the usedAddresses list

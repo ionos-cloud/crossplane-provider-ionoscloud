@@ -1,11 +1,11 @@
 package ccpatch
 
 import (
-	"crypto/rand"
 	"fmt"
 	"net"
 	"slices"
 
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/ipnet"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 )
 
@@ -54,40 +54,26 @@ func (i *ipv4Address) WriteState(identifier substitution.Identifier, gs *substit
 }
 
 func getNextIPv4(cidr string, used []string) (net.IP, error) {
-
-jump:
-	ip, ipnet, err := net.ParseCIDR(cidr)
+	gen, err := ipnet.New(cidr)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing CIDR: %w", err)
+		return nil, err
 	}
 
-	ones, _ := ipnet.Mask.Size()
-	quotient := ones / 8
-	remainder := ones % 8
-
-	r := make([]byte, 4)
-	_, err = rand.Read(r)
-	if err != nil {
-		return nil, fmt.Errorf("while reading %w", err)
+	if !slices.Contains(used, gen.IP.String()) && !gen.First().Equal(gen.IP) {
+		return gen.IP, nil
 	}
 
-	for i := 0; i <= quotient; i++ {
-		if i == quotient {
-			shifted := r[i] >> remainder
-			r[i] = ^ipnet.IP[i] & shifted
-		} else {
-			r[i] = ipnet.IP[i]
+	for {
+		next := gen.Next()
+
+		if next == nil {
+			break
+		}
+
+		if !slices.Contains(used, next.String()) && !gen.First().Equal(next) {
+			return next, nil
 		}
 	}
-	ip = net.IPv4(r[0], r[1], r[2], r[3])
 
-	if ip.Equal(ipnet.IP) || slices.Contains(
-		used,
-		ip.String(),
-	) /*|| ip.Equal(broadcast) */ {
-		// we got unlucky. The host portion of our ipv4 address was
-		// either all 0s (the network address) or all 1s (the broadcast address)
-		goto jump
-	}
-	return ip, nil
+	return nil, fmt.Errorf("no more available IPv4 addresses in %s", cidr)
 }
