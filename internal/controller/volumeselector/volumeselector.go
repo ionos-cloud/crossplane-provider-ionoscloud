@@ -115,7 +115,11 @@ func (c *externalVolumeselector) Observe(ctx context.Context, mg resource.Manage
 			return managed.ExternalObservation{}, err
 		}
 		if !c.areVolumesAndServersReady(volumeList, serverList) {
-			continue
+			return managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			}, nil
 		}
 		isAttached := false
 		for _, volume := range volumeList.Items {
