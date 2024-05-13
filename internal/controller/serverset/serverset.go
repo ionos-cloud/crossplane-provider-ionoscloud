@@ -189,33 +189,18 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 }
 
 func computeNicStatuses(ctx context.Context, e *external, crName string, replicaIndex int) ([]v1alpha1.NicStatus, error) {
-	nics, err := GetNICsOfSSet(ctx, e.kube, crName)
+	nicsOfReplica := &v1alpha1.NicList{}
+	err := ListResFromSSetWithIndex(ctx, e.kube, crName, resourceNIC, replicaIndex, nicsOfReplica)
 	if err != nil {
 		return []v1alpha1.NicStatus{}, err
 	}
 
-	nicsOfReplica := keepOnlyNicsOfReplica(nics, replicaIndex, crName)
-
-	nicStatuses := make([]v1alpha1.NicStatus, len(nicsOfReplica))
-	for i, nic := range nicsOfReplica {
+	nicStatuses := make([]v1alpha1.NicStatus, len(nicsOfReplica.Items))
+	for i, nic := range nicsOfReplica.Items {
 		nicStatuses[i] = nic.Status
 	}
 
 	return nicStatuses, nil
-}
-
-func keepOnlyNicsOfReplica(nics []v1alpha1.Nic, serverIndex int, serverName string) []v1alpha1.Nic {
-	filteredNICs := []v1alpha1.Nic{}
-	indexLabelValue := fmt.Sprintf(indexLabel, serverName, resourceNIC)
-	indexAsString := strconv.Itoa(serverIndex)
-	for _, nic := range nics {
-
-		if nic.Labels[indexLabelValue] == indexAsString {
-			filteredNICs = append(filteredNICs, nic)
-		}
-	}
-
-	return filteredNICs
 }
 
 func getLastCondition(server v1alpha1.Server) xpv1.Condition {
