@@ -98,7 +98,7 @@ type external struct {
 	log                  logging.Logger
 }
 
-func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
 	cr, ok := mg.(*v1alpha1.ServerSet)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errUnexpectedObject)
