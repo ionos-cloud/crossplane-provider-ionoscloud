@@ -116,14 +116,14 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	e.populateReplicasStatuses(ctx, cr, servers)
 
 	areServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
-	areServersUpToDate := AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
+	areServersUpToDate, areServersAvailable := AreServersReady(cr.Spec.ForProvider.Template.Spec, servers)
 
 	volumes, err := GetVolumesOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
 	areBootVolumesCreated := len(volumes) == cr.Spec.ForProvider.Replicas
-	areBootVolumesUpToDate := AreVolumesUpToDate(cr.Spec.ForProvider.BootVolumeTemplate, volumes)
+	areBootVolumesUpToDate, areBootVolumesAvailable := AreVolumesReady(cr.Spec.ForProvider.BootVolumeTemplate, volumes)
 
 	nics, err := GetNICsOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
@@ -133,9 +133,13 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	areNICsCreated := len(nics) == crExpectedNoOfNICs
 
 	// at the moment we do not check that fields of nics are updated, because nic fields are immutable
-	e.log.Info("Observing the ServerSet", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "areServersCreated", areServersCreated, "areBootVolumesCreated", areBootVolumesCreated, "areNICsCreated", areNICsCreated)
-
-	cr.SetConditions(xpv1.Available())
+	e.log.Info("Observing the ServerSet", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "areServersCreated",
+		areServersCreated, "areBootVolumesCreated", areBootVolumesCreated, "areNICsCreated", areNICsCreated, "areServersAvailable", areServersAvailable, "areBootVolumesAvailable", areBootVolumesAvailable)
+	if areServersAvailable && areBootVolumesAvailable {
+		cr.SetConditions(xpv1.Available())
+	} else {
+		cr.SetConditions(xpv1.Creating())
+	}
 
 	return managed.ExternalObservation{
 		// Return false when the externalServerSet resource does not exist. This lets
@@ -467,38 +471,44 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	return nil
 }
 
-// AreServersUpToDate checks if replicas and template params are equal to server obj params
-func AreServersUpToDate(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server) bool {
+// AreServersReady checks if replicas and template params are equal to server obj params
+func AreServersReady(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server) (areServersUpToDate, areServersAvailable bool) {
 	for _, serverObj := range servers {
 		if serverObj.Spec.ForProvider.Cores != templateParams.Cores {
-			return false
+			return false, false
 		}
 		if serverObj.Spec.ForProvider.RAM != templateParams.RAM {
-			return false
+			return false, false
 		}
 		if serverObj.Spec.ForProvider.CPUFamily != templateParams.CPUFamily {
-			return false
+			return false, false
+		}
+		if serverObj.Status.AtProvider.State != ionoscloud.Available {
+			return true, false
 		}
 	}
 
-	return true
+	return true, true
 }
 
-// AreVolumesUpToDate checks if template params are equal to volume obj params
-func AreVolumesUpToDate(templateParams v1alpha1.BootVolumeTemplate, volumes []v1alpha1.Volume) bool {
+// AreVolumesReady checks if template params are equal to volume obj params
+func AreVolumesReady(templateParams v1alpha1.BootVolumeTemplate, volumes []v1alpha1.Volume) (bool, bool) {
 	for _, volumeObj := range volumes {
 		if volumeObj.Spec.ForProvider.Size != templateParams.Spec.Size {
-			return false
+			return false, false
 		}
 		if volumeObj.Spec.ForProvider.Image != templateParams.Spec.Image {
-			return false
+			return false, false
 		}
 		if volumeObj.Spec.ForProvider.Type != templateParams.Spec.Type {
-			return false
+			return false, false
+		}
+		if volumeObj.Status.AtProvider.State != ionoscloud.Available {
+			return true, false
 		}
 	}
 
-	return true
+	return true, true
 }
 
 // GetServersOfSSet - gets servers from a server set based on the ionoscloud.com/serverset label

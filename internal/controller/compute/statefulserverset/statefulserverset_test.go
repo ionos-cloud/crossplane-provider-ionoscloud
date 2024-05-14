@@ -453,6 +453,7 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 	type want = struct {
 		creationUpToDate bool
 		areUpToDate      bool
+		areAvailable     bool
 	}
 
 	tests := []struct {
@@ -468,6 +469,7 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 			want: want{
 				creationUpToDate: false,
 				areUpToDate:      false,
+				areAvailable:     false,
 			},
 		},
 		{
@@ -477,6 +479,7 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 			want: want{
 				creationUpToDate: false,
 				areUpToDate:      false,
+				areAvailable:     false,
 			},
 		},
 		{
@@ -486,15 +489,17 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 			want: want{
 				creationUpToDate: false,
 				areUpToDate:      false,
+				areAvailable:     false,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			creationUpToDate, areUpToDate := areDataVolumesUpToDate(tt.sSSet, tt.lans)
+			creationUpToDate, areUpToDate, areAvailable := areDataVolumesUpToDateAndAvailable(tt.sSSet, tt.lans)
 			assert.Equal(t, tt.want.creationUpToDate, creationUpToDate)
 			assert.Equal(t, tt.want.areUpToDate, areUpToDate)
+			assert.Equal(t, tt.want.areAvailable, areAvailable)
 		})
 	}
 }
