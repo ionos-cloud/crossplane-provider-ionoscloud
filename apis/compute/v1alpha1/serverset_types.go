@@ -75,7 +75,6 @@ type ServerSetTemplateSpec struct {
 	// NICs are the network interfaces of the server.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="Value is Immutable"
 	NICs []ServerSetTemplateNIC `json:"nics,omitempty"`
 }
 
