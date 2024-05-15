@@ -149,7 +149,7 @@ func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha
 		return false, false, fmt.Errorf("while listing volumes %w", err)
 	}
 	creationVolumesUpToDate, areVolumesUpToDate := areDataVolumesUpToDate(cr, volumes.Items)
-	cr.Status.AtProvider.DataVolumeStatuses = computeVolumeStatuses(cr.Spec.ForProvider.Template.Metadata.Name, volumes.Items)
+	cr.Status.AtProvider.DataVolumeStatuses = computeVolumeStatuses(e.log, cr.Spec.ForProvider.Template.Metadata.Name, volumes.Items)
 
 	// ******************* SERVERSET *******************
 	creationServerSetUpToDate, isServerSetUpToDate, err := e.isServerSetUpToDate(ctx, cr)
@@ -448,7 +448,7 @@ func areNICsUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.State
 	return true, nil
 }
 
-func computeVolumeStatuses(serverName string, volumes []v1alpha1.Volume) []v1alpha1.StatefulServerSetVolumeStatus {
+func computeVolumeStatuses(log logging.Logger, serverName string, volumes []v1alpha1.Volume) []v1alpha1.StatefulServerSetVolumeStatus {
 	if len(volumes) == 0 {
 		return nil
 	}
@@ -456,7 +456,7 @@ func computeVolumeStatuses(serverName string, volumes []v1alpha1.Volume) []v1alp
 	for idx := range volumes {
 		status[idx].VolumeStatus = volumes[idx].Status
 		idxLabel := fmt.Sprintf(volumeselector.IndexLabel, serverName, volumeselector.ResourceDataVolume)
-		status[idx].ReplicaIndex = serverset.ComputeReplicaIdx(idxLabel, volumes[idx].Labels)
+		status[idx].ReplicaIndex = serverset.ComputeReplicaIdx(log, idxLabel, volumes[idx].Labels)
 	}
 	return status
 }

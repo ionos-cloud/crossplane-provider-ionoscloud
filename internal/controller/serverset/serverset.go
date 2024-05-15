@@ -174,8 +174,8 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 			errMsg = lastCondition.Message
 		}
 
-		replicaIdx := ComputeReplicaIdx(fmt.Sprintf(indexLabel, cr.Name, ResourceServer), serverSetReplicas[i].Labels)
-		nicStatues, _ := computeNicStatuses(ctx, e, cr.Name, replicaIdx)
+		replicaIdx := ComputeReplicaIdx(e.log, fmt.Sprintf(indexLabel, cr.Name, ResourceServer), serverSetReplicas[i].Labels)
+		nicStatues := computeNicStatuses(ctx, e, cr.Name, replicaIdx)
 		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{
 			Role:         fetchRole(ctx, e, serverSetReplicas[i]),
 			Name:         serverSetReplicas[i].Name,
@@ -188,11 +188,12 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 	}
 }
 
-func computeNicStatuses(ctx context.Context, e *external, crName string, replicaIndex int) ([]v1alpha1.NicStatus, error) {
+func computeNicStatuses(ctx context.Context, e *external, crName string, replicaIndex int) []v1alpha1.NicStatus {
 	nicsOfReplica := &v1alpha1.NicList{}
 	err := ListResFromSSetWithIndex(ctx, e.kube, crName, resourceNIC, replicaIndex, nicsOfReplica)
 	if err != nil {
-		return []v1alpha1.NicStatus{}, err
+		e.log.Info("error fetching nics", "error", err)
+		return []v1alpha1.NicStatus{}
 	}
 
 	nicStatuses := make([]v1alpha1.NicStatus, len(nicsOfReplica.Items))
@@ -200,7 +201,7 @@ func computeNicStatuses(ctx context.Context, e *external, crName string, replica
 		nicStatuses[i] = nic.Status
 	}
 
-	return nicStatuses, nil
+	return nicStatuses
 }
 
 func getLastCondition(server v1alpha1.Server) xpv1.Condition {
@@ -668,10 +669,11 @@ func getNameFrom(resourceName string, idx, version int) string {
 }
 
 // ComputeReplicaIdx - extracts the replica index from the labels
-func ComputeReplicaIdx(idxLabel string, labels map[string]string) int {
+func ComputeReplicaIdx(log logging.Logger, idxLabel string, labels map[string]string) int {
 	idxLabelValue := labels[idxLabel]
-	var replicaIdx int
-	if _, err := fmt.Sscan(idxLabelValue, &replicaIdx); err != nil {
+	replicaIdx, err := strconv.Atoi(idxLabelValue)
+	if err != nil {
+		log.Info("could not compute replica index", "error", err, "idxLabelValue", idxLabelValue, "idxLabel", idxLabel)
 		return -1
 	}
 	return replicaIdx

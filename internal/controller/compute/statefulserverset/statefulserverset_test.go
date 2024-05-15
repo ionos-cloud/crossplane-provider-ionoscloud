@@ -668,7 +668,7 @@ func Test_computeVolumeStatuses(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := computeVolumeStatuses(serverName, tt.args.volumes)
+			got := computeVolumeStatuses(logging.NewNopLogger(), serverName, tt.args.volumes)
 			assert.Equal(t, tt.want, got)
 		})
 	}
