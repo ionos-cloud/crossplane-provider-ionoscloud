@@ -393,10 +393,7 @@ func areDataVolumesUpToDateAndAvailable(cr *v1alpha1.StatefulServerSet, volumes 
 }
 
 func isAVolumeFieldNotUpToDate(specVolume v1alpha1.StatefulServerSetVolume, volumeIndex int, volumes []v1alpha1.Volume) bool {
-	if volumes[volumeIndex].Spec.ForProvider.Size != specVolume.Spec.Size {
-		return true
-	}
-	return false
+	return volumes[volumeIndex].Spec.ForProvider.Size != specVolume.Spec.Size
 }
 
 func areSSetResourcesReady(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (isSsetUpToDate, isSsetAvailable bool, err error) {
