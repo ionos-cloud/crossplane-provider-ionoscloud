@@ -504,13 +504,55 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 			},
 		},
 		{
-			name:    "Data Volumes ready, uptodate and available",
-			sSSet:   createSSSet(),
-			volumes: []v1alpha1.Volume{createVolumeWithState(ionoscloud.Available), createVolumeWithState(ionoscloud.Available), createVolumeWithState(ionoscloud.Available), createVolumeWithState(ionoscloud.Available)},
+			name:  "Data Volumes ready, uptodate and not available",
+			sSSet: createSSSet(),
+			volumes: []v1alpha1.Volume{createVolumeWithState(0, v1alpha1.VolumeParameters{
+				Name: dataVolume1Name,
+				Size: dataVolume1Size,
+				Type: dataVolume1Type,
+			}, ionoscloud.Available), createVolumeWithState(0, v1alpha1.VolumeParameters{
+				Name: dataVolume1Name,
+				Size: dataVolume1Size,
+				Type: dataVolume1Type,
+			}, ionoscloud.Available), createVolumeWithState(1, v1alpha1.VolumeParameters{
+				Name: dataVolume2Name,
+				Size: dataVolume2Size,
+				Type: dataVolume2Type,
+			}, ionoscloud.Available), createVolumeWithState(1, v1alpha1.VolumeParameters{
+				Name: dataVolume2Name,
+				Size: dataVolume2Size,
+				Type: dataVolume2Type,
+			}, ionoscloud.Busy)},
 			want: want{
 				creationUpToDate: true,
 				areUpToDate:      true,
-				areAvailable:     true,
+				areAvailable:     false,
+			},
+		},
+		{
+			name:  "Data Volumes ready, not uptodate and available",
+			sSSet: createSSSet(),
+			volumes: []v1alpha1.Volume{createVolumeWithState(0, v1alpha1.VolumeParameters{
+				Name: dataVolume1Name,
+				Size: dataVolume1Size,
+				Type: dataVolume1Type,
+			}, ionoscloud.Available), createVolumeWithState(0, v1alpha1.VolumeParameters{
+				Name: dataVolume1Name,
+				Size: dataVolume1Size,
+				Type: dataVolume1Type,
+			}, ionoscloud.Available), createVolumeWithState(1, v1alpha1.VolumeParameters{
+				Name: dataVolume1Name,
+				Size: dataVolume1Size,
+				Type: dataVolume1Type,
+			}, ionoscloud.Available), createVolumeWithState(0, v1alpha1.VolumeParameters{
+				Name: dataVolume1Name,
+				Size: 20,
+				Type: dataVolume1Type,
+			}, ionoscloud.Available)},
+			want: want{
+				creationUpToDate: true,
+				areUpToDate:      false,
+				areAvailable:     false,
 			},
 		},
 	}
@@ -518,9 +560,9 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			creationUpToDate, areUpToDate, areAvailable := areDataVolumesUpToDateAndAvailable(tt.sSSet, tt.volumes)
-			assert.Equal(t, tt.want.creationUpToDate, creationUpToDate)
-			assert.Equal(t, tt.want.areUpToDate, areUpToDate)
-			assert.Equal(t, tt.want.areAvailable, areAvailable)
+			assert.Equalf(t, tt.want.creationUpToDate, creationUpToDate, "creationUpToDate is not equal")
+			assert.Equal(t, tt.want.areUpToDate, areUpToDate, "areUpToDate is not equal")
+			assert.Equal(t, tt.want.areAvailable, areAvailable, "areAvailable is not equal")
 		})
 	}
 }

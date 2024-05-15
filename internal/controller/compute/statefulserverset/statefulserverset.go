@@ -391,9 +391,6 @@ func areDataVolumesUpToDateAndAvailable(cr *v1alpha1.StatefulServerSet, volumes 
 }
 
 func isAVolumeFieldNotUpToDate(specVolume v1alpha1.StatefulServerSetVolume, volumeIndex int, volumes []v1alpha1.Volume) bool {
-	if generateProviderNameFromIndex(specVolume.Metadata.Name, volumeIndex) != volumes[volumeIndex].Spec.ForProvider.Name {
-		return false
-	}
 	if volumes[volumeIndex].Spec.ForProvider.Size != specVolume.Spec.Size {
 		return true
 	}

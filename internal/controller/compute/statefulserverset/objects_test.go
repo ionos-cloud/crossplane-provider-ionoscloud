@@ -397,15 +397,12 @@ func createVolumeDefault() v1alpha1.Volume {
 	return volume
 }
 
-func createVolumeWithState(state string) v1alpha1.Volume {
-	volume := createVolume(0, v1alpha1.VolumeParameters{
-		Name: dataVolume2Name,
-		Size: dataVolume2Size,
-		Type: dataVolume2Type,
-	})
+func createVolumeWithState(replicaIdx int, parameters v1alpha1.VolumeParameters, state string) v1alpha1.Volume {
+	volume := createVolume(replicaIdx, parameters)
 	volume.Status.AtProvider.State = state
 	return volume
 }
+
 func createVolume(replicaIdx int, parameters v1alpha1.VolumeParameters) v1alpha1.Volume {
 	withNameUpdated := parameters
 	withNameUpdated.Name = nameWithIdx(replicaIdx, parameters.Name)
