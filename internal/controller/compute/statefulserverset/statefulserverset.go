@@ -143,7 +143,7 @@ func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha
 	if err != nil {
 		return false, false, false, fmt.Errorf("while listing lans %w", err)
 	}
-	creationLansUpToDate, areLansUpToDate := areLansUpToDate(cr, lans.Items)
+	creationLansUpToDate, lansUpToDate := areLansUpToDate(cr, lans.Items)
 	cr.Status.AtProvider.LanStatuses = computeLanStatuses(lans.Items)
 
 	// ******************* VOLUMES *******************
@@ -155,7 +155,7 @@ func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha
 	cr.Status.AtProvider.DataVolumeStatuses = setVolumeStatuses(volumes.Items)
 
 	// ******************* SERVERSET *******************
-	creationServerSetUpToDate, isServerSetUpToDate, isSsetAvailable, err := e.isServerSetUpToDate(ctx, cr)
+	creationSSetUpToDate, isSSetUpToDate, isSSetAvailable, err := e.isServerSetUpToDate(ctx, cr)
 	if err != nil {
 		return false, false, false, err
 	}
@@ -169,10 +169,12 @@ func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha
 	if err != nil {
 		return false, false, false, err
 	}
-	e.log.Info("Observing the StatefulServerSet", "creationLansUpToDate", creationLansUpToDate, "areLansUpToDate", areLansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate,
-		"areVolumesUpToDate", areVolumesUpToDate, "creationServerSetUpToDate", creationServerSetUpToDate, "isServerSetUpToDate", isServerSetUpToDate, "creationVSUpToDate", creationVSUpToDate, "areVolumesAvailable", areVolumesAvailable)
-
-	return creationLansUpToDate && creationVolumesUpToDate && creationServerSetUpToDate && creationVSUpToDate, areLansUpToDate && areVolumesUpToDate && isServerSetUpToDate, areVolumesAvailable && isSsetAvailable, nil
+	e.log.Info("Observing the StatefulServerSet", "creationLansUpToDate", creationLansUpToDate, "lansUpToDate", lansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate,
+		"areVolumesUpToDate", areVolumesUpToDate, "creationSSetUpToDate", creationSSetUpToDate, "isSSetUpToDate", isSSetUpToDate, "creationVSUpToDate", creationVSUpToDate, "areVolumesAvailable", areVolumesAvailable)
+	areResourcesCreated = creationLansUpToDate && creationVolumesUpToDate && creationSSetUpToDate && creationVSUpToDate
+	areResourcesUpdated = lansUpToDate && areVolumesUpToDate && isSSetUpToDate
+	areResourcesAvailable = areVolumesAvailable && isSSetAvailable
+	return areResourcesCreated, areResourcesUpdated, areResourcesAvailable, nil
 }
 
 func (e *external) isServerSetUpToDate(ctx context.Context, cr *v1alpha1.StatefulServerSet) (creationServerUpToDate, serversetUpToDate, ssetAvailable bool, err error) {
