@@ -8,6 +8,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -457,15 +458,15 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 	}
 
 	tests := []struct {
-		name  string
-		sSSet *v1alpha1.StatefulServerSet
-		lans  []v1alpha1.Volume
-		want  want
+		name    string
+		sSSet   *v1alpha1.StatefulServerSet
+		volumes []v1alpha1.Volume
+		want    want
 	}{
 		{
-			name:  "No Data Volumes",
-			sSSet: createSSSet(),
-			lans:  []v1alpha1.Volume{},
+			name:    "No Data Volumes",
+			sSSet:   createSSSet(),
+			volumes: []v1alpha1.Volume{},
 			want: want{
 				creationUpToDate: false,
 				areUpToDate:      false,
@@ -473,9 +474,9 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 			},
 		},
 		{
-			name:  "Different number of Data Volumes",
-			sSSet: createSSSet(),
-			lans:  []v1alpha1.Volume{*createVolumeDefault()},
+			name:    "Different number of Data Volumes",
+			sSSet:   createSSSet(),
+			volumes: []v1alpha1.Volume{createVolumeDefault()},
 			want: want{
 				creationUpToDate: false,
 				areUpToDate:      false,
@@ -483,20 +484,40 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 			},
 		},
 		{
-			name:  "Empty StatefulServerSet",
-			sSSet: &v1alpha1.StatefulServerSet{},
-			lans:  createVolumeList().Items,
+			name:    "Empty StatefulServerSet, different number of volumes",
+			sSSet:   &v1alpha1.StatefulServerSet{},
+			volumes: createVolumeList().Items,
 			want: want{
 				creationUpToDate: false,
 				areUpToDate:      false,
 				areAvailable:     false,
+			},
+		},
+		{
+			name:    "Data Volumes ready, uptodate, not available",
+			sSSet:   createSSSet(),
+			volumes: createVolumeList().Items,
+			want: want{
+				creationUpToDate: true,
+				areUpToDate:      true,
+				areAvailable:     false,
+			},
+		},
+		{
+			name:    "Data Volumes ready, uptodate and available",
+			sSSet:   createSSSet(),
+			volumes: []v1alpha1.Volume{createVolumeWithState(ionoscloud.Available), createVolumeWithState(ionoscloud.Available), createVolumeWithState(ionoscloud.Available), createVolumeWithState(ionoscloud.Available)},
+			want: want{
+				creationUpToDate: true,
+				areUpToDate:      true,
+				areAvailable:     true,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			creationUpToDate, areUpToDate, areAvailable := areDataVolumesUpToDateAndAvailable(tt.sSSet, tt.lans)
+			creationUpToDate, areUpToDate, areAvailable := areDataVolumesUpToDateAndAvailable(tt.sSSet, tt.volumes)
 			assert.Equal(t, tt.want.creationUpToDate, creationUpToDate)
 			assert.Equal(t, tt.want.areUpToDate, areUpToDate)
 			assert.Equal(t, tt.want.areAvailable, areAvailable)
