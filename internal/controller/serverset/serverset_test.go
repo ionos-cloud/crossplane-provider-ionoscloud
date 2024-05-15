@@ -711,9 +711,17 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				Replicas: 1,
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
-						Name:         serverNotReadyName,
-						Status:       statusBusy,
-						Role:         "PASSIVE",
+						Name:   serverNotReadyName,
+						Status: statusBusy,
+						Role:   "PASSIVE",
+						NICStatuses: []v1alpha1.NicStatus{
+							{
+								AtProvider: v1alpha1.NicObservation{
+									NicID:   nic1UUID,
+									PCISlot: pciSlot,
+								},
+							},
+						},
 						ErrorMessage: "",
 					},
 				},
