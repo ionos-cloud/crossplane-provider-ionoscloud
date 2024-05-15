@@ -241,6 +241,8 @@ func computeStatus(state string) string {
 		return statusReady
 	case ionoscloud.Failed:
 		return statusError
+	case ionoscloud.Busy:
+		return statusBusy
 	}
 	return statusUnknown
 }

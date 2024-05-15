@@ -1004,6 +1004,7 @@ spec:
                           - UNKNOWN
                           - READY
                           - ERROR
+                          - BUSY
                           type: string
                       required:
                       - index

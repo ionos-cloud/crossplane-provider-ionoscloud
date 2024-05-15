@@ -60,6 +60,7 @@ const (
 
 	server1Name        = "serverset-server-0-0"
 	server2Name        = "serverset-server-1-0"
+	serverNotReadyName = "server-not-ready"
 	serverSetCPUFamily = "AMD_OPTERON"
 	serverSetCores     = 2
 	serverSetRAM       = 4096
@@ -406,11 +407,10 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 	nic2.Labels[serverSetNicIndexLabel] = "1"
 
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    v1alpha1.ServerSetObservation
-		wantErr bool
+		name   string
+		fields fields
+		args   args
+		want   v1alpha1.ServerSetObservation
 	}{
 		{
 			name: "serverset status is populated correctly",
@@ -456,7 +456,6 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "config-lease map missing, then roles default to PASSIVE",
@@ -502,7 +501,6 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "replicas not in config-lease, then roles default to PASSIVE",
@@ -548,7 +546,6 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "replica count increases, then number of replica status is increased",
@@ -594,7 +591,6 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "replica count decreases, then number of replica status is decreased",
@@ -625,7 +621,6 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "status of the server is failure, then status of replica is ERROR",
@@ -649,7 +644,6 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "error message on the server is, then status of replica is ERROR and error message is populated",
@@ -673,7 +667,6 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "status of the server not among known ones, then status of replica is also UNKNOWN",
@@ -704,7 +697,27 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
+		},
+		{
+			name: "server not ready yet",
+			fields: fields{
+				kube: fakeKubeClientObjs(createServerNotReadyYet(), nic1),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createServerSetWithOneReplica(),
+			},
+			want: v1alpha1.ServerSetObservation{
+				Replicas: 1,
+				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
+					{
+						Name:         serverNotReadyName,
+						Status:       statusBusy,
+						Role:         "PASSIVE",
+						ErrorMessage: "",
+					},
+				},
+			},
 		},
 	}
 
@@ -718,10 +731,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 			_, err := e.Observe(tt.args.ctx, tt.args.cr)
 			got := tt.args.cr.Status.AtProvider
 
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Observe() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			assert.NoError(t, err)
 			areEqual(t, tt.want, got)
 		})
 	}
@@ -1753,6 +1763,12 @@ func (f *kubeNicCallTracker) EnsureNICs(ctx context.Context, cr *v1alpha1.Server
 func (f *kubeNicCallTracker) Delete(ctx context.Context, name, ns string) error {
 	f.lastMethodCall[deleteMethod] = []any{ctx, name, ns}
 	return nil
+}
+
+func createServerNotReadyYet() *v1alpha1.Server {
+	serverNotReady := createServer(serverNotReadyName)
+	serverNotReady.Status.AtProvider.State = ionoscloud.Busy
+	return serverNotReady
 }
 
 func createServer(name string) *v1alpha1.Server {
