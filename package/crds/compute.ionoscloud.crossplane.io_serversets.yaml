@@ -15,10 +15,23 @@ spec:
     kind: ServerSet
     listKind: ServerSetList
     plural: serversets
+    shortNames:
+    - ss
+    - sset
     singular: serverset
   scope: Cluster
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.forProvider.datacenterConfig.datacenterId
+      name: Datacenter ID
+      type: string
+    - jsonPath: .status.atProvider.replicas
+      name: REPLICAS
+      type: integer
+    - jsonPath: .status.atProvider.replicaStatus
+      name: servers
+      priority: 1
+      type: string
     - jsonPath: .status.conditions[?(@.type=='Ready')].status
       name: READY
       type: string
@@ -87,6 +100,11 @@ spec:
                               type: string
                             type: object
                           name:
+                            description: |-
+                              Name of the BootVolume. Replica index, volume index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}. Version increases if the bootvolume is
+                              re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
+                            maxLength: 55
+                            pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                             type: string
                         required:
                         - name
@@ -99,7 +117,15 @@ spec:
                             description: |-
                               Image or snapshot ID to be used as template for this volume.
                               Make sure the image selected is compatible with the datacenter's location.
-                              Note: when creating a volume, set image, image alias, or licence type
+                              Note: when creating a volume and setting image, set imagePassword or SSKeys as well.
+                            type: string
+                          imagePassword:
+                            description: |-
+                              Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
+                              Password rules allows all characters from a-z, A-Z, 0-9.
+                            maxLength: 50
+                            minLength: 8
+                            pattern: ^[A-Za-z0-9]+$
                             type: string
                           selector:
                             description: |-
@@ -151,7 +177,21 @@ spec:
                           size:
                             description: The size of the volume in GB.
                             type: number
+                            x-kubernetes-validations:
+                            - message: Size cannot be decreased once set, only increased
+                              rule: self >= oldSelf
+                          sshKeys:
+                            description: |-
+                              Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key.
+                              This field may only be set in creation requests. When reading, it always returns null.
+                              SSH keys are only supported if a public Linux image is used for the volume creation.
+                            items:
+                              type: string
+                            type: array
                           type:
+                            description: Changing type re-creates either the bootvolume,
+                              or the bootvolume, server and nic depending on the UpdateStrategy
+                              chosen`
                             enum:
                             - HDD
                             - SSD
@@ -185,6 +225,9 @@ spec:
                         - size
                         - type
                         type: object
+                        x-kubernetes-validations:
+                        - message: either imagePassword or sshKeys must be set
+                          rule: has(self.imagePassword) || has(self.sshKeys)
                     required:
                     - spec
                     type: object
@@ -277,7 +320,8 @@ spec:
                         type: object
                     type: object
                   replicas:
-                    description: The number of servers that will be created.
+                    description: The number of servers that will be created. Cannot
+                      be decreased once set, only increased.
                     minimum: 1
                     type: integer
                   template:
@@ -293,6 +337,11 @@ spec:
                               type: string
                             type: object
                           name:
+                            description: |-
+                              Name of the Server. Replica index and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}
+                              Version increases if the Server is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the Server is re-created and the version is increased.
+                            maxLength: 55
+                            pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                             type: string
                         required:
                         - name
@@ -301,11 +350,6 @@ spec:
                         description: ServerSetTemplateSpec are the configurable fields
                           of a ServerSetTemplateSpec.
                         properties:
-                          bootStorageVolumeRef:
-                            description: |-
-                              The reference to the boot volume.
-                              It must exist in the same data center as the server.
-                            type: string
                           cores:
                             description: The total number of cores for the server.
                             format: int32
@@ -325,18 +369,31 @@ spec:
                               description: ServerSetTemplateNIC are the configurable
                                 fields of a ServerSetTemplateNIC.
                               properties:
-                                ipv4:
-                                  type: string
+                                dhcp:
+                                  type: boolean
+                                dhcpv6:
+                                  type: boolean
                                 name:
-                                  description: todo add descriptions
+                                  description: |-
+                                    Name of the NIC. Replica index, NIC index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{nicIndex}-{version}.
+                                    Version increases if the NIC is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the NIC is re-created and the version is increased.
+                                  maxLength: 50
+                                  pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                                   type: string
                                 reference:
                                   type: string
+                                vnetId:
+                                  type: string
                               required:
-                              - ipv4
+                              - dhcp
                               - name
                               - reference
                               type: object
+                              x-kubernetes-validations:
+                              - message: Only one of 'dhcp' or 'dhcpv6' can be set
+                                  to true
+                                rule: '!has(self.dhcpv6) || (self.dhcp == false &&
+                                  self.dhcpv6 == false) || (self.dhcp != self.dhcpv6)'
                             minItems: 1
                             type: array
                           ram:
@@ -345,25 +402,9 @@ spec:
                               however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB,
                               then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
                             format: int32
-                            multipleOf: 256
+                            multipleOf: 1024
                             type: integer
-                          volumeMounts:
-                            description: |-
-                              The reference to the boot volume.
-                              It must exist in the same data center as the server.
-                            items:
-                              description: |-
-                                ServerSetTemplateVolumeMount are the configurable fields of a ServerSetTemplateVolumeMount.
-                                It is used to mount a volume to a server.
-                              properties:
-                                reference:
-                                  type: string
-                              required:
-                              - reference
-                              type: object
-                            type: array
                         required:
-                        - bootStorageVolumeRef
                         - cores
                         - ram
                         type: object
@@ -555,6 +596,45 @@ spec:
                       description: ServerSetReplicaStatus are the observable fields
                         of a ServerSetReplicaStatus.
                       properties:
+                        conditions:
+                          description: Conditions of the resource.
+                          items:
+                            description: A Condition that may apply to a resource.
+                            properties:
+                              lastTransitionTime:
+                                description: |-
+                                  LastTransitionTime is the last time this condition transitioned from one
+                                  status to another.
+                                format: date-time
+                                type: string
+                              message:
+                                description: |-
+                                  A Message containing details about this condition's last transition from
+                                  one status to another, if any.
+                                type: string
+                              reason:
+                                description: A Reason for this condition's last transition
+                                  from one status to another.
+                                type: string
+                              status:
+                                description: Status of this condition; is it currently
+                                  True, False, or Unknown?
+                                type: string
+                              type:
+                                description: |-
+                                  Type of this condition. At most one of each condition type may apply to
+                                  a resource at any point in time.
+                                type: string
+                            required:
+                            - lastTransitionTime
+                            - reason
+                            - status
+                            - type
+                            type: object
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - type
+                          x-kubernetes-list-type: map
                         errorMessage:
                           description: ErrorMessage relayed from the backend.
                           type: string
@@ -564,11 +644,12 @@ spec:
                         name:
                           type: string
                         role:
-                          description: Server assigned role
+                          description: |-
+                            Role is the role of a ServerSet Replica. It can be ACTIVE or PASSIVE. The default value is PASSIVE.
+                            When a ServerSet Replica has role ACTIVE, it is the primary server and is used to serve the traffic.
                           enum:
                           - ACTIVE
                           - PASSIVE
-                          - REPLICA
                           type: string
                         status:
                           enum:
@@ -632,4 +713,8 @@ spec:
     served: true
     storage: true
     subresources:
+      scale:
+        labelSelectorPath: .status.selector
+        specReplicasPath: .spec.forProvider.replicas
+        statusReplicasPath: .status.atProvider.replicas
       status: {}

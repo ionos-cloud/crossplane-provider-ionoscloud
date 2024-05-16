@@ -25,9 +25,20 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
+// Role is the role of a ServerSet Replica. It can be ACTIVE or PASSIVE. The default value is PASSIVE.
+// When a ServerSet Replica has role ACTIVE, it is the primary server and is used to serve the traffic.
+type Role string
+
+const (
+	// Active means that the ServerSet Replica is the primary server and is used to serve the traffic.
+	Active Role = "ACTIVE"
+	// Passive means that the ServerSet Replica is the secondary server and is not used to serve the traffic.
+	Passive Role = "PASSIVE"
+)
+
 // ServerSetParameters are the configurable fields of a ServerSet.
 type ServerSetParameters struct {
-	// The number of servers that will be created.
+	// The number of servers that will be created. Cannot be decreased once set, only increased.
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=1
@@ -58,17 +69,9 @@ type ServerSetTemplateSpec struct {
 	// however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB,
 	// then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
 	//
-	// +kubebuilder:validation:MultipleOf=256
+	// +kubebuilder:validation:MultipleOf=1024
 	// +kubebuilder:validation:Required
 	RAM int32 `json:"ram"`
-	// The reference to the boot volume.
-	// It must exist in the same data center as the server.
-	// +kubebuilder:validation:Required
-	BootStorageVolumeRef string `json:"bootStorageVolumeRef"`
-	// The reference to the boot volume.
-	// It must exist in the same data center as the server.
-	// +kubebuilder:validation:Required
-	VolumeMounts []ServerSetTemplateVolumeMount `json:"volumeMounts,omitempty"`
 	// NICs are the network interfaces of the server.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
@@ -76,13 +79,21 @@ type ServerSetTemplateSpec struct {
 }
 
 // ServerSetTemplateNIC are the configurable fields of a ServerSetTemplateNIC.
+// +kubebuilder:validation:XValidation:rule="!has(self.dhcpv6) || (self.dhcp == false && self.dhcpv6 == false) || (self.dhcp != self.dhcpv6)", message="Only one of 'dhcp' or 'dhcpv6' can be set to true"
 type ServerSetTemplateNIC struct {
-	// todo add descriptions
+	// Name of the NIC. Replica index, NIC index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{nicIndex}-{version}.
+	// Version increases if the NIC is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the NIC is re-created and the version is increased.
 	//
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+	// +kubebuilder:validation:MaxLength=50
 	Name string `json:"name"`
 	// +kubebuilder:validation:Required
-	IPv4 string `json:"ipv4"`
+	DHCP bool `json:"dhcp"`
+	// +kubebuilder:validation:Optional
+	DHCPv6 *bool `json:"dhcpv6"`
+	// +kubebuilder:validation:Optional
+	VNetID string `json:"vnetId,omitempty"`
 	// +kubebuilder:validation:Required
 	Reference string `json:"reference"`
 }
@@ -104,7 +115,12 @@ type ServerSetTemplate struct {
 
 // ServerSetMetadata are the configurable fields of a ServerSetMetadata.
 type ServerSetMetadata struct {
+	// Name of the Server. Replica index and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}
+	// Version increases if the Server is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the Server is re-created and the version is increased.
+	//
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+	// +kubebuilder:validation:MaxLength=55
 	Name string `json:"name"`
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
@@ -113,16 +129,15 @@ type ServerSetMetadata struct {
 // ServerSetObservation are the observable fields of a ServerSet.
 type ServerSetObservation struct {
 	// Replicas is the count of ready replicas.
-	Replicas      int                      `json:"replicas,omitempty"`
-	ReplicaStatus []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
+	Replicas        int                      `json:"replicas,omitempty"`
+	ReplicaStatuses []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
 }
 
 // ServerSetReplicaStatus are the observable fields of a ServerSetReplicaStatus.
 type ServerSetReplicaStatus struct {
-	// Server assigned role
-	//
-	// +kubebuilder:validation:Enum=ACTIVE;PASSIVE;REPLICA
-	Role string `json:"role"`
+	xpv1.ResourceStatus `json:",inline"`
+	// +kubebuilder:validation:Enum=ACTIVE;PASSIVE
+	Role Role   `json:"role"`
 	Name string `json:"name"`
 	// +kubebuilder:validation:Enum=UNKNOWN;READY;ERROR
 	Status string `json:"status"`
@@ -153,24 +168,33 @@ type BootVolumeTemplate struct {
 
 // ServerSetBootVolumeMetadata are the configurable fields of a ServerSetBootVolumeMetadata.
 type ServerSetBootVolumeMetadata struct {
+	// Name of the BootVolume. Replica index, volume index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}. Version increases if the bootvolume is
+	// re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
+	//
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+	// +kubebuilder:validation:MaxLength=55
 	Name string `json:"name"`
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // ServerSetBootVolumeSpec are the configurable fields of a ServerSetBootVolumeSpec.
+// +kubebuilder:validation:XValidation:rule="has(self.imagePassword) || has(self.sshKeys)",message="either imagePassword or sshKeys must be set"
 type ServerSetBootVolumeSpec struct {
 	// Image or snapshot ID to be used as template for this volume.
 	// Make sure the image selected is compatible with the datacenter's location.
-	// Note: when creating a volume, set image, image alias, or licence type
+	// Note: when creating a volume and setting image, set imagePassword or SSKeys as well.
 	//
 	// +immutable
+	// +kubebuilder:validation:Required
 	Image string `json:"image,omitempty"`
 	// The size of the volume in GB.
 	//
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:XValidation:rule="self >= oldSelf", message="Size cannot be decreased once set, only increased"
 	Size float32 `json:"size"`
+	// Changing type re-creates either the bootvolume, or the bootvolume, server and nic depending on the UpdateStrategy chosen`
 	//
 	// +immutable
 	// +kubebuilder:validation:Enum=HDD;SSD;SSD Standard;SSD Premium;DAS;ISO
@@ -181,13 +205,32 @@ type ServerSetBootVolumeSpec struct {
 	// It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
 	//
 	// +immutable
-	UserData       string               `json:"userData,omitempty"`
-	Selector       metav1.LabelSelector `json:"selector,omitempty"`
-	UpdateStrategy UpdateStrategy       `json:"updateStrategy,omitempty"`
+	UserData string `json:"userData,omitempty"`
+	// Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
+	// Password rules allows all characters from a-z, A-Z, 0-9.
+	//
+	// +immutable
+	// +kubebuilder:validation:MinLength=8
+	// +kubebuilder:validation:MaxLength=50
+	// +kubebuilder:validation:Pattern="^[A-Za-z0-9]+$"
+	ImagePassword string `json:"imagePassword,omitempty"`
+	// Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key.
+	// This field may only be set in creation requests. When reading, it always returns null.
+	// SSH keys are only supported if a public Linux image is used for the volume creation.
+	//
+	// +immutable
+	SSHKeys  []string             `json:"sshKeys,omitempty"`
+	Selector metav1.LabelSelector `json:"selector,omitempty"`
+	// UpdateStrategy is the update strategy when changing immutable fields on boot volume. The default value is createBeforeDestroyBootVolume which creates a new bootvolume before deleting the old one
+
+	// +kubebuilder:validation:Required
+	UpdateStrategy UpdateStrategy `json:"updateStrategy,omitempty"`
 }
 
 // UpdateStrategy is the update strategy for the boot volume.
 type UpdateStrategy struct {
+	// +kubebuilder:validation:Enum=createAllBeforeDestroy;createBeforeDestroyBootVolume
+	// +kubebuilder:default=createBeforeDestroyBootVolume
 	Stype UpdateStrategyType `json:"type"`
 }
 
@@ -204,12 +247,17 @@ const (
 // +kubebuilder:object:root=true
 
 // A ServerSet is an example API type.
+// +kubebuilder:resource:scope=Cluster,categories=crossplane,shortName=sset;ss
+// +kubebuilder:printcolumn:name="Datacenter ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
+// +kubebuilder:printcolumn:name="REPLICAS",type="integer",JSONPath=".status.atProvider.replicas"
+// +kubebuilder:printcolumn:name="servers",priority=1,type="string",JSONPath=".status.atProvider.replicaStatus"
 // +kubebuilder:printcolumn:name="READY",type="string",JSONPath=".status.conditions[?(@.type=='Ready')].status"
 // +kubebuilder:printcolumn:name="SYNCED",type="string",JSONPath=".status.conditions[?(@.type=='Synced')].status"
 // +kubebuilder:printcolumn:name="EXTERNAL-NAME",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
+// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud},shortName=ss;sset
+// +kubebuilder:subresource:scale:specpath=.spec.forProvider.replicas,statuspath=.status.atProvider.replicas,selectorpath=.status.selector
 type ServerSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

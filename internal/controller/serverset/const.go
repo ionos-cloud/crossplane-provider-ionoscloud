@@ -1,8 +1,14 @@
 package serverset
 
 const (
-	resourceServer     = "server"
-	resourceVolume     = "volume"
-	resourceNIC        = "nic"
+	// ResourceServer name for server used for serverset
+	ResourceServer     = "server"
 	resourceBootVolume = "bootvolume"
+	resourceNIC        = "nic"
+)
+
+const (
+	statusReady   = "READY"
+	statusUnknown = "UNKNOWN"
+	statusError   = "ERROR"
 )

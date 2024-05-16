@@ -120,6 +120,11 @@ func GenerateCreateLanInput(cr *v1alpha1.Lan) (*sdkgo.LanPost, error) {
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Pcc)) {
 		instanceCreateInput.Properties.SetPcc(cr.Spec.ForProvider.Pcc.PrivateCrossConnectID)
 	}
+	if cr.Spec.ForProvider.Ipv6Cidr != "" {
+		instanceCreateInput.Properties.SetIpv6CidrBlock(cr.Spec.ForProvider.Ipv6Cidr)
+	} else {
+		instanceCreateInput.Properties.SetIpv6CidrBlockNil()
+	}
 	return &instanceCreateInput, nil
 }
 
@@ -128,11 +133,16 @@ func GenerateUpdateLanInput(cr *v1alpha1.Lan) (*sdkgo.LanProperties, error) {
 	instanceUpdateInput := sdkgo.LanProperties{
 		Public: &cr.Spec.ForProvider.Public,
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Name)) {
+	if cr.Spec.ForProvider.Name != "" {
 		instanceUpdateInput.SetName(cr.Spec.ForProvider.Name)
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Pcc)) {
 		instanceUpdateInput.SetPcc(cr.Spec.ForProvider.Pcc.PrivateCrossConnectID)
+	}
+	if cr.Spec.ForProvider.Ipv6Cidr != "" {
+		instanceUpdateInput.SetIpv6CidrBlock(cr.Spec.ForProvider.Ipv6Cidr)
+	} else {
+		instanceUpdateInput.SetIpv6CidrBlockNil()
 	}
 	return &instanceUpdateInput, nil
 }
@@ -153,6 +163,8 @@ func IsLanUpToDate(cr *v1alpha1.Lan, lan sdkgo.Lan) bool { // nolint:gocyclo
 	case lan.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
 		return false
 	case lan.Properties.Public != nil && *lan.Properties.Public != cr.Spec.ForProvider.Public:
+		return false
+	case lan.Properties.Ipv6CidrBlock != nil && *lan.Properties.Ipv6CidrBlock != cr.Spec.ForProvider.Ipv6Cidr:
 		return false
 	case lan.Properties.Pcc != nil && *lan.Properties.Pcc != cr.Spec.ForProvider.Pcc.PrivateCrossConnectID:
 		return false

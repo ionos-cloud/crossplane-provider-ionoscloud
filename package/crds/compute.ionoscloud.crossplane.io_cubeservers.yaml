@@ -558,6 +558,8 @@ spec:
                 properties:
                   cpuFamily:
                     type: string
+                  name:
+                    type: string
                   serverId:
                     type: string
                   state:

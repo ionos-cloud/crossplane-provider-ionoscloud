@@ -29,7 +29,7 @@ func TestIsNicUpToDate(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "cr empty",
+			name: "CR empty",
 			args: args{
 				cr: nil,
 				Nic: ionoscloud.Nic{Properties: &ionoscloud.NicProperties{
@@ -206,6 +206,91 @@ func TestIsNicUpToDate(t *testing.T) {
 					}},
 			},
 			want: true,
+		},
+		{
+			name: "NIC dhcpv6 is nil",
+			args: args{
+				cr: &v1alpha1.Nic{
+					Spec: v1alpha1.NicSpec{
+						ForProvider: v1alpha1.NicParameters{
+							DhcpV6: ionoscloud.PtrBool(true),
+						},
+					},
+				},
+				Nic: ionoscloud.Nic{
+					Properties: &ionoscloud.NicProperties{
+						Dhcpv6: nil,
+					}},
+			},
+			want: true,
+		},
+		{
+			name: "CR dhcpv6 is nil",
+			args: args{
+				cr: &v1alpha1.Nic{
+					Spec: v1alpha1.NicSpec{
+						ForProvider: v1alpha1.NicParameters{
+							DhcpV6: nil,
+						},
+					},
+				},
+				Nic: ionoscloud.Nic{
+					Properties: &ionoscloud.NicProperties{
+						Dhcpv6: ionoscloud.PtrBool(true),
+					}},
+			},
+			want: true,
+		},
+		{
+			name: "CR and NIC dhcpv6 are nil",
+			args: args{
+				cr: &v1alpha1.Nic{
+					Spec: v1alpha1.NicSpec{
+						ForProvider: v1alpha1.NicParameters{
+							DhcpV6: nil,
+						},
+					},
+				},
+				Nic: ionoscloud.Nic{
+					Properties: &ionoscloud.NicProperties{
+						Dhcpv6: nil,
+					}},
+			},
+			want: true,
+		},
+		{
+			name: "CR and NIC dhcpv6 are equal",
+			args: args{
+				cr: &v1alpha1.Nic{
+					Spec: v1alpha1.NicSpec{
+						ForProvider: v1alpha1.NicParameters{
+							DhcpV6: ionoscloud.PtrBool(true),
+						},
+					},
+				},
+				Nic: ionoscloud.Nic{
+					Properties: &ionoscloud.NicProperties{
+						Dhcpv6: ionoscloud.PtrBool(true),
+					}},
+			},
+			want: true,
+		},
+		{
+			name: "CR and NIC dhcpv6 are different",
+			args: args{
+				cr: &v1alpha1.Nic{
+					Spec: v1alpha1.NicSpec{
+						ForProvider: v1alpha1.NicParameters{
+							DhcpV6: ionoscloud.PtrBool(false),
+						},
+					},
+				},
+				Nic: ionoscloud.Nic{
+					Properties: &ionoscloud.NicProperties{
+						Dhcpv6: ionoscloud.PtrBool(true),
+					}},
+			},
+			want: false,
 		},
 	}
 	for _, tt := range tests {

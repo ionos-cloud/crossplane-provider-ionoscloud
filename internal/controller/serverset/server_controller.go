@@ -8,16 +8,17 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 type kubeServerControlManager interface {
-	Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) (v1alpha1.Server, error)
+	Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Server, error)
 	Get(ctx context.Context, name, ns string) (*v1alpha1.Server, error)
 	Delete(ctx context.Context, name, namespace string) error
 	Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error
@@ -31,20 +32,20 @@ type kubeServerController struct {
 }
 
 // Create creates a server CR and waits until in reaches AVAILABLE state
-func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) (v1alpha1.Server, error) {
-	createServer := fromServerSetToServer(cr, replicaIndex, version, volumeVersion)
+func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Server, error) {
+	createServer := fromServerSetToServer(cr, replicaIndex, version)
 	k.log.Info("Creating Server", "name", createServer.Name)
 
-	createServer.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
 	if err := k.kube.Create(ctx, &createServer); err != nil {
-		return v1alpha1.Server{}, fmt.Errorf("while creating createServer %w ", err)
+		return v1alpha1.Server{}, fmt.Errorf("while creating Server %w ", err)
 	}
-	if err := WaitForKubeResource(ctx, resourceReadyTimeout, k.isAvailable, createServer.Name, cr.Namespace); err != nil {
-		return v1alpha1.Server{}, fmt.Errorf("while waiting for createServer to be populated %w ", err)
+	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createServer.Name, cr.Namespace); err != nil {
+		_ = k.Delete(ctx, createServer.Name, cr.Namespace)
+		return v1alpha1.Server{}, fmt.Errorf("while waiting for Server to be populated %w ", err)
 	}
 	createdServer, err := k.Get(ctx, createServer.Name, cr.Namespace)
 	if err != nil {
-		return v1alpha1.Server{}, fmt.Errorf("while getting createServer %w ", err)
+		return v1alpha1.Server{}, fmt.Errorf("while getting created Server %w ", err)
 	}
 	k.log.Info("Finished creating Server", "name", createServer.Name)
 
@@ -71,13 +72,17 @@ func (k *kubeServerController) isAvailable(ctx context.Context, name, namespace 
 		Name:      name,
 	}, obj)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apiErrors.IsNotFound(err) {
 			return false, nil
 		}
 	}
-	if obj != nil && obj.Status.AtProvider.ServerID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
+	if !kube.IsSuccessfullyCreated(obj) {
+		return false, kube.ErrExternalCreateFailed
+	}
+	if obj.Status.AtProvider.ServerID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
 		return true, nil
 	}
+
 	return false, err
 }
 
@@ -90,7 +95,7 @@ func (k *kubeServerController) Delete(ctx context.Context, name, namespace strin
 	if err := k.kube.Delete(ctx, condemnedServer); err != nil {
 		return fmt.Errorf("error deleting server %w", err)
 	}
-	return WaitForKubeResource(ctx, resourceReadyTimeout, k.isServerDeleted, condemnedServer.Name, namespace)
+	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isServerDeleted, condemnedServer.Name, namespace)
 }
 
 func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namespace string) (bool, error) {
@@ -101,50 +106,60 @@ func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namesp
 		Name:      name,
 	}, obj)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apiErrors.IsNotFound(err) {
 			k.log.Info("Server has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
-		return false, nil
+		return false, err
 	}
 	return false, nil
 }
 
 // fromServerSetToServer is a conversion function that converts a ServerSet resource to a Server resource
 // attaches a bootvolume to the server based on replicaIndex
-func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) v1alpha1.Server {
-	serverType := "server"
+func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version int) v1alpha1.Server {
 	return v1alpha1.Server{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getNameFromIndex(cr.Name, serverType, replicaIndex, version),
+			Name:      getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, version),
 			Namespace: cr.Namespace,
 			Labels: map[string]string{
-				serverSetLabel:                        cr.Name,
-				fmt.Sprintf(indexLabel, serverType):   fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(versionLabel, serverType): fmt.Sprintf("%d", version),
+				serverSetLabel: cr.Name,
+				fmt.Sprintf(indexLabel, cr.GetName(), ResourceServer):   fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(versionLabel, cr.GetName(), ResourceServer): fmt.Sprintf("%d", version),
 			},
 		},
 		Spec: v1alpha1.ServerSpec{
+			ResourceSpec: xpv1.ResourceSpec{
+				ProviderConfigReference: cr.GetProviderConfigReference(),
+				ManagementPolicies:      cr.GetManagementPolicies(),
+				DeletionPolicy:          cr.GetDeletionPolicy(),
+			},
 			ForProvider: v1alpha1.ServerParameters{
 				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
-				Name:             getNameFromIndex(cr.Name, serverType, replicaIndex, version),
+				Name:             getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, version),
 				Cores:            cr.Spec.ForProvider.Template.Spec.Cores,
 				RAM:              cr.Spec.ForProvider.Template.Spec.RAM,
-				AvailabilityZone: "AUTO",
+				AvailabilityZone: GetZoneFromIndex(replicaIndex),
 				CPUFamily:        cr.Spec.ForProvider.Template.Spec.CPUFamily,
-				VolumeCfg: v1alpha1.VolumeConfig{
-					VolumeIDRef: &xpv1.Reference{
-						Name: getNameFromIndex(cr.Name, "bootvolume", replicaIndex, volumeVersion),
-					},
-				},
+				// todo revert if we go back to attaching volume on server creation
+				// VolumeCfg: v1alpha1.VolumeConfig{
+				// 	VolumeIDRef: &xpv1.Reference{
+				// 		Name: getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion),
+				// 	},
+				// },
 			},
 		}}
+}
+
+// GetZoneFromIndex returns ZONE_2 for odd and ZONE_1 for even index
+func GetZoneFromIndex(index int) string {
+	return fmt.Sprintf("ZONE_%d", index%2+1)
 }
 
 func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
 	k.log.Info("Ensuring Server", "index", replicaIndex, "version", version)
 	res := &v1alpha1.ServerList{}
-	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, resourceServer, replicaIndex, version, res); err != nil {
+	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, cr.GetName(), ResourceServer, replicaIndex, version, res); err != nil {
 		return err
 	}
 	servers := res.Items
@@ -153,7 +168,7 @@ func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSe
 		return nil
 	}
 
-	_, err := k.Create(ctx, cr, replicaIndex, version, volumeVersion)
+	_, err := k.Create(ctx, cr, replicaIndex, version)
 	if err != nil {
 		return err
 	}

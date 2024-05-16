@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/version"
+
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	ionosdbaas "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 	ionos "github.com/ionos-cloud/sdk-go/v6"
@@ -15,7 +17,6 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/version"
 )
 
 const (
@@ -152,8 +153,16 @@ func TestNewIonosClient(t *testing.T) {
 			}
 			if tt.wantComputeConfig != nil {
 				require.NotNil(t, got)
-				assert.Equal(t, tt.wantComputeConfig, got.ComputeClient.GetConfig())
-				assert.Equal(t, tt.wantDbaasConfig, got.DBaaSPostgresClient.GetConfig())
+				ccfg := got.ComputeClient.GetConfig()
+				dcfg := got.DBaaSPostgresClient.GetConfig()
+				// Drop Logger from the comparison as log.Logger structs cannot be compared with DeepEqual
+				ccfg.Logger = nil
+				dcfg.Logger = nil
+				tt.wantComputeConfig.Logger = nil
+				tt.wantDbaasConfig.Logger = nil
+
+				assert.Equal(t, tt.wantComputeConfig, ccfg)
+				assert.Equal(t, tt.wantDbaasConfig, dcfg)
 			} else {
 				assert.Nil(t, got)
 			}

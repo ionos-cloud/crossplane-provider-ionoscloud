@@ -41,6 +41,22 @@ spec:
     name: example
 ---
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: examplelan2
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: exampleLan2
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: ServerSet
 metadata:
   name: serverset
@@ -50,7 +66,7 @@ spec:
   providerConfigRef:
     name: example
   forProvider:
-    replicas: 1
+    replicas: 2
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -65,20 +81,30 @@ spec:
         ram: 1024
         nics:
           - name: nic-sample
-            ipv4: "10.0.0.1/24"
+            dhcp: false
             reference: examplelan
-        volumeMounts:
-          - reference: "volume-mount-id"
-        bootStorageVolumeRef: "volume-id"
+          - name: nic-sample2
+            dhcp: false
+            reference: examplelan2
     bootVolumeTemplate:
+      metadata:
+        name: volumeboot
       spec:
         updateStrategy:
+#          createBeforeDestroyBootVolume createAllBeforeDestroy
           type: "createBeforeDestroyBootVolume"
-          #createBeforeDestroyBootVolume createAllBeforeDestroy
         image: "28d0fa34-927f-11ee-8008-6202af74e858"
         size: 10
-        type: SSD
+        type: HDD
 #        todo - add sshKeys or imagePassword
 #        todo - add userdata in volume creation
         userData: "" #cloud-config
-
+        imagePassword: "thisshouldbesecret"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-lease
+  namespace: default
+data:
+  identity: "sss-example-serverset-name-server-0-0"

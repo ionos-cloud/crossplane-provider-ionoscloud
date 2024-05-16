@@ -15,10 +15,23 @@ spec:
     kind: StatefulServerSet
     listKind: StatefulServerSetList
     plural: statefulserversets
+    shortNames:
+    - sss
+    - ssset
     singular: statefulserverset
   scope: Cluster
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.forProvider.datacenterConfig.datacenterId
+      name: Datacenter ID
+      type: string
+    - jsonPath: .status.atProvider.replicas
+      name: REPLICAS
+      type: integer
+    - jsonPath: .status.atProvider.replicaStatus
+      name: servers
+      priority: 1
+      type: string
     - jsonPath: .status.conditions[?(@.type=='Ready')].status
       name: READY
       type: string
@@ -74,6 +87,150 @@ spec:
                 description: StatefulServerSetParameters are the configurable fields
                   of a StatefulServerSet.
                 properties:
+                  bootVolumeTemplate:
+                    description: BootVolumeTemplate are the configurable fields of
+                      a BootVolumeTemplate.
+                    properties:
+                      metadata:
+                        description: ServerSetBootVolumeMetadata are the configurable
+                          fields of a ServerSetBootVolumeMetadata.
+                        properties:
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          name:
+                            description: |-
+                              Name of the BootVolume. Replica index, volume index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}. Version increases if the bootvolume is
+                              re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
+                            maxLength: 55
+                            pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      spec:
+                        description: ServerSetBootVolumeSpec are the configurable
+                          fields of a ServerSetBootVolumeSpec.
+                        properties:
+                          image:
+                            description: |-
+                              Image or snapshot ID to be used as template for this volume.
+                              Make sure the image selected is compatible with the datacenter's location.
+                              Note: when creating a volume and setting image, set imagePassword or SSKeys as well.
+                            type: string
+                          imagePassword:
+                            description: |-
+                              Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
+                              Password rules allows all characters from a-z, A-Z, 0-9.
+                            maxLength: 50
+                            minLength: 8
+                            pattern: ^[A-Za-z0-9]+$
+                            type: string
+                          selector:
+                            description: |-
+                              A label selector is a label query over a set of resources. The result of matchLabels and
+                              matchExpressions are ANDed. An empty label selector matches all objects. A null
+                              label selector matches no objects.
+                            properties:
+                              matchExpressions:
+                                description: matchExpressions is a list of label selector
+                                  requirements. The requirements are ANDed.
+                                items:
+                                  description: |-
+                                    A label selector requirement is a selector that contains values, a key, and an operator that
+                                    relates the key and values.
+                                  properties:
+                                    key:
+                                      description: key is the label key that the selector
+                                        applies to.
+                                      type: string
+                                    operator:
+                                      description: |-
+                                        operator represents a key's relationship to a set of values.
+                                        Valid operators are In, NotIn, Exists and DoesNotExist.
+                                      type: string
+                                    values:
+                                      description: |-
+                                        values is an array of string values. If the operator is In or NotIn,
+                                        the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                        the values array must be empty. This array is replaced during a strategic
+                                        merge patch.
+                                      items:
+                                        type: string
+                                      type: array
+                                  required:
+                                  - key
+                                  - operator
+                                  type: object
+                                type: array
+                              matchLabels:
+                                additionalProperties:
+                                  type: string
+                                description: |-
+                                  matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                  map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                  operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                type: object
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          size:
+                            description: The size of the volume in GB.
+                            type: number
+                            x-kubernetes-validations:
+                            - message: Size cannot be decreased once set, only increased
+                              rule: self >= oldSelf
+                          sshKeys:
+                            description: |-
+                              Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key.
+                              This field may only be set in creation requests. When reading, it always returns null.
+                              SSH keys are only supported if a public Linux image is used for the volume creation.
+                            items:
+                              type: string
+                            type: array
+                          type:
+                            description: Changing type re-creates either the bootvolume,
+                              or the bootvolume, server and nic depending on the UpdateStrategy
+                              chosen`
+                            enum:
+                            - HDD
+                            - SSD
+                            - SSD Standard
+                            - SSD Premium
+                            - DAS
+                            - ISO
+                            type: string
+                          updateStrategy:
+                            description: UpdateStrategy is the update strategy for
+                              the boot volume.
+                            properties:
+                              type:
+                                default: createBeforeDestroyBootVolume
+                                description: UpdateStrategyType is the type of the
+                                  update strategy for the boot volume.
+                                enum:
+                                - createAllBeforeDestroy
+                                - createBeforeDestroyBootVolume
+                                type: string
+                            required:
+                            - type
+                            type: object
+                          userData:
+                            description: |-
+                              The cloud-init configuration for the volume as base64 encoded string.
+                              The property is immutable and is only allowed to be set on creation of a new a volume.
+                              It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
+                            type: string
+                        required:
+                        - size
+                        - type
+                        type: object
+                        x-kubernetes-validations:
+                        - message: either imagePassword or sshKeys must be set
+                          rule: has(self.imagePassword) || has(self.sshKeys)
+                    required:
+                    - spec
+                    type: object
                   datacenterConfig:
                     description: |-
                       DatacenterConfig contains information about the datacenter resource
@@ -187,6 +344,11 @@ spec:
                                 type: string
                               type: object
                             name:
+                              description: 'Name from which the LAN name will be generated.
+                                Index will be appended. Resulting name will be in
+                                format: {name}-{replicaIndex}'
+                              maxLength: 55
+                              pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                               type: string
                           required:
                           - name
@@ -195,9 +357,9 @@ spec:
                           description: StatefulServerSetLanSpec are the configurable
                             fields of a StatefulServerSetLanSpec.
                           properties:
-                            dhcp:
-                              type: boolean
-                            ipv6:
+                            ipv6cidr:
+                              type: string
+                            public:
                               type: boolean
                           type: object
                       required:
@@ -206,35 +368,39 @@ spec:
                       type: object
                     type: array
                   replicas:
-                    description: The number of servers that will be created.
+                    description: The number of servers that will be created. Cannot
+                      be decreased once set, only increased. Has a minimum of 1.
                     minimum: 1
                     type: integer
+                    x-kubernetes-validations:
+                    - message: Replicas can only be increased
+                      rule: self >= oldSelf
                   template:
-                    description: StatefulServerSetTemplate are the configurable fields
-                      of a StatefulServerSetTemplate.
+                    description: ServerSetTemplate are the configurable fields of
+                      a ServerSetTemplate.
                     properties:
                       metadata:
-                        description: StatefulServerSetMetadata are the configurable
-                          fields of a StatefulServerSetMetadata.
+                        description: ServerSetMetadata are the configurable fields
+                          of a ServerSetMetadata.
                         properties:
                           labels:
                             additionalProperties:
                               type: string
                             type: object
                           name:
+                            description: |-
+                              Name of the Server. Replica index and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}
+                              Version increases if the Server is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the Server is re-created and the version is increased.
+                            maxLength: 55
+                            pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                             type: string
                         required:
                         - name
                         type: object
                       spec:
-                        description: StatefulServerSetTemplateSpec are the configurable
-                          fields of a StatefulServerSetTemplateSpec.
+                        description: ServerSetTemplateSpec are the configurable fields
+                          of a ServerSetTemplateSpec.
                         properties:
-                          bootStorageVolume:
-                            description: |-
-                              The reference to the boot volume.
-                              It must exist in the same data center as the server.
-                            type: string
                           cores:
                             description: The total number of cores for the server.
                             format: int32
@@ -251,43 +417,45 @@ spec:
                           nics:
                             description: NICs are the network interfaces of the server.
                             items:
-                              description: StatefulServerSetTemplateSpecNic are the
-                                configurable fields of a StatefulServerSetTemplateSpecNic.
+                              description: ServerSetTemplateNIC are the configurable
+                                fields of a ServerSetTemplateNIC.
                               properties:
-                                lanReferenceName:
+                                dhcp:
+                                  type: boolean
+                                dhcpv6:
+                                  type: boolean
+                                name:
+                                  description: |-
+                                    Name of the NIC. Replica index, NIC index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{nicIndex}-{version}.
+                                    Version increases if the NIC is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the NIC is re-created and the version is increased.
+                                  maxLength: 50
+                                  pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
+                                  type: string
+                                reference:
                                   type: string
                                 vnetId:
-                                  description: This references the LAN from the client.
                                   type: string
                               required:
-                              - lanReferenceName
+                              - dhcp
+                              - name
+                              - reference
                               type: object
+                              x-kubernetes-validations:
+                              - message: Only one of 'dhcp' or 'dhcpv6' can be set
+                                  to true
+                                rule: '!has(self.dhcpv6) || (self.dhcp == false &&
+                                  self.dhcpv6 == false) || (self.dhcp != self.dhcpv6)'
                             minItems: 1
                             type: array
                           ram:
-                            description: The memory size for the server in MB, such
-                              as 2048. Size must be specified in multiples of 256
-                              MB with a minimum of 256 MB.
-                            format: int32
-                            multipleOf: 256
-                            type: integer
-                          volumeMounts:
                             description: |-
-                              The reference to the other volumes.
-                              They must exist in the same data center as the server.
-                            items:
-                              description: |-
-                                StatefulServerSetTemplateSpecVolumeMounts are the configurable fields of a StatefulServerSetTemplateSpecVolumeMounts.
-                                It is used to mount a volume to a server.
-                              properties:
-                                referenceName:
-                                  type: string
-                              required:
-                              - referenceName
-                              type: object
-                            type: array
+                              The memory size for the server in MB, such as 2048. Size must be specified in multiples of 256 MB with a minimum of 256 MB.
+                              however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB,
+                              then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
+                            format: int32
+                            multipleOf: 1024
+                            type: integer
                         required:
-                        - bootStorageVolume
                         - cores
                         - ram
                         type: object
@@ -309,6 +477,11 @@ spec:
                                 type: string
                               type: object
                             name:
+                              description: 'Name from which the Volume name will be
+                                generated. Replica index will be appended. Resulting
+                                name will be in format: {name}-{replicaIndex}-{version}'
+                              maxLength: 55
+                              pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                               type: string
                           required:
                           - name
@@ -322,15 +495,18 @@ spec:
                                 alias.
                               type: string
                             size:
-                              description: The size of the volume in GB.
+                              description: The size of the volume in GB. Disk size
+                                can only be increased.
                               type: number
                             type:
-                              description: Hardware type of the volume.
+                              description: 'Hardware type of the volume. E.g: HDD;SSD;SSD
+                                Standard;SSD Premium'
                               enum:
                               - HDD
                               - SSD
                               - SSD Standard
                               - SSD Premium
+                              example: SSD
                               type: string
                             userData:
                               description: The cloud init configuration in base64
@@ -346,6 +522,7 @@ spec:
                       type: object
                     type: array
                 required:
+                - bootVolumeTemplate
                 - datacenterConfig
                 - deploymentStrategy
                 - lans
@@ -521,18 +698,221 @@ spec:
             - forProvider
             type: object
           status:
-            description: 'TODO: Not sure if the StatefulServerSetStatus should look
-              like this'
+            description: A StatefulServerSetStatus represents the observed state of
+              a StatefulServerSet.
             properties:
               atProvider:
                 description: StatefulServerSetObservation are the observable fields
                   of a StatefulServerSet.
                 properties:
+                  conditions:
+                    description: Conditions of the resource.
+                    items:
+                      description: A Condition that may apply to a resource.
+                      properties:
+                        lastTransitionTime:
+                          description: |-
+                            LastTransitionTime is the last time this condition transitioned from one
+                            status to another.
+                          format: date-time
+                          type: string
+                        message:
+                          description: |-
+                            A Message containing details about this condition's last transition from
+                            one status to another, if any.
+                          type: string
+                        reason:
+                          description: A Reason for this condition's last transition
+                            from one status to another.
+                          type: string
+                        status:
+                          description: Status of this condition; is it currently True,
+                            False, or Unknown?
+                          type: string
+                        type:
+                          description: |-
+                            Type of this condition. At most one of each condition type may apply to
+                            a resource at any point in time.
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - reason
+                      - status
+                      - type
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - type
+                    x-kubernetes-list-type: map
+                  dataVolumeStatus:
+                    items:
+                      description: A VolumeStatus represents the observed state of
+                        a Volume.
+                      properties:
+                        atProvider:
+                          description: VolumeObservation are the observable fields
+                            of a Volume.
+                          properties:
+                            name:
+                              type: string
+                            pciSlot:
+                              format: int32
+                              type: integer
+                            state:
+                              type: string
+                            volumeId:
+                              type: string
+                          type: object
+                        conditions:
+                          description: Conditions of the resource.
+                          items:
+                            description: A Condition that may apply to a resource.
+                            properties:
+                              lastTransitionTime:
+                                description: |-
+                                  LastTransitionTime is the last time this condition transitioned from one
+                                  status to another.
+                                format: date-time
+                                type: string
+                              message:
+                                description: |-
+                                  A Message containing details about this condition's last transition from
+                                  one status to another, if any.
+                                type: string
+                              reason:
+                                description: A Reason for this condition's last transition
+                                  from one status to another.
+                                type: string
+                              status:
+                                description: Status of this condition; is it currently
+                                  True, False, or Unknown?
+                                type: string
+                              type:
+                                description: |-
+                                  Type of this condition. At most one of each condition type may apply to
+                                  a resource at any point in time.
+                                type: string
+                            required:
+                            - lastTransitionTime
+                            - reason
+                            - status
+                            - type
+                            type: object
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - type
+                          x-kubernetes-list-type: map
+                      type: object
+                    type: array
+                  lanStatus:
+                    items:
+                      description: StatefulServerSetLanStatus contains the status
+                        of a LAN.
+                      properties:
+                        atProvider:
+                          description: LanObservation are the observable fields of
+                            a Lan.
+                          properties:
+                            ipFailovers:
+                              description: IPFailovers will be set using IPFailover
+                                CR
+                              items:
+                                type: string
+                              type: array
+                            lanId:
+                              type: string
+                            name:
+                              type: string
+                            state:
+                              type: string
+                          type: object
+                        conditions:
+                          description: Conditions of the resource.
+                          items:
+                            description: A Condition that may apply to a resource.
+                            properties:
+                              lastTransitionTime:
+                                description: |-
+                                  LastTransitionTime is the last time this condition transitioned from one
+                                  status to another.
+                                format: date-time
+                                type: string
+                              message:
+                                description: |-
+                                  A Message containing details about this condition's last transition from
+                                  one status to another, if any.
+                                type: string
+                              reason:
+                                description: A Reason for this condition's last transition
+                                  from one status to another.
+                                type: string
+                              status:
+                                description: Status of this condition; is it currently
+                                  True, False, or Unknown?
+                                type: string
+                              type:
+                                description: |-
+                                  Type of this condition. At most one of each condition type may apply to
+                                  a resource at any point in time.
+                                type: string
+                            required:
+                            - lastTransitionTime
+                            - reason
+                            - status
+                            - type
+                            type: object
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - type
+                          x-kubernetes-list-type: map
+                        ipv6CidrBlock:
+                          type: string
+                      type: object
+                    type: array
                   replicaStatus:
                     items:
-                      description: StatefulServerSetReplicaStatus are the configurable
-                        fields of a StatefulServerSetReplicaStatus.
+                      description: ServerSetReplicaStatus are the observable fields
+                        of a ServerSetReplicaStatus.
                       properties:
+                        conditions:
+                          description: Conditions of the resource.
+                          items:
+                            description: A Condition that may apply to a resource.
+                            properties:
+                              lastTransitionTime:
+                                description: |-
+                                  LastTransitionTime is the last time this condition transitioned from one
+                                  status to another.
+                                format: date-time
+                                type: string
+                              message:
+                                description: |-
+                                  A Message containing details about this condition's last transition from
+                                  one status to another, if any.
+                                type: string
+                              reason:
+                                description: A Reason for this condition's last transition
+                                  from one status to another.
+                                type: string
+                              status:
+                                description: Status of this condition; is it currently
+                                  True, False, or Unknown?
+                                type: string
+                              type:
+                                description: |-
+                                  Type of this condition. At most one of each condition type may apply to
+                                  a resource at any point in time.
+                                type: string
+                            required:
+                            - lastTransitionTime
+                            - reason
+                            - status
+                            - type
+                            type: object
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - type
+                          x-kubernetes-list-type: map
                         errorMessage:
                           description: ErrorMessage relayed from the backend.
                           type: string
@@ -542,11 +922,12 @@ spec:
                         name:
                           type: string
                         role:
-                          description: Server assigned role
+                          description: |-
+                            Role is the role of a ServerSet Replica. It can be ACTIVE or PASSIVE. The default value is PASSIVE.
+                            When a ServerSet Replica has role ACTIVE, it is the primary server and is used to serve the traffic.
                           enum:
                           - ACTIVE
                           - PASSIVE
-                          - REPLICA
                           type: string
                         status:
                           enum:
@@ -610,4 +991,8 @@ spec:
     served: true
     storage: true
     subresources:
+      scale:
+        labelSelectorPath: .status.selector
+        specReplicasPath: .spec.forProvider.replicas
+        statusReplicasPath: .status.atProvider.replicas
       status: {}

@@ -1,35 +1,54 @@
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
-kind: StatefulServerSet
+kind: Datacenter
 metadata:
   name: example
 spec:
+  managementPolicies:
+    - "*"
   forProvider:
-    replicas: 2
+    name: exampleDatacenter
+    location: us/las
+    description: test
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: StatefulServerSet
+metadata:
+  name: sss-example
+spec:
+  forProvider:
+    replicas: 1
     deploymentStrategy:
       type: ZONES
     datacenterConfig:
-      datacenterId: ddaaaaa1-cace-4674-ab8d-38b4e4f0c37f
+      datacenterIdRef:
+        name: example
     # This defines the template used for each replica.
     template:
       metadata:
-        name: c123456-cluster-{uuid}-servers
+        name: server-name
       spec:
         cpuFamily: AMD_OPTERON
-        cores: 4
+        cores: 1
         ram: 1024 # (32*storageTB)
         nics:
-          - vnetId: aaaaaaa1-cace-4674-ab8d-38b4e4f0c37f
-            lanReferenceName: data
-          - vnetId: aaaaaaa2-cace-4674-ab8d-38b4e4f0c37f
-            lanReferenceName: management
-          - vnetId: aaaaaaa3-cace-4674-ab8d-38b4e4f0c37f
-            lanReferenceName: customer
-        # The system disk will be used as the boot volume,
-        # and an additional storage disk volume mounted.
-        bootStorageVolume: system
-        volumeMounts:
-          - referenceName: "storage_disk"
-          - referenceName: "storage_disk_extend_1"
+          - name: nic-customer
+            dhcp: false
+            dhcpv6: false
+#           should reference lan metadata name
+            reference: customer
+    bootVolumeTemplate:
+      metadata:
+          name: boot-volume
+      spec:
+        updateStrategy:
+          type: "createAllBeforeDestroy" # createBeforeDestroyBootVolume createAllBeforeDestroy
+        image: "28d0fa34-927f-11ee-8008-6202af74e858"
+        size: 10
+        type: HDD
+        userData: "" #cloud-config
+        imagePassword: "thisshouldbesecret"
     lans:
       # Three LANs are defined - an internal one (data) with IPv6 enabled and DHCP disabled for DRBD + VRRP traffic,
       # a management network for connectivity to K8S and management as well as
@@ -37,35 +56,36 @@ spec:
       - metadata:
           name: data
         spec:
-          ipv6: true
-          dhcp: false
+          public: true
       - metadata:
           name: management
         spec:
-          ipv6: true
-          dhcp: false
+          public: false
       - metadata:
           name: customer
         spec:
-          ipv6: false
-          dhcp: false
+          ipv6cidr: "AUTO"
+          public: false
     # The volumes are then defined - a 200GB SSD "system" volume from a
     # custom Linux image, and a separate 4TB SSD volume for storage.
     volumes:
       - metadata:
-          name: system
+          name: storage-disk
         spec:
-          image: linuxkit/nas-image
-          size: 200
-          type: SSD
-          userData: -|
-      - metadata:
-          name: storage_disk
-        spec:
-          size: 4096
+          size: 10
           type: SSD
       - metadata:
-          name: storage_disk_extend_1
+          name: storage-disk-extend-1
         spec:
-          size: 1024
+          size: 10
           type: SSD
+  providerConfigRef:
+    name: example
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-lease
+  namespace: default
+data:
+  identity: "server-name-0-0"
