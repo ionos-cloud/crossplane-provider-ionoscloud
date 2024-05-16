@@ -425,10 +425,10 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				Replicas: 2,
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
-						Name:   server1.Name,
-						Status: statusReady,
-						Role:   "ACTIVE",
-						Index:  0,
+						Name:         server1.Name,
+						Status:       statusReady,
+						Role:         "ACTIVE",
+						ReplicaIndex: 0,
 						NICStatuses: []v1alpha1.NicStatus{
 							{
 								AtProvider: v1alpha1.NicObservation{
@@ -440,10 +440,10 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						ErrorMessage: "",
 					},
 					{
-						Name:   server2.Name,
-						Status: statusReady,
-						Role:   "PASSIVE",
-						Index:  1,
+						Name:         server2.Name,
+						Status:       statusReady,
+						Role:         "PASSIVE",
+						ReplicaIndex: 1,
 						NICStatuses: []v1alpha1.NicStatus{
 							{
 								AtProvider: v1alpha1.NicObservation{
@@ -470,10 +470,10 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				Replicas: 2,
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
-						Name:   server1.Name,
-						Status: statusReady,
-						Role:   "PASSIVE",
-						Index:  0,
+						Name:         server1.Name,
+						Status:       statusReady,
+						Role:         "PASSIVE",
+						ReplicaIndex: 0,
 						NICStatuses: []v1alpha1.NicStatus{
 							{
 								AtProvider: v1alpha1.NicObservation{
@@ -485,10 +485,10 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						ErrorMessage: "",
 					},
 					{
-						Name:   server2.Name,
-						Status: statusReady,
-						Role:   "PASSIVE",
-						Index:  1,
+						Name:         server2.Name,
+						Status:       statusReady,
+						Role:         "PASSIVE",
+						ReplicaIndex: 1,
 						NICStatuses: []v1alpha1.NicStatus{
 							{
 								AtProvider: v1alpha1.NicObservation{
@@ -515,10 +515,10 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				Replicas: 2,
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
-						Name:   server1.Name,
-						Status: statusReady,
-						Role:   "PASSIVE",
-						Index:  0,
+						Name:         server1.Name,
+						Status:       statusReady,
+						Role:         "PASSIVE",
+						ReplicaIndex: 0,
 						NICStatuses: []v1alpha1.NicStatus{
 							{
 								AtProvider: v1alpha1.NicObservation{
@@ -530,10 +530,10 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						ErrorMessage: "",
 					},
 					{
-						Name:   server2.Name,
-						Status: statusReady,
-						Role:   "PASSIVE",
-						Index:  1,
+						Name:         server2.Name,
+						Status:       statusReady,
+						Role:         "PASSIVE",
+						ReplicaIndex: 1,
 						NICStatuses: []v1alpha1.NicStatus{
 							{
 								AtProvider: v1alpha1.NicObservation{
@@ -560,10 +560,10 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				Replicas: 2,
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
-						Name:   server1.Name,
-						Status: statusReady,
-						Role:   "PASSIVE",
-						Index:  0,
+						Name:         server1.Name,
+						Status:       statusReady,
+						Role:         "PASSIVE",
+						ReplicaIndex: 0,
 						NICStatuses: []v1alpha1.NicStatus{
 							{
 								AtProvider: v1alpha1.NicObservation{
@@ -575,10 +575,10 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						ErrorMessage: "",
 					},
 					{
-						Name:   server2.Name,
-						Status: statusReady,
-						Role:   "PASSIVE",
-						Index:  1,
+						Name:         server2.Name,
+						Status:       statusReady,
+						Role:         "PASSIVE",
+						ReplicaIndex: 1,
 						NICStatuses: []v1alpha1.NicStatus{
 							{
 								AtProvider: v1alpha1.NicObservation{
@@ -605,10 +605,10 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				Replicas: 1,
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
-						Name:   server1.Name,
-						Status: statusReady,
-						Role:   "PASSIVE",
-						Index:  0,
+						Name:         server1.Name,
+						Status:       statusReady,
+						Role:         "PASSIVE",
+						ReplicaIndex: 0,
 						NICStatuses: []v1alpha1.NicStatus{
 							{
 								AtProvider: v1alpha1.NicObservation{
@@ -638,7 +638,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Name:         serverWithErrorStatus.Name,
 						Status:       statusError,
 						Role:         "PASSIVE",
-						Index:        0,
+						ReplicaIndex: 0,
 						NICStatuses:  []v1alpha1.NicStatus{},
 						ErrorMessage: "",
 					},
@@ -661,7 +661,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Name:         serverWithErrorStatus.Name,
 						Status:       statusError,
 						Role:         "PASSIVE",
-						Index:        0,
+						ReplicaIndex: 0,
 						NICStatuses:  []v1alpha1.NicStatus{},
 						ErrorMessage: reconcileErrorMsg,
 					},
@@ -681,10 +681,10 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				Replicas: 1,
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
-						Name:   serverWithUnknownStatus.Name,
-						Status: statusUnknown,
-						Role:   "PASSIVE",
-						Index:  0,
+						Name:         serverWithUnknownStatus.Name,
+						Status:       statusUnknown,
+						Role:         "PASSIVE",
+						ReplicaIndex: 0,
 						NICStatuses: []v1alpha1.NicStatus{
 							{
 								AtProvider: v1alpha1.NicObservation{

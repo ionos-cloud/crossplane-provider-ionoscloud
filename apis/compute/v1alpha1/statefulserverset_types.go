@@ -121,18 +121,6 @@ type StatefulServerSetSpec struct {
 	ForProvider       StatefulServerSetParameters `json:"forProvider"`
 }
 
-// StatefulServerSetReplicaStatus are the configurable fields of a StatefulServerSetReplicaStatus.
-type StatefulServerSetReplicaStatus struct {
-	// Server assigned role
-	Role string `json:"role"`
-	Name string `json:"name"`
-	// +kubebuilder:validation:Enum=UNKNOWN;READY;ERROR
-	Status string `json:"status"`
-	// ErrorMessage relayed from the backend.
-	ErrorMessage string      `json:"errorMessage,omitempty"`
-	LastModified metav1.Time `json:"lastModified,omitempty"`
-}
-
 // StatefulServerSetVolumeStatus contains the status of a Volume.
 type StatefulServerSetVolumeStatus struct {
 	VolumeStatus `json:",inline"`

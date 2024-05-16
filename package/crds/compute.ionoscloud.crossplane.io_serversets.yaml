@@ -638,8 +638,6 @@ spec:
                         errorMessage:
                           description: ErrorMessage relayed from the backend.
                           type: string
-                        index:
-                          type: integer
                         lastModified:
                           format: date-time
                           type: string
@@ -709,6 +707,8 @@ spec:
                                 x-kubernetes-list-type: map
                             type: object
                           type: array
+                        replicaIndex:
+                          type: integer
                         role:
                           description: |-
                             Role is the role of a ServerSet Replica. It can be ACTIVE or PASSIVE. The default value is PASSIVE.
@@ -725,8 +725,8 @@ spec:
                           - BUSY
                           type: string
                       required:
-                      - index
                       - name
+                      - replicaIndex
                       - role
                       - status
                       type: object

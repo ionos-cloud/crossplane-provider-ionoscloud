@@ -179,7 +179,7 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{
 			Role:         fetchRole(ctx, e, serverSetReplicas[i]),
 			Name:         serverSetReplicas[i].Name,
-			Index:        replicaIdx,
+			ReplicaIndex: replicaIdx,
 			NICStatuses:  nicStatues,
 			Status:       replicaStatus,
 			ErrorMessage: errMsg,
