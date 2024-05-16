@@ -69,9 +69,6 @@ spec:
           - name: nic-sample
             ipv4: "10.0.0.1/24"
             reference: examplelan
-        volumeMounts:
-          - reference: "volume-mount-id"
-        bootStorageVolumeRef: "volume-id"
     bootVolumeTemplate:
       spec:
         updateStrategy:
@@ -83,6 +80,7 @@ spec:
 #        todo - add sshKeys or imagePassword
 #        todo - add userdata in volume creation
         userData: "" #cloud-config
+        imagePassword: "thisshouldbesecret"
 EOF
   )"
 
@@ -132,9 +130,6 @@ spec:
           - name: nic-sample
             ipv4: "10.0.0.1/24"
             reference: examplelan
-        volumeMounts:
-          - reference: "volume-mount-id"
-        bootStorageVolumeRef: "volume-id"
     bootVolumeTemplate:
       spec:
         updateStrategy:
@@ -146,6 +141,7 @@ spec:
 #        todo - add sshKeys or imagePassword
 #        todo - add userdata in volume creation
         userData: "" #cloud-config
+        imagePassword: "thisshouldbesecret"
 EOF
   )"
 
@@ -219,9 +215,6 @@ spec:
           - name: nic-sample
             ipv4: "10.0.0.1/24"
             reference: examplelan
-        volumeMounts:
-          - reference: "volume-mount-id"
-        bootStorageVolumeRef: "volume-id"
     bootVolumeTemplate:
       spec:
         updateStrategy:
@@ -233,6 +226,7 @@ spec:
 #        todo - add sshKeys or imagePassword
 #        todo - add userdata in volume creation
         userData: "" #cloud-config
+        imagePassword: "thisshouldbesecret"
 EOF
   )"
 
