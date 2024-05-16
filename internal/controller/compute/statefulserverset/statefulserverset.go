@@ -433,7 +433,7 @@ func areBootVolumesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha
 	if err != nil {
 		return false, false, err
 	}
-	areUpToDate, areAvailable = serverset.AreVolumesReady(cr.Spec.ForProvider.BootVolumeTemplate, volumes)
+	areUpToDate, areAvailable = serverset.AreBootVolumesReady(cr.Spec.ForProvider.BootVolumeTemplate, volumes)
 	return areUpToDate, areAvailable, nil
 }
 

@@ -123,7 +123,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, err
 	}
 	areBootVolumesCreated := len(volumes) == cr.Spec.ForProvider.Replicas
-	areBootVolumesUpToDate, areBootVolumesAvailable := AreVolumesReady(cr.Spec.ForProvider.BootVolumeTemplate, volumes)
+	areBootVolumesUpToDate, areBootVolumesAvailable := AreBootVolumesReady(cr.Spec.ForProvider.BootVolumeTemplate, volumes)
 
 	nics, err := GetNICsOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
@@ -491,8 +491,8 @@ func AreServersReady(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1
 	return true, true
 }
 
-// AreVolumesReady checks if template params are equal to volume obj params
-func AreVolumesReady(templateParams v1alpha1.BootVolumeTemplate, volumes []v1alpha1.Volume) (bool, bool) {
+// AreBootVolumesReady checks if template params are equal to volume obj params
+func AreBootVolumesReady(templateParams v1alpha1.BootVolumeTemplate, volumes []v1alpha1.Volume) (bool, bool) {
 	for _, volumeObj := range volumes {
 		if volumeObj.Spec.ForProvider.Size != templateParams.Spec.Size {
 			return false, false
