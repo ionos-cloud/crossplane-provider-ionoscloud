@@ -67,7 +67,7 @@ spec:
         ram: 1024
         nics:
           - name: nic-sample
-            ipv4: "10.0.0.1/24"
+            dhcp: false
             reference: examplelan
     bootVolumeTemplate:
       spec:
@@ -128,7 +128,7 @@ spec:
         ram: 1024
         nics:
           - name: nic-sample
-            ipv4: "10.0.0.1/24"
+            dhcp: true
             reference: examplelan
     bootVolumeTemplate:
       spec:
@@ -213,7 +213,7 @@ spec:
         ram: 1024
         nics:
           - name: nic-sample
-            ipv4: "10.0.0.1/24"
+            dhcp: true
             reference: examplelan
     bootVolumeTemplate:
       spec:
