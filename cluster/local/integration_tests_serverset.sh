@@ -70,6 +70,8 @@ spec:
             dhcp: false
             reference: examplelan
     bootVolumeTemplate:
+      metadata:
+        name: volumeboot
       spec:
         updateStrategy:
 #          createBeforeDestroyBootVolume createAllBeforeDestroy
@@ -131,6 +133,8 @@ spec:
             dhcp: true
             reference: examplelan
     bootVolumeTemplate:
+      metadata:
+        name: volumeboot
       spec:
         updateStrategy:
 #          createBeforeDestroyBootVolume createAllBeforeDestroy
@@ -216,6 +220,8 @@ spec:
             dhcp: true
             reference: examplelan
     bootVolumeTemplate:
+      metadata:
+        name: volumeboot
       spec:
         updateStrategy:
 #          createBeforeDestroyBootVolume createAllBeforeDestroy
