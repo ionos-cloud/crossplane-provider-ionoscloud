@@ -476,7 +476,7 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 		{
 			name:    "Different number of Data Volumes",
 			sSSet:   createSSSet(),
-			volumes: []v1alpha1.Volume{createVolumeDefault()},
+			volumes: []v1alpha1.Volume{*createVolumeDefault()},
 			want: want{
 				creationUpToDate: false,
 				areUpToDate:      false,
@@ -644,6 +644,99 @@ func Test_computeLanStatuses(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := computeLanStatuses(tt.args.lans)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_computeVolumeStatuses(t *testing.T) {
+	type args struct {
+		volumes []v1alpha1.Volume
+	}
+	tests := []struct {
+		name string
+		args args
+		want []v1alpha1.StatefulServerSetVolumeStatus
+	}{
+		{
+			name: "empty list",
+			args: args{volumes: []v1alpha1.Volume{}},
+			want: nil,
+		},
+		{
+			name: "status for one volume",
+			args: args{
+				volumes: []v1alpha1.Volume{
+					*createVolumeWithStatus(),
+				},
+			},
+			want: []v1alpha1.StatefulServerSetVolumeStatus{
+				{
+					VolumeStatus: v1alpha1.VolumeStatus{
+						AtProvider: v1alpha1.VolumeObservation{
+							Name:     "storage_disk",
+							VolumeID: volumeID1,
+							State:    stateAvailable,
+							PCISlot:  1,
+						},
+					},
+					ReplicaIndex: 0,
+				},
+			},
+		},
+		{
+			name: "wrong volume index label",
+			args: args{
+				volumes: []v1alpha1.Volume{
+					*createVolumeWithWrongIndexLabel(),
+				},
+			},
+			want: []v1alpha1.StatefulServerSetVolumeStatus{
+				{
+					VolumeStatus: v1alpha1.VolumeStatus{
+						AtProvider: v1alpha1.VolumeObservation{
+							Name:     "storage_disk",
+							VolumeID: volumeID1,
+							State:    stateAvailable,
+							PCISlot:  1,
+						},
+					},
+					ReplicaIndex: -1,
+				},
+			},
+		},
+		{
+			name: "status for multiple volumes",
+			args: args{volumes: create2VolumesWithStatuses()},
+			want: []v1alpha1.StatefulServerSetVolumeStatus{
+				{
+					VolumeStatus: v1alpha1.VolumeStatus{
+						AtProvider: v1alpha1.VolumeObservation{
+							Name:     "storage_disk",
+							VolumeID: volumeID1,
+							State:    stateAvailable,
+							PCISlot:  1,
+						},
+					},
+					ReplicaIndex: 0,
+				},
+				{
+					VolumeStatus: v1alpha1.VolumeStatus{
+						AtProvider: v1alpha1.VolumeObservation{
+							Name:     "storage_disk_extend_1",
+							VolumeID: volumeID2,
+							State:    stateBusy,
+							PCISlot:  2,
+						},
+					},
+					ReplicaIndex: 0,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := computeVolumeStatuses(logging.NewNopLogger(), serverName, tt.args.volumes)
 			assert.Equal(t, tt.want, got)
 		})
 	}

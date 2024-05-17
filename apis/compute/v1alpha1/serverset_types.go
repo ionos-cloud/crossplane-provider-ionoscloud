@@ -133,13 +133,15 @@ type ServerSetObservation struct {
 	ReplicaStatuses []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
 }
 
-// ServerSetReplicaStatus are the observable fields of a ServerSetReplicaStatus.
+// ServerSetReplicaStatus contains the status of a Server Replica.
 type ServerSetReplicaStatus struct {
 	xpv1.ResourceStatus `json:",inline"`
 	// +kubebuilder:validation:Enum=ACTIVE;PASSIVE
-	Role Role   `json:"role"`
-	Name string `json:"name"`
-	// +kubebuilder:validation:Enum=UNKNOWN;READY;ERROR
+	Role         Role        `json:"role"`
+	Name         string      `json:"name"`
+	ReplicaIndex int         `json:"replicaIndex"`
+	NICStatuses  []NicStatus `json:"nicStatus,omitempty"`
+	// +kubebuilder:validation:Enum=UNKNOWN;READY;ERROR;BUSY
 	Status string `json:"status"`
 	// ErrorMessage relayed from the backend.
 	ErrorMessage string      `json:"errorMessage,omitempty"`

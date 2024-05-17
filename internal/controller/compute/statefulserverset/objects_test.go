@@ -47,11 +47,16 @@ const (
 
 	statefulServerSetName         = "statefulserverset"
 	statefulServerSetExternalName = "test"
+	stateAvailable                = "AVAILABLE"
+	stateBusy                     = "BUSY"
 
 	serverName      = "server"
 	serverCPUFamily = "INTEL_XEON"
 	serverCores     = 1
 	serverRAM       = 1024
+
+	volumeID1 = "volume-id-1"
+	volumeID2 = "volume-id-2"
 )
 
 var bootVolumeParameters = v1alpha1.VolumeParameters{
@@ -112,6 +117,9 @@ func createSSSet() *v1alpha1.StatefulServerSet {
 		},
 		Spec: v1alpha1.StatefulServerSetSpec{
 			ForProvider: v1alpha1.StatefulServerSetParameters{
+				DatacenterCfg: v1alpha1.DatacenterConfig{
+					DatacenterIDRef: &xpv1.Reference{Name: datacenterName},
+				},
 				Replicas: serverSetNrOfReplicas,
 				Template: createSSetTemplate(),
 				BootVolumeTemplate: v1alpha1.BootVolumeTemplate{
@@ -191,7 +199,6 @@ func createSSet() *v1alpha1.ServerSet {
 }
 
 func createSSetTemplate() v1alpha1.ServerSetTemplate {
-
 	return v1alpha1.ServerSetTemplate{
 		Metadata: v1alpha1.ServerSetMetadata{
 			Name: serverSetName,
@@ -388,13 +395,52 @@ func createVolumeList() v1alpha1.VolumeList {
 		},
 	}
 }
-func createVolumeDefault() v1alpha1.Volume {
+
+func createVolumeWithWrongIndexLabel() *v1alpha1.Volume {
+	volume := createVolumeWithStatus()
+	volume.Labels = map[string]string{
+		"wronglabel": "0",
+	}
+	return volume
+}
+
+func create2VolumesWithStatuses() []v1alpha1.Volume {
+	volume1 := createVolumeWithStatus()
+	volume2 := createVolumeWithStatus()
+	volume2.Status.AtProvider = v1alpha1.VolumeObservation{
+		VolumeID: volumeID2,
+		State:    stateBusy,
+		PCISlot:  2,
+		Name:     dataVolume2Name,
+	}
+
+	return []v1alpha1.Volume{*volume1, *volume2}
+}
+
+func createVolumeWithStatus() *v1alpha1.Volume {
+	volume := createVolumeDefault()
+	volume.Labels = map[string]string{
+		fmt.Sprintf("ionoscloud.com/%s-datavolume-index", serverName): "0",
+	}
+	volume.Status = v1alpha1.VolumeStatus{
+		ResourceStatus: xpv1.ResourceStatus{},
+		AtProvider: v1alpha1.VolumeObservation{
+			VolumeID: volumeID1,
+			State:    stateAvailable,
+			PCISlot:  1,
+			Name:     dataVolume1Name,
+		},
+	}
+	return volume
+}
+
+func createVolumeDefault() *v1alpha1.Volume {
 	volume := createVolume(0, v1alpha1.VolumeParameters{
 		Name: dataVolume2Name,
 		Size: dataVolume2Size,
 		Type: dataVolume2Type,
 	})
-	return volume
+	return &volume
 }
 
 func createVolumeWithState(replicaIdx int, parameters v1alpha1.VolumeParameters, state string) v1alpha1.Volume {

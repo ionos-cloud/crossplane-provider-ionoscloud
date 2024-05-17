@@ -11,4 +11,5 @@ const (
 	statusReady   = "READY"
 	statusUnknown = "UNKNOWN"
 	statusError   = "ERROR"
+	statusBusy    = "BUSY"
 )

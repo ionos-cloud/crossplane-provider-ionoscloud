@@ -3,7 +3,6 @@ package serverset
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"testing"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -101,9 +100,7 @@ func Test_kubeNicController_Create(t *testing.T) {
 				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Create() got = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
