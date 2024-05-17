@@ -25,6 +25,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -109,12 +110,15 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
-	areResourcesCreated, areResourcesUpdated, err := e.observeResourcesUpdateStatus(ctx, cr)
+	areResourcesCreated, areResourcesUpdated, areResourcesAvailable, err := e.observeResourcesUpdateStatus(ctx, cr)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-
-	cr.Status.SetConditions(xpv1.Available())
+	if areResourcesCreated && areResourcesUpdated && areResourcesAvailable {
+		cr.SetConditions(xpv1.Available())
+	} else {
+		cr.SetConditions(xpv1.Creating())
+	}
 
 	return managed.ExternalObservation{
 		// Return false when the externalStatefulServerSet resource does not exist. This lets
@@ -133,57 +137,59 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}, nil
 }
 
-func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha1.StatefulServerSet) (areResourcesCreated, areResourcesUpdated bool, err error) { // nolint:gocyclo
+func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha1.StatefulServerSet) (areResourcesCreated, areResourcesUpdated, areResourcesAvailable bool, err error) { // nolint:gocyclo
 
 	// ******************* LANS *******************
 	lans, err := e.LANController.ListLans(ctx, cr)
 	if err != nil {
-		return false, false, fmt.Errorf("while listing lans %w", err)
+		return false, false, false, fmt.Errorf("while listing lans %w", err)
 	}
-	creationLansUpToDate, areLansUpToDate := areLansUpToDate(cr, lans.Items)
+	creationLansUpToDate, lansUpToDate := areLansUpToDate(cr, lans.Items)
 	cr.Status.AtProvider.LanStatuses = computeLanStatuses(lans.Items)
 
 	// ******************* VOLUMES *******************
 	volumes, err := e.dataVolumeController.ListVolumes(ctx, cr)
 	if err != nil {
-		return false, false, fmt.Errorf("while listing volumes %w", err)
+		return false, false, false, fmt.Errorf("while listing volumes %w", err)
 	}
-	creationVolumesUpToDate, areVolumesUpToDate := areDataVolumesUpToDate(cr, volumes.Items)
+	creationVolumesUpToDate, areVolumesUpToDate, areVolumesAvailable := areDataVolumesUpToDateAndAvailable(cr, volumes.Items)
 	cr.Status.AtProvider.DataVolumeStatuses = computeVolumeStatuses(e.log, cr.Spec.ForProvider.Template.Metadata.Name, volumes.Items)
 
 	// ******************* SERVERSET *******************
-	creationServerSetUpToDate, isServerSetUpToDate, err := e.isServerSetUpToDate(ctx, cr)
+	creationSSetUpToDate, isSSetUpToDate, isSSetAvailable, err := e.isServerSetUpToDate(ctx, cr)
 	if err != nil {
-		return false, false, err
+		return false, false, false, err
 	}
 	err = e.setSSetStatusOnCR(ctx, cr)
 	if err != nil {
-		return false, false, err
+		return false, false, false, err
 	}
 
 	// ******************* VOLUMESELECTOR *******************
 	creationVSUpToDate, err := e.isVolumeSelectorUpToDate(ctx, cr)
 	if err != nil {
-		return false, false, err
+		return false, false, false, err
 	}
-	e.log.Info("Observing the StatefulServerSet", "creationLansUpToDate", creationLansUpToDate, "areLansUpToDate", areLansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate,
-		"areVolumesUpToDate", areVolumesUpToDate, "creationServerSetUpToDate", creationServerSetUpToDate, "isServerSetUpToDate", isServerSetUpToDate, "creationVSUpToDate", creationVSUpToDate)
-
-	return creationLansUpToDate && creationVolumesUpToDate && creationServerSetUpToDate && creationVSUpToDate, areLansUpToDate && areVolumesUpToDate && isServerSetUpToDate, nil
+	e.log.Info("Observing the StatefulServerSet", "creationLansUpToDate", creationLansUpToDate, "lansUpToDate", lansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate,
+		"areVolumesUpToDate", areVolumesUpToDate, "creationSSetUpToDate", creationSSetUpToDate, "isSSetUpToDate", isSSetUpToDate, "creationVSUpToDate", creationVSUpToDate, "areVolumesAvailable", areVolumesAvailable)
+	areResourcesCreated = creationLansUpToDate && creationVolumesUpToDate && creationSSetUpToDate && creationVSUpToDate
+	areResourcesUpdated = lansUpToDate && areVolumesUpToDate && isSSetUpToDate
+	areResourcesAvailable = areVolumesAvailable && isSSetAvailable
+	return areResourcesCreated, areResourcesUpdated, areResourcesAvailable, nil
 }
 
-func (e *external) isServerSetUpToDate(ctx context.Context, cr *v1alpha1.StatefulServerSet) (creationServerUpToDate bool, serversetUpToDate bool, err error) {
+func (e *external) isServerSetUpToDate(ctx context.Context, cr *v1alpha1.StatefulServerSet) (creationServerUpToDate, serversetUpToDate, ssetAvailable bool, err error) {
 	_, err = e.SSetController.Get(ctx, getSSetName(cr), cr.Namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
-			return false, false, nil
+			return false, false, false, nil
 		}
 	}
-	serversetUpToDate, err = areSSetResourcesUpToDate(ctx, e.kube, cr)
+	serversetUpToDate, ssetAvailable, err = areSSetResourcesReady(ctx, e.kube, cr)
 	if err != nil {
-		return false, false, err
+		return false, false, false, err
 	}
-	return true, serversetUpToDate, err
+	return true, serversetUpToDate, ssetAvailable, err
 }
 
 func (e *external) isVolumeSelectorUpToDate(ctx context.Context, cr *v1alpha1.StatefulServerSet) (creationVSUpToDate bool, err error) {
@@ -218,7 +224,7 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errNotStatefulServerSet)
 	}
 
-	cr.Status.SetConditions(xpv1.Creating())
+	cr.SetConditions(xpv1.Creating())
 
 	e.log.Info("Creating a new StatefulServerSet", "name", cr.Name, "replicas", cr.Spec.ForProvider.Replicas)
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
@@ -369,69 +375,67 @@ func isALanFieldNotUpToDate(specLan v1alpha1.StatefulServerSetLan, gotLan v1alph
 	return false
 }
 
-func areDataVolumesUpToDate(cr *v1alpha1.StatefulServerSet, volumes []v1alpha1.Volume) (bool, bool) {
+func areDataVolumesUpToDateAndAvailable(cr *v1alpha1.StatefulServerSet, volumes []v1alpha1.Volume) (creationVolumesUpToDate, areVolumesUpToDate, volumesAvailable bool) {
 	crExpectedNrOfVolumes := len(cr.Spec.ForProvider.Volumes) * cr.Spec.ForProvider.Replicas
 	if len(volumes) != crExpectedNrOfVolumes {
-		return false, false
+		return false, false, false
 	}
 	for volumeIndex := range volumes {
 		for _, specVolume := range cr.Spec.ForProvider.Volumes {
 			if isAVolumeFieldNotUpToDate(specVolume, volumeIndex, volumes) {
-				return true, false
+				return true, false, false
+			}
+			if volumes[volumeIndex].Status.AtProvider.State != ionoscloud.Available {
+				return true, true, false
 			}
 		}
 	}
-	return true, true
+	return true, true, true
 }
 
 func isAVolumeFieldNotUpToDate(specVolume v1alpha1.StatefulServerSetVolume, volumeIndex int, volumes []v1alpha1.Volume) bool {
-	if generateProviderNameFromIndex(specVolume.Metadata.Name, volumeIndex) != volumes[volumeIndex].Spec.ForProvider.Name {
-		return false
-	}
-	if volumes[volumeIndex].Spec.ForProvider.Size != specVolume.Spec.Size {
-		return true
-	}
-	return false
+	return volumes[volumeIndex].Spec.ForProvider.Size != specVolume.Spec.Size
 }
 
-func areSSetResourcesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
-	areServersUpToDate, err := areServersUpToDate(ctx, kube, cr)
-	if !areServersUpToDate {
-		return false, err
+func areSSetResourcesReady(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (isSsetUpToDate, isSsetAvailable bool, err error) {
+	serversUpToDate, areServersAvailable, err := areServersUpToDate(ctx, kube, cr)
+	if !serversUpToDate {
+		return false, false, err
 	}
 
-	areBootVolumesUpToDate, err := areBootVolumesUpToDate(ctx, kube, cr)
-	if !areBootVolumesUpToDate {
-		return false, err
+	bootVolumesUpToDate, areBootVolumesAvailable, err := areBootVolumesUpToDate(ctx, kube, cr)
+	if !bootVolumesUpToDate {
+		return false, false, err
 	}
 
 	areNICSUpToDate, err := areNICsUpToDate(ctx, kube, cr)
 	if !areNICSUpToDate {
-		return false, err
+		return false, false, err
 	}
 
-	return true, nil
+	return true, areServersAvailable && areBootVolumesAvailable, nil
 }
 
-func areServersUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
+func areServersUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (areServersUpToDate, areServersAvailable bool, err error) {
 	servers, err := serverset.GetServersOfSSet(ctx, kube, getSSetName(cr))
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 
 	if len(servers) < cr.Spec.ForProvider.Replicas {
-		return false, nil
+		return false, false, nil
 	}
-
-	return serverset.AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers), nil
+	areServersUpToDate, areServersAvailable = serverset.AreServersReady(cr.Spec.ForProvider.Template.Spec, servers)
+	return areServersUpToDate, areServersAvailable, nil
 }
 
-func areBootVolumesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
+func areBootVolumesUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (areUpToDate, areAvailable bool, err error) {
 	volumes, err := serverset.GetVolumesOfSSet(ctx, kube, getSSetName(cr))
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
-	return serverset.AreVolumesUpToDate(cr.Spec.ForProvider.BootVolumeTemplate, volumes), nil
+	areUpToDate, areAvailable = serverset.AreBootVolumesReady(cr.Spec.ForProvider.BootVolumeTemplate, volumes)
+	return areUpToDate, areAvailable, nil
 }
 
 func areNICsUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (bool, error) {
