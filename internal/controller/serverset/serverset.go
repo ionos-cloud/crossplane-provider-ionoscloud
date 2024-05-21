@@ -100,7 +100,7 @@ type external struct {
 	log                  logging.Logger
 }
 
-func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
 	cr, ok := mg.(*v1alpha1.ServerSet)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errUnexpectedObject)
@@ -118,14 +118,14 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	e.populateReplicasStatuses(ctx, cr, servers)
 
 	areServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
-	areServersUpToDate := AreServersUpToDate(cr.Spec.ForProvider.Template.Spec, servers)
+	areServersUpToDate, areServersAvailable := AreServersReady(cr.Spec.ForProvider.Template.Spec, servers)
 
 	volumes, err := GetVolumesOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
 	areBootVolumesCreated := len(volumes) == cr.Spec.ForProvider.Replicas
-	areBootVolumesUpToDate := AreVolumesUpToDate(cr.Spec.ForProvider.BootVolumeTemplate, volumes)
+	areBootVolumesUpToDate, areBootVolumesAvailable := AreBootVolumesReady(cr.Spec.ForProvider.BootVolumeTemplate, volumes)
 
 	nics, err := GetNICsOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
@@ -135,9 +135,13 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	areNICsCreated := len(nics) == crExpectedNoOfNICs
 
 	// at the moment we do not check that fields of nics are updated, because nic fields are immutable
-	e.log.Info("Observing the ServerSet", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "areServersCreated", areServersCreated, "areBootVolumesCreated", areBootVolumesCreated, "areNICsCreated", areNICsCreated)
-
-	cr.SetConditions(xpv1.Available())
+	e.log.Info("Observing the ServerSet", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "areServersCreated",
+		areServersCreated, "areBootVolumesCreated", areBootVolumesCreated, "areNICsCreated", areNICsCreated, "areServersAvailable", areServersAvailable, "areBootVolumesAvailable", areBootVolumesAvailable)
+	if areServersAvailable && areBootVolumesAvailable {
+		cr.SetConditions(xpv1.Available())
+	} else {
+		cr.SetConditions(xpv1.Creating())
+	}
 
 	return managed.ExternalObservation{
 		// Return false when the externalServerSet resource does not exist. This lets
@@ -176,14 +180,34 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 			errMsg = lastCondition.Message
 		}
 
+		replicaIdx := ComputeReplicaIdx(e.log, fmt.Sprintf(indexLabel, cr.Name, ResourceServer), serverSetReplicas[i].Labels)
+		nicStatues := computeNicStatuses(ctx, e, cr.Name, replicaIdx)
 		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{
 			Role:         fetchRole(ctx, e, serverSetReplicas[i]),
 			Name:         serverSetReplicas[i].Name,
+			ReplicaIndex: replicaIdx,
+			NICStatuses:  nicStatues,
 			Status:       replicaStatus,
 			ErrorMessage: errMsg,
 			LastModified: metav1.Now(),
 		}
 	}
+}
+
+func computeNicStatuses(ctx context.Context, e *external, crName string, replicaIndex int) []v1alpha1.NicStatus {
+	nicsOfReplica := &v1alpha1.NicList{}
+	err := ListResFromSSetWithIndex(ctx, e.kube, crName, resourceNIC, replicaIndex, nicsOfReplica)
+	if err != nil {
+		e.log.Info("error fetching nics", "error", err)
+		return []v1alpha1.NicStatus{}
+	}
+
+	nicStatuses := make([]v1alpha1.NicStatus, len(nicsOfReplica.Items))
+	for i, nic := range nicsOfReplica.Items {
+		nicStatuses[i] = nic.Status
+	}
+
+	return nicStatuses
 }
 
 func getLastCondition(server v1alpha1.Server) xpv1.Condition {
@@ -223,6 +247,8 @@ func computeStatus(state string) string {
 		return statusReady
 	case ionoscloud.Failed:
 		return statusError
+	case ionoscloud.Busy:
+		return statusBusy
 	}
 	return statusUnknown
 }
@@ -469,38 +495,44 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	return nil
 }
 
-// AreServersUpToDate checks if replicas and template params are equal to server obj params
-func AreServersUpToDate(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server) bool {
+// AreServersReady checks if replicas and template params are equal to server obj params
+func AreServersReady(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server) (areServersUpToDate, areServersAvailable bool) {
 	for _, serverObj := range servers {
 		if serverObj.Spec.ForProvider.Cores != templateParams.Cores {
-			return false
+			return false, false
 		}
 		if serverObj.Spec.ForProvider.RAM != templateParams.RAM {
-			return false
+			return false, false
 		}
 		if serverObj.Spec.ForProvider.CPUFamily != templateParams.CPUFamily {
-			return false
+			return false, false
+		}
+		if serverObj.Status.AtProvider.State != ionoscloud.Available {
+			return true, false
 		}
 	}
 
-	return true
+	return true, true
 }
 
-// AreVolumesUpToDate checks if template params are equal to volume obj params
-func AreVolumesUpToDate(templateParams v1alpha1.BootVolumeTemplate, volumes []v1alpha1.Volume) bool {
+// AreBootVolumesReady checks if template params are equal to volume obj params
+func AreBootVolumesReady(templateParams v1alpha1.BootVolumeTemplate, volumes []v1alpha1.Volume) (bool, bool) {
 	for _, volumeObj := range volumes {
 		if volumeObj.Spec.ForProvider.Size != templateParams.Spec.Size {
-			return false
+			return false, false
 		}
 		if volumeObj.Spec.ForProvider.Image != templateParams.Spec.Image {
-			return false
+			return false, false
 		}
 		if volumeObj.Spec.ForProvider.Type != templateParams.Spec.Type {
-			return false
+			return false, false
+		}
+		if volumeObj.Status.AtProvider.State != ionoscloud.Available {
+			return true, false
 		}
 	}
 
-	return true
+	return true, true
 }
 
 // GetServersOfSSet - gets servers from a server set based on the ionoscloud.com/serverset label
@@ -648,4 +680,15 @@ func (e *external) ensureBootVolumeByIndex(ctx context.Context, cr *v1alpha1.Ser
 // getNameFrom - generates name for a resource
 func getNameFrom(resourceName string, idx, version int) string {
 	return fmt.Sprintf("%s-%d-%d", resourceName, idx, version)
+}
+
+// ComputeReplicaIdx - extracts the replica index from the labels
+func ComputeReplicaIdx(log logging.Logger, idxLabel string, labels map[string]string) int {
+	idxLabelValue := labels[idxLabel]
+	replicaIdx, err := strconv.Atoi(idxLabelValue)
+	if err != nil {
+		log.Info("could not compute replica index", "error", err, "idxLabelValue", idxLabelValue, "idxLabel", idxLabel)
+		return -1
+	}
+	return replicaIdx
 }

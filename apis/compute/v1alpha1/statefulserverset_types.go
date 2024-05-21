@@ -121,26 +121,26 @@ type StatefulServerSetSpec struct {
 	ForProvider       StatefulServerSetParameters `json:"forProvider"`
 }
 
-// StatefulServerSetReplicaStatus are the configurable fields of a StatefulServerSetReplicaStatus.
-type StatefulServerSetReplicaStatus struct {
-	// Server assigned role
-	Role string `json:"role"`
-	Name string `json:"name"`
-	// +kubebuilder:validation:Enum=UNKNOWN;READY;ERROR
-	Status string `json:"status"`
-	// ErrorMessage relayed from the backend.
-	ErrorMessage string      `json:"errorMessage,omitempty"`
-	LastModified metav1.Time `json:"lastModified,omitempty"`
+// StatefulServerSetVolumeStatus contains the status of a Volume.
+type StatefulServerSetVolumeStatus struct {
+	VolumeStatus `json:",inline"`
+	ReplicaIndex int `json:"replicaIndex"`
+}
+
+// StatefulServerSetLanStatus contains the status of a LAN.
+type StatefulServerSetLanStatus struct {
+	LanStatus     `json:",inline"`
+	IPv6CIDRBlock string `json:"ipv6CidrBlock,omitempty"`
 }
 
 // StatefulServerSetObservation are the observable fields of a StatefulServerSet.
 type StatefulServerSetObservation struct {
 	xpv1.ResourceStatus `json:",inline"`
 	// Replicas is the count of ready replicas.
-	Replicas           int                      `json:"replicas,omitempty"`
-	ReplicaStatus      []ServerSetReplicaStatus `json:"replicaStatus,omitempty"`
-	DataVolumeStatuses []VolumeStatus           `json:"dataVolumeStatus,omitempty"`
-	LanStatuses        []LanStatus              `json:"lanStatus,omitempty"`
+	Replicas           int                             `json:"replicas,omitempty"`
+	ReplicaStatuses    []ServerSetReplicaStatus        `json:"replicaStatuses,omitempty"`
+	DataVolumeStatuses []StatefulServerSetVolumeStatus `json:"dataVolumeStatuses,omitempty"`
+	LanStatuses        []StatefulServerSetLanStatus    `json:"lanStatuses,omitempty"`
 }
 
 // A StatefulServerSetStatus represents the observed state of a StatefulServerSet.

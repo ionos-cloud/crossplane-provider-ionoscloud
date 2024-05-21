@@ -397,8 +397,8 @@ spec:
                               properties:
                                 dhcp:
                                   type: boolean
-                                ipv4:
-                                  type: string
+                                dhcpv6:
+                                  type: boolean
                                 name:
                                   description: |-
                                     Name of the NIC. Replica index, NIC index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{nicIndex}-{version}.
@@ -415,11 +415,13 @@ spec:
                               - name
                               - reference
                               type: object
+                              x-kubernetes-validations:
+                              - message: Only one of 'dhcp' or 'dhcpv6' can be set
+                                  to true
+                                rule: '!has(self.dhcpv6) || (self.dhcp == false &&
+                                  self.dhcpv6 == false) || (self.dhcp != self.dhcpv6)'
                             minItems: 1
                             type: array
-                            x-kubernetes-validations:
-                            - message: Value is Immutable
-                              rule: self == oldSelf
                           ram:
                             description: |-
                               The memory size for the server in MB, such as 2048. Size must be specified in multiples of 256 MB with a minimum of 256 MB.
@@ -617,8 +619,8 @@ spec:
                 properties:
                   replicaStatus:
                     items:
-                      description: ServerSetReplicaStatus are the observable fields
-                        of a ServerSetReplicaStatus.
+                      description: ServerSetReplicaStatus contains the status of a
+                        Server Replica.
                       properties:
                         conditions:
                           description: Conditions of the resource.
@@ -667,6 +669,72 @@ spec:
                           type: string
                         name:
                           type: string
+                        nicStatus:
+                          items:
+                            description: A NicStatus represents the observed state
+                              of a Nic.
+                            properties:
+                              atProvider:
+                                description: NicObservation are the observable fields
+                                  of a Nic.
+                                properties:
+                                  ips:
+                                    items:
+                                      type: string
+                                    type: array
+                                  mac:
+                                    type: string
+                                  nicId:
+                                    type: string
+                                  pciSlot:
+                                    format: int32
+                                    type: integer
+                                  state:
+                                    type: string
+                                type: object
+                              conditions:
+                                description: Conditions of the resource.
+                                items:
+                                  description: A Condition that may apply to a resource.
+                                  properties:
+                                    lastTransitionTime:
+                                      description: |-
+                                        LastTransitionTime is the last time this condition transitioned from one
+                                        status to another.
+                                      format: date-time
+                                      type: string
+                                    message:
+                                      description: |-
+                                        A Message containing details about this condition's last transition from
+                                        one status to another, if any.
+                                      type: string
+                                    reason:
+                                      description: A Reason for this condition's last
+                                        transition from one status to another.
+                                      type: string
+                                    status:
+                                      description: Status of this condition; is it
+                                        currently True, False, or Unknown?
+                                      type: string
+                                    type:
+                                      description: |-
+                                        Type of this condition. At most one of each condition type may apply to
+                                        a resource at any point in time.
+                                      type: string
+                                  required:
+                                  - lastTransitionTime
+                                  - reason
+                                  - status
+                                  - type
+                                  type: object
+                                type: array
+                                x-kubernetes-list-map-keys:
+                                - type
+                                x-kubernetes-list-type: map
+                            type: object
+                          type: array
+                        replicaIndex:
+                          type: integer
                         role:
                           description: |-
                             Role is the role of a ServerSet Replica. It can be ACTIVE or PASSIVE. The default value is PASSIVE.
@@ -680,9 +748,11 @@ spec:
                           - UNKNOWN
                           - READY
                           - ERROR
+                          - BUSY
                           type: string
                       required:
                       - name
+                      - replicaIndex
                       - role
                       - status
                       type: object

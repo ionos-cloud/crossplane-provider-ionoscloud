@@ -25,6 +25,12 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
+const (
+	// LANAuto is used on a LAN's Ipv6Cidr to indicate that an IPV6 address block will be assigned
+	// automatically by Cloud API. See LanParameters.Ipv6Cidr
+	LANAuto = "AUTO"
+)
+
 // LanParameters are the observable fields of a Lan.
 // Required values when creating a Lan:
 // DatacenterConfig,

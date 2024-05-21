@@ -61,7 +61,7 @@ func (k *kubeLANController) Create(ctx context.Context, cr *v1alpha1.StatefulSer
 // isLanUpToDate - checks if the lan is up-to-date and update the kube lan object if needed
 func isLanUpToDate(spec *v1alpha1.StatefulServerSetLanSpec, lan *v1alpha1.Lan) bool {
 	switch {
-	case spec.IPv6cidr != "AUTO" && lan.Spec.ForProvider.Ipv6Cidr != spec.IPv6cidr:
+	case spec.IPv6cidr != v1alpha1.LANAuto && lan.Spec.ForProvider.Ipv6Cidr != spec.IPv6cidr:
 		lan.Spec.ForProvider.Ipv6Cidr = spec.IPv6cidr
 		return false
 	case lan.Spec.ForProvider.Public != spec.Public:
