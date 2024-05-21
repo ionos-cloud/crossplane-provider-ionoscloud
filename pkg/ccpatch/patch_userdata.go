@@ -7,8 +7,9 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 	"gopkg.in/yaml.v3"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 )
 
 var (

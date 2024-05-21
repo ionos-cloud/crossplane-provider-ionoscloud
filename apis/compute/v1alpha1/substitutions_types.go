@@ -1,8 +1,10 @@
 package v1alpha1
 
+// Substitution defines the substitution configuration
 type Substitution struct {
 	// +kubebuilder:validation:Required
 	// +immutable
+	// +kubebuilder:validation:Enum=ipv4Address;ipv6Address
 	Type string `json:"type" yaml:"type"`
 	// +kubebuilder:validation:Required
 	// +immutable

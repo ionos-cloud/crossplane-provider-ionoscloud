@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 )
 
 func TestIPv6AddressSuccess(t *testing.T) {

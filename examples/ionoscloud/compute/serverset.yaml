@@ -81,12 +81,12 @@ spec:
         ram: 1024
         nics:
           - name: nic-sample
-            ipv4: "10.0.0.1/24"
-            vnetId: "3330fa34-927f-11ee-8008-6202af74e858"
+            dhcp: true
+#            vnetId: "3330fa34-927f-11ee-8008-6202af74e858"
             reference: examplelan
           - name: nic-sample2
-            ipv4: "10.0.0.1/24"
-            vnetId: "3330fa34-927f-11ee-8008-6202af74e858"
+            dhcp: true
+#            vnetId: "3330fa34-927f-11ee-8008-6202af74e858"
             reference: examplelan2
     bootVolumeTemplate:
       metadata:
@@ -98,10 +98,14 @@ spec:
         image: "28d0fa34-927f-11ee-8008-6202af74e858"
         size: 10
         type: HDD
-#        todo - add sshKeys or imagePassword
-#        todo - add userdata in volume creation
         userData: "" #cloud-config
         imagePassword: "thisshouldbesecret"
+        substitutions:
+          - additionalProperties:
+              cidr: "10.0.0.0/24"
+            key: ipv4Address
+            type: ipv4Address
+            unique: true
 ---
 apiVersion: v1
 kind: ConfigMap

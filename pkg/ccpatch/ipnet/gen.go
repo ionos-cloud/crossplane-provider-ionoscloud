@@ -68,6 +68,7 @@ func (g *Generator) Next() net.IP {
 	return current
 }
 
+// First returns the first net.IP in the subnet
 func (g *Generator) First() net.IP {
 	return g.IPNet.IP
 }

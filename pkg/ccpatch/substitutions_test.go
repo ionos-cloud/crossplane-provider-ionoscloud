@@ -4,9 +4,10 @@ import (
 	"encoding/base64"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
-	"github.com/stretchr/testify/require"
 )
 
 var (

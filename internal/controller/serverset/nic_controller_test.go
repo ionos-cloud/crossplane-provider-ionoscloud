@@ -18,16 +18,17 @@ import (
 )
 
 const (
-	ip                        = "10.0.0.2/24"
-	vnetID                    = "679070ab-1ebc-46ef-b9f7-c43c1ed9f6e9"
-	serverSetNicIndexLabel    = "ionoscloud.com/serverset-nic-index"
-	serverSetNicVersionLabel  = "ionoscloud.com/serverset-nic-version"
-	nicWithVNetAndIPV4Name    = "nic1-1-0-0"
-	nicWithoutVNetAndIPV4Name = "nic2-1-0-0"
-	nicID                     = "bc59d87e-17cc-4313-b55b-6603884f9d97"
-	serverID                  = "07a7e712-fc36-43ca-bc8f-76c05861ff8b"
-	lanName                   = "lan1"
-	lanID                     = "1"
+	ip                            = "10.0.0.2/24"
+	vnetID                        = "679070ab-1ebc-46ef-b9f7-c43c1ed9f6e9"
+	serverSetNicReplicaIndexLabel = "ionoscloud.com/serverset-nic-index"
+	serverSetNicIndexLabel        = "ionoscloud.com/serverset-nic-nicindex"
+	serverSetNicVersionLabel      = "ionoscloud.com/serverset-nic-version"
+	nicWithVNetAndIPV4Name        = "nic1-1-0-0"
+	nicWithoutVNetAndIPV4Name     = "nic2-1-0-0"
+	nicID                         = "bc59d87e-17cc-4313-b55b-6603884f9d97"
+	serverID                      = "07a7e712-fc36-43ca-bc8f-76c05861ff8b"
+	lanName                       = "lan1"
+	lanID                         = "1"
 )
 
 func Test_kubeNicController_Create(t *testing.T) {
@@ -129,9 +130,10 @@ func createServerSetWithoutVNetAndIPV4() *v1alpha1.ServerSet {
 func populateBasicNicMetadataAndSpec(nic *v1alpha1.Nic, nicName string) {
 	nic.ObjectMeta.Name = nicName
 	nic.ObjectMeta.Labels = map[string]string{
-		serverSetLabel:           serverSetName,
-		serverSetNicIndexLabel:   "1",
-		serverSetNicVersionLabel: "0",
+		serverSetLabel:                serverSetName,
+		serverSetNicReplicaIndexLabel: "1",
+		serverSetNicVersionLabel:      "0",
+		serverSetNicIndexLabel:        "0",
 	}
 	nic.Spec.ForProvider.Name = nicName
 	nic.Spec.ForProvider.ServerCfg.ServerID = serverID

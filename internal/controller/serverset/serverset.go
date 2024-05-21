@@ -45,6 +45,8 @@ const (
 const (
 	// indexLabel is the label used to identify the server set by index
 	indexLabel = "ionoscloud.com/%s-%s-index"
+
+	nicIndexLabel = "ionoscloud.com/%s-%s-nicindex"
 	// versionLabel is the label used to identify the server set by version
 	versionLabel = "ionoscloud.com/%s-%s-version"
 	// serverSetLabel is the label used to identify the server set resources. All resources created by a server set will have this label

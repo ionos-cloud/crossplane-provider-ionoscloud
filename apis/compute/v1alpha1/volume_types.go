@@ -115,11 +115,6 @@ type VolumeParameters struct {
 	//
 	// +immutable
 	UserData string `json:"userData,omitempty"`
-	// Substitutions are used to replace placeholders in the cloud-init configuration.
-	// The property is immutable and is only allowed to be set on creation of a new a volume.
-	//
-	// +immutable
-	Substitutions []Substitution `json:"substitutions,omitempty"`
 }
 
 // VolumeConfig is used by resources that need to link volumes via id or via reference.

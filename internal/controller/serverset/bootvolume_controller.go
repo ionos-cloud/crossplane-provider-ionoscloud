@@ -16,6 +16,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
@@ -36,9 +37,11 @@ type kubeBootVolumeController struct {
 func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Volume, error) {
 	name := getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, version)
 	k.log.Info("Creating BootVolume", "name", name)
-	userDataPatcher, err := ccpatch.NewCloudInitPatcher(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData)
+	var userDataPatcher *ccpatch.CloudInitPatcher
+	var err error
+	userDataPatcher, err = setPatcher(ctx, cr, replicaIndex, name, k.kube)
 	if err != nil {
-		return v1alpha1.Volume{}, fmt.Errorf("while creating cloud init patcher for BootVolume %s %w", name, err)
+		return v1alpha1.Volume{}, err
 	}
 	createVolume := fromServerSetToVolume(cr, name, replicaIndex, version)
 	createVolume.Spec.ForProvider.UserData = userDataPatcher.Patch("hostname", name).Encode()
@@ -57,6 +60,45 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	k.log.Info("Finished creating BootVolume", "name", name)
 
 	return *kubeVolume, nil
+}
+
+func setPatcher(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex int, name string, kube client.Client) (*ccpatch.CloudInitPatcher, error) {
+	var userDataPatcher *ccpatch.CloudInitPatcher
+	var err error
+	if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
+		identifier := substitution.Identifier(name)
+		substitutions := make([]substitution.Substitution, len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions))
+		for idx, subst := range cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions {
+			substitutions[idx] = substitution.Substitution{
+				Type:                 subst.Type,
+				Key:                  subst.Key,
+				Unique:               subst.Unique,
+				AdditionalProperties: subst.AdditionalProperties,
+			}
+		}
+
+		userDataPatcher, err = ccpatch.NewCloudInitPatcherWithSubstitutions(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData, identifier, substitutions, nil)
+		if err != nil {
+			return userDataPatcher, fmt.Errorf("while creating cloud init patcher with substitutions for BootVolume %s %w", name, err)
+		}
+
+	} else {
+		userDataPatcher, err = ccpatch.NewCloudInitPatcher(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData)
+		if err != nil {
+			return userDataPatcher, fmt.Errorf("while creating cloud init patcher for BootVolume %s %w", name, err)
+		}
+	}
+	for nicIndex := range cr.Spec.ForProvider.Template.Spec.NICs {
+		// will the fact that we use volume version be a problem? yes, on re-create if we re-create only bootvolume. we need nicversion, or get all nics that have a label
+		nicName, pciSlot, err := getNameAndPCISlotFromNIC(ctx, kube, cr.Name, replicaIndex, nicIndex)
+		if err != nil {
+			return userDataPatcher, err
+		}
+		if nicName != "" {
+			userDataPatcher.SetEnv(nicName, strconv.Itoa(int(pciSlot)))
+		}
+	}
+	return userDataPatcher, nil
 }
 
 // Get - returns a volume kubernetes object

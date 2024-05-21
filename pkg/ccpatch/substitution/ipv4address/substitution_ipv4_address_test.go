@@ -3,8 +3,9 @@ package ccpatch_test
 import (
 	"testing"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 )
 
 func TestIPv4AddressSuccess(t *testing.T) {
