@@ -12,6 +12,7 @@ source ./cluster/local/integration_tests_dbaas_mongo.sh
 source ./cluster/local/integration_tests_k8s.sh
 source ./cluster/local/integration_tests_backup.sh
 source ./cluster/local/integration_tests_dataplatform.sh
+source ./cluster/local/integration_tests_serverset.sh
 
 # ------------------------------
 projectdir="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
@@ -25,6 +26,7 @@ eval $(make --no-print-directory -C ${projectdir} build.vars)
 REGISTRY=${REGISTRY:-ghcr.io}
 ORG_NAME=${ORG_NAME:-ionos-cloud}
 BUILD_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}"
+PACKAGE_IMAGE="crossplane.io/inttests/${PROJECT_NAME}:${VERSION}"
 CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller"
 
 # ------------------------------
@@ -42,6 +44,7 @@ TEST_K8S=${TEST_K8S:-false}
 TEST_ALB=${TEST_ALB:-false}
 TEST_BACKUP=${TEST_BACKUP:-false}
 TEST_DATAPLATFORM=${TEST_DATAPLATFORM:-false}
+TEST_SERVERSET=${TEST_SERVERSET:-false}
 skipcleanup=${skipcleanup:-false}
 
 version_tag="$(cat ${projectdir}/_output/version)"
@@ -69,7 +72,8 @@ echo_step "setting up local package cache"
 CACHE_PATH="${projectdir}/.work/inttest-package-cache"
 mkdir -p "${CACHE_PATH}"
 echo "created cache dir at ${CACHE_PATH}"
-docker save "${BUILD_IMAGE}" -o "${CACHE_PATH}/${PACKAGE_NAME}.xpkg" && chmod 644 "${CACHE_PATH}/${PACKAGE_NAME}.xpkg"
+docker tag "${BUILD_IMAGE}" "${PACKAGE_IMAGE}"
+"${UP}" xpkg xp-extract --from-daemon "${PACKAGE_IMAGE}" -o "${CACHE_PATH}/${PACKAGE_NAME}.gz" && chmod 644 "${CACHE_PATH}/${PACKAGE_NAME}.gz"
 
 # create kind cluster with extra mounts
 KIND_NODE_IMAGE="kindest/node:${KIND_NODE_IMAGE_TAG}"
@@ -96,8 +100,8 @@ sleep 5
 
 # files are not synced properly from host to kind node container on Jenkins, so
 # we must manually copy image from host to node
-echo_step "pre-cache package by copying to kind node"
-docker cp "${CACHE_PATH}/${PACKAGE_NAME}.xpkg" "${K8S_CLUSTER}-control-plane":"/cache/${PACKAGE_NAME}.xpkg"
+#echo_step "pre-cache package by copying to kind node"
+#docker cp "${CACHE_PATH}/${PACKAGE_NAME}.xpkg" "${K8S_CLUSTER}-control-plane":"/cache/${PACKAGE_NAME}.xpkg"
 
 echo_step "create crossplane-system namespace"
 "${KUBECTL}" create ns crossplane-system
@@ -147,8 +151,8 @@ echo_step "installing crossplane from stable channel"
 "${HELM3}" version
 "${HELM3}" repo add crossplane-stable https://charts.crossplane.io/stable --force-update
 # TODO: this is a hotfix until the latest stable version is supported
-#chart_version="$("${HELM3}" search repo crossplane-stable/crossplane --devel | awk 'FNR == 2 {print $2}')"
-chart_version="1.6.4"
+chart_version="$("${HELM3}" search repo crossplane-stable/crossplane --devel | awk 'FNR == 2 {print $2}')"
+#chart_version="1.6.4"
 echo_info "using crossplane version ${chart_version}"
 echo
 # we replace empty dir with our PVC so that the /cache dir in the kind node
@@ -280,6 +284,14 @@ if [ "$TEST_DATAPLATFORM" = true ]; then
   echo_step "--- CLEANING UP DATAPLATFORM TESTS ---"
   echo_step "--- DATAPLATFORM cluster tests ---"
   dataplatform_tests_cleanup
+fi
+
+
+if [ "$TEST_SERVERSET" = true ]; then
+  echo_step "--- SERVERSET TESTS ---"
+  serverset_tests
+  echo_step "--- CLEANING UP SERVERSET TESTS ---"
+  serverset_tests_cleanup
 fi
 
 echo_step "-------------------"
