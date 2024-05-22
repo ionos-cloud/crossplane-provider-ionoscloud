@@ -236,9 +236,10 @@ func createServerSetWithDhcpV6() *v1alpha1.ServerSet {
 func populateBasicNicMetadataAndSpec(nic *v1alpha1.Nic, nicName string) {
 	nic.ObjectMeta.Name = nicName
 	nic.ObjectMeta.Labels = map[string]string{
-		serverSetLabel:           serverSetName,
-		serverSetNicIndexLabel:   "1",
-		serverSetNicVersionLabel: "0",
+		serverSetLabel:                          serverSetName,
+		serverSetNicIndexLabel:                  "1",
+		serverSetNicVersionLabel:                "0",
+		"ionoscloud.com/serverset-nic-nicindex": "0",
 	}
 	nic.Spec.ForProvider.Name = nicName
 	nic.Spec.ForProvider.ServerCfg.ServerID = serverID
