@@ -17,18 +17,19 @@ import (
 )
 
 const (
-	vnetID                   = "679070ab-1ebc-46ef-b9f7-c43c1ed9f6e9"
-	serverSetNicIndexLabel   = "ionoscloud.com/serverset-nic-index"
-	serverSetNicVersionLabel = "ionoscloud.com/serverset-nic-version"
-	nicName                  = "nic-0-0-0"
-	nicWithVNetName          = "nic1-1-0-0"
-	nicWithoutVNetName       = "nic2-1-0-0"
-	nicID                    = "bc59d87e-17cc-4313-b55b-6603884f9d97"
-	serverID                 = "07a7e712-fc36-43ca-bc8f-76c05861ff8b"
-	lanName                  = "lan1"
-	lanID                    = "1"
-	dataLAN                  = "data"
-	dataLANIpv6CIDR          = "fd00:0:0:1::/64"
+	vnetID                    = "679070ab-1ebc-46ef-b9f7-c43c1ed9f6e9"
+	serverSetNicIndexLabel    = "ionoscloud.com/serverset-nic-index"
+	serverSetNicNicIndexLabel = "ionoscloud.com/serverset-nic-nicindex"
+	serverSetNicVersionLabel  = "ionoscloud.com/serverset-nic-version"
+	nicName                   = "nic-0-0-0"
+	nicWithVNetName           = "nic1-1-0-0"
+	nicWithoutVNetName        = "nic2-1-0-0"
+	nicID                     = "bc59d87e-17cc-4313-b55b-6603884f9d97"
+	serverID                  = "07a7e712-fc36-43ca-bc8f-76c05861ff8b"
+	lanName                   = "lan1"
+	lanID                     = "1"
+	dataLAN                   = "data"
+	dataLANIpv6CIDR           = "fd00:0:0:1::/64"
 )
 
 func Test_kubeNicController_Create(t *testing.T) {
@@ -236,10 +237,10 @@ func createServerSetWithDhcpV6() *v1alpha1.ServerSet {
 func populateBasicNicMetadataAndSpec(nic *v1alpha1.Nic, nicName string) {
 	nic.ObjectMeta.Name = nicName
 	nic.ObjectMeta.Labels = map[string]string{
-		serverSetLabel:                          serverSetName,
-		serverSetNicIndexLabel:                  "1",
-		serverSetNicVersionLabel:                "0",
-		"ionoscloud.com/serverset-nic-nicindex": "0",
+		serverSetLabel:            serverSetName,
+		serverSetNicIndexLabel:    "1",
+		serverSetNicVersionLabel:  "0",
+		serverSetNicNicIndexLabel: "0",
 	}
 	nic.Spec.ForProvider.Name = nicName
 	nic.Spec.ForProvider.ServerCfg.ServerID = serverID

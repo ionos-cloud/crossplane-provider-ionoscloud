@@ -1846,9 +1846,10 @@ func createBasicNic() *v1alpha1.Nic {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-nic",
 			Labels: map[string]string{
-				serverSetLabel:           serverSetName,
-				serverSetNicIndexLabel:   "0",
-				serverSetNicVersionLabel: "0",
+				serverSetLabel:            serverSetName,
+				serverSetNicIndexLabel:    "0",
+				serverSetNicVersionLabel:  "0",
+				serverSetNicNicIndexLabel: "0",
 			},
 		},
 		Spec: v1alpha1.NicSpec{
