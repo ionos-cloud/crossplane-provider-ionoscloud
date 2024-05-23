@@ -190,19 +190,6 @@ func Test_serverSet_Create(t *testing.T) {
 								Metadata: v1alpha1.ServerSetMetadata{
 									Name: "servername",
 								},
-								Spec: v1alpha1.ServerSetTemplateSpec{
-									Cores:     serverSetCores,
-									RAM:       serverSetRAM,
-									CPUFamily: serverSetCPUFamily,
-									NICs: []v1alpha1.ServerSetTemplateNIC{
-										{
-											Name:      "nic1",
-											IPv4:      "10.0.0.2/24",
-											DHCP:      true,
-											Reference: "data",
-										},
-									},
-								},
 							},
 							BootVolumeTemplate: v1alpha1.BootVolumeTemplate{
 								Metadata: v1alpha1.ServerSetBootVolumeMetadata{
