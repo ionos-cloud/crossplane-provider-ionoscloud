@@ -89,7 +89,6 @@ func setPatcher(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex int, n
 		}
 	}
 	for nicIndex := range cr.Spec.ForProvider.Template.Spec.NICs {
-		// will the fact that we use volume version be a problem? yes, on re-create if we re-create only bootvolume. we need nicversion, or get all nics that have a label
 		nicName, pciSlot, err := getNameAndPCISlotFromNIC(ctx, kube, cr.Name, replicaIndex, nicIndex)
 		if err != nil {
 			return userDataPatcher, err
