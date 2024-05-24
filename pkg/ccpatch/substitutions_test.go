@@ -30,52 +30,60 @@ var (
 		},
 	}
 
-	substitionInput = `#cloud-config
-hostname: $ipv6Address
+	substitutionInput = `#cloud-config
+ipv6: $ipv6Address
 ip: $ipv4
 `
-	substitionOutput = "#cloud-config\nhostname: fc00:1::2\nip: 192.0.2.224\n"
+	substitutionReplica1Output = "#cloud-config\nip: 192.0.2.1\nipv6: fc00:1::1\n"
+	substitutionReplica2Output = "#cloud-config\nip: 192.0.2.2\nipv6: 'fc00:1::'\n"
 )
 
 func TestSubstitutionManager(t *testing.T) {
-	// Identifier is used to lookup the state of the current replica
-	identifier := substitution.Identifier("replica-1")
+	// Identifier is used to look up the state of the current replica
+	replica1 := substitution.Identifier("replica-1")
 	replica2 := substitution.Identifier("replica-2")
 
 	// Global state of the substitutions
 	globalState := &substitution.GlobalState{
-		identifier: []substitution.State{
+		replica1: []substitution.State{
 			{
-				Key:   "$ipv4",
+				Key:   "$ipv4Address",
 				Value: "192.0.2.224",
 			},
 		},
 		replica2: []substitution.State{
 			{
 				Key:   "$ipv6Address",
-				Value: "fc00:1::1",
+				Value: "fc00:1::",
 			},
 		},
 	}
 
 	// Contents of the cloud-init configuration
-
-	encoded := base64.StdEncoding.EncodeToString([]byte(substitionInput))
+	encoded := base64.StdEncoding.EncodeToString([]byte(substitutionInput))
 
 	cp, err := ccpatch.NewCloudInitPatcherWithSubstitutions(
 		encoded,
-		identifier,
+		replica1,
 		substitutions, globalState,
 	)
 	require.NoError(t, err)
-	require.Equal(t, cp.String(), substitionOutput)
+	require.Equalf(t, substitutionReplica1Output, cp.String(), "expected equality for replica-1")
+	cp, err = ccpatch.NewCloudInitPatcherWithSubstitutions(
+		encoded,
+		replica2,
+		substitutions, globalState,
+	)
+	require.NoError(t, err)
+	require.Equalf(t, substitutionReplica2Output, cp.String(), "expected equality for replica-2")
 }
 
 func TestExampleReadme(t *testing.T) {
 	gs := substitution.NewGlobalState()
 	identifier := substitution.Identifier("machine-0")
 
-	encoded := base64.StdEncoding.EncodeToString([]byte(substitionInput))
+	encoded := base64.StdEncoding.EncodeToString([]byte(substitutionInput))
 
-	ccpatch.NewCloudInitPatcherWithSubstitutions(encoded, identifier, substitutions, gs)
+	_, err := ccpatch.NewCloudInitPatcherWithSubstitutions(encoded, identifier, substitutions, gs)
+	require.NoError(t, err)
 }

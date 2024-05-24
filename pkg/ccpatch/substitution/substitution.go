@@ -14,17 +14,17 @@ type Substitution struct {
 }
 
 // ReplaceByState replaces the placeholders in the target string with the values from the state
-func ReplaceByState(identifier Identifier, gs *GlobalState, target string) (string, error) {
+func ReplaceByState(identifier Identifier, globalState *GlobalState, target string) (string, error) {
 	output := target
 
-	varMap := map[string]string{}
+	stateMap := map[string]string{}
 
-	state := gs.GetByIdentifier(identifier)
-	for _, s := range state {
-		varMap[s.Key] = s.Value
+	states := globalState.GetByIdentifier(identifier)
+	for _, state := range states {
+		stateMap[state.Key] = "'" + state.Value + "'"
 	}
 
-	for k, v := range varMap {
+	for k, v := range stateMap {
 		output = strings.ReplaceAll(output, k, v)
 	}
 

@@ -25,9 +25,10 @@ const cloudConfigHeader = "#cloud-config"
 
 // CloudInitPatcher is a helper to patch cloud-init userdata
 type CloudInitPatcher struct {
-	raw           string
-	decoded       string
-	data          map[string]interface{}
+	raw     string
+	decoded string
+	// marshalling a map orders alphabetically the map keys
+	data          map[string]any
 	globalState   *substitution.GlobalState
 	identifier    substitution.Identifier
 	substitutions []substitution.Substitution
@@ -87,7 +88,7 @@ func newCloudInitPatcher(raw string) (*CloudInitPatcher, error) {
 	}
 
 	if len(byt) == 0 {
-		return &CloudInitPatcher{raw: raw, decoded: "", data: make(map[string]interface{})}, nil
+		return &CloudInitPatcher{raw: raw, decoded: "", data: make(map[string]any)}, nil
 	}
 
 	if !IsCloudConfig(string(byt)) {
@@ -112,10 +113,10 @@ func (c *CloudInitPatcher) Patch(key string, value any) *CloudInitPatcher {
 // within the "environment" key
 func (c *CloudInitPatcher) SetEnv(key string, value string) *CloudInitPatcher {
 	if c.data["environment"] == nil {
-		c.data["environment"] = make(map[string]interface{})
+		c.data["environment"] = make(map[string]any)
 	}
 
-	c.data["environment"].(map[string]interface{})[key] = value
+	c.data["environment"].(map[string]any)[key] = value
 
 	return c
 }
@@ -136,6 +137,7 @@ func (c *CloudInitPatcher) Get(key string) any {
 
 // String returns the cloud-init data as a string
 func (c *CloudInitPatcher) String() string {
+	// marshalling a map sorts the keys, so you can get different order for substitution
 	byt, err := yaml.Marshal(c.data)
 	if err != nil {
 		return ""
