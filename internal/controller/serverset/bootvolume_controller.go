@@ -62,6 +62,8 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	return *kubeVolume, nil
 }
 
+var globalState = &substitution.GlobalState{}
+
 func setPatcher(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex int, name string, kube client.Client) (*ccpatch.CloudInitPatcher, error) {
 	var userDataPatcher *ccpatch.CloudInitPatcher
 	var err error
@@ -77,7 +79,7 @@ func setPatcher(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex int, n
 			}
 		}
 
-		userDataPatcher, err = ccpatch.NewCloudInitPatcherWithSubstitutions(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData, identifier, substitutions, nil)
+		userDataPatcher, err = ccpatch.NewCloudInitPatcherWithSubstitutions(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData, identifier, substitutions, globalState)
 		if err != nil {
 			return userDataPatcher, fmt.Errorf("while creating cloud init patcher with substitutions for BootVolume %s %w", name, err)
 		}

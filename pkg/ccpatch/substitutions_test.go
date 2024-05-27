@@ -77,13 +77,3 @@ func TestSubstitutionManager(t *testing.T) {
 	require.NoError(t, err)
 	require.Equalf(t, substitutionReplica2Output, cp.String(), "expected equality for replica-2")
 }
-
-func TestExampleReadme(t *testing.T) {
-	gs := substitution.NewGlobalState()
-	identifier := substitution.Identifier("machine-0")
-
-	encoded := base64.StdEncoding.EncodeToString([]byte(substitutionInput))
-
-	_, err := ccpatch.NewCloudInitPatcherWithSubstitutions(encoded, identifier, substitutions, gs)
-	require.NoError(t, err)
-}

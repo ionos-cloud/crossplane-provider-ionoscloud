@@ -36,12 +36,12 @@ type CloudInitPatcher struct {
 
 // NewCloudInitPatcherWithSubstitutions returns a new CloudInitPatcher instance
 // with a list of substitutions
-func NewCloudInitPatcherWithSubstitutions(raw string, identifier substitution.Identifier, substitutions []substitution.Substitution, globalState *substitution.GlobalState) (*CloudInitPatcher, error) {
+func NewCloudInitPatcherWithSubstitutions(rawUserData string, identifier substitution.Identifier, substitutions []substitution.Substitution, globalState *substitution.GlobalState) (*CloudInitPatcher, error) {
 	if globalState == nil {
 		globalState = &substitution.GlobalState{}
 	}
 
-	patcher, err := newCloudInitPatcher(raw)
+	patcher, err := newCloudInitPatcher(rawUserData)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func NewCloudInitPatcherWithSubstitutions(raw string, identifier substitution.Id
 	patcher.substitutions = substitutions
 	patcher.globalState = globalState
 
-	if err := buildState(
+	if err := populateGlobalState(
 		patcher.identifier,
 		patcher.substitutions,
 		patcher.globalState,
@@ -77,18 +77,18 @@ func NewCloudInitPatcherWithSubstitutions(raw string, identifier substitution.Id
 
 // NewCloudInitPatcher returns a new CloudInitPatcher instance
 // from a base64 encoded string
-func NewCloudInitPatcher(raw string) (*CloudInitPatcher, error) {
-	return newCloudInitPatcher(raw)
+func NewCloudInitPatcher(rawUserData string) (*CloudInitPatcher, error) {
+	return newCloudInitPatcher(rawUserData)
 }
 
-func newCloudInitPatcher(raw string) (*CloudInitPatcher, error) {
-	byt, err := base64.StdEncoding.DecodeString(raw)
+func newCloudInitPatcher(rawUserData string) (*CloudInitPatcher, error) {
+	byt, err := base64.StdEncoding.DecodeString(rawUserData)
 	if err != nil {
 		return nil, fmt.Errorf("%w (%w)", ErrDecodeFailed, err)
 	}
 
 	if len(byt) == 0 {
-		return &CloudInitPatcher{raw: raw, decoded: "", data: make(map[string]any)}, nil
+		return &CloudInitPatcher{raw: rawUserData, decoded: "", data: make(map[string]any)}, nil
 	}
 
 	if !IsCloudConfig(string(byt)) {
@@ -100,7 +100,7 @@ func newCloudInitPatcher(raw string) (*CloudInitPatcher, error) {
 		return nil, fmt.Errorf("%w (%w)", ErrMalformedData, err)
 	}
 
-	return &CloudInitPatcher{raw: raw, decoded: string(byt), data: data, substitutions: nil}, nil
+	return &CloudInitPatcher{raw: rawUserData, decoded: string(byt), data: data, substitutions: nil}, nil
 }
 
 // Patch adds or modifies a key-value pair in the cloud-init data
