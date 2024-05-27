@@ -17,7 +17,6 @@ limitations under the License.
 package controller
 
 import (
-	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/alb/applicationloadbalancer"
@@ -49,14 +48,12 @@ import (
 	nlbforwardingrule "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/nlb/forwardingrule"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/nlb/networkloadbalancer"
 
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
-
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/config"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 // controllerSetup is the func signature of the setup method of a controller.
-type controllerSetup func(ctrl.Manager, logging.Logger, workqueue.RateLimiter, *utils.ConfigurationOptions) error
+type controllerSetup func(ctrl.Manager, *utils.ConfigurationOptions) error
 
 // controllers is a list of controllers which must be setup and initialized.
 var controllers = []controllerSetup{
@@ -92,11 +89,11 @@ var controllers = []controllerSetup{
 
 // Setup creates all IONOS Cloud controllers with the supplied logger
 // and adds them to the supplied manager.
-func Setup(mgr ctrl.Manager, l logging.Logger, wl workqueue.RateLimiter, options *utils.ConfigurationOptions) error {
+func Setup(mgr ctrl.Manager, options *utils.ConfigurationOptions) error {
 	for _, setup := range controllers {
-		if err := setup(mgr, l, wl, options); err != nil {
+		if err := setup(mgr, options); err != nil {
 			return err
 		}
 	}
-	return config.Setup(mgr, l, wl)
+	return config.Setup(mgr, options)
 }

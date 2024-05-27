@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -51,9 +50,11 @@ const (
 )
 
 // Setup adds a controller that reconciles Group managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, _ workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
+func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.GroupGroupKind)
 	r := event.NewAPIRecorder(mgr.GetEventRecorderFor(name))
+	logger := opts.CtrlOpts.Logger
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
@@ -65,14 +66,14 @@ func Setup(mgr ctrl.Manager, l logging.Logger, _ workqueue.RateLimiter, opts *ut
 			managed.WithExternalConnecter(&connectorGroup{
 				kube:                 mgr.GetClient(),
 				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:                  l,
+				log:                  logger,
 				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
-			managed.WithInitializers(resourceShareInitializer{kube: mgr.GetClient(), log: l, eventRecorder: r}),
+			managed.WithInitializers(resourceShareInitializer{kube: mgr.GetClient(), log: logger, eventRecorder: r}),
 			managed.WithPollInterval(opts.GetPollInterval()),
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
-			managed.WithLogger(l.WithValues("controller", name)),
+			managed.WithLogger(logger.WithValues("controller", name)),
 			managed.WithRecorder(r)))
 
 }

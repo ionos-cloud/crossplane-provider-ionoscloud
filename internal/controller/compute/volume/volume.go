@@ -21,9 +21,10 @@ import (
 	"fmt"
 
 	"github.com/google/go-cmp/cmp"
-	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
-	"k8s.io/client-go/util/workqueue"
+
+	sdkgo "github.com/ionos-cloud/sdk-go/v6"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -47,8 +48,9 @@ import (
 const errNotVolume = "managed resource is not a Volume custom resource"
 
 // Setup adds a controller that reconciles Volume managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
+func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.VolumeGroupKind)
+	logger := opts.CtrlOpts.Logger
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -61,13 +63,13 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *u
 			managed.WithExternalConnecter(&connectorVolume{
 				kube:                 mgr.GetClient(),
 				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:                  l,
+				log:                  logger,
 				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithPollInterval(opts.GetPollInterval()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
-			managed.WithLogger(l.WithValues("controller", name)),
+			managed.WithLogger(logger.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 
