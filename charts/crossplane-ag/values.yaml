@@ -6,9 +6,9 @@ crossplane:
     # -- The Crossplane image tag. Defaults to the value of `appVersion` in `Chart.yaml`.
     tag: "v1.15.2-mirrored"
     # -- The image pull policy used for Crossplane and RBAC Manager pods.
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   provider:
-    packages: [kind-registry:5000/ionos-cloud/crossplane-provider-ionoscloud:fix]
+    packages: [kind-registry:5000/ionos-cloud/crossplane-provider-ionoscloud:latest]
   registryCaBundleConfig:
     # -- The ConfigMap name containing a custom CA bundle to enable fetching packages from registries with unknown or untrusted certificates.
     name: "ca-bundle-config"
