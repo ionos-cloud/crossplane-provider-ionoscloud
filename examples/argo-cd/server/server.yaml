@@ -29,6 +29,22 @@ spec:
     name: example
 ---
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: landb
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: landb
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: datacenter
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: Server
 metadata:
   name: server

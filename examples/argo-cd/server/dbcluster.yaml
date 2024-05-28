@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: psqlcreds
+  namespace: crossplane-system
+data:
+  credentials: eyJ1c2VybmFtZSI6InRlc3R1c2VyMiIsInBhc3N3b3JkIjoidGVzdHBhc3N3b3JkIn0=
+---
+apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
+kind: PostgresCluster
+metadata:
+  name: example
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    displayName: testDemo
+    postgresVersion: "13"
+    connections:
+      - datacenterConfig:
+          datacenterIdRef:
+            name: datacenter
+        lanConfig:
+          lanIdRef:
+            name: landb
+        cidr: 192.168.1.100/24
+    credentials:
+      source: Secret
+      secretRef:
+        namespace: crossplane-system
+        name: psqlcreds
+        key: credentials
+    location: es/vit
+    instances: 1
+    cores: 2
+    ram: 2048
+    storageSize: 20480
+    storageType: HDD
+    synchronizationMode: ASYNCHRONOUS
+  providerConfigRef:
+    name: example
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: psqlcreds2
+  namespace: crossplane-system
+data:
+  credentials: eyJ1c2VybmFtZSI6InVzZXJmb3J0ZXN0aW5nMSIsInBhc3N3b3JkIjoicGFzc3dvcmQxMjM0NTU1MyJ9
+---
+apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
+kind: PostgresUser
+metadata:
+  name: example1
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    credentials:
+      source: Secret
+      secretRef:
+        namespace: crossplane-system
+        name: psqlcreds2
+        key: credentials
+    clusterConfig:
+      ClusterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
+apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
+kind: PostgresUser
+metadata:
+  name: example2
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    credentials:
+      source: "None"
+      username: testusernosecret
+      password: cleartextpassword
+    clusterConfig:
+      ClusterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
