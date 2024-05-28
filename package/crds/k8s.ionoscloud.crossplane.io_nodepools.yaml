@@ -334,6 +334,10 @@ spec:
                     items:
                       description: KubernetesNodePoolLan struct for KubernetesNodePoolLan.
                       properties:
+                        datacenterID:
+                          description: // The datacenter ID, requires system privileges,
+                            for internal usage only
+                          type: string
                         dhcp:
                           description: Indicates if the Kubernetes NodePool LAN will
                             reserve an IP using DHCP.
