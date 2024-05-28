@@ -25,7 +25,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
-	"k8s.io/client-go/util/workqueue"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -49,8 +49,10 @@ import (
 const errNotServer = "managed resource is not a Server custom resource"
 
 // Setup adds a controller that reconciles Server managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
+func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.ServerGroupKind)
+	logger := opts.CtrlOpts.Logger
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
@@ -62,14 +64,14 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *u
 			managed.WithExternalConnecter(&connectorServer{
 				kube:                 mgr.GetClient(),
 				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:                  l,
+				log:                  logger,
 				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
 			managed.WithPollInterval(opts.GetPollInterval()),
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
-			managed.WithLogger(l.WithValues("controller", name)),
+			managed.WithLogger(logger.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 
