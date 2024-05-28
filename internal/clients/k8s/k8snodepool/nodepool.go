@@ -318,8 +318,9 @@ func kubernetesNodePoolLans(crLans []v1alpha1.KubernetesNodePoolLan) *[]sdkgo.Ku
 			lanIDConverted, _ := strconv.ParseInt(crLan.LanCfg.LanID, 10, 64)
 			lanID := int32(lanIDConverted)
 			newNodePoolLan := sdkgo.KubernetesNodePoolLan{
-				Id:   &lanID,
-				Dhcp: &crLan.Dhcp,
+				Id:           &lanID,
+				Dhcp:         &crLan.Dhcp,
+				DatacenterId: &crLan.DatacenterID,
 			}
 			if len(crLan.Routes) > 0 {
 				routes := make([]sdkgo.KubernetesNodePoolLanRoutes, 0)
@@ -356,6 +357,9 @@ func isEqKubernetesNodePoolLans(crLans []v1alpha1.KubernetesNodePoolLan, lans []
 		}
 		lanIDConverted, _ := strconv.ParseInt(crLan.LanCfg.LanID, 10, 64)
 		if lan.Id != nil && *lan.Id != int32(lanIDConverted) {
+			return false
+		}
+		if lan.DatacenterId != nil && *lan.DatacenterId != crLan.DatacenterID {
 			return false
 		}
 		for j, crRoute := range crLan.Routes {

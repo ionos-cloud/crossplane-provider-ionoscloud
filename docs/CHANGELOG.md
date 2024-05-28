@@ -1,3 +1,10 @@
+## [1.0.13] (TBD)
+- **Features**:
+    - Add `datacenterID` field for node pool lan in k8s `NodePool` CRD managed resources:
+
+- **Misc**:
+    - Use builtin `controller.Options` in controller setup functions
+
 ## [1.0.12] (May 2024)
 - **Fixes**:
     - Fixes for `MongoUser` and `PostgresUser`:
