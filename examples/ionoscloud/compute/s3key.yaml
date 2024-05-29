@@ -14,7 +14,7 @@ spec:
     - "*"
   forProvider:
 #    replace with the user id for which you want the s3 key to be created
-    userID: "ee6bcd16-bb84-4848-a4f3-9e4b1449250f"
+    userID: "00000000000000000000000000"
 #    optional, can be left out. the key can only be updated to false after creation
     active: true
   providerConfigRef:
