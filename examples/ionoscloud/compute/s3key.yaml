@@ -1,7 +1,10 @@
 # Use this file to create a S3 key.
 # Required values for creating a S3Key CR are:
 # userId (via ID).
-# SecretKey is automatically returned by the API and cannot be set.
+# s3SecretKey is automatically returned by the API and will be saved in s3key secret in crossplane-system namespace.
+# To see the data inside the secret, run the following commands:
+# kubectl get secrets/s3key --template={{.data.s3SecretKey}} | base64
+# kubectl get secrets/s3key --template={{.data.s3KeyID}} | base64
 apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
 kind: S3Key
 metadata:
@@ -11,8 +14,11 @@ spec:
     - "*"
   forProvider:
 #    replace with the user id for which you want the s3 key to be created
-    userID: "000000-0000-0000-0000-0000"
+    userID: "ee6bcd16-bb84-4848-a4f3-9e4b1449250f"
 #    optional, can be left out. the key can only be updated to false after creation
     active: true
   providerConfigRef:
     name: example
+  writeConnectionSecretToRef:
+    name: "s3key"
+    namespace: "crossplane-system"

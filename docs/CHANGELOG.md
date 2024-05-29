@@ -1,7 +1,11 @@
-## [1.0.13] (TBD)
+## [1.0.13]
 - **Features**:
     - Add `datacenterID` field for node pool lan in k8s `NodePool` CRD managed resources:
+    - Save `s3SecretKey` and `s3keyID` to the `Secrets` field in the `S3Key` CRD
 
+- **Fixes**:
+    - S3Key should be properly deleted
+    - Remove useless `secretKey` field in s3Key
 - **Misc**:
     - Use builtin `controller.Options` in controller setup functions
 

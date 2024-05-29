@@ -39,32 +39,15 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 	return cp.ComputeClient
 }
 
-// LateInitializer fills the empty fields in *v1alpha1.S3KeyParameters with
-// the values seen in sdkgo.S3Key.
-func LateInitializer(in *v1alpha1.S3KeyParameters, s3Key *sdkgo.S3Key) {
-	if s3Key == nil {
-		return
-	}
-	// Add secretKey to the Spec, if it was set by the API
-	if propertiesOk, ok := s3Key.GetPropertiesOk(); ok && propertiesOk != nil {
-		if secretKeyOk, ok := propertiesOk.GetSecretKeyOk(); ok && secretKeyOk != nil {
-			if in.SecretKey == "" {
-				in.SecretKey = *secretKeyOk
-			}
-		}
-	}
-}
-
 // IsS3KeyUpToDate returns true if the S3Key is up-to-date or false if it does not
 func IsS3KeyUpToDate(cr *v1alpha1.S3Key, s3Key sdkgo.S3Key) bool { // nolint:gocyclo
+	if cr == nil {
+		return false
+	}
 	switch {
-	case cr == nil && s3Key.Properties == nil:
+	case s3Key.Properties == nil:
 		return true
-	case cr == nil && s3Key.Properties != nil:
-		return false
-	case cr != nil && s3Key.Properties == nil:
-		return false
-	case s3Key.Properties.SecretKey != nil && *s3Key.Properties.SecretKey != cr.Spec.ForProvider.SecretKey:
+	case s3Key.Properties != nil:
 		return false
 	case s3Key.Properties.Active == nil && cr.Spec.ForProvider.Active != *s3Key.Properties.Active:
 		return false
