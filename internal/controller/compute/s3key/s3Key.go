@@ -129,9 +129,6 @@ func (c *externalS3Key) Observe(ctx context.Context, mg resource.Managed) (manag
 	}
 	current := cr.Spec.ForProvider.DeepCopy()
 	cr.Status.AtProvider.S3KeyID = meta.GetExternalName(cr)
-	if observed.Properties != nil && observed.Properties.SecretKey != nil {
-		cr.Status.AtProvider.SecretKey = *observed.Properties.SecretKey
-	}
 	cr.SetConditions(xpv1.Available())
 
 	return managed.ExternalObservation{

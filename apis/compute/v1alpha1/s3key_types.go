@@ -55,8 +55,7 @@ type S3KeyStatus struct {
 
 // S3KeyObservation are the observable fields of a S3Key.
 type S3KeyObservation struct {
-	SecretKey string `json:"secretKey,omitempty"`
-	S3KeyID   string `json:"s3KeyID,omitempty"`
+	S3KeyID string `json:"s3KeyID,omitempty"`
 }
 
 // +kubebuilder:object:root=true

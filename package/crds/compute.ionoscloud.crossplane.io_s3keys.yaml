@@ -263,8 +263,6 @@ spec:
                 properties:
                   s3KeyID:
                     type: string
-                  secretKey:
-                    type: string
                 type: object
               conditions:
                 description: Conditions of the resource.
