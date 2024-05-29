@@ -335,7 +335,7 @@ spec:
                       description: KubernetesNodePoolLan struct for KubernetesNodePoolLan.
                       properties:
                         datacenterID:
-                          description: // The datacenter ID, requires system privileges,
+                          description: The datacenter ID, requires system privileges,
                             for internal usage only
                           type: string
                         dhcp:

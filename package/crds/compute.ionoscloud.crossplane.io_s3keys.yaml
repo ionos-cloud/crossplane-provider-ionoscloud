@@ -82,9 +82,6 @@ spec:
                       be updated to false, by default the key will be created as active.
                       Default value is true.
                     type: boolean
-                  secretKey:
-                    description: The S3 Secret key.
-                    type: string
                   userID:
                     description: The UUID of the user owning the S3 Key.
                     type: string
@@ -265,8 +262,6 @@ spec:
                 description: S3KeyObservation are the observable fields of a S3Key.
                 properties:
                   s3KeyID:
-                    type: string
-                  secretKey:
                     type: string
                 type: object
               conditions:

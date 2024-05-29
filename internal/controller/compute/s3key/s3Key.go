@@ -19,7 +19,10 @@ package s3key
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strings"
 
+	ionosdk "github.com/ionos-cloud/sdk-go/v6"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -118,17 +121,20 @@ func (c *externalS3Key) Observe(ctx context.Context, mg resource.Managed) (manag
 	observed, apiResponse, err := c.service.GetS3Key(ctx, cr.Spec.ForProvider.UserID, cr.Status.AtProvider.S3KeyID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to get S3Key by id. error: %w", err)
+		// we get a 422 error response on key not found instead of 404
+		if apiResponse != nil && apiResponse.Response != nil && apiResponse.StatusCode == http.StatusUnprocessableEntity && strings.Contains(err.Error(), "The access key cannot be found") {
+			return managed.ExternalObservation{}, nil
+		}
 		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	current := cr.Spec.ForProvider.DeepCopy()
-	s3key.LateInitializer(&cr.Spec.ForProvider, &observed)
 	cr.Status.AtProvider.S3KeyID = meta.GetExternalName(cr)
 	cr.SetConditions(xpv1.Available())
 
 	return managed.ExternalObservation{
 		ResourceExists:          true,
 		ResourceUpToDate:        s3key.IsS3KeyUpToDate(cr, observed),
-		ConnectionDetails:       managed.ConnectionDetails{},
+		ConnectionDetails:       s3ConnectionDetailsTo(observed),
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}, nil
 }
@@ -141,16 +147,13 @@ func (c *externalS3Key) Create(ctx context.Context, mg resource.Managed) (manage
 	cr.SetConditions(xpv1.Creating())
 
 	newInstance, apiResponse, err := c.service.CreateS3Key(ctx, cr.Spec.ForProvider.UserID)
-	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create S3Key. error: %w", err)
-		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
+		return managed.ExternalCreation{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 
-	cr.Status.AtProvider.SecretKey = *newInstance.Properties.SecretKey
-	cr.Status.AtProvider.S3KeyID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
-	return creation, nil
+	return managed.ExternalCreation{ConnectionDetails: s3ConnectionDetailsTo(newInstance)}, nil
 }
 
 func (c *externalS3Key) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
@@ -165,7 +168,7 @@ func (c *externalS3Key) Update(ctx context.Context, mg resource.Managed) (manage
 		return managed.ExternalUpdate{}, err
 	}
 
-	_, apiResponse, err := c.service.UpdateS3Key(ctx, cr.Spec.ForProvider.UserID, S3KeyID, *instanceInput)
+	observed, apiResponse, err := c.service.UpdateS3Key(ctx, cr.Spec.ForProvider.UserID, S3KeyID, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to update S3Key. error: %w", err)
 		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
@@ -173,7 +176,9 @@ func (c *externalS3Key) Update(ctx context.Context, mg resource.Managed) (manage
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalUpdate{}, fmt.Errorf("while waiting for request. %w", err)
 	}
-	return managed.ExternalUpdate{}, nil
+	return managed.ExternalUpdate{
+		ConnectionDetails: s3ConnectionDetailsTo(observed),
+	}, nil
 }
 
 func (c *externalS3Key) Delete(ctx context.Context, mg resource.Managed) error {
@@ -191,4 +196,16 @@ func (c *externalS3Key) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 
 	return compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse)
+}
+
+func s3ConnectionDetailsTo(observed ionosdk.S3Key) managed.ConnectionDetails {
+	var details = make(managed.ConnectionDetails)
+	if observed.Id == nil || observed.Properties == nil {
+		return details
+	}
+	props := observed.GetProperties()
+	details["s3KeyID"] = []byte(utils.DereferenceOrZero(observed.Id))
+	details["s3SecretKey"] = []byte(*props.SecretKey)
+
+	return details
 }

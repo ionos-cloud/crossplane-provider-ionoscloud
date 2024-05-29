@@ -17,11 +17,6 @@ type S3KeyParameters struct {
 	//
 	// +kubebuilder:validation:Required
 	UserID string `json:"userID"`
-	// The S3 Secret key.
-	//
-	// +immutable
-	// +kubebuilder:validation:Optional
-	SecretKey string `json:"secretKey"`
 	// Whether the S3 is active / enabled or not. Can only be updated to false, by default the key will be created as active. Default value is true.
 	//
 	// +kubebuilder:validation:Optional
@@ -60,8 +55,7 @@ type S3KeyStatus struct {
 
 // S3KeyObservation are the observable fields of a S3Key.
 type S3KeyObservation struct {
-	SecretKey string `json:"secretKey,omitempty"`
-	S3KeyID   string `json:"s3KeyID,omitempty"`
+	S3KeyID string `json:"s3KeyID,omitempty"`
 }
 
 // +kubebuilder:object:root=true

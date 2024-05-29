@@ -217,6 +217,8 @@ viable upgrade targets for all prior versions.
 * `lans` (array)
 	* description: Array of additional private LANs attached to worker nodes.
 	* properties:
+		* `datacenterID` (string)
+			* description: The datacenter ID, requires system privileges, for internal usage only
 		* `dhcp` (boolean)
 			* description: Indicates if the Kubernetes NodePool LAN will reserve an IP using DHCP.
 		* `lanConfig` (object)
