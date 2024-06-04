@@ -75,7 +75,7 @@ type ServerSetTemplateSpec struct {
 	// NICs are the network interfaces of the server.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
-	NICs []ServerSetTemplateNIC `json:"nics,omitempty"`
+	NICs []ServerSetTemplateNIC `json:"nics"`
 }
 
 // ServerSetTemplateNIC are the configurable fields of a ServerSetTemplateNIC.
@@ -94,13 +94,8 @@ type ServerSetTemplateNIC struct {
 	DHCPv6 *bool `json:"dhcpv6"`
 	// +kubebuilder:validation:Optional
 	VNetID string `json:"vnetId,omitempty"`
-	// +kubebuilder:validation:Required
-	Reference string `json:"reference"`
-}
-
-// ServerSetTemplateVolumeMount are the configurable fields of a ServerSetTemplateVolumeMount.
-// It is used to mount a volume to a server.
-type ServerSetTemplateVolumeMount struct {
+	// If created using crossplane, MUST be created before serverset
+	//
 	// +kubebuilder:validation:Required
 	Reference string `json:"reference"`
 }

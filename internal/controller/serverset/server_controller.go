@@ -77,7 +77,8 @@ func (k *kubeServerController) isAvailable(ctx context.Context, name, namespace 
 		}
 	}
 	if !kube.IsSuccessfullyCreated(obj) {
-		return false, kube.ErrExternalCreateFailed
+		conditions := obj.Status.ResourceStatus.Conditions
+		return false, fmt.Errorf("reason %s %w", conditions[len(conditions)-1].Message, kube.ErrExternalCreateFailed)
 	}
 	if obj.Status.AtProvider.ServerID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
 		return true, nil

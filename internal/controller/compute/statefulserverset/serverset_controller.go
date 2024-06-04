@@ -87,8 +87,8 @@ func (k *kubeServerSetController) isAvailable(ctx context.Context, name, namespa
 		return false, nil
 	}
 	if !kube.IsSuccessfullyCreated(obj) {
-		// todo add here the internal ReconcileError if possible
-		return false, kube.ErrExternalCreateFailed
+		conditions := obj.Status.ResourceStatus.Conditions
+		return false, fmt.Errorf("reason %s %w", conditions[len(conditions)-1].Message, kube.ErrExternalCreateFailed)
 	}
 	if (len(obj.Status.AtProvider.ReplicaStatuses) == obj.Spec.ForProvider.Replicas) &&
 		(obj.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())) {

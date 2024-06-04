@@ -381,6 +381,8 @@ spec:
                                   pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                                   type: string
                                 reference:
+                                  description: If created using crossplane, MUST be
+                                    created before serverset
                                   type: string
                                 vnetId:
                                   type: string
@@ -406,6 +408,7 @@ spec:
                             type: integer
                         required:
                         - cores
+                        - nics
                         - ram
                         type: object
                     required:

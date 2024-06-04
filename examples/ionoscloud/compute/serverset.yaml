@@ -66,7 +66,7 @@ spec:
   providerConfigRef:
     name: example
   forProvider:
-    replicas: 2
+    replicas: 1
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -82,9 +82,11 @@ spec:
         nics:
           - name: nic-sample
             dhcp: false
+#            needs to be created before serverset. Serverset will not wait until it is populated
             reference: examplelan
           - name: nic-sample2
             dhcp: false
+            dhcpv6: true
             reference: examplelan2
     bootVolumeTemplate:
       metadata:
