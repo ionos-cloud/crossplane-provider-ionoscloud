@@ -193,23 +193,39 @@ spec:
                               Substitutions are used to replace placeholders in the cloud-init configuration.
                               The property is immutable and is only allowed to be set on creation of a new a volume.
                             items:
+                              description: |-
+                                Substitution defines the substitution configuration
+                                Example:
+                                substitutions:
+                                  - type: ipv4Address
+                                    key: $keyToReplace
+                                    unique: true
+                                    options:
+                                    cidr: "10.0.0.0/24"
                               properties:
-                                additionalProperties:
-                                  additionalProperties:
-                                    type: string
-                                  type: object
                                 key:
                                   type: string
+                                options:
+                                  additionalProperties:
+                                    type: string
+                                  description: The options for the handler
+                                  type: object
                                 type:
+                                  description: |-
+                                    The type of the handler that will be used for this substitution. The handler will
+                                    be responsible for computing the value we put in place of te key (e.g. in the above
+                                    example the value for $keyToReplace)
                                   enum:
                                   - ipv4Address
                                   - ipv6Address
                                   type: string
                                 unique:
+                                  description: Unique means that the value is unique
+                                    across multiple ServerSets
                                   type: boolean
                               required:
-                              - additionalProperties
                               - key
+                              - options
                               - type
                               - unique
                               type: object

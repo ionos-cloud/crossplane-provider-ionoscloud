@@ -75,7 +75,7 @@ func setPatcher(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex int, n
 				Type:                 subst.Type,
 				Key:                  subst.Key,
 				Unique:               subst.Unique,
-				AdditionalProperties: subst.AdditionalProperties,
+				AdditionalProperties: subst.Options,
 			}
 		}
 
