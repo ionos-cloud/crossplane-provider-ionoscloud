@@ -260,17 +260,18 @@ available CPU architectures can be retrieved from the datacenter resource.
 					* description: NICs are the network interfaces of the server.
 					* properties:
 						* `dhcp` (boolean)
-						* `ipv4` (string)
+						* `dhcpv6` (boolean)
+						* `lanReference` (string)
+							* description: The Referenced LAN must be created before the ServerSet is applied
 						* `name` (string)
 							* description: Name of the NIC. Replica index, NIC index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{nicIndex}-{version}.
 Version increases if the NIC is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the NIC is re-created and the version is increased.
 							* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
-						* `reference` (string)
 						* `vnetId` (string)
 					* required properties:
 						* `dhcp`
+						* `lanReference`
 						* `name`
-						* `reference`
 				* `ram` (integer)
 					* description: The memory size for the server in MB, such as 2048. Size must be specified in multiples of 256 MB with a minimum of 256 MB.
 however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB,
@@ -279,6 +280,7 @@ then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size 
 					* multiple of: 1024.000000
 			* required properties:
 				* `cores`
+				* `nics`
 				* `ram`
 	* required properties:
 		* `metadata`

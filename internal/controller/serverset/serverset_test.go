@@ -1928,9 +1928,9 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 						CPUFamily: serverSetCPUFamily,
 						NICs: []v1alpha1.ServerSetTemplateNIC{
 							{
-								Name:      "nic1",
-								DHCP:      false,
-								Reference: "user",
+								Name:         "nic1",
+								DHCP:         false,
+								LanReference: "user",
 							},
 						},
 					},
@@ -2020,9 +2020,9 @@ func createServerSetWithNrOfNICsUpdated() *v1alpha1.ServerSet {
 	sset := createBasicServerSet()
 	sset.Spec.ForProvider.Template.Spec.NICs = append(
 		sset.Spec.ForProvider.Template.Spec.NICs, v1alpha1.ServerSetTemplateNIC{
-			Name:      "nic2",
-			DHCP:      true,
-			Reference: "management",
+			Name:         "nic2",
+			DHCP:         true,
+			LanReference: "management",
 		})
 
 	return sset

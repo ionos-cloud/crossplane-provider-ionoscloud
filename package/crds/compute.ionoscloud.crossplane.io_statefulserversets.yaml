@@ -424,6 +424,10 @@ spec:
                                   type: boolean
                                 dhcpv6:
                                   type: boolean
+                                lanReference:
+                                  description: The Referenced LAN must be created
+                                    before the ServerSet is applied
+                                  type: string
                                 name:
                                   description: |-
                                     Name of the NIC. Replica index, NIC index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{nicIndex}-{version}.
@@ -431,16 +435,12 @@ spec:
                                   maxLength: 50
                                   pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                                   type: string
-                                reference:
-                                  description: If created using crossplane, MUST be
-                                    created before serverset
-                                  type: string
                                 vnetId:
                                   type: string
                               required:
                               - dhcp
+                              - lanReference
                               - name
-                              - reference
                               type: object
                               x-kubernetes-validations:
                               - message: Only one of 'dhcp' or 'dhcpv6' can be set

@@ -83,11 +83,11 @@ spec:
           - name: nic-sample
             dhcp: false
 #            needs to be created before serverset. Serverset will not wait until it is populated
-            reference: examplelan
+            lanReference: examplelan
           - name: nic-sample2
             dhcp: false
             dhcpv6: true
-            reference: examplelan2
+            lanReference: examplelan2
     bootVolumeTemplate:
       metadata:
         name: volumeboot
