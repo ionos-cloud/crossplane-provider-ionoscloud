@@ -6,7 +6,7 @@ type Identifier string
 // Handler defines the interface for a substitution handler
 type Handler interface {
 	Type() string
-	WriteState(identifier Identifier, state *GlobalState, sub Substitution) error
+	WriteGlobalState(identifier Identifier, state *GlobalState, sub Substitution) error
 }
 
 var registeredSubstitutions = make(map[string]Handler)

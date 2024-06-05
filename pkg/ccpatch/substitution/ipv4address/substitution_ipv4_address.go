@@ -21,7 +21,7 @@ func (i *ipv4Address) Type() string {
 	return "ipv4Address"
 }
 
-func (i *ipv4Address) WriteState(identifier substitution.Identifier, gs *substitution.GlobalState, sub substitution.Substitution) error {
+func (i *ipv4Address) WriteGlobalState(identifier substitution.Identifier, gs *substitution.GlobalState, sub substitution.Substitution) error {
 	value, ok := sub.AdditionalProperties["cidr"]
 	if !ok {
 		return substitution.ErrMissingCIDR

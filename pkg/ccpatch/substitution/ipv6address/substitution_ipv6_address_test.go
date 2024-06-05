@@ -21,7 +21,7 @@ func TestIPv6AddressSuccess(t *testing.T) {
 
 	state := &substitution.GlobalState{}
 	for i := 0; i < total; i++ {
-		err := handler.WriteState(substitution.Identifier(fmt.Sprintf("machine-%v", i)), state, substitution.Substitution{
+		err := handler.WriteGlobalState(substitution.Identifier(fmt.Sprintf("machine-%v", i)), state, substitution.Substitution{
 			Type:   "ipv6Address",
 			Key:    "$ipv6Address",
 			Unique: true,

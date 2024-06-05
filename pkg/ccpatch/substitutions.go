@@ -12,7 +12,7 @@ func populateGlobalState(identifier substitution.Identifier, s []substitution.Su
 			continue
 		}
 
-		if err := handler.WriteState(identifier, gs, sub); err != nil {
+		if err := handler.WriteGlobalState(identifier, gs, sub); err != nil {
 			return err
 		}
 	}

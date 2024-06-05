@@ -67,39 +67,55 @@ var globalState = &substitution.GlobalState{}
 func setPatcher(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex int, name string, kube client.Client) (*ccpatch.CloudInitPatcher, error) {
 	var userDataPatcher *ccpatch.CloudInitPatcher
 	var err error
+	userData := cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData
+
 	if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
 		identifier := substitution.Identifier(name)
-		substitutions := make([]substitution.Substitution, len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions))
-		for idx, subst := range cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions {
-			substitutions[idx] = substitution.Substitution{
-				Type:                 subst.Type,
-				Key:                  subst.Key,
-				Unique:               subst.Unique,
-				AdditionalProperties: subst.Options,
-			}
-		}
-
-		userDataPatcher, err = ccpatch.NewCloudInitPatcherWithSubstitutions(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData, identifier, substitutions, globalState)
+		substitutions := extractSubstitutions(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions)
+		userDataPatcher, err = ccpatch.NewCloudInitPatcherWithSubstitutions(userData, identifier, substitutions, globalState)
 		if err != nil {
 			return userDataPatcher, fmt.Errorf("while creating cloud init patcher with substitutions for BootVolume %s %w", name, err)
 		}
 
 	} else {
-		userDataPatcher, err = ccpatch.NewCloudInitPatcher(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData)
+		userDataPatcher, err = ccpatch.NewCloudInitPatcher(userData)
 		if err != nil {
 			return userDataPatcher, fmt.Errorf("while creating cloud init patcher for BootVolume %s %w", name, err)
 		}
 	}
-	for nicIndex := range cr.Spec.ForProvider.Template.Spec.NICs {
-		nicName, pciSlot, err := getNameAndPCISlotFromNIC(ctx, kube, cr.Name, replicaIndex, nicIndex)
+	err = setPCINICSlotEnv(ctx, cr.Spec.ForProvider.Template.Spec.NICs, cr.Name, replicaIndex, kube, *userDataPatcher)
+	if err != nil {
+		return userDataPatcher, err
+	}
+
+	return userDataPatcher, nil
+}
+
+func setPCINICSlotEnv(ctx context.Context, nics []v1alpha1.ServerSetTemplateNIC, serversetName string, replicaIndex int, kube client.Client, userDataPatcher ccpatch.CloudInitPatcher) error {
+	for nicIndex := range nics {
+		nicName, pciSlot, err := getNameAndPCISlotFromNIC(ctx, kube, serversetName, replicaIndex, nicIndex)
 		if err != nil {
-			return userDataPatcher, err
+			return err
 		}
 		if nicName != "" {
-			userDataPatcher.SetEnv(nicName, strconv.Itoa(int(pciSlot)))
+			const nicPCISlotPrefix = "nic-pcislot-"
+			userDataPatcher.SetEnv(nicPCISlotPrefix+nicName, strconv.Itoa(int(pciSlot)))
 		}
 	}
-	return userDataPatcher, nil
+	return nil
+}
+
+func extractSubstitutions(v1Substitutions []v1alpha1.Substitution) []substitution.Substitution {
+	substitutions := make([]substitution.Substitution, len(v1Substitutions))
+	for idx, subst := range v1Substitutions {
+		substitutions[idx] = substitution.Substitution{
+			Type:                 subst.Type,
+			Key:                  subst.Key,
+			Unique:               subst.Unique,
+			AdditionalProperties: subst.Options,
+		}
+	}
+	return substitutions
 }
 
 // Get - returns a volume kubernetes object

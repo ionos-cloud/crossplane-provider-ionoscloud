@@ -21,7 +21,7 @@ func (i *ipv6Address) Type() string {
 	return "ipv6Address"
 }
 
-func (i *ipv6Address) WriteState(identifier substitution.Identifier, gs *substitution.GlobalState, sub substitution.Substitution) error {
+func (i *ipv6Address) WriteGlobalState(identifier substitution.Identifier, gs *substitution.GlobalState, sub substitution.Substitution) error {
 	value, ok := sub.AdditionalProperties["cidr"]
 	if !ok {
 		return substitution.ErrMissingCIDR

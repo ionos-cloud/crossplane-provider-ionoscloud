@@ -11,7 +11,7 @@ import (
 func TestIPv4AddressSuccess(t *testing.T) {
 	handler := substitution.GetSubstitution("ipv4Address")
 	state := &substitution.GlobalState{}
-	err := handler.WriteState(substitution.Identifier("machine-0"), state, substitution.Substitution{
+	err := handler.WriteGlobalState("machine-0", state, substitution.Substitution{
 		Type:   "ipv4Address",
 		Key:    "$ipv4Address",
 		Unique: true,
