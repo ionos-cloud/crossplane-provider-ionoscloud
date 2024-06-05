@@ -94,10 +94,10 @@ type ServerSetTemplateNIC struct {
 	DHCPv6 *bool `json:"dhcpv6"`
 	// +kubebuilder:validation:Optional
 	VNetID string `json:"vnetId,omitempty"`
-	// If created using crossplane, MUST be created before serverset
+	// The Referenced LAN must be created before the ServerSet is applied
 	//
 	// +kubebuilder:validation:Required
-	Reference string `json:"reference"`
+	LanReference string `json:"lanReference"`
 }
 
 // ServerSetTemplate are the configurable fields of a ServerSetTemplate.
