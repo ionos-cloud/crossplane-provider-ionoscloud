@@ -194,7 +194,8 @@ spec:
                               The property is immutable and is only allowed to be set on creation of a new a volume.
                             items:
                               description: |-
-                                Substitution defines the substitution configuration
+                                Substitution defines the substitution configuration. Can be used to replace a key in the cloud-init user data with a value computed by a handler
+                                given in the options field.
                                 Example:
                                 substitutions:
                                   - type: ipv4Address
@@ -204,24 +205,27 @@ spec:
                                     cidr: "10.0.0.0/24"
                               properties:
                                 key:
+                                  description: The key that will be replaced by the
+                                    value computed by the handler
                                   type: string
                                 options:
                                   additionalProperties:
                                     type: string
-                                  description: The options for the handler
+                                  description: The options for the handler. For example,
+                                    for ipv4Address and ipv6Address handlers, we need
+                                    to specify cidr as an option
                                   type: object
                                 type:
                                   description: |-
                                     The type of the handler that will be used for this substitution. The handler will
-                                    be responsible for computing the value we put in place of te key (e.g. in the above
-                                    example the value for $keyToReplace)
+                                    be responsible for computing the value we put in place of te key
                                   enum:
                                   - ipv4Address
                                   - ipv6Address
                                   type: string
                                 unique:
-                                  description: Unique means that the value is unique
-                                    across multiple ServerSets
+                                  description: The value is unique across multiple
+                                    ServerSets
                                   type: boolean
                               required:
                               - key

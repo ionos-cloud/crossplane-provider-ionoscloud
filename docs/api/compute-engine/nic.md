@@ -130,6 +130,8 @@ reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `dhcp` (boolean)
 	* description: Indicates if the NIC will reserve an IP using DHCP.
+* `dhcpv6` (boolean)
+	* description: Indicates if the NIC will reserve an IPv6 using DHCP.
 * `firewallActive` (boolean)
 	* description: Activate or deactivate the firewall. By default, an active firewall without any defined rules
 will block all incoming network traffic except for the firewall rules that explicitly allows certain protocols, IP addresses and ports.

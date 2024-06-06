@@ -84,10 +84,6 @@ spec:
             dhcp: true
 #            vnetId: "3330fa34-927f-11ee-8008-6202af74e858"
             reference: examplelan
-          - name: nic-sample2
-            dhcp: true
-#            vnetId: "3330fa34-927f-11ee-8008-6202af74e858"
-            reference: examplelan2
     bootVolumeTemplate:
       metadata:
         name: volumeboot
@@ -101,7 +97,7 @@ spec:
         userData: "" #cloud-config
         imagePassword: "thisshouldbesecret"
         substitutions:
-          - additionalProperties:
+          - options:
               cidr: "10.0.0.0/24"
             key: ipv4Address
             type: ipv4Address
