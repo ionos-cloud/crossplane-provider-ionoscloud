@@ -16,6 +16,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
@@ -36,9 +37,11 @@ type kubeBootVolumeController struct {
 func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Volume, error) {
 	name := getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, version)
 	k.log.Info("Creating BootVolume", "name", name)
-	userDataPatcher, err := ccpatch.NewCloudInitPatcher(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData)
+	var userDataPatcher *ccpatch.CloudInitPatcher
+	var err error
+	userDataPatcher, err = setPatcher(ctx, cr, replicaIndex, name, k.kube)
 	if err != nil {
-		return v1alpha1.Volume{}, fmt.Errorf("while creating cloud init patcher for BootVolume %s %w", name, err)
+		return v1alpha1.Volume{}, err
 	}
 	createVolume := fromServerSetToVolume(cr, name, replicaIndex, version)
 	createVolume.Spec.ForProvider.UserData = userDataPatcher.Patch("hostname", name).Encode()
@@ -57,6 +60,62 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	k.log.Info("Finished creating BootVolume", "name", name)
 
 	return *kubeVolume, nil
+}
+
+var globalState = &substitution.GlobalState{}
+
+func setPatcher(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex int, name string, kube client.Client) (*ccpatch.CloudInitPatcher, error) {
+	var userDataPatcher *ccpatch.CloudInitPatcher
+	var err error
+	userData := cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData
+
+	if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
+		identifier := substitution.Identifier(name)
+		substitutions := extractSubstitutions(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions)
+		userDataPatcher, err = ccpatch.NewCloudInitPatcherWithSubstitutions(userData, identifier, substitutions, globalState)
+		if err != nil {
+			return userDataPatcher, fmt.Errorf("while creating cloud init patcher with substitutions for BootVolume %s %w", name, err)
+		}
+
+	} else {
+		userDataPatcher, err = ccpatch.NewCloudInitPatcher(userData)
+		if err != nil {
+			return userDataPatcher, fmt.Errorf("while creating cloud init patcher for BootVolume %s %w", name, err)
+		}
+	}
+	err = setPCINICSlotEnv(ctx, cr.Spec.ForProvider.Template.Spec.NICs, cr.Name, replicaIndex, kube, *userDataPatcher)
+	if err != nil {
+		return userDataPatcher, err
+	}
+
+	return userDataPatcher, nil
+}
+
+func setPCINICSlotEnv(ctx context.Context, nics []v1alpha1.ServerSetTemplateNIC, serversetName string, replicaIndex int, kube client.Client, userDataPatcher ccpatch.CloudInitPatcher) error {
+	for nicIndex := range nics {
+		nicName, pciSlot, err := getNameAndPCISlotFromNIC(ctx, kube, serversetName, replicaIndex, nicIndex)
+		if err != nil {
+			return err
+		}
+		if nicName != "" {
+			const nicPCISlotPrefix = "nic-pcislot-"
+			userDataPatcher.SetEnv(nicPCISlotPrefix+nicName, strconv.Itoa(int(pciSlot)))
+		}
+	}
+	return nil
+}
+
+func extractSubstitutions(v1Substitutions []v1alpha1.Substitution) []substitution.Substitution {
+	substitutions := make([]substitution.Substitution, len(v1Substitutions))
+	for idx, subst := range v1Substitutions {
+		substitutions[idx] = substitution.Substitution{
+			Type:                 subst.Type,
+			Key:                  subst.Key,
+			Unique:               subst.Unique,
+			AdditionalProperties: subst.Options,
+		}
+	}
+	return substitutions
 }
 
 // Get - returns a volume kubernetes object

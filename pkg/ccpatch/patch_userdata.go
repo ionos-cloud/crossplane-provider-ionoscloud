@@ -8,6 +8,8 @@ import (
 	"unicode"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 )
 
 var (
@@ -25,19 +27,68 @@ const cloudConfigHeader = "#cloud-config"
 type CloudInitPatcher struct {
 	raw     string
 	decoded string
-	data    map[string]interface{}
+	// marshalling a map orders alphabetically the map keys
+	data          map[string]any
+	globalState   *substitution.GlobalState
+	identifier    substitution.Identifier
+	substitutions []substitution.Substitution
+}
+
+// NewCloudInitPatcherWithSubstitutions returns a new CloudInitPatcher instance
+// with a list of substitutions
+func NewCloudInitPatcherWithSubstitutions(rawUserData string, identifier substitution.Identifier, substitutions []substitution.Substitution, globalState *substitution.GlobalState) (*CloudInitPatcher, error) {
+	if globalState == nil {
+		globalState = &substitution.GlobalState{}
+	}
+
+	patcher, err := newCloudInitPatcher(rawUserData)
+	if err != nil {
+		return nil, err
+	}
+
+	patcher.identifier = identifier
+	patcher.substitutions = substitutions
+	patcher.globalState = globalState
+
+	if err := populateGlobalState(
+		patcher.identifier,
+		patcher.substitutions,
+		patcher.globalState,
+	); err != nil {
+		return nil, err
+	}
+
+	patcher.decoded, err = substitution.ReplaceByState(
+		patcher.identifier,
+		patcher.globalState,
+		patcher.decoded,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// write patched decoded back to data
+	if err := yaml.Unmarshal([]byte(patcher.decoded), &patcher.data); err != nil {
+		return nil, fmt.Errorf("%w (%w)", ErrMalformedData, err)
+	}
+
+	return patcher, nil
 }
 
 // NewCloudInitPatcher returns a new CloudInitPatcher instance
 // from a base64 encoded string
-func NewCloudInitPatcher(raw string) (*CloudInitPatcher, error) {
-	byt, err := base64.StdEncoding.DecodeString(raw)
+func NewCloudInitPatcher(rawUserData string) (*CloudInitPatcher, error) {
+	return newCloudInitPatcher(rawUserData)
+}
+
+func newCloudInitPatcher(rawUserData string) (*CloudInitPatcher, error) {
+	byt, err := base64.StdEncoding.DecodeString(rawUserData)
 	if err != nil {
 		return nil, fmt.Errorf("%w (%w)", ErrDecodeFailed, err)
 	}
 
 	if len(byt) == 0 {
-		return &CloudInitPatcher{raw: raw, decoded: "", data: make(map[string]interface{})}, nil
+		return &CloudInitPatcher{raw: rawUserData, decoded: "", data: make(map[string]any)}, nil
 	}
 
 	if !IsCloudConfig(string(byt)) {
@@ -49,13 +100,34 @@ func NewCloudInitPatcher(raw string) (*CloudInitPatcher, error) {
 		return nil, fmt.Errorf("%w (%w)", ErrMalformedData, err)
 	}
 
-	return &CloudInitPatcher{raw: raw, decoded: string(byt), data: data}, nil
+	return &CloudInitPatcher{raw: rawUserData, decoded: string(byt), data: data, substitutions: nil}, nil
 }
 
 // Patch adds or modifies a key-value pair in the cloud-init data
 func (c *CloudInitPatcher) Patch(key string, value any) *CloudInitPatcher {
 	c.data[key] = value
 	return c
+}
+
+// SetEnv sets an environment variable in the cloud-init data
+// within the "environment" key
+func (c *CloudInitPatcher) SetEnv(key string, value string) *CloudInitPatcher {
+	if c.data["environment"] == nil {
+		c.data["environment"] = make(map[string]any)
+	}
+
+	c.data["environment"].(map[string]any)[key] = value
+
+	return c
+}
+
+// GetEnv returns the value of an environment variable in the cloud-init data
+func (c *CloudInitPatcher) GetEnv(key string) string {
+	if c.data["environment"] == nil {
+		return ""
+	}
+
+	return c.data["environment"].(map[string]interface{})[key].(string)
 }
 
 // Get returns the value of a key in the cloud-init data
@@ -65,6 +137,7 @@ func (c *CloudInitPatcher) Get(key string) any {
 
 // String returns the cloud-init data as a string
 func (c *CloudInitPatcher) String() string {
+	// marshalling a map sorts the keys, so you can get different order for substitution
 	byt, err := yaml.Marshal(c.data)
 	if err != nil {
 		return ""
