@@ -280,7 +280,7 @@ type ServerSetList struct {
 // ServerSet type metadata.
 var (
 	ServerSetKind             = reflect.TypeOf(ServerSet{}).Name()
-	ServerSetGroupKind        = schema.GroupKind{Group: Group, Kind: ServerSetKind}.String()
+	ServerSetGroupKind        = schema.GroupKind{Group: APIGroup, Kind: ServerSetKind}.String()
 	ServerSetKindAPIVersion   = ServerSetKind + "." + SchemeGroupVersion.String()
 	ServerSetGroupVersionKind = SchemeGroupVersion.WithKind(ServerSetKind)
 )

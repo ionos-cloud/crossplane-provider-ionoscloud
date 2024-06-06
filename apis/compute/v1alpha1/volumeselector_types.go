@@ -83,7 +83,7 @@ type VolumeselectorList struct {
 // Volumeselector type metadata.
 var (
 	VolumeselectorKind             = reflect.TypeOf(Volumeselector{}).Name()
-	VolumeselectorGroupKind        = schema.GroupKind{Group: Group, Kind: VolumeselectorKind}.String()
+	VolumeselectorGroupKind        = schema.GroupKind{Group: APIGroup, Kind: VolumeselectorKind}.String()
 	VolumeSelectorKindAPIVersion   = VolumeselectorKind + "." + SchemeGroupVersion.String()
 	VolumeselectorGroupVersionKind = SchemeGroupVersion.WithKind(VolumeselectorKind)
 )
