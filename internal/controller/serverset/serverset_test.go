@@ -1376,7 +1376,7 @@ func Test_serverSetController_Delete(t *testing.T) {
 				cr:  createBasicServerSet(),
 			},
 			wantErr:     nil,
-			wantNoCalls: 4,
+			wantNoCalls: 3,
 		},
 		{
 			name: "failure (error when deleting the NICs)",
@@ -1416,19 +1416,6 @@ func Test_serverSetController_Delete(t *testing.T) {
 			},
 			wantErr:     errAnErrorWasReceived,
 			wantNoCalls: 3,
-		},
-		{
-			name: "failure (error when deleting the VolumeSelectors)",
-			fields: fields{
-				kube: fakeKubeClientDeleteAllOfMethodReturnError(volumeSelector),
-				log:  logging.NewNopLogger(),
-			},
-			args: args{
-				ctx: context.Background(),
-				cr:  createBasicServerSet(),
-			},
-			wantErr:     errAnErrorWasReceived,
-			wantNoCalls: 4,
 		},
 	}
 	for _, tt := range tests {

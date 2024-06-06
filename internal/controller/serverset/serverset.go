@@ -485,13 +485,6 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return err
 	}
 
-	e.log.Info("Deleting the VolumeSelectors with label", "label", cr.Name)
-	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volumeselector{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
-		serverSetLabel: cr.Name,
-	}); err != nil {
-		return err
-	}
-
 	return nil
 }
 
