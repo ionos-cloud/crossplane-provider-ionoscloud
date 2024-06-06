@@ -3,6 +3,7 @@ package serverset
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -137,8 +138,9 @@ func (k *kubeNicController) fromServerSetToNic(cr *v1alpha1.ServerSet, name, ser
 			Labels: map[string]string{
 				serverSetLabel: cr.Name,
 				// TODO: This label should be nicIndex instead of replicaIndex later
-				fmt.Sprintf(indexLabel, cr.GetName(), resourceNIC):   fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(versionLabel, cr.GetName(), resourceNIC): fmt.Sprintf("%d", version),
+				fmt.Sprintf(indexLabel, cr.GetName(), resourceNIC):    fmt.Sprintf("%d", replicaIndex),
+				fmt.Sprintf(nicIndexLabel, cr.GetName(), resourceNIC): fmt.Sprintf("%d", nicIndex),
+				fmt.Sprintf(versionLabel, cr.GetName(), resourceNIC):  fmt.Sprintf("%d", version),
 			},
 		},
 		Spec: v1alpha1.NicSpec{
@@ -214,4 +216,19 @@ func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, 
 		return fmt.Errorf("observed NIC %s got state %s but expected %s", nic.GetName(), nic.Status.AtProvider.State, ionoscloud.Available)
 	}
 	return nil
+}
+
+func getNameAndPCISlotFromNIC(ctx context.Context, kube client.Client, serversetName string, replicaIndex, nicIndex int) (name string, pciSlot int32, err error) {
+	obj := &v1alpha1.NicList{}
+	err = kube.List(ctx, obj, client.MatchingLabels{
+		fmt.Sprintf(indexLabel, serversetName, resourceNIC):    strconv.Itoa(replicaIndex),
+		fmt.Sprintf(nicIndexLabel, serversetName, resourceNIC): fmt.Sprintf("%d", nicIndex),
+	})
+	if err != nil {
+		return "", 0, err
+	}
+	if len(obj.Items) > 0 {
+		return obj.Items[0].Spec.ForProvider.Name, obj.Items[0].Status.AtProvider.PCISlot, nil
+	}
+	return "", 0, fmt.Errorf("no nics found for serversetName %s and replicaIndex %d", serversetName, replicaIndex)
 }
