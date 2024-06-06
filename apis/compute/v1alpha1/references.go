@@ -105,3 +105,17 @@ func ExtractPccID() reference.ExtractValueFn {
 		return meta.GetExternalName(res)
 	}
 }
+
+// ExtractUserID returns the externalName of a referenced User.
+func ExtractUserID() reference.ExtractValueFn {
+	return func(mg resource.Managed) string {
+		res, ok := mg.(*User)
+		if !ok {
+			return defaultStringValue
+		}
+		if meta.GetExternalName(res) == res.Name {
+			return defaultStringValue
+		}
+		return meta.GetExternalName(res)
+	}
+}

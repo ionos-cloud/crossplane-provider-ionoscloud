@@ -78,14 +78,14 @@ spec:
                 type: string
               forProvider:
                 description: |-
-                  PccParameters To connect two PrivateCrossconnects we need 2 lans defined, one in each Pcc.
+                  PccParameters To connect two Crossconnects we need 2 lans defined, one in each Pcc.
                   After, we reference the Pcc through which we want the connection to be established.
                 properties:
                   description:
-                    description: A short description for the private cross-connection.
+                    description: A short description for the cross-connection.
                     type: string
                   name:
-                    description: The name of the private cross-connection.
+                    description: The name of the cross-connection.
                     type: string
                 type: object
               managementPolicies:

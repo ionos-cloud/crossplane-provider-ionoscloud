@@ -97,15 +97,6 @@ spec:
                     - ZONE_1
                     - ZONE_2
                     type: string
-                  cpuFamily:
-                    description: |-
-                      CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions;
-                      available CPU architectures can be retrieved from the datacenter resource.
-                    enum:
-                    - AMD_OPTERON
-                    - INTEL_SKYLAKE
-                    - INTEL_XEON
-                    type: string
                   datacenterConfig:
                     description: |-
                       DatacenterConfig contains information about the datacenter resource
@@ -204,6 +195,9 @@ spec:
                       name:
                         description: The name of the Template from IONOS Cloud.
                         type: string
+                        x-kubernetes-validations:
+                        - message: Template name is immutable
+                          rule: self == oldSelf
                       templateId:
                         description: The ID of the Template from IONOS Cloud.
                         format: uuid

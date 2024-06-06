@@ -1,7 +1,15 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: psqlcreds2
+  namespace: crossplane-system
+data:
+  credentials: eyJ1c2VybmFtZSI6InVzZXJmb3J0ZXN0aW5nMSIsInBhc3N3b3JkIjoicGFzc3dvcmQxMjM0NTU1MyJ9
+---
 apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
 kind: PostgresUser
 metadata:
-  name: example
+  name: example1
 spec:
   managementPolicies:
     - "*"
@@ -10,8 +18,26 @@ spec:
       source: Secret
       secretRef:
         namespace: crossplane-system
-        name: psqlcreds
+        name: psqlcreds2
         key: credentials
+    clusterConfig:
+      ClusterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
+apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
+kind: PostgresUser
+metadata:
+  name: example2
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    credentials:
+      source: "None"
+      username: testusernosecret
+      password: cleartextpassword
     clusterConfig:
       ClusterIdRef:
         name: example

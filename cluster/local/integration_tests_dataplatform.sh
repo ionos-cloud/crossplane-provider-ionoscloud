@@ -21,7 +21,7 @@ spec:
     - "*"
   forProvider:
     name: exampleDatacenter
-    location: de/txl
+    location: es/vit
     description: test
   providerConfigRef:
     name: example

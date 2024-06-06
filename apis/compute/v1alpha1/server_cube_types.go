@@ -39,7 +39,6 @@ type CubeServerProperties struct {
 	DatacenterCfg DatacenterConfig `json:"datacenterConfig"`
 	// The ID or the name of the template for creating a CUBE server.
 	//
-	// +immutable
 	// +kubebuilder:validation:Required
 	Template Template `json:"template"`
 	// The name of the  resource.
@@ -49,11 +48,6 @@ type CubeServerProperties struct {
 	// +kubebuilder:validation:Enum=AUTO;ZONE_1;ZONE_2
 	// +kubebuilder:default=AUTO
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
-	// CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions;
-	// available CPU architectures can be retrieved from the datacenter resource.
-	//
-	// +kubebuilder:validation:Enum=AMD_OPTERON;INTEL_SKYLAKE;INTEL_XEON
-	CPUFamily string `json:"cpuFamily,omitempty"`
 	// DasVolumeProperties contains properties for the DAS volume attached to the Cube Server.
 	//
 	// +kubebuilder:validation:Required
@@ -135,6 +129,8 @@ type DasVolumeProperties struct {
 // Template refers to the Template used for Cube Servers.
 type Template struct {
 	// The name of the Template from IONOS Cloud.
+	//
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="Template name is immutable"
 	Name string `json:"name,omitempty"`
 	// The ID of the Template from IONOS Cloud.
 	//
@@ -180,7 +176,7 @@ type CubeServerList struct {
 // CubeServer type metadata.
 var (
 	CubeServerKind             = reflect.TypeOf(CubeServer{}).Name()
-	CubeServerGroupKind        = schema.GroupKind{Group: Group, Kind: CubeServerKind}.String()
+	CubeServerGroupKind        = schema.GroupKind{Group: APIGroup, Kind: CubeServerKind}.String()
 	CubeServerKindAPIVersion   = CubeServerKind + "." + SchemeGroupVersion.String()
 	CubeServerGroupVersionKind = SchemeGroupVersion.WithKind(CubeServerKind)
 )

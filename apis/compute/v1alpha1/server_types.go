@@ -151,7 +151,7 @@ type ServerList struct {
 // Server type metadata.
 var (
 	ServerKind             = reflect.TypeOf(Server{}).Name()
-	ServerGroupKind        = schema.GroupKind{Group: Group, Kind: ServerKind}.String()
+	ServerGroupKind        = schema.GroupKind{Group: APIGroup, Kind: ServerKind}.String()
 	ServerKindAPIVersion   = ServerKind + "." + SchemeGroupVersion.String()
 	ServerGroupVersionKind = SchemeGroupVersion.WithKind(ServerKind)
 )

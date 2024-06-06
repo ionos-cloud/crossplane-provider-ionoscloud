@@ -1,7 +1,15 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongocreds
+  namespace: crossplane-system
+data:
+  credentials: eyJ1c2VybmFtZSI6InVzZXJmb3J0ZXN0aW5nMSIsInBhc3N3b3JkIjoicGFzc3dvcmQ4ODg4ODgifQ==
+---
 apiVersion: dbaas.mongo.ionoscloud.crossplane.io/v1alpha1
 kind: MongoUser
 metadata:
-  name: example
+  name: example1
 spec:
   managementPolicies:
     - "*"
@@ -15,6 +23,27 @@ spec:
         namespace: crossplane-system
         name: mongocreds
         key: credentials
+    clusterConfig:
+      ClusterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
+apiVersion: dbaas.mongo.ionoscloud.crossplane.io/v1alpha1
+kind: MongoUser
+metadata:
+  name: example2
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    userRoles:
+      - role: readWrite
+        database: test
+    credentials:
+      source: None
+      username: testusernosecret
+      password: cleartextpassword
     clusterConfig:
       ClusterIdRef:
         name: example

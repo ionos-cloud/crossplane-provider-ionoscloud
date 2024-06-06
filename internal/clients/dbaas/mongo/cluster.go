@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 	"time"
@@ -246,38 +247,54 @@ func GenerateUpdateClusterInput(cr *v1alpha1.MongoCluster) (*ionoscloud.PatchClu
 }
 
 // GenerateUpdateUserInput returns PatchClusterRequest based on the CR spec modifications
-func GenerateUpdateUserInput(cr *v1alpha1.MongoUser) (*ionoscloud.PatchUserRequest, error) {
+func GenerateUpdateUserInput(cr *v1alpha1.MongoUser) *ionoscloud.PatchUserRequest {
 	instanceUpdateInput := ionoscloud.PatchUserRequest{
 		Properties: &ionoscloud.PatchUserProperties{
-			Password: &cr.Spec.ForProvider.Credentials.Password,
+			// We don't want to store the secret provided password in the spec
+			Password: ionoscloud.PtrString(cr.Spec.ForProvider.Credentials.Password),
 		},
 	}
 	roles := convertToIonoscloudUserRoles(cr.Spec.ForProvider.Roles)
 	instanceUpdateInput.Properties.Roles = &roles
-	return &instanceUpdateInput, nil
+	return &instanceUpdateInput
 }
 
 // LateInitializer fills the empty fields in *v1alpha1.ClusterParameters with
 // the values seen in ionoscloud.ClusterResponse.
-func LateInitializer(in *v1alpha1.ClusterParameters, sg *ionoscloud.ClusterResponse) { // nolint:gocyclo
-	if sg == nil {
-		return
+func LateInitializer(in *v1alpha1.ClusterParameters, sg *ionoscloud.ClusterResponse) bool { // nolint:gocyclo
+	var lateInitialized bool
+	if sg == nil || sg.Properties == nil {
+		return false
 	}
-	// Add Maintenance Window to the Spec, if it was set by the API
-	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
-		if maintenanceWindowOk, ok := propertiesOk.GetMaintenanceWindowOk(); ok && maintenanceWindowOk != nil {
-			if timeOk, ok := maintenanceWindowOk.GetTimeOk(); ok && timeOk != nil {
-				if in.MaintenanceWindow.Time != "" {
-					in.MaintenanceWindow.Time = *timeOk
-				}
-			}
-			if dayOfTheWeekOk, ok := maintenanceWindowOk.GetDayOfTheWeekOk(); ok && dayOfTheWeekOk != nil {
-				if in.MaintenanceWindow.DayOfTheWeek != "" {
-					in.MaintenanceWindow.DayOfTheWeek = string(*dayOfTheWeekOk)
-				}
-			}
+	// Add properties which are set by the API when they are missing from the Spec
+	if sg.Properties.MaintenanceWindow != nil && sg.Properties.MaintenanceWindow.Time != nil && in.MaintenanceWindow.Time == "" {
+		if sg.Properties.MaintenanceWindow.Time != nil && in.MaintenanceWindow.Time == "" {
+			in.MaintenanceWindow.Time = *sg.Properties.MaintenanceWindow.Time
+			lateInitialized = true
+		}
+		if sg.Properties.MaintenanceWindow.DayOfTheWeek != nil && in.MaintenanceWindow.DayOfTheWeek == "" {
+			in.MaintenanceWindow.DayOfTheWeek = string(*sg.Properties.MaintenanceWindow.DayOfTheWeek)
+			lateInitialized = true
 		}
 	}
+	if sg.Properties.Ram != nil && in.RAM == 0 {
+		in.RAM = *sg.Properties.Ram
+		lateInitialized = true
+	}
+	if sg.Properties.Cores != nil && in.Cores == 0 {
+		in.Cores = *sg.Properties.Cores
+		lateInitialized = true
+	}
+	if sg.Properties.StorageSize != nil && in.StorageSize == 0 {
+		in.StorageSize = *sg.Properties.StorageSize
+		lateInitialized = true
+	}
+	if sg.Properties.Edition != nil && in.Edition == "" {
+		in.Edition = *sg.Properties.Edition
+		lateInitialized = true
+	}
+
+	return lateInitialized
 }
 
 // IsClusterUpToDate returns true if the cluster is up-to-date or false if it does not
@@ -305,13 +322,13 @@ func IsClusterUpToDate(cr *v1alpha1.MongoCluster, clusterResponse ionoscloud.Clu
 		return false
 	case clusterResponse.Properties.StorageSize != nil && *clusterResponse.Properties.StorageSize != cr.Spec.ForProvider.StorageSize:
 		return false
-	case clusterResponse.Properties.Connections != nil && !reflect.DeepEqual(*clusterResponse.Properties.Connections, cr.Spec.ForProvider.Connections):
-		return false
 	case clusterResponse.Properties.BiConnector != nil && !reflect.DeepEqual(*clusterResponse.Properties.BiConnector, cr.Spec.ForProvider.BiConnector):
 		return false
 	case clusterResponse.Properties.Edition != nil && *clusterResponse.Properties.Edition != cr.Spec.ForProvider.Edition:
 		return false
 	case !compare.EqualMongoDatabaseMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow, clusterResponse.Properties.MaintenanceWindow):
+		return false
+	case !eqClusterConnections(cr, clusterResponse):
 		return false
 	default:
 		return true
@@ -344,13 +361,25 @@ func IsUserUpToDate(cr *v1alpha1.MongoUser, user ionoscloud.User) bool { // noli
 		return false
 	case user.Properties.Username != nil && *user.Properties.Username != cr.Spec.ForProvider.Credentials.Username:
 		return false
-	case user.Properties.Username != nil && *user.Properties.Password != cr.Spec.ForProvider.Credentials.Password:
-		return false
-	case user.Properties.Roles != nil && !slices.Equal(*user.Properties.Roles, convertToIonoscloudUserRoles(cr.Spec.ForProvider.Roles)):
+	case !eqUserRoles(cr, user):
 		return false
 	default:
 		return true
 	}
+}
+
+func eqUserRoles(cr *v1alpha1.MongoUser, observed ionoscloud.User) bool {
+	if (observed.Properties.Roles == nil && len(cr.Spec.ForProvider.Roles) != 0) ||
+		(observed.Properties.Roles != nil && len(*observed.Properties.Roles) != len(cr.Spec.ForProvider.Roles)) {
+		return false
+	}
+	observedRoles := make([]v1alpha1.UserRoles, 0, len(*observed.Properties.Roles))
+	for _, role := range *observed.Properties.Roles {
+		if role.Role != nil && role.Database != nil {
+			observedRoles = append(observedRoles, v1alpha1.UserRoles{Role: *role.Role, Database: *role.Database})
+		}
+	}
+	return slices.Equal(cr.Spec.ForProvider.Roles, observedRoles)
 }
 
 func clusterConnections(connections []v1alpha1.Connection) *[]ionoscloud.Connection {
@@ -410,4 +439,25 @@ func clusterFromBackup(req v1alpha1.CreateRestoreRequest) (*ionoscloud.CreateRes
 		}, nil
 	}
 	return nil, nil
+}
+
+func eqClusterConnections(cr *v1alpha1.MongoCluster, observed ionoscloud.ClusterResponse) bool {
+
+	if (observed.Properties.Connections == nil && len(cr.Spec.ForProvider.Connections) != 0) ||
+		(observed.Properties.Connections != nil && len(*observed.Properties.Connections) != len(cr.Spec.ForProvider.Connections)) {
+		return false
+	}
+
+	observedConnSet := map[struct{ cdID, lanID string }][]string{}
+	for _, observedConn := range *observed.Properties.Connections {
+		if observedConn.DatacenterId != nil && observedConn.LanId != nil && observedConn.CidrList != nil {
+			observedConnSet[struct{ cdID, lanID string }{*observedConn.DatacenterId, *observedConn.LanId}] = *observedConn.CidrList
+		}
+	}
+	configuredConnSet := map[struct{ cdID, lanID string }][]string{}
+	for _, configuredConn := range cr.Spec.ForProvider.Connections {
+		configuredConnSet[struct{ cdID, lanID string }{cdID: configuredConn.DatacenterCfg.DatacenterID, lanID: configuredConn.LanCfg.LanID}] = configuredConn.CidrList
+	}
+
+	return maps.EqualFunc(configuredConnSet, observedConnSet, slices.Equal[[]string])
 }

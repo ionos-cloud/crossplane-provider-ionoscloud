@@ -42,6 +42,7 @@ TEST_MONGO=${TEST_MONGO:-false}
 TEST_POSTGRES=${TEST_POSTGRES:-false}
 TEST_K8S=${TEST_K8S:-false}
 TEST_ALB=${TEST_ALB:-false}
+TEST_NLB=${TEST_NLB:-false}
 TEST_BACKUP=${TEST_BACKUP:-false}
 TEST_DATAPLATFORM=${TEST_DATAPLATFORM:-false}
 TEST_SERVERSET=${TEST_SERVERSET:-false}
@@ -98,11 +99,6 @@ sleep 5
 "${KIND}" load docker-image "${PACKAGE_CONTROLLER_IMAGE}" --name="${K8S_CLUSTER}"
 "${KIND}" load docker-image "${PACKAGE_PROVIDER_IMAGE}" --name="${K8S_CLUSTER}"
 
-# files are not synced properly from host to kind node container on Jenkins, so
-# we must manually copy image from host to node
-#echo_step "pre-cache package by copying to kind node"
-#docker cp "${CACHE_PATH}/${PACKAGE_NAME}.xpkg" "${K8S_CLUSTER}-control-plane":"/cache/${PACKAGE_NAME}.xpkg"
-
 echo_step "create crossplane-system namespace"
 "${KUBECTL}" create ns crossplane-system
 
@@ -152,7 +148,6 @@ echo_step "installing crossplane from stable channel"
 "${HELM3}" repo add crossplane-stable https://charts.crossplane.io/stable --force-update
 # TODO: this is a hotfix until the latest stable version is supported
 chart_version="$("${HELM3}" search repo crossplane-stable/crossplane --devel | awk 'FNR == 2 {print $2}')"
-#chart_version="1.6.4"
 echo_info "using crossplane version ${chart_version}"
 echo
 # we replace empty dir with our PVC so that the /cache dir in the kind node
@@ -266,6 +261,23 @@ if [ "$TEST_ALB" = true ]; then
   alb_tests_cleanup
   echo_step "--- target group tests ---"
   targetgroup_tests_cleanup
+fi
+
+if [ "$TEST_NLB" = true ]; then
+  echo_step "--- NLB TESTS ---"
+  echo_step "--- network load balancer tests ---"
+  nlb_tests
+  echo_step "--- nlb forwarding rule tests ---"
+  nlbforwardingrule_tests
+  echo_step "--- nlb flow log tests ---"
+  nlbflowlog_tests
+  echo_step "--- CLEANING UP NLB TESTS---"
+  echo_step "--- flow log tests ---"
+  nlbflowlog_tests_cleanup
+  echo_step "--- forwarding rule tests ---"
+  nlbforwardingrule_tests_cleanup
+  echo_step "--- network load balancer tests ---"
+  nlb_tests_cleanup
 fi
 
 if [ "$TEST_BACKUP" = true ]; then

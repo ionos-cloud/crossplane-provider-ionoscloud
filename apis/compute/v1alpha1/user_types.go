@@ -53,10 +53,32 @@ type UserParameters struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:default=true
 	Active bool `json:"active"`
-	// GroupIds that this user will be a member of.
+	// GroupIDs that this user will be a member of.
+	// NOTE: It is recommended to manage group membership through the group CRD as it offers more flexibility.
 	//
 	// +kubebuilder:validation:Optional
 	GroupIDs []string `json:"groupIDs"`
+}
+
+// UserConfig is used by resources that need to link Users via id or via reference.
+type UserConfig struct {
+	// UserID is the ID of the User on which the resource should have access.
+	// It needs to be provided directly or via reference.
+	//
+	// +immutable
+	// +kubebuilder:validation:Format=uuid
+	// +crossplane:generate:reference:type=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.User
+	// +crossplane:generate:reference:extractor=github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1.ExtractUserID()
+	UserID string `json:"userId,omitempty"`
+	// UserIDRef references to a User to retrieve its ID.
+	//
+	// +optional
+	// +immutable
+	UserIDRef *xpv1.Reference `json:"userIdRef,omitempty"`
+	// UserIDSelector selects reference to a User to retrieve its UserID.
+	//
+	// +optional
+	UserIDSelector *xpv1.Selector `json:"userIdSelector,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -100,8 +122,8 @@ type UserObservation struct {
 	Active bool `json:"active"`
 	// SecAuthActive Indicates if secure authentication is active for the user or not.
 	SecAuthActive bool `json:"secAuthActive"`
-	// GroupIds that this user will be a member of.
-	GroupIDs []string `json:"groupIDs"`
+	// GroupIDs that this user will be a member of
+	GroupIDs []string `json:"groupIDs,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -116,7 +138,7 @@ type UserList struct {
 // User type metadata.
 var (
 	UserKind             = reflect.TypeOf(User{}).Name()
-	UserGroupKind        = schema.GroupKind{Group: Group, Kind: UserKind}.String()
+	UserGroupKind        = schema.GroupKind{Group: APIGroup, Kind: UserKind}.String()
 	UserKindAPIVersion   = UserKind + "." + SchemeGroupVersion.String()
 	UserGroupVersionKind = SchemeGroupVersion.WithKind(UserKind)
 )

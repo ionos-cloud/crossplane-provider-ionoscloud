@@ -21,9 +21,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
-	"k8s.io/client-go/util/workqueue"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -48,8 +47,9 @@ import (
 const errNotCluster = "managed resource is not a Cluster custom resource"
 
 // Setup adds a controller that reconciles Cluster managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
+func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.MongoClusterGroupKind)
+	logger := opts.CtrlOpts.Logger
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -62,14 +62,14 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *u
 			managed.WithExternalConnecter(&connectorCluster{
 				kube:                 mgr.GetClient(),
 				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:                  l,
+				log:                  logger,
 				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
 			managed.WithPollInterval(opts.GetPollInterval()),
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
-			managed.WithLogger(l.WithValues("controller", name)),
+			managed.WithLogger(logger.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 
@@ -130,8 +130,7 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 		return managed.ExternalObservation{}, fmt.Errorf("failed to get mongo cluster by id. err: %w", err)
 	}
 
-	current := cr.Spec.ForProvider.DeepCopy()
-	mongo.LateInitializer(&cr.Spec.ForProvider, &observed)
+	lateInitialized := mongo.LateInitializer(&cr.Spec.ForProvider, &observed)
 
 	cr.Status.AtProvider.ClusterID = meta.GetExternalName(cr)
 	if observed.Metadata != nil && observed.Metadata.State != nil {
@@ -144,7 +143,7 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 		ResourceExists:          true,
 		ResourceUpToDate:        mongo.IsClusterUpToDate(cr, observed),
 		ConnectionDetails:       managed.ConnectionDetails{},
-		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		ResourceLateInitialized: lateInitialized,
 	}, nil
 }
 

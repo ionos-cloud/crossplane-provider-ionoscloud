@@ -1,23 +1,28 @@
 package utils
 
-import "time"
+import (
+	"time"
+
+	"github.com/crossplane/crossplane-runtime/pkg/controller"
+)
 
 // ConfigurationOptions are options used in setting the provider
 // and the controllers of the provider.
 type ConfigurationOptions struct {
-	PollInterval         time.Duration
 	CreationGracePeriod  time.Duration
 	Timeout              time.Duration
 	IsUniqueNamesEnabled bool
+	// CtrlOpts are crossplane-specific controller options
+	CtrlOpts controller.Options
 }
 
 // NewConfigurationOptions sets fields for ConfigurationOptions and return a new ConfigurationOptions
-func NewConfigurationOptions(poll, createGracePeriod, timeout time.Duration, uniqueNamesEnable bool) *ConfigurationOptions {
+func NewConfigurationOptions(timeout, createGracePeriod time.Duration, uniqueNamesEnable bool, ctrlOpts controller.Options) *ConfigurationOptions {
 	return &ConfigurationOptions{
-		PollInterval:         poll,
 		CreationGracePeriod:  createGracePeriod,
-		Timeout:              timeout,
 		IsUniqueNamesEnabled: uniqueNamesEnable,
+		Timeout:              timeout,
+		CtrlOpts:             ctrlOpts,
 	}
 }
 
@@ -26,7 +31,7 @@ func (o *ConfigurationOptions) GetPollInterval() time.Duration {
 	if o == nil {
 		return 0
 	}
-	return o.PollInterval
+	return o.CtrlOpts.PollInterval
 }
 
 // GetCreationGracePeriod returns the value for the CreationGracePeriod option

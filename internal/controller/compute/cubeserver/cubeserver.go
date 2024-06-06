@@ -22,7 +22,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
-	"k8s.io/client-go/util/workqueue"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -48,8 +48,9 @@ import (
 const errNotCubeServer = "managed resource is not a Cube Server custom resource"
 
 // Setup adds a controller that reconciles Server managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
+func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.CubeServerGroupKind)
+	logger := opts.CtrlOpts.Logger
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -62,14 +63,14 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *u
 			managed.WithExternalConnecter(&connectorServer{
 				kube:                 mgr.GetClient(),
 				usage:                resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:                  l,
+				log:                  logger,
 				isUniqueNamesEnabled: opts.GetIsUniqueNamesEnabled()}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
 			managed.WithPollInterval(opts.GetPollInterval()),
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
-			managed.WithLogger(l.WithValues("controller", name)),
+			managed.WithLogger(logger.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 
@@ -174,19 +175,14 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		// Servers should have unique names per datacenter.
 		// Check if there are any existing servers with the same name.
 		// If there are multiple, an error will be returned.
-		instance, err := c.service.CheckDuplicateCubeServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
-			cr.Spec.ForProvider.Name, templateID, cr.Spec.ForProvider.CPUFamily)
+		cubeDuplicateID, err := c.service.CheckDuplicateCubeServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.Name, templateID)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}
-		serverID, err := c.service.GetServerID(instance)
-		if err != nil {
-			return managed.ExternalCreation{}, err
-		}
-		if serverID != "" {
+		if cubeDuplicateID != "" {
 			// "Import" existing server.
-			cr.Status.AtProvider.ServerID = serverID
-			meta.SetExternalName(cr, serverID)
+			cr.Status.AtProvider.ServerID = cubeDuplicateID
+			meta.SetExternalName(cr, cubeDuplicateID)
 			return managed.ExternalCreation{}, nil
 		}
 	}

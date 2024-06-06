@@ -157,3 +157,17 @@ func (mr *MockClientMockRecorder) UpdateUser(ctx, id, p interface{}) *gomock.Cal
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockClient)(nil).UpdateUser), ctx, id, p)
 }
+
+// UpdateUserGroups mocks base method.
+func (m *MockClient) UpdateUserGroups(ctx context.Context, userID string, observedGroupIDs, configuredGroupIDs []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateUserGroups", ctx, userID, observedGroupIDs, configuredGroupIDs)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateUserGroups indicates an expected call of UpdateUserGroups.
+func (mr *MockClientMockRecorder) UpdateUserGroups(ctx, userID, observedGroupIDs, configuredGroupIDs interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserGroups", reflect.TypeOf((*MockClient)(nil).UpdateUserGroups), ctx, userID, observedGroupIDs, configuredGroupIDs)
+}

@@ -1,0 +1,91 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xnetworkloadbalancerinstances.platform.example.org
+spec:
+  group: platform.example.org
+  names:
+    kind: XNetworkLoadBalancerInstance
+    plural: xnetworkloadbalancerinstances
+    singular: xnetworkloadbalancerinstance
+  claimNames:
+    kind: NetworkLoadBalancerInstance
+    plural: networkloadbalancerinstances
+    singular: networkloadbalancerinstance
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: A XNetworkLoadBalancerInstance is a network load balancer composite resource
+          properties:
+            spec:
+              type: object
+              properties:
+                parameters:
+                  type: object
+                  properties:
+                    datacenterName:
+                      type: string
+                    datacenterLocation:
+                      type: string
+                    nlbPrivateIps:
+                      type: array
+                      items:
+                        type: string
+                    fwRuleListenerPort:
+                      type: integer
+                    fwRuleAlgorithm:
+                      type: string
+                      enum: [ROUND_ROBIN, LEAST_CONNECTION, SOURCE_IP, RANDOM]
+                    fwRuleTargets:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          ip:
+                            type: string
+                          port:
+                            type: integer
+                          weight:
+                            type: integer
+                        required:
+                          - ip
+                          - port
+                          - weight
+                    fwRuleHealthCheck:
+                      type: object
+                      properties:
+                        retries:
+                          type: integer
+                        targetTimeout:
+                          type: integer
+                  required:
+                    - datacenterName
+                    - datacenterLocation
+                    - fwRuleListenerPort
+                    - fwRuleAlgorithm
+              required:
+                - parameters
+            status:
+              type: object
+              properties:
+                datacenterId:
+                  description: Datacenter ID of the Network Load Balancer instance
+                  type: string
+                networkLoadBalancerId:
+                  description: ID of the Network Load Balancer
+                  type: string
+                networkLoadBalancerListenerIps:
+                  description: IPs on which the Network Load Balancer listens for source traffic.
+                  type: array
+                  items:
+                    type: string
+                listenerLanId:
+                  description: ID of the listener lan
+                  type: string
+                targetLanId:
+                  description: ID of the target lan
+                  type: string

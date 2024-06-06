@@ -25,7 +25,7 @@ spec:
     - "*"
   forProvider:
     name: exampleDatacenter
-    location: de/txl
+    location: es/vit
     description: test
   providerConfigRef:
     name: example
@@ -70,7 +70,7 @@ spec:
         namespace: crossplane-system
         name: psqlcreds
         key: credentials
-    location: de/txl
+    location: es/vit
     backupLocation: de
     instances: 1
     cores: 2
@@ -119,7 +119,7 @@ spec:
         namespace: crossplane-system
         name: psqlcreds
         key: credentials
-    location: de/txl
+    location: es/vit
     backupLocation: de
     instances: 1
     cores: 2
@@ -182,7 +182,7 @@ spec:
     - "*"
   forProvider:
     name: exampleDatacenter
-    location: de/txl
+    location: es/vit
     description: test
   providerConfigRef:
     name: example
@@ -227,7 +227,7 @@ spec:
         namespace: crossplane-system
         name: psqlcreds
         key: credentials
-    location: de/txl
+    location: es/vit
     backupLocation: de
     instances: 1
     cores: 2

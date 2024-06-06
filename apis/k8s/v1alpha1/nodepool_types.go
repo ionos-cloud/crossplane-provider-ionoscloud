@@ -162,6 +162,10 @@ type KubernetesNodePoolLan struct {
 	//
 	// +kubebuilder:validation:Optional
 	Routes []KubernetesNodePoolLanRoutes `json:"routes,omitempty"`
+	// The datacenter ID, requires system privileges, for internal usage only
+	//
+	// +kubebuilder:validation:Optional
+	DatacenterID string `json:"datacenterID,omitempty"`
 }
 
 // KubernetesNodePoolLanRoutes struct for KubernetesNodePoolLanRoutes.

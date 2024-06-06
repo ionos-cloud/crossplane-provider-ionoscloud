@@ -199,7 +199,8 @@ func GenerateCreateUserInput(cr *v1alpha1.PostgresUser) *ionoscloud.User {
 	instanceCreateInput := ionoscloud.User{
 		Properties: &ionoscloud.UserProperties{
 			Username: &cr.Spec.ForProvider.Credentials.Username,
-			Password: &cr.Spec.ForProvider.Credentials.Password,
+			// We don't want to store the secret provided password in the spec
+			Password: ionoscloud.PtrString(cr.Spec.ForProvider.Credentials.Password),
 		},
 	}
 	return &instanceCreateInput
@@ -226,14 +227,15 @@ func GenerateUpdateClusterInput(cr *v1alpha1.PostgresCluster) (*ionoscloud.Patch
 }
 
 // GenerateUpdateUserInput returns PatchClusterRequest based on the CR spec modifications
-func GenerateUpdateUserInput(cr *v1alpha1.PostgresUser) (*ionoscloud.UsersPatchRequest, error) {
+func GenerateUpdateUserInput(cr *v1alpha1.PostgresUser) *ionoscloud.UsersPatchRequest {
 	instanceUpdateInput := ionoscloud.UsersPatchRequest{
 		Properties: &ionoscloud.PatchUserProperties{
-			Password: &cr.Spec.ForProvider.Credentials.Password,
+			// We don't want to store the secret provided password in the spec
+			Password: ionoscloud.PtrString(cr.Spec.ForProvider.Credentials.Password),
 		},
 	}
 
-	return &instanceUpdateInput, nil
+	return &instanceUpdateInput
 }
 
 // LateInitializer fills the empty fields in *v1alpha1.ClusterParameters with
@@ -303,8 +305,6 @@ func IsUserUpToDate(cr *v1alpha1.PostgresUser, user ionoscloud.UserResource) boo
 	case cr != nil && user.Properties == nil:
 		return false
 	case user.Properties.Username != nil && *user.Properties.Username != cr.Spec.ForProvider.Credentials.Username:
-		return false
-	case user.Properties.Username != nil && *user.Properties.Password != cr.Spec.ForProvider.Credentials.Password:
 		return false
 	default:
 		return true
