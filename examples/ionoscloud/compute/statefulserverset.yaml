@@ -37,7 +37,8 @@ spec:
             dhcp: false
             dhcpv6: false
 #           should reference lan metadata name
-            reference: customer
+#           needs to be created before serverset. StatefulServerset will not wait until it is populated
+            lanReference: customer
     bootVolumeTemplate:
       metadata:
           name: boot-volume

@@ -152,7 +152,12 @@ func GenerateUpdateNicInput(cr *v1alpha1.Nic, ips []string) (*sdkgo.NicPropertie
 		Lan:            &lanID,
 		FirewallActive: &cr.Spec.ForProvider.FirewallActive,
 		Dhcp:           &cr.Spec.ForProvider.Dhcp,
-		Dhcpv6:         cr.Spec.ForProvider.DhcpV6,
+	}
+
+	if cr.Spec.ForProvider.DhcpV6 == nil {
+		instanceUpdateInput.SetDhcpv6Nil()
+	} else {
+		instanceUpdateInput.Dhcpv6 = cr.Spec.ForProvider.DhcpV6
 	}
 
 	if cr.Spec.ForProvider.Name != "" {

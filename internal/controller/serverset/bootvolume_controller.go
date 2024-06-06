@@ -150,7 +150,8 @@ func (k *kubeBootVolumeController) isAvailable(ctx context.Context, name, namesp
 		return false, err
 	}
 	if !kube.IsSuccessfullyCreated(obj) {
-		return false, kube.ErrExternalCreateFailed
+		conditions := obj.Status.ResourceStatus.Conditions
+		return false, fmt.Errorf("reason %s %w", conditions[len(conditions)-1].Message, kube.ErrExternalCreateFailed)
 	}
 	if obj != nil && obj.Status.AtProvider.VolumeID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
 		return true, nil

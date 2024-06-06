@@ -212,9 +212,9 @@ func createSSetTemplate() v1alpha1.ServerSetTemplate {
 			RAM:       serverRAM,
 			NICs: []v1alpha1.ServerSetTemplateNIC{
 				{
-					Name:      nicName,
-					DHCP:      true,
-					Reference: nicLAN,
+					Name:         nicName,
+					DHCP:         true,
+					LanReference: nicLAN,
 				},
 			},
 		},

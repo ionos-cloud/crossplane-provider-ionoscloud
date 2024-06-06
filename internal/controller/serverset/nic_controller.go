@@ -77,7 +77,8 @@ func (k *kubeNicController) isAvailable(ctx context.Context, name, namespace str
 		return false, err
 	}
 	if !kube.IsSuccessfullyCreated(obj) {
-		return false, kube.ErrExternalCreateFailed
+		conditions := obj.Status.ResourceStatus.Conditions
+		return false, fmt.Errorf("reason %s %w", conditions[len(conditions)-1].Message, kube.ErrExternalCreateFailed)
 	}
 
 	if obj != nil && obj.Status.AtProvider.NicID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
@@ -184,7 +185,7 @@ func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerS
 	// check if the NIC is attached to the server
 	if len(servers) > 0 {
 		for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
-			if err := k.ensure(ctx, cr, servers[0].Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].Reference, replicaIndex, nicx, version); err != nil {
+			if err := k.ensure(ctx, cr, servers[0].Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].LanReference, replicaIndex, nicx, version); err != nil {
 				return err
 			}
 		}

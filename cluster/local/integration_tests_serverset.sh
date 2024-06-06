@@ -68,7 +68,7 @@ spec:
         nics:
           - name: nic-sample
             dhcp: false
-            reference: examplelan
+            lanReference: examplelan
     bootVolumeTemplate:
       metadata:
         name: volumeboot
@@ -131,7 +131,7 @@ spec:
         nics:
           - name: nic-sample
             dhcp: true
-            reference: examplelan
+            lanReference: examplelan
     bootVolumeTemplate:
       metadata:
         name: volumeboot
@@ -218,7 +218,7 @@ spec:
         nics:
           - name: nic-sample
             dhcp: true
-            reference: examplelan
+            lanReference: examplelan
     bootVolumeTemplate:
       metadata:
         name: volumeboot

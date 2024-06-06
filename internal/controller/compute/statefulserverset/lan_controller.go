@@ -143,7 +143,8 @@ func (k *kubeLANController) isAvailable(ctx context.Context, name, namespace str
 		return false, err
 	}
 	if !kube.IsSuccessfullyCreated(obj) {
-		return false, kube.ErrExternalCreateFailed
+		conditions := obj.Status.ResourceStatus.Conditions
+		return false, fmt.Errorf("reason %s %w", conditions[len(conditions)-1].Message, kube.ErrExternalCreateFailed)
 	}
 	if obj != nil && obj.Status.AtProvider.LanID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
 		return true, nil

@@ -217,9 +217,9 @@ func createServerSetWithoutVNetAndIPV4() *v1alpha1.ServerSet {
 	s := createBasicServerSet()
 	s.Spec.ForProvider.Template.Spec.NICs = []v1alpha1.ServerSetTemplateNIC{
 		{
-			Name:      "nic2",
-			DHCP:      false,
-			Reference: "data",
+			Name:         "nic2",
+			DHCP:         false,
+			LanReference: "data",
 		},
 	}
 	return s
@@ -229,7 +229,7 @@ func createServerSetWithDhcpV6() *v1alpha1.ServerSet {
 	s := createBasicServerSet()
 	for nicIndex := range s.Spec.ForProvider.Template.Spec.NICs {
 		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].DHCPv6 = ionoscloud.PtrBool(true)
-		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].Reference = dataLAN
+		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].LanReference = dataLAN
 	}
 	return s
 }
