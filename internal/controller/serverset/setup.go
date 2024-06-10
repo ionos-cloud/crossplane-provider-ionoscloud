@@ -2,11 +2,9 @@ package serverset
 
 import (
 	"github.com/crossplane/crossplane-runtime/pkg/event"
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -16,9 +14,9 @@ import (
 )
 
 // SetupServerSet adds a controller that reconciles ServerSet managed resources.
-func SetupServerSet(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
+func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.ServerSetGroupKind)
-
+	logger := opts.CtrlOpts.Logger
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
@@ -31,24 +29,24 @@ func SetupServerSet(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter
 				kube: mgr.GetClient(),
 				bootVolumeController: &kubeBootVolumeController{
 					kube: mgr.GetClient(),
-					log:  l,
+					log:  logger,
 				},
 				nicController: &kubeNicController{
 					kube: mgr.GetClient(),
-					log:  l,
+					log:  logger,
 				},
 				serverController: &kubeServerController{
 					kube: mgr.GetClient(),
-					log:  l,
+					log:  logger,
 				},
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l,
+				log:   logger,
 			}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
 			managed.WithPollInterval(opts.GetPollInterval()),
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
-			managed.WithLogger(l.WithValues("controller", name)),
+			managed.WithLogger(logger.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }

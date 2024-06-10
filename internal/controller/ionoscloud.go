@@ -49,7 +49,6 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/serverset"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/volumeselector"
 
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/nlb/flowlog"
 	nlbforwardingrule "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/nlb/forwardingrule"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/nlb/networkloadbalancer"
