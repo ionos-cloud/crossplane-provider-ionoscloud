@@ -1,0 +1,4 @@
+apiVersion: v2
+name: root-app
+description: "Umbrella chart for the Ionoscloud Crossplane Provider"
+version: 1.0.0

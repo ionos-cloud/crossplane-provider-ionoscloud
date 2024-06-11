@@ -9,3 +9,5 @@ cover.out
 .idea
 .DS_Store
 provider-ionoscloud.txt
+*.tgz
+*.lock
