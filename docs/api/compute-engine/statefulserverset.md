@@ -81,7 +81,9 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* properties:
 				* `labels` (object)
 				* `name` (string)
-					* description: Name of the BootVolume. Replica index, volume index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}. Version increases if the bootvolume is re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
+					* description: Name of the BootVolume. Replica index, volume index, and version are appended to the name.
+Resulting name will be in format: {name}-{replicaIndex}-{version}.
+Version increases if the bootvolume is re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
 					* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 			* required properties:
 				* `name`

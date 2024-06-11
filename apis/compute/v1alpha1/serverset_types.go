@@ -165,7 +165,9 @@ type BootVolumeTemplate struct {
 
 // ServerSetBootVolumeMetadata are the configurable fields of a ServerSetBootVolumeMetadata.
 type ServerSetBootVolumeMetadata struct {
-	// Name of the BootVolume. Replica index, volume index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}. Version increases if the bootvolume is re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
+	// Name of the BootVolume. Replica index, volume index, and version are appended to the name.
+	// Resulting name will be in format: {name}-{replicaIndex}-{version}.
+	// Version increases if the bootvolume is re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
 	// +kubebuilder:validation:MaxLength=55
