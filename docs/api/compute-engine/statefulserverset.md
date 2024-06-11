@@ -82,7 +82,7 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 				* `labels` (object)
 				* `name` (string)
 					* description: Name of the BootVolume. Replica index, volume index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}. Version increases if the bootvolume is
-re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
+re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.	//
 					* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 			* required properties:
 				* `name`
@@ -135,7 +135,7 @@ The property is immutable and is only allowed to be set on creation of a new a v
 						* `key` (string)
 							* description: The key that will be replaced by the value computed by the handler
 						* `options` (object)
-							* description: The options for the handler. For example, for ipv4Address and ipv6Address handlers, we can specify cidr as an option
+							* description: The options for the handler. For example, for ipv4Address and ipv6Address handlers, we need to specify cidr as an option
 						* `type` (string)
 							* description: The type of the handler that will be used for this substitution. The handler will
 be responsible for computing the value we put in place of te key
@@ -163,6 +163,7 @@ be responsible for computing the value we put in place of te key
 					* description: The cloud-init configuration for the volume as base64 encoded string.
 The property is immutable and is only allowed to be set on creation of a new a volume.
 It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
+Hostname is injected automatically in the userdata, in the format: {bootvolumeNameFromMetadata}-{replicaIndex}-{version}
 			* required properties:
 				* `size`
 				* `type`
