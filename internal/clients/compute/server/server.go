@@ -22,7 +22,7 @@ type APIClient struct {
 // Client is a wrapper around IONOS Service Server methods
 type Client interface {
 	CheckDuplicateServer(ctx context.Context, datacenterID, serverName, cpuFamily string) (*sdkgo.Server, error)
-	CheckDuplicateCubeServer(ctx context.Context, datacenterID, serverName, templateID, cpuFamily string) (*sdkgo.Server, error)
+	CheckDuplicateCubeServer(ctx context.Context, datacenterID, serverName, templateID string) (string, error)
 	GetServer(ctx context.Context, datacenterID, serverID string) (sdkgo.Server, *sdkgo.APIResponse, error)
 	CreateServer(ctx context.Context, datacenterID string, server sdkgo.Server) (sdkgo.Server, *sdkgo.APIResponse, error)
 	UpdateServer(ctx context.Context, datacenterID, serverID string, server sdkgo.ServerProperties) (sdkgo.Server, *sdkgo.APIResponse, error)
@@ -71,41 +71,33 @@ func (cp *APIClient) CheckDuplicateServer(ctx context.Context, datacenterID, ser
 }
 
 // CheckDuplicateCubeServer based on serverName, and on the immutable properties
-func (cp *APIClient) CheckDuplicateCubeServer(ctx context.Context, datacenterID, serverName, templateID, cpuFamily string) (*sdkgo.Server, error) { // nolint: gocyclo
+func (cp *APIClient) CheckDuplicateCubeServer(ctx context.Context, datacenterID, serverName, templateID string) (string, error) { // nolint: gocyclo
 	servers, _, err := cp.ComputeClient.ServersApi.DatacentersServersGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	matchedItems := make([]sdkgo.Server, 0)
-	if itemsOk, ok := servers.GetItemsOk(); ok && itemsOk != nil {
-		for _, item := range *itemsOk {
-			if propertiesOk, ok := item.GetPropertiesOk(); ok && propertiesOk != nil {
-				if nameOk, ok := propertiesOk.GetNameOk(); ok && nameOk != nil {
-					if *nameOk == serverName {
-						// After checking the name, check the immutable properties
-						if cpuFamilyOk, ok := propertiesOk.GetCpuFamilyOk(); ok && cpuFamilyOk != nil && cpuFamily != "" {
-							if cpuFamily != *cpuFamilyOk {
-								return nil, fmt.Errorf("error: found cube server with the name %v, but immutable property cpuFamily different. expected: %v actual: %v", serverName, cpuFamily, *cpuFamilyOk)
-							}
-						}
-						if templateIDOk, ok := propertiesOk.GetTemplateUuidOk(); ok && templateIDOk != nil {
-							if templateID != *templateIDOk {
-								return nil, fmt.Errorf("error: found cube server with the name %v, but immutable property templateId different. expected: %v actual: %v", serverName, templateID, *templateIDOk)
-							}
-						}
-						matchedItems = append(matchedItems, item)
-					}
+	if servers.Items != nil {
+		for _, item := range *servers.Items {
+			if item.Properties != nil && item.Properties.Name != nil && *item.Properties.Name == serverName {
+				if item.Properties.TemplateUuid != nil && *item.Properties.TemplateUuid != templateID {
+					return "", fmt.Errorf("error: found cube server with the name %v, but immutable property templateId different. expected: %v actual: %v",
+						serverName, templateID, *item.Properties.TemplateUuid)
 				}
+				matchedItems = append(matchedItems, item)
 			}
 		}
 	}
 	if len(matchedItems) == 0 {
-		return nil, nil
+		return "", nil
 	}
 	if len(matchedItems) > 1 {
-		return nil, fmt.Errorf("error: found multiple cube servers with the name %v", serverName)
+		return "", fmt.Errorf("error: found multiple cube servers with the name %v", serverName)
 	}
-	return &matchedItems[0], nil
+	if matchedItems[0].Id == nil {
+		return "", fmt.Errorf("error getting ID for Cube Server named: %v", serverName)
+	}
+	return *matchedItems[0].Id, nil
 }
 
 // GetServerID based on datacenter
@@ -326,7 +318,6 @@ func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer, templateID string) (
 			Name:             &cr.Spec.ForProvider.Name,
 			TemplateUuid:     &templateID,
 			AvailabilityZone: &cr.Spec.ForProvider.AvailabilityZone,
-			CpuFamily:        &cr.Spec.ForProvider.CPUFamily,
 			Type:             &serverCubeType,
 		},
 		Entities: &sdkgo.ServerEntities{Volumes: &sdkgo.AttachedVolumes{Items: &[]sdkgo.Volume{dasVolumeInput}}},

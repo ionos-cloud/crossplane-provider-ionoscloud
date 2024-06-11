@@ -74,9 +74,9 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
 * `description` (string)
-	* description: A short description for the private cross-connection.
+	* description: A short description for the cross-connection.
 * `name` (string)
-	* description: The name of the private cross-connection.
+	* description: The name of the cross-connection.
 
 ### Required Properties
 

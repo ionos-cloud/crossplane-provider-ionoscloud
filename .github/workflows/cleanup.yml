@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checking out crossplane provider
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: Setup ionosctl
@@ -33,7 +33,7 @@ jobs:
           cat output.log
       # Upload the output as an artifact
       - name: Create an artifact with the output logs file
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: cleanup-testaccount.log

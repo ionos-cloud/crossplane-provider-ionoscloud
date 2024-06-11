@@ -120,7 +120,7 @@ spec:
   forProvider:
     name: exampleIpBlockALB
     size: 2
-    location: de/txl
+    location: es/vit
   providerConfigRef:
     name: example
 ---
@@ -133,7 +133,7 @@ spec:
     - "*"
   forProvider:
     name: exampleDatacenterALB
-    location: de/txl
+    location: es/vit
     description: test
   providerConfigRef:
     name: example
@@ -328,7 +328,7 @@ spec:
     - "*"
   forProvider:
     name: exampleDatacenterALB
-    location: de/txl
+    location: es/vit
     description: test
   providerConfigRef:
     name: example
@@ -341,7 +341,7 @@ spec:
   forProvider:
     name: exampleIpBlockALB
     size: 2
-    location: de/txl
+    location: es/vit
   providerConfigRef:
     name: example
 EOF

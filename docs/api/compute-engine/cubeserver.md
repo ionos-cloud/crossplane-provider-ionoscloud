@@ -77,10 +77,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* description: The availability zone in which the server should be provisioned.
 	* default: "AUTO"
 	* possible values: "AUTO";"ZONE_1";"ZONE_2"
-* `cpuFamily` (string)
-	* description: CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions;
-available CPU architectures can be retrieved from the datacenter resource.
-	* possible values: "AMD_OPTERON";"INTEL_SKYLAKE";"INTEL_XEON"
 * `datacenterConfig` (object)
 	* description: DatacenterConfig contains information about the datacenter resource
 on which the server will be created.

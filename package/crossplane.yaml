@@ -4,7 +4,7 @@ metadata:
   name: provider-ionoscloud
 spec:
   crossplane:
-    version: ">=v1.0.0"
+    version: ">=v1.0.0-0"
   controller:
     image: ghcr.io/ionos-cloud/crossplane-provider-ionoscloud-controller:VERSION
   annotations:

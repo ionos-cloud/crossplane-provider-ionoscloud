@@ -15,11 +15,11 @@ kind: User
 metadata:
   name: xplane-test-user
 spec:
-  3managementPolicies:
+  managementPolicies:
     - "*"
   forProvider:
     administrator: false
-    email: "unique@xplane.com"
+    email: "your-username-here"
     firstName: "xplane test"
     lastName: "user"
     forceSecAuth: true

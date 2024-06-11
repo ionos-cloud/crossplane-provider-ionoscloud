@@ -2,9 +2,13 @@ package user
 
 import (
 	"context"
+	stderrors "errors"
+	"fmt"
+
+	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	ionosdk "github.com/ionos-cloud/sdk-go/v6"
-	"github.com/pkg/errors"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
@@ -39,6 +43,7 @@ type Client interface {
 	DeleteUser(ctx context.Context, id string) (*ionosdk.APIResponse, error)
 	AddUserToGroup(ctx context.Context, groupID string, userID string) (ionosdk.User, *ionosdk.APIResponse, error)
 	DeleteUserFromGroup(ctx context.Context, groupID string, userID string) error
+	UpdateUserGroups(ctx context.Context, userID string, observedGroupIDs, configuredGroupIDs []string) error
 	GetUserGroups(ctx context.Context, userID string) ([]string, error)
 	GetAPIClient() *ionosdk.APIClient
 }
@@ -132,6 +137,31 @@ func (ac *apiClient) AddUserToGroup(ctx context.Context, groupID string, userID 
 	return user, resp, err
 }
 
+// UpdateUserGroups adds or remove groups for the userID.
+func (ac *apiClient) UpdateUserGroups(ctx context.Context, userID string, observedGroupIDs, configuredGroupIDs []string) error {
+
+	configured := sets.New[string](configuredGroupIDs...)
+	observed := sets.New[string](observedGroupIDs...)
+
+	errs := make([]error, 0, len(observed)+len(configured))
+
+	for groupID := range observed.Difference(configured) {
+		if err := ac.DeleteUserFromGroup(ctx, groupID, userID); err != nil {
+			err = fmt.Errorf("failed to remove the user from a group: %w", err)
+			errs = append(errs, err)
+		}
+	}
+
+	for groupID := range configured.Difference(observed) {
+		if _, _, err := ac.AddUserToGroup(ctx, groupID, userID); err != nil {
+			err = fmt.Errorf("failed to add the user to a group: %w", err)
+			errs = append(errs, err)
+		}
+	}
+
+	return stderrors.Join(errs...)
+}
+
 func (ac *apiClient) GetUserGroups(ctx context.Context, userID string) ([]string, error) {
 	rgroups, _, err := ac.svc.UserManagementApi.UmUsersGroupsGet(ctx, userID).Execute()
 	if err != nil {
@@ -150,4 +180,44 @@ func (ac *apiClient) GetUserGroups(ctx context.Context, userID string) ([]string
 // GetAPIClient returns the ionoscloud apiClient.
 func (ac *apiClient) GetAPIClient() *ionosdk.APIClient {
 	return ac.svc
+}
+
+// IsUserUpToDate returns true if the User is up-to-date or false otherwise.
+func IsUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, observedGroups []string) bool { //nolint:gocyclo
+	if !observed.HasProperties() {
+		return false
+	}
+
+	// After creation the password is stored as a connection detail secret
+	// and removed from the cr. If the cr has a password it means
+	// the client wants to update it.
+	if params.Password != "" {
+		return false
+	}
+
+	props := observed.GetProperties()
+	adm := props.GetAdministrator()
+	email := props.GetEmail()
+	fname := props.GetFirstname()
+	fsec := props.GetForceSecAuth()
+	lname := props.GetLastname()
+	active := props.GetActive()
+
+	switch {
+	case adm != nil && params.Administrator != *adm:
+		return false
+	case email != nil && params.Email != *email:
+		return false
+	case fname != nil && params.FirstName != *fname:
+		return false
+	case fsec != nil && params.ForceSecAuth != *fsec:
+		return false
+	case lname != nil && params.LastName != *lname:
+		return false
+	case active != nil && params.Active != *active:
+		return false
+	}
+
+	configuredGroups := sets.New[string](params.GroupIDs...)
+	return configuredGroups.Equal(sets.New[string](observedGroups...))
 }

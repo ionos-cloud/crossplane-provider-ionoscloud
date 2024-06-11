@@ -2,11 +2,9 @@ package statefulserverset
 
 import (
 	"github.com/crossplane/crossplane-runtime/pkg/event"
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -16,9 +14,9 @@ import (
 )
 
 // Setup adds a controller that reconciles StatefulServerSet managed resources.
-func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *utils.ConfigurationOptions) error {
+func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.StatefulServerSetGroupKind)
-
+	logger := opts.CtrlOpts.Logger
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
@@ -30,22 +28,22 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *u
 			managed.WithExternalConnecter(&connector{
 				kube:  mgr.GetClient(),
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   l,
+				log:   logger,
 				dataVolumeController: &kubeDataVolumeController{
 					kube: mgr.GetClient(),
-					log:  l,
+					log:  logger,
 				},
 				LANController: &kubeLANController{
 					kube: mgr.GetClient(),
-					log:  l,
+					log:  logger,
 				},
 				SSetController: &kubeServerSetController{
 					kube: mgr.GetClient(),
-					log:  l,
+					log:  logger,
 				},
 				volumeSelectorController: &kubeVolumeSelectorController{
 					kube: mgr.GetClient(),
-					log:  l,
+					log:  logger,
 				},
 			}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
@@ -53,6 +51,6 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter, opts *u
 			managed.WithPollInterval(opts.GetPollInterval()),
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
-			managed.WithLogger(l.WithValues("controller", name)),
+			managed.WithLogger(logger.WithValues("controller", name)),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }

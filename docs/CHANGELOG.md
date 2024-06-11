@@ -1,6 +1,45 @@
-## [1.0.10] (January 2024)
+## [1.0.13]
 - **Features**:
-- Allow conversion between schema types and go types 
+    - Add `datacenterID` field for node pool lan in k8s `NodePool` CRD managed resources:
+    - Save `s3SecretKey` and `s3keyID` to the `Secrets` field in the `S3Key` CRD
+
+- **Fixes**:
+    - S3Key should be properly deleted
+    - Remove useless `secretKey` field in s3Key
+- **Misc**:
+    - Use builtin `controller.Options` in controller setup functions
+
+## [1.0.12] (May 2024)
+- **Fixes**:
+    - Fixes for `MongoUser` and `PostgresUser`:
+        - Panic caused by improper dereference of `password` pointer
+        - Passwords that are provided via `Secrets` no longer appear in clear text in the resource `spec`
+
+## [1.0.11] (April 2024)
+- **Features**:
+  - Add `NLB` managed resources:
+    - `Network Load Balancer`
+    - `Forwarding Rule`
+    - `Flowlog`
+
+- **Fixes**:
+  - Changed fields for `CubeServer` CR:
+    - `cpuFamily` field has been removed as it prevented external resource creation.
+    - `template.name` is now immutable
+
+- **Misc**:
+    - Added local registry usage example
+    - Changed e2e tests location to es/vit
+    - Renamed `Private Cross Connect` to `Cross Connect` in `pcc` documentation
+
+## [1.0.10] (March 2024)
+- **Features**:
+  - Allow conversion between schema types and go types 
+  - Add `group` CRD to support CRUD of compute Groups
+  - Update `sdk-go` to v6.1.11
+
+- **Misc**:
+  - Minor `user` CRD refactor
 
 ## [1.0.9] (February 2024)
 - **Features**:

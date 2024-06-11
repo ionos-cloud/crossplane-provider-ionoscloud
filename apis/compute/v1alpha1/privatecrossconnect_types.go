@@ -25,16 +25,16 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 )
 
-// PccParameters To connect two PrivateCrossconnects we need 2 lans defined, one in each Pcc.
+// PccParameters To connect two Crossconnects we need 2 lans defined, one in each Pcc.
 // After, we reference the Pcc through which we want the connection to be established.
 type PccParameters struct {
-	// The name of the private cross-connection.
+	// The name of the cross-connection.
 	Name string `json:"name,omitempty"`
-	// A short description for the private cross-connection.
+	// A short description for the cross-connection.
 	Description string `json:"description,omitempty"`
 }
 
-// PccConfig is used by resources that need to link a Private Cross Connect via id or via reference.
+// PccConfig is used by resources that need to link a Cross Connect via id or via reference.
 type PccConfig struct {
 	// PrivateCrossConnectID is the ID of the Pcc on which the resource will be created.
 	// It needs to be provided via directly or via reference.
@@ -104,7 +104,7 @@ type PccList struct {
 // Pcc type metadata.
 var (
 	PrivateCrossConnectKind             = reflect.TypeOf(Pcc{}).Name()
-	PrivateCrossConnectGroupKind        = schema.GroupKind{Group: Group, Kind: PrivateCrossConnectKind}.String()
+	PrivateCrossConnectGroupKind        = schema.GroupKind{Group: APIGroup, Kind: PrivateCrossConnectKind}.String()
 	PrivateCrossConnectKindAPIVersion   = PrivateCrossConnectKind + "." + SchemeGroupVersion.String()
 	PrivateCrossConnectGroupVersionKind = SchemeGroupVersion.WithKind(PrivateCrossConnectKind)
 )

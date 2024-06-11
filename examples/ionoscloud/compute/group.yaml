@@ -1,0 +1,31 @@
+# Use this file to create a Management Group CR.
+# Required values for creating a Management Group CR:
+# - Name,
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Group
+metadata:
+  name: example
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: exampleGroup
+    createDataCenter: true
+    reserveIp: true
+    userConfig:
+      - userIdRef:
+          name: xplane-test-user
+    sharedResourcesConfig:
+      - resourceShare:
+          sharePrivilege: true
+          editPrivilege: true
+        name: example
+        kind: Datacenter
+        version: compute.ionoscloud.crossplane.io/v1alpha1
+#     Or by supplying the Datacenter ID directly:
+#      - resourceShare:
+#          resourceId: datacenter-ID-here
+#          sharePrivilege: true
+#          editPrivilege: true
+  providerConfigRef:
+    name: example

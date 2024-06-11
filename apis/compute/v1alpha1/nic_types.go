@@ -162,7 +162,7 @@ type NicList struct {
 // Nic type metadata.
 var (
 	NicKind             = reflect.TypeOf(Nic{}).Name()
-	NicGroupKind        = schema.GroupKind{Group: Group, Kind: NicKind}.String()
+	NicGroupKind        = schema.GroupKind{Group: APIGroup, Kind: NicKind}.String()
 	NicKindAPIVersion   = NicKind + "." + SchemeGroupVersion.String()
 	NicGroupVersionKind = SchemeGroupVersion.WithKind(NicKind)
 )

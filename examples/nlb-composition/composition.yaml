@@ -1,0 +1,228 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: nlbcompositionexample
+  labels:
+    crossplane.io/xrd: xnetworkloadbalancerinstance.platform.example.org
+    provider: ionoscloud
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: platform.example.org/v1alpha1
+    kind: XNetworkLoadBalancerInstance
+  resources:
+    # 0 datacenter
+    - name: nlbdatacenter
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: Datacenter
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: CompositionNLB
+            description: Network Load Balancer Composition Example
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.datacenterName
+          toFieldPath: spec.forProvider.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.datacenterLocation
+          toFieldPath: spec.forProvider.location
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.datacenterId
+          toFieldPath: status.datacenterId
+    # 1 listener lan
+    - name: listenerlan
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: Lan
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: listenerLan
+            public: true
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.datacenterId
+          toFieldPath: spec.forProvider.datacenterConfig.datacenterId
+          policy:
+            fromFieldPath: Required
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.lanId
+          toFieldPath: status.listenerLanId
+    # 2 target lan
+    - name: targetlan
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: Lan
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: targetLan
+            public: false
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.datacenterId
+          toFieldPath: spec.forProvider.datacenterConfig.datacenterId
+          policy:
+            fromFieldPath: Required
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.lanId
+          toFieldPath: status.targetLanId
+    # 3 ipblock
+    - name: nlbipblock
+      base:
+        apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+        kind: IPBlock
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: CompositionNLB
+            size: 2
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.datacenterLocation
+          toFieldPath: spec.forProvider.location
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.ips
+          toFieldPath: status.networkLoadBalancerListenerIps
+    # 4 network load balancer
+    - name: networkloadbalancer
+      base:
+        apiVersion: nlb.ionoscloud.crossplane.io/v1alpha1
+        kind: NetworkLoadBalancer
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: CompositionNLB
+            lbPrivateIps:
+              - 10.7.224.10/24
+          providerConfigRef:
+            name: example
+      patches:
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.networkLoadBalancerId
+          toFieldPath: status.networkLoadBalancerId
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.datacenterId
+          toFieldPath: spec.forProvider.datacenterConfig.datacenterId
+          policy:
+            fromFieldPath: Required
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.listenerLanId
+          toFieldPath: spec.forProvider.listenerLanConfig.lanId
+          policy:
+            fromFieldPath: Required
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.targetLanId
+          toFieldPath: spec.forProvider.targetLanConfig.lanId
+          policy:
+            fromFieldPath: Required
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.networkLoadBalancerListenerIps
+          toFieldPath: spec.forProvider.ipsConfig.ips
+          policy:
+            fromFieldPath: Required
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.nlbPrivateIps
+          toFieldPath: spec.forProvider.lbPrivateIps
+    # 5 forwarding rule
+    - name: nlbforwardingrule
+      base:
+        apiVersion: nlb.ionoscloud.crossplane.io/v1alpha1
+        kind: ForwardingRule
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: NlbForwardingRule
+            listenerPort: 8081
+            algorithm: ROUND_ROBIN
+            protocol: TCP
+            healthCheck:
+              targetTimeout: 30000
+              retries: 5
+              clientTimeout: 70000
+              connectTimeout: 60000
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.datacenterId
+          toFieldPath: spec.forProvider.datacenterConfig.datacenterId
+          policy:
+            fromFieldPath: Required
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.networkLoadBalancerId
+          toFieldPath: spec.forProvider.networkLoadBalancerConfig.networkLoadBalancerId
+          policy:
+            fromFieldPath: Required
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.networkLoadBalancerListenerIps[0]
+          toFieldPath: spec.forProvider.listenerIpConfig.ip
+          policy:
+            fromFieldPath: Required
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.fwRuleListenerPort
+          toFieldPath: spec.forProvider.listenerPort
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.fwRuleAlgorithm
+          toFieldPath: spec.forProvider.algorithm
+          # Composition Patches don't support iteration, each object array entry needs to be patched manually
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.fwRuleTargets[0].ip
+          toFieldPath: spec.forProvider.targets[0].ipConfig.ip
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.fwRuleTargets[0].weight
+          toFieldPath: spec.forProvider.targets[0].weight
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.fwRuleTargets[0].port
+          toFieldPath: spec.forProvider.targets[0].port
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.fwRuleTargets[1].ip
+          toFieldPath: spec.forProvider.targets[1].ipConfig.ip
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.fwRuleTargets[1].weight
+          toFieldPath: spec.forProvider.targets[1].weight
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.fwRuleTargets[1].port
+          toFieldPath: spec.forProvider.targets[1].port
+    # 6 flow log
+    - name: flowlog
+      base:
+        apiVersion: nlb.ionoscloud.crossplane.io/v1alpha1
+        kind: FlowLog
+        managementPolicies:
+          - "*"
+        spec:
+          forProvider:
+            name: NlbFlowLog
+            action: REJECTED
+            direction: INGRESS
+            bucket: nlb-flowlog-test
+          providerConfigRef:
+            name: example
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.datacenterId
+          toFieldPath: spec.forProvider.datacenterConfig.datacenterId
+          policy:
+            fromFieldPath: Required
+        - type: FromCompositeFieldPath
+          fromFieldPath: status.networkLoadBalancerId
+          toFieldPath: spec.forProvider.networkLoadBalancerConfig.networkLoadBalancerId
+          policy:
+            fromFieldPath: Required

@@ -22,7 +22,7 @@ spec:
   forProvider:
     name: exampleIpBlock
     size: 2
-    location: de/txl
+    location: es/vit
   providerConfigRef:
     name: example
 EOF
@@ -52,7 +52,7 @@ spec:
   forProvider:
     name: exampleIpBlockUpdate
     size: 2
-    location: de/txl
+    location: es/vit
   providerConfigRef:
     name: example
 EOF
@@ -81,7 +81,7 @@ spec:
   forProvider:
     name: exampleIpBlockUpdate
     size: 2
-    location: de/txl
+    location: es/vit
   providerConfigRef:
     name: example
 EOF
@@ -134,7 +134,7 @@ spec:
     - "*"
   forProvider:
     name: testdatacenter
-    location: de/txl
+    location: es/vit
   providerConfigRef:
     name: example
 EOF
@@ -163,7 +163,7 @@ spec:
     - "*"
   forProvider:
     name: Test Datacenter CR
-    location: de/txl
+    location: es/vit
     description: e2e crossplane testing
   providerConfigRef:
     name: example
@@ -191,7 +191,7 @@ spec:
     - "*"
   forProvider:
     name: Test Datacenter CR
-    location: de/txl
+    location: es/vit
     description: e2e crossplane testing
   providerConfigRef:
     name: example
@@ -975,5 +975,90 @@ EOF
 
   echo_step "wait for deletion ipfailover CR"
   kubectl wait --for=delete ipfailovers/example
+
+}
+
+function group_tests(){
+
+  echo_step "deploy a group CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Group
+metadata:
+  name: example
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    name: exampleGroup
+    createDataCenter: true
+    reserveIp: true
+    createK8sCluster: true
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for group CR to be ready & synced"
+  kubectl wait --for=condition=ready groups/example --timeout 120s
+  kubectl wait --for=condition=synced groups/example --timeout 120s
+
+  echo_step "get group CR"
+  kubectl get groups
+
+  echo_step "update group CR"
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Group
+metadata:
+  name: example
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    name: exampleGroup
+    createDataCenter: true
+    reserveIp: true
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
+
+  echo_step "waiting for group CR to be ready & synced"
+  kubectl wait --for=condition=ready groups/example --timeout 120s
+  kubectl wait --for=condition=synced groups/example --timeout 120s
+
+}
+
+function group_tests_cleanup(){
+  INSTALL_RESOURCE_YAML="$(
+    cat <<EOF
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Group
+metadata:
+  name: example
+managementPolicies:
+  - "*"
+spec:
+  forProvider:
+    name: exampleGroup
+    createDataCenter: true
+    reserveIp: true
+  providerConfigRef:
+    name: example
+EOF
+  )"
+
+  echo_step "uninstalling group CR"
+  echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" delete -f -
+
+  echo_step "wait for deletion group CR"
+  kubectl wait --for=delete groups/example
 
 }
