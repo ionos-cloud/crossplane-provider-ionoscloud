@@ -165,6 +165,7 @@ be responsible for computing the value we put in place of te key
 The property is immutable and is only allowed to be set on creation of a new a volume.
 It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
 Hostname is injected automatically in the userdata, in the format: {bootvolumeNameFromMetadata}-{replicaIndex}-{version}
+PCI slots of the nics attached to the server are injected automatically in the userdata, with the key : {nic-pcislot-}-{nicNameFromMetadata) and the value : {pciSlot}
 			* required properties:
 				* `size`
 				* `type`
