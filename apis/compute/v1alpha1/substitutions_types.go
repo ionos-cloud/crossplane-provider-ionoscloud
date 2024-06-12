@@ -1,6 +1,6 @@
 package v1alpha1
 
-// Substitution defines the substitution configuration. Can be used to replace a key in the cloud-init user data with a value computed by a handler
+// Substitution defines the substitution configuration. Can be used to replace a key in the cloud-init userdata field with a value computed by a handler
 // given in the options field.
 // Example:
 // substitutions:

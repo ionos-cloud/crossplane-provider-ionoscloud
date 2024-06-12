@@ -165,9 +165,9 @@ type BootVolumeTemplate struct {
 
 // ServerSetBootVolumeMetadata are the configurable fields of a ServerSetBootVolumeMetadata.
 type ServerSetBootVolumeMetadata struct {
-	// Name of the BootVolume. Replica index, volume index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}. Version increases if the bootvolume is
-	// re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
-	//
+	// Name of the BootVolume. Replica index, volume index, and version are appended to the name.
+	// Resulting name will be in format: {name}-{replicaIndex}-{version}.
+	// Version increases if the bootvolume is re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
 	// +kubebuilder:validation:MaxLength=55
@@ -200,6 +200,8 @@ type ServerSetBootVolumeSpec struct {
 	// The cloud-init configuration for the volume as base64 encoded string.
 	// The property is immutable and is only allowed to be set on creation of a new a volume.
 	// It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
+	// Hostname is injected automatically in the userdata, in the format: {bootvolumeNameFromMetadata}-{replicaIndex}-{version}
+	// PCI slots of the nics attached to the server are injected automatically in the userdata, with the key : {nic-pcislot-}-{nicNameFromMetadata) and the value : {pciSlot}
 	//
 	// +immutable
 	UserData string `json:"userData,omitempty"`

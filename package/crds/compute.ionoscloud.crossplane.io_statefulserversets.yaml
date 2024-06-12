@@ -28,7 +28,7 @@ spec:
     - jsonPath: .status.atProvider.replicas
       name: REPLICAS
       type: integer
-    - jsonPath: .status.atProvider.replicaStatus
+    - jsonPath: .status.atProvider.replicaStatuses
       name: servers
       priority: 1
       type: string
@@ -101,8 +101,9 @@ spec:
                             type: object
                           name:
                             description: |-
-                              Name of the BootVolume. Replica index, volume index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}. Version increases if the bootvolume is
-                              re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
+                              Name of the BootVolume. Replica index, volume index, and version are appended to the name.
+                              Resulting name will be in format: {name}-{replicaIndex}-{version}.
+                              Version increases if the bootvolume is re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
                             maxLength: 55
                             pattern: '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
                             type: string
@@ -194,7 +195,7 @@ spec:
                               The property is immutable and is only allowed to be set on creation of a new a volume.
                             items:
                               description: |-
-                                Substitution defines the substitution configuration. Can be used to replace a key in the cloud-init user data with a value computed by a handler
+                                Substitution defines the substitution configuration. Can be used to replace a key in the cloud-init userdata field with a value computed by a handler
                                 given in the options field.
                                 Example:
                                 substitutions:
@@ -266,6 +267,8 @@ spec:
                               The cloud-init configuration for the volume as base64 encoded string.
                               The property is immutable and is only allowed to be set on creation of a new a volume.
                               It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
+                              Hostname is injected automatically in the userdata, in the format: {bootvolumeNameFromMetadata}-{replicaIndex}-{version}
+                              PCI slots of the nics attached to the server are injected automatically in the userdata, with the key : {nic-pcislot-}-{nicNameFromMetadata) and the value : {pciSlot}
                             type: string
                         required:
                         - size
