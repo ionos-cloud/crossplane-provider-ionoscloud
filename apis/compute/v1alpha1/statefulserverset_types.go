@@ -151,7 +151,10 @@ type StatefulServerSetStatus struct {
 
 // +kubebuilder:object:root=true
 
-// A StatefulServerSet is an example API type.
+// A StatefulServerSet is a an API type that represents a set of servers with data Vplumes attached in the Ionos Cloud. The number of resources created is defined by the replicas field.
+// This includes the servers, boot volume, data volumes NICs and LANs configured in the template. It will also create a volumeselector which attaches data Volumes to the servers.
+// Unlike a K8s StatefulSet, a StatefulServerSet does not keep the data Volumes in sync. The information on the active replica is `NOT` propagated to the passives.
+// The SSSet reads the active(master) identity from a configMap that needs to be named `config-lease`. If the configMap is not found, the master will be the first server created.
 // +kubebuilder:printcolumn:name="Datacenter ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
 // +kubebuilder:printcolumn:name="REPLICAS",type="integer",JSONPath=".status.atProvider.replicas"
 // +kubebuilder:printcolumn:name="servers",priority=1,type="string",JSONPath=".status.atProvider.replicaStatus"

@@ -135,7 +135,7 @@ The property is immutable and is only allowed to be set on creation of a new a v
 						* `key` (string)
 							* description: The key that will be replaced by the value computed by the handler
 						* `options` (object)
-							* description: The options for the handler. For example, for ipv4Address and ipv6Address handlers, we can specify cidr as an option
+							* description: The options for the handler. For example, for ipv4Address and ipv6Address handlers, we need to specify cidr as an option
 						* `type` (string)
 							* description: The type of the handler that will be used for this substitution. The handler will
 be responsible for computing the value we put in place of te key
