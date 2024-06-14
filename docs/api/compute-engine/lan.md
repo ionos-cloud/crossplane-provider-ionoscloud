@@ -6,6 +6,7 @@ description: Manages Lan Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A Lan is an example API type.
 * Resource Name: `Lan`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

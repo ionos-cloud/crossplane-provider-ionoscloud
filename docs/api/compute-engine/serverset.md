@@ -6,6 +6,11 @@ description: Manages ServerSet Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: ServerSet represents a stateful set of servers in the Ionos Cloud.
+The number of replicas controls how many resources it creates in the Ionos Cloud.
+For 2 replicas defined, it will create for each: 1 server, 1 bootvolume, the nics configured(for each server).
+Each sub-resource created(server, bootvolume, nic) will have it's own CR that can be observed using kubectl.
+The SSet reads the active(master) identity from a configMap that needs to be named `config-lease`. If the configMap is not found, the active replica will be the first server created.
 * Resource Name: `ServerSet`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`
@@ -135,7 +140,7 @@ The property is immutable and is only allowed to be set on creation of a new a v
 						* `key` (string)
 							* description: The key that will be replaced by the value computed by the handler
 						* `options` (object)
-							* description: The options for the handler. For example, for ipv4Address and ipv6Address handlers, we can specify cidr as an option
+							* description: The options for the handler. For example, for ipv4Address and ipv6Address handlers, we need to specify cidr as an option
 						* `type` (string)
 							* description: The type of the handler that will be used for this substitution. The handler will
 be responsible for computing the value we put in place of te key
