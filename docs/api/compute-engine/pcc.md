@@ -6,6 +6,7 @@ description: Manages Pcc Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A Pcc is an example API type.
 * Resource Name: `Pcc`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`
