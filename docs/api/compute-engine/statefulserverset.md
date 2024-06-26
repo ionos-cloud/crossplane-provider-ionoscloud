@@ -6,6 +6,11 @@ description: Manages StatefulServerSet Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A StatefulServerSet is a an API type that represents a set of servers with data Volumes attached in the Ionos Cloud. The number of resources created is defined by the replicas field.
+This includes the servers, boot volume, data volumes NICs and LANs configured in the template. It will also create a volumeselector which attaches data Volumes to the servers.
+Unlike a K8s StatefulSet, a StatefulServerSet does not keep the data Volumes in sync. The information on the active replica is `NOT` propagated to the passives.
+Each sub-resource created(server, bootvolume, datavolume, nic) will have it's own CR that can be observed using kubectl.
+The SSSet reads the active(master) identity from a configMap that needs to be named `config-lease`. If the configMap is not found, the master will be the first server created.
 * Resource Name: `StatefulServerSet`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`
@@ -81,8 +86,9 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* properties:
 				* `labels` (object)
 				* `name` (string)
-					* description: Name of the BootVolume. Replica index, volume index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}. Version increases if the bootvolume is
-re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
+					* description: Name of the BootVolume. Replica index, volume index, and version are appended to the name.
+Resulting name will be in format: {name}-{replicaIndex}-{version}.
+Version increases if the bootvolume is re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
 					* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 			* required properties:
 				* `name`
@@ -163,6 +169,8 @@ be responsible for computing the value we put in place of te key
 					* description: The cloud-init configuration for the volume as base64 encoded string.
 The property is immutable and is only allowed to be set on creation of a new a volume.
 It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
+Hostname is injected automatically in the userdata, in the format: {bootvolumeNameFromMetadata}-{replicaIndex}-{version}
+PCI slots of the nics attached to the server are injected automatically in the userdata, with the key : {nic-pcislot-}-{nicNameFromMetadata) and the value : {pciSlot}
 			* required properties:
 				* `size`
 				* `type`

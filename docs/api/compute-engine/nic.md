@@ -6,6 +6,7 @@ description: Manages Nic Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A Nic is an example API type.
 * Resource Name: `Nic`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

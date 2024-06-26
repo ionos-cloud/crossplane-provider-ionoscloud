@@ -6,6 +6,7 @@ description: Manages Server Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A Server is an example API type.
 * Resource Name: `Server`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

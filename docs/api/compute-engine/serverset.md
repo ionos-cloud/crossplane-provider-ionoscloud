@@ -6,6 +6,11 @@ description: Manages ServerSet Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: ServerSet represents a stateful set of servers in the Ionos Cloud.
+The number of replicas controls how many resources it creates in the Ionos Cloud.
+For 2 replicas defined, it will create for each: 1 server, 1 bootvolume, the nics configured(for each server).
+Each sub-resource created(server, bootvolume, nic) will have it's own CR that can be observed using kubectl.
+The SSet reads the active(master) identity from a configMap that needs to be named `config-lease`. If the configMap is not found, the active replica will be the first server created.
 * Resource Name: `ServerSet`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`
@@ -81,8 +86,9 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* properties:
 				* `labels` (object)
 				* `name` (string)
-					* description: Name of the BootVolume. Replica index, volume index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}. Version increases if the bootvolume is
-re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
+					* description: Name of the BootVolume. Replica index, volume index, and version are appended to the name.
+Resulting name will be in format: {name}-{replicaIndex}-{version}.
+Version increases if the bootvolume is re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
 					* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 			* required properties:
 				* `name`
@@ -163,6 +169,8 @@ be responsible for computing the value we put in place of te key
 					* description: The cloud-init configuration for the volume as base64 encoded string.
 The property is immutable and is only allowed to be set on creation of a new a volume.
 It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
+Hostname is injected automatically in the userdata, in the format: {bootvolumeNameFromMetadata}-{replicaIndex}-{version}
+PCI slots of the nics attached to the server are injected automatically in the userdata, with the key : {nic-pcislot-}-{nicNameFromMetadata) and the value : {pciSlot}
 			* required properties:
 				* `size`
 				* `type`
