@@ -458,7 +458,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 			},
 		},
 		{
-			name: "config-lease map missing, then roles default to PASSIVE",
+			name: "configMap missing, then replica 0 defaults to ACTIVE",
 			fields: fields{
 				kube: fakeKubeClientObjs(server1, server2, nic1, nic2),
 			},
@@ -472,7 +472,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					{
 						Name:         server1.Name,
 						Status:       statusReady,
-						Role:         "PASSIVE",
+						Role:         "ACTIVE",
 						ReplicaIndex: 0,
 						NICStatuses: []v1alpha1.NicStatus{
 							{
@@ -503,7 +503,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 			},
 		},
 		{
-			name: "replicas not in config-lease, then roles default to PASSIVE",
+			name: "replicas not in configMap, then role for replica 0 defaults to ACTIVE",
 			fields: fields{
 				kube: fakeKubeClientObjs(server1, server2, nic1, nic2, createConfigLeaseMapDoesNotContainAnyReplica()),
 			},
@@ -517,7 +517,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					{
 						Name:         server1.Name,
 						Status:       statusReady,
-						Role:         "PASSIVE",
+						Role:         "ACTIVE",
 						ReplicaIndex: 0,
 						NICStatuses: []v1alpha1.NicStatus{
 							{
@@ -562,7 +562,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					{
 						Name:         server1.Name,
 						Status:       statusReady,
-						Role:         "PASSIVE",
+						Role:         "ACTIVE",
 						ReplicaIndex: 0,
 						NICStatuses: []v1alpha1.NicStatus{
 							{
@@ -607,7 +607,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					{
 						Name:         server1.Name,
 						Status:       statusReady,
-						Role:         "PASSIVE",
+						Role:         "ACTIVE",
 						ReplicaIndex: 0,
 						NICStatuses: []v1alpha1.NicStatus{
 							{

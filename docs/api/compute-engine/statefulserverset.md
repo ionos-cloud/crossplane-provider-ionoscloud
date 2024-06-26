@@ -135,7 +135,7 @@ The property is immutable and is only allowed to be set on creation of a new a v
 						* `key` (string)
 							* description: The key that will be replaced by the value computed by the handler
 						* `options` (object)
-							* description: The options for the handler. For example, for ipv4Address and ipv6Address handlers, we can specify cidr as an option
+							* description: The options for the handler. For example, for ipv4Address and ipv6Address handlers, we need to specify cidr as an option
 						* `type` (string)
 							* description: The type of the handler that will be used for this substitution. The handler will
 be responsible for computing the value we put in place of te key
@@ -230,6 +230,17 @@ reference on every reconcile.
 			* possible values: "ZONES"
 	* required properties:
 		* `type`
+* `identityConfigMap` (object)
+	* description: IdentityConfigMap is the configMap from which the identity of the ACTIVE server in the ServerSet is read. The configMap
+should be created separately. The stateful serverset only reads the status from it. If it does not find it, it sets
+the first server as the ACTIVE.
+	* properties:
+		* `keyName` (string)
+			* description: KeyName the key name in the configMap from which the identity of the ACTIVE server in the ServerSet is read.
+		* `name` (string)
+			* description: Name of the configMap from which the identity of the ACTIVE server in the ServerSet is read.
+		* `namespace` (string)
+			* description: Namespace of the configMap from which the identity of the ACTIVE server in the ServerSet is read.
 * `lans` (array)
 	* properties:
 		* `metadata` (object)

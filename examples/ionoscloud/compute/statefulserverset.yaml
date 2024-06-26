@@ -18,7 +18,7 @@ metadata:
   name: sss-example
 spec:
   forProvider:
-    replicas: 1
+    replicas: 2
     deploymentStrategy:
       type: ZONES
     datacenterConfig:
@@ -39,6 +39,11 @@ spec:
 #           should reference lan metadata name
 #           needs to be created before serverset. StatefulServerset will not wait until it is populated
             lanReference: customer
+# needs to be created separately from the stateful serverset
+    identityConfigMap:
+        name: "config-lease"
+        namespace: "default"
+        keyName: "identity"
     bootVolumeTemplate:
       metadata:
           name: boot-volume
@@ -89,4 +94,4 @@ metadata:
   name: config-lease
   namespace: default
 data:
-  identity: "server-name-0-0"
+  identity: "server-name-1-0"
