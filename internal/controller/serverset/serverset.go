@@ -218,7 +218,7 @@ func getLastCondition(server v1alpha1.Server) xpv1.Condition {
 	return xpv1.Condition{}
 }
 
-func fetchRole(ctx context.Context, e *external, sset v1alpha1.ServerSet, index int, replicaName, replicaStatus string) v1alpha1.Role {
+func fetchRole(ctx context.Context, e *external, sset v1alpha1.ServerSet, replicaIndex int, replicaName, replicaStatus string) v1alpha1.Role {
 	role := v1alpha1.Passive
 	if replicaStatus != statusReady {
 		return role
@@ -226,7 +226,8 @@ func fetchRole(ctx context.Context, e *external, sset v1alpha1.ServerSet, index 
 	if sset.Spec.ForProvider.IdentityConfigMap.Namespace == "" ||
 		sset.Spec.ForProvider.IdentityConfigMap.Name == "" ||
 		sset.Spec.ForProvider.IdentityConfigMap.KeyName == "" {
-		if index == 0 {
+		e.log.Info("no identity configmap values provided, setting role based on replica index only")
+		if replicaIndex == 0 {
 			return v1alpha1.Active
 		}
 		return role
