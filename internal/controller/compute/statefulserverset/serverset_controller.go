@@ -62,6 +62,7 @@ func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.State
 	updateObj.Spec.ForProvider.Replicas = cr.Spec.ForProvider.Replicas
 	updateObj.Spec.ForProvider.Template = cr.Spec.ForProvider.Template
 	updateObj.Spec.ForProvider.BootVolumeTemplate = cr.Spec.ForProvider.BootVolumeTemplate
+	updateObj.Spec.ForProvider.IdentityConfigMap = cr.Spec.ForProvider.IdentityConfigMap
 	if err := k.kube.Update(ctx, updateObj); err != nil {
 		return v1alpha1.ServerSet{}, err
 	}
@@ -154,6 +155,7 @@ func extractSSetFromSSSet(sSSet *v1alpha1.StatefulServerSet) *v1alpha1.ServerSet
 				DatacenterCfg:      sSSet.Spec.ForProvider.DatacenterCfg,
 				Template:           sSSet.Spec.ForProvider.Template,
 				BootVolumeTemplate: sSSet.Spec.ForProvider.BootVolumeTemplate,
+				IdentityConfigMap:  sSSet.Spec.ForProvider.IdentityConfigMap,
 			},
 		},
 	}

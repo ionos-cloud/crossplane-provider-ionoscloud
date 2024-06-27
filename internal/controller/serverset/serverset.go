@@ -183,7 +183,7 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 		replicaIdx := ComputeReplicaIdx(e.log, fmt.Sprintf(indexLabel, cr.Name, ResourceServer), serverSetReplicas[i].Labels)
 		nicStatues := computeNicStatuses(ctx, e, cr.Name, replicaIdx)
 		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{
-			Role:         fetchRole(ctx, e, serverSetReplicas[i]),
+			Role:         fetchRole(ctx, e, *cr, replicaIdx, serverSetReplicas[i].Name, replicaStatus),
 			Name:         serverSetReplicas[i].Name,
 			ReplicaIndex: replicaIdx,
 			NICStatuses:  nicStatues,
@@ -218,25 +218,36 @@ func getLastCondition(server v1alpha1.Server) xpv1.Condition {
 	return xpv1.Condition{}
 }
 
-func fetchRole(ctx context.Context, e *external, replica v1alpha1.Server) v1alpha1.Role {
-	ns := "default"
-	if replica.Namespace != "" {
-		ns = replica.Namespace
+func fetchRole(ctx context.Context, e *external, sset v1alpha1.ServerSet, replicaIndex int, replicaName, replicaStatus string) v1alpha1.Role {
+	role := v1alpha1.Passive
+	if replicaStatus != statusReady {
+		return role
 	}
-
+	if sset.Spec.ForProvider.IdentityConfigMap.Namespace == "" ||
+		sset.Spec.ForProvider.IdentityConfigMap.Name == "" ||
+		sset.Spec.ForProvider.IdentityConfigMap.KeyName == "" {
+		e.log.Info("no identity configmap values provided, setting role based on replica index only")
+		if replicaIndex == 0 {
+			return v1alpha1.Active
+		}
+		return role
+	}
+	namespace := sset.Spec.ForProvider.IdentityConfigMap.Namespace
+	name := sset.Spec.ForProvider.IdentityConfigMap.Name
+	key := sset.Spec.ForProvider.IdentityConfigMap.KeyName
 	cfgLease := &v1.ConfigMap{}
-	err := e.kube.Get(ctx, client.ObjectKey{Namespace: ns, Name: "config-lease"}, cfgLease)
+	err := e.kube.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, cfgLease)
 	if err != nil {
 		e.log.Info("error fetching config lease, will default to PASSIVE role", "error", err)
 		return v1alpha1.Passive
 	}
 
-	if cfgLease.Data["identity"] == replica.Name {
+	if cfgLease.Data[key] == replicaName {
 		return v1alpha1.Active
 	}
 
 	// if it is not in the config map then it has Passive role
-	return v1alpha1.Passive
+	return role
 }
 
 func computeStatus(state string) string {

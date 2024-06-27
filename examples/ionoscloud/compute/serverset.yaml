@@ -88,6 +88,10 @@ spec:
             dhcp: false
             dhcpv6: true
             lanReference: examplelan2
+    identityConfigMap:
+      name: "config-lease"
+      namespace: "default"
+      keyName: "identity"
     bootVolumeTemplate:
       metadata:
         name: volumeboot
@@ -107,10 +111,13 @@ spec:
             type: ipv4Address
             unique: true
 ---
+# the active server name is stored as a value for the identity key.
+# the name, namespace and key name must match what is configured in the identityConfigMap
+# of the serverset
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: config-lease
   namespace: default
 data:
-  identity: "sss-example-serverset-name-server-0-0"
+  identity: "server-sample-1-0"

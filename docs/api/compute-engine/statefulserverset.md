@@ -238,6 +238,17 @@ reference on every reconcile.
 			* possible values: "ZONES"
 	* required properties:
 		* `type`
+* `identityConfigMap` (object)
+	* description: IdentityConfigMap is the configMap from which the identity of the ACTIVE server in the ServerSet is read. The configMap
+should be created separately. The stateful serverset only reads the status from it. If it does not find it, it sets
+the first server as the ACTIVE.
+	* properties:
+		* `keyName` (string)
+			* description: KeyName the key name in the configMap from which the identity of the ACTIVE server in the ServerSet is read.
+		* `name` (string)
+			* description: Name of the configMap from which the identity of the ACTIVE server in the ServerSet is read.
+		* `namespace` (string)
+			* description: Namespace of the configMap from which the identity of the ACTIVE server in the ServerSet is read.
 * `lans` (array)
 	* properties:
 		* `metadata` (object)

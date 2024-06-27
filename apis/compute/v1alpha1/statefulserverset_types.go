@@ -113,6 +113,10 @@ type StatefulServerSetParameters struct {
 	BootVolumeTemplate BootVolumeTemplate        `json:"bootVolumeTemplate"`
 	Lans               []StatefulServerSetLan    `json:"lans"`
 	Volumes            []StatefulServerSetVolume `json:"volumes"`
+	// IdentityConfigMap is the configMap from which the identity of the ACTIVE server in the ServerSet is read. The configMap
+	// should be created separately. The stateful serverset only reads the status from it. If it does not find it, it sets
+	// the first server as the ACTIVE.
+	IdentityConfigMap IdentityConfigMap `json:"identityConfigMap,omitempty"`
 }
 
 // A StatefulServerSetSpec defines the desired state of a StatefulServerSet.

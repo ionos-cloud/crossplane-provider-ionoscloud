@@ -51,6 +51,10 @@ type ServerSetParameters struct {
 
 	Template           ServerSetTemplate  `json:"template"`
 	BootVolumeTemplate BootVolumeTemplate `json:"bootVolumeTemplate"`
+	// IdentityConfigMap is the configMap from which the identity of the ACTIVE server in the ServerSet is read. The configMap
+	// should be created separately. The serverset only reads the status from it. If it does not find it, it sets
+	//	// the first server as the ACTIVE.
+	IdentityConfigMap IdentityConfigMap `json:"identityConfigMap,omitempty"`
 }
 
 // ServerSetTemplateSpec are the configurable fields of a ServerSetTemplateSpec.
@@ -153,6 +157,17 @@ type ServerSetSpec struct {
 type ServerSetStatus struct {
 	xpv1.ResourceStatus `json:",inline"`
 	AtProvider          ServerSetObservation `json:"atProvider,omitempty"`
+}
+
+// IdentityConfigMap are the configurable fields of a configMap from which the identity of the  ACTiVE
+// server in the ServerSet is read. If not configured, the first server created will be the ACTIVE server.
+type IdentityConfigMap struct {
+	// Name of the configMap from which the identity of the ACTIVE server in the ServerSet is read.
+	Name string `json:"name,omitempty"`
+	// Namespace of the configMap from which the identity of the ACTIVE server in the ServerSet is read.
+	Namespace string `json:"namespace,omitempty"`
+	// KeyName the key name in the configMap from which the identity of the ACTIVE server in the ServerSet is read.
+	KeyName string `json:"keyName,omitempty"`
 }
 
 // BootVolumeTemplate are the configurable fields of a BootVolumeTemplate.
