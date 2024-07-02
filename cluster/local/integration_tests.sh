@@ -12,6 +12,7 @@ source ./cluster/local/integration_tests_dbaas_mongo.sh
 source ./cluster/local/integration_tests_k8s.sh
 source ./cluster/local/integration_tests_backup.sh
 source ./cluster/local/integration_tests_dataplatform.sh
+source ./cluster/local/integration_tests_serverset.sh
 
 # ------------------------------
 projectdir="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
@@ -44,6 +45,7 @@ TEST_ALB=${TEST_ALB:-false}
 TEST_NLB=${TEST_NLB:-false}
 TEST_BACKUP=${TEST_BACKUP:-false}
 TEST_DATAPLATFORM=${TEST_DATAPLATFORM:-false}
+TEST_SERVERSET=${TEST_SERVERSET:-false}
 skipcleanup=${skipcleanup:-false}
 
 version_tag="$(cat ${projectdir}/_output/version)"
@@ -294,6 +296,14 @@ if [ "$TEST_DATAPLATFORM" = true ]; then
   echo_step "--- CLEANING UP DATAPLATFORM TESTS ---"
   echo_step "--- DATAPLATFORM cluster tests ---"
   dataplatform_tests_cleanup
+fi
+
+
+if [ "$TEST_SERVERSET" = true ]; then
+  echo_step "--- SERVERSET TESTS ---"
+  serverset_tests
+  echo_step "--- CLEANING UP SERVERSET TESTS ---"
+  serverset_tests_cleanup
 fi
 
 echo_step "-------------------"

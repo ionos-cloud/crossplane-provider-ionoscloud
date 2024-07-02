@@ -6,6 +6,7 @@ description: Manages IPBlock Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A IPBlock is an example API type.
 * Resource Name: `IPBlock`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

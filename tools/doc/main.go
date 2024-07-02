@@ -154,6 +154,7 @@ func getOverview(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition
 		return fmt.Errorf("error getting overview, buffer must be different than nil")
 	}
 	buf.WriteString("## Overview\n\n")
+	buf.WriteString("* Description: " + crd.Spec.Versions[0].Schema.OpenAPIV3Schema.Description + "\n")
 	buf.WriteString("* Resource Name: `" + crd.Spec.Names.Kind + "`\n")
 	buf.WriteString("* Resource Group: `" + crd.Spec.Group + "`\n")
 	if len(crd.Spec.Versions) == 0 {

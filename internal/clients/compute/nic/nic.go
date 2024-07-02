@@ -153,6 +153,13 @@ func GenerateUpdateNicInput(cr *v1alpha1.Nic, ips []string) (*sdkgo.NicPropertie
 		FirewallActive: &cr.Spec.ForProvider.FirewallActive,
 		Dhcp:           &cr.Spec.ForProvider.Dhcp,
 	}
+
+	if cr.Spec.ForProvider.DhcpV6 == nil {
+		instanceUpdateInput.SetDhcpv6Nil()
+	} else {
+		instanceUpdateInput.Dhcpv6 = cr.Spec.ForProvider.DhcpV6
+	}
+
 	if cr.Spec.ForProvider.Name != "" {
 		instanceUpdateInput.SetName(cr.Spec.ForProvider.Name)
 	}
@@ -185,6 +192,8 @@ func IsNicUpToDate(cr *v1alpha1.Nic, nic sdkgo.Nic, ips []string) bool { // noli
 	case nic.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
 		return false
 	case nic.Properties.Dhcp != nil && *nic.Properties.Dhcp != cr.Spec.ForProvider.Dhcp:
+		return false
+	case nic.Properties.Dhcpv6 != nil && cr.Spec.ForProvider.DhcpV6 != nil && *nic.Properties.Dhcpv6 != *cr.Spec.ForProvider.DhcpV6:
 		return false
 	case nic.Properties.FirewallActive != nil && *nic.Properties.FirewallActive != cr.Spec.ForProvider.FirewallActive:
 		return false

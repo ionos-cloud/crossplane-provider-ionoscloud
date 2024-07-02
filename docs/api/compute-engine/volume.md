@@ -6,6 +6,7 @@ description: Manages Volume Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A Volume is an example API type.
 * Resource Name: `Volume`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

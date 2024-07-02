@@ -6,6 +6,7 @@ description: Manages IPFailover Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A IPFailover is an example API type.
 * Resource Name: `IPFailover`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

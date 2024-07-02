@@ -6,6 +6,7 @@ description: Manages TargetGroup Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: An TargetGroup is an example API type.
 * Resource Name: `TargetGroup`
 * Resource Group: `alb.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

@@ -6,6 +6,7 @@ description: Manages CubeServer Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A CubeServer is an example API type.
 * Resource Name: `CubeServer`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

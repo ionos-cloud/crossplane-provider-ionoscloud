@@ -1,0 +1,123 @@
+# Use this file to create a Volume CR.
+# Required values for creating a Volume CR are:
+# - DatacenterConfig (via ID or reference),
+# - Size,
+# - Type,
+# - Licence Type, Image ID or Image Alias.
+# Note: when using images, it is recommended to use SSH Keys or Image Password.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: example
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: exampleDatacenter
+    location: us/las
+    description: test
+  #    secAuthProtection: true
+  providerConfigRef:
+    name: example
+---
+# Use this file to create a Lan CR.
+# Required values for creating a Lan CR are:
+# - DatacenterConfig (via ID or reference),
+# - Public.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: examplelan
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: exampleLan
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Lan
+metadata:
+  name: examplelan2
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: exampleLan2
+    public: false
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: ServerSet
+metadata:
+  name: serverset
+spec:
+  managementPolicies:
+    - "*"
+  providerConfigRef:
+    name: example
+  forProvider:
+    replicas: 1
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    template:
+      metadata:
+        name: server-sample
+        labels:
+          key: value
+      spec:
+        cpuFamily: INTEL_XEON
+        cores: 1
+        ram: 1024
+        nics:
+          - name: nic-sample
+            dhcp: false
+#            needs to be created before serverset. Serverset will not wait until it is populated
+            lanReference: examplelan
+          - name: nic-sample2
+            dhcp: false
+            dhcpv6: true
+            lanReference: examplelan2
+    identityConfigMap:
+      name: "config-lease"
+      namespace: "default"
+      keyName: "identity"
+    bootVolumeTemplate:
+      metadata:
+        name: volumeboot
+      spec:
+        updateStrategy:
+#          createBeforeDestroyBootVolume createAllBeforeDestroy
+          type: "createBeforeDestroyBootVolume"
+        image: "28d0fa34-927f-11ee-8008-6202af74e858"
+        size: 10
+        type: HDD
+        userData: "" #cloud-config
+        imagePassword: "thisshouldbesecret"
+        substitutions:
+          - options:
+              cidr: "10.0.0.0/24"
+            key: ipv4Address
+            type: ipv4Address
+            unique: true
+---
+# the active server name is stored as a value for the identity key.
+# the name, namespace and key name must match what is configured in the identityConfigMap
+# of the serverset
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-lease
+  namespace: default
+data:
+  identity: "server-sample-1-0"

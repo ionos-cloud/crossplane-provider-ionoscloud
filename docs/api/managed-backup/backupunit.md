@@ -6,6 +6,7 @@ description: Manages BackupUnit Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: An BackupUnit is an example API type.
 * Resource Name: `BackupUnit`
 * Resource Group: `backup.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

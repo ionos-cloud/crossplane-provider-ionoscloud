@@ -11,6 +11,7 @@ kind: ControllerConfig
 metadata:
   name: debug-config
 spec:
+  serviceAccountName: crossplane
   args:
     - --debug
 ---

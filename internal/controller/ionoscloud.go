@@ -19,6 +19,8 @@ package controller
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/statefulserverset"
+
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/alb/applicationloadbalancer"
 	albforwardingrule "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/alb/forwardingrule"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/alb/targetgroup"
@@ -44,11 +46,13 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgresuser"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/k8s/k8scluster"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/k8s/k8snodepool"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/serverset"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/volumeselector"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/config"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/nlb/flowlog"
 	nlbforwardingrule "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/nlb/forwardingrule"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/nlb/networkloadbalancer"
-
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/config"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
@@ -85,6 +89,13 @@ var controllers = []controllerSetup{
 	networkloadbalancer.Setup,
 	flowlog.Setup,
 	nlbforwardingrule.Setup,
+	group.Setup,
+	networkloadbalancer.Setup,
+	flowlog.Setup,
+	nlbforwardingrule.Setup,
+	serverset.SetupServerSet,
+	statefulserverset.Setup,
+	volumeselector.Setup,
 }
 
 // Setup creates all IONOS Cloud controllers with the supplied logger

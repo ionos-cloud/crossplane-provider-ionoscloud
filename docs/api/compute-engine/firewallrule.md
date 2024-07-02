@@ -6,6 +6,7 @@ description: Manages FirewallRule Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A FirewallRule is an example API type.
 * Resource Name: `FirewallRule`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

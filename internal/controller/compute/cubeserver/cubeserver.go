@@ -141,7 +141,11 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 
 	cr.Status.AtProvider.ServerID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&instance)
-	c.log.Debug(fmt.Sprintf("Observing state %v...", cr.Status.AtProvider.State))
+	if instance.Properties != nil {
+		cr.Status.AtProvider.Name = *instance.Properties.Name
+	}
+	c.log.Debug(fmt.Sprintf("Observing state %v.te"+
+		"..", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 

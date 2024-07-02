@@ -6,6 +6,7 @@ description: Manages S3Key Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A S3Key is an example API type.
 * Resource Name: `S3Key`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

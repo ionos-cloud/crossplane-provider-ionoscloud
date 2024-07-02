@@ -183,8 +183,12 @@ corresponding release tag.
 
 New resources can be added by defining the required types in `apis` and the controllers `internal/controller/`.
 
-To generate the CRDs YAML files run
+If you are running crossplane for the first time, run:
+```bash
+make submodules
+```
 
+To generate the CRDs YAML files run:
 ```bash
 make generate
 ```

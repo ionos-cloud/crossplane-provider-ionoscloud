@@ -6,6 +6,7 @@ description: Manages Group Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: Group is the Schema for the Group resource API
 * Resource Name: `Group`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

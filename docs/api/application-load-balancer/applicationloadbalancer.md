@@ -6,6 +6,7 @@ description: Manages ApplicationLoadBalancer Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: An ApplicationLoadBalancer is an example API type.
 * Resource Name: `ApplicationLoadBalancer`
 * Resource Group: `alb.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

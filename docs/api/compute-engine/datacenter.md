@@ -6,6 +6,7 @@ description: Manages Datacenter Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A Datacenter is an example API type.
 * Resource Name: `Datacenter`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`
