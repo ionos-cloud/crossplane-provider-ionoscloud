@@ -322,6 +322,9 @@ func kubernetesNodePoolLans(crLans []v1alpha1.KubernetesNodePoolLan) *[]sdkgo.Ku
 				Dhcp:         &crLan.Dhcp,
 				DatacenterId: &crLan.DatacenterID,
 			}
+			if crLan.DatacenterID != "" {
+				newNodePoolLan.DatacenterId = &crLan.DatacenterID
+			}
 			if len(crLan.Routes) > 0 {
 				routes := make([]sdkgo.KubernetesNodePoolLanRoutes, 0)
 				for _, route := range crLan.Routes {

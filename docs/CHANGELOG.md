@@ -1,4 +1,9 @@
-## [1.0.13]
+## [1.0.14] (June 2024)
+- **Fixes**:
+    - Failing unit tests for compute user
+    - K8s Nodepool creation issue due to empty `DatacenterID` value on node pool lan.
+
+## [1.0.13] (May 2024)
 - **Features**:
     - Add `datacenterID` field for node pool lan in k8s `NodePool` CRD managed resources:
     - Save `s3SecretKey` and `s3keyID` to the `Secrets` field in the `S3Key` CRD
