@@ -17,7 +17,6 @@ limitations under the License.
 package controller
 
 import (
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgresdatabase"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/alb/applicationloadbalancer"
@@ -42,6 +41,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/mongocluster"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/mongouser"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgrescluster"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgresdatabase"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgresuser"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/k8s/k8scluster"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/k8s/k8snodepool"
