@@ -6,6 +6,7 @@ description: Manages User Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: User is our managed resource.
 * Resource Name: `User`
 * Resource Group: `compute.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/go-cmp/cmp"
+	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -122,22 +124,41 @@ func (c *externalLan) Observe(ctx context.Context, mg resource.Managed) (managed
 		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
 		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
-
+	current := cr.Spec.ForProvider.DeepCopy()
+	lateInitializer(&cr.Spec.ForProvider, &instance)
 	cr.Status.AtProvider.IPFailovers = lan.GetIPFailoverIPs(instance)
 	cr.Status.AtProvider.LanID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&instance)
+	if instance.Properties != nil {
+		cr.Status.AtProvider.Name = *instance.Properties.Name
+	}
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	// Set Ready condition based on State
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
 	return managed.ExternalObservation{
-		ResourceExists:    true,
-		ResourceUpToDate:  lan.IsLanUpToDate(cr, instance),
-		ConnectionDetails: managed.ConnectionDetails{},
+		ResourceExists:          true,
+		ResourceUpToDate:        lan.IsLanUpToDate(cr, instance),
+		ConnectionDetails:       managed.ConnectionDetails{},
+		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}, nil
 }
 
-func (c *externalLan) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+// LateInitializer fills the empty fields that are set in the backend
+func lateInitializer(in *v1alpha1.LanParameters, lan *sdkgo.Lan) { // nolint:gocyclo
+	if lan == nil {
+		return
+	}
+	// Add Properties to the Spec, if they were set by the API
+	if lan.Properties != nil {
+		if lan.Properties.Ipv6CidrBlock != nil && in.Ipv6Cidr == v1alpha1.LANAuto {
+			if in.Ipv6Cidr == "" || in.Ipv6Cidr == v1alpha1.LANAuto {
+				in.Ipv6Cidr = *lan.Properties.Ipv6CidrBlock
+			}
+		}
+	}
+}
+func (c *externalLan) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) { // nolint:gocyclo
 	cr, ok := mg.(*v1alpha1.Lan)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotLan)
@@ -183,6 +204,9 @@ func (c *externalLan) Create(ctx context.Context, mg resource.Managed) (managed.
 	// Set External Name
 	cr.Status.AtProvider.LanID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
+	if newInstance.Properties != nil {
+		cr.Status.AtProvider.Name = *newInstance.Properties.Name
+	}
 	return creation, nil
 }
 

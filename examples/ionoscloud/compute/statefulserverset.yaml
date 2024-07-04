@@ -1,0 +1,97 @@
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: example
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: exampleDatacenter
+    location: us/las
+    description: test
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: StatefulServerSet
+metadata:
+  name: sss-example
+spec:
+  forProvider:
+    replicas: 2
+    deploymentStrategy:
+      type: ZONES
+    datacenterConfig:
+      datacenterIdRef:
+        name: example
+    # This defines the template used for each replica.
+    template:
+      metadata:
+        name: server-name
+      spec:
+        cpuFamily: AMD_OPTERON
+        cores: 1
+        ram: 1024 # (32*storageTB)
+        nics:
+          - name: nic-customer
+            dhcp: false
+            dhcpv6: false
+#           should reference lan metadata name
+#           needs to be created before serverset. StatefulServerset will not wait until it is populated
+            lanReference: customer
+# needs to be created separately from the stateful serverset
+    identityConfigMap:
+        name: "config-lease"
+        namespace: "default"
+        keyName: "identity"
+    bootVolumeTemplate:
+      metadata:
+          name: boot-volume
+      spec:
+        updateStrategy:
+          type: "createAllBeforeDestroy" # createBeforeDestroyBootVolume createAllBeforeDestroy
+        image: "28d0fa34-927f-11ee-8008-6202af74e858"
+        size: 10
+        type: SSD
+        userData: "" #cloud-config
+        imagePassword: "thisshouldbesecret"
+    lans:
+      # Three LANs are defined - an internal one (data) with IPv6 enabled and DHCP disabled for DRBD + VRRP traffic,
+      # a management network for connectivity to K8S and management as well as
+      # customer one without IPv6 or DHCP where VIP is used.
+      - metadata:
+          name: data
+        spec:
+          public: true
+      - metadata:
+          name: management
+        spec:
+          public: false
+      - metadata:
+          name: customer
+        spec:
+          ipv6cidr: "AUTO"
+          public: false
+    # The volumes are then defined - a 200GB SSD "system" volume from a
+    # custom Linux image, and a separate 4TB SSD volume for storage.
+    volumes:
+      - metadata:
+          name: storage-disk
+        spec:
+          size: 10
+          type: SSD
+      - metadata:
+          name: storage-disk-extend-1
+        spec:
+          size: 10
+          type: SSD
+  providerConfigRef:
+    name: example
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-lease
+  namespace: default
+data:
+  identity: "server-name-1-0"

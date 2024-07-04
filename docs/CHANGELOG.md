@@ -1,3 +1,11 @@
+## [1.0.115] (July 2024)
+- **Features**:
+  - Add serverset and statefulserverset CRDS
+  - Add `iPV6cidr` to NIC
+  - Add shortnames for volume - vol, datacenter - dc.
+  - Add `ipv6Cidr` to LAN.
+  - Run unit tests on PR
+
 ## [1.0.14] (June 2024)
 - **Fixes**:
     - Failing unit tests for compute user
