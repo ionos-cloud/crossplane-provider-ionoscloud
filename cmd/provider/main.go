@@ -49,7 +49,6 @@ func main() {
 	)
 	*debug = true
 	kingpin.MustParse(app.Parse(os.Args[1:]))
-
 	zl := zap.New(zap.UseDevMode(*debug))
 	log := logging.NewLogrLogger(zl.WithName("provider-ionoscloud"))
 	if *debug {

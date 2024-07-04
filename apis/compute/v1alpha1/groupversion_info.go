@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 contains the v1alpha1 group Compute Engine resources of the IONOS Cloud provider.
+// Package v1alpha1 contains the v1alpha1 group Sample resources of the ionoscloud provider.
 // +kubebuilder:object:generate=true
 // +groupName=compute.ionoscloud.crossplane.io
 // +versionName=v1alpha1

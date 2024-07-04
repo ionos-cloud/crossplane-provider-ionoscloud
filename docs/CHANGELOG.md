@@ -1,8 +1,14 @@
-## [1.0.15] (July 2024)
+## [1.1.0] (July 2024)
 - **Features**:
     - Add `database` CRD for postgres
     - Upgrade crossplane-runtime to 1.16.0
     - Shortnames for some of the resources. E.g. `alb` for `applicationloadbalancer`
+    - Add serverset and statefulserverset CRDS
+    - Add `iPV6cidr` to NIC
+    - Add shortnames for volume - vol, datacenter - dc.
+    - Add `ipv6Cidr` to LAN.
+    - Run unit tests on PR
+
 ## [1.0.14] (June 2024)
 - **Fixes**:
     - Failing unit tests for compute user

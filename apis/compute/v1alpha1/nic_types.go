@@ -64,6 +64,10 @@ type NicParameters struct {
 	//
 	// +kubebuilder:validation:Required
 	Dhcp bool `json:"dhcp"`
+	// Indicates if the NIC will reserve an IPv6 using DHCP.
+	//
+	// +kubebuilder:validation:Optional
+	DhcpV6 *bool `json:"dhcpv6,omitempty"`
 	// Activate or deactivate the firewall. By default, an active firewall without any defined rules
 	// will block all incoming network traffic except for the firewall rules that explicitly allows certain protocols, IP addresses and ports.
 	//
