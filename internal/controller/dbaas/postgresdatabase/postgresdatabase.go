@@ -122,7 +122,6 @@ func (u *externalDatabase) Observe(ctx context.Context, mg resource.Managed) (ma
 		}
 		return managed.ExternalObservation{}, fmt.Errorf("failed to get postgres database by name %s : %w", meta.GetExternalName(cr), err)
 	}
-	// lateInitialized := u.lateInitialize(ctx, cr)
 	cr.Status.AtProvider.DatabaseID = meta.GetExternalName(cr)
 	cr.SetConditions(xpv1.Available())
 	return managed.ExternalObservation{
@@ -182,25 +181,3 @@ func (u *externalDatabase) Delete(ctx context.Context, mg resource.Managed) erro
 	}
 	return nil
 }
-
-//
-// // If credentials are supplied through credentials Source, set the hashed password to the Spec
-// func (u *externalDatabase) lateInitialize(ctx context.Context, cr *v1alpha1.PostgresDatabase) bool {
-// 	if cr.Spec.ForProvider.Credentials.Source == "" || cr.Spec.ForProvider.Credentials.Source == xpv1.CredentialsSourceNone {
-// 		return false
-// 	}
-// 	creds, err := u.readCredentials(ctx, cr)
-// 	if err != nil {
-// 		return false
-// 	}
-// 	var hash []byte
-// 	if hash, err = bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.MinCost); err != nil {
-// 		return false
-// 	}
-// 	if err = bcrypt.CompareHashAndPassword([]byte(cr.Spec.ForProvider.Credentials.Password), []byte(creds.Password)); err == nil {
-// 		return false
-// 	}
-// 	hashStr := string(hash)
-// 	cr.Spec.ForProvider.Credentials.Password = hashStr
-// 	return true
-// }

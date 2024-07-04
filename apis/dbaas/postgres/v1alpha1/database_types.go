@@ -69,12 +69,12 @@ type DatabaseStatus struct {
 	AtProvider          DatabaseObservation `json:"atProvider,omitempty"`
 }
 
-// DatabaseObservation are the observable fields of a Cluster.
+// DatabaseObservation are the observable fields of a Database.
 type DatabaseObservation struct {
 	DatabaseID string `json:"DatabaseId,omitempty"`
 }
 
-// A PostgresDatabaseSpec defines the desired state of a Cluster.
+// A PostgresDatabaseSpec defines the desired state of a Database.
 type PostgresDatabaseSpec struct {
 	xpv1.ResourceSpec `json:",inline"`
 	ForProvider       PostgresDatabaseParameters `json:"forProvider"`
