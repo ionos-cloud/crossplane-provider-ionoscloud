@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgresdatabase"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/alb/applicationloadbalancer"
@@ -69,6 +70,7 @@ var controllers = []controllerSetup{
 	k8scluster.Setup,
 	k8snodepool.Setup,
 	postgrescluster.Setup,
+	postgresdatabase.Setup,
 	lan.Setup,
 	applicationloadbalancer.Setup,
 	albforwardingrule.Setup,

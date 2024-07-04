@@ -72,6 +72,48 @@ func (mg *PostgresCluster) ResolveReferences(ctx context.Context, c client.Reade
 	return nil
 }
 
+// ResolveReferences of this PostgresDatabase.
+func (mg *PostgresDatabase) ResolveReferences(ctx context.Context, c client.Reader) error {
+	r := reference.NewAPIResolver(c, mg)
+
+	var rsp reference.ResolutionResponse
+	var err error
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.ClusterCfg.ClusterID,
+		Extract:      ExtractPostgresClusterID(),
+		Reference:    mg.Spec.ForProvider.ClusterCfg.ClusterIDRef,
+		Selector:     mg.Spec.ForProvider.ClusterCfg.ClusterIDSelector,
+		To: reference.To{
+			List:    &PostgresClusterList{},
+			Managed: &PostgresCluster{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.ClusterCfg.ClusterID")
+	}
+	mg.Spec.ForProvider.ClusterCfg.ClusterID = rsp.ResolvedValue
+	mg.Spec.ForProvider.ClusterCfg.ClusterIDRef = rsp.ResolvedReference
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.Owner.UserName,
+		Extract:      ExtractPostgresUserID(),
+		Reference:    mg.Spec.ForProvider.Owner.UserNameRef,
+		Selector:     mg.Spec.ForProvider.Owner.UserNameSelector,
+		To: reference.To{
+			List:    &PostgresUserList{},
+			Managed: &PostgresUser{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.Owner.UserName")
+	}
+	mg.Spec.ForProvider.Owner.UserName = rsp.ResolvedValue
+	mg.Spec.ForProvider.Owner.UserNameRef = rsp.ResolvedReference
+
+	return nil
+}
+
 // ResolveReferences of this PostgresUser.
 func (mg *PostgresUser) ResolveReferences(ctx context.Context, c client.Reader) error {
 	r := reference.NewAPIResolver(c, mg)
