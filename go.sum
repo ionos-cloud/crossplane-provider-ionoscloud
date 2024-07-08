@@ -79,8 +79,6 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2 v2.0.0 h1:xfJxf57NS8tn2X9g/MEDKL9PQfV5+l4Nq+xhLajF+Zc=
 github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2 v2.0.0/go.mod h1:hX9W4NAbbM5XWCZPRMMXhLMWene5DCLCuzTQB8LaKXQ=
-github.com/ionos-cloud/sdk-go-bundle/shared v0.1.0 h1:1psLbSn+i/wK0Samy8XqLxsqEnhTshz3Py1lbp5F/ao=
-github.com/ionos-cloud/sdk-go-bundle/shared v0.1.0/go.mod h1:hDQ5fhujYFaYr1fD8bmmf4rlCKAsqKwczuBS0Z5PNBQ=
 github.com/ionos-cloud/sdk-go-bundle/shared v0.1.1 h1:NWobgIhmUJKG6ohFXefMj+KmpEEvLYEDUgGzpns6HQE=
 github.com/ionos-cloud/sdk-go-bundle/shared v0.1.1/go.mod h1:cLIl4zmB1yMdPSNgTzaRmXeuusEAY1O3Lp/iXSc/R6E=
 github.com/ionos-cloud/sdk-go-dataplatform v1.0.2 h1:/KEm54/8WC8bXKAqUKLgoTvk1g9x/EOUYOUnRkf4un0=
