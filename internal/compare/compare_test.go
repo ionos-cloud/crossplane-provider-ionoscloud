@@ -8,7 +8,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
 
-	ionosdbaas "github.com/ionos-cloud/sdk-go-dbaas-postgres"
+	ionosdbaas "github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2"
 
 	dbaasv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/postgres/v1alpha1"
 )

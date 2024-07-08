@@ -3,7 +3,7 @@ package k8scluster
 import (
 	"testing"
 
-	psql "github.com/ionos-cloud/sdk-go-dbaas-postgres"
+	psql "github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"

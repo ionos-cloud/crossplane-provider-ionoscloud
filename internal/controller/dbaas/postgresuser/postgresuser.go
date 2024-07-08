@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ionos-cloud/sdk-go-bundle/shared"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 
@@ -35,8 +36,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-
-	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/postgres/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
@@ -155,10 +154,10 @@ func (u *externalUser) Create(ctx context.Context, mg resource.Managed) (managed
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}
-		*instanceInput.Properties.Username = creds.Username
+		instanceInput.Properties.Username = creds.Username
 		*instanceInput.Properties.Password = creds.Password
 	}
-	if (instanceInput.Properties.Username == nil || *instanceInput.Properties.Username == "") ||
+	if (instanceInput.Properties.Username == "") ||
 		(instanceInput.Properties.Password == nil || *instanceInput.Properties.Password == "") {
 		return managed.ExternalCreation{}, fmt.Errorf("need to provide credentials, either directly or from a secret")
 	}
@@ -172,7 +171,7 @@ func (u *externalUser) Create(ctx context.Context, mg resource.Managed) (managed
 		return creation, retErr
 	}
 
-	meta.SetExternalName(cr, *newInstance.Properties.Username)
+	meta.SetExternalName(cr, newInstance.Properties.Username)
 	return creation, nil
 }
 
@@ -193,7 +192,7 @@ func (u *externalUser) Update(ctx context.Context, mg resource.Managed) (managed
 		if err != nil {
 			return managed.ExternalUpdate{}, err
 		}
-		instanceInput.Properties.Password = ionoscloud.PtrString(creds.Password)
+		instanceInput.Properties.Password = shared.ToPtr(creds.Password)
 	}
 
 	_, apiResponse, err := u.service.UpdateUser(ctx, clusterID, userName, *instanceInput)

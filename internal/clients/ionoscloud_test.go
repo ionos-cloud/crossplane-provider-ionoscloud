@@ -10,7 +10,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/version"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	ionosdbaas "github.com/ionos-cloud/sdk-go-dbaas-postgres"
+	ionosdbaas "github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2"
 	ionos "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

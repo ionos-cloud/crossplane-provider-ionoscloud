@@ -64,6 +64,9 @@ spec:
   forProvider:
     displayName: testDemo
     postgresVersion: "13"
+    connectionPooler:
+        enabled: true
+        poolMode: session
     connections:
       - datacenterConfig:
           datacenterIdRef:

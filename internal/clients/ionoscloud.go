@@ -9,9 +9,10 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	sdkdbaas "github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2"
+	"github.com/ionos-cloud/sdk-go-bundle/shared"
 	dataplatform "github.com/ionos-cloud/sdk-go-dataplatform"
 	mongo "github.com/ionos-cloud/sdk-go-dbaas-mongo"
-	sdkdbaas "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -98,7 +99,7 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 	dbaasMongoConfig.UserAgent = fmt.Sprintf("%v/%v_%v", UserAgent, version.Version, dbaasMongoConfig.UserAgent)
 	dbaasMongoClient := mongo.NewAPIClient(dbaasMongoConfig)
 	// DBaaS Postgres Client
-	dbaasPostgresConfig := sdkdbaas.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
+	dbaasPostgresConfig := shared.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
 	dbaasPostgresConfig.UserAgent = fmt.Sprintf("%v/%v_%v", UserAgent, version.Version, dbaasPostgresConfig.UserAgent)
 	dbaasPostgresClient := sdkdbaas.NewAPIClient(dbaasPostgresConfig)
 	// Compute Engine Client

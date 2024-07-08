@@ -111,6 +111,17 @@ spec:
                     - eu-south-2
                     - eu-central-2
                     type: string
+                  connectionPooler:
+                    description: ConnectionPooler Configuration options for the connection
+                      pooler
+                    properties:
+                      enabled:
+                        type: boolean
+                      poolMode:
+                        description: PoolMode Represents different modes of connection
+                          pooling for the connection pooler.
+                        type: string
+                    type: object
                   connections:
                     description: Connection - details about the network connection
                       (datacenter, lan, CIDR) for your cluster.

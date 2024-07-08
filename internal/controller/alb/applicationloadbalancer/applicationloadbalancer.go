@@ -35,7 +35,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
-	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
+	ionoscloud "github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/alb/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
@@ -168,7 +168,7 @@ func (c *externalApplicationLoadBalancer) Create(ctx context.Context, mg resourc
 	if meta.GetExternalName(cr) != "" {
 		return managed.ExternalCreation{}, nil
 	}
-	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == string(ionoscloud.STATE_BUSY) {
 		return managed.ExternalCreation{}, nil
 	}
 
@@ -220,7 +220,7 @@ func (c *externalApplicationLoadBalancer) Update(ctx context.Context, mg resourc
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotApplicationLoadBalancer)
 	}
-	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == string(ionoscloud.STATE_BUSY) {
 		return managed.ExternalUpdate{}, nil
 	}
 
@@ -254,7 +254,7 @@ func (c *externalApplicationLoadBalancer) Delete(ctx context.Context, mg resourc
 	}
 
 	cr.SetConditions(xpv1.Deleting())
-	if cr.Status.AtProvider.State == string(ionoscloud.DESTROYING) || cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == string(ionoscloud.STATE_DESTROYING) || cr.Status.AtProvider.State == string(ionoscloud.STATE_BUSY) {
 		return nil
 	}
 	apiResponse, err := c.service.DeleteApplicationLoadBalancer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ApplicationLoadBalancerID)
