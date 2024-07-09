@@ -101,7 +101,7 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 	dbaasMongoClient := mongo.NewAPIClient(dbaasMongoConfig)
 	// DBaaS Postgres Client
 	dbaasPostgresConfig := shared.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
-	dbaasPostgresConfig.UserAgent = fmt.Sprintf("%v/%v_%v", UserAgent, version.Version, psql.Version)
+	dbaasPostgresConfig.UserAgent = fmt.Sprintf("%v/sdk_go_bundle_%v_%v", UserAgent, version.Version, psql.Version)
 	dbaasPostgresClient := sdkdbaas.NewAPIClient(dbaasPostgresConfig)
 	// Compute Engine Client
 	computeEngineConfig := sdkgo.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
