@@ -3,9 +3,10 @@ package nic
 import (
 	"testing"
 
+	"github.com/ionos-cloud/sdk-go-bundle/shared"
+
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 
-	psql "github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 )
 
@@ -33,7 +34,7 @@ func TestIsNicUpToDate(t *testing.T) {
 			args: args{
 				cr: nil,
 				Nic: ionoscloud.Nic{Properties: &ionoscloud.NicProperties{
-					Name: psql.ToPtr("foo"),
+					Name: shared.ToPtr("foo"),
 				}},
 			},
 			want: false,
@@ -68,10 +69,10 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Name:           psql.ToPtr("not empty"),
-						FirewallActive: psql.ToPtr(false),
-						FirewallType:   psql.ToPtr("INGRESS"),
-						Vnet:           psql.ToPtr("1"),
+						Name:           shared.ToPtr("not empty"),
+						FirewallActive: shared.ToPtr(false),
+						FirewallType:   shared.ToPtr("INGRESS"),
+						Vnet:           shared.ToPtr("1"),
 					}},
 			},
 			want: true,
@@ -91,10 +92,10 @@ func TestIsNicUpToDate(t *testing.T) {
 					},
 				},
 				Nic: ionoscloud.Nic{Properties: &ionoscloud.NicProperties{
-					Name:           psql.ToPtr("not empty"),
-					FirewallActive: psql.ToPtr(true),
-					FirewallType:   psql.ToPtr("EGRESS"),
-					Vnet:           psql.ToPtr("2"),
+					Name:           shared.ToPtr("not empty"),
+					FirewallActive: shared.ToPtr(true),
+					FirewallType:   shared.ToPtr("EGRESS"),
+					Vnet:           shared.ToPtr("2"),
 				}},
 			},
 			want: false,
@@ -114,10 +115,10 @@ func TestIsNicUpToDate(t *testing.T) {
 					},
 				},
 				Nic: ionoscloud.Nic{Properties: &ionoscloud.NicProperties{
-					Name:           psql.ToPtr("not empty"),
-					FirewallActive: psql.ToPtr(false),
-					FirewallType:   psql.ToPtr("INGRESS"),
-					Vnet:           psql.ToPtr("2"),
+					Name:           shared.ToPtr("not empty"),
+					FirewallActive: shared.ToPtr(false),
+					FirewallType:   shared.ToPtr("INGRESS"),
+					Vnet:           shared.ToPtr("2"),
 				}},
 			},
 			want: false,
@@ -135,10 +136,10 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 				Nic: ionoscloud.Nic{
 					Metadata: &ionoscloud.DatacenterElementMetadata{
-						State: psql.ToPtr(ionoscloud.Busy),
+						State: shared.ToPtr(ionoscloud.Busy),
 					},
 					Properties: &ionoscloud.NicProperties{
-						Name: psql.ToPtr("empty"),
+						Name: shared.ToPtr("empty"),
 					}},
 			},
 			want: true,
@@ -166,7 +167,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Name: psql.ToPtr("empty"),
+						Name: shared.ToPtr("empty"),
 						Ips: &[]string{
 							"10.11.12.13",
 							"192.168.8.14",
@@ -198,7 +199,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Name: psql.ToPtr("empty"),
+						Name: shared.ToPtr("empty"),
 						Ips: &[]string{
 							"10.10.10.10",
 							"10.10.10.11",

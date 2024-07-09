@@ -3,6 +3,7 @@ package compare
 import (
 	"testing"
 
+	"github.com/ionos-cloud/sdk-go-bundle/shared"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/stretchr/testify/assert"
 
@@ -43,7 +44,7 @@ func TestEqualString(t *testing.T) {
 			name: "non-empty observed, non-empty target",
 			args: args{
 				targetValue:   "foo",
-				observedValue: PointerString("foo"),
+				observedValue: shared.ToPtr("foo"),
 			},
 			want: true,
 		},
@@ -51,7 +52,7 @@ func TestEqualString(t *testing.T) {
 			name: "non-empty observed, empty target",
 			args: args{
 				targetValue:   "",
-				observedValue: PointerString("foo"),
+				observedValue: shared.ToPtr("foo"),
 			},
 			want: false,
 		},
@@ -59,7 +60,7 @@ func TestEqualString(t *testing.T) {
 			name: "empty observed, empty target",
 			args: args{
 				targetValue:   "",
-				observedValue: PointerString(""),
+				observedValue: shared.ToPtr(""),
 			},
 			want: true,
 		},
@@ -95,8 +96,8 @@ func TestEqualKubernetesMaintenanceWindow(t *testing.T) {
 			args: args{
 				targetValue: v1alpha1.MaintenanceWindow{},
 				observedValue: &ionoscloud.KubernetesMaintenanceWindow{
-					DayOfTheWeek: PointerString("foo"),
-					Time:         PointerString("13:00:44"),
+					DayOfTheWeek: shared.ToPtr("foo"),
+					Time:         shared.ToPtr("13:00:44"),
 				},
 			},
 			want: false,
@@ -109,8 +110,8 @@ func TestEqualKubernetesMaintenanceWindow(t *testing.T) {
 					Time:         "13:00:44",
 				},
 				observedValue: &ionoscloud.KubernetesMaintenanceWindow{
-					DayOfTheWeek: PointerString("foo"),
-					Time:         PointerString("13:32:44Z"),
+					DayOfTheWeek: shared.ToPtr("foo"),
+					Time:         shared.ToPtr("13:32:44Z"),
 				},
 			},
 			want: false,
@@ -123,8 +124,8 @@ func TestEqualKubernetesMaintenanceWindow(t *testing.T) {
 					Time:         "13:00:44",
 				},
 				observedValue: &ionoscloud.KubernetesMaintenanceWindow{
-					DayOfTheWeek: PointerString("foo"),
-					Time:         PointerString("13:00:44Z"),
+					DayOfTheWeek: shared.ToPtr("foo"),
+					Time:         shared.ToPtr("13:00:44Z"),
 				},
 			},
 			want: true,
@@ -160,8 +161,8 @@ func TestEqualDatabaseMaintenanceWindow(t *testing.T) {
 			args: args{
 				targetValue: dbaasv1alpha1.MaintenanceWindow{},
 				observedValue: &ionosdbaas.MaintenanceWindow{
-					DayOfTheWeek: PointerDayOfTheWeek("foo"),
-					Time:         PointerString("13:00:44"),
+					DayOfTheWeek: "foo",
+					Time:         "13:00:44",
 				},
 			},
 			want: false,
@@ -174,8 +175,8 @@ func TestEqualDatabaseMaintenanceWindow(t *testing.T) {
 					Time:         "13:00:44",
 				},
 				observedValue: &ionosdbaas.MaintenanceWindow{
-					DayOfTheWeek: PointerDayOfTheWeek("foo"),
-					Time:         PointerString("13:32:44Z"),
+					DayOfTheWeek: "foo",
+					Time:         "13:32:44Z",
 				},
 			},
 			want: false,
@@ -188,8 +189,8 @@ func TestEqualDatabaseMaintenanceWindow(t *testing.T) {
 					Time:         "13:00:44",
 				},
 				observedValue: &ionosdbaas.MaintenanceWindow{
-					DayOfTheWeek: PointerDayOfTheWeek("foo"),
-					Time:         PointerString("13:00:44Z"),
+					DayOfTheWeek: "foo",
+					Time:         "13:00:44Z",
 				},
 			},
 			want: true,
@@ -202,8 +203,7 @@ func TestEqualDatabaseMaintenanceWindow(t *testing.T) {
 					Time:         "13:00:44",
 				},
 				observedValue: &ionosdbaas.MaintenanceWindow{
-					DayOfTheWeek: nil,
-					Time:         PointerString("13:00:44Z"),
+					Time: "13:00:44Z",
 				},
 			},
 			want: false,
@@ -246,7 +246,7 @@ func TestEqualTimeString(t *testing.T) {
 			name: "both values equal",
 			args: args{
 				targetValue:   "13:00:44Z",
-				observedValue: PointerString("13:00:44Z"),
+				observedValue: shared.ToPtr("13:00:44Z"),
 			},
 			want: true,
 		},
@@ -254,7 +254,7 @@ func TestEqualTimeString(t *testing.T) {
 			name: "both values equal, missing Z",
 			args: args{
 				targetValue:   "13:00:44",
-				observedValue: PointerString("13:00:44Z"),
+				observedValue: shared.ToPtr("13:00:44Z"),
 			},
 			want: true,
 		},
@@ -262,7 +262,7 @@ func TestEqualTimeString(t *testing.T) {
 			name: "unparseable target value",
 			args: args{
 				targetValue:   "13:00:44:44:333",
-				observedValue: PointerString("13:00:44Z"),
+				observedValue: shared.ToPtr("13:00:44Z"),
 			},
 			want: false,
 		},
@@ -270,7 +270,7 @@ func TestEqualTimeString(t *testing.T) {
 			name: "unparseable observedValue value",
 			args: args{
 				targetValue:   "13:00:44Z",
-				observedValue: PointerString("13:00:44:44:333"),
+				observedValue: shared.ToPtr("13:00:44:44:333"),
 			},
 			want: false,
 		},
@@ -282,13 +282,4 @@ func TestEqualTimeString(t *testing.T) {
 			}
 		})
 	}
-}
-
-func PointerString(in string) *string {
-	return &in
-}
-
-func PointerDayOfTheWeek(in string) *ionosdbaas.DayOfTheWeek {
-	ret := ionosdbaas.DayOfTheWeek(in)
-	return &ret
 }

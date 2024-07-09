@@ -3,7 +3,7 @@ package k8scluster
 import (
 	"testing"
 
-	psql "github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2"
+	"github.com/ionos-cloud/sdk-go-bundle/shared"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
@@ -32,7 +32,7 @@ func TestIsUpToDate(t *testing.T) {
 			args: args{
 				cr: nil,
 				cluster: ionoscloud.KubernetesCluster{Properties: &ionoscloud.KubernetesClusterProperties{
-					K8sVersion: psql.ToPtr("v1.2.3"),
+					K8sVersion: shared.ToPtr("v1.2.3"),
 				}},
 			},
 			want: false,
@@ -62,10 +62,10 @@ func TestIsUpToDate(t *testing.T) {
 					},
 				},
 				cluster: ionoscloud.KubernetesCluster{Properties: &ionoscloud.KubernetesClusterProperties{
-					K8sVersion: psql.ToPtr("v1.2.3"),
+					K8sVersion: shared.ToPtr("v1.2.3"),
 					MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
-						DayOfTheWeek: psql.ToPtr("Mon"),
-						Time:         psql.ToPtr("15:24:30Z"),
+						DayOfTheWeek: shared.ToPtr("Mon"),
+						Time:         shared.ToPtr("15:24:30Z"),
 					},
 				}}},
 			want: true,
@@ -86,10 +86,10 @@ func TestIsUpToDate(t *testing.T) {
 					},
 				},
 				cluster: ionoscloud.KubernetesCluster{Properties: &ionoscloud.KubernetesClusterProperties{
-					K8sVersion: psql.ToPtr("v1.2.3"),
+					K8sVersion: shared.ToPtr("v1.2.3"),
 					MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
-						DayOfTheWeek: psql.ToPtr("Mon"),
-						Time:         psql.ToPtr("15:24:30Z"),
+						DayOfTheWeek: shared.ToPtr("Mon"),
+						Time:         shared.ToPtr("15:24:30Z"),
 					},
 				}}},
 			want: false,
