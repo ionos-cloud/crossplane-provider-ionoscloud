@@ -58,7 +58,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: A PostgresDatabaseSpec defines the desired state of a Database.
+            description: A PostgresDatabaseSpec defines the desired state of a Cluster.
             properties:
               deletionPolicy:
                 default: Delete
@@ -437,7 +437,7 @@ spec:
             description: A DatabaseStatus represents the observed state of a Database.
             properties:
               atProvider:
-                description: DatabaseObservation are the observable fields of a Database.
+                description: DatabaseObservation are the observable fields of a Cluster.
                 properties:
                   DatabaseId:
                     type: string

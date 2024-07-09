@@ -1,0 +1,8 @@
+apiVersion: v2
+name: crossplane
+description: "Wrapper chart for installing crossplane and the ionoscloud crossplane provider (airgapped)"
+version: 1.0.0
+dependencies:
+  - name: crossplane
+    version: 1.15.2-mirrored
+    repository: http://chartmuseum:8080
