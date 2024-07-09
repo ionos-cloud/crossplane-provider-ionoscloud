@@ -77,32 +77,36 @@ func EqualDatabaseMaintenanceWindow(targetValue dbaasv1alpha1.MaintenanceWindow,
 		EqualDayOfTheWeek(targetValue.DayOfTheWeek, &observedValue.DayOfTheWeek)
 }
 
+// EqualConnectionPooler returns true if the connection poolers are equal
 func EqualConnectionPooler(targetValue dbaasv1alpha1.ConnectionPooler, observedValue *ionosdbaas.ConnectionPooler) bool {
 	if observedValue == nil {
-		return targetValue.PoolMode == "" && targetValue.Enabled == false
+		return targetValue.PoolMode == "" && !targetValue.Enabled
 	}
 	return targetValue.Enabled == *observedValue.Enabled &&
 		targetValue.PoolMode == *observedValue.PoolMode
 }
 
+// EqualConnections returns true if the connections are equal
 func EqualConnections(targetValue []dbaasv1alpha1.Connection, observedValue []ionosdbaas.Connection) bool {
 	if len(targetValue) != len(observedValue) {
 		return false
 	}
-	equal := false
 	for _, target := range targetValue {
-		for i, _ := range observedValue {
+		found := false
+		for i := range observedValue {
 			if EqualConnection(target, &observedValue[i]) {
-				equal = true
+				found = true
+				break
 			}
 		}
-		if !equal {
+		if !found {
 			return false
 		}
 	}
-	return equal
+	return true
 }
 
+// EqualConnection returns true if the connections are equal
 func EqualConnection(targetValue dbaasv1alpha1.Connection, observedValue *ionosdbaas.Connection) bool {
 	if observedValue == nil {
 		return targetValue.Cidr == "" && targetValue.DatacenterCfg.DatacenterID == "" && targetValue.LanCfg.LanID == ""

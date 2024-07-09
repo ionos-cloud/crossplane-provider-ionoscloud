@@ -283,3 +283,146 @@ func TestEqualTimeString(t *testing.T) {
 		})
 	}
 }
+
+func TestEqualConnections(t *testing.T) {
+	type args struct {
+		targetValue   []dbaasv1alpha1.Connection
+		observedValue []ionosdbaas.Connection
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "empty observed, empty target",
+			args: args{
+				targetValue:   []dbaasv1alpha1.Connection{},
+				observedValue: []ionosdbaas.Connection{},
+			},
+			want: true,
+		},
+		{
+			name: "empty observed, non-empty target",
+			args: args{
+				targetValue: []dbaasv1alpha1.Connection{
+					{
+						DatacenterCfg: dbaasv1alpha1.DatacenterConfig{},
+						LanCfg: dbaasv1alpha1.LanConfig{
+							LanID: "test",
+						},
+						Cidr: "test",
+					},
+				},
+				observedValue: []ionosdbaas.Connection{},
+			},
+			want: false,
+		},
+		// equal true test
+		{
+			name: "equal connections",
+			args: args{
+				targetValue: []dbaasv1alpha1.Connection{
+					{
+						DatacenterCfg: dbaasv1alpha1.DatacenterConfig{
+							DatacenterID: "test",
+						},
+						LanCfg: dbaasv1alpha1.LanConfig{
+							LanID: "test",
+						},
+						Cidr: "test",
+					},
+				},
+				observedValue: []ionosdbaas.Connection{
+					{
+						DatacenterId: "test",
+						LanId:        "test",
+						Cidr:         "test",
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "multiple equal connections",
+			args: args{
+				targetValue: []dbaasv1alpha1.Connection{
+					{
+						DatacenterCfg: dbaasv1alpha1.DatacenterConfig{
+							DatacenterID: "test",
+						},
+						LanCfg: dbaasv1alpha1.LanConfig{
+							LanID: "test",
+						},
+						Cidr: "test",
+					},
+					{
+						DatacenterCfg: dbaasv1alpha1.DatacenterConfig{
+							DatacenterID: "test2",
+						},
+						LanCfg: dbaasv1alpha1.LanConfig{
+							LanID: "test2",
+						},
+						Cidr: "test2",
+					},
+				},
+				observedValue: []ionosdbaas.Connection{
+					{
+						DatacenterId: "test",
+						LanId:        "test",
+						Cidr:         "test",
+					},
+					{
+						DatacenterId: "test2",
+						LanId:        "test2",
+						Cidr:         "test2",
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "multiple not equal connections",
+			args: args{
+				targetValue: []dbaasv1alpha1.Connection{
+					{
+						DatacenterCfg: dbaasv1alpha1.DatacenterConfig{
+							DatacenterID: "test",
+						},
+						LanCfg: dbaasv1alpha1.LanConfig{
+							LanID: "test",
+						},
+						Cidr: "test",
+					},
+					{
+						DatacenterCfg: dbaasv1alpha1.DatacenterConfig{
+							DatacenterID: "test3",
+						},
+						LanCfg: dbaasv1alpha1.LanConfig{
+							LanID: "test2",
+						},
+						Cidr: "test2",
+					},
+				},
+				observedValue: []ionosdbaas.Connection{
+					{
+						DatacenterId: "test",
+						LanId:        "test",
+						Cidr:         "test",
+					},
+					{
+						DatacenterId: "test2",
+						LanId:        "test2",
+						Cidr:         "test2",
+					},
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, EqualConnections(tt.args.targetValue, tt.args.observedValue), "EqualConnections(%v, %v)", tt.args.targetValue, tt.args.observedValue)
+		})
+	}
+}
