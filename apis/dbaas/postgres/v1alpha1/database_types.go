@@ -34,9 +34,7 @@ type PostgresDatabaseParameters struct {
 	// +kubebuilder:validation:Required
 	//
 	ClusterCfg ClusterConfig `json:"clusterConfig"`
-	// The databasename of a given database.
-	//
-	// Database credentials - either set directly, or as secret/path/env
+	// The database name.
 	//
 	// +kubebuilder:validation:Required
 	Name string `json:"name"`

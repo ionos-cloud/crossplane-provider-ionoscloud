@@ -47,7 +47,6 @@ func main() {
 		maxReconcileRate  = app.Flag("max-reconcile-rate", "The global maximum rate per second at which resources may checked for drift from the desired state.").Default("1").Int()
 		timeout           = app.Flag("timeout", "Timeout duration cumulatively for all the calls happening in the reconciliation functions.").Default("30m").Duration()
 	)
-	*debug = true
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 	zl := zap.New(zap.UseDevMode(*debug))
 	log := logging.NewLogrLogger(zl.WithName("provider-ionoscloud"))
