@@ -127,7 +127,7 @@ type ApplicationLoadBalancerStatus struct {
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
+// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud},shortName=alb;applicationlb
 type ApplicationLoadBalancer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

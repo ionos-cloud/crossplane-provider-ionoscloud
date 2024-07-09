@@ -34,6 +34,10 @@ type ClusterClient interface {
 	CreateUser(ctx context.Context, clusterID string, user ionoscloud.User) (ionoscloud.UserResource, *ionoscloud.APIResponse, error)
 	UpdateCluster(ctx context.Context, clusterID string, cluster ionoscloud.PatchClusterRequest) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error)
 	UpdateUser(ctx context.Context, clusterID, userName string, cluster ionoscloud.UsersPatchRequest) (ionoscloud.UserResource, *ionoscloud.APIResponse, error)
+	// Database stuff
+	CreateDatabase(ctx context.Context, clusterID string, database v1alpha1.PostgresDatabase) (ionoscloud.DatabaseResource, *ionoscloud.APIResponse, error)
+	GetDatabase(ctx context.Context, clusterID, databaseName string) (ionoscloud.DatabaseResource, *ionoscloud.APIResponse, error)
+	DeleteDatabase(ctx context.Context, clusterID, databaseID string) (*ionoscloud.APIResponse, error)
 }
 
 // CheckDuplicateCluster based on clusterName and on multiple properties from CR spec
@@ -206,6 +210,16 @@ func GenerateCreateUserInput(cr *v1alpha1.PostgresUser) *ionoscloud.User {
 	return &instanceCreateInput
 }
 
+func generateDatabaseInput(cr v1alpha1.PostgresDatabase) ionoscloud.Database {
+	instanceCreateInput := ionoscloud.Database{
+		Properties: &ionoscloud.DatabaseProperties{
+			Name:  &cr.Spec.ForProvider.Name,
+			Owner: &cr.Spec.ForProvider.Owner.UserName,
+		},
+	}
+	return instanceCreateInput
+}
+
 // GenerateUpdateClusterInput returns PatchClusterRequest based on the CR spec modifications
 func GenerateUpdateClusterInput(cr *v1alpha1.PostgresCluster) (*ionoscloud.PatchClusterRequest, error) {
 	instanceUpdateInput := ionoscloud.PatchClusterRequest{
@@ -355,4 +369,20 @@ func clusterFromBackup(req v1alpha1.CreateRestoreRequest) (*ionoscloud.CreateRes
 		}, nil
 	}
 	return nil, nil
+}
+
+// CreateDatabase based on clusterID and database properties
+func (cp *ClusterAPIClient) CreateDatabase(ctx context.Context, clusterID string, database v1alpha1.PostgresDatabase) (ionoscloud.DatabaseResource, *ionoscloud.APIResponse, error) {
+	sdkDatabase := generateDatabaseInput(database)
+	return cp.DBaaSPostgresClient.DatabasesApi.DatabasesPost(ctx, clusterID).Database(sdkDatabase).Execute()
+}
+
+// GetDatabase based on clusterID and databaseID
+func (cp *ClusterAPIClient) GetDatabase(ctx context.Context, clusterID, databaseName string) (ionoscloud.DatabaseResource, *ionoscloud.APIResponse, error) {
+	return cp.DBaaSPostgresClient.DatabasesApi.DatabasesGet(ctx, clusterID, databaseName).Execute()
+}
+
+// DeleteDatabase based on clusterID and databaseID
+func (cp *ClusterAPIClient) DeleteDatabase(ctx context.Context, clusterID, databaseID string) (*ionoscloud.APIResponse, error) {
+	return cp.DBaaSPostgresClient.DatabasesApi.DatabasesDelete(ctx, clusterID, databaseID).Execute()
 }

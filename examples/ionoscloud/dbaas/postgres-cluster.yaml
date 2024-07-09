@@ -18,7 +18,7 @@ spec:
     - "*"
   forProvider:
     name: postgresDatacenter
-    location: de/txl
+    location: es/vit
     description: test
   providerConfigRef:
     name: example

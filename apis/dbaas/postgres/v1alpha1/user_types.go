@@ -71,7 +71,7 @@ type ClusterConfig struct {
 // +kubebuilder:printcolumn:name="USERNAME",priority=1,type="string",JSONPath=".spec.forProvider.credentials.username"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud}
+// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,ionoscloud},shortName=pgu;pguser;psqlu
 type PostgresUser struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

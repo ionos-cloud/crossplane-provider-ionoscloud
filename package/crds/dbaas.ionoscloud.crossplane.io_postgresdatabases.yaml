@@ -4,21 +4,22 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: backupunits.backup.ionoscloud.crossplane.io
+  name: postgresdatabases.dbaas.ionoscloud.crossplane.io
 spec:
-  group: backup.ionoscloud.crossplane.io
+  group: dbaas.ionoscloud.crossplane.io
   names:
     categories:
     - crossplane
     - managed
     - ionoscloud
-    kind: BackupUnit
-    listKind: BackupUnitList
-    plural: backupunits
+    kind: PostgresDatabase
+    listKind: PostgresDatabaseList
+    plural: postgresdatabases
     shortNames:
-    - bu
-    - bkpunit
-    singular: backupunit
+    - pgdb
+    - psqldb
+    - pgdb
+    singular: postgresdatabase
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -29,16 +30,7 @@ spec:
       name: SYNCED
       type: string
     - jsonPath: .metadata.annotations.crossplane\.io/external-name
-      name: BACKUPUNIT ID
-      type: string
-    - jsonPath: .spec.forProvider.name
-      name: NAME
-      type: string
-    - jsonPath: .spec.forProvider.email
-      name: EMAIL
-      type: string
-    - jsonPath: .status.atProvider.state
-      name: STATE
+      name: Database ID
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: AGE
@@ -46,7 +38,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: An BackupUnit is an example API type.
+        description: A PostgresDatabase is an example API type.
         properties:
           apiVersion:
             description: |-
@@ -66,7 +58,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: BackupUnitSpec defines the desired state of an BackupUnit.
+            description: A PostgresDatabaseSpec defines the desired state of a Cluster.
             properties:
               deletionPolicy:
                 default: Delete
@@ -84,27 +76,195 @@ spec:
                 type: string
               forProvider:
                 description: |-
-                  BackupUnitParameters are the observable fields of an BackupUnit.
-                  Required fields in order to create an BackupUnit:
+                  PostgresDatabaseParameters are the observable fields of a Database.
+                  Required fields in order to create a DBaaS Database:
+                  ClusterConfig,
                   Name,
-                  Password,
-                  Email.
+                  Owner,
                 properties:
-                  email:
-                    description: The email associated with the backup unit. Bear in
-                      mind that this email does not be the same email as of the user.
-                    type: string
+                  clusterConfig:
+                    description: ClusterConfig is used by resources that need to link
+                      psql clusters via id or via reference.
+                    properties:
+                      ClusterId:
+                        description: |-
+                          ClusterID is the ID of the Cluster on which the resource will be created.
+                          It needs to be provided via directly or via reference.
+                        format: uuid
+                        type: string
+                      ClusterIdRef:
+                        description: ClusterIDRef references to a Cluster to retrieve
+                          its ID.
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            type: string
+                          policy:
+                            description: Policies for referencing.
+                            properties:
+                              resolution:
+                                default: Required
+                                description: |-
+                                  Resolution specifies whether resolution of this reference is required.
+                                  The default is 'Required', which means the reconcile will fail if the
+                                  reference cannot be resolved. 'Optional' means this reference will be
+                                  a no-op if it cannot be resolved.
+                                enum:
+                                - Required
+                                - Optional
+                                type: string
+                              resolve:
+                                description: |-
+                                  Resolve specifies when this reference should be resolved. The default
+                                  is 'IfNotPresent', which will attempt to resolve the reference only when
+                                  the corresponding field is not present. Use 'Always' to resolve the
+                                  reference on every reconcile.
+                                enum:
+                                - Always
+                                - IfNotPresent
+                                type: string
+                            type: object
+                        required:
+                        - name
+                        type: object
+                      ClusterIdSelector:
+                        description: ClusterIDSelector selects reference to a Cluster
+                          to retrieve its ClusterID.
+                        properties:
+                          matchControllerRef:
+                            description: |-
+                              MatchControllerRef ensures an object with the same controller reference
+                              as the selecting object is selected.
+                            type: boolean
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: MatchLabels ensures an object with matching
+                              labels is selected.
+                            type: object
+                          policy:
+                            description: Policies for selection.
+                            properties:
+                              resolution:
+                                default: Required
+                                description: |-
+                                  Resolution specifies whether resolution of this reference is required.
+                                  The default is 'Required', which means the reconcile will fail if the
+                                  reference cannot be resolved. 'Optional' means this reference will be
+                                  a no-op if it cannot be resolved.
+                                enum:
+                                - Required
+                                - Optional
+                                type: string
+                              resolve:
+                                description: |-
+                                  Resolve specifies when this reference should be resolved. The default
+                                  is 'IfNotPresent', which will attempt to resolve the reference only when
+                                  the corresponding field is not present. Use 'Always' to resolve the
+                                  reference on every reconcile.
+                                enum:
+                                - Always
+                                - IfNotPresent
+                                type: string
+                            type: object
+                        type: object
+                    type: object
                   name:
-                    description: The name of the  resource (alphanumeric characters
-                      only).
+                    description: |-
+                      The databasename of a given database.
+
+
+                      Database credentials - either set directly, or as secret/path/env
                     type: string
-                  password:
-                    description: The password associated with that resource.
-                    type: string
+                  owner:
+                    description: The name of the role owning a given database.
+                    properties:
+                      UserNameRef:
+                        description: UserIDRef references to a User to retrieve its
+                          Name.
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            type: string
+                          policy:
+                            description: Policies for referencing.
+                            properties:
+                              resolution:
+                                default: Required
+                                description: |-
+                                  Resolution specifies whether resolution of this reference is required.
+                                  The default is 'Required', which means the reconcile will fail if the
+                                  reference cannot be resolved. 'Optional' means this reference will be
+                                  a no-op if it cannot be resolved.
+                                enum:
+                                - Required
+                                - Optional
+                                type: string
+                              resolve:
+                                description: |-
+                                  Resolve specifies when this reference should be resolved. The default
+                                  is 'IfNotPresent', which will attempt to resolve the reference only when
+                                  the corresponding field is not present. Use 'Always' to resolve the
+                                  reference on every reconcile.
+                                enum:
+                                - Always
+                                - IfNotPresent
+                                type: string
+                            type: object
+                        required:
+                        - name
+                        type: object
+                      UserNameSelector:
+                        description: UserNameSelector selects reference to a User
+                          to retrieve its UserName.
+                        properties:
+                          matchControllerRef:
+                            description: |-
+                              MatchControllerRef ensures an object with the same controller reference
+                              as the selecting object is selected.
+                            type: boolean
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: MatchLabels ensures an object with matching
+                              labels is selected.
+                            type: object
+                          policy:
+                            description: Policies for selection.
+                            properties:
+                              resolution:
+                                default: Required
+                                description: |-
+                                  Resolution specifies whether resolution of this reference is required.
+                                  The default is 'Required', which means the reconcile will fail if the
+                                  reference cannot be resolved. 'Optional' means this reference will be
+                                  a no-op if it cannot be resolved.
+                                enum:
+                                - Required
+                                - Optional
+                                type: string
+                              resolve:
+                                description: |-
+                                  Resolve specifies when this reference should be resolved. The default
+                                  is 'IfNotPresent', which will attempt to resolve the reference only when
+                                  the corresponding field is not present. Use 'Always' to resolve the
+                                  reference on every reconcile.
+                                enum:
+                                - Always
+                                - IfNotPresent
+                                type: string
+                            type: object
+                        type: object
+                      userName:
+                        description: |-
+                          UserName is the Name of the User on which the resource will be created.
+                          It needs to be provided directly or via reference.
+                        type: string
+                    type: object
                 required:
-                - email
+                - clusterConfig
                 - name
-                - password
+                - owner
                 type: object
               managementPolicies:
                 default:
@@ -274,15 +434,12 @@ spec:
             - forProvider
             type: object
           status:
-            description: BackupUnitStatus represents the observed state of an BackupUnit.
+            description: A DatabaseStatus represents the observed state of a Database.
             properties:
               atProvider:
-                description: BackupUnitObservation are the observable fields of an
-                  BackupUnit.
+                description: DatabaseObservation are the observable fields of a Cluster.
                 properties:
-                  backupUnitId:
-                    type: string
-                  state:
+                  DatabaseId:
                     type: string
                 type: object
               conditions:

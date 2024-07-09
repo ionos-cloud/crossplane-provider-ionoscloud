@@ -1,0 +1,17 @@
+apiVersion: dbaas.ionoscloud.crossplane.io/v1alpha1
+kind: PostgresDatabase
+metadata:
+  name: example2
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: exampleDb
+    owner:
+        UserNameRef:
+          name: example2
+    clusterConfig:
+      ClusterIdRef:
+        name: example
+  providerConfigRef:
+    name: example

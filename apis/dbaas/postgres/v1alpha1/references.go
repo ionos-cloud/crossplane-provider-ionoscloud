@@ -19,3 +19,17 @@ func ExtractPostgresClusterID() reference.ExtractValueFn {
 		return meta.GetExternalName(res)
 	}
 }
+
+// ExtractPostgresUserID returns the externalName of a referenced User.
+func ExtractPostgresUserID() reference.ExtractValueFn {
+	return func(mg resource.Managed) string {
+		res, ok := mg.(*PostgresUser)
+		if !ok {
+			return ""
+		}
+		if meta.GetExternalName(res) == res.Name {
+			return ""
+		}
+		return meta.GetExternalName(res)
+	}
+}
