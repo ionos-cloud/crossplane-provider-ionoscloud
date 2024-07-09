@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ionos-cloud/sdk-go-bundle/shared"
+
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/version"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -29,9 +31,10 @@ func setComputeDefaults(cfg *ionos.Configuration) {
 	cfg.UserAgent = fmt.Sprintf("%v/%v_ionos-cloud-sdk-go/v%v", UserAgent, version.Version, ionos.Version)
 }
 
-func setDbaaSDefaults(cfg *ionosdbaas.Configuration) {
+func setDbaaSDefaults(cfg *shared.Configuration) {
 	cfg.HTTPClient = http.DefaultClient
-	cfg.UserAgent = fmt.Sprintf("%v/%v_ionos-cloud-sdk-go-dbaas-postgres/v%v", UserAgent, version.Version, ionosdbaas.Version)
+	cfg.UserAgent = fmt.Sprintf("%v/%v_%v", UserAgent, version.Version, ionosdbaas.Version)
+
 }
 
 func TestNewIonosClient(t *testing.T) {
@@ -44,7 +47,7 @@ func TestNewIonosClient(t *testing.T) {
 		args              args
 		env               map[string]string
 		wantComputeConfig *ionos.Configuration
-		wantDbaasConfig   *ionosdbaas.Configuration
+		wantDbaasConfig   *shared.Configuration
 		wantErr           bool
 	}{
 		{
@@ -61,9 +64,15 @@ func TestNewIonosClient(t *testing.T) {
 				setComputeDefaults(cfg)
 				return cfg
 			}(),
-			wantDbaasConfig: func() *ionosdbaas.Configuration {
-				cfg := ionosdbaas.NewConfiguration("username", "password", "", "")
+			wantDbaasConfig: func() *shared.Configuration {
+				cfg := shared.NewConfiguration("username", "password", "", "")
 				setDbaaSDefaults(cfg)
+				cfg.Servers = shared.ServerConfigurations{
+					{
+						URL:         "https://api.ionos.com/databases/postgresql",
+						Description: "Production",
+					},
+				}
 				return cfg
 			}(),
 			wantErr: false,
@@ -76,8 +85,8 @@ func TestNewIonosClient(t *testing.T) {
 				setComputeDefaults(cfg)
 				return cfg
 			}(),
-			wantDbaasConfig: func() *ionosdbaas.Configuration {
-				cfg := ionosdbaas.NewConfiguration("username", "password", "token", hostnameFromSecret)
+			wantDbaasConfig: func() *shared.Configuration {
+				cfg := shared.NewConfiguration("username", "password", "token", hostnameFromSecret)
 				setDbaaSDefaults(cfg)
 				return cfg
 			}(),
@@ -92,8 +101,8 @@ func TestNewIonosClient(t *testing.T) {
 				setComputeDefaults(cfg)
 				return cfg
 			}(),
-			wantDbaasConfig: func() *ionosdbaas.Configuration {
-				cfg := ionosdbaas.NewConfiguration("username", "password", "token", hostnameFromEnv)
+			wantDbaasConfig: func() *shared.Configuration {
+				cfg := shared.NewConfiguration("username", "password", "token", hostnameFromEnv)
 				setDbaaSDefaults(cfg)
 				return cfg
 			}(),
@@ -108,8 +117,8 @@ func TestNewIonosClient(t *testing.T) {
 				setComputeDefaults(cfg)
 				return cfg
 			}(),
-			wantDbaasConfig: func() *ionosdbaas.Configuration {
-				cfg := ionosdbaas.NewConfiguration("username", "password", "token", hostnameFromSecret)
+			wantDbaasConfig: func() *shared.Configuration {
+				cfg := shared.NewConfiguration("username", "password", "token", hostnameFromSecret)
 				setDbaaSDefaults(cfg)
 				return cfg
 			}(),
@@ -157,9 +166,7 @@ func TestNewIonosClient(t *testing.T) {
 				dcfg := got.DBaaSPostgresClient.GetConfig()
 				// Drop Logger from the comparison as log.Logger structs cannot be compared with DeepEqual
 				ccfg.Logger = nil
-				dcfg.Logger = nil
 				tt.wantComputeConfig.Logger = nil
-				tt.wantDbaasConfig.Logger = nil
 
 				assert.Equal(t, tt.wantComputeConfig, ccfg)
 				assert.Equal(t, tt.wantDbaasConfig, dcfg)
@@ -301,22 +308,22 @@ func TestUpdateCondition(t *testing.T) {
 	}{
 		{
 			name:     "creating",
-			states:   []string{compute.BUSY, k8s.BUSY, string(ionosdbaas.BUSY), k8s.DEPLOYING},
+			states:   []string{compute.BUSY, k8s.BUSY, string(ionosdbaas.STATE_BUSY), k8s.DEPLOYING},
 			resource: testConditionedResource{expectedCondition: xpv1.Creating()},
 		},
 		{
 			name:     "destroying",
-			states:   []string{string(ionosdbaas.DESTROYING), k8s.DESTROYING, compute.DESTROYING, k8s.TERMINATED},
+			states:   []string{string(ionosdbaas.STATE_DESTROYING), k8s.DESTROYING, compute.DESTROYING, k8s.TERMINATED},
 			resource: testConditionedResource{expectedCondition: xpv1.Deleting()},
 		},
 		{
 			name:     "available",
-			states:   []string{string(ionosdbaas.AVAILABLE), compute.AVAILABLE, compute.ACTIVE, k8s.ACTIVE, k8s.AVAILABLE},
+			states:   []string{string(ionosdbaas.STATE_AVAILABLE), compute.AVAILABLE, compute.ACTIVE, k8s.ACTIVE, k8s.AVAILABLE},
 			resource: testConditionedResource{expectedCondition: xpv1.Available()},
 		},
 		{
 			name:     "unavailable",
-			states:   []string{string(ionosdbaas.FAILED), string(ionosdbaas.UNKNOWN), "", "FOOBAR"},
+			states:   []string{string(ionosdbaas.STATE_FAILED), string(ionosdbaas.STATE_UNKNOWN), "", "FOOBAR"},
 			resource: testConditionedResource{expectedCondition: xpv1.Unavailable()},
 		},
 	}
