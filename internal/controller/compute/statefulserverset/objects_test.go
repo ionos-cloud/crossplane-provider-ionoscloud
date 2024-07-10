@@ -43,7 +43,7 @@ const (
 
 	serverSetName         = "serverset"
 	serverSetNrOfReplicas = 2
-	serverSetLabel        = "ionoscloud.com/serverset"
+	serverSetLabel        = "serverset"
 
 	statefulServerSetName         = "statefulserverset"
 	statefulServerSetExternalName = "test"
@@ -420,7 +420,7 @@ func create2VolumesWithStatuses() []v1alpha1.Volume {
 func createVolumeWithStatus() *v1alpha1.Volume {
 	volume := createVolumeDefault()
 	volume.Labels = map[string]string{
-		fmt.Sprintf("ionoscloud.com/%s-datavolume-index", serverName): "0",
+		fmt.Sprintf("%s-dv-ri", serverName): "0",
 	}
 	volume.Status = v1alpha1.VolumeStatus{
 		ResourceStatus: xpv1.ResourceStatus{},

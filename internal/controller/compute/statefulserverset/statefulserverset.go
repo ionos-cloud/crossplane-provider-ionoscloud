@@ -42,7 +42,7 @@ const (
 	errTrackPCUsage         = "cannot track ProviderConfig usage"
 )
 
-const statefulServerSetLabel = "ionoscloud.com/statefulServerSet"
+const statefulServerSetLabel = "statefulServerSet"
 
 // A NoOpService does nothing.
 type NoOpService struct{}

@@ -30,14 +30,14 @@ import (
 const errNotVolumeSelector = "managed resource is not a Volumeselector custom resource"
 
 const (
-	// IndexLabel ionoscloud.com/<serverset_serverset_name>-<resource_type>-index
-	IndexLabel = "ionoscloud.com/%s-%s-index"
-	// VolumeIndexLabel ionoscloud.com/<serverset_serverset_name>-<resource_type>-volumeindex
-	VolumeIndexLabel = "ionoscloud.com/%s-%s-volumeindex"
+	// IndexLabel <serverset_serverset_name>-<resource_type>-index
+	IndexLabel = "%s-%s-ri"
+	// VolumeIndexLabel <serverset_serverset_name>-<resource_type>-vol-idx
+	VolumeIndexLabel = "%s-%s-i"
 )
 
 // ResourceDataVolume is the res name for the volume
-const ResourceDataVolume = "datavolume"
+const ResourceDataVolume = "dv"
 
 // Setup adds a controller that reconciles Volumeselector managed resources.
 func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {

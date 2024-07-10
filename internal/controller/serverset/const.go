@@ -2,8 +2,8 @@ package serverset
 
 const (
 	// ResourceServer name for server used for serverset
-	ResourceServer     = "server"
-	resourceBootVolume = "bootvolume"
+	ResourceServer     = "srv"
+	resourceBootVolume = "bv"
 	resourceNIC        = "nic"
 )
 

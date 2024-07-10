@@ -18,7 +18,7 @@ metadata:
   name: sss-example
 spec:
   forProvider:
-    replicas: 2
+    replicas: 1
     deploymentStrategy:
       type: ZONES
     datacenterConfig:
@@ -52,8 +52,9 @@ spec:
           type: "createAllBeforeDestroy" # createBeforeDestroyBootVolume createAllBeforeDestroy
         image: "28d0fa34-927f-11ee-8008-6202af74e858"
         size: 10
-        type: SSD
+        type: HDD
         userData: "" #cloud-config
+        imagePassword: "thisshouldwork11"
     lans:
       # Three LANs are defined - an internal one (data) with IPv6 enabled and DHCP disabled for DRBD + VRRP traffic,
       # a management network for connectivity to K8S and management as well as
