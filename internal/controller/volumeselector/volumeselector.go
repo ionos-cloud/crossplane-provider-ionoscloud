@@ -30,9 +30,9 @@ import (
 const errNotVolumeSelector = "managed resource is not a Volumeselector custom resource"
 
 const (
-	// IndexLabel <serverset_serverset_name>-<resource_type>-index
+	// IndexLabel <serverset_serverset_name>-<resource_type>-ri
 	IndexLabel = "%s-%s-ri"
-	// VolumeIndexLabel <serverset_serverset_name>-<resource_type>-vol-idx
+	// VolumeIndexLabel <serverset_serverset_name>-<resource_type>-i
 	VolumeIndexLabel = "%s-%s-i"
 )
 
