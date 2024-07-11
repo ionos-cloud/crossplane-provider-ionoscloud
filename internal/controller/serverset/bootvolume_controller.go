@@ -97,8 +97,9 @@ func setPCINICSlotEnv(ctx context.Context, nics []v1alpha1.ServerSetTemplateNIC,
 		if err != nil {
 			return err
 		}
-		const nicPCISlotSuffix = "-nic-pcislot"
-		userDataPatcher.SetEnv(nics[nicIndex].Name+nicPCISlotSuffix, strconv.Itoa(int(pciSlot)))
+		const nicPCISlotPrefix = "nic_pcislot_"
+		snakeCaseName := strings.ReplaceAll(nics[nicIndex].Name, "-", "_")
+		userDataPatcher.SetEnv(nicPCISlotPrefix+snakeCaseName, strconv.Itoa(int(pciSlot)))
 	}
 	return nil
 }
