@@ -218,17 +218,17 @@ func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, 
 	return nil
 }
 
-func getNameAndPCISlotFromNIC(ctx context.Context, kube client.Client, serversetName string, replicaIndex, nicIndex int) (name string, pciSlot int32, err error) {
+func getPCISlotFromNIC(ctx context.Context, kube client.Client, serversetName string, replicaIndex, nicIndex int) (pciSlot int32, err error) {
 	obj := &v1alpha1.NicList{}
 	err = kube.List(ctx, obj, client.MatchingLabels{
 		fmt.Sprintf(indexLabel, serversetName, resourceNIC):    strconv.Itoa(replicaIndex),
 		fmt.Sprintf(nicIndexLabel, serversetName, resourceNIC): fmt.Sprintf("%d", nicIndex),
 	})
 	if err != nil {
-		return "", 0, err
+		return 0, err
 	}
 	if len(obj.Items) > 0 {
-		return obj.Items[0].Spec.ForProvider.Name, obj.Items[0].Status.AtProvider.PCISlot, nil
+		return obj.Items[0].Status.AtProvider.PCISlot, nil
 	}
-	return "", 0, fmt.Errorf("no nics found for serversetName %s and replicaIndex %d", serversetName, replicaIndex)
+	return 0, fmt.Errorf("no nics found for serversetName %s and replicaIndex %d", serversetName, replicaIndex)
 }

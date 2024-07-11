@@ -93,14 +93,12 @@ func setPatcher(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex int, n
 
 func setPCINICSlotEnv(ctx context.Context, nics []v1alpha1.ServerSetTemplateNIC, serversetName string, replicaIndex int, kube client.Client, userDataPatcher ccpatch.CloudInitPatcher) error {
 	for nicIndex := range nics {
-		nicName, pciSlot, err := getNameAndPCISlotFromNIC(ctx, kube, serversetName, replicaIndex, nicIndex)
+		pciSlot, err := getPCISlotFromNIC(ctx, kube, serversetName, replicaIndex, nicIndex)
 		if err != nil {
 			return err
 		}
-		if nicName != "" {
-			const nicPCISlotPrefix = "nic-pcislot-"
-			userDataPatcher.SetEnv(nicPCISlotPrefix+nicName, strconv.Itoa(int(pciSlot)))
-		}
+		const nicPCISlotSuffix = "-nic-pcislot"
+		userDataPatcher.SetEnv(nics[nicIndex].Name+nicPCISlotSuffix, strconv.Itoa(int(pciSlot)))
 	}
 	return nil
 }
