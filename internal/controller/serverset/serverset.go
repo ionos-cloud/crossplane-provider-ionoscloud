@@ -44,13 +44,13 @@ const (
 
 const (
 	// indexLabel is the label used to identify the server set by index
-	indexLabel = "ionoscloud.com/%s-%s-index"
+	indexLabel = "%s-%s-ri"
 
-	nicIndexLabel = "ionoscloud.com/%s-%s-nicindex"
+	nicIndexLabel = "%s-%s-ni"
 	// versionLabel is the label used to identify the server set by version
-	versionLabel = "ionoscloud.com/%s-%s-version"
+	versionLabel = "%s-%s-v"
 	// serverSetLabel is the label used to identify the server set resources. All resources created by a server set will have this label
-	serverSetLabel = "ionoscloud.com/serverset"
+	serverSetLabel = "serverset"
 )
 
 // A connector is expected to produce an ExternalClient when its Connect method
@@ -539,7 +539,7 @@ func AreBootVolumesReady(templateParams v1alpha1.BootVolumeTemplate, volumes []v
 	return true, true
 }
 
-// GetServersOfSSet - gets servers from a server set based on the ionoscloud.com/serverset label
+// GetServersOfSSet - gets servers from a server set based on the serverset label
 func GetServersOfSSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Server, error) {
 	serverList := &v1alpha1.ServerList{}
 	if err := kube.List(ctx, serverList, client.MatchingLabels{
@@ -551,7 +551,7 @@ func GetServersOfSSet(ctx context.Context, kube client.Client, name string) ([]v
 	return serverList.Items, nil
 }
 
-// GetVolumesOfSSet - gets volumes from a server set based on the ionoscloud.com/serverset label
+// GetVolumesOfSSet - gets volumes from a server set based on the serverset label
 func GetVolumesOfSSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Volume, error) {
 	volumeList := &v1alpha1.VolumeList{}
 	if err := kube.List(ctx, volumeList, client.MatchingLabels{

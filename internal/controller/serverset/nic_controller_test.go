@@ -18,9 +18,9 @@ import (
 
 const (
 	vnetID                    = "679070ab-1ebc-46ef-b9f7-c43c1ed9f6e9"
-	serverSetNicIndexLabel    = "ionoscloud.com/serverset-nic-index"
-	serverSetNicNicIndexLabel = "ionoscloud.com/serverset-nic-nicindex"
-	serverSetNicVersionLabel  = "ionoscloud.com/serverset-nic-version"
+	serverSetNicIndexLabel    = "serverset-nic-ri"
+	serverSetNicNicIndexLabel = "serverset-nic-ni"
+	serverSetNicVersionLabel  = "serverset-nic-v"
 	nicName                   = "nic-0-0-0"
 	nicWithVNetName           = "nic1-1-0-0"
 	nicWithoutVNetName        = "nic2-1-0-0"
