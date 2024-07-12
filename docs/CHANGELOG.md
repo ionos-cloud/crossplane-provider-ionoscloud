@@ -1,3 +1,7 @@
+## [1.1.1] (July 2024)
+- **Fixes**:
+  - Revert merge for nodepool fix 
+
 ## [1.1.0] (July 2024)
 - **Features**:
     - Add `database` CRD for postgres

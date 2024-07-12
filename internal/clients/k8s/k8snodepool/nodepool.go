@@ -318,9 +318,8 @@ func kubernetesNodePoolLans(crLans []v1alpha1.KubernetesNodePoolLan) *[]sdkgo.Ku
 			lanIDConverted, _ := strconv.ParseInt(crLan.LanCfg.LanID, 10, 64)
 			lanID := int32(lanIDConverted)
 			newNodePoolLan := sdkgo.KubernetesNodePoolLan{
-				Id:           &lanID,
-				Dhcp:         &crLan.Dhcp,
-				DatacenterId: &crLan.DatacenterID,
+				Id:   &lanID,
+				Dhcp: &crLan.Dhcp,
 			}
 			if crLan.DatacenterID != "" {
 				newNodePoolLan.DatacenterId = &crLan.DatacenterID
