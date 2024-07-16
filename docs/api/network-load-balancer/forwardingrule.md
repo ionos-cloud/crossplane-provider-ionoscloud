@@ -6,6 +6,7 @@ description: Manages ForwardingRule Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: An ForwardingRule is an example API type.
 * Resource Name: `ForwardingRule`
 * Resource Group: `nlb.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

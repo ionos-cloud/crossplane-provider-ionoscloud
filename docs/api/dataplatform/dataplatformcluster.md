@@ -6,6 +6,7 @@ description: Manages DataplatformCluster Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A DataplatformCluster is an example API type.
 * Resource Name: `DataplatformCluster`
 * Resource Group: `dataplatform.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`
