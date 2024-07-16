@@ -159,10 +159,12 @@ type BackupUnitConfig struct {
 
 // VolumeObservation are the observable fields of a Volume.
 type VolumeObservation struct {
-	VolumeID string `json:"volumeId,omitempty"`
-	State    string `json:"state,omitempty"`
-	PCISlot  int32  `json:"pciSlot,omitempty"`
-	Name     string `json:"name,omitempty"`
+	VolumeID   string  `json:"volumeId,omitempty"`
+	State      string  `json:"state,omitempty"`
+	PCISlot    int32   `json:"pciSlot,omitempty"`
+	Name       string  `json:"name,omitempty"`
+	ServerName string  `json:"serverName,omitempty"`
+	Size       float32 `json:"size,omitempty"`
 }
 
 // A VolumeSpec defines the desired state of a Volume.

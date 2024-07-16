@@ -127,6 +127,10 @@ func LateStatusInitializer(in *v1alpha1.NicObservation, nic *sdkgo.Nic) {
 		if nic.Properties.HasMac() {
 			in.Mac = *nic.Properties.Mac
 		}
+		if nic.Properties.HasName() {
+			in.Name = *nic.Properties.Name
+		}
+
 	}
 }
 
