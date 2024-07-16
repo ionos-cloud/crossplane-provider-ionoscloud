@@ -150,7 +150,7 @@ func (u *externalDatabase) Create(ctx context.Context, mg resource.Managed) (man
 		return creation, retErr
 	}
 
-	meta.SetExternalName(cr, *newInstance.Properties.Name)
+	meta.SetExternalName(cr, newInstance.Properties.Name)
 	return creation, nil
 }
 

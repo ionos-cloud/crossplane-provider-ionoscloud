@@ -6,6 +6,7 @@ description: Manages Cluster Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A Cluster is an example API type.
 * Resource Name: `Cluster`
 * Resource Group: `k8s.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

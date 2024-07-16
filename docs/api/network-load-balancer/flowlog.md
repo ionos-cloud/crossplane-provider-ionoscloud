@@ -6,6 +6,7 @@ description: Manages FlowLog Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: An FlowLog is an example API type.
 * Resource Name: `FlowLog`
 * Resource Group: `nlb.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
+	ionosdbaas "github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2"
 	mongo "github.com/ionos-cloud/sdk-go-dbaas-mongo"
-	ionosdbaas "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 
 	mongoalphav1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/mongo/v1alpha1"
@@ -73,8 +73,47 @@ func EqualDatabaseMaintenanceWindow(targetValue dbaasv1alpha1.MaintenanceWindow,
 	if observedValue == nil {
 		return targetValue.Time == "" && targetValue.DayOfTheWeek == ""
 	}
-	return EqualTimeString(targetValue.Time, observedValue.Time) &&
-		EqualDayOfTheWeek(targetValue.DayOfTheWeek, observedValue.DayOfTheWeek)
+	return EqualTimeString(targetValue.Time, &observedValue.Time) &&
+		EqualDayOfTheWeek(targetValue.DayOfTheWeek, &observedValue.DayOfTheWeek)
+}
+
+// EqualConnectionPooler returns true if the connection poolers are equal
+func EqualConnectionPooler(targetValue dbaasv1alpha1.ConnectionPooler, observedValue *ionosdbaas.ConnectionPooler) bool {
+	if observedValue == nil {
+		return targetValue.PoolMode == "" && !targetValue.Enabled
+	}
+	return targetValue.Enabled == *observedValue.Enabled &&
+		targetValue.PoolMode == *observedValue.PoolMode
+}
+
+// EqualConnections returns true if the connections are equal
+func EqualConnections(targetValue []dbaasv1alpha1.Connection, observedValue []ionosdbaas.Connection) bool {
+	if len(targetValue) != len(observedValue) {
+		return false
+	}
+	for _, target := range targetValue {
+		found := false
+		for i := range observedValue {
+			if EqualConnection(target, &observedValue[i]) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+// EqualConnection returns true if the connections are equal
+func EqualConnection(targetValue dbaasv1alpha1.Connection, observedValue *ionosdbaas.Connection) bool {
+	if observedValue == nil {
+		return targetValue.Cidr == "" && targetValue.DatacenterCfg.DatacenterID == "" && targetValue.LanCfg.LanID == ""
+	}
+	return targetValue.Cidr == observedValue.Cidr &&
+		targetValue.DatacenterCfg.DatacenterID == observedValue.DatacenterId &&
+		targetValue.LanCfg.LanID == observedValue.LanId
 }
 
 // EqualMongoDatabaseMaintenanceWindow returns true if the maintenance windows are equal

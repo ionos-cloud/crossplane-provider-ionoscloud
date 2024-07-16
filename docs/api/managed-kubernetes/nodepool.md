@@ -6,6 +6,7 @@ description: Manages NodePool Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A NodePool is an example API type.
 * Resource Name: `NodePool`
 * Resource Group: `k8s.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

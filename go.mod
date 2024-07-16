@@ -10,9 +10,10 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.30.0
+	github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2 v2.0.0
+	github.com/ionos-cloud/sdk-go-bundle/shared v0.1.1
 	github.com/ionos-cloud/sdk-go-dataplatform v1.0.2
 	github.com/ionos-cloud/sdk-go-dbaas-mongo v1.3.1
-	github.com/ionos-cloud/sdk-go-dbaas-postgres v1.1.2
 	github.com/ionos-cloud/sdk-go/v6 v6.1.11
 	github.com/onsi/gomega v1.30.0
 	github.com/pkg/errors v0.9.1

@@ -6,6 +6,7 @@ description: Manages PostgresUser Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A PostgresUser is an example API type.
 * Resource Name: `PostgresUser`
 * Resource Group: `dbaas.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

@@ -37,7 +37,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
-	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
+	ionoscloud "github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/postgres/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
@@ -154,7 +154,7 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 		return managed.ExternalCreation{}, errors.New(errNotCluster)
 	}
 	cr.SetConditions(xpv1.Creating())
-	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == string(ionoscloud.STATE_BUSY) {
 		return managed.ExternalCreation{}, nil
 	}
 
@@ -182,7 +182,7 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 		return managed.ExternalCreation{}, err
 	}
 	// time to get the credentials from the secret
-	if instanceInput.Properties.Credentials.Password != nil || *instanceInput.Properties.Credentials.Password == "" {
+	if instanceInput.Properties.Credentials.Password == "" {
 		data, err := resource.CommonCredentialExtractor(ctx, cr.Spec.ForProvider.Credentials.Source, c.client, cr.Spec.ForProvider.Credentials.CommonCredentialSelectors)
 		if err != nil {
 			return managed.ExternalCreation{}, errors.Wrap(err, "cannot get psql credentials")
@@ -191,11 +191,11 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 		if err := json.Unmarshal(data, &creds); err != nil {
 			return managed.ExternalCreation{}, fmt.Errorf("failed to decode psql credentials: %w", err)
 		}
-		*instanceInput.Properties.Credentials.Username = creds.Username
-		*instanceInput.Properties.Credentials.Password = creds.Password
+		instanceInput.Properties.Credentials.Username = creds.Username
+		instanceInput.Properties.Credentials.Password = creds.Password
 	}
-	if (instanceInput.Properties.Credentials.Username == nil || *instanceInput.Properties.Credentials.Username == "") ||
-		(instanceInput.Properties.Credentials.Password == nil || *instanceInput.Properties.Credentials.Password == "") {
+	if (instanceInput.Properties.Credentials.Username == "") ||
+		(instanceInput.Properties.Credentials.Password == "") {
 		return managed.ExternalCreation{}, fmt.Errorf("need to provide credentials, either directly or from a secret")
 	}
 	newInstance, apiResponse, err := c.service.CreateCluster(ctx, *instanceInput)
@@ -219,7 +219,7 @@ func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (mana
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotCluster)
 	}
-	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == string(ionoscloud.STATE_BUSY) {
 		return managed.ExternalUpdate{}, nil
 	}
 
@@ -247,7 +247,7 @@ func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error
 	}
 
 	cr.SetConditions(xpv1.Deleting())
-	if cr.Status.AtProvider.State == string(ionoscloud.DESTROYING) {
+	if cr.Status.AtProvider.State == string(ionoscloud.STATE_DESTROYING) {
 		return nil
 	}
 

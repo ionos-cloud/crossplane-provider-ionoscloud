@@ -6,6 +6,7 @@ description: Manages DataplatformNodepool Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A DataplatformNodepool is an example API type.
 * Resource Name: `DataplatformNodepool`
 * Resource Group: `dataplatform.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

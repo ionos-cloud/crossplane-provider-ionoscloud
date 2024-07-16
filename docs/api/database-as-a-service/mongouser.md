@@ -6,6 +6,7 @@ description: Manages MongoUser Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A MongoUser is an example API type.
 * Resource Name: `MongoUser`
 * Resource Group: `dbaas.mongo.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

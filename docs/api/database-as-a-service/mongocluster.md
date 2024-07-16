@@ -6,6 +6,7 @@ description: Manages MongoCluster Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A MongoCluster is an example API type.
 * Resource Name: `MongoCluster`
 * Resource Group: `dbaas.mongo.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`
