@@ -226,7 +226,7 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 				identifier := substitution.Identifier(getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, i, volumeVersion))
 				if stateMapVal, exists := globalStateMap[cr.Name]; exists {
 					stateSlice := stateMapVal.GetByIdentifier(identifier)
-					if len(stateSlice) > 0 && substIndex > len(stateSlice)-1 {
+					if len(stateSlice) > 0 && substIndex < len(stateSlice)-1 {
 						val := stateSlice[substIndex].Value
 						if val != "" {
 							cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement[subst.Key] = val
