@@ -19,12 +19,14 @@ package serverset
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strconv"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -165,12 +167,28 @@ func didNrOfReplicasChange(cr *v1alpha1.ServerSet, replicas []v1alpha1.Server) b
 	return len(replicas) != cr.Status.AtProvider.Replicas
 }
 
+type substitutionConfigMap struct {
+	identities map[string]string
+	name       string
+	namespace  string
+}
+
+// substConfigMap is used to store the substitutions
+var substConfigMap substitutionConfigMap
+
+func init() {
+	substConfigMap = substitutionConfigMap{
+		identities: make(map[string]string),
+		// will be replaced with serverset name
+		name:      "",
+		namespace: "default",
+	}
+
+}
 func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) {
 	if cr.Status.AtProvider.ReplicaStatuses == nil || didNrOfReplicasChange(cr, serverSetReplicas) {
 		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, len(serverSetReplicas))
 	}
-	cr.Status.AtProvider.Replicas = len(serverSetReplicas)
-
 	for i := range serverSetReplicas {
 		replicaStatus := computeStatus(serverSetReplicas[i].Status.AtProvider.State)
 		errMsg := ""
@@ -192,20 +210,117 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 			ErrorMessage: errMsg,
 			LastModified: metav1.Now(),
 		}
-		volumeVersion, _, _ := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), i)
-		for substIndex, subst := range cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions {
-			if stateMapVal, exists := globalStateMap[cr.Name]; exists {
-				val := stateMapVal.GetByIdentifier(substitution.Identifier(getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, i, volumeVersion)))[substIndex].Value
-				if val != "" {
-					if cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement == nil {
-						cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement = make(map[string]string)
+		if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
+			substConfigMap.name = cr.Name
+			if cr.Spec.ForProvider.IdentityConfigMap.Namespace != "" {
+				substConfigMap.namespace = cr.Spec.ForProvider.IdentityConfigMap.Namespace
+			}
+
+			volumeVersion, _, _ := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), i)
+			for substIndex, subst := range cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions {
+				// re-initialize in case of reboot
+				if cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement == nil {
+					cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement = make(map[string]string)
+				}
+
+				identifier := substitution.Identifier(getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, i, volumeVersion))
+				if stateMapVal, exists := globalStateMap[cr.Name]; exists {
+					stateSlice := stateMapVal.GetByIdentifier(identifier)
+					if len(stateSlice) > 0 {
+						val := stateSlice[substIndex].Value
+						if val != "" {
+							cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement[subst.Key] = val
+							substConfigMap.identities[strconv.Itoa(i)+"."+subst.Key] = val
+						} else {
+							cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement[subst.Key] = fetchSubstFromConfigMap(ctx, e.kube, subst.Key, i)
+							globalStateMap[cr.Name].Set(identifier, subst.Key, cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement[subst.Key])
+							e.log.Info("substitution value not found", "serverset name", cr.Name, "for key", subst.Key)
+						}
+					} else {
+						cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement[subst.Key] = fetchSubstFromConfigMap(ctx, e.kube, subst.Key, i)
+						globalStateMap[cr.Name].Set(identifier, subst.Key, cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement[subst.Key])
+						e.log.Info("substitution value not found", "serverset name", cr.Name, "for key", subst.Key)
 					}
-					cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement[subst.Key] = val
+				} else {
+					e.log.Info("state map not found", "serverset name", cr.Name)
+					if _, ok := globalStateMap[cr.Name]; !ok {
+						globalStateMap[cr.Name] = substitution.GlobalState{}
+					}
+					cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement[subst.Key] = fetchSubstFromConfigMap(ctx, e.kube, subst.Key, i)
+					globalStateMap[cr.Name].Set(identifier, subst.Key, cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement[subst.Key])
 				}
 			}
 		}
 	}
+	if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
+		err := ensureSubstConfigMap(ctx, e.kube)
+		if err != nil {
+			e.log.Info("error while writing to substConfig map", "error", err)
+		}
+	}
+	cr.Status.AtProvider.Replicas = len(serverSetReplicas)
+
 }
+
+func fetchSubstFromConfigMap(ctx context.Context, k client.Client, key string, replicaIndex int) string {
+	substMap := &v1.ConfigMap{}
+	err := k.Get(ctx, client.ObjectKey{Namespace: substConfigMap.namespace, Name: substConfigMap.name}, substMap)
+	if err != nil {
+		return ""
+	}
+	return substMap.Data[strconv.Itoa(replicaIndex)+"."+key]
+}
+
+func ensureSubstConfigMap(ctx context.Context, k client.Client) error {
+	cfgMap := &v1.ConfigMap{}
+	err := k.Get(ctx, client.ObjectKey{Namespace: substConfigMap.namespace, Name: substConfigMap.name}, cfgMap)
+	if err != nil {
+		if apiErrors.IsNotFound(err) {
+			cfgMap = &v1.ConfigMap{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      substConfigMap.name,
+					Namespace: substConfigMap.namespace,
+				},
+				Data: substConfigMap.identities,
+			}
+			return k.Create(ctx, cfgMap)
+		}
+	} else {
+		// time for an update
+		if len(substConfigMap.identities) > 0 && !maps.Equal(substConfigMap.identities, cfgMap.Data) && len(substConfigMap.identities) > len(cfgMap.Data) {
+			cfgMap = &v1.ConfigMap{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      substConfigMap.name,
+					Namespace: substConfigMap.namespace,
+				},
+				Data: substConfigMap.identities,
+			}
+			return k.Update(ctx, cfgMap)
+		}
+
+	}
+
+	return nil
+}
+
+//
+// func updateConfigMap(ctx context.Context, k client.Client) error {
+// 	substMap := &v1.ConfigMap{
+// 		TypeMeta: metav1.TypeMeta{},
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:      substConfigMap.name,
+// 			Namespace: substConfigMap.namespace,
+// 		},
+// 		Data: substConfigMap.identities,
+// 	}
+// 	err := k.Update(ctx, substMap)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
 func computeNicStatuses(ctx context.Context, e *external, crName string, replicaIndex int) []v1alpha1.NicStatus {
 	nicsOfReplica := &v1alpha1.NicList{}
@@ -509,6 +624,15 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return err
 	}
 
+	e.log.Info("Deleting the substconfigmap", "name", substConfigMap.name, "namespace", substConfigMap.namespace)
+	if err := e.kube.Delete(ctx, &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      substConfigMap.name,
+			Namespace: substConfigMap.namespace,
+		},
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
