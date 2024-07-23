@@ -59,12 +59,13 @@ const (
 // A connector is expected to produce an ExternalClient when its Connect method
 // is called.
 type connector struct {
-	kube                 client.Client
-	bootVolumeController kubeBootVolumeControlManager
-	nicController        kubeNicControlManager
-	serverController     kubeServerControlManager
-	usage                resource.Tracker
-	log                  logging.Logger
+	kube                    client.Client
+	bootVolumeController    kubeBootVolumeControlManager
+	nicController           kubeNicControlManager
+	serverController        kubeServerControlManager
+	kubeConfigmapController kubeConfigmapControlManager
+	usage                   resource.Tracker
+	log                     logging.Logger
 }
 
 // Connect typically produces an ExternalClient by:
@@ -88,6 +89,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		bootVolumeController: c.bootVolumeController,
 		nicController:        c.nicController,
 		serverController:     c.serverController,
+		configMapController:  c.kubeConfigmapController,
 	}, err
 }
 
@@ -100,6 +102,7 @@ type external struct {
 	bootVolumeController kubeBootVolumeControlManager
 	nicController        kubeNicControlManager
 	serverController     kubeServerControlManager
+	configMapController  kubeConfigmapControlManager
 	log                  logging.Logger
 }
 
@@ -173,18 +176,6 @@ type substitutionConfigMap struct {
 	namespace  string
 }
 
-// substConfigMap is used to store the substitutions
-var substConfigMap substitutionConfigMap
-
-func init() {
-	substConfigMap = substitutionConfigMap{
-		identities: make(map[string]string),
-		// will be replaced with serverset name
-		name:      "",
-		namespace: "default",
-	}
-
-}
 func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) {
 	if cr.Status.AtProvider.ReplicaStatuses == nil || didNrOfReplicasChange(cr, serverSetReplicas) {
 		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, len(serverSetReplicas))
@@ -253,7 +244,8 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 		}
 	}
 	if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
-		err := ensureSubstConfigMap(ctx, e.kube)
+		err := e.configMapController.CreateOrUpdate(ctx)
+		// err := ensureSubstConfigMap(ctx, e.kube)
 		if err != nil {
 			e.log.Info("error while writing to substConfig map", "error", err)
 		}
@@ -602,35 +594,46 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 
 	cr.SetConditions(xpv1.Deleting())
 	meta.SetExternalName(cr, "")
-
-	e.log.Info("Deleting the NICs with label", "label", cr.Name)
-	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
-		serverSetLabel: cr.Name,
-	}); err != nil {
-		return err
+	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
+		volumeVersion, serverVersion, err := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), replicaIndex)
+		if err != nil {
+			return err
+		}
+		if err := e.bootVolumeController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion), cr.Namespace); err != nil {
+			return err
+		}
+		if err := e.serverController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, serverVersion), cr.Namespace); err != nil {
+			return err
+		}
+		for nicIndex := range cr.Spec.ForProvider.Template.Spec.NICs {
+			if err := e.nicController.Delete(ctx, getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, serverVersion), cr.Namespace); err != nil {
+				return err
+			}
+		}
 	}
-
-	e.log.Info("Deleting the Servers with label", "label", cr.Name)
-	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Server{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
-		serverSetLabel: cr.Name,
-	}); err != nil {
-		return err
-	}
-
-	e.log.Info("Deleting the BootVolumes with label", "label", cr.Name)
-	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
-		serverSetLabel: cr.Name,
-	}); err != nil {
-		return err
-	}
+	// e.log.Info("Deleting the NICs with label", "label", cr.Name)
+	// if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+	// 	serverSetLabel: cr.Name,
+	// }); err != nil {
+	// 	return err
+	// }
+	//
+	// e.log.Info("Deleting the Servers with label", "label", cr.Name)
+	// if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Server{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+	// 	serverSetLabel: cr.Name,
+	// }); err != nil {
+	// 	return err
+	// }
+	//
+	// e.log.Info("Deleting the BootVolumes with label", "label", cr.Name)
+	// if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
+	// 	serverSetLabel: cr.Name,
+	// }); err != nil {
+	// 	return err
+	// }
 
 	e.log.Info("Deleting the substconfigmap", "name", substConfigMap.name, "namespace", substConfigMap.namespace)
-	if err := e.kube.Delete(ctx, &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      substConfigMap.name,
-			Namespace: substConfigMap.namespace,
-		},
-	}); err != nil {
+	if err := e.configMapController.Delete(ctx, substConfigMap.name, substConfigMap.namespace); err != nil {
 		return err
 	}
 	return nil

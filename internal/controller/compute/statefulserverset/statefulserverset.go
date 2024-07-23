@@ -293,31 +293,35 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 	cr.SetConditions(xpv1.Deleting())
 
-	e.log.Info("Deleting the DataVolumes with label", "label", cr.Name)
-	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
-		statefulServerSetLabel: cr.Name,
-	}); err != nil {
+	// e.dataVolumeController.Delete()
+	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
+		for volumeIndex := range cr.Spec.ForProvider.Volumes {
+			name := generateNameFrom(cr.Spec.ForProvider.Volumes[volumeIndex].Metadata.Name, replicaIndex, volumeIndex)
+			e.log.Info("Deleting the DataVolume with name", "name", name)
+			err := e.dataVolumeController.Delete(ctx, name, cr.Namespace)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	e.log.Info("Deleting the ServerSet with name", "name", cr.Spec.ForProvider.Template.Metadata.Name)
+	if err := e.SSetController.Delete(ctx, cr.Spec.ForProvider.Template.Metadata.Name, cr.Namespace); err != nil {
 		return err
 	}
 
-	e.log.Info("Deleting the ServerSet with label", "label", cr.Name)
-	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.ServerSet{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
-		statefulServerSetLabel: cr.Name,
-	}); err != nil {
-		return err
+	for lanIndex := range cr.Spec.ForProvider.Lans {
+		name := cr.Spec.ForProvider.Lans[lanIndex].Metadata.Name
+		e.log.Info("Deleting the LANs with name", "name", name)
+		err := e.LANController.Delete(ctx, name, cr.Namespace)
+		if err != nil {
+			return err
+		}
 	}
+	e.log.Info("Deleting the volumeselector with name", "name", cr.Name)
 
-	e.log.Info("Deleting the LANs with label", "label", cr.Name)
-	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Lan{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
-		statefulServerSetLabel: cr.Name,
-	}); err != nil {
-		return err
-	}
-
-	e.log.Info("Deleting the VolumeSelectors with label", "label", cr.Name)
-	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volumeselector{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
-		statefulServerSetLabel: cr.Name,
-	}); err != nil {
+	err := e.volumeSelectorController.Delete(ctx, fmt.Sprintf(volumeSelectorName, cr.Name), cr.Namespace)
+	if err != nil {
 		return err
 	}
 

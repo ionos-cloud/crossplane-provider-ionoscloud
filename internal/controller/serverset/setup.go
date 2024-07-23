@@ -39,6 +39,10 @@ func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 					kube: mgr.GetClient(),
 					log:  logger,
 				},
+				kubeConfigmapController: &kubeConfigmapController{
+					kube: mgr.GetClient(),
+					log:  logger,
+				},
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:   logger,
 			}),
