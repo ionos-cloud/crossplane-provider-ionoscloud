@@ -838,6 +838,10 @@ spec:
                             pciSlot:
                               format: int32
                               type: integer
+                            serverName:
+                              type: string
+                            size:
+                              type: number
                             state:
                               type: string
                             volumeId:
@@ -1062,6 +1066,8 @@ spec:
                                     type: array
                                   mac:
                                     type: string
+                                  name:
+                                    type: string
                                   nicId:
                                     type: string
                                   pciSlot:
@@ -1149,6 +1155,10 @@ spec:
                           - ERROR
                           - BUSY
                           type: string
+                        substitutionReplacement:
+                          additionalProperties:
+                            type: string
+                          type: object
                       required:
                       - name
                       - replicaIndex

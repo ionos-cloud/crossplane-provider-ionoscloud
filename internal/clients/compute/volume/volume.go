@@ -26,6 +26,7 @@ type Client interface {
 	UpdateVolume(ctx context.Context, datacenterID, volumeID string, volume sdkgo.VolumeProperties) (sdkgo.Volume, *sdkgo.APIResponse, error)
 	DeleteVolume(ctx context.Context, datacenterID, volumeID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
+	GetServerNameByID(ctx context.Context, datacenterID, serverID string) (string, error)
 }
 
 // CheckDuplicateVolume based on datacenterID, volumeName
@@ -83,6 +84,24 @@ func (cp *APIClient) GetVolumeID(volume *sdkgo.Volume) (string, error) {
 			return *idOk, nil
 		}
 		return "", fmt.Errorf("error: getting volume id")
+	}
+	return "", nil
+}
+
+// GetServerNameByID based on boot server ID
+func (cp *APIClient) GetServerNameByID(ctx context.Context, datacenterID, serverID string) (string, error) {
+	if serverID != "" && datacenterID != "" {
+		server, apiResponse, err := cp.ComputeClient.ServersApi.DatacentersServersFindById(ctx, datacenterID, serverID).Execute()
+		if apiResponse.HttpNotFound() {
+			return "", nil
+		}
+		if err != nil {
+			return "", err
+		}
+		if server.Properties == nil || server.Properties.Name == nil {
+			return "", fmt.Errorf("error: getting server properties")
+		}
+		return *server.Properties.Name, nil
 	}
 	return "", nil
 }

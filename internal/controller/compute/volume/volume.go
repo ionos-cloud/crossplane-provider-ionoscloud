@@ -131,6 +131,15 @@ func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (mana
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&instance)
 	if instance.Properties != nil {
 		cr.Status.AtProvider.Name = *instance.Properties.Name
+		cr.Status.AtProvider.Size = *instance.Properties.Size
+		if instance.Properties.BootServer != nil {
+
+			name, err := c.service.GetServerNameByID(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instance.Properties.BootServer)
+			if err != nil {
+				return managed.ExternalObservation{}, err
+			}
+			cr.Status.AtProvider.ServerName = name
+		}
 	}
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	// Set Ready condition based on State

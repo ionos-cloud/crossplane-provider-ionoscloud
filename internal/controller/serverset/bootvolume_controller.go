@@ -36,6 +36,7 @@ type kubeBootVolumeController struct {
 // Create creates a volume CR and waits until in reaches AVAILABLE state
 func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Volume, error) {
 	name := getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, version)
+	hostname := getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, version)
 	k.log.Info("Creating BootVolume", "name", name)
 	var userDataPatcher *ccpatch.CloudInitPatcher
 	var err error
@@ -44,7 +45,8 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 		return v1alpha1.Volume{}, err
 	}
 	createVolume := fromServerSetToVolume(cr, name, replicaIndex, version)
-	createVolume.Spec.ForProvider.UserData = userDataPatcher.Patch("hostname", name).Encode()
+	userDataPatcher.SetEnv("hostname", hostname)
+	createVolume.Spec.ForProvider.UserData = userDataPatcher.Patch("hostname", hostname).Encode()
 	if err := k.kube.Create(ctx, &createVolume); err != nil {
 		return v1alpha1.Volume{}, err
 	}
@@ -62,17 +64,20 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	return *kubeVolume, nil
 }
 
-var globalState = &substitution.GlobalState{}
+// one global state where to hold used ip addressed for substitutions for each statefulserverset
+var globalStateMap = make(map[string]substitution.GlobalState)
 
 func setPatcher(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex int, name string, kube client.Client) (*ccpatch.CloudInitPatcher, error) {
 	var userDataPatcher *ccpatch.CloudInitPatcher
 	var err error
 	userData := cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData
-
+	if _, ok := globalStateMap[cr.Name]; !ok {
+		globalStateMap[cr.Name] = substitution.GlobalState{}
+	}
 	if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
 		identifier := substitution.Identifier(name)
 		substitutions := extractSubstitutions(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions)
-		userDataPatcher, err = ccpatch.NewCloudInitPatcherWithSubstitutions(userData, identifier, substitutions, globalState)
+		userDataPatcher, err = ccpatch.NewCloudInitPatcherWithSubstitutions(userData, identifier, substitutions, ionoscloud.ToPtr(globalStateMap[cr.Name]))
 		if err != nil {
 			return userDataPatcher, fmt.Errorf("while creating cloud init patcher with substitutions for BootVolume %s %w", name, err)
 		}
@@ -226,4 +231,8 @@ func (k *kubeBootVolumeController) Ensure(ctx context.Context, cr *v1alpha1.Serv
 	k.log.Info("Finished ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
 
 	return nil
+}
+
+func init() {
+	globalStateMap = make(map[string]substitution.GlobalState)
 }

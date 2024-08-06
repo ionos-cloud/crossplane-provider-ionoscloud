@@ -35,6 +35,7 @@ import (
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 )
 
 const (
@@ -190,6 +191,18 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 			Status:       replicaStatus,
 			ErrorMessage: errMsg,
 			LastModified: metav1.Now(),
+		}
+		volumeVersion, _, _ := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), i)
+		for substIndex, subst := range cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions {
+			if stateMapVal, exists := globalStateMap[cr.Name]; exists {
+				val := stateMapVal.GetByIdentifier(substitution.Identifier(getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, i, volumeVersion)))[substIndex].Value
+				if val != "" {
+					if cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement == nil {
+						cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement = make(map[string]string)
+					}
+					cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement[subst.Key] = val
+				}
+			}
 		}
 	}
 }

@@ -113,6 +113,7 @@ type NicObservation struct {
 	State   string   `json:"state,omitempty"`
 	Mac     string   `json:"mac,omitempty"`
 	PCISlot int32    `json:"pciSlot,omitempty"`
+	Name    string   `json:"name,omitempty"`
 }
 
 // A NicSpec defines the desired state of a Nic.

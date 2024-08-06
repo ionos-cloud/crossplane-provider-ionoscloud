@@ -21,7 +21,7 @@ func ReplaceByState(identifier Identifier, globalState *GlobalState, target stri
 
 	states := globalState.GetByIdentifier(identifier)
 	for _, state := range states {
-		stateMap[state.Key] = "'" + state.Value + "'"
+		stateMap[state.Key] = state.Value
 	}
 
 	for k, v := range stateMap {

@@ -558,6 +558,10 @@ spec:
                   pciSlot:
                     format: int32
                     type: integer
+                  serverName:
+                    type: string
+                  size:
+                    type: number
                   state:
                     type: string
                   volumeId:

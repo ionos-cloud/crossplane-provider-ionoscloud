@@ -691,6 +691,8 @@ spec:
                     type: array
                   mac:
                     type: string
+                  name:
+                    type: string
                   nicId:
                     type: string
                   pciSlot:

@@ -143,8 +143,9 @@ type ServerSetReplicaStatus struct {
 	// +kubebuilder:validation:Enum=UNKNOWN;READY;ERROR;BUSY
 	Status string `json:"status"`
 	// ErrorMessage relayed from the backend.
-	ErrorMessage string      `json:"errorMessage,omitempty"`
-	LastModified metav1.Time `json:"lastModified,omitempty"`
+	ErrorMessage            string            `json:"errorMessage,omitempty"`
+	LastModified            metav1.Time       `json:"lastModified,omitempty"`
+	SubstitutionReplacement map[string]string `json:"substitutionReplacement,omitempty"`
 }
 
 // A ServerSetSpec defines the desired state of a ServerSet.

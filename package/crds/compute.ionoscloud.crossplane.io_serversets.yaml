@@ -739,6 +739,8 @@ spec:
                                     type: array
                                   mac:
                                     type: string
+                                  name:
+                                    type: string
                                   nicId:
                                     type: string
                                   pciSlot:
@@ -826,6 +828,10 @@ spec:
                           - ERROR
                           - BUSY
                           type: string
+                        substitutionReplacement:
+                          additionalProperties:
+                            type: string
+                          type: object
                       required:
                       - name
                       - replicaIndex
