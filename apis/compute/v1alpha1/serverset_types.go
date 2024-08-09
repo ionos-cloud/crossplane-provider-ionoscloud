@@ -63,7 +63,7 @@ type ServerSetTemplateSpec struct {
 	// available CPU architectures can be retrieved from the datacenter resource.
 	//
 	// +immutable
-	// +kubebuilder:validation:Enum=AMD_OPTERON;INTEL_SKYLAKE;INTEL_XEON
+	// +kubebuilder:validation:Enum=AMD_OPTERON;INTEL_SKYLAKE;INTEL_XEON;INTEL_ICELAKE
 	CPUFamily string `json:"cpuFamily,omitempty"`
 	// The total number of cores for the server.
 	//

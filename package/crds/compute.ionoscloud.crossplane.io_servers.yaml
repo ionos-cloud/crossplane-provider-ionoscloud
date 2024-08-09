@@ -115,6 +115,7 @@ spec:
                     - AMD_OPTERON
                     - INTEL_SKYLAKE
                     - INTEL_XEON
+                    - INTEL_ICELAKE
                     type: string
                   datacenterConfig:
                     description: |-
