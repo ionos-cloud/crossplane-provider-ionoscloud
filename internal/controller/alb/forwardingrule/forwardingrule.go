@@ -35,7 +35,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
-	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-postgres"
+	ionoscloud "github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/alb/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
@@ -158,7 +158,7 @@ func (c *externalForwardingRule) Create(ctx context.Context, mg resource.Managed
 	if meta.GetExternalName(cr) != "" {
 		return managed.ExternalCreation{}, nil
 	}
-	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == string(ionoscloud.STATE_BUSY) {
 		return managed.ExternalCreation{}, nil
 	}
 
@@ -212,7 +212,7 @@ func (c *externalForwardingRule) Update(ctx context.Context, mg resource.Managed
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotForwardingRule)
 	}
-	if cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == string(ionoscloud.STATE_BUSY) {
 		return managed.ExternalUpdate{}, nil
 	}
 	listenerIP, err := c.getIPSet(ctx, cr)
@@ -244,7 +244,7 @@ func (c *externalForwardingRule) Delete(ctx context.Context, mg resource.Managed
 		return errors.New(errNotForwardingRule)
 	}
 	cr.SetConditions(xpv1.Deleting())
-	if cr.Status.AtProvider.State == string(ionoscloud.DESTROYING) || cr.Status.AtProvider.State == string(ionoscloud.BUSY) {
+	if cr.Status.AtProvider.State == string(ionoscloud.STATE_DESTROYING) || cr.Status.AtProvider.State == string(ionoscloud.STATE_BUSY) {
 		return nil
 	}
 	apiResponse, err := c.service.DeleteForwardingRule(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,

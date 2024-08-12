@@ -6,6 +6,7 @@ description: Manages PostgresDatabase Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A PostgresDatabase is an example API type.
 * Resource Name: `PostgresDatabase`
 * Resource Group: `dbaas.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`

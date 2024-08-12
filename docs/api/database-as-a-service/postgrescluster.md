@@ -6,6 +6,7 @@ description: Manages PostgresCluster Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A PostgresCluster is an example API type.
 * Resource Name: `PostgresCluster`
 * Resource Group: `dbaas.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`
@@ -76,6 +77,12 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `backupLocation` (string)
 	* description: The S3 location where the backups will be stored.
 	* possible values: "de";"eu-south-2";"eu-central-2"
+* `connectionPooler` (object)
+	* description: ConnectionPooler Configuration options for the connection pooler
+	* properties:
+		* `enabled` (boolean)
+		* `poolMode` (string)
+			* description: PoolMode Represents different modes of connection pooling for the connection pooler.
 * `connections` (array)
 	* description: Connection - details about the network connection (datacenter, lan, CIDR) for your cluster.
 	* properties:

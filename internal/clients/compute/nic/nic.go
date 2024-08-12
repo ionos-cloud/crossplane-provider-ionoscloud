@@ -3,11 +3,11 @@ package nic
 import (
 	"context"
 	"fmt"
+	"net"
 	"reflect"
 
-	"github.com/rung/go-safecast"
-
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
+	"github.com/rung/go-safecast"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
@@ -168,7 +168,13 @@ func GenerateUpdateNicInput(cr *v1alpha1.Nic, ips []string) (*sdkgo.NicPropertie
 		instanceUpdateInput.SetName(cr.Spec.ForProvider.Name)
 	}
 	if len(ips) > 0 {
-		instanceUpdateInput.SetIps(ips)
+		ipv4s, ipv6s := GetIPvSlices(ips)
+		if len(ipv4s) > 0 {
+			instanceUpdateInput.SetIps(ips)
+		}
+		if len(ipv6s) > 0 {
+			instanceUpdateInput.SetIpv6Ips(ips)
+		}
 	}
 	if cr.Spec.ForProvider.FirewallType != "" {
 		instanceUpdateInput.SetFirewallType(cr.Spec.ForProvider.FirewallType)
@@ -182,6 +188,13 @@ func GenerateUpdateNicInput(cr *v1alpha1.Nic, ips []string) (*sdkgo.NicPropertie
 
 // IsNicUpToDate returns true if the Nic is up-to-date or false if it does not
 func IsNicUpToDate(cr *v1alpha1.Nic, nic sdkgo.Nic, ips []string) bool { // nolint:gocyclo
+	var ipv4s []string
+	var ipv6s []string
+
+	if len(ips) > 0 {
+		ipv4s, ipv6s = GetIPvSlices(ips)
+	}
+
 	switch {
 	case cr == nil && nic.Properties == nil:
 		return true
@@ -205,9 +218,29 @@ func IsNicUpToDate(cr *v1alpha1.Nic, nic sdkgo.Nic, ips []string) bool { // noli
 		return false
 	case nic.Properties.Vnet != nil && *nic.Properties.Vnet != cr.Spec.ForProvider.Vnet:
 		return false
-	case len(ips) != 0 && nic.Properties.HasIps() && !utils.ContainsStringSlices(ips, *nic.Properties.Ips):
+	case len(ipv4s) != 0 && nic.Properties.HasIps() && !utils.ContainsStringSlices(ipv4s, *nic.Properties.Ips):
+		return false
+	case len(ipv6s) != 0 && nic.Properties.HasIpv6Ips() && !utils.ContainsStringSlices(ipv6s, *nic.Properties.Ipv6Ips):
 		return false
 	default:
 		return true
 	}
+}
+
+// GetIPvSlices splits ips into ipv4 / ipv6 slices
+func GetIPvSlices(ips []string) (ipv4s []string, ipv6s []string) {
+	for _, ip := range ips {
+		parsedIP := net.ParseIP(ip)
+		if parsedIP == nil {
+			continue
+		}
+
+		if parsedIP.To4() != nil {
+			ipv4s = append(ipv4s, ip)
+		} else {
+			ipv6s = append(ipv6s, ip)
+		}
+	}
+
+	return ipv4s, ipv6s
 }

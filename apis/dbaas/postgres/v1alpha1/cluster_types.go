@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"reflect"
 
+	ionoscloud "github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -102,6 +103,9 @@ type ClusterParameters struct {
 	SynchronizationMode string `json:"synchronizationMode"`
 	// +kubebuilder:validation:Optional
 	FromBackup CreateRestoreRequest `json:"fromBackup,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	ConnectionPooler ConnectionPooler `json:"connectionPooler,omitempty"`
 }
 
 // Connection Details about the network connection for your cluster.
@@ -125,6 +129,13 @@ type MaintenanceWindow struct {
 	Time string `json:"time,omitempty"`
 	// DayOfTheWeek The name of the week day.
 	DayOfTheWeek string `json:"dayOfTheWeek,omitempty"`
+}
+
+// ConnectionPooler Configuration options for the connection pooler
+type ConnectionPooler struct {
+	Enabled bool `json:"enabled,omitempty"`
+	// PoolMode Represents different modes of connection pooling for the connection pooler.
+	PoolMode ionoscloud.PoolMode `json:"poolMode,omitempty"`
 }
 
 // DBUser Credentials for the database user to be created.

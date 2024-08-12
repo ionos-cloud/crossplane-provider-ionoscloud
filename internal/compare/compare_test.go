@@ -3,12 +3,13 @@ package compare
 import (
 	"testing"
 
+	"github.com/ionos-cloud/sdk-go-bundle/shared"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
 
-	ionosdbaas "github.com/ionos-cloud/sdk-go-dbaas-postgres"
+	ionosdbaas "github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2"
 
 	dbaasv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/postgres/v1alpha1"
 )
@@ -43,7 +44,7 @@ func TestEqualString(t *testing.T) {
 			name: "non-empty observed, non-empty target",
 			args: args{
 				targetValue:   "foo",
-				observedValue: PointerString("foo"),
+				observedValue: shared.ToPtr("foo"),
 			},
 			want: true,
 		},
@@ -51,7 +52,7 @@ func TestEqualString(t *testing.T) {
 			name: "non-empty observed, empty target",
 			args: args{
 				targetValue:   "",
-				observedValue: PointerString("foo"),
+				observedValue: shared.ToPtr("foo"),
 			},
 			want: false,
 		},
@@ -59,7 +60,7 @@ func TestEqualString(t *testing.T) {
 			name: "empty observed, empty target",
 			args: args{
 				targetValue:   "",
-				observedValue: PointerString(""),
+				observedValue: shared.ToPtr(""),
 			},
 			want: true,
 		},
@@ -95,8 +96,8 @@ func TestEqualKubernetesMaintenanceWindow(t *testing.T) {
 			args: args{
 				targetValue: v1alpha1.MaintenanceWindow{},
 				observedValue: &ionoscloud.KubernetesMaintenanceWindow{
-					DayOfTheWeek: PointerString("foo"),
-					Time:         PointerString("13:00:44"),
+					DayOfTheWeek: shared.ToPtr("foo"),
+					Time:         shared.ToPtr("13:00:44"),
 				},
 			},
 			want: false,
@@ -109,8 +110,8 @@ func TestEqualKubernetesMaintenanceWindow(t *testing.T) {
 					Time:         "13:00:44",
 				},
 				observedValue: &ionoscloud.KubernetesMaintenanceWindow{
-					DayOfTheWeek: PointerString("foo"),
-					Time:         PointerString("13:32:44Z"),
+					DayOfTheWeek: shared.ToPtr("foo"),
+					Time:         shared.ToPtr("13:32:44Z"),
 				},
 			},
 			want: false,
@@ -123,8 +124,8 @@ func TestEqualKubernetesMaintenanceWindow(t *testing.T) {
 					Time:         "13:00:44",
 				},
 				observedValue: &ionoscloud.KubernetesMaintenanceWindow{
-					DayOfTheWeek: PointerString("foo"),
-					Time:         PointerString("13:00:44Z"),
+					DayOfTheWeek: shared.ToPtr("foo"),
+					Time:         shared.ToPtr("13:00:44Z"),
 				},
 			},
 			want: true,
@@ -160,8 +161,8 @@ func TestEqualDatabaseMaintenanceWindow(t *testing.T) {
 			args: args{
 				targetValue: dbaasv1alpha1.MaintenanceWindow{},
 				observedValue: &ionosdbaas.MaintenanceWindow{
-					DayOfTheWeek: PointerDayOfTheWeek("foo"),
-					Time:         PointerString("13:00:44"),
+					DayOfTheWeek: "foo",
+					Time:         "13:00:44",
 				},
 			},
 			want: false,
@@ -174,8 +175,8 @@ func TestEqualDatabaseMaintenanceWindow(t *testing.T) {
 					Time:         "13:00:44",
 				},
 				observedValue: &ionosdbaas.MaintenanceWindow{
-					DayOfTheWeek: PointerDayOfTheWeek("foo"),
-					Time:         PointerString("13:32:44Z"),
+					DayOfTheWeek: "foo",
+					Time:         "13:32:44Z",
 				},
 			},
 			want: false,
@@ -188,8 +189,8 @@ func TestEqualDatabaseMaintenanceWindow(t *testing.T) {
 					Time:         "13:00:44",
 				},
 				observedValue: &ionosdbaas.MaintenanceWindow{
-					DayOfTheWeek: PointerDayOfTheWeek("foo"),
-					Time:         PointerString("13:00:44Z"),
+					DayOfTheWeek: "foo",
+					Time:         "13:00:44Z",
 				},
 			},
 			want: true,
@@ -202,8 +203,7 @@ func TestEqualDatabaseMaintenanceWindow(t *testing.T) {
 					Time:         "13:00:44",
 				},
 				observedValue: &ionosdbaas.MaintenanceWindow{
-					DayOfTheWeek: nil,
-					Time:         PointerString("13:00:44Z"),
+					Time: "13:00:44Z",
 				},
 			},
 			want: false,
@@ -246,7 +246,7 @@ func TestEqualTimeString(t *testing.T) {
 			name: "both values equal",
 			args: args{
 				targetValue:   "13:00:44Z",
-				observedValue: PointerString("13:00:44Z"),
+				observedValue: shared.ToPtr("13:00:44Z"),
 			},
 			want: true,
 		},
@@ -254,7 +254,7 @@ func TestEqualTimeString(t *testing.T) {
 			name: "both values equal, missing Z",
 			args: args{
 				targetValue:   "13:00:44",
-				observedValue: PointerString("13:00:44Z"),
+				observedValue: shared.ToPtr("13:00:44Z"),
 			},
 			want: true,
 		},
@@ -262,7 +262,7 @@ func TestEqualTimeString(t *testing.T) {
 			name: "unparseable target value",
 			args: args{
 				targetValue:   "13:00:44:44:333",
-				observedValue: PointerString("13:00:44Z"),
+				observedValue: shared.ToPtr("13:00:44Z"),
 			},
 			want: false,
 		},
@@ -270,7 +270,7 @@ func TestEqualTimeString(t *testing.T) {
 			name: "unparseable observedValue value",
 			args: args{
 				targetValue:   "13:00:44Z",
-				observedValue: PointerString("13:00:44:44:333"),
+				observedValue: shared.ToPtr("13:00:44:44:333"),
 			},
 			want: false,
 		},
@@ -284,11 +284,145 @@ func TestEqualTimeString(t *testing.T) {
 	}
 }
 
-func PointerString(in string) *string {
-	return &in
-}
-
-func PointerDayOfTheWeek(in string) *ionosdbaas.DayOfTheWeek {
-	ret := ionosdbaas.DayOfTheWeek(in)
-	return &ret
+func TestEqualConnections(t *testing.T) {
+	type args struct {
+		targetValue   []dbaasv1alpha1.Connection
+		observedValue []ionosdbaas.Connection
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "empty observed, empty target",
+			args: args{
+				targetValue:   []dbaasv1alpha1.Connection{},
+				observedValue: []ionosdbaas.Connection{},
+			},
+			want: true,
+		},
+		{
+			name: "empty observed, non-empty target",
+			args: args{
+				targetValue: []dbaasv1alpha1.Connection{
+					{
+						DatacenterCfg: dbaasv1alpha1.DatacenterConfig{},
+						LanCfg: dbaasv1alpha1.LanConfig{
+							LanID: "test",
+						},
+						Cidr: "test",
+					},
+				},
+				observedValue: []ionosdbaas.Connection{},
+			},
+			want: false,
+		},
+		// equal true test
+		{
+			name: "equal connections",
+			args: args{
+				targetValue: []dbaasv1alpha1.Connection{
+					{
+						DatacenterCfg: dbaasv1alpha1.DatacenterConfig{
+							DatacenterID: "test",
+						},
+						LanCfg: dbaasv1alpha1.LanConfig{
+							LanID: "test",
+						},
+						Cidr: "test",
+					},
+				},
+				observedValue: []ionosdbaas.Connection{
+					{
+						DatacenterId: "test",
+						LanId:        "test",
+						Cidr:         "test",
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "multiple equal connections",
+			args: args{
+				targetValue: []dbaasv1alpha1.Connection{
+					{
+						DatacenterCfg: dbaasv1alpha1.DatacenterConfig{
+							DatacenterID: "test",
+						},
+						LanCfg: dbaasv1alpha1.LanConfig{
+							LanID: "test",
+						},
+						Cidr: "test",
+					},
+					{
+						DatacenterCfg: dbaasv1alpha1.DatacenterConfig{
+							DatacenterID: "test2",
+						},
+						LanCfg: dbaasv1alpha1.LanConfig{
+							LanID: "test2",
+						},
+						Cidr: "test2",
+					},
+				},
+				observedValue: []ionosdbaas.Connection{
+					{
+						DatacenterId: "test",
+						LanId:        "test",
+						Cidr:         "test",
+					},
+					{
+						DatacenterId: "test2",
+						LanId:        "test2",
+						Cidr:         "test2",
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "multiple not equal connections",
+			args: args{
+				targetValue: []dbaasv1alpha1.Connection{
+					{
+						DatacenterCfg: dbaasv1alpha1.DatacenterConfig{
+							DatacenterID: "test",
+						},
+						LanCfg: dbaasv1alpha1.LanConfig{
+							LanID: "test",
+						},
+						Cidr: "test",
+					},
+					{
+						DatacenterCfg: dbaasv1alpha1.DatacenterConfig{
+							DatacenterID: "test3",
+						},
+						LanCfg: dbaasv1alpha1.LanConfig{
+							LanID: "test2",
+						},
+						Cidr: "test2",
+					},
+				},
+				observedValue: []ionosdbaas.Connection{
+					{
+						DatacenterId: "test",
+						LanId:        "test",
+						Cidr:         "test",
+					},
+					{
+						DatacenterId: "test2",
+						LanId:        "test2",
+						Cidr:         "test2",
+					},
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, EqualConnections(tt.args.targetValue, tt.args.observedValue), "EqualConnections(%v, %v)", tt.args.targetValue, tt.args.observedValue)
+		})
+	}
 }

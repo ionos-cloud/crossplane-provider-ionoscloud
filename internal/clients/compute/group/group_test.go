@@ -3,9 +3,9 @@ package group
 import (
 	"testing"
 
+	"github.com/ionos-cloud/sdk-go-bundle/shared"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	psql "github.com/ionos-cloud/sdk-go-dbaas-postgres"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
@@ -194,7 +194,7 @@ func TestIsGroupUpToDate(t *testing.T) {
 			name: "cr empty",
 			args: args{
 				cr:    nil,
-				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{Name: psql.ToPtr("meow")}},
+				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{Name: shared.ToPtr("meow")}},
 			},
 			want: false,
 		},
@@ -227,11 +227,11 @@ func TestIsGroupUpToDate(t *testing.T) {
 					},
 				},
 				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{
-					Name:                 psql.ToPtr("foo"),
-					CreateDataCenter:     psql.ToPtr(true),
-					CreateInternetAccess: psql.ToPtr(true),
-					ReserveIp:            psql.ToPtr(true),
-					CreateK8sCluster:     psql.ToPtr(true),
+					Name:                 shared.ToPtr("foo"),
+					CreateDataCenter:     shared.ToPtr(true),
+					CreateInternetAccess: shared.ToPtr(true),
+					ReserveIp:            shared.ToPtr(true),
+					CreateK8sCluster:     shared.ToPtr(true),
 				},
 				},
 			},
@@ -252,11 +252,11 @@ func TestIsGroupUpToDate(t *testing.T) {
 					},
 				},
 				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{
-					Name:                 psql.ToPtr("foo"),
-					CreateDataCenter:     psql.ToPtr(true),
-					CreateInternetAccess: psql.ToPtr(true),
-					ReserveIp:            psql.ToPtr(true),
-					CreateK8sCluster:     psql.ToPtr(false),
+					Name:                 shared.ToPtr("foo"),
+					CreateDataCenter:     shared.ToPtr(true),
+					CreateInternetAccess: shared.ToPtr(true),
+					ReserveIp:            shared.ToPtr(true),
+					CreateK8sCluster:     shared.ToPtr(false),
 				},
 				},
 			},
@@ -305,11 +305,11 @@ func TestIsGroupUpToDate(t *testing.T) {
 					},
 				},
 				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{
-					Name:                 psql.ToPtr("foo"),
-					CreateDataCenter:     psql.ToPtr(true),
-					CreateInternetAccess: psql.ToPtr(true),
-					ReserveIp:            psql.ToPtr(true),
-					CreateK8sCluster:     psql.ToPtr(true),
+					Name:                 shared.ToPtr("foo"),
+					CreateDataCenter:     shared.ToPtr(true),
+					CreateInternetAccess: shared.ToPtr(true),
+					ReserveIp:            shared.ToPtr(true),
+					CreateK8sCluster:     shared.ToPtr(true),
 				},
 				},
 			},
@@ -340,7 +340,7 @@ func TestIsGroupUpToDate(t *testing.T) {
 					},
 				},
 				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{
-					Name: psql.ToPtr("meow")},
+					Name: shared.ToPtr("meow")},
 				},
 			},
 			want: false,
@@ -371,7 +371,7 @@ func TestIsGroupUpToDate(t *testing.T) {
 					},
 				},
 				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{
-					Name: psql.ToPtr("meow")},
+					Name: shared.ToPtr("meow")},
 				},
 			},
 			want: false,

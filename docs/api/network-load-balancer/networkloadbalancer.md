@@ -6,6 +6,7 @@ description: Manages NetworkLoadBalancer Resource on IONOS Cloud.
 
 ## Overview
 
+* Description: A NetworkLoadBalancer is an example API type.
 * Resource Name: `NetworkLoadBalancer`
 * Resource Group: `nlb.ionoscloud.crossplane.io`
 * Resource Version: `v1alpha1`
