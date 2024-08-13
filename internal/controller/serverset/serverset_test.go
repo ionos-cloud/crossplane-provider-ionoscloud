@@ -1440,22 +1440,22 @@ func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_c
 // 	}
 // }
 
-func fakeKubeClientDeleteAllOfMethod() client.Client {
-	kubeClient := kubeClientFake{}
-	kubeClient.On("Delete",
-		mock.Anything,
-		mock.Anything,
-		[]client.DeleteOption{},
-	).Return(nil)
-	return &kubeClient
-}
+// func fakeKubeClientDeleteAllOfMethod() client.Client {
+// 	kubeClient := kubeClientFake{}
+// 	kubeClient.On("Delete",
+// 		mock.Anything,
+// 		mock.Anything,
+// 		[]client.DeleteOption{},
+// 	).Return(nil)
+// 	return &kubeClient
+// }
 
-func fakeKubeClientDeleteAllOfMethodReturnError(typeWhenToReturnErr crType) client.Client {
-	kubeClient := fakeKubeClientDeleteAllOfMethod()
-	kubeClient.(*kubeClientFake).crShouldReturnErr = make(map[crType]bool)
-	kubeClient.(*kubeClientFake).crShouldReturnErr[typeWhenToReturnErr] = true
-	return kubeClient
-}
+// func fakeKubeClientDeleteAllOfMethodReturnError(typeWhenToReturnErr crType) client.Client {
+// 	kubeClient := fakeKubeClientDeleteAllOfMethod()
+// 	kubeClient.(*kubeClientFake).crShouldReturnErr = make(map[crType]bool)
+// 	kubeClient.(*kubeClientFake).crShouldReturnErr[typeWhenToReturnErr] = true
+// 	return kubeClient
+// }
 
 func fakeKubeClientUpdateMethodReturnsError() client.Client {
 	kubeClient := kubeClientFake{
