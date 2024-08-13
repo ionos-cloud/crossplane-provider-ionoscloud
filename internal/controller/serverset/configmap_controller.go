@@ -3,6 +3,7 @@ package serverset
 import (
 	"context"
 	"maps"
+	"strconv"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	v1 "k8s.io/api/core/v1"
@@ -13,64 +14,71 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
-// substConfigMap is used to store the substitutions
-var substConfigMap substitutionConfigMap
-
-func init() {
-	substConfigMap = substitutionConfigMap{
-		identities: make(map[string]string),
-		// will be replaced with serverset name
-		name:      "",
-		namespace: "default",
-	}
-}
-
 type kubeConfigmapControlManager interface {
 	Get(ctx context.Context, name, ns string) (*v1.ConfigMap, error)
-	Delete(ctx context.Context, name, namespace string) error
+	Delete(ctx context.Context) error
 	CreateOrUpdate(ctx context.Context) error
+	SetSubstitutionConfigMap(name, namespace string)
+	SetIdentity(key, val string)
+	FetchSubstitutionFromMap(ctx context.Context, key string, replicaIndex, version int) string
 }
 
 // kubeConfigmapController - kubernetes client wrapper  for server resources
 type kubeConfigmapController struct {
-	kube       client.Client
-	log        logging.Logger
-	wasDeleted bool
+	kube           client.Client
+	log            logging.Logger
+	substConfigMap substitutionConfig
 }
 
-// CreateOrUpdate - creates a config map if is doesn't exist
-func (k *kubeConfigmapController) CreateOrUpdate(ctx context.Context) error {
-	// we want to make sure the configmap was not deleted
-	if k.wasDeleted {
-		return nil
+func (k *kubeConfigmapController) SetIdentity(key, val string) {
+	k.substConfigMap.identities[key] = val
+}
+func (k *kubeConfigmapController) SetSubstitutionConfigMap(name, namespace string) {
+	if k.substConfigMap.name == "" {
+		k.substConfigMap.name = name
+		k.substConfigMap.namespace = namespace
+		k.substConfigMap.identities = make(map[string]string)
 	}
+}
+
+func (k *kubeConfigmapController) FetchSubstitutionFromMap(ctx context.Context, key string, replicaIndex, version int) string {
+	substMap := &v1.ConfigMap{}
+	err := k.kube.Get(ctx, client.ObjectKey{Namespace: k.substConfigMap.namespace, Name: k.substConfigMap.name}, substMap)
+	if err != nil {
+		k.log.Info("Error fetching configmap", "error", err)
+		return ""
+	}
+	return substMap.Data[strconv.Itoa(replicaIndex)+"."+strconv.Itoa(version)+"."+key]
+}
+
+// CreateOrUpdate - creates a config map if it doesn't exist
+func (k *kubeConfigmapController) CreateOrUpdate(ctx context.Context) error {
 	cfgMap := &v1.ConfigMap{}
-	err := k.kube.Get(ctx, client.ObjectKey{Namespace: substConfigMap.namespace, Name: substConfigMap.name}, cfgMap)
+	err := k.kube.Get(ctx, client.ObjectKey{Namespace: k.substConfigMap.namespace, Name: k.substConfigMap.name}, cfgMap)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			cfgMap = &v1.ConfigMap{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      substConfigMap.name,
-					Namespace: substConfigMap.namespace,
+					Name:      k.substConfigMap.name,
+					Namespace: k.substConfigMap.namespace,
 				},
-				Data: substConfigMap.identities,
+				Data: k.substConfigMap.identities,
 			}
-			k.log.Info("Creating ConfigMap", "name", substConfigMap.name, "identities", substConfigMap.identities)
+			k.log.Info("Creating ConfigMap", "name", k.substConfigMap.name, "identities", k.substConfigMap.identities)
 			return k.kube.Create(ctx, cfgMap)
 		}
 	} else {
-		// time for an update
-		if len(substConfigMap.identities) > 0 && !maps.Equal(substConfigMap.identities, cfgMap.Data) && len(substConfigMap.identities) > len(cfgMap.Data) {
+		if len(k.substConfigMap.identities) > 0 && !maps.Equal(k.substConfigMap.identities, cfgMap.Data) {
 			cfgMap = &v1.ConfigMap{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      substConfigMap.name,
-					Namespace: substConfigMap.namespace,
+					Name:      k.substConfigMap.name,
+					Namespace: k.substConfigMap.namespace,
 				},
-				Data: substConfigMap.identities,
+				Data: k.substConfigMap.identities,
 			}
-			k.log.Info("Updating ConfigMap", "name", substConfigMap.name, "identities", substConfigMap.identities)
+			k.log.Info("Updating ConfigMap", "name", k.substConfigMap.name, "identities", k.substConfigMap.identities)
 			return k.kube.Update(ctx, cfgMap)
 		}
 	}
@@ -83,18 +91,17 @@ func (k *kubeConfigmapController) Get(ctx context.Context, name, ns string) (*v1
 	return cfgMap, err
 }
 
-func (k *kubeConfigmapController) Delete(ctx context.Context, name, namespace string) error {
+func (k *kubeConfigmapController) Delete(ctx context.Context) error {
 	cfgMap := &v1.ConfigMap{}
-	err := k.kube.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, cfgMap)
+	err := k.kube.Get(ctx, client.ObjectKey{Namespace: k.substConfigMap.namespace, Name: k.substConfigMap.name}, cfgMap)
 	if err != nil {
 		return err
 	}
-	k.log.Info("Deleting ConfigMap", "name", name)
+	k.log.Info("Deleting ConfigMap", "name", k.substConfigMap.name)
 	if err := k.kube.Delete(ctx, cfgMap); err != nil {
 		return err
 	}
-	k.wasDeleted = true
-	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isDeleted, substConfigMap.name, substConfigMap.namespace)
+	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isDeleted, k.substConfigMap.name, k.substConfigMap.namespace)
 
 }
 

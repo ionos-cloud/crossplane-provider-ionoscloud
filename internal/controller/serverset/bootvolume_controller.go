@@ -29,8 +29,9 @@ type kubeBootVolumeControlManager interface {
 
 // kubeBootVolumeController - kubernetes client wrapper  for server resources
 type kubeBootVolumeController struct {
-	kube client.Client
-	log  logging.Logger
+	kube          client.Client
+	log           logging.Logger
+	mapController kubeConfigmapControlManager
 }
 
 // Create creates a volume CR and waits until in reaches AVAILABLE state
@@ -40,7 +41,7 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	k.log.Info("Creating BootVolume", "name", name)
 	var userDataPatcher *ccpatch.CloudInitPatcher
 	var err error
-	userDataPatcher, err = setPatcher(ctx, cr, replicaIndex, name, k.kube)
+	userDataPatcher, err = k.setPatcher(ctx, cr, replicaIndex, version, name, k.kube)
 	if err != nil {
 		return v1alpha1.Volume{}, err
 	}
@@ -67,7 +68,7 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 // one global state where to hold used ip addressed for substitutions for each statefulserverset
 var globalStateMap = make(map[string]substitution.GlobalState)
 
-func setPatcher(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex int, name string, kube client.Client) (*ccpatch.CloudInitPatcher, error) {
+func (k *kubeBootVolumeController) setPatcher(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int, name string, kube client.Client) (*ccpatch.CloudInitPatcher, error) {
 	var userDataPatcher *ccpatch.CloudInitPatcher
 	var err error
 	userData := cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData
@@ -81,7 +82,24 @@ func setPatcher(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex int, n
 		if err != nil {
 			return userDataPatcher, fmt.Errorf("while creating cloud init patcher with substitutions for BootVolume %s %w", name, err)
 		}
-
+		namespace := "default"
+		if cr.Spec.ForProvider.IdentityConfigMap.Namespace != "" {
+			namespace = cr.Spec.ForProvider.IdentityConfigMap.Namespace
+		}
+		k.mapController.SetSubstitutionConfigMap(cr.Name, namespace)
+		for substIndex, subst := range substitutions {
+			if stateMapVal, exists := globalStateMap[cr.Name]; exists {
+				stateSlice := stateMapVal.GetByIdentifier(identifier)
+				if len(stateSlice) > 0 && substIndex <= len(stateSlice)-1 {
+					val := stateSlice[substIndex].Value
+					k.mapController.SetIdentity(strconv.Itoa(replicaIndex)+"."+strconv.Itoa(version)+"."+subst.Key, val)
+				}
+			}
+		}
+		err := k.mapController.CreateOrUpdate(ctx)
+		if err != nil {
+			k.log.Info("while writing to substConfig map", "error", err)
+		}
 	} else {
 		userDataPatcher, err = ccpatch.NewCloudInitPatcher(userData)
 		if err != nil {
