@@ -202,33 +202,6 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 		// for nfs we need to store substitutions in a configmap(created when the bootvolumes are created) and display them in the status
 		if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
 			e.setSubstitutions(ctx, cr, i)
-			// volumeVersion, _, _ := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), i)
-			// for _, subst := range cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions {
-			//
-			// 	// re-initialize in case of reboot
-			// 	if cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement == nil {
-			// 		cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement = make(map[string]string)
-			// 	}
-			// 	namespace := "default"
-			// 	if cr.Spec.ForProvider.IdentityConfigMap.Namespace != "" {
-			// 		namespace = cr.Spec.ForProvider.IdentityConfigMap.Namespace
-			// 	}
-			// 	e.configMapController.SetSubstitutionConfigMap(cr.Name, namespace)
-			// 	value := e.configMapController.FetchSubstitutionFromMap(ctx, subst.Key, i, volumeVersion)
-			// 	if value != "" {
-			// 		cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement[subst.Key] = value
-			// 		identifier := substitution.Identifier(getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, i, volumeVersion))
-			// 		if _, ok := globalStateMap[cr.Name]; !ok {
-			// 			globalStateMap[cr.Name] = substitution.GlobalState{}
-			// 		}
-			// 		if !globalStateMap[cr.Name].Exists(identifier, subst.Key) {
-			// 			globalStateMap[cr.Name].Set(identifier, subst.Key, value)
-			// 			e.log.Info("substitution value updated in global state", "serverset name", cr.Name, "for key", subst.Key, "and value", value)
-			// 		}
-			// 	} else {
-			// 		e.log.Info("substitution value not found", "serverset name", cr.Name, "for key", subst.Key)
-			// 	}
-			// }
 		}
 	}
 	cr.Status.AtProvider.Replicas = len(serverSetReplicas)
