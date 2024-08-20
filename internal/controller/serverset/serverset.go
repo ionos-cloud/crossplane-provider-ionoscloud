@@ -223,7 +223,7 @@ func (e *external) setSubstitutions(ctx context.Context, cr *v1alpha1.ServerSet,
 			}
 			e.configMapController.SetSubstitutionConfigMap(cr.Name, namespace)
 
-			value := e.configMapController.FetchSubstitutionFromMap(ctx, subst.Key, replicaIndex, volumeVersion)
+			value := e.configMapController.FetchSubstitutionFromMap(ctx, cr.Name, subst.Key, replicaIndex, volumeVersion)
 			if value != "" {
 				cr.Status.AtProvider.ReplicaStatuses[replicaIndex].SubstitutionReplacement[subst.Key] = value
 				identifier := substitution.Identifier(getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion))
@@ -321,7 +321,7 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	// for n times of cr.Spec.Replicas, create a server
 	// for each server, create a volume
-	e.log.Info("Creating a new ServerSet", "replicas", cr.Spec.ForProvider.Replicas)
+	e.log.Info("Creating a new ServerSet", "name", cr.Name, "replicas", cr.Spec.ForProvider.Replicas)
 	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
 		volumeVersion, serverVersion, err := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), i)
 		if err != nil && !errors.Is(err, errNoVolumesFound) {
@@ -518,6 +518,7 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	if !ok {
 		return errors.New(errUnexpectedObject)
 	}
+	e.log.Info("Deleting the ServerSet", "name", cr.Name)
 	cr.SetConditions(xpv1.Deleting())
 	meta.SetExternalName(cr, "")
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
@@ -540,9 +541,12 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 
 	e.log.Info("Deleting the substitution configmap", "name", cr.Name)
 	globalStateMap[cr.Name] = substitution.GlobalState{}
-	if err := e.configMapController.Delete(ctx); err != nil {
+	delete(globalStateMap, cr.Name)
+	if err := e.configMapController.Delete(ctx, cr.Name); err != nil {
 		return err
 	}
+	e.log.Info("Finished deleting the ServerSet", "name", cr.Name)
+
 	return nil
 }
 

@@ -92,11 +92,11 @@ func (k *kubeBootVolumeController) setPatcher(ctx context.Context, cr *v1alpha1.
 				stateSlice := stateMapVal.GetByIdentifier(identifier)
 				if len(stateSlice) > 0 && substIndex <= len(stateSlice)-1 {
 					val := stateSlice[substIndex].Value
-					k.mapController.SetIdentity(strconv.Itoa(replicaIndex)+"."+strconv.Itoa(version)+"."+subst.Key, val)
+					k.mapController.SetIdentity(cr.Name, strconv.Itoa(replicaIndex)+"."+strconv.Itoa(version)+"."+subst.Key, val)
 				}
 			}
 		}
-		err := k.mapController.CreateOrUpdate(ctx)
+		err := k.mapController.CreateOrUpdate(ctx, cr.Name)
 		if err != nil {
 			k.log.Info("while writing to substConfig map", "error", err)
 		}
