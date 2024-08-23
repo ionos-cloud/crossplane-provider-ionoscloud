@@ -105,7 +105,11 @@ spec:
         userData: "" #cloud-config
         imagePassword: "thisshouldbesecret"
         substitutions:
-
+          - options:
+              cidr: "fd1d:15db:cf64:1337::/64"
+            key: __ipv6Address
+            type: ipv6Address
+            unique: true
           - options:
               cidr: "192.168.42.0/24"
             key: ipv4Address
