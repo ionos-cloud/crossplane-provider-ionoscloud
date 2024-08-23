@@ -479,10 +479,6 @@ spec:
                             description: |-
                               CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions;
                               available CPU architectures can be retrieved from the datacenter resource.
-                            enum:
-                            - AMD_OPTERON
-                            - INTEL_SKYLAKE
-                            - INTEL_XEON
                             type: string
                           nics:
                             description: NICs are the network interfaces of the server.
