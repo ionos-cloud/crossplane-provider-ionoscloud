@@ -201,7 +201,7 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 		}
 		// for nfs we need to store substitutions in a configmap(created when the bootvolumes are created) and display them in the status
 		if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
-			e.setSubstitutions(ctx, cr, i)
+			e.setSubstitutions(ctx, cr, replicaIdx)
 		}
 	}
 	cr.Status.AtProvider.Replicas = len(serverSetReplicas)
@@ -479,6 +479,8 @@ func (e *external) updateByIndex(ctx context.Context, idx int, cr *v1alpha1.Serv
 	if err != nil {
 		return err
 	}
+	// reset globalstate before updating so we get the same ips
+	// globalStateMap[cr.Name] = substitution.GlobalState{}
 	updater := e.getUpdaterByStrategy(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UpdateStrategy.Stype)
 	return updater.update(ctx, cr, idx, volumeVersion, serverVersion)
 }
