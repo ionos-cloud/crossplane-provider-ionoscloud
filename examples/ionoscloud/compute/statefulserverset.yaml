@@ -29,7 +29,7 @@ spec:
       metadata:
         name: server-name
       spec:
-        cpuFamily: AMD_OPTERON
+        cpuFamily: INTEL_XEON
         cores: 1
         ram: 1024 # (32*storageTB)
         nics:
@@ -49,12 +49,24 @@ spec:
           name: boot-volume
       spec:
         updateStrategy:
-          type: "createAllBeforeDestroy" # createBeforeDestroyBootVolume createAllBeforeDestroy
+          type: "createBeforeDestroyBootVolume" # createBeforeDestroyBootVolume createAllBeforeDestroy
         image: "28d0fa34-927f-11ee-8008-6202af74e858"
         size: 10
-        type: HDD
+        type: SSD
         userData: "" #cloud-config
         imagePassword: "thisshouldwork11"
+        substitutions:
+          - options:
+              cidr: "fd1d:15db:cf64:1337::/64"
+            key: __ipv6Address
+            type: ipv6Address
+            unique: true
+          - options:
+              cidr: "192.168.42.0/24"
+            key: ipv4Address
+            type: ipv4Address
+            unique: true
+
     lans:
       # Three LANs are defined - an internal one (data) with IPv6 enabled and DHCP disabled for DRBD + VRRP traffic,
       # a management network for connectivity to K8S and management as well as
@@ -77,11 +89,6 @@ spec:
     volumes:
       - metadata:
           name: storage-disk
-        spec:
-          size: 10
-          type: SSD
-      - metadata:
-          name: storage-disk-extend-1
         spec:
           size: 10
           type: SSD

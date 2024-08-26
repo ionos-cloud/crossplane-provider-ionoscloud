@@ -20,6 +20,7 @@ type kubeSSetControlManager interface {
 	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error
 	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.ServerSet, error)
 	Get(ctx context.Context, ssetName, ns string) (*v1alpha1.ServerSet, error)
+	Delete(ctx context.Context, name, namespace string) error
 }
 
 // kubeServerSetController - kubernetes client wrapper for server set resources
@@ -114,7 +115,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 			return err
 		}
 		if err = kube.WaitForResource(ctx, kube.ServerSetReadyTimeout, k.isAvailable, SSetName, cr.Namespace); err != nil {
-			_ = k.delete(ctx, SSetName, cr.Namespace)
+			_ = k.Delete(ctx, SSetName, cr.Namespace)
 			return err
 		}
 	case err != nil:
@@ -165,8 +166,8 @@ func getSSetName(cr *v1alpha1.StatefulServerSet) string {
 	return cr.Spec.ForProvider.Template.Metadata.Name
 }
 
-// delete - deletes the serverset k8s object and waits until it is deleted
-func (k *kubeServerSetController) delete(ctx context.Context, name, namespace string) error {
+// Delete - deletes the serverset k8s object and waits until it is deleted
+func (k *kubeServerSetController) Delete(ctx context.Context, name, namespace string) error {
 	serverset, err := k.Get(ctx, name, namespace)
 	if err != nil {
 		return err

@@ -17,6 +17,10 @@ import (
 func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.ServerSetGroupKind)
 	logger := opts.CtrlOpts.Logger
+	mapController := kubeConfigmapController{
+		kube: mgr.GetClient(),
+		log:  logger,
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
@@ -26,10 +30,12 @@ func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.ServerSetGroupVersionKind),
 			managed.WithExternalConnecter(&connector{
-				kube: mgr.GetClient(),
+				kube:                    mgr.GetClient(),
+				kubeConfigmapController: &mapController,
 				bootVolumeController: &kubeBootVolumeController{
-					kube: mgr.GetClient(),
-					log:  logger,
+					kube:          mgr.GetClient(),
+					log:           logger,
+					mapController: &mapController,
 				},
 				nicController: &kubeNicController{
 					kube: mgr.GetClient(),
@@ -39,6 +45,7 @@ func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 					kube: mgr.GetClient(),
 					log:  logger,
 				},
+
 				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 				log:   logger,
 			}),

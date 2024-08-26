@@ -58,7 +58,6 @@ type ServerParameters struct {
 	// available CPU architectures can be retrieved from the datacenter resource.
 	//
 	// +immutable
-	// +kubebuilder:validation:Enum=AMD_OPTERON;INTEL_SKYLAKE;INTEL_XEON
 	CPUFamily string `json:"cpuFamily,omitempty"`
 	// +kubebuilder:validation:Optional
 	BootCdromID string `json:"bootCdromId,omitempty"`

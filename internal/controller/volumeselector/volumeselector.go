@@ -229,16 +229,16 @@ func (c *externalVolumeselector) attachVolume(ctx context.Context, datacenterID,
 
 func (c *externalVolumeselector) areVolumesAndServersReady(volumeList v1alpha1.VolumeList, serverList v1alpha1.ServerList) bool {
 	if len(volumeList.Items) == 0 {
-		c.log.Info("no Volumes found")
+		c.log.Info("volumeselector no Volumes found")
 		return false
 	}
 	if len(serverList.Items) == 0 {
-		c.log.Info("no Servers found")
+		c.log.Info("volumeselector no Servers found")
 		return false
 	}
 	for _, volume := range volumeList.Items {
 		if volume.Status.AtProvider.VolumeID == "" {
-			c.log.Info("Volume does not have ID", "name", volume.Name)
+			c.log.Info("volumeselector Volume does not have ID", "name", volume.Name)
 			return false
 		}
 	}

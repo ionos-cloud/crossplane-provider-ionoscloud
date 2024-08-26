@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	create = "Create"
-	ensure = "Ensure"
-	update = "Update"
+	create  = "Create"
+	ensure  = "Ensure"
+	update  = "Update"
+	ddelete = "Delete"
 )
 
 type fakeKubeLANController struct {
@@ -95,7 +96,10 @@ func (f *fakeKubeServerSetController) Create(ctx context.Context, cr *v1alpha1.S
 	f.methodCallCount[create]++
 	return nil, nil
 }
-
+func (f *fakeKubeServerSetController) Delete(ctx context.Context, name, namespace string) error {
+	f.methodCallCount[ddelete]++
+	return nil
+}
 func (f *fakeKubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
 	f.methodCallCount[ensure]++
 	return nil
@@ -115,6 +119,9 @@ func (f fakeKubeVolumeSelectorController) Get(ctx context.Context, name, ns stri
 	return &f.Volume, f.Err
 }
 
+func (f fakeKubeVolumeSelectorController) Delete(ctx context.Context, name, ns string) error {
+	return nil
+}
 func fakeKubeClientWithObjs(objs ...client.Object) client.WithWatch {
 	scheme := runtime.NewScheme()
 	v1.AddToScheme(scheme)       // Add the core k8s types to the Scheme

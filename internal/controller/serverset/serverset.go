@@ -57,12 +57,13 @@ const (
 // A connector is expected to produce an ExternalClient when its Connect method
 // is called.
 type connector struct {
-	kube                 client.Client
-	bootVolumeController kubeBootVolumeControlManager
-	nicController        kubeNicControlManager
-	serverController     kubeServerControlManager
-	usage                resource.Tracker
-	log                  logging.Logger
+	kube                    client.Client
+	bootVolumeController    kubeBootVolumeControlManager
+	nicController           kubeNicControlManager
+	serverController        kubeServerControlManager
+	kubeConfigmapController kubeConfigmapControlManager
+	usage                   resource.Tracker
+	log                     logging.Logger
 }
 
 // Connect typically produces an ExternalClient by:
@@ -86,6 +87,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		bootVolumeController: c.bootVolumeController,
 		nicController:        c.nicController,
 		serverController:     c.serverController,
+		configMapController:  c.kubeConfigmapController,
 	}, err
 }
 
@@ -98,6 +100,7 @@ type external struct {
 	bootVolumeController kubeBootVolumeControlManager
 	nicController        kubeNicControlManager
 	serverController     kubeServerControlManager
+	configMapController  kubeConfigmapControlManager
 	log                  logging.Logger
 }
 
@@ -165,12 +168,16 @@ func didNrOfReplicasChange(cr *v1alpha1.ServerSet, replicas []v1alpha1.Server) b
 	return len(replicas) != cr.Status.AtProvider.Replicas
 }
 
+type substitutionConfig struct {
+	identities map[string]string
+	name       string
+	namespace  string
+}
+
 func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.ServerSet, serverSetReplicas []v1alpha1.Server) {
 	if cr.Status.AtProvider.ReplicaStatuses == nil || didNrOfReplicasChange(cr, serverSetReplicas) {
 		cr.Status.AtProvider.ReplicaStatuses = make([]v1alpha1.ServerSetReplicaStatus, len(serverSetReplicas))
 	}
-	cr.Status.AtProvider.Replicas = len(serverSetReplicas)
-
 	for i := range serverSetReplicas {
 		replicaStatus := computeStatus(serverSetReplicas[i].Status.AtProvider.State)
 		errMsg := ""
@@ -192,16 +199,43 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 			ErrorMessage: errMsg,
 			LastModified: metav1.Now(),
 		}
-		volumeVersion, _, _ := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), i)
-		for substIndex, subst := range cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions {
-			if stateMapVal, exists := globalStateMap[cr.Name]; exists {
-				val := stateMapVal.GetByIdentifier(substitution.Identifier(getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, i, volumeVersion)))[substIndex].Value
-				if val != "" {
-					if cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement == nil {
-						cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement = make(map[string]string)
-					}
-					cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement[subst.Key] = val
+		// for nfs we need to store substitutions in a configmap(created when the bootvolumes are created) and display them in the status
+		if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
+			e.setSubstitutions(ctx, cr, replicaIdx)
+		}
+	}
+	cr.Status.AtProvider.Replicas = len(serverSetReplicas)
+}
+
+// setSubstitutions sets substitutions in status. sets again in globalstate if they got lost in case of reboot.
+// reads substitutions from configMap that has serverset name and either the identity config map namespace, or default
+func (e *external) setSubstitutions(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex int) {
+	if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
+		volumeVersion, _, _ := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), replicaIndex)
+		for _, subst := range cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions {
+			// re-initialize in case of crossplane reboots
+			if cr.Status.AtProvider.ReplicaStatuses[replicaIndex].SubstitutionReplacement == nil {
+				cr.Status.AtProvider.ReplicaStatuses[replicaIndex].SubstitutionReplacement = make(map[string]string)
+			}
+			namespace := "default"
+			if cr.Spec.ForProvider.IdentityConfigMap.Namespace != "" {
+				namespace = cr.Spec.ForProvider.IdentityConfigMap.Namespace
+			}
+			e.configMapController.SetSubstitutionConfigMap(cr.Name, namespace)
+
+			value := e.configMapController.FetchSubstitutionFromMap(ctx, cr.Name, subst.Key, replicaIndex, volumeVersion)
+			if value != "" {
+				cr.Status.AtProvider.ReplicaStatuses[replicaIndex].SubstitutionReplacement[subst.Key] = value
+				identifier := substitution.Identifier(getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion))
+				if _, ok := globalStateMap[cr.Name]; !ok {
+					globalStateMap[cr.Name] = substitution.GlobalState{}
 				}
+				if !globalStateMap[cr.Name].Exists(identifier, subst.Key) {
+					globalStateMap[cr.Name].Set(identifier, subst.Key, value)
+					e.log.Info("substitution value updated in global state", "serverset name", cr.Name, "for key", subst.Key, "and value", value)
+				}
+			} else {
+				e.log.Info("substitution value not found", "serverset name", cr.Name, "for key", subst.Key)
 			}
 		}
 	}
@@ -287,7 +321,7 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	// for n times of cr.Spec.Replicas, create a server
 	// for each server, create a volume
-	e.log.Info("Creating a new ServerSet", "replicas", cr.Spec.ForProvider.Replicas)
+	e.log.Info("Creating a new ServerSet", "name", cr.Name, "replicas", cr.Spec.ForProvider.Replicas)
 	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
 		volumeVersion, serverVersion, err := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), i)
 		if err != nil && !errors.Is(err, errNoVolumesFound) {
@@ -445,6 +479,8 @@ func (e *external) updateByIndex(ctx context.Context, idx int, cr *v1alpha1.Serv
 	if err != nil {
 		return err
 	}
+	// reset globalstate before updating so we get the same ips
+	// globalStateMap[cr.Name] = substitution.GlobalState{}
 	updater := e.getUpdaterByStrategy(cr.Spec.ForProvider.BootVolumeTemplate.Spec.UpdateStrategy.Stype)
 	return updater.update(ctx, cr, idx, volumeVersion, serverVersion)
 }
@@ -484,30 +520,34 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	if !ok {
 		return errors.New(errUnexpectedObject)
 	}
-
+	e.log.Info("Deleting the ServerSet", "name", cr.Name)
 	cr.SetConditions(xpv1.Deleting())
 	meta.SetExternalName(cr, "")
-
-	e.log.Info("Deleting the NICs with label", "label", cr.Name)
-	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Nic{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
-		serverSetLabel: cr.Name,
-	}); err != nil {
-		return err
+	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
+		volumeVersion, serverVersion, err := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), replicaIndex)
+		if err != nil {
+			return err
+		}
+		if err := e.bootVolumeController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion), cr.Namespace); err != nil {
+			return err
+		}
+		if err := e.serverController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, serverVersion), cr.Namespace); err != nil {
+			return err
+		}
+		for nicIndex := range cr.Spec.ForProvider.Template.Spec.NICs {
+			if err := e.nicController.Delete(ctx, getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, serverVersion), cr.Namespace); err != nil {
+				return err
+			}
+		}
 	}
 
-	e.log.Info("Deleting the Servers with label", "label", cr.Name)
-	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Server{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
-		serverSetLabel: cr.Name,
-	}); err != nil {
+	e.log.Info("Deleting the substitution configmap", "name", cr.Name)
+	globalStateMap[cr.Name] = substitution.GlobalState{}
+	delete(globalStateMap, cr.Name)
+	if err := e.configMapController.Delete(ctx, cr.Name); err != nil {
 		return err
 	}
-
-	e.log.Info("Deleting the BootVolumes with label", "label", cr.Name)
-	if err := e.kube.DeleteAllOf(ctx, &v1alpha1.Volume{}, client.InNamespace(cr.Namespace), client.MatchingLabels{
-		serverSetLabel: cr.Name,
-	}); err != nil {
-		return err
-	}
+	e.log.Info("Finished deleting the ServerSet", "name", cr.Name)
 
 	return nil
 }
