@@ -137,6 +137,7 @@ type ServerSetReplicaStatus struct {
 	// +kubebuilder:validation:Enum=ACTIVE;PASSIVE
 	Role         Role        `json:"role"`
 	Name         string      `json:"name"`
+	Hostname     string      `json:"hostname"`
 	ReplicaIndex int         `json:"replicaIndex"`
 	NICStatuses  []NicStatus `json:"nicStatus,omitempty"`
 	// +kubebuilder:validation:Enum=UNKNOWN;READY;ERROR;BUSY
