@@ -61,7 +61,7 @@ const (
 	server1Name        = "serverset-server-0-0"
 	server2Name        = "serverset-server-1-0"
 	serverNotReadyName = "server-not-ready"
-	serverSetCPUFamily = "AMD_OPTERON"
+	serverSetCPUFamily = "INTEL_XEON"
 	serverSetCores     = 2
 	serverSetRAM       = 4096
 	serverSetName      = "serverset"

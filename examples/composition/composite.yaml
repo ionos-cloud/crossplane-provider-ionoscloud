@@ -10,4 +10,4 @@ spec:
     clusterName: testK8sClusterXR
     clusterPublic: true
     nodepoolName: testK8sNodepoolXR
-    nodepoolCpuFamily: AMD_OPTERON
+    nodepoolCpuFamily: INTEL_XEON

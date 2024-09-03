@@ -21,7 +21,7 @@ spec:
     nodeCount: 1
     # Note: If the CPU Family is not set, the Crossplane Provider
     # will set the first one offered by the Datacenter.
-    cpuFamily: AMD_OPTERON
+    cpuFamily: INTEL_XEON
     coresCount: 1
     ramSize: 2048
     availabilityZone: AUTO

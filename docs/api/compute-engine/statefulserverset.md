@@ -293,7 +293,7 @@ Version increases if the Server is re-created due to an immutable field changing
 				* `cpuFamily` (string)
 					* description: CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions;
 available CPU architectures can be retrieved from the datacenter resource.
-					* possible values: "AMD_OPTERON";"INTEL_SKYLAKE";"INTEL_XEON"
+					* possible values: "INTEL_SKYLAKE";"INTEL_XEON"
 				* `nics` (array)
 					* description: NICs are the network interfaces of the server.
 					* properties:
@@ -372,4 +372,3 @@ The corresponding resource definition can be found [here](https://github.com/ion
 ## Resource Instance Example
 
 An example of a resource instance can be found [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples/ionoscloud/compute/statefulserverset.yaml).
-
