@@ -386,15 +386,15 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 		cr  *v1alpha1.ServerSet
 	}
 
-	server1 := createServer("serverset-server-0-0")
-	server2 := createServer("serverset-server-1-0")
+	server1 := createServer("server-0-0")
+	server2 := createServer("server-1-0")
 	label := fmt.Sprintf(indexLabel, serverSetName, ResourceServer)
 	server2.Labels[label] = "1"
 
 	serverWithErrorStatus := createServer("serverset-server-0-0")
 	serverWithErrorStatus.Status.AtProvider.State = ionoscloud.Failed
 
-	serverWithUnknownStatus := createServer("serverset-server-0-0")
+	serverWithUnknownStatus := createServer("server-0-0")
 	serverWithUnknownStatus.Status.AtProvider.State = "new-state"
 
 	nic1 := createNic(v1alpha1.NicParameters{Name: server1.Name})
@@ -426,6 +426,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
 						Name:         server1.Name,
+						Hostname:     getNameFrom(serverName, 0, 0),
 						Status:       statusReady,
 						Role:         "ACTIVE",
 						ReplicaIndex: 0,
@@ -441,6 +442,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					},
 					{
 						Name:         server2.Name,
+						Hostname:     getNameFrom(serverName, 1, 0),
 						Status:       statusReady,
 						Role:         "PASSIVE",
 						ReplicaIndex: 1,
@@ -471,6 +473,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
 						Name:         server1.Name,
+						Hostname:     getNameFrom(serverName, 0, 0),
 						Status:       statusReady,
 						Role:         "ACTIVE",
 						ReplicaIndex: 0,
@@ -486,6 +489,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					},
 					{
 						Name:         server2.Name,
+						Hostname:     getNameFrom(serverName, 1, 0),
 						Status:       statusReady,
 						Role:         "PASSIVE",
 						ReplicaIndex: 1,
@@ -516,6 +520,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
 						Name:         server1.Name,
+						Hostname:     getNameFrom(serverName, 0, 0),
 						Status:       statusReady,
 						Role:         "ACTIVE",
 						ReplicaIndex: 0,
@@ -531,6 +536,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 					},
 					{
 						Name:         server2.Name,
+						Hostname:     getNameFrom(serverName, 1, 0),
 						Status:       statusReady,
 						Role:         "PASSIVE",
 						ReplicaIndex: 1,
@@ -561,6 +567,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
 						Name:         server1.Name,
+						Hostname:     getNameFrom(serverName, 0, 0),
 						Status:       statusReady,
 						Role:         "ACTIVE",
 						ReplicaIndex: 0,
@@ -578,6 +585,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Name:         server2.Name,
 						Status:       statusReady,
 						Role:         "PASSIVE",
+						Hostname:     getNameFrom(serverName, 1, 0),
 						ReplicaIndex: 1,
 						NICStatuses: []v1alpha1.NicStatus{
 							{
@@ -606,6 +614,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
 						Name:         server1.Name,
+						Hostname:     getNameFrom(serverName, 0, 0),
 						Status:       statusReady,
 						Role:         "ACTIVE",
 						ReplicaIndex: 0,
@@ -638,6 +647,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 						Name:         serverWithErrorStatus.Name,
 						Status:       statusError,
 						Role:         "PASSIVE",
+						Hostname:     getNameFrom(serverName, 0, 0),
 						ReplicaIndex: 0,
 						NICStatuses:  []v1alpha1.NicStatus{},
 						ErrorMessage: "",
@@ -659,6 +669,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
 						Name:         serverWithErrorStatus.Name,
+						Hostname:     getNameFrom(serverName, 0, 0),
 						Status:       statusError,
 						Role:         "PASSIVE",
 						ReplicaIndex: 0,
@@ -682,6 +693,7 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
 						Name:         serverWithUnknownStatus.Name,
+						Hostname:     getNameFrom(serverName, 0, 0),
 						Status:       statusUnknown,
 						Role:         "PASSIVE",
 						ReplicaIndex: 0,
@@ -711,9 +723,10 @@ func Test_serverSetController_ServerSetObservation(t *testing.T) {
 				Replicas: 1,
 				ReplicaStatuses: []v1alpha1.ServerSetReplicaStatus{
 					{
-						Name:   serverNotReadyName,
-						Status: statusBusy,
-						Role:   "PASSIVE",
+						Name:     serverNotReadyName,
+						Hostname: getNameFrom(serverName, 0, 0),
+						Status:   statusBusy,
+						Role:     "PASSIVE",
 						NICStatuses: []v1alpha1.NicStatus{
 							{
 								AtProvider: v1alpha1.NicObservation{

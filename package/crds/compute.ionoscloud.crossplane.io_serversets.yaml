@@ -715,6 +715,8 @@ spec:
                         errorMessage:
                           description: ErrorMessage relayed from the backend.
                           type: string
+                        hostname:
+                          type: string
                         lastModified:
                           format: date-time
                           type: string
@@ -829,6 +831,7 @@ spec:
                             type: string
                           type: object
                       required:
+                      - hostname
                       - name
                       - replicaIndex
                       - role
