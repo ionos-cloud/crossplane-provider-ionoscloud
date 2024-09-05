@@ -13,4 +13,4 @@ spec:
     serverName: server
     cores: 4
     ram: 2048
-    cpuFamily: AMD_OPTERON
+    cpuFamily: INTEL_XEON
