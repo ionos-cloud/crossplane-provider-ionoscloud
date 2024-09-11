@@ -135,7 +135,7 @@ spec:
       time: "23:40:58"
     name: exampleK8sNodepool
     nodeCount: 1
-    cpuFamily: AMD_OPTERON
+    cpuFamily: INTEL_XEON
     coresCount: 1
     ramSize: 2048
     availabilityZone: AUTO
@@ -233,7 +233,7 @@ spec:
   forProvider:
     name: exampleK8sNodepool
     nodeCount: 1
-    cpuFamily: AMD_OPTERON
+    cpuFamily: INTEL_XEON
     coresCount: 1
     ramSize: 2048
     availabilityZone: AUTO

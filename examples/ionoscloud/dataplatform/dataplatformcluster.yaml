@@ -31,6 +31,6 @@ spec:
       datacenterIdRef:
         name: example
     name: exampleCluster
-    version: "23.11"
+    version: "24.3"
   providerConfigRef:
     name: example

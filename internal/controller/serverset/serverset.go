@@ -189,6 +189,10 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 		}
 
 		replicaIdx := ComputeReplicaIdx(e.log, fmt.Sprintf(indexLabel, cr.Name, ResourceServer), serverSetReplicas[i].Labels)
+		volumeVersion, err := getVolumeVersion(ctx, e.kube, cr.GetName(), replicaIdx)
+		if err != nil {
+			e.log.Info("error fetching volume version for", "name", cr.GetName(), "replicaIndex", replicaIdx, "error", err)
+		}
 		nicStatues := computeNicStatuses(ctx, e, cr.Name, replicaIdx)
 		cr.Status.AtProvider.ReplicaStatuses[i] = v1alpha1.ServerSetReplicaStatus{
 			Role:         fetchRole(ctx, e, *cr, replicaIdx, serverSetReplicas[i].Name, replicaStatus),
@@ -197,6 +201,7 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 			NICStatuses:  nicStatues,
 			Status:       replicaStatus,
 			ErrorMessage: errMsg,
+			Hostname:     getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIdx, volumeVersion),
 			LastModified: metav1.Now(),
 		}
 		// for nfs we need to store substitutions in a configmap(created when the bootvolumes are created) and display them in the status
@@ -647,41 +652,50 @@ var errNoVolumesFound = errors.New("no volumes found")
 
 // getVersionsFromVolumeAndServer checks that there is only one server and volume and returns their version
 func getVersionsFromVolumeAndServer(ctx context.Context, kube client.Client, serversetName string, replicaIndex int) (volumeVersion int, serverVersion int, err error) {
-	volumeResources := &v1alpha1.VolumeList{}
-	err = ListResFromSSetWithIndex(ctx, kube, serversetName, resourceBootVolume, replicaIndex, volumeResources)
-	if err != nil {
-		return volumeVersion, serverVersion, err
-	}
-	if len(volumeResources.Items) > 1 {
-		return volumeVersion, serverVersion, fmt.Errorf("found too many volumes for index %d", replicaIndex)
-	}
-	if len(volumeResources.Items) == 0 {
-		return volumeVersion, serverVersion, fmt.Errorf("for index %d %w", replicaIndex, errNoVolumesFound)
-	}
-	serverResources := &v1alpha1.ServerList{}
-	err = ListResFromSSetWithIndex(ctx, kube, serversetName, ResourceServer, replicaIndex, serverResources)
-	if err != nil {
-		return volumeVersion, serverVersion, err
-	}
-	if len(serverResources.Items) > 1 {
-		return volumeVersion, serverVersion, fmt.Errorf("found too many servers for index %d", replicaIndex)
-	}
-	if len(serverResources.Items) == 0 {
-		return volumeVersion, serverVersion, fmt.Errorf("found no servers for index %d", replicaIndex)
-	}
-
-	condemnedVolume := volumeResources.Items[0]
-	volumeVersion, err = strconv.Atoi(condemnedVolume.Labels[fmt.Sprintf(versionLabel, serversetName, resourceBootVolume)])
+	volumeVersion, err = getVolumeVersion(ctx, kube, serversetName, replicaIndex)
 	if err != nil {
 		return volumeVersion, serverVersion, err
 	}
 
-	servers := serverResources.Items
-	serverVersion, err = strconv.Atoi(servers[0].Labels[fmt.Sprintf(versionLabel, serversetName, ResourceServer)])
+	serverVersion, err = getServerVersion(ctx, kube, serversetName, replicaIndex)
 	if err != nil {
 		return volumeVersion, serverVersion, err
 	}
 	return volumeVersion, serverVersion, nil
+}
+
+func getServerVersion(ctx context.Context, kube client.Client, serversetName string, replicaIndex int) (int, error) {
+	serverVersion := 0
+	serverResources := &v1alpha1.ServerList{}
+	err := ListResFromSSetWithIndex(ctx, kube, serversetName, ResourceServer, replicaIndex, serverResources)
+	if err != nil {
+		return serverVersion, err
+	}
+	if len(serverResources.Items) > 1 {
+		return serverVersion, fmt.Errorf("found too many servers for index %d", replicaIndex)
+	}
+	if len(serverResources.Items) == 0 {
+		return serverVersion, fmt.Errorf("for index %d %w", replicaIndex, errNoVolumesFound)
+	}
+	server := serverResources.Items[0]
+	return strconv.Atoi(server.Labels[fmt.Sprintf(versionLabel, serversetName, ResourceServer)])
+}
+
+func getVolumeVersion(ctx context.Context, kube client.Client, serversetName string, replicaIndex int) (int, error) {
+	volumeVersion := 0
+	volumeResources := &v1alpha1.VolumeList{}
+	err := ListResFromSSetWithIndex(ctx, kube, serversetName, resourceBootVolume, replicaIndex, volumeResources)
+	if err != nil {
+		return volumeVersion, err
+	}
+	if len(volumeResources.Items) > 1 {
+		return volumeVersion, fmt.Errorf("found too many volumes for index %d", replicaIndex)
+	}
+	if len(volumeResources.Items) == 0 {
+		return volumeVersion, fmt.Errorf("for index %d %w", replicaIndex, errNoVolumesFound)
+	}
+	volume := volumeResources.Items[0]
+	return strconv.Atoi(volume.Labels[fmt.Sprintf(versionLabel, serversetName, resourceBootVolume)])
 }
 
 func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
