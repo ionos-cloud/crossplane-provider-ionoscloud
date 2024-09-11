@@ -17,8 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"reflect"
+
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // A StoreConfigSpec defines the desired state of a StoreConfig.
@@ -69,4 +72,16 @@ func (in *StoreConfig) GetCondition(ct xpv1.ConditionType) xpv1.Condition {
 // SetConditions of this StoreConfig.
 func (in *StoreConfig) SetConditions(c ...xpv1.Condition) {
 	in.Status.SetConditions(c...)
+}
+
+// StoreConfig type metadata.
+var (
+	StoreConfigKind             = reflect.TypeOf(StoreConfig{}).Name()
+	StoreConfigGroupKind        = schema.GroupKind{Group: Group, Kind: StoreConfigKind}.String()
+	StoreConfigKindAPIVersion   = StoreConfigKind + "." + SchemeGroupVersion.String()
+	StoreConfigGroupVersionKind = SchemeGroupVersion.WithKind(StoreConfigKind)
+)
+
+func init() {
+	SchemeBuilder.Register(&StoreConfig{}, &StoreConfigList{})
 }
