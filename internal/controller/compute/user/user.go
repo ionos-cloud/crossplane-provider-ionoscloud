@@ -24,12 +24,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/features"
 	ionosdk "github.com/ionos-cloud/sdk-go/v6"
 
-	userapi "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/user"
-
 	"github.com/pkg/errors"
+
+	userapi "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/user"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
@@ -43,6 +42,7 @@ import (
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/features"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
