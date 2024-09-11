@@ -30,3 +30,13 @@ spec:
   writeConnectionSecretToRef:
     name: "xplane-user"
     namespace: "crossplane-system"
+  # or use connection publisher
+  #  publishConnectionDetailsTo:
+  #    name: user-password
+  #    metadata:
+  #      labels:
+  #        environment: superusers
+  #      annotations:
+  #        test.annotation.io/secret-type: credentials
+  #    configRef:
+  #      name: default

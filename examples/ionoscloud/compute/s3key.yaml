@@ -14,11 +14,18 @@ spec:
     - "*"
   forProvider:
 #    replace with the user id for which you want the s3 key to be created
-    userID: "00000000000000000000000000"
+    userID: "f33b1393-1f62-4358-8df9-2f7228b9370f"
 #    optional, can be left out. the key can only be updated to false after creation
     active: true
   providerConfigRef:
     name: example
-  writeConnectionSecretToRef:
-    name: "s3key"
-    namespace: "crossplane-system"
+  publishConnectionDetailsTo:
+    name: my-s3-key
+    metadata:
+      labels:
+        environment: prod-s3-bucket
+      annotations:
+        test.annotation.io/secret-type: key
+        another.test.annotation.io/secret-scope: object-storage
+    configRef:
+      name: default

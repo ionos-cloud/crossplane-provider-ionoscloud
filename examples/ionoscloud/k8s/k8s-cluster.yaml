@@ -21,5 +21,15 @@ spec:
   writeConnectionSecretToRef:
     namespace: default
     name: kubeconfig
+  # or use connection publisher
+  #  publishConnectionDetailsTo:
+  #    name: kubeconfig
+  #    metadata:
+  #      labels:
+  #        environment: data-clusters
+  #      annotations:
+  #        test.annotation.io/secret-type: kubeconfig
+  #    configRef:
+  #      name: default
   providerConfigRef:
     name: example
