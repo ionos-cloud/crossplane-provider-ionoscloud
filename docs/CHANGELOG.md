@@ -1,3 +1,7 @@
+## [1.1.3] (TBD)
+- **Features**:
+    - Enable `publishConnectionDetails` option for s3 key, compute user and k8s clusters
+
 ## [1.1.1] (July 2024)
 - **Fixes**:
   - Revert merge for nodepool fix 

@@ -19,6 +19,13 @@ spec:
     active: true
   providerConfigRef:
     name: example
-  writeConnectionSecretToRef:
-    name: "s3key"
-    namespace: "crossplane-system"
+  publishConnectionDetailsTo:
+    name: my-s3-key
+    metadata:
+      labels:
+        environment: prod-s3-bucket
+      annotations:
+        test.annotation.io/secret-type: key
+        another.test.annotation.io/secret-scope: object-storage
+    configRef:
+      name: default
