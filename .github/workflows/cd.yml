@@ -120,7 +120,6 @@ jobs:
 
   release-tag:
     runs-on: ubuntu-latest
-    needs: test
     steps:
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
