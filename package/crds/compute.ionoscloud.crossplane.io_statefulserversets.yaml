@@ -597,7 +597,6 @@ spec:
                 - lans
                 - replicas
                 - template
-                - volumes
                 type: object
               managementPolicies:
                 default:

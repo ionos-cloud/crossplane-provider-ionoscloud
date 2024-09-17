@@ -216,13 +216,14 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 				DeletionPolicy:          cr.GetDeletionPolicy(),
 			},
 			ForProvider: v1alpha1.VolumeParameters{
-				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
-				Name:             name,
-				AvailabilityZone: GetZoneFromIndex(replicaIndex),
-				Size:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size,
-				Type:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type,
-				Image:            cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image,
-				UserData:         cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData,
+				DatacenterCfg:     cr.Spec.ForProvider.DatacenterCfg,
+				Name:              name,
+				AvailabilityZone:  GetZoneFromIndex(replicaIndex),
+				Size:              cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size,
+				Type:              cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type,
+				Image:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image,
+				UserData:          cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData,
+				DiscVirtioHotPlug: true,
 			},
 		}}
 	if cr.Spec.ForProvider.BootVolumeTemplate.Spec.ImagePassword != "" {
