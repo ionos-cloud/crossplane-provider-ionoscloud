@@ -197,7 +197,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
-					CPUFamily: "INTEL_XEON",
+					CPUFamily: "INTEL_SKYLAKE",
 					Cores:     serverSetCores,
 					RAM:       serverSetRAM,
 				}),
