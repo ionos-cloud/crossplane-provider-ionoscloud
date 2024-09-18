@@ -321,7 +321,7 @@ spec:
     cores: 4
     ram: 2048
     availabilityZone: AUTO
-    cpuFamily: INTEL_SKYLAKE
+    cpuFamily: INTEL_XEON
     datacenterConfig:
       datacenterIdRef:
         name: example
