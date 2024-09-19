@@ -956,7 +956,7 @@ func Test_serverSetController_Update(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
-					CPUFamily: "INTEL_XEON",
+					CPUFamily: "INTEL_SKYLAKE",
 					Cores:     serverSetCores,
 					RAM:       serverSetRAM,
 				}),
@@ -1016,7 +1016,7 @@ func Test_serverSetController_Update(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
-					CPUFamily: "INTEL_XEON",
+					CPUFamily: "INTEL_SKYLAKE",
 					Cores:     serverSetCores,
 					RAM:       serverSetRAM,
 				}),
