@@ -206,7 +206,13 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 		}
 		// for nfs we need to store substitutions in a configmap(created when the bootvolumes are created) and display them in the status
 		if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
-			e.setSubstitutions(ctx, cr, replicaIdx)
+			// re-initialize in case of crossplane reboots
+			if cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement == nil {
+				cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement = make(map[string]string, len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions))
+			}
+			e.setSubstitutions(ctx, cr, replicaIdx, i)
+		} else {
+			e.log.Info("no substitutions found in bootvolume template", "serverset name", cr.Name)
 		}
 	}
 	cr.Status.AtProvider.Replicas = len(serverSetReplicas)
@@ -214,14 +220,11 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 
 // setSubstitutions sets substitutions in status. sets again in globalstate if they got lost in case of reboot.
 // reads substitutions from configMap that has serverset name and either the identity config map namespace, or default
-func (e *external) setSubstitutions(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex int) {
+func (e *external) setSubstitutions(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, sliceIndex int) {
 	if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
 		volumeVersion, _, _ := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), replicaIndex)
 		for _, subst := range cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions {
-			// re-initialize in case of crossplane reboots
-			if cr.Status.AtProvider.ReplicaStatuses[replicaIndex].SubstitutionReplacement == nil {
-				cr.Status.AtProvider.ReplicaStatuses[replicaIndex].SubstitutionReplacement = make(map[string]string)
-			}
+
 			namespace := "default"
 			if cr.Spec.ForProvider.IdentityConfigMap.Namespace != "" {
 				namespace = cr.Spec.ForProvider.IdentityConfigMap.Namespace
@@ -230,7 +233,7 @@ func (e *external) setSubstitutions(ctx context.Context, cr *v1alpha1.ServerSet,
 
 			value := e.configMapController.FetchSubstitutionFromMap(ctx, cr.Name, subst.Key, replicaIndex, volumeVersion)
 			if value != "" {
-				cr.Status.AtProvider.ReplicaStatuses[replicaIndex].SubstitutionReplacement[subst.Key] = value
+				cr.Status.AtProvider.ReplicaStatuses[sliceIndex].SubstitutionReplacement[subst.Key] = value
 				identifier := substitution.Identifier(getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion))
 				if _, ok := globalStateMap[cr.Name]; !ok {
 					globalStateMap[cr.Name] = substitution.GlobalState{}
