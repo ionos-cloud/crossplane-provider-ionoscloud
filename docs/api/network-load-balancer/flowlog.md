@@ -78,7 +78,7 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* description: Action specifies the traffic action pattern, accepted values: ACCEPTED, REJECTED, ALL
 	* possible values: "ACCEPTED";"REJECTED";"ALL"
 * `bucket` (string)
-	* description: Bucket name of an existing IONOS Cloud S3 bucket
+	* description: Bucket name of an existing IONOS Object Storage bucket
 * `datacenterConfig` (object)
 	* description: Datacenter in which the Network Load Balancer that this Flow Log applies to is provisioned in.
 	* properties:

@@ -42,7 +42,7 @@ type FlowLogParameters struct {
 	// +kubebuilder:validation:Enum=INGRESS;EGRESS;BIDIRECTIONAL
 	// +kubebuilder:validation:Required
 	Direction string `json:"direction"`
-	// Bucket name of an existing IONOS Cloud S3 bucket
+	// Bucket name of an existing IONOS Object Storage bucket
 	//
 	// +kubebuilder:validation:Required
 	Bucket string `json:"bucket"`

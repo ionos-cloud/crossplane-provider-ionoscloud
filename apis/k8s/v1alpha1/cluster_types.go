@@ -52,8 +52,8 @@ type ClusterParameters struct {
 	//
 	// +kubebuilder:validation:Optional
 	APISubnetAllowList []string `json:"apiSubnetAllowList,omitempty"`
-	// List of S3 bucket configured for K8s usage.
-	// For now, it contains only an S3 bucket used to store K8s API audit logs.
+	// List of IONOS Object Storage buckets configured for K8s usage.
+	// For now, it contains only an IONOS Object Storage bucket used to store K8s API audit logs.
 	//
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:MaxItems=1

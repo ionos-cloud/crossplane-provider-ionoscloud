@@ -81,7 +81,7 @@ type ClusterParameters struct {
 	// +immutable
 	// +kubebuilder:validation:Required
 	Location string `json:"location"`
-	// The S3 location where the backups will be stored.
+	// The IONOS Object Storage location where the backups will be stored.
 	//
 	// +immutable
 	// +kubebuilder:validation:Enum=de;eu-south-2;eu-central-2

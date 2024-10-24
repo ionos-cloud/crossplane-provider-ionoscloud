@@ -112,7 +112,7 @@ spec:
                     - ALL
                     type: string
                   bucket:
-                    description: Bucket name of an existing IONOS Cloud S3 bucket
+                    description: Bucket name of an existing IONOS Object Storage bucket
                     type: string
                   datacenterConfig:
                     description: Datacenter in which the Network Load Balancer that

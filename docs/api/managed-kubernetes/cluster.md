@@ -94,8 +94,8 @@ If no value is given, one is chosen dynamically, so there is no fixed default.
 	* description: A Kubernetes cluster name. Valid Kubernetes cluster name must be 63 characters or less and must be empty
 or begin and end with an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
 * `s3Buckets` (array)
-	* description: List of S3 bucket configured for K8s usage.
-For now, it contains only an S3 bucket used to store K8s API audit logs.
+	* description: List of IONOS Object Storage buckets configured for K8s usage.
+For now, it contains only an IONOS Object Storage bucket used to store K8s API audit logs.
 	* properties:
 		* `name` (string)
 	* required properties:

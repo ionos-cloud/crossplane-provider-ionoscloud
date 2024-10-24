@@ -75,7 +75,7 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
 * `backupLocation` (string)
-	* description: The S3 location where the backups will be stored.
+	* description: The IONOS Object Storage location where the backups will be stored.
 	* possible values: "de";"eu-south-2";"eu-central-2"
 * `connectionPooler` (object)
 	* description: ConnectionPooler Configuration options for the connection pooler
