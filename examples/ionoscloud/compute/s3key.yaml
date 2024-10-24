@@ -1,5 +1,5 @@
-# Use this file to create a S3 key.
-# Required values for creating a S3Key CR are:
+# Use this file to create a IONOS Object Storage key.
+# Required values for creating an Object Storage Key CR are:
 # userId (via ID).
 # s3SecretKey is automatically returned by the API and will be saved in s3key secret in crossplane-system namespace.
 # To see the data inside the secret, run the following commands:
