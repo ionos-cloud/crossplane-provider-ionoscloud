@@ -75,9 +75,9 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
 * `active` (boolean)
-	* description: Whether the S3 is active / enabled or not. Can only be updated to false, by default the key will be created as active. Default value is true.
+	* description: Whether the IONOS Object Storage is active / enabled or not. Can only be updated to false, by default the key will be created as active. Default value is true.
 * `userID` (string)
-	* description: The UUID of the user owning the S3 Key.
+	* description: The UUID of the user owning the IONOS Object Storage Key.
 
 ### Required Properties
 
