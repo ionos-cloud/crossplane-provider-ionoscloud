@@ -203,8 +203,6 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 			return creation, err
 		}
-		// Set Boot Volume ID
-		cr.Status.AtProvider.VolumeID = cr.Spec.ForProvider.VolumeCfg.VolumeID
 	}
 	return creation, nil
 }
