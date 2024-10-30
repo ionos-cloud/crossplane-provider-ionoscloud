@@ -1,3 +1,7 @@
+## [1.1.4]
+- **Fixes**:
+ - Volume should populate the status ID from the bootvolume of the server, because it cannot store it on create. This can cause larger wait times for volume attach.
+
 ## [1.1.3]
 - **Features**:
     - Enable `publishConnectionDetails` option for s3 key, compute user and k8s clusters
