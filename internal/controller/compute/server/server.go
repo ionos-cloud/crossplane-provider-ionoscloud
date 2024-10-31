@@ -19,7 +19,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
@@ -135,6 +134,9 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
 	if observed.Properties != nil {
 		cr.Status.AtProvider.Name = *observed.Properties.Name
+		if observed.Properties.BootVolume != nil && observed.Properties.BootVolume.Id != nil {
+			cr.Status.AtProvider.VolumeID = *observed.Properties.BootVolume.Id
+		}
 	}
 	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
@@ -191,7 +193,7 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	// Set External Name
 	cr.Status.AtProvider.ServerID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
+	if cr.Spec.ForProvider.VolumeCfg.VolumeID != "" {
 		c.log.Debug("Attaching Volume...", "volume", cr.Spec.ForProvider.VolumeCfg.VolumeID)
 		_, apiResponse, err = c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 			cr.Status.AtProvider.ServerID, sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
@@ -202,8 +204,6 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 			return creation, err
 		}
-		// Set Boot Volume ID
-		cr.Status.AtProvider.VolumeID = cr.Spec.ForProvider.VolumeCfg.VolumeID
 	}
 	return creation, nil
 }
@@ -218,7 +218,7 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalUpdate{}, nil
 	}
 	// Attach or Detach Volume
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.VolumeCfg.VolumeID)) {
+	if cr.Spec.ForProvider.VolumeCfg.VolumeID != "" {
 		c.log.Debug("Update, attaching Volume", "volume", cr.Spec.ForProvider.VolumeCfg.VolumeID)
 		_, apiResponse, err := c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID,
 			sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
