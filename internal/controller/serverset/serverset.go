@@ -140,7 +140,8 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	// at the moment we do not check that fields of nics are updated, because nic fields are immutable
 	e.log.Info("Observing the ServerSet", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "areServersCreated",
-		areServersCreated, "areBootVolumesCreated", areBootVolumesCreated, "areNICsCreated", areNICsCreated, "areServersAvailable", areServersAvailable, "areBootVolumesAvailable", areBootVolumesAvailable)
+		areServersCreated, "areBootVolumesCreated", areBootVolumesCreated, "areNICsCreated", areNICsCreated, "areServersAvailable", areServersAvailable, "areBootVolumesAvailable", areBootVolumesAvailable,
+		"areNicsCreated", areNICsCreated)
 	if areServersAvailable && areBootVolumesAvailable {
 		cr.SetConditions(xpv1.Available())
 	} else {

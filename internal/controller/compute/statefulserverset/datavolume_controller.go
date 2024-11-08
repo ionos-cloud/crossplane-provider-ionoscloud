@@ -45,7 +45,8 @@ func (k *kubeDataVolumeController) Create(ctx context.Context, cr *v1alpha1.Stat
 		return v1alpha1.Volume{}, err
 	}
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
-		return v1alpha1.Volume{}, err
+		_ = k.Delete(ctx, name, cr.Namespace)
+		return v1alpha1.Volume{}, fmt.Errorf("while waiting for datavolume to be populated %w ", err)
 	}
 	// get the volume again before returning to have the id populated
 	kubeVolume, err := k.Get(ctx, name, cr.Namespace)
@@ -99,7 +100,14 @@ func (k *kubeDataVolumeController) isAvailable(ctx context.Context, name, namesp
 		}
 		return false, err
 	}
-	if obj != nil && obj.Status.AtProvider.VolumeID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
+	if obj == nil {
+		return false, nil
+	}
+	if !kube.IsSuccessfullyCreated(obj) {
+		conditions := obj.Status.ResourceStatus.Conditions
+		return false, fmt.Errorf("reason %s %w", conditions[len(conditions)-1].Message, kube.ErrExternalCreateFailed)
+	}
+	if obj.Status.AtProvider.VolumeID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
 		return true, nil
 	}
 	return false, err

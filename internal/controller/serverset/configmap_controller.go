@@ -76,6 +76,7 @@ func (k *kubeConfigmapController) CreateOrUpdate(ctx context.Context, crName str
 		}
 	} else {
 		if len(k.substConfigMap[crName].identities) > 0 && !maps.Equal(k.substConfigMap[crName].identities, cfgMap.Data) {
+			maps.Copy(cfgMap.Data, k.substConfigMap[crName].identities)
 			cfgMap = &v1.ConfigMap{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
