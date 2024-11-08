@@ -18,8 +18,10 @@ package main
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/feature"
@@ -65,9 +67,12 @@ func main() {
 		// *very* verbose even at info level, so we only provide it a real
 		// logger when we're running in debug mode.
 		ctrl.SetLogger(zl)
+	} else {
+		// explicitly provide a no-op logger by default, otherwise controller-runtime gives a warning
+		ctrl.SetLogger(zap.New(zap.WriteTo(io.Discard)))
 	}
 
-	log.Debug("Starting", "sync-period", syncInterval.String())
+	log.Debug("Starting", "sync-period", syncInterval.String(), "poll-interval", pollInterval.String(), "max-reconcile-rate", *maxReconcileRate, "debug", *debug)
 
 	cfg, err := ctrl.GetConfig()
 	kingpin.FatalIfError(err, "Cannot get API server rest config")
@@ -76,6 +81,8 @@ func main() {
 		LeaderElection:   *leaderElection,
 		LeaderElectionID: "crossplane-leader-election-provider-ionoscloud",
 		Cache:            cache.Options{SyncPeriod: syncInterval},
+		LeaseDuration:    func() *time.Duration { d := 60 * time.Second; return &d }(),
+		RenewDeadline:    func() *time.Duration { d := 50 * time.Second; return &d }(),
 	})
 	kingpin.FatalIfError(err, "Cannot create controller manager")
 	kingpin.FatalIfError(apis.AddToScheme(mgr.GetScheme()), "Cannot add IONOS Cloud APIs to scheme")
