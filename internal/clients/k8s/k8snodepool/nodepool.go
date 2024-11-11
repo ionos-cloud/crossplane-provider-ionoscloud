@@ -241,7 +241,7 @@ func LateInitializer(in *v1alpha1.NodePoolParameters, sg *sdkgo.KubernetesNodePo
 
 // LateStatusInitializer fills the empty fields in *v1alpha1.ClusterObservation with
 // the values seen in sdkgo.KubernetesCluster.
-func LateStatusInitializer(in *v1alpha1.NodePoolObservation, sg *sdkgo.KubernetesNodePool) {
+func LateStatusInitializer(in *v1alpha1.NodePoolObservation, sg *sdkgo.KubernetesNodePool) { // nolint:gocyclo
 	if sg == nil {
 		return
 	}
