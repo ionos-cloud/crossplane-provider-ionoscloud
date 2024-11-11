@@ -304,6 +304,7 @@ type NodePoolObservation struct {
 	PublicIPs                []string `json:"publicIps,omitempty"`
 	AvailableUpgradeVersions []string `json:"availableUpgradeVersions,omitempty"`
 	CPUFamily                string   `json:"cpuFamily,omitempty"`
+	NodeCount                *int32   `json:"nodeCount,omitempty"`
 }
 
 // A NodePoolSpec defines the desired state of a NodePool.

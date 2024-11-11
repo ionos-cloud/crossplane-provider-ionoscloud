@@ -105,7 +105,8 @@ spec:
                   Synchronization Mode.
                 properties:
                   backupLocation:
-                    description: The IONOS Object Storage location where the backups will be stored.
+                    description: The IONOS Object Storage location where the backups
+                      will be stored.
                     enum:
                     - de
                     - eu-south-2

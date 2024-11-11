@@ -122,10 +122,10 @@ spec:
                     type: string
                   s3Buckets:
                     description: |-
-                      List of IONOS Object Storage bucket configured for K8s usage.
+                      List of IONOS Object Storage buckets configured for K8s usage.
                       For now, it contains only an IONOS Object Storage bucket used to store K8s API audit logs.
                     items:
-                      description: IONOS Object Storage bucket configured for K8s usage.
+                      description: S3Bucket configured for K8s usage.
                       properties:
                         name:
                           type: string
