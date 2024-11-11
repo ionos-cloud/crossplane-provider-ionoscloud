@@ -797,6 +797,9 @@ spec:
                     type: array
                   cpuFamily:
                     type: string
+                  nodeCount:
+                    format: int32
+                    type: integer
                   nodePoolId:
                     type: string
                   publicIps:

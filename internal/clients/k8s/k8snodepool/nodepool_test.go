@@ -1,6 +1,7 @@
 package k8snodepool
 
 import (
+	"slices"
 	"testing"
 
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
@@ -198,5 +199,71 @@ func TestIsNodePoolUpToDate(t *testing.T) {
 				t.Errorf("isNodePoolUpToDate() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestLateStatusInitializer(t *testing.T) {
+	cr := &v1alpha1.NodePool{
+		Spec: v1alpha1.NodePoolSpec{
+			ForProvider: v1alpha1.NodePoolParameters{
+				Name:             "not empty",
+				K8sVersion:       "v1.22.33",
+				NodeCount:        4,
+				CPUFamily:        "super fast",
+				CoresCount:       5,
+				RAMSize:          6,
+				AvailabilityZone: "AUTO",
+				StorageType:      "SSD",
+				StorageSize:      7,
+				MaintenanceWindow: v1alpha1.MaintenanceWindow{
+					Time:         "15:24:30Z",
+					DayOfTheWeek: "Mon",
+				},
+			},
+		},
+		Status: v1alpha1.NodePoolStatus{
+			AtProvider: v1alpha1.NodePoolObservation{},
+		},
+	}
+
+	nodePool := ionoscloud.KubernetesNodePool{Properties: &ionoscloud.KubernetesNodePoolProperties{
+		Name:             ionoscloud.PtrString("not empty"),
+		DatacenterId:     ionoscloud.PtrString("my-dc"),
+		NodeCount:        ionoscloud.PtrInt32(4),
+		CpuFamily:        ionoscloud.PtrString("super fast"),
+		CoresCount:       ionoscloud.PtrInt32(5),
+		RamSize:          ionoscloud.PtrInt32(6),
+		AvailabilityZone: ionoscloud.PtrString("AUTO"),
+		StorageType:      ionoscloud.PtrString("SSD"),
+		StorageSize:      ionoscloud.PtrInt32(7),
+		K8sVersion:       ionoscloud.PtrString("v1.22.33"),
+		MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
+			DayOfTheWeek: ionoscloud.PtrString("Fri"),
+			Time:         ionoscloud.PtrString("03:24:30Z"),
+		},
+		AutoScaling:              nil,
+		Lans:                     nil,
+		Labels:                   nil,
+		Annotations:              nil,
+		PublicIps:                &[]string{"172.10.1.1"},
+		AvailableUpgradeVersions: &[]string{"v1.22.33", "v1.22.34"},
+	}}
+
+	LateStatusInitializer(&cr.Status.AtProvider, &nodePool)
+
+	if *cr.Status.AtProvider.NodeCount != *nodePool.Properties.NodeCount {
+		t.Errorf("NodeCount not equal")
+	}
+
+	if cr.Status.AtProvider.CPUFamily != *nodePool.Properties.CpuFamily {
+		t.Errorf("CPU Family not equal")
+	}
+
+	if !slices.Equal(cr.Status.AtProvider.AvailableUpgradeVersions, *nodePool.Properties.AvailableUpgradeVersions) {
+		t.Errorf("AvailableUpgradeVersions not equal")
+	}
+
+	if !slices.Equal(cr.Status.AtProvider.PublicIPs, *nodePool.Properties.PublicIps) {
+		t.Errorf("PublicIPs not equal")
 	}
 }

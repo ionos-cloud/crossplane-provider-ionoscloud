@@ -259,6 +259,10 @@ func LateStatusInitializer(in *v1alpha1.NodePoolObservation, sg *sdkgo.Kubernete
 		if cpuFamilyOk, ok := propertiesOk.GetCpuFamilyOk(); ok && cpuFamilyOk != nil {
 			in.CPUFamily = *cpuFamilyOk
 		}
+
+		if nodeCountOK, ok := propertiesOk.GetNodeCountOk(); ok {
+			in.NodeCount = nodeCountOK
+		}
 	}
 
 }
