@@ -78,7 +78,7 @@ func (k *kubeNicController) isAvailable(ctx context.Context, name, namespace str
 	}
 	if !kube.IsSuccessfullyCreated(obj) {
 		conditions := obj.Status.ResourceStatus.Conditions
-		return false, fmt.Errorf("reason %s %w", conditions[len(conditions)-1].Message, kube.ErrExternalCreateFailed)
+		return false, fmt.Errorf("resource name %s reason %s %w", obj.Name, conditions[len(conditions)-1].Message, kube.ErrExternalCreateFailed)
 	}
 
 	if obj != nil && obj.Status.AtProvider.NicID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {

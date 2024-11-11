@@ -3,13 +3,13 @@ package statefulserverset
 import (
 	"context"
 	"fmt"
-
-	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
@@ -64,6 +64,8 @@ func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.State
 	updateObj.Spec.ForProvider.Template = cr.Spec.ForProvider.Template
 	updateObj.Spec.ForProvider.BootVolumeTemplate = cr.Spec.ForProvider.BootVolumeTemplate
 	updateObj.Spec.ForProvider.IdentityConfigMap = cr.Spec.ForProvider.IdentityConfigMap
+	// in case crossplane set annotations on the sset, we need to remove to continue reconciliations
+	// meta.RemoveAnnotations(updateObj, meta.AnnotationKeyExternalCreatePending, meta.AnnotationKeyExternalCreateFailed)
 	if err := k.kube.Update(ctx, updateObj); err != nil {
 		return v1alpha1.ServerSet{}, err
 	}
