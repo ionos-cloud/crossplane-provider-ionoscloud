@@ -849,7 +849,7 @@ func TestNLBForwardingRuleDelete(t *testing.T) {
 				log:                  logging.NewNopLogger(),
 				isUniqueNamesEnabled: true,
 			}
-			err := external.Delete(ctx, tt.mg)
+			_, err := external.Delete(ctx, tt.mg)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

@@ -555,7 +555,7 @@ func TestExternalControlPlaneClientDelete(t *testing.T) {
 				service: mnps,
 				log:     utils.NewTestLogger(),
 			}
-			err := c.Delete(context.Background(), tt.args)
+			_, err := c.Delete(context.Background(), tt.args)
 			if tt.wantErr {
 				assert.NotNil(t, err)
 			} else {
