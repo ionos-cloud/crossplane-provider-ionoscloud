@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.0
   name: servers.compute.ionoscloud.crossplane.io
 spec:
   group: compute.ionoscloud.crossplane.io
@@ -220,7 +220,6 @@ spec:
                       In order to attach a volume to the server, it is recommended to use VolumeConfig
                       to set the existing volume (via id or via reference).
                       To detach a volume from the server, update the CR spec by removing it.
-
 
                       VolumeConfig contains information about the existing volume resource
                       which will be attached to the server and set as bootVolume

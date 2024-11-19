@@ -1,3 +1,7 @@
+## [1.1.6]
+- **Chore**:
+- Update crossplane-runtime to 1.18.0
+
 ## [1.1.4]
 - **Fixes**:
  - Volume should populate the status ID from the bootvolume of the server, because it cannot store it on create. This can cause larger wait times for volume attach.

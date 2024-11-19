@@ -210,24 +210,29 @@ func (c *externalPrivateCrossConnect) Update(ctx context.Context, mg resource.Ma
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalPrivateCrossConnect) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalPrivateCrossConnect) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.Pcc)
 	if !ok {
-		return errors.New(errNotPrivateCrossConnect)
+		return managed.ExternalDelete{}, errors.New(errNotPrivateCrossConnect)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == compute.DESTROYING {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 
 	apiResponse, err := c.service.DeletePrivateCrossConnect(ctx, cr.Status.AtProvider.PrivateCrossConnectID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete privateCrossConnect. error: %w", err)
-		return compute.ErrorUnlessNotFound(apiResponse, retErr)
+		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return err
+		return managed.ExternalDelete{}, err
 	}
+	return managed.ExternalDelete{}, nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalPrivateCrossConnect) Disconnect(_ context.Context) error {
 	return nil
 }

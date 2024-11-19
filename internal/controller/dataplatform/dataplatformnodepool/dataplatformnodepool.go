@@ -173,29 +173,34 @@ func (c *externalDataplatform) Update(ctx context.Context, mg resource.Managed) 
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalDataplatform) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalDataplatform) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.DataplatformNodepool)
 	if !ok {
-		return errors.New(errNotDataplatformNodepool)
+		return managed.ExternalDelete{}, errors.New(errNotDataplatformNodepool)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == compute.DESTROYING {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 
 	apiResponse, err := c.service.DeleteDataPlatformNodepool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, cr.Status.AtProvider.DataplatformID)
 	if err != nil {
 		if apiResponse.HttpNotFound() {
-			return nil
+			return managed.ExternalDelete{}, nil
 		}
 		retErr := fmt.Errorf("failed to delete dataplatform cluster. error: %w", err)
-		return retErr
+		return managed.ExternalDelete{}, retErr
 	}
 	err = utils.WaitForResourceToBeDeleted(ctx, 30*time.Minute, c.service.IsDataplatformDeleted, cr.Spec.ForProvider.ClusterCfg.ClusterID, cr.Status.AtProvider.DataplatformID)
 	if err != nil {
-		return fmt.Errorf("an error occurred while deleting %w", err)
+		return managed.ExternalDelete{}, fmt.Errorf("an error occurred while deleting %w", err)
 	}
 
+	return managed.ExternalDelete{}, nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalDataplatform) Disconnect(_ context.Context) error {
 	return nil
 }

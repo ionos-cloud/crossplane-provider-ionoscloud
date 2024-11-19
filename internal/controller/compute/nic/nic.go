@@ -240,27 +240,27 @@ func (c *externalNic) Update(ctx context.Context, mg resource.Managed) (managed.
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalNic) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalNic) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.Nic)
 	if !ok {
-		return errors.New(errNotNic)
+		return managed.ExternalDelete{}, errors.New(errNotNic)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == compute.DESTROYING {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 
 	apiResponse, err := c.service.DeleteNic(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 		cr.Spec.ForProvider.ServerCfg.ServerID, cr.Status.AtProvider.NicID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete nic. error: %w", err)
-		return compute.ErrorUnlessNotFound(apiResponse, retErr)
+		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return err
+		return managed.ExternalDelete{}, err
 	}
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 // getIpsSet will return ips set by the user on ips or ipsConfig fields of the spec.
@@ -287,4 +287,9 @@ func (c *externalNic) getIpsSet(ctx context.Context, cr *v1alpha1.Nic) ([]string
 		}
 	}
 	return ips, nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalNic) Disconnect(_ context.Context) error {
+	return nil
 }

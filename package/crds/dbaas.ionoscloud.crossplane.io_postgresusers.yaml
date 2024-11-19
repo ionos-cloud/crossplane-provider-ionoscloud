@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.0
   name: postgresusers.dbaas.ionoscloud.crossplane.io
 spec:
   group: dbaas.ionoscloud.crossplane.io
@@ -175,7 +175,6 @@ spec:
                   credentials:
                     description: |-
                       The total number of instances in the cluster (one master and n-1 standbys).
-
 
                       Database credentials - either set directly, or as secret/path/env
                     properties:

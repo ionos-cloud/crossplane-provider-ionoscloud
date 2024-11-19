@@ -246,27 +246,27 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	return update, nil
 }
 
-func (c *externalServer) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalServer) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.CubeServer)
 	if !ok {
-		return errors.New(errNotCubeServer)
+		return managed.ExternalDelete{}, errors.New(errNotCubeServer)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == compute.DESTROYING {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 
 	// Deleting the CUBE Server will also delete the DAS Volume
 	apiResponse, err := c.service.DeleteServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete cube server. error: %w", err)
-		return compute.ErrorUnlessNotFound(apiResponse, retErr)
+		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return err
+		return managed.ExternalDelete{}, err
 	}
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 func getTemplateID(ctx context.Context, c *externalServer, cr *v1alpha1.CubeServer) (string, error) {
@@ -278,4 +278,9 @@ func getTemplateID(ctx context.Context, c *externalServer, cr *v1alpha1.CubeServ
 		}
 	}
 	return "", fmt.Errorf("error getting template ID")
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalServer) Disconnect(_ context.Context) error {
+	return nil
 }

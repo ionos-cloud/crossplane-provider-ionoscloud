@@ -21,6 +21,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"time"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -76,9 +77,12 @@ func main() {
 
 	cfg, err := ctrl.GetConfig()
 	kingpin.FatalIfError(err, "Cannot get API server rest config")
-
+	skipControllerNameValidation := true
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		LeaderElection:   *leaderElection,
+		LeaderElection: *leaderElection,
+		Controller: config.Controller{
+			SkipNameValidation: &skipControllerNameValidation,
+		},
 		LeaderElectionID: "crossplane-leader-election-provider-ionoscloud",
 		Cache:            cache.Options{SyncPeriod: syncInterval},
 		LeaseDuration:    func() *time.Duration { d := 60 * time.Second; return &d }(),

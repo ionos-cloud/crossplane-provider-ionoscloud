@@ -230,22 +230,22 @@ func (eg *externalGroup) Update(ctx context.Context, mg resource.Managed) (manag
 	return managed.ExternalUpdate{}, nil
 }
 
-func (eg *externalGroup) Delete(ctx context.Context, mg resource.Managed) error {
+func (eg *externalGroup) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.Group)
 	if !ok {
-		return errors.New(errNotGroup)
+		return managed.ExternalDelete{}, errors.New(errNotGroup)
 	}
 	cr.SetConditions(xpv1.Deleting())
 
 	apiResponse, err := eg.service.DeleteGroup(ctx, cr.Status.AtProvider.GroupID)
 	if err != nil {
 		err = fmt.Errorf("failed to delete group. error: %w", err)
-		return compute.ErrorUnlessNotFound(apiResponse, err)
+		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, err)
 	}
 	if err = compute.WaitForRequest(ctx, eg.service.GetAPIClient(), apiResponse); err != nil {
-		return err
+		return managed.ExternalDelete{}, err
 	}
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 // Initializers are called to initialize a Managed Resource
@@ -286,5 +286,10 @@ func (in resourceShareInitializer) Initialize(ctx context.Context, mg resource.M
 		}
 	}
 
+	return nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (eg *externalGroup) Disconnect(_ context.Context) error {
 	return nil
 }
