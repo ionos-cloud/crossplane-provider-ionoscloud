@@ -55,7 +55,8 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
-			RateLimiter: ratelimiter.NewController(),
+			MaxConcurrentReconciles: opts.CtrlOpts.MaxConcurrentReconciles,
+			RateLimiter:             ratelimiter.NewController(),
 		}).
 		For(&v1alpha1.Server{}).
 		Complete(managed.NewReconciler(mgr,
