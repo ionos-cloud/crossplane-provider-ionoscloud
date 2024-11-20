@@ -137,7 +137,6 @@ It can only be provided directly
 to add an existing User as a member (via id or via reference).
 To remove a User from the Group, update the CR spec by removing it.
 
-
 UserCfg contains information about an existing User resource
 which will be added to the Group
 	* properties:

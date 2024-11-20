@@ -247,25 +247,25 @@ func (c *externalApplicationLoadBalancer) Update(ctx context.Context, mg resourc
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalApplicationLoadBalancer) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalApplicationLoadBalancer) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.ApplicationLoadBalancer)
 	if !ok {
-		return errors.New(errNotApplicationLoadBalancer)
+		return managed.ExternalDelete{}, errors.New(errNotApplicationLoadBalancer)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == string(ionoscloud.STATE_DESTROYING) || cr.Status.AtProvider.State == string(ionoscloud.STATE_BUSY) {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 	apiResponse, err := c.service.DeleteApplicationLoadBalancer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ApplicationLoadBalancerID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete application load balancer. error: %w", err)
-		return compute.ErrorUnlessNotFound(apiResponse, retErr)
+		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return err
+		return managed.ExternalDelete{}, err
 	}
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 func (c *externalApplicationLoadBalancer) getIPsSet(ctx context.Context, cr *v1alpha1.ApplicationLoadBalancer) ([]string, error) {
@@ -286,4 +286,9 @@ func (c *externalApplicationLoadBalancer) getIPsSet(ctx context.Context, cr *v1a
 		}
 	}
 	return ips, nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalApplicationLoadBalancer) Disconnect(_ context.Context) error {
+	return nil
 }

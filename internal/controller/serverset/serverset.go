@@ -523,10 +523,10 @@ func updateOrRecreate(volumeParams *v1alpha1.VolumeParameters, volumeSpec v1alph
 	return update, deleteAndCreate
 }
 
-func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
+func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.ServerSet)
 	if !ok {
-		return errors.New(errUnexpectedObject)
+		return managed.ExternalDelete{}, errors.New(errUnexpectedObject)
 	}
 	e.log.Info("Deleting the ServerSet", "name", cr.Name)
 	cr.SetConditions(xpv1.Deleting())
@@ -534,17 +534,17 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
 		volumeVersion, serverVersion, err := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), replicaIndex)
 		if err != nil {
-			return err
+			return managed.ExternalDelete{}, err
 		}
 		if err := e.bootVolumeController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion), cr.Namespace); err != nil {
-			return err
+			return managed.ExternalDelete{}, err
 		}
 		if err := e.serverController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, serverVersion), cr.Namespace); err != nil {
-			return err
+			return managed.ExternalDelete{}, err
 		}
 		for nicIndex := range cr.Spec.ForProvider.Template.Spec.NICs {
 			if err := e.nicController.Delete(ctx, getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, serverVersion), cr.Namespace); err != nil {
-				return err
+				return managed.ExternalDelete{}, err
 			}
 		}
 	}
@@ -553,11 +553,11 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	globalStateMap[cr.Name] = substitution.GlobalState{}
 	delete(globalStateMap, cr.Name)
 	if err := e.configMapController.Delete(ctx, cr.Name); err != nil {
-		return err
+		return managed.ExternalDelete{}, err
 	}
 	e.log.Info("Finished deleting the ServerSet", "name", cr.Name)
 
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 // AreServersReady checks if replicas and template params are equal to server obj params
@@ -765,4 +765,9 @@ func ComputeReplicaIdx(log logging.Logger, idxLabel string, labels map[string]st
 		return -1
 	}
 	return replicaIdx
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *external) Disconnect(_ context.Context) error {
+	return nil
 }

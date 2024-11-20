@@ -195,21 +195,25 @@ func (c *externalFlowLog) Update(ctx context.Context, mg resource.Managed) (mana
 	return managed.ExternalUpdate{}, err
 }
 
-func (c *externalFlowLog) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalFlowLog) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.FlowLog)
 	if !ok {
-		return errNotFlowLog
+		return managed.ExternalDelete{}, errNotFlowLog
 	}
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == compute.DESTROYING {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 
 	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
 	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
 	err := c.service.DeleteFlowLog(ctx, datacenterID, nlbID, cr.Status.AtProvider.FlowLogID)
 	if !errors.Is(err, flowlog.ErrNotFound) {
-		return err
+		return managed.ExternalDelete{}, err
 	}
+	return managed.ExternalDelete{}, nil
+}
+
+func (c *externalFlowLog) Disconnect(_ context.Context) error {
 	return nil
 }

@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.0
   name: groups.compute.ionoscloud.crossplane.io
 spec:
   group: compute.ionoscloud.crossplane.io
@@ -179,7 +179,6 @@ spec:
                       In order to add a User as member to the Group, it is recommended to use UserCfg
                       to add an existing User as a member (via id or via reference).
                       To remove a User from the Group, update the CR spec by removing it.
-
 
                       UserCfg contains information about an existing User resource
                       which will be added to the Group

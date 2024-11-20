@@ -241,14 +241,19 @@ func (eu *externalUser) Update(ctx context.Context, mg resource.Managed) (manage
 	return managed.ExternalUpdate{ConnectionDetails: conn}, nil
 }
 
-func (eu *externalUser) Delete(ctx context.Context, mg resource.Managed) error {
+func (eu *externalUser) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	user, ok := mg.(*v1alpha1.User)
 	if !ok {
-		return errors.Wrap(errors.New(errNotUser), "delete error")
+		return managed.ExternalDelete{}, errors.Wrap(errors.New(errNotUser), "delete error")
 	}
 	user.SetConditions(xpv1.Deleting())
 
 	userID := user.Status.AtProvider.UserID
 	resp, err := eu.service.DeleteUser(ctx, userID)
-	return compute.ErrorUnlessNotFound(resp, errors.Wrap(err, errUserDelete))
+	return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(resp, errors.Wrap(err, errUserDelete))
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (eu *externalUser) Disconnect(_ context.Context) error {
+	return nil
 }

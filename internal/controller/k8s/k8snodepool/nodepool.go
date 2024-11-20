@@ -244,27 +244,27 @@ func (c *externalNodePool) Update(ctx context.Context, mg resource.Managed) (man
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalNodePool) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalNodePool) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.NodePool)
 	if !ok {
-		return errors.New(errNotK8sNodePool)
+		return managed.ExternalDelete{}, errors.New(errNotK8sNodePool)
 	}
 
 	if cr.Status.AtProvider.NodePoolID == "" {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 
 	if cr.Status.AtProvider.State == k8s.DESTROYING || cr.Status.AtProvider.State == k8s.TERMINATED {
 		cr.SetConditions(xpv1.Deleting())
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 
 	if cr.Status.AtProvider.State == k8s.DEPLOYING {
-		return errors.New("can't delete nodepool in state DEPLOYING")
+		return managed.ExternalDelete{}, errors.New("can't delete nodepool in state DEPLOYING")
 	}
 
 	if err := c.ensureClusterIsActive(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID); err != nil {
-		return fmt.Errorf("cluster must be active to delete nodepool: %w", err)
+		return managed.ExternalDelete{}, fmt.Errorf("cluster must be active to delete nodepool: %w", err)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
@@ -272,9 +272,9 @@ func (c *externalNodePool) Delete(ctx context.Context, mg resource.Managed) erro
 	apiResponse, err := c.service.DeleteK8sNodePool(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, cr.Status.AtProvider.NodePoolID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete k8s nodepool. error: %w", err)
-		return compute.ErrorUnlessNotFound(apiResponse, retErr)
+		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 // getPublicIPsSet will return Public IPs set by the user on ips or ipsConfig fields of the spec.
@@ -309,5 +309,10 @@ func (c *externalNodePool) ensureClusterIsActive(ctx context.Context, clusterID 
 	if *observedCluster.Metadata.State != k8s.ACTIVE {
 		return fmt.Errorf("k8s cluster must be in ACTIVE state, current state: %v", *observedCluster.Metadata.State)
 	}
+	return nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalNodePool) Disconnect(_ context.Context) error {
 	return nil
 }

@@ -244,39 +244,44 @@ func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (mana
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.Cluster)
 	if !ok {
-		return errors.New(errNotK8sCluster)
+		return managed.ExternalDelete{}, errors.New(errNotK8sCluster)
 	}
 
 	if meta.GetExternalName(cr) == "" {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 
 	// Note: If the K8s Cluster still has NodePools, the API Request will fail.
 	hasNodePools, err := c.service.HasActiveK8sNodePools(ctx, cr.Status.AtProvider.ClusterID)
 	if err != nil {
-		return fmt.Errorf("failed to check if the Kubernetes Cluster has Active NodePools. error: %w", err)
+		return managed.ExternalDelete{}, fmt.Errorf("failed to check if the Kubernetes Cluster has Active NodePools. error: %w", err)
 	}
 	if hasNodePools {
-		return fmt.Errorf("kubernetes cluster cannot be deleted. NodePools still exist")
+		return managed.ExternalDelete{}, fmt.Errorf("kubernetes cluster cannot be deleted. NodePools still exist")
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	switch cr.Status.AtProvider.State {
 	case k8s.DESTROYING:
-		return nil
+		return managed.ExternalDelete{}, nil
 	case k8s.TERMINATED:
-		return nil
+		return managed.ExternalDelete{}, nil
 	case k8s.ACTIVE:
 		apiResponse, err := c.service.DeleteK8sCluster(ctx, cr.Status.AtProvider.ClusterID)
 		if err != nil {
 			retErr := fmt.Errorf("failed to delete k8s cluster. error: %w", err)
-			return compute.ErrorUnlessNotFound(apiResponse, retErr)
+			return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 		}
 	default:
-		return fmt.Errorf("resource needs to be in ACTIVE state to delete it, current state: %v", cr.Status.AtProvider.State)
+		return managed.ExternalDelete{}, fmt.Errorf("resource needs to be in ACTIVE state to delete it, current state: %v", cr.Status.AtProvider.State)
 	}
+	return managed.ExternalDelete{}, nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalCluster) Disconnect(_ context.Context) error {
 	return nil
 }

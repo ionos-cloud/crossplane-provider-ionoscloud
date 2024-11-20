@@ -182,17 +182,17 @@ func (c *externalVolumeselector) Update(ctx context.Context, mg resource.Managed
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalVolumeselector) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalVolumeselector) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.Volumeselector)
 	if !ok {
-		return errors.New(errNotVolumeSelector)
+		return managed.ExternalDelete{}, errors.New(errNotVolumeSelector)
 	}
 	if meta.GetExternalName(cr) == "" {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 	meta.SetExternalName(cr, "")
 	cr.SetConditions(xpv1.Deleting())
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 // listResFromSSetWithIndex - lists resources from a stateful server set with a specific index label
@@ -268,4 +268,9 @@ func (c *externalVolumeselector) getVolumesAndServers(ctx context.Context, serve
 		return volumeList, serverList, err
 	}
 	return volumeList, serverList, err
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalVolumeselector) Disconnect(_ context.Context) error {
+	return nil
 }

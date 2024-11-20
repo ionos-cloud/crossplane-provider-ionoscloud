@@ -191,10 +191,10 @@ func (c *externalS3Key) Update(ctx context.Context, mg resource.Managed) (manage
 	}, nil
 }
 
-func (c *externalS3Key) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalS3Key) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.S3Key)
 	if !ok {
-		return errors.New(errNotS3Key)
+		return managed.ExternalDelete{}, errors.New(errNotS3Key)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
@@ -202,10 +202,10 @@ func (c *externalS3Key) Delete(ctx context.Context, mg resource.Managed) error {
 	apiResponse, err := c.service.DeleteS3Key(ctx, cr.Spec.ForProvider.UserID, cr.Status.AtProvider.S3KeyID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete S3Key. error: %w", err)
-		return compute.ErrorUnlessNotFound(apiResponse, retErr)
+		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 
-	return compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse)
+	return managed.ExternalDelete{}, compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse)
 }
 
 func s3ConnectionDetailsTo(observed ionosdk.S3Key) managed.ConnectionDetails {
@@ -218,4 +218,8 @@ func s3ConnectionDetailsTo(observed ionosdk.S3Key) managed.ConnectionDetails {
 	details["s3SecretKey"] = []byte(*props.SecretKey)
 
 	return details
+}
+
+func (c *externalS3Key) Disconnect(_ context.Context) error {
+	return nil
 }

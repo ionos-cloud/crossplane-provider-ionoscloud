@@ -286,10 +286,10 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	}, nil
 }
 
-func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
+func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
-		return errors.New(errNotStatefulServerSet)
+		return managed.ExternalDelete{}, errors.New(errNotStatefulServerSet)
 	}
 	cr.SetConditions(xpv1.Deleting())
 
@@ -299,14 +299,14 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 			e.log.Info("Deleting the DataVolume with name", "name", name)
 			err := e.dataVolumeController.Delete(ctx, name, cr.Namespace)
 			if err != nil {
-				return err
+				return managed.ExternalDelete{}, err
 			}
 		}
 	}
 
 	e.log.Info("Deleting the ServerSet with name", "name", cr.Spec.ForProvider.Template.Metadata.Name)
 	if err := e.SSetController.Delete(ctx, cr.Spec.ForProvider.Template.Metadata.Name, cr.Namespace); err != nil {
-		return err
+		return managed.ExternalDelete{}, err
 	}
 
 	for lanIndex := range cr.Spec.ForProvider.Lans {
@@ -314,17 +314,17 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 		e.log.Info("Deleting the LANs with name", "name", name)
 		err := e.LANController.Delete(ctx, name, cr.Namespace)
 		if err != nil {
-			return err
+			return managed.ExternalDelete{}, err
 		}
 	}
 	e.log.Info("Deleting the volumeselector with name", "name", cr.Name)
 
 	err := e.volumeSelectorController.Delete(ctx, fmt.Sprintf(volumeSelectorName, cr.Name), cr.Namespace)
 	if err != nil {
-		return err
+		return managed.ExternalDelete{}, err
 	}
 
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex int) error {
@@ -478,4 +478,9 @@ func computeLanStatuses(lans []v1alpha1.Lan) []v1alpha1.StatefulServerSetLanStat
 		status[idx].IPv6CIDRBlock = lans[idx].Spec.ForProvider.Ipv6Cidr
 	}
 	return status
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (e *external) Disconnect(_ context.Context) error {
+	return nil
 }

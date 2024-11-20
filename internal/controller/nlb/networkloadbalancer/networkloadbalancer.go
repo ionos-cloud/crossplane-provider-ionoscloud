@@ -221,23 +221,23 @@ func (c *externalNetworkLoadBalancer) Update(ctx context.Context, mg resource.Ma
 	return managed.ExternalUpdate{}, err
 }
 
-func (c *externalNetworkLoadBalancer) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalNetworkLoadBalancer) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.NetworkLoadBalancer)
 	if !ok {
-		return errors.New(errNotNetworkLoadBalancer)
+		return managed.ExternalDelete{}, errors.New(errNotNetworkLoadBalancer)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == compute.DESTROYING {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
 	nlbID := cr.Status.AtProvider.NetworkLoadBalancerID
 	err := c.service.DeleteNetworkLoadBalancer(ctx, datacenterID, nlbID)
 	if !errors.Is(err, networkloadbalancer.ErrNotFound) {
-		return err
+		return managed.ExternalDelete{}, err
 	}
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 func (c *externalNetworkLoadBalancer) getConfiguredIPs(ctx context.Context, cr *v1alpha1.NetworkLoadBalancer) ([]string, error) {
@@ -268,4 +268,9 @@ func getConfiguredLanIDs(cr *v1alpha1.NetworkLoadBalancer) (int32, int32, error)
 		return 0, 0, fmt.Errorf("error converting target Lan id: %w", err)
 	}
 	return listenerLanID, targetLanID, nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalNetworkLoadBalancer) Disconnect(_ context.Context) error {
+	return nil
 }

@@ -235,23 +235,23 @@ func (c *externalForwardingRule) Update(ctx context.Context, mg resource.Managed
 	return managed.ExternalUpdate{}, err
 }
 
-func (c *externalForwardingRule) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalForwardingRule) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.ForwardingRule)
 	if !ok {
-		return errors.New(errNotForwardingRule)
+		return managed.ExternalDelete{}, errors.New(errNotForwardingRule)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == compute.DESTROYING {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
 	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
 	err := c.service.DeleteForwardingRule(ctx, datacenterID, nlbID, cr.Status.AtProvider.ForwardingRuleID)
 	if !errors.Is(err, forwardingrule.ErrNotFound) {
-		return err
+		return managed.ExternalDelete{}, err
 	}
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 func (c *externalForwardingRule) getConfiguredListenerIP(ctx context.Context, cr *v1alpha1.ForwardingRule) (string, error) {
@@ -300,4 +300,9 @@ func (c *externalForwardingRule) getConfiguredTargetsIPs(ctx context.Context, cr
 		targetsMap[ip] = t
 	}
 	return targetsMap, nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalForwardingRule) Disconnect(_ context.Context) error {
+	return nil
 }

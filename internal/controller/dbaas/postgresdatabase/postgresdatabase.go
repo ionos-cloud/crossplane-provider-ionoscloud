@@ -165,19 +165,24 @@ func (u *externalDatabase) Update(ctx context.Context, mg resource.Managed) (man
 }
 
 // Delete deletes the database
-func (u *externalDatabase) Delete(ctx context.Context, mg resource.Managed) error {
+func (u *externalDatabase) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.PostgresDatabase)
 	if !ok {
-		return errors.New(errNotDatabase)
+		return managed.ExternalDelete{}, errors.New(errNotDatabase)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	apiResponse, err := u.service.DeleteDatabase(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, meta.GetExternalName(cr))
 	if err != nil {
 		if apiResponse.HttpNotFound() {
-			return nil
+			return managed.ExternalDelete{}, nil
 		}
-		return fmt.Errorf("failed to delete postgres database. error: %w", err)
+		return managed.ExternalDelete{}, fmt.Errorf("failed to delete postgres database. error: %w", err)
 	}
+	return managed.ExternalDelete{}, nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalDatabase) Disconnect(_ context.Context) error {
 	return nil
 }

@@ -223,23 +223,28 @@ func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (mana
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.MongoCluster)
 	if !ok {
-		return errors.New(errNotCluster)
+		return managed.ExternalDelete{}, errors.New(errNotCluster)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == string(ionoscloud.STATE_DESTROYING) {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 
 	apiResponse, err := c.service.DeleteCluster(ctx, cr.Status.AtProvider.ClusterID)
 	if err != nil {
 		if apiResponse != nil && apiResponse.Response != nil && apiResponse.StatusCode == http.StatusNotFound {
-			return nil
+			return managed.ExternalDelete{}, nil
 		}
-		return fmt.Errorf("failed to delete mongo cluster. error: %w", err)
+		return managed.ExternalDelete{}, fmt.Errorf("failed to delete mongo cluster. error: %w", err)
 	}
+	return managed.ExternalDelete{}, nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalCluster) Disconnect(_ context.Context) error {
 	return nil
 }
