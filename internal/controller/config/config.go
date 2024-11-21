@@ -18,11 +18,9 @@ package config
 
 import (
 	"github.com/crossplane/crossplane-runtime/pkg/event"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/providerconfig"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
@@ -30,12 +28,8 @@ import (
 
 // Setup adds a controller that reconciles ProviderConfigs by accounting for
 // their current usage.
-func Setup(mgr ctrl.Manager, options *utils.ConfigurationOptions) error {
+func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := providerconfig.ControllerName(v1alpha1.ProviderConfigGroupKind)
-
-	o := controller.Options{
-		RateLimiter: ratelimiter.NewController(),
-	}
 
 	of := resource.ProviderConfigKinds{
 		Config:    v1alpha1.ProviderConfigGroupVersionKind,
@@ -44,11 +38,11 @@ func Setup(mgr ctrl.Manager, options *utils.ConfigurationOptions) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(o).
+		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
 		For(&v1alpha1.ProviderConfig{}).
 		Watches(&v1alpha1.ProviderConfigUsage{},
 			&resource.EnqueueRequestForProviderConfig{}).
 		Complete(providerconfig.NewReconciler(mgr, of,
-			providerconfig.WithLogger(options.CtrlOpts.Logger.WithValues("controller", name)),
+			providerconfig.WithLogger(opts.CtrlOpts.Logger.WithValues("controller", name)),
 			providerconfig.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
