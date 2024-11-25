@@ -1,9 +1,11 @@
 name: Release Crossplane Provider
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_run:
+    workflows:
+      - CD
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       version_tag:
@@ -28,14 +30,13 @@ jobs:
           UP_API_KEY: ${{ secrets.UP_API_KEY }}
         run: up login --api-key $UP_API_KEY
 
-      - name: Set version tag
-        if: github.event_name == 'push'
-        id: version
-        run: echo "VERSION_TAG=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+      - name: Set version tag for workflow_run
+        if: github.event_name == 'workflow_run'
+        run: |
+          echo "VERSION_TAG=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_ENV
 
-      - name: Set manual version tag
+      - name: Set version tag for workflow_dispatch
         if: github.event_name == 'workflow_dispatch'
-        id: manual_version
         run: echo "VERSION_TAG=${{ github.event.inputs.version_tag }}" >> $GITHUB_ENV
 
       - name: Build and push Crossplane provider
