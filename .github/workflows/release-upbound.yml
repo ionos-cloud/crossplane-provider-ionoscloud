@@ -1,0 +1,44 @@
+name: Release Crossplane Provider
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'The version tag to publish (e.g., v1.1.6)'
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Upbound CLI
+        run: |
+          curl -sL https://cli.upbound.io | sh
+          echo "::add-path::${HOME}/.upbound/bin"
+
+      - name: Login to Upbound
+        env:
+          UP_API_KEY: ${{ secrets.UP_API_KEY }}
+        run: up login --api-key $UP_API_KEY
+
+      - name: Set version tag
+        if: github.event_name == 'push'
+        id: version
+        run: echo "VERSION_TAG=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+
+      - name: Set manual version tag
+        if: github.event_name == 'workflow_dispatch'
+        id: manual_version
+        run: echo "VERSION_TAG=${{ github.event.inputs.version_tag }}" >> $GITHUB_ENV
+
+      - name: Build and push Crossplane provider
+        run: |
+          up xpkg build --name provider-ionoscloud.xpkg
+          up xpkg push xpkg.upbound.io/ionos-cloud/provider-ionoscloud:${VERSION_TAG} -f provider-ionoscloud.xpkg
