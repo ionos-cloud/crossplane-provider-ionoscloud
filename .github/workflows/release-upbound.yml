@@ -1,4 +1,4 @@
-name: Release Crossplane Provider
+name: CD - Release To Upbound
 
 on:
   workflow_run:
@@ -23,7 +23,7 @@ jobs:
       - name: Install Upbound CLI
         run: |
           curl -sL https://cli.upbound.io | sh
-          echo "::add-path::${HOME}/.upbound/bin"
+          echo "${HOME}/.upbound/bin" >> $GITHUB_PATH
 
       - name: Login to Upbound
         env:
@@ -45,6 +45,12 @@ jobs:
       - name: Set version tag for workflow_dispatch
         if: github.event_name == 'workflow_dispatch'
         run: echo "VERSION_TAG=${{ github.event.inputs.version_tag }}" >> $GITHUB_ENV
+
+      - name: Debug Environment
+        run: |
+          echo "Version Tag: $VERSION_TAG"
+          up xpkg version
+          up status
 
       - name: Build and push Crossplane provider
         run: |
