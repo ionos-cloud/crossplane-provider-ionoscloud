@@ -49,7 +49,6 @@ jobs:
       - name: Debug Environment
         run: |
           echo "Version Tag: $VERSION_TAG"
-          up xpkg version
           up status
 
       - name: Build and push Crossplane provider
