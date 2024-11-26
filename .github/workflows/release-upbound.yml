@@ -28,7 +28,7 @@ jobs:
       - name: Login to Upbound
         env:
           UP_API_KEY: ${{ secrets.UP_API_KEY }}
-        run: up login --api-key $UP_API_KEY
+        run: up login --token $UP_API_KEY
 
       - name: Set version tag for workflow_run
         if: github.event_name == 'workflow_run'
