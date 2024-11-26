@@ -23,7 +23,7 @@ jobs:
       - name: Install Upbound CLI
         run: |
           curl -sL https://cli.upbound.io | sh
-          echo "${HOME}/.upbound/bin" >> $GITHUB_PATH
+          sudo mv up /usr/local/bin/
 
       - name: Login to Upbound
         env:
