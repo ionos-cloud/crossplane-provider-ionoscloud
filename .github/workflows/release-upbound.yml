@@ -52,5 +52,5 @@ jobs:
 
       - name: Build and push Crossplane provider
         run: |
-          up xpkg build --name provider-ionoscloud.xpkg
+          up xpkg build --name provider-ionoscloud.xpkg -f package
           up xpkg push xpkg.upbound.io/ionos-cloud/provider-ionoscloud:${VERSION_TAG} -f provider-ionoscloud.xpkg
