@@ -22,6 +22,7 @@ func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
+		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.ServerSet{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.ServerSetGroupVersionKind),
