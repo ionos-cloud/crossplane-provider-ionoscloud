@@ -64,6 +64,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
+		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.Cluster{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.ClusterGroupVersionKind),
