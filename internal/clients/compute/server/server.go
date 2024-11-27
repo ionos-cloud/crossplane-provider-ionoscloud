@@ -256,7 +256,7 @@ func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool { // nolint
 		return false
 	case server.Properties.Ram != nil && cr.Spec.ForProvider.RAM != *server.Properties.Ram:
 		return false
-	case server.Properties.CpuFamily != nil && cr.Spec.ForProvider.CPUFamily != *server.Properties.CpuFamily:
+	case server.Properties.CpuFamily != nil && cr.Spec.ForProvider.CPUFamily != "" && cr.Spec.ForProvider.CPUFamily != *server.Properties.CpuFamily:
 		return false
 	case server.Properties.AvailabilityZone != nil && cr.Spec.ForProvider.AvailabilityZone != *server.Properties.AvailabilityZone:
 		return false
