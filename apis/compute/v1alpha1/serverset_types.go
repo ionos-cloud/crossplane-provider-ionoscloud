@@ -265,8 +265,6 @@ const (
 	CreateBeforeDestroyBootVolume = "createBeforeDestroyBootVolume"
 )
 
-const ()
-
 // +kubebuilder:object:root=true
 
 // ServerSet represents a stateful set of servers in the Ionos Cloud.
