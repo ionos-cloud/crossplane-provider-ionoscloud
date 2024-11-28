@@ -155,6 +155,7 @@ func extractSSetFromSSSet(sSSet *v1alpha1.StatefulServerSet) *v1alpha1.ServerSet
 			},
 			ForProvider: v1alpha1.ServerSetParameters{
 				Replicas:           sSSet.Spec.ForProvider.Replicas,
+				DeploymentStrategy: sSSet.Spec.ForProvider.DeploymentStrategy,
 				DatacenterCfg:      sSSet.Spec.ForProvider.DatacenterCfg,
 				Template:           sSSet.Spec.ForProvider.Template,
 				BootVolumeTemplate: sSSet.Spec.ForProvider.BootVolumeTemplate,
