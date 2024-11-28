@@ -374,6 +374,21 @@ spec:
                             type: object
                         type: object
                     type: object
+                  deploymentStrategy:
+                    description: DeploymentStrategy describes what strategy should
+                      be used to deploy the servers.
+                    properties:
+                      type:
+                        enum:
+                        - ZONES
+                        - AUTO
+                        - ZONE_1
+                        - ZONE_2
+                        - ZONE_3
+                        type: string
+                    required:
+                    - type
+                    type: object
                   identityConfigMap:
                     description: "IdentityConfigMap is the configMap from which the
                       identity of the ACTIVE server in the ServerSet is read. The
