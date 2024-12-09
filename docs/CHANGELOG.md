@@ -1,5 +1,9 @@
+## [1.1.7]
+### Fixes:
+- Write kubeconfig to k8s cluster, only if not in deploying state.
+
 ## [1.1.6]
-- **Chore**:
+### Chore
 - Update crossplane-runtime to 1.18.0
 
 ## [1.1.4]
