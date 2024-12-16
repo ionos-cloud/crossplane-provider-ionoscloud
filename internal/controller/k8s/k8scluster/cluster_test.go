@@ -345,7 +345,6 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 				ResourceExists:          true,
 				ResourceUpToDate:        true,
 				ResourceLateInitialized: false,
-				ConnectionDetails:       managed.ConnectionDetails{"kubeconfig": []byte("")},
 				Diff:                    "",
 			},
 			wantErr: false,
