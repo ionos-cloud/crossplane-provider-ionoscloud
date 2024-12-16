@@ -118,7 +118,7 @@ func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namesp
 // fromServerSetToServer is a conversion function that converts a ServerSet resource to a Server resource
 // attaches a bootvolume to the server based on replicaIndex
 func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version int) v1alpha1.Server {
-	return v1alpha1.Server{
+	srv := v1alpha1.Server{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, version),
 			Namespace: cr.Namespace,
@@ -135,12 +135,11 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version int) v1
 				DeletionPolicy:          cr.GetDeletionPolicy(),
 			},
 			ForProvider: v1alpha1.ServerParameters{
-				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
-				Name:             getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, version),
-				Cores:            cr.Spec.ForProvider.Template.Spec.Cores,
-				RAM:              cr.Spec.ForProvider.Template.Spec.RAM,
-				AvailabilityZone: GetZoneFromIndex(replicaIndex),
-				CPUFamily:        cr.Spec.ForProvider.Template.Spec.CPUFamily,
+				DatacenterCfg: cr.Spec.ForProvider.DatacenterCfg,
+				Name:          getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, version),
+				Cores:         cr.Spec.ForProvider.Template.Spec.Cores,
+				RAM:           cr.Spec.ForProvider.Template.Spec.RAM,
+				CPUFamily:     cr.Spec.ForProvider.Template.Spec.CPUFamily,
 				// todo revert if we go back to attaching volume on server creation
 				// VolumeCfg: v1alpha1.VolumeConfig{
 				// 	VolumeIDRef: &xpv1.Reference{
@@ -149,11 +148,12 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version int) v1
 				// },
 			},
 		}}
-}
-
-// GetZoneFromIndex returns ZONE_2 for odd and ZONE_1 for even index
-func GetZoneFromIndex(index int) string {
-	return fmt.Sprintf("ZONE_%d", index%2+1)
+	options := ZoneDeploymentOptions{
+		Zone:  cr.Spec.ForProvider.DeploymentStrategy.Type,
+		Index: replicaIndex,
+	}
+	srv.Spec.ForProvider.AvailabilityZone = NewZoneDeploymentByType(cr.Spec.ForProvider.DeploymentStrategy.Type).GetZone(options)
+	return srv
 }
 
 func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {

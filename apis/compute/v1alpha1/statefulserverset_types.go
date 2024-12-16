@@ -27,7 +27,7 @@ import (
 
 // DeploymentStrategy describes what strategy should be used to deploy the servers.
 type DeploymentStrategy struct {
-	// +kubebuilder:validation:Enum=ZONES
+	// +kubebuilder:validation:Enum=ZONES;AUTO;ZONE_1;ZONE_2;ZONE_3
 	Type string `json:"type"`
 }
 

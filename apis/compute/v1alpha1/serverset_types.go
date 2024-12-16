@@ -43,6 +43,8 @@ type ServerSetParameters struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=1
 	Replicas int `json:"replicas"`
+	// +kubebuilder:validation:Optional
+	DeploymentStrategy DeploymentStrategy `json:"deploymentStrategy"`
 	// DatacenterConfig contains information about the datacenter resource
 	// on which the server will be created.
 	//
