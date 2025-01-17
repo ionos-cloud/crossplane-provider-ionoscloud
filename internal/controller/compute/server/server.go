@@ -216,7 +216,7 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	}
 	// Attach or Detach Volume
 	if cr.Spec.ForProvider.VolumeCfg.VolumeID != "" && cr.Spec.ForProvider.VolumeCfg.VolumeID != cr.Status.AtProvider.VolumeID {
-		c.log.Debug("Update, attaching ", "volume", cr.Spec.ForProvider.VolumeCfg.VolumeID)
+		c.log.Debug("Update, attaching ", "volume id", cr.Spec.ForProvider.VolumeCfg.VolumeID, "for server name", cr.Spec.ForProvider.Name)
 		_, apiResponse, err := c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID,
 			sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
 		if err != nil {
@@ -226,10 +226,10 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 		if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 			return managed.ExternalUpdate{}, err
 		}
-		c.log.Debug("Update, finished attaching Volume", "volume", cr.Spec.ForProvider.VolumeCfg.VolumeID)
+		c.log.Debug("Update, finished attaching Volume", "volume", cr.Spec.ForProvider.VolumeCfg.VolumeID, "for server name", cr.Spec.ForProvider.Name)
 
 	} else if cr.Spec.ForProvider.VolumeCfg.VolumeID == "" && cr.Status.AtProvider.VolumeID != "" {
-		c.log.Debug("Update, detaching ", "volume", cr.Status.AtProvider.VolumeID)
+		c.log.Debug("Update, detaching ", "volume", cr.Status.AtProvider.VolumeID, "for server name", cr.Spec.ForProvider.Name)
 		apiResponse, err := c.service.DetachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 			cr.Status.AtProvider.ServerID, cr.Status.AtProvider.VolumeID)
 		if err != nil {
