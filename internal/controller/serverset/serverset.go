@@ -253,7 +253,7 @@ func computeNicStatuses(ctx context.Context, e *external, crName string, replica
 	nicsOfReplica := &v1alpha1.NicList{}
 	err := ListResFromSSetWithIndex(ctx, e.kube, crName, resourceNIC, replicaIndex, nicsOfReplica)
 	if err != nil {
-		e.log.Info("error fetching nics", "error", err)
+		e.log.Info("error fetching nics", "name", crName, "replicaIndex", replicaIndex, "error", err)
 		return []v1alpha1.NicStatus{}
 	}
 
@@ -388,7 +388,12 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	if err := e.reconcileVolumesFromTemplate(ctx, cr); err != nil {
 		return managed.ExternalUpdate{}, err
 	}
+	servers, err := GetServersOfSSet(ctx, e.kube, cr.Name)
+	if err != nil {
+		return managed.ExternalUpdate{}, err
+	}
 
+	e.populateReplicasStatuses(ctx, cr, servers)
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
 		// externalServerSet resource. These will be stored as the connection secret.
@@ -434,7 +439,7 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 	masterIndex := getIdentityFromStatus(cr.Status.AtProvider.ReplicaStatuses)
 	err = e.updateOrRecreateVolumes(ctx, cr, volumes, masterIndex)
 	if err != nil {
-		return fmt.Errorf("while updating volumes %w", err)
+		return fmt.Errorf("while updating volumes for serverset %s %w", cr.Name, err)
 	}
 	return nil
 }
@@ -449,7 +454,7 @@ func getIdentityFromStatus(statuses []v1alpha1.ServerSetReplicaStatus) int {
 }
 
 func (e *external) updateOrRecreateVolumes(ctx context.Context, cr *v1alpha1.ServerSet, volumes []v1alpha1.Volume, masterIndex int) error {
-	recreateMaster := false
+	recreateLeader := false
 	for idx := range volumes {
 		update := false
 		deleteAndCreate := false
@@ -457,22 +462,24 @@ func (e *external) updateOrRecreateVolumes(ctx context.Context, cr *v1alpha1.Ser
 		if deleteAndCreate {
 			// we want to recreate master at the end
 			if masterIndex == idx {
-				recreateMaster = true
+				recreateLeader = true
 				continue
 			}
 			err := e.updateByIndex(ctx, idx, cr)
 			if err != nil {
 				return err
 			}
+			// we want to return here to be able to update the status before we move to the next bootvolume to update
+			return nil
 		} else if update {
 			if err := e.kube.Update(ctx, &volumes[idx]); err != nil {
-				return fmt.Errorf("error updating server %w", err)
+				return fmt.Errorf("error updating volume %w", err)
 			}
 		}
 	}
 	if masterIndex != -1 {
-		e.log.Info("updating master with", "index", masterIndex, "template", cr.Spec.ForProvider.BootVolumeTemplate.Spec)
-		if recreateMaster {
+		e.log.Info("updating leader", "serverset", cr.Name, "index", masterIndex, "template", cr.Spec.ForProvider.BootVolumeTemplate.Spec)
+		if recreateLeader {
 			err := e.updateByIndex(ctx, masterIndex, cr)
 			if err != nil {
 				return err
@@ -768,6 +775,6 @@ func ComputeReplicaIdx(log logging.Logger, idxLabel string, labels map[string]st
 }
 
 // Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
-func (c *external) Disconnect(_ context.Context) error {
+func (e *external) Disconnect(_ context.Context) error {
 	return nil
 }
