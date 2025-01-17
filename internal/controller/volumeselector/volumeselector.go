@@ -143,7 +143,7 @@ func (c *externalVolumeselector) Observe(ctx context.Context, mg resource.Manage
 
 func (c *externalVolumeselector) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
 	cr, ok := mg.(*v1alpha1.Volumeselector)
-	c.log.Debug("Create volumeselector	", "name", cr.Name, "serverset", cr.Spec.ForProvider.ServersetName)
+	c.log.Debug("Create volumeselector", "name", cr.Name, "serverset", cr.Spec.ForProvider.ServersetName)
 
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotVolumeSelector)
