@@ -1090,10 +1090,10 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantCalls: map[ServiceMethodName]int{
-				serverGet:        2,
-				serverUpdate:     2,
-				bootVolumeEnsure: 2,
-				bootVolumeDelete: 2,
+				serverGet:        1,
+				serverUpdate:     1,
+				bootVolumeEnsure: 1,
+				bootVolumeDelete: 1,
 				bootVolumeGet:    2,
 			},
 		},
@@ -1119,10 +1119,10 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantCalls: map[ServiceMethodName]int{
-				serverGet:        2,
-				serverUpdate:     2,
-				bootVolumeEnsure: 2,
-				bootVolumeDelete: 2,
+				serverGet:        1,
+				serverUpdate:     1,
+				bootVolumeEnsure: 1,
+				bootVolumeDelete: 1,
 				bootVolumeGet:    2,
 			},
 		},
@@ -1148,15 +1148,15 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantCalls: map[ServiceMethodName]int{
-				serverEnsure:     2,
-				serverDelete:     2,
-				bootVolumeEnsure: 2,
-				bootVolumeDelete: 2,
-				nicEnsureNICs:    2,
-				nicDelete:        2,
-				bootVolumeGet:    2,
-				serverGet:        2,
-				serverUpdate:     2,
+				serverEnsure:     1,
+				serverDelete:     1,
+				bootVolumeEnsure: 1,
+				bootVolumeDelete: 1,
+				nicEnsureNICs:    1,
+				nicDelete:        1,
+				bootVolumeGet:    1,
+				serverGet:        1,
+				serverUpdate:     1,
 			},
 		},
 		{
@@ -1201,7 +1201,7 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 					Type:  bootVolumeType,
 				}),
 			},
-			wantErr: fmt.Errorf("while updating volumes %w", fmt.Errorf("error updating server %w", errAnErrorWasReceived)),
+			wantErr: fmt.Errorf("while updating volumes for serverset serverset %w", fmt.Errorf("error updating volume %w", errAnErrorWasReceived)),
 			want:    managed.ExternalUpdate{},
 			wantCalls: map[ServiceMethodName]int{
 				kubeUpdate: 1,
@@ -1224,10 +1224,11 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 					Type:  "SSD",
 				}),
 			},
-			wantErr: fmt.Errorf("while updating volumes %w", errAnErrorWasReceived),
+			wantErr: fmt.Errorf("while updating volumes for serverset serverset %w", errAnErrorWasReceived),
 			want:    managed.ExternalUpdate{},
 			wantCalls: map[ServiceMethodName]int{
 				bootVolumeEnsure: 1,
+				bootVolumeGet:    1,
 			},
 		},
 	}
@@ -1590,6 +1591,7 @@ func fakeBootVolumeCtrl() kubeBootVolumeControlManager {
 func fakeBootVolumeCtrlEnsureMethodReturnsErr() kubeBootVolumeControlManager {
 	bootVolumeCtrl := new(kubeBootVolumeControlManagerFake)
 	bootVolumeCtrl.
+		On(getMethod, mock.Anything, mock.Anything, mock.Anything).Return(&v1alpha1.Volume{}, nil).
 		On(ensureMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(errAnErrorWasReceived).
 		Times(1)
