@@ -1304,14 +1304,14 @@ func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_d
 	kubeClient.AssertNumberOfCalls(t, updateMethod, 0)
 
 	bootVolumeController := e.bootVolumeController.(*kubeBootVolumeCallTracker)
-	assertions.Equal(masterIndex, bootVolumeController.lastMethodCall[ensureMethod][thirdArg])
-	assertions.Equal("bootvolumename-0-1", bootVolumeController.lastMethodCall[getMethod][secondArg])
-	assertions.Equal("bootvolumename-0-0", bootVolumeController.lastMethodCall[deleteMethod][secondArg])
+	assertions.Equal(1, bootVolumeController.lastMethodCall[ensureMethod][thirdArg])
+	assertions.Equal("bootvolumename-1-1", bootVolumeController.lastMethodCall[getMethod][secondArg])
+	assertions.Equal("bootvolumename-1-0", bootVolumeController.lastMethodCall[deleteMethod][secondArg])
 
 	serverController := e.serverController.(*kubeServerCallTracker)
-	assertions.Equal("server-name-0-0", serverController.lastMethodCall[getMethod][secondArg])
+	assertions.Equal("server-name-1-0", serverController.lastMethodCall[getMethod][secondArg])
 	actualServer := serverController.lastMethodCall[updateMethod][secondArg].(*v1alpha1.Server)
-	assertions.Equal("bootvolumename-0-1-uuid", actualServer.Spec.ForProvider.VolumeCfg.VolumeID)
+	assertions.Equal("bootvolumename-1-1-uuid", actualServer.Spec.ForProvider.VolumeCfg.VolumeID)
 }
 
 func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_createBeforeDestroyUpdateStrategy(t *testing.T) {
