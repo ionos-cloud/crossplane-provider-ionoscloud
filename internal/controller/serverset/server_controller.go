@@ -33,20 +33,20 @@ type kubeServerController struct {
 // Create creates a server CR and waits until in reaches AVAILABLE state
 func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Server, error) {
 	createServer := fromServerSetToServer(cr, replicaIndex, version)
-	k.log.Info("Creating Server", "name", createServer.Name)
+	k.log.Info("Creating Server", "name", createServer.Name, "serverset", cr.Name)
 
 	if err := k.kube.Create(ctx, &createServer); err != nil {
-		return v1alpha1.Server{}, fmt.Errorf("while creating Server %w ", err)
+		return v1alpha1.Server{}, fmt.Errorf("while creating Server for serverset %s %w", cr.Name, err)
 	}
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createServer.Name, cr.Namespace); err != nil {
 		_ = k.Delete(ctx, createServer.Name, cr.Namespace)
-		return v1alpha1.Server{}, fmt.Errorf("while waiting for Server to be populated %w ", err)
+		return v1alpha1.Server{}, fmt.Errorf("while waiting for Server to be populated in serverset %s %w ", cr.Name, err)
 	}
 	createdServer, err := k.Get(ctx, createServer.Name, cr.Namespace)
 	if err != nil {
-		return v1alpha1.Server{}, fmt.Errorf("while getting created Server %w ", err)
+		return v1alpha1.Server{}, fmt.Errorf("while getting created Server for serverset %s %w", cr.Name, err)
 	}
-	k.log.Info("Finished creating Server", "name", createServer.Name)
+	k.log.Info("Finished creating Server", "name", createServer.Name, "serverset", cr.Name)
 
 	return *createdServer, nil
 }
@@ -93,7 +93,7 @@ func (k *kubeServerController) Delete(ctx context.Context, name, namespace strin
 		return err
 	}
 	if err := k.kube.Delete(ctx, condemnedServer); err != nil {
-		return fmt.Errorf("error deleting server %w", err)
+		return fmt.Errorf("error deleting server name %s %w", name, err)
 	}
 	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isServerDeleted, condemnedServer.Name, namespace)
 }
@@ -164,7 +164,7 @@ func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSe
 	}
 	servers := res.Items
 	if len(servers) > 0 {
-		k.log.Info("Server already exists", "name", servers[0].Name)
+		k.log.Info("Server already exists", "name", servers[0].Name, "serverset", cr.Name)
 		return nil
 	}
 
@@ -173,7 +173,7 @@ func (k *kubeServerController) Ensure(ctx context.Context, cr *v1alpha1.ServerSe
 		return err
 	}
 
-	k.log.Info("Finished ensuring Server", "index", replicaIndex, "version", version)
+	k.log.Info("Finished ensuring Server", "index", replicaIndex, "version", version, "serverset", cr.Name)
 
 	return nil
 }

@@ -170,7 +170,7 @@ func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha
 	if err != nil {
 		return false, false, false, err
 	}
-	e.log.Info("Observing the StatefulServerSet", "creationLansUpToDate", creationLansUpToDate, "lansUpToDate", lansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate,
+	e.log.Info("Observing the StatefulServerSet", "name", cr.Name, "creationLansUpToDate", creationLansUpToDate, "lansUpToDate", lansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate,
 		"areVolumesUpToDate", areVolumesUpToDate, "creationSSetUpToDate", creationSSetUpToDate, "isSSetUpToDate", isSSetUpToDate, "creationVSUpToDate", creationVSUpToDate, "areVolumesAvailable", areVolumesAvailable)
 	areResourcesCreated = creationLansUpToDate && creationVolumesUpToDate && creationSSetUpToDate && creationVSUpToDate
 	areResourcesUpdated = lansUpToDate && areVolumesUpToDate && isSSetUpToDate
@@ -328,7 +328,7 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex int) error {
-	e.log.Info("Ensuring the DataVolumes")
+	e.log.Info("Ensuring the DataVolumes for ", "name", cr.Name)
 	for volumeIndex := range cr.Spec.ForProvider.Volumes {
 		err := e.dataVolumeController.Ensure(ctx, cr, replicaIndex, volumeIndex)
 		if err != nil {
@@ -339,7 +339,7 @@ func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulS
 }
 
 func (e *external) ensureLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	e.log.Info("Ensuring the LANs")
+	e.log.Info("Ensuring the LANs for", "name", cr.Name)
 	for lanIndex := range cr.Spec.ForProvider.Lans {
 		err := e.LANController.Ensure(ctx, cr, lanIndex)
 		if err != nil {

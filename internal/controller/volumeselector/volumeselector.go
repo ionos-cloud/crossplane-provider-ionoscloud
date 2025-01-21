@@ -143,6 +143,8 @@ func (c *externalVolumeselector) Observe(ctx context.Context, mg resource.Manage
 
 func (c *externalVolumeselector) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
 	cr, ok := mg.(*v1alpha1.Volumeselector)
+	c.log.Debug("Create volumeselector", "name", cr.Name, "serverset", cr.Spec.ForProvider.ServersetName)
+
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotVolumeSelector)
 	}
@@ -154,6 +156,7 @@ func (c *externalVolumeselector) Create(ctx context.Context, mg resource.Managed
 
 func (c *externalVolumeselector) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
 	cr, ok := mg.(*v1alpha1.Volumeselector)
+	c.log.Debug("Update volumeselector	", "name", cr.Name, "serverset", cr.Spec.ForProvider.ServersetName)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotVolumeSelector)
 	}
@@ -244,7 +247,7 @@ func (c *externalVolumeselector) areVolumesAndServersReady(volumeList v1alpha1.V
 		return false
 	}
 	if serverList.Items[0].Status.AtProvider.ServerID == "" {
-		c.log.Info("Server does not have ID")
+		c.log.Info("Server does not have ID", "name", serverList.Items[0].Name)
 		return false
 	}
 

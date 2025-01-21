@@ -139,7 +139,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	areNICsCreated := len(nics) == crExpectedNoOfNICs
 
 	// at the moment we do not check that fields of nics are updated, because nic fields are immutable
-	e.log.Info("Observing the ServerSet", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "areServersCreated",
+	e.log.Info("Observing the ServerSet", "name", cr.Name, "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "areServersCreated",
 		areServersCreated, "areBootVolumesCreated", areBootVolumesCreated, "areNICsCreated", areNICsCreated, "areServersAvailable", areServersAvailable, "areBootVolumesAvailable", areBootVolumesAvailable)
 	if areServersAvailable && areBootVolumesAvailable {
 		cr.SetConditions(xpv1.Available())
@@ -281,7 +281,7 @@ func fetchRole(ctx context.Context, e *external, sset v1alpha1.ServerSet, replic
 	if sset.Spec.ForProvider.IdentityConfigMap.Namespace == "" ||
 		sset.Spec.ForProvider.IdentityConfigMap.Name == "" ||
 		sset.Spec.ForProvider.IdentityConfigMap.KeyName == "" {
-		e.log.Info("no identity configmap values provided, setting role based on replica index only")
+		e.log.Info("no identity configmap values provided, setting role based on replica index only for", "serverset name", sset.Name)
 		if replicaIndex == 0 {
 			return v1alpha1.Active
 		}
@@ -293,7 +293,7 @@ func fetchRole(ctx context.Context, e *external, sset v1alpha1.ServerSet, replic
 	cfgLease := &v1.ConfigMap{}
 	err := e.kube.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, cfgLease)
 	if err != nil {
-		e.log.Info("error fetching config lease, will default to PASSIVE role", "error", err)
+		e.log.Info("error fetching config lease, will default to PASSIVE role", "serverset name", sset.Name, "error", err)
 		return v1alpha1.Passive
 	}
 
