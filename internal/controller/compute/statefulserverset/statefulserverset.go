@@ -296,7 +296,7 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.Ext
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
 		for volumeIndex := range cr.Spec.ForProvider.Volumes {
 			name := generateNameFrom(cr.Spec.ForProvider.Volumes[volumeIndex].Metadata.Name, replicaIndex, volumeIndex)
-			e.log.Info("Deleting the DataVolume with name", "name", name)
+			e.log.Info("Deleting the DataVolume with", "name", name, "ssset", cr.Name)
 			err := e.dataVolumeController.Delete(ctx, name, cr.Namespace)
 			if err != nil {
 				return managed.ExternalDelete{}, err
@@ -304,14 +304,14 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.Ext
 		}
 	}
 
-	e.log.Info("Deleting the ServerSet with name", "name", cr.Spec.ForProvider.Template.Metadata.Name)
+	e.log.Info("Deleting the ServerSet with name", "name", cr.Spec.ForProvider.Template.Metadata.Name, "ssset", cr.Name)
 	if err := e.SSetController.Delete(ctx, cr.Spec.ForProvider.Template.Metadata.Name, cr.Namespace); err != nil {
 		return managed.ExternalDelete{}, err
 	}
 
 	for lanIndex := range cr.Spec.ForProvider.Lans {
 		name := cr.Spec.ForProvider.Lans[lanIndex].Metadata.Name
-		e.log.Info("Deleting the LANs with name", "name", name)
+		e.log.Info("Deleting the LANs with name", "name", name, "ssset", cr.Name)
 		err := e.LANController.Delete(ctx, name, cr.Namespace)
 		if err != nil {
 			return managed.ExternalDelete{}, err
