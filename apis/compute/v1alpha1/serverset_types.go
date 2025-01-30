@@ -82,6 +82,8 @@ type ServerSetTemplateSpec struct {
 }
 
 type ServerSetTemplateFirewallRuleSpec struct {
+	// The name of the  resource.
+	Name string `json:"name,omitempty"`
 	// The protocol for the rule. Property cannot be modified after it is created (disallowed in update requests).
 	//
 	// +immutable

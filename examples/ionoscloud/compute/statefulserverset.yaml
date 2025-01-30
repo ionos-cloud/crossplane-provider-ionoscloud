@@ -38,6 +38,12 @@ spec:
 #           should reference lan metadata name
 #           needs to be created before serverset. StatefulServerset will not wait until it is populated
             lanReference: customer
+            firewallActive: true
+            firewallRules:
+              - protocol: "TCP"
+                name: "rule-tcp"
+              - protocol: "ICMP"
+                name: "rule-icmp"
 # needs to be created separately from the stateful serverset
     identityConfigMap:
         name: "config-lease"

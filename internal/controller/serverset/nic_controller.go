@@ -195,62 +195,6 @@ func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerS
 	return nil
 }
 
-func fwRule(nic v1alpha1.ServerSetTemplateNIC, cr *v1alpha1.ServerSet, fwr v1alpha1.ServerSetTemplateFirewallRuleSpec, nicName, serverID string) v1alpha1.FirewallRule {
-	return v1alpha1.FirewallRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      nicName,
-			Namespace: cr.Namespace,
-		},
-		Spec: v1alpha1.FirewallRuleSpec{
-			ResourceSpec: xpv1.ResourceSpec{
-				ProviderConfigReference: cr.GetProviderConfigReference(),
-				ManagementPolicies:      cr.GetManagementPolicies(),
-				DeletionPolicy:          cr.GetDeletionPolicy(),
-			},
-			ForProvider: v1alpha1.FirewallRuleParameters{
-				Name:          nicName,
-				DatacenterCfg: cr.Spec.ForProvider.DatacenterCfg,
-				ServerCfg: v1alpha1.ServerConfig{
-					ServerID: serverID,
-				},
-				NicCfg: v1alpha1.NicConfig{
-					NicID: nicName,
-				},
-				Protocol:       fwr.Protocol,
-				SourceMac:      fwr.SourceMac,
-				SourceIPCfg:    fwr.SourceIPCfg,
-				TargetIPCfg:    fwr.TargetIPCfg,
-				IcmpCode:       fwr.IcmpCode,
-				IcmpType:       fwr.IcmpType,
-				PortRangeStart: fwr.PortRangeStart,
-				PortRangeEnd:   fwr.PortRangeEnd,
-				Type:           fwr.Type,
-			},
-		},
-	}
-}
-
-func (k *kubeNicController) ensureFirewall(ctx context.Context, cr *v1alpha1.ServerSet, serverID string, replicaIndex, nicIndex, version int) error {
-	nicName := getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, version)
-	for _, fwr := range cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].FirewallRules {
-		r := fwRule(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex], cr, fwr, nicName, serverID)
-		rr := &v1alpha1.FirewallRule{}
-		err := k.kube.Get(ctx, types.NamespacedName{Name: nicName, Namespace: cr.Namespace}, rr)
-		if apiErrors.IsNotFound(err) {
-			if err := k.kube.Create(ctx, &r); err != nil {
-				return err
-			}
-		} else if apiErrors.IsAlreadyExists(err) {
-			if err := k.kube.Update(ctx, &r); err != nil {
-				return err
-			}
-		} else if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // EnsureNIC - creates a NIC if it does not exist
 func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, nicIndex, version int) error {
 	var nic *v1alpha1.Nic
@@ -268,10 +212,6 @@ func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, 
 		} else {
 			return err
 		}
-	}
-
-	if err := k.ensureFirewall(ctx, cr, serverID, replicaIndex, nicIndex, version); err != nil {
-		return err
 	}
 
 	if !strings.EqualFold(nic.Status.AtProvider.State, ionoscloud.Available) {
