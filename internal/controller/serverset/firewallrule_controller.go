@@ -118,7 +118,9 @@ func (k *kubeFirewallRuleController) EnsureFirewallRules(
 		k.log.Info("Ensuring Firewall Rules", "NIC", nicSpec.Name, "index", replicaIndex, "version", version)
 		if len(servers) > 0 {
 			for firewallIdx, firewallRuleSpec := range nicSpec.FirewallRules {
-				firewallRuleName := getFirewallRuleName(firewallRuleSpec.Name, replicaIndex, nicIdx, firewallIdx, version)
+				firewallRuleName := getFirewallRuleName(
+					firewallRuleSpec.Name, replicaIndex, nicIdx, firewallIdx, version,
+				)
 				if err := k.ensure(
 					ctx, cr, firewallRuleSpec, nic, firewallRuleName,
 					servers[0].Status.AtProvider.ServerID,
@@ -140,7 +142,7 @@ func (k *kubeFirewallRuleController) ensure(
 	var firewallRule *v1alpha1.FirewallRule
 	var err error
 
-	firewallRule, err = k.Get(context.Background(), firewallRuleName, cr.Namespace)
+	firewallRule, err = k.Get(ctx, firewallRuleName, cr.Namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			createdFirewallRule, err := k.Create(ctx, cr, nic, firewallRuleSpec, serverID, firewallRuleName)
