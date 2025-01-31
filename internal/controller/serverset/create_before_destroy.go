@@ -11,16 +11,21 @@ type updater interface {
 }
 
 type createBeforeDestroy struct {
-	bootVolumeController kubeBootVolumeControlManager
-	serverController     kubeServerControlManager
-	nicController        kubeNicControlManager
+	bootVolumeController   kubeBootVolumeControlManager
+	serverController       kubeServerControlManager
+	nicController          kubeNicControlManager
+	firewallRuleController kubeFirewallRuleControlManager
 }
 
-func newCreateBeforeDestroy(bootVolumeController kubeBootVolumeControlManager, serverController kubeServerControlManager, nicController kubeNicControlManager) *createBeforeDestroy {
+func newCreateBeforeDestroy(
+	bootVolumeController kubeBootVolumeControlManager, serverController kubeServerControlManager,
+	nicController kubeNicControlManager, firewallRuleController kubeFirewallRuleControlManager,
+) *createBeforeDestroy {
 	return &createBeforeDestroy{
-		bootVolumeController: bootVolumeController,
-		serverController:     serverController,
-		nicController:        nicController,
+		bootVolumeController:   bootVolumeController,
+		serverController:       serverController,
+		nicController:          nicController,
+		firewallRuleController: firewallRuleController,
 	}
 }
 
@@ -58,7 +63,11 @@ func (c *createBeforeDestroy) createResources(ctx context.Context, cr *v1alpha1.
 		return err
 	}
 
-	return c.nicController.EnsureNICs(ctx, cr, index, serverVersion)
+	if err := c.nicController.EnsureNICs(ctx, cr, index, serverVersion); err != nil {
+		return err
+	}
+
+	return c.firewallRuleController.EnsureFirewallRules(ctx, cr, index, serverVersion)
 }
 
 func (c *createBeforeDestroy) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, volumeVersion, serverVersion int) error {
@@ -69,6 +78,19 @@ func (c *createBeforeDestroy) cleanupCondemned(ctx context.Context, cr *v1alpha1
 		return err
 	}
 	for nicIndex := range cr.Spec.ForProvider.Template.Spec.NICs {
+		for fwRuleIdx := range cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].FirewallRules {
+			if err := c.firewallRuleController.Delete(
+				ctx,
+				getFirewallRuleName(
+					cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].FirewallRules[fwRuleIdx].Name,
+					replicaIndex, nicIndex, fwRuleIdx, serverVersion,
+				),
+				cr.Namespace,
+			); err != nil {
+				return err
+			}
+		}
+
 		if err := c.nicController.Delete(ctx, getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, serverVersion), cr.Namespace); err != nil {
 			return err
 		}

@@ -199,7 +199,9 @@ func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerS
 func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, nicIndex, version int) error {
 	var nic *v1alpha1.Nic
 	var err error
-	nic, err = k.Get(ctx, getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, version), cr.Namespace)
+
+	nicName := getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, version)
+	nic, err = k.Get(ctx, nicName, cr.Namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			createdNic, err := k.Create(ctx, cr, serverID, lanName, replicaIndex, nicIndex, version)
@@ -210,8 +212,8 @@ func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, 
 		} else {
 			return err
 		}
-
 	}
+
 	if !strings.EqualFold(nic.Status.AtProvider.State, ionoscloud.Available) {
 		return fmt.Errorf("observed NIC %s got state %s but expected %s", nic.GetName(), nic.Status.AtProvider.State, ionoscloud.Available)
 	}

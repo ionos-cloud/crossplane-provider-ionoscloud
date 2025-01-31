@@ -61,6 +61,7 @@ type connector struct {
 	bootVolumeController    kubeBootVolumeControlManager
 	nicController           kubeNicControlManager
 	serverController        kubeServerControlManager
+	firewallRuleController  kubeFirewallRuleControlManager
 	kubeConfigmapController kubeConfigmapControlManager
 	usage                   resource.Tracker
 	log                     logging.Logger
@@ -82,12 +83,13 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	}
 
 	return &external{
-		kube:                 c.kube,
-		log:                  c.log,
-		bootVolumeController: c.bootVolumeController,
-		nicController:        c.nicController,
-		serverController:     c.serverController,
-		configMapController:  c.kubeConfigmapController,
+		kube:                   c.kube,
+		log:                    c.log,
+		bootVolumeController:   c.bootVolumeController,
+		nicController:          c.nicController,
+		serverController:       c.serverController,
+		firewallRuleController: c.firewallRuleController,
+		configMapController:    c.kubeConfigmapController,
 	}, err
 }
 
@@ -97,11 +99,12 @@ type external struct {
 	kube client.Client
 	// A 'client' used to connect to the externalServer resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	bootVolumeController kubeBootVolumeControlManager
-	nicController        kubeNicControlManager
-	serverController     kubeServerControlManager
-	configMapController  kubeConfigmapControlManager
-	log                  logging.Logger
+	bootVolumeController   kubeBootVolumeControlManager
+	nicController          kubeNicControlManager
+	serverController       kubeServerControlManager
+	firewallRuleController kubeFirewallRuleControlManager
+	configMapController    kubeConfigmapControlManager
+	log                    logging.Logger
 }
 
 func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
@@ -503,7 +506,7 @@ func (e *external) updateByIndex(ctx context.Context, idx int, cr *v1alpha1.Serv
 func (e *external) getUpdaterByStrategy(strategyType v1alpha1.UpdateStrategyType) updater {
 	switch strategyType {
 	case v1alpha1.CreateAllBeforeDestroy:
-		return newCreateBeforeDestroy(e.bootVolumeController, e.serverController, e.nicController)
+		return newCreateBeforeDestroy(e.bootVolumeController, e.serverController, e.nicController, e.firewallRuleController)
 	case v1alpha1.CreateBeforeDestroyBootVolume:
 		return newCreateBeforeDestroyOnlyBootVolume(e.bootVolumeController, e.serverController)
 	default:
@@ -546,13 +549,28 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.Ext
 		if err := e.bootVolumeController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion), cr.Namespace); err != nil {
 			return managed.ExternalDelete{}, err
 		}
-		if err := e.serverController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, serverVersion), cr.Namespace); err != nil {
-			return managed.ExternalDelete{}, err
-		}
+
 		for nicIndex := range cr.Spec.ForProvider.Template.Spec.NICs {
+			for firewallRuleIdx := range cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].FirewallRules {
+				if err := e.firewallRuleController.Delete(
+					ctx,
+					getFirewallRuleName(
+						cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].FirewallRules[firewallRuleIdx].Name,
+						replicaIndex, nicIndex, firewallRuleIdx, serverVersion,
+					),
+					cr.Namespace,
+				); err != nil {
+					return managed.ExternalDelete{}, err
+				}
+			}
+
 			if err := e.nicController.Delete(ctx, getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, serverVersion), cr.Namespace); err != nil {
 				return managed.ExternalDelete{}, err
 			}
+		}
+
+		if err := e.serverController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, serverVersion), cr.Namespace); err != nil {
+			return managed.ExternalDelete{}, err
 		}
 	}
 
@@ -735,6 +753,10 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.S
 		}
 	}
 	if err := e.nicController.EnsureNICs(ctx, cr, replicaIndex, version); err != nil {
+		return err
+	}
+
+	if err := e.firewallRuleController.EnsureFirewallRules(ctx, cr, replicaIndex, version); err != nil {
 		return err
 	}
 

@@ -81,6 +81,61 @@ type ServerSetTemplateSpec struct {
 	NICs []ServerSetTemplateNIC `json:"nics"`
 }
 
+type ServerSetTemplateFirewallRuleSpec struct {
+	// The name of the  resource.
+	Name string `json:"name,omitempty"`
+	// The protocol for the rule. Property cannot be modified after it is created (disallowed in update requests).
+	//
+	// +immutable
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=TCP;UDP;ICMP;ANY
+	Protocol string `json:"protocol"`
+	// Only traffic originating from the respective MAC address is allowed.
+	// Valid format: aa:bb:cc:dd:ee:ff. Value null allows traffic from any MAC address.
+	//
+	// +kubebuilder:validation:Pattern="^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"
+	SourceMac string `json:"sourceMac,omitempty"`
+	// Only traffic originating from the respective IPv4 address is allowed.
+	// Value null allows traffic from any IP address.
+	// SourceIP can be set directly or via reference to an IP Block and index.
+	//
+	// +kubebuilder:validation:Optional
+	SourceIPCfg FwIPConfig `json:"sourceIpConfig,omitempty"`
+	// If the target NIC has multiple IP addresses, only the traffic directed to the respective IP address of the NIC is allowed.
+	// Value null allows traffic to any target IP address.
+	// TargetIP can be set directly or via reference to an IP Block and index.
+	//
+	// +kubebuilder:validation:Optional
+	TargetIPCfg FwIPConfig `json:"targetIpConfig,omitempty"`
+	// Defines the allowed code (from 0 to 254) if protocol ICMP is chosen. Value null allows all codes.
+	//
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=254
+	IcmpCode int32 `json:"icmpCode,omitempty"`
+	// Defines the allowed type (from 0 to 254) if the protocol ICMP is chosen. Value null allows all types.
+	//
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=254
+	IcmpType int32 `json:"icmpType,omitempty"`
+	// Defines the start range of the allowed port (from 1 to 65534) if protocol TCP or UDP is chosen.
+	// Leave portRangeStart and portRangeEnd value null to allow all ports.
+	//
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65534
+	PortRangeStart int32 `json:"portRangeStart,omitempty"`
+	// Defines the end range of the allowed port (from 1 to 65534) if the protocol TCP or UDP is chosen.
+	// Leave portRangeStart and portRangeEnd null to allow all ports.
+	//
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65534
+	PortRangeEnd int32 `json:"portRangeEnd,omitempty"`
+	// The type of the firewall rule. If not specified, the default INGRESS value is used.
+	//
+	// +kubebuilder:validation:Enum=INGRESS;EGRESS
+	// +kubebuilder:validation:default=INGRESS
+	Type string `json:"type,omitempty"`
+}
+
 // ServerSetTemplateNIC are the configurable fields of a ServerSetTemplateNIC.
 // +kubebuilder:validation:XValidation:rule="!has(self.dhcpv6) || (self.dhcp == false && self.dhcpv6 == false) || (self.dhcp != self.dhcpv6)", message="Only one of 'dhcp' or 'dhcpv6' can be set to true"
 type ServerSetTemplateNIC struct {
@@ -101,6 +156,17 @@ type ServerSetTemplateNIC struct {
 	//
 	// +kubebuilder:validation:Required
 	LanReference string `json:"lanReference"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:default=false
+	FirewallActive bool `json:"firewallActive,omitempty"`
+	// The type of firewall rules that will be allowed on the NIC. If not specified, the default INGRESS value is used.
+	//
+	// +kubebuilder:validation:Enum=BIDIRECTIONAL;EGRESS;INGRESS
+	// +kubebuilder:validation:default=INGRESS
+	// +kubebuilder:validation:Optional
+	FirewallType string `json:"firewallType,omitempty"`
+	// +kubebuilder:validation:Optional
+	FirewallRules []ServerSetTemplateFirewallRuleSpec `json:"firewallRules,omitempty"`
 }
 
 // ServerSetTemplate are the configurable fields of a ServerSetTemplate.
