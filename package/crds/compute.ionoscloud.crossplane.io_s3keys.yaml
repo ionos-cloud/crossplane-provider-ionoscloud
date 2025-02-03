@@ -78,6 +78,7 @@ spec:
                   UserID
                 properties:
                   active:
+                    default: true
                     description: Whether the IONOS Object Storage is active / enabled
                       or not. Can only be updated to false, by default the key will
                       be created as active. Default value is true.

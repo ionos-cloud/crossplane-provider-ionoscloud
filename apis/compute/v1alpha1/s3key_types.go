@@ -20,7 +20,7 @@ type S3KeyParameters struct {
 	// Whether the IONOS Object Storage is active / enabled or not. Can only be updated to false, by default the key will be created as active. Default value is true.
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=true
+	// +kubebuilder:default=true
 	Active bool `json:"active,omitempty"`
 }
 
