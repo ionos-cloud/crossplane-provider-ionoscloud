@@ -103,7 +103,8 @@ func (c *connectorS3Key) Connect(ctx context.Context, mg resource.Managed) (mana
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalS3Key{
 		service: s3key.APIClient{IonosServices: svc},
-		log:     c.log}, err
+		log:     c.log,
+	}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -125,7 +126,7 @@ func (c *externalS3Key) Observe(ctx context.Context, mg resource.Managed) (manag
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
-	observed, apiResponse, err := c.service.GetS3Key(ctx, cr.Spec.ForProvider.UserID, cr.Status.AtProvider.S3KeyID)
+	observed, apiResponse, err := c.service.GetS3Key(ctx, cr.Spec.ForProvider.UserID, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get S3Key by id. error: %w", err)
 		// we get a 422 error response on key not found instead of 404
