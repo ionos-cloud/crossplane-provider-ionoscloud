@@ -23,7 +23,7 @@ type kubeNicControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, nicIndex, version int) (v1alpha1.Nic, error)
 	Get(ctx context.Context, name, ns string) (*v1alpha1.Nic, error)
 	Delete(ctx context.Context, name, namespace string) error
-	EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error
+	EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int, serverID string) error
 }
 
 // kubeNicController - kubernetes client wrapper
@@ -175,19 +175,13 @@ func (k *kubeNicController) fromServerSetToNic(cr *v1alpha1.ServerSet, name, ser
 }
 
 // EnsureNICs - creates NICS if they do not exist
-func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+func (k *kubeNicController) EnsureNICs(
+	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int,serverID string,
+) error {
 	k.log.Info("Ensuring NICs", "index", replicaIndex, "version", version, "serverset", cr.Name)
-	res := &v1alpha1.ServerList{}
-	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, cr.GetName(), ResourceServer, replicaIndex, version, res); err != nil {
-		return err
-	}
-	servers := res.Items
-	// check if the NIC is attached to the server
-	if len(servers) > 0 {
-		for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
-			if err := k.ensure(ctx, cr, servers[0].Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].LanReference, replicaIndex, nicx, version); err != nil {
-				return err
-			}
+	for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
+		if err := k.ensure(ctx, cr, serverID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].LanReference, replicaIndex, nicx, version); err != nil {
+			return err
 		}
 	}
 	k.log.Info("Finished ensuring NICs", "index", replicaIndex, "version", version, "serverset", cr.Name)

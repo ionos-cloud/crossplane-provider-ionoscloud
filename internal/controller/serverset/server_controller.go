@@ -3,6 +3,8 @@ package serverset
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
@@ -10,7 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
