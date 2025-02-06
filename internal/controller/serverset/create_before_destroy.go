@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type updater interface {
@@ -16,7 +15,6 @@ type createBeforeDestroy struct {
 	serverController       kubeServerControlManager
 	nicController          kubeNicControlManager
 	firewallRuleController kubeFirewallRuleControlManager
-	kube client.Client
 }
 
 func newCreateBeforeDestroy(
