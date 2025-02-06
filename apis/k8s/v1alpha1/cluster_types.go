@@ -58,6 +58,37 @@ type ClusterParameters struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:MaxItems=1
 	S3Buckets []S3Bucket `json:"s3Buckets,omitempty"`
+	// The indicator if the cluster is public or private.
+	// Be aware that setting it to false is currently in beta phase.
+	//
+	// +immutable
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=true
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="Public is immutable"
+	Public bool `json:"public"`
+	// The nat gateway IP of the cluster if the cluster is private. This
+	// property is immutable. Must be a reserved IP in the same location as
+	// the cluster's location. This attribute is mandatory if the cluster
+	// is private.
+	//
+	// +immutable
+	// +kubebuilder:validation:Optional
+	NATGatewayIPCfg IPConfig `json:"natGatewayIpConfig,omitempty"`
+	// The node subnet of the cluster, if the cluster is private.
+	// This attribute is optional and immutable.
+	// Must be a valid CIDR notation for an IPv4 network prefix of 16 bits length.
+	//
+	// +immutable
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="NodeSubnet is immutable"
+	NodeSubnet string `json:"nodeSubnet,omitempty"`
+	// This attribute is mandatory if the cluster is private.
+	// The location must be enabled for your contract, or you must have a data center at that location.
+	// This attribute is immutable.
+	// +immutable
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="Location is immutable"
+	Location string `json:"location,omitempty"`
 }
 
 // MaintenanceWindow A weekly window, during which maintenance might occur.

@@ -1,0 +1,57 @@
+# Use this file to create a K8s Cluster CR.
+# Required values for creating a K8s Cluster CR are:
+# - Name.
+apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
+kind: Cluster
+metadata:
+  name: example
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: exampleK8sCluster
+    location: us/las
+    public: false
+    natGatewayIpConfig:
+      ipBlockConfig:
+        ipBlockIdRef:
+          name: example
+        index: 0
+  #    k8sVersion: 1.22.6
+  #    apiSubnetAllowList:
+  #      -
+  #    s3Buckets:
+  #      - name:
+  #    maintenanceWindow:
+  #      time: "23:40:58Z"
+  #      dayOfTheWeek: Friday
+  writeConnectionSecretToRef:
+    namespace: default
+    name: kubeconfig
+  # or use connection publisher
+  #  publishConnectionDetailsTo:
+  #    name: kubeconfig
+  #    metadata:
+  #      labels:
+  #        environment: data-clusters
+  #      annotations:
+  #        test.annotation.io/secret-type: kubeconfig
+  #    configRef:
+  #      name: default
+  providerConfigRef:
+    name: example
+---
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: IPBlock
+metadata:
+  name: example
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: exampleIpBlock
+    size: 1
+    location: us/las
+  providerConfigRef:
+    name: example
+

@@ -25,6 +25,32 @@ import (
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// ResolveReferences of this Cluster.
+func (mg *Cluster) ResolveReferences(ctx context.Context, c client.Reader) error {
+	r := reference.NewAPIResolver(c, mg)
+
+	var rsp reference.ResolutionResponse
+	var err error
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: mg.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.IPBlockID,
+		Extract:      v1alpha1.ExtractIPBlockID(),
+		Reference:    mg.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.IPBlockIDRef,
+		Selector:     mg.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.IPBlockIDSelector,
+		To: reference.To{
+			List:    &v1alpha1.IPBlockList{},
+			Managed: &v1alpha1.IPBlock{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.IPBlockID")
+	}
+	mg.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.IPBlockID = rsp.ResolvedValue
+	mg.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.IPBlockIDRef = rsp.ResolvedReference
+
+	return nil
+}
+
 // ResolveReferences of this NodePool.
 func (mg *NodePool) ResolveReferences(ctx context.Context, c client.Reader) error {
 	r := reference.NewAPIResolver(c, mg)

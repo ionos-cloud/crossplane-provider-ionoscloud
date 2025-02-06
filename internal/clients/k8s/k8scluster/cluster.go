@@ -120,10 +120,11 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 }
 
 // GenerateCreateK8sClusterInput returns sdkgo.KubernetesClusterForPost based on the CR spec
-func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) *sdkgo.KubernetesClusterForPost {
+func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster, natGatewayIP string) *sdkgo.KubernetesClusterForPost {
 	instanceCreateInput := sdkgo.KubernetesClusterForPost{
 		Properties: &sdkgo.KubernetesClusterPropertiesForPost{
-			Name: &cr.Spec.ForProvider.Name,
+			Name:   &cr.Spec.ForProvider.Name,
+			Public: &cr.Spec.ForProvider.Public,
 		},
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.K8sVersion)) {
@@ -138,6 +139,16 @@ func GenerateCreateK8sClusterInput(cr *v1alpha1.Cluster) *sdkgo.KubernetesCluste
 	if window := clusterMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
 		instanceCreateInput.Properties.SetMaintenanceWindow(*window)
 	}
+	if cr.Spec.ForProvider.Location != "" {
+		instanceCreateInput.Properties.SetLocation(cr.Spec.ForProvider.Location)
+	}
+	if natGatewayIP != "" {
+		instanceCreateInput.Properties.SetNatGatewayIp(natGatewayIP)
+	}
+	if cr.Spec.ForProvider.NodeSubnet != "" {
+		instanceCreateInput.Properties.SetNodeSubnet(cr.Spec.ForProvider.NodeSubnet)
+	}
+
 	return &instanceCreateInput
 }
 
@@ -160,6 +171,7 @@ func GenerateUpdateK8sClusterInput(cr *v1alpha1.Cluster) *sdkgo.KubernetesCluste
 	if window := clusterMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow); window != nil {
 		instanceUpdateInput.Properties.SetMaintenanceWindow(*window)
 	}
+
 	return &instanceUpdateInput
 }
 
@@ -235,6 +247,8 @@ func IsK8sClusterUpToDate(cr *v1alpha1.Cluster, cluster sdkgo.KubernetesCluster)
 	case cluster.Properties.ApiSubnetAllowList != nil && !utils.ContainsStringSlices(*cluster.Properties.ApiSubnetAllowList, cr.Spec.ForProvider.APISubnetAllowList):
 		return false
 	case !compare.EqualKubernetesMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow, cluster.Properties.MaintenanceWindow):
+		return false
+	case cluster.Properties.Public != nil && *cluster.Properties.Public != cr.Spec.ForProvider.Public:
 		return false
 	default:
 		return true
