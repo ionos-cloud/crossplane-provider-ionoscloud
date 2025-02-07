@@ -1681,7 +1681,7 @@ func fakeServerCtrlEnsureMethodReturnsErr() kubeServerControlManager {
 func fakeNicCtrlEnsureNICsMethodBasic() kubeNicControlManager {
 	nicCtrl := new(kubeNicControlManagerFake)
 	nicCtrl.
-		On(ensureNICsMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		On(ensureNICsMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(nil).
 		Times(0)
 	return nicCtrl
@@ -1691,7 +1691,7 @@ func fakeNicCtrlEnsureNICsMethod(timesCalled int) kubeNicControlManager {
 	nicCtrl := new(kubeNicControlManagerFake)
 	if timesCalled > 0 {
 		nicCtrl.
-			On(ensureNICsMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			On(ensureNICsMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 			Return(nil).
 			Times(noReplicas)
 	}
@@ -1701,7 +1701,7 @@ func fakeNicCtrlEnsureNICsMethod(timesCalled int) kubeNicControlManager {
 func fakeNicCtrlEnsureNICsMethodReturnsErr() kubeNicControlManager {
 	nicCtrl := new(kubeNicControlManagerFake)
 	nicCtrl.
-		On(ensureNICsMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		On(ensureNICsMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(errAnErrorWasReceived).
 		Times(1)
 
@@ -1711,7 +1711,8 @@ func fakeNicCtrlEnsureNICsMethodReturnsErr() kubeNicControlManager {
 func fakeNicCtrl() kubeNicControlManager {
 	nicCtrl := new(kubeNicControlManagerFake)
 	nicCtrl.
-		On(ensureNICsMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).
+		On(ensureNICsMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil).
 		On(deleteMethod, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	return nicCtrl
 }
@@ -1719,7 +1720,7 @@ func fakeNicCtrl() kubeNicControlManager {
 func fakeFirewallRuleCtrlEnsureMethodBasic() kubeFirewallRuleControlManager {
 	firewallRuleCtrl := new(kubeFirewallRuleControlManagerFake)
 	firewallRuleCtrl.
-		On(ensureFirewallRulesMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		On(ensureFirewallRulesMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(nil).
 		Times(0)
 	return firewallRuleCtrl
@@ -1729,7 +1730,7 @@ func fakeFirewallRuleCtrlEnsureMethod(timesCalled int) kubeFirewallRuleControlMa
 	firewallRuleCtrl := new(kubeFirewallRuleControlManagerFake)
 	if timesCalled > 0 {
 		firewallRuleCtrl.
-			On(ensureFirewallRulesMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			On(ensureFirewallRulesMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 			Return(nil).
 			Times(timesCalled)
 	}
@@ -1739,7 +1740,8 @@ func fakeFirewallRuleCtrlEnsureMethod(timesCalled int) kubeFirewallRuleControlMa
 func fakeFirewallRuleCtrl() kubeFirewallRuleControlManager {
 	firewallRuleCtrl := new(kubeFirewallRuleControlManagerFake)
 	firewallRuleCtrl.
-		On(ensureFirewallRulesMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).
+		On(ensureFirewallRulesMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil).
 		On(deleteMethod, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	return firewallRuleCtrl
 }
@@ -1823,8 +1825,10 @@ func (f *kubeServerCallTracker) Delete(ctx context.Context, name, ns string) err
 	return nil
 }
 
-func (f *kubeNicControlManagerFake) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
-	args := f.Called(ctx, cr, replicaIndex, version)
+func (f *kubeNicControlManagerFake) EnsureNICs(
+	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int, serverID string,
+) error {
+	args := f.Called(ctx, cr, replicaIndex, version, serverID)
 	return args.Error(0)
 }
 
@@ -1833,8 +1837,10 @@ func (f *kubeNicControlManagerFake) Delete(ctx context.Context, name, ns string)
 	return args.Error(0)
 }
 
-func (f *kubeNicCallTracker) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
-	f.lastMethodCall[ensureNICsMethod] = []any{ctx, cr, replicaIndex, version}
+func (f *kubeNicCallTracker) EnsureNICs(
+	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int, stringID string,
+) error {
+	f.lastMethodCall[ensureNICsMethod] = []any{ctx, cr, replicaIndex, version, serverID}
 	return nil
 }
 
@@ -1844,9 +1850,9 @@ func (f *kubeNicCallTracker) Delete(ctx context.Context, name, ns string) error 
 }
 
 func (f *kubeFirewallRuleControlManagerFake) EnsureFirewallRules(
-	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int,
+	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int, serverID string,
 ) error {
-	args := f.Called(ctx, cr, replicaIndex, version)
+	args := f.Called(ctx, cr, replicaIndex, version, serverID)
 	return args.Error(0)
 }
 
@@ -1856,9 +1862,9 @@ func (f *kubeFirewallRuleControlManagerFake) Delete(ctx context.Context, name, n
 }
 
 func (f *kubeFirewallRuleCallTracker) EnsureFirewallRules(
-	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int,
+	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int, serverID string,
 ) error {
-	f.lastMethodCall[ensureFirewallRulesMethod] = []any{ctx, cr, replicaIndex, version}
+	f.lastMethodCall[ensureFirewallRulesMethod] = []any{ctx, cr, replicaIndex, version, serverID}
 	return nil
 }
 

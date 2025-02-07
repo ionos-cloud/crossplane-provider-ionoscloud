@@ -758,20 +758,22 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.S
 		}
 	}
 
-	serverID := resSrv.Items[0].Status.AtProvider.ServerID
-	if serverID == "" {
-		_ = e.serverController.Delete(ctx, resSrv.Items[0].Name, cr.Namespace)
-		return fmt.Errorf(
-			"server creation went wrong, serverID is empty for replica %d, attempting to recreate", replicaIndex,
-		)
-	}
+	if len(resSrv.Items) > 0 {
+		serverID := resSrv.Items[0].Status.AtProvider.ServerID
+		if serverID == "" {
+			_ = e.serverController.Delete(ctx, resSrv.Items[0].Name, cr.Namespace)
+			return fmt.Errorf(
+				"server creation went wrong, serverID is empty for replica %d, attempting to recreate", replicaIndex,
+			)
+		}
 
-	if err := e.nicController.EnsureNICs(ctx, cr, replicaIndex, version, serverID); err != nil {
-		return err
-	}
+		if err := e.nicController.EnsureNICs(ctx, cr, replicaIndex, version, serverID); err != nil {
+			return err
+		}
 
-	if err := e.firewallRuleController.EnsureFirewallRules(ctx, cr, replicaIndex, version, serverID); err != nil {
-		return err
+		if err := e.firewallRuleController.EnsureFirewallRules(ctx, cr, replicaIndex, version, serverID); err != nil {
+			return err
+		}
 	}
 
 	return nil
