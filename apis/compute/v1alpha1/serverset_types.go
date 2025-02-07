@@ -132,7 +132,7 @@ type ServerSetTemplateFirewallRuleSpec struct {
 	// The type of the firewall rule. If not specified, the default INGRESS value is used.
 	//
 	// +kubebuilder:validation:Enum=INGRESS;EGRESS
-	// +kubebuilder:validation:default=INGRESS
+	// +kubebuilder:default=INGRESS
 	Type string `json:"type,omitempty"`
 }
 
@@ -157,12 +157,12 @@ type ServerSetTemplateNIC struct {
 	// +kubebuilder:validation:Required
 	LanReference string `json:"lanReference"`
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	FirewallActive bool `json:"firewallActive,omitempty"`
 	// The type of firewall rules that will be allowed on the NIC. If not specified, the default INGRESS value is used.
 	//
 	// +kubebuilder:validation:Enum=BIDIRECTIONAL;EGRESS;INGRESS
-	// +kubebuilder:validation:default=INGRESS
+	// +kubebuilder:default=INGRESS
 	// +kubebuilder:validation:Optional
 	FirewallType string `json:"firewallType,omitempty"`
 	// +kubebuilder:validation:Optional
