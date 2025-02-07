@@ -663,9 +663,10 @@ func GetNICsOfSSet(ctx context.Context, kube client.Client, name string) ([]v1al
 
 // ListResFromSSetWithIndex - lists resources from a server set with a specific index label
 func ListResFromSSetWithIndex(ctx context.Context, kube client.Client, serversetName, resType string, index int, list client.ObjectList) error {
-	return kube.List(ctx, list, client.MatchingLabels{
+	label := client.MatchingLabels{
 		fmt.Sprintf(indexLabel, serversetName, resType): strconv.Itoa(index),
-	})
+	}
+	return kube.List(ctx, list, label)
 }
 
 // listResFromSSetWithIndexAndVersion - lists resources from a server set with a specific index and version label
