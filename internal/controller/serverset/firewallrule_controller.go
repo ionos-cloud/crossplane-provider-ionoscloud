@@ -23,7 +23,7 @@ type kubeFirewallRuleControlManager interface {
 	) (v1alpha1.FirewallRule, error)
 	Get(ctx context.Context, name, namespace string) (*v1alpha1.FirewallRule, error)
 	Delete(ctx context.Context, name, namespace string) error
-	EnsureFirewallRules(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error
+	EnsureFirewallRules(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int, serverID string) error
 }
 
 type kubeFirewallRuleController struct {
@@ -92,16 +92,8 @@ func (k *kubeFirewallRuleController) Delete(ctx context.Context, name, namespace
 
 // EnsureFirewallRules - ensures that the firewall rules are created for the server set
 func (k *kubeFirewallRuleController) EnsureFirewallRules(
-	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int,
+	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int, serverID string,
 ) error {
-	res := &v1alpha1.ServerList{}
-	if err := listResFromSSetWithIndexAndVersion(
-		ctx, k.kube, cr.GetName(), ResourceServer, replicaIndex, version, res,
-	); err != nil {
-		return err
-	}
-	servers := res.Items
-
 	// loop through all NICs and attempt to ensure firewall rules
 	for nicIdx, nicSpec := range cr.Spec.ForProvider.Template.Spec.NICs {
 		// if firewall is not active, ignore any firewall rules declared in the NIC spec
@@ -116,17 +108,12 @@ func (k *kubeFirewallRuleController) EnsureFirewallRules(
 		}
 
 		k.log.Info("Ensuring Firewall Rules", "NIC", nicSpec.Name, "index", replicaIndex, "version", version)
-		if len(servers) > 0 {
-			for firewallIdx, firewallRuleSpec := range nicSpec.FirewallRules {
-				firewallRuleName := getFirewallRuleName(
-					firewallRuleSpec.Name, replicaIndex, nicIdx, firewallIdx, version,
-				)
-				if err := k.ensure(
-					ctx, cr, firewallRuleSpec, nic, firewallRuleName,
-					servers[0].Status.AtProvider.ServerID,
-				); err != nil {
-					return err
-				}
+		for firewallIdx, firewallRuleSpec := range nicSpec.FirewallRules {
+			firewallRuleName := getFirewallRuleName(
+				firewallRuleSpec.Name, replicaIndex, nicIdx, firewallIdx, version,
+			)
+			if err := k.ensure(ctx, cr, firewallRuleSpec, nic, firewallRuleName, serverID); err != nil {
+				return err
 			}
 		}
 		k.log.Info("Finished ensuring Firewall Rules", "NIC", nicSpec.Name, "index", replicaIndex, "version", version)

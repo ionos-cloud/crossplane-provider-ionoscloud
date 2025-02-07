@@ -63,11 +63,13 @@ func (c *createBeforeDestroy) createResources(ctx context.Context, cr *v1alpha1.
 		return err
 	}
 
-	if err := c.nicController.EnsureNICs(ctx, cr, index, serverVersion); err != nil {
+	serverID := server.Status.AtProvider.ServerID
+
+	if err := c.nicController.EnsureNICs(ctx, cr, index, serverVersion, serverID); err != nil {
 		return err
 	}
 
-	return c.firewallRuleController.EnsureFirewallRules(ctx, cr, index, serverVersion)
+	return c.firewallRuleController.EnsureFirewallRules(ctx, cr, index, serverVersion, serverID)
 }
 
 func (c *createBeforeDestroy) cleanupCondemned(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, volumeVersion, serverVersion int) error {

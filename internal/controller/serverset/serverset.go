@@ -663,9 +663,10 @@ func GetNICsOfSSet(ctx context.Context, kube client.Client, name string) ([]v1al
 
 // ListResFromSSetWithIndex - lists resources from a server set with a specific index label
 func ListResFromSSetWithIndex(ctx context.Context, kube client.Client, serversetName, resType string, index int, list client.ObjectList) error {
-	return kube.List(ctx, list, client.MatchingLabels{
+	label := client.MatchingLabels{
 		fmt.Sprintf(indexLabel, serversetName, resType): strconv.Itoa(index),
-	})
+	}
+	return kube.List(ctx, list, label)
 }
 
 // listResFromSSetWithIndexAndVersion - lists resources from a server set with a specific index and version label
@@ -751,13 +752,30 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.S
 		if err := e.serverController.Ensure(ctx, cr, replicaIndex, version, volumeVersion); err != nil {
 			return err
 		}
-	}
-	if err := e.nicController.EnsureNICs(ctx, cr, replicaIndex, version); err != nil {
-		return err
+
+		// refresh the server list after creation
+		if err := ListResFromSSetWithIndex(ctx, e.kube, cr.GetName(), ResourceServer, replicaIndex, resSrv); err != nil {
+			return err
+		}
 	}
 
-	if err := e.firewallRuleController.EnsureFirewallRules(ctx, cr, replicaIndex, version); err != nil {
-		return err
+	if len(resSrv.Items) > 0 {
+		serverID := resSrv.Items[0].Status.AtProvider.ServerID
+		if serverID == "" {
+			_ = e.serverController.Delete(ctx, resSrv.Items[0].Name, cr.Namespace)
+			return fmt.Errorf(
+				"server creation went wrong, serverID is empty for replica %d of serverset %s, attempting to recreate",
+				replicaIndex, cr.Name,
+			)
+		}
+
+		if err := e.nicController.EnsureNICs(ctx, cr, replicaIndex, version, serverID); err != nil {
+			return err
+		}
+
+		if err := e.firewallRuleController.EnsureFirewallRules(ctx, cr, replicaIndex, version, serverID); err != nil {
+			return err
+		}
 	}
 
 	return nil
