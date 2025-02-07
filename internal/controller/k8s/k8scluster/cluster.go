@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 	"strings"
 
 	"github.com/google/go-cmp/cmp"
@@ -106,6 +107,7 @@ func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (ma
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalCluster{
 		service:              &k8scluster.APIClient{IonosServices: svc},
+		ipBlockService:       &ipblock.APIClient{IonosServices: svc},
 		log:                  c.log,
 		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
@@ -116,6 +118,7 @@ type externalCluster struct {
 	// A 'client' used to connect to the externalK8sCluster resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
 	service              k8scluster.Client
+	ipBlockService       ipblock.Client
 	log                  logging.Logger
 	isUniqueNamesEnabled bool
 }
@@ -151,7 +154,7 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 		ResourceUpToDate:        k8scluster.IsK8sClusterUpToDate(cr, observed),
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}
-	if !strings.EqualFold(cr.Status.AtProvider.State, k8s.DEPLOYING) {
+	if strings.EqualFold(cr.Status.AtProvider.State, k8s.ACTIVE) {
 		if kubeconfig, _, err = c.service.GetKubeConfig(ctx, cr.Status.AtProvider.ClusterID); err != nil {
 			c.log.Info(fmt.Sprintf("failed to get connection details. error: %v", err))
 		}
@@ -207,8 +210,12 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 			return managed.ExternalCreation{}, nil
 		}
 	}
-
-	instanceInput := k8scluster.GenerateCreateK8sClusterInput(cr)
+	natGatewayIP := ""
+	var err error
+	if natGatewayIP, err = c.getNATGatewayIPSet(ctx, cr); err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	instanceInput := k8scluster.GenerateCreateK8sClusterInput(cr, natGatewayIP)
 	newInstance, apiResponse, err := c.service.CreateK8sCluster(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
@@ -281,4 +288,29 @@ func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) (mana
 // Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
 func (c *externalCluster) Disconnect(_ context.Context) error {
 	return nil
+}
+
+// getNATGatewayIPSet will return the SourceIP set by the user on sourceIpConfig.ip or
+// sourceIpConfig.ipBlockConfig fields of the spec.
+// If both fields are set, only the sourceIpConfig.ip field will be considered by
+// the Crossplane Provider IONOS Cloud.
+func (c *externalCluster) getNATGatewayIPSet(ctx context.Context, cr *v1alpha1.Cluster) (string, error) {
+	if cr.Spec.ForProvider.NATGatewayIPCfg.IP != "" {
+		return cr.Spec.ForProvider.NATGatewayIPCfg.IP, nil
+	}
+	if cr.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.IPBlockID != "" {
+		ipsCfg, err := c.ipBlockService.GetIPs(ctx, cr.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.IPBlockID,
+			cr.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.Index)
+		if err != nil {
+			return "", err
+		}
+		if len(ipsCfg) != 1 {
+			return "", fmt.Errorf("error getting source IP with index %v from IPBlock %v",
+				cr.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.Index, cr.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.IPBlockID)
+		}
+		return ipsCfg[0], nil
+	}
+	// return nil if nothing is set,
+	// since SourceIP can be empty
+	return "", nil
 }

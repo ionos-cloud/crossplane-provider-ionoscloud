@@ -191,7 +191,6 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 						State: ionoscloud.PtrString(k8s.DESTROYING),
 					},
 				}, nil, nil)
-				client.EXPECT().GetKubeConfig(context.Background(), "cluster-id").Return("kubeconfig-base64", nil, nil)
 			},
 			args: func() *v1alpha1.Cluster {
 				np := &v1alpha1.Cluster{
@@ -208,7 +207,7 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 				ResourceExists:          true,
 				ResourceUpToDate:        true,
 				ResourceLateInitialized: false,
-				ConnectionDetails:       managed.ConnectionDetails{"kubeconfig": []byte("kubeconfig-base64")},
+				ConnectionDetails:       nil,
 				Diff:                    "",
 			},
 			wantErr: false,
@@ -220,6 +219,9 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 					Properties: &ionoscloud.KubernetesClusterProperties{
 						Name:       ionoscloud.PtrString("node-pool-name"),
 						K8sVersion: ionoscloud.PtrString("1.22.33"),
+					},
+					Metadata: &ionoscloud.DatacenterElementMetadata{
+						State: ionoscloud.PtrString(k8s.ACTIVE),
 					},
 				}, nil, nil)
 				client.EXPECT().GetKubeConfig(context.Background(), "cluster-id").Return("kubeconfig-base64", nil, nil)
@@ -250,6 +252,9 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 			setupControlPlaneClient: func(client *k8scluster.MockClient) {
 				client.EXPECT().GetK8sCluster(context.Background(), "cluster-id").Return(ionoscloud.KubernetesCluster{
 					Properties: nil,
+					Metadata: &ionoscloud.DatacenterElementMetadata{
+						State: ionoscloud.PtrString(k8s.ACTIVE),
+					},
 				}, nil, nil)
 				client.EXPECT().GetKubeConfig(context.Background(), "cluster-id").Return("kubeconfig-base64", nil, nil)
 			},
@@ -286,6 +291,9 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 			setupControlPlaneClient: func(client *k8scluster.MockClient) {
 				client.EXPECT().GetK8sCluster(context.Background(), "cluster-id").Return(ionoscloud.KubernetesCluster{
 					Properties: nil,
+					Metadata: &ionoscloud.DatacenterElementMetadata{
+						State: ionoscloud.PtrString(k8s.ACTIVE),
+					},
 				}, nil, nil)
 				client.EXPECT().GetKubeConfig(context.Background(), "cluster-id").Return("", nil, errors.New("api broken"))
 			},
@@ -310,10 +318,8 @@ func TestExternalControlPlaneClientObserve(t *testing.T) {
 				ResourceExists:          true,
 				ResourceUpToDate:        false,
 				ResourceLateInitialized: false,
-				ConnectionDetails: managed.ConnectionDetails{
-					"kubeconfig": []byte(""),
-				},
-				Diff: "",
+				ConnectionDetails:       managed.ConnectionDetails{"kubeconfig": []uint8{}},
+				Diff:                    "",
 			},
 			wantErr: false,
 		},
@@ -612,6 +618,7 @@ func TestExternalControlPlaneClientCreate(t *testing.T) {
 					Properties: &ionoscloud.KubernetesClusterPropertiesForPost{
 						Name:       ionoscloud.PtrString("testCluster"),
 						K8sVersion: ionoscloud.PtrString("v1.22.33"),
+						Public:     ionoscloud.PtrBool(true),
 					},
 				}
 				returnedCluster := ionoscloud.KubernetesCluster{
@@ -631,6 +638,7 @@ func TestExternalControlPlaneClientCreate(t *testing.T) {
 						ForProvider: v1alpha1.ClusterParameters{
 							Name:       "testCluster",
 							K8sVersion: "v1.22.33",
+							Public:     true,
 						},
 					},
 				}
