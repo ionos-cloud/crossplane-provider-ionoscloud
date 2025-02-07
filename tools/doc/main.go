@@ -55,6 +55,8 @@ var (
 		"backup":       "managed-backup",
 		"dataplatform": "dataplatform",
 	}
+	// Resources excluded from documentation generation.
+	excludedResources = []string{"volumeselector"}
 )
 
 func main() {
@@ -93,7 +95,13 @@ func writeContent(docsFolder string) error { // nolint: gocyclo
 		if serviceName == ionoscloudServiceName {
 			continue
 		}
-		w, err := createOrUpdateFileForCRD(mustGetCRDs[i], docsFolder, serviceName)
+
+		resourceName := strings.ToLower(mustGetCRDs[i].Spec.Names.Kind)
+		if slices.Contains(excludedResources, resourceName) {
+			continue
+		}
+
+		w, err := createOrUpdateFileForCRD(resourceName, docsFolder, serviceName)
 		if err != nil {
 			return err
 		}
@@ -124,12 +132,11 @@ func writeContent(docsFolder string) error { // nolint: gocyclo
 	return nil
 }
 
-func createOrUpdateFileForCRD(crd apiextensionsv1.CustomResourceDefinition, docsFolder, serviceShortName string) (io.Writer, error) {
+func createOrUpdateFileForCRD(resourceName, docsFolder, serviceShortName string) (io.Writer, error) {
 	serviceLongDirName, ok := servicesAbbrevDirectoriesMap[serviceShortName]
 	if !ok {
 		return nil, fmt.Errorf("error when getting service directory name. please define the new service into the collection")
 	}
-	resourceName := strings.ToLower(crd.Spec.Names.Kind)
 	dirPath := fmt.Sprintf("%s%s", docsFolder, serviceLongDirName)
 	if _, err := os.ReadDir(dirPath); err != nil {
 		// If the directory does not exist yet, create it with the 0775 permissions.
