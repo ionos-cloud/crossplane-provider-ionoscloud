@@ -764,7 +764,8 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.S
 		if serverID == "" {
 			_ = e.serverController.Delete(ctx, resSrv.Items[0].Name, cr.Namespace)
 			return fmt.Errorf(
-				"server creation went wrong, serverID is empty for replica %d, attempting to recreate", replicaIndex,
+				"server creation went wrong, serverID is empty for replica %d of serverset %s, attempting to recreate",
+				replicaIndex, cr.Name,
 			)
 		}
 
