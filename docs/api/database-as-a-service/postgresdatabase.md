@@ -129,10 +129,7 @@ the corresponding field is not present. Use 'Always' to resolve the
 reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `name` (string)
-	* description: The databasename of a given database.
-
-
-Database credentials - either set directly, or as secret/path/env
+	* description: The database name.
 * `owner` (object)
 	* description: The name of the role owning a given database.
 	* properties:

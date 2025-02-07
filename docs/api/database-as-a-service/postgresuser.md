@@ -131,7 +131,6 @@ reference on every reconcile.
 * `credentials` (object)
 	* description: The total number of instances in the cluster (one master and n-1 standbys).
 
-
 Database credentials - either set directly, or as secret/path/env
 	* properties:
 		* `env` (object)

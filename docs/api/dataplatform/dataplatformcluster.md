@@ -147,6 +147,7 @@ reference on every reconcile.
 The user needs to set the following properties in order to configure the IONOS Cloud Resource:
 
 * `datacenterConfig`
+* `name`
 * `version`
 
 ## Resource Definition
