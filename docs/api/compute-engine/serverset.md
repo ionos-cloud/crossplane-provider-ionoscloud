@@ -275,6 +275,7 @@ available CPU architectures can be retrieved from the datacenter resource.
 						* `dhcp` (boolean)
 						* `dhcpv6` (boolean)
 						* `firewallActive` (boolean)
+							* default: false
 						* `firewallRules` (array)
 							* properties:
 								* `icmpCode` (integer)
@@ -448,11 +449,13 @@ reference on every reconcile.
 												* `index`
 								* `type` (string)
 									* description: The type of the firewall rule. If not specified, the default INGRESS value is used.
+									* default: "INGRESS"
 									* possible values: "INGRESS";"EGRESS"
 							* required properties:
 								* `protocol`
 						* `firewallType` (string)
 							* description: The type of firewall rules that will be allowed on the NIC. If not specified, the default INGRESS value is used.
+							* default: "INGRESS"
 							* possible values: "BIDIRECTIONAL";"EGRESS";"INGRESS"
 						* `lanReference` (string)
 							* description: The Referenced LAN must be created before the ServerSet is applied

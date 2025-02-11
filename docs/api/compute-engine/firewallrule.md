@@ -410,6 +410,7 @@ reference on every reconcile.
 				* `index`
 * `type` (string)
 	* description: The type of the firewall rule. If not specified, the default INGRESS value is used.
+	* default: "INGRESS"
 	* possible values: "INGRESS";"EGRESS"
 
 ### Required Properties
