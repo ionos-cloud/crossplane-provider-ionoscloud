@@ -76,38 +76,54 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 
 * `accessActivityLog` (boolean)
 	* description: AccessActivityLog privilege for a group to access activity logs.
+	* default: false
 * `accessAndManageCertificates` (boolean)
 	* description: AccessAndManageCertificates privilege for a group to access and manage certificates.
+	* default: false
 * `accessAndManageDns` (boolean)
 	* description: AccessAndManageDNS privilege for a group to access and manage dns records.
+	* default: false
 * `accessAndManageMonitoring` (boolean)
 	* description: AccessAndManageMonitoring privilege for a group to access and manage monitoring related functionality
+	* default: false
 * `createBackupUnit` (boolean)
 	* description: CreateBackupUnit privilege to create backup unit resource
+	* default: false
 * `createDataCenter` (boolean)
 	* description: CreateDataCenter privilege to create datacenter resource
+	* default: false
 * `createFlowLog` (boolean)
 	* description: CreateFlowLog privilege to create flow log resource
+	* default: false
 * `createInternetAccess` (boolean)
 	* description: CreateInternetAccess privilege to create internet access
+	* default: false
 * `createK8sCluster` (boolean)
 	* description: CreateK8sCluster privilege to create kubernetes cluster
+	* default: false
 * `createPcc` (boolean)
 	* description: CreatePcc privilege to create private cross connect
+	* default: false
 * `createSnapshot` (boolean)
 	* description: CreateSnapshot privilege to create snapshot
+	* default: false
 * `manageDBaaS` (boolean)
 	* description: ManageDBaaS privilege to manage DBaaS related functionality
+	* default: false
 * `manageDataplatform` (boolean)
 	* description: ManageDataPlatform privilege to access and manage the Data Platform
+	* default: false
 * `manageRegistry` (boolean)
 	* description: ManageRegistry privilege to access container registry related functionality
+	* default: false
 * `name` (string)
 	* description: Name of the resource.
 * `reserveIp` (boolean)
 	* description: ReserveIp privilege to reserve ip block
+	* default: false
 * `s3Privilege` (boolean)
 	* description: S3Privilege privilege to access S3 functionality
+	* default: false
 * `sharedResourcesConfig` (array)
 	* description: SharedResources allows sharing privilege to resources between the members of the group
 In order to share a resource within a group, it must be referenced either by providing its ID directly
@@ -124,12 +140,14 @@ Name of the kubernetes object instance of the Custom Resource
 			* properties:
 				* `editPrivilege` (boolean)
 					* description: EditPrivilege for the Resource
+					* default: false
 				* `resourceId` (string)
 					* description: ResourceID is the ID of the Resource to which Group members gain privileges
 It can only be provided directly
 					* format: uuid
 				* `sharePrivilege` (boolean)
 					* description: SharePrivilege for the Resource
+					* default: false
 		* `version` (string)
 			* description: Version of the Custom Resource
 * `userConfig` (array)

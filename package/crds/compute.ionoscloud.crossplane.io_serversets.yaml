@@ -445,6 +445,7 @@ spec:
                                 dhcpv6:
                                   type: boolean
                                 firewallActive:
+                                  default: false
                                   type: boolean
                                 firewallRules:
                                   items:
@@ -723,6 +724,7 @@ spec:
                                             type: object
                                         type: object
                                       type:
+                                        default: INGRESS
                                         description: The type of the firewall rule.
                                           If not specified, the default INGRESS value
                                           is used.
@@ -735,6 +737,7 @@ spec:
                                     type: object
                                   type: array
                                 firewallType:
+                                  default: INGRESS
                                   description: The type of firewall rules that will
                                     be allowed on the NIC. If not specified, the default
                                     INGRESS value is used.

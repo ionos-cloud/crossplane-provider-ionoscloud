@@ -46,12 +46,12 @@ type UserParameters struct {
 	// It can not be used in create requests - can be used in update. Default: false.
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	SecAuthActive bool `json:"secAuthActive"`
 	// Active Indicates if the user is active. Default: true.
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=true
+	// +kubebuilder:default=true
 	Active bool `json:"active"`
 	// GroupIDs that this user will be a member of.
 	// NOTE: It is recommended to manage group membership through the group CRD as it offers more flexibility.

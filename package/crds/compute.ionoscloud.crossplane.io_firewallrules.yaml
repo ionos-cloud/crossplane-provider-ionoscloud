@@ -625,6 +625,7 @@ spec:
                         type: object
                     type: object
                   type:
+                    default: INGRESS
                     description: The type of the firewall rule. If not specified,
                       the default INGRESS value is used.
                     enum:

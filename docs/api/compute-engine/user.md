@@ -76,6 +76,7 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 
 * `active` (boolean)
 	* description: Active Indicates if the user is active. Default: true.
+	* default: true
 * `administrator` (boolean)
 	* description: Administrator The group has permission to edit privileges on this resource.
 * `email` (string)
@@ -94,6 +95,7 @@ NOTE: It is recommended to manage group membership through the group CRD as it o
 * `secAuthActive` (boolean)
 	* description: SecAuthActive Indicates if secure authentication is active for the user or not.
 It can not be used in create requests - can be used in update. Default: false.
+	* default: false
 
 ### Required Properties
 
