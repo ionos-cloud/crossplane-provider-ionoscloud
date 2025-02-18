@@ -396,7 +396,7 @@ func TestUserDelete(t *testing.T) {
 			if test.mock != nil {
 				test.mock()
 			}
-			err := eu.Delete(ctx, test.cr)
+			_, err := eu.Delete(ctx, test.cr)
 			if test.errContains != "" {
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(err.Error()).To(ContainSubstring(test.errContains))

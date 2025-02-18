@@ -7,7 +7,7 @@ spec:
     - "*"
   forProvider:
     name: exampleDatacenter
-    location: us/las
+    location: de/txl
     description: test
   providerConfigRef:
     name: example
@@ -18,7 +18,7 @@ metadata:
   name: sss-example
 spec:
   forProvider:
-    replicas: 1
+    replicas: 2
     deploymentStrategy:
       type: ZONES
     datacenterConfig:
@@ -29,7 +29,6 @@ spec:
       metadata:
         name: server-name
       spec:
-        cpuFamily: INTEL_XEON
         cores: 1
         ram: 1024 # (32*storageTB)
         nics:
@@ -39,6 +38,12 @@ spec:
 #           should reference lan metadata name
 #           needs to be created before serverset. StatefulServerset will not wait until it is populated
             lanReference: customer
+            firewallActive: true
+            firewallRules:
+              - protocol: "TCP"
+                name: "rule-tcp"
+              - protocol: "ICMP"
+                name: "rule-icmp"
 # needs to be created separately from the stateful serverset
     identityConfigMap:
         name: "config-lease"
@@ -50,7 +55,7 @@ spec:
       spec:
         updateStrategy:
           type: "createBeforeDestroyBootVolume" # createBeforeDestroyBootVolume createAllBeforeDestroy
-        image: "28d0fa34-927f-11ee-8008-6202af74e858"
+        image: "ee9e5176-0d37-11ef-a582-1e0ff38e32ac"
         size: 10
         type: SSD
         userData: "" #cloud-config

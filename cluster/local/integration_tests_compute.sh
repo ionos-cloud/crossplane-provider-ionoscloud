@@ -22,7 +22,7 @@ spec:
   forProvider:
     name: exampleIpBlock
     size: 2
-    location: es/vit
+    location: de/fra
   providerConfigRef:
     name: example
 EOF
@@ -52,7 +52,7 @@ spec:
   forProvider:
     name: exampleIpBlockUpdate
     size: 2
-    location: es/vit
+    location: de/fra
   providerConfigRef:
     name: example
 EOF
@@ -81,7 +81,7 @@ spec:
   forProvider:
     name: exampleIpBlockUpdate
     size: 2
-    location: es/vit
+    location: de/fra
   providerConfigRef:
     name: example
 EOF
@@ -134,7 +134,7 @@ spec:
     - "*"
   forProvider:
     name: testdatacenter
-    location: es/vit
+    location: de/fra
   providerConfigRef:
     name: example
 EOF
@@ -163,7 +163,7 @@ spec:
     - "*"
   forProvider:
     name: Test Datacenter CR
-    location: es/vit
+    location: de/fra
     description: e2e crossplane testing
   providerConfigRef:
     name: example
@@ -191,7 +191,7 @@ spec:
     - "*"
   forProvider:
     name: Test Datacenter CR
-    location: es/vit
+    location: de/fra
     description: e2e crossplane testing
   providerConfigRef:
     name: example
@@ -321,7 +321,7 @@ spec:
     cores: 4
     ram: 2048
     availabilityZone: AUTO
-    cpuFamily: INTEL_SKYLAKE
+    cpuFamily: INTEL_ICELAKE
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -359,7 +359,7 @@ spec:
     cores: 4
     ram: 2048
     availabilityZone: AUTO
-    cpuFamily: INTEL_SKYLAKE
+    cpuFamily: INTEL_ICELAKE
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -395,7 +395,7 @@ spec:
     cores: 4
     ram: 2048
     availabilityZone: AUTO
-    cpuFamily: INTEL_SKYLAKE
+    cpuFamily: INTEL_ICELAKE
     datacenterConfig:
       datacenterIdRef:
         name: example

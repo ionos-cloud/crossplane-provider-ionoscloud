@@ -61,6 +61,7 @@ type connector struct {
 	bootVolumeController    kubeBootVolumeControlManager
 	nicController           kubeNicControlManager
 	serverController        kubeServerControlManager
+	firewallRuleController  kubeFirewallRuleControlManager
 	kubeConfigmapController kubeConfigmapControlManager
 	usage                   resource.Tracker
 	log                     logging.Logger
@@ -82,12 +83,13 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	}
 
 	return &external{
-		kube:                 c.kube,
-		log:                  c.log,
-		bootVolumeController: c.bootVolumeController,
-		nicController:        c.nicController,
-		serverController:     c.serverController,
-		configMapController:  c.kubeConfigmapController,
+		kube:                   c.kube,
+		log:                    c.log,
+		bootVolumeController:   c.bootVolumeController,
+		nicController:          c.nicController,
+		serverController:       c.serverController,
+		firewallRuleController: c.firewallRuleController,
+		configMapController:    c.kubeConfigmapController,
 	}, err
 }
 
@@ -97,11 +99,12 @@ type external struct {
 	kube client.Client
 	// A 'client' used to connect to the externalServer resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	bootVolumeController kubeBootVolumeControlManager
-	nicController        kubeNicControlManager
-	serverController     kubeServerControlManager
-	configMapController  kubeConfigmapControlManager
-	log                  logging.Logger
+	bootVolumeController   kubeBootVolumeControlManager
+	nicController          kubeNicControlManager
+	serverController       kubeServerControlManager
+	firewallRuleController kubeFirewallRuleControlManager
+	configMapController    kubeConfigmapControlManager
+	log                    logging.Logger
 }
 
 func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
@@ -139,7 +142,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	areNICsCreated := len(nics) == crExpectedNoOfNICs
 
 	// at the moment we do not check that fields of nics are updated, because nic fields are immutable
-	e.log.Info("Observing the ServerSet", "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "areServersCreated",
+	e.log.Info("Observing the ServerSet", "name", cr.Name, "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "areServersCreated",
 		areServersCreated, "areBootVolumesCreated", areBootVolumesCreated, "areNICsCreated", areNICsCreated, "areServersAvailable", areServersAvailable, "areBootVolumesAvailable", areBootVolumesAvailable)
 	if areServersAvailable && areBootVolumesAvailable {
 		cr.SetConditions(xpv1.Available())
@@ -206,7 +209,13 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 		}
 		// for nfs we need to store substitutions in a configmap(created when the bootvolumes are created) and display them in the status
 		if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
-			e.setSubstitutions(ctx, cr, replicaIdx)
+			// re-initialize in case of crossplane reboots
+			if cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement == nil {
+				cr.Status.AtProvider.ReplicaStatuses[i].SubstitutionReplacement = make(map[string]string, len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions))
+			}
+			e.setSubstitutions(ctx, cr, replicaIdx, i)
+		} else {
+			e.log.Info("no substitutions found in bootvolume template", "serverset name", cr.Name)
 		}
 	}
 	cr.Status.AtProvider.Replicas = len(serverSetReplicas)
@@ -214,14 +223,11 @@ func (e *external) populateReplicasStatuses(ctx context.Context, cr *v1alpha1.Se
 
 // setSubstitutions sets substitutions in status. sets again in globalstate if they got lost in case of reboot.
 // reads substitutions from configMap that has serverset name and either the identity config map namespace, or default
-func (e *external) setSubstitutions(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex int) {
+func (e *external) setSubstitutions(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, sliceIndex int) {
 	if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
 		volumeVersion, _, _ := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), replicaIndex)
 		for _, subst := range cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions {
-			// re-initialize in case of crossplane reboots
-			if cr.Status.AtProvider.ReplicaStatuses[replicaIndex].SubstitutionReplacement == nil {
-				cr.Status.AtProvider.ReplicaStatuses[replicaIndex].SubstitutionReplacement = make(map[string]string)
-			}
+
 			namespace := "default"
 			if cr.Spec.ForProvider.IdentityConfigMap.Namespace != "" {
 				namespace = cr.Spec.ForProvider.IdentityConfigMap.Namespace
@@ -230,7 +236,7 @@ func (e *external) setSubstitutions(ctx context.Context, cr *v1alpha1.ServerSet,
 
 			value := e.configMapController.FetchSubstitutionFromMap(ctx, cr.Name, subst.Key, replicaIndex, volumeVersion)
 			if value != "" {
-				cr.Status.AtProvider.ReplicaStatuses[replicaIndex].SubstitutionReplacement[subst.Key] = value
+				cr.Status.AtProvider.ReplicaStatuses[sliceIndex].SubstitutionReplacement[subst.Key] = value
 				identifier := substitution.Identifier(getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion))
 				if _, ok := globalStateMap[cr.Name]; !ok {
 					globalStateMap[cr.Name] = substitution.GlobalState{}
@@ -250,7 +256,7 @@ func computeNicStatuses(ctx context.Context, e *external, crName string, replica
 	nicsOfReplica := &v1alpha1.NicList{}
 	err := ListResFromSSetWithIndex(ctx, e.kube, crName, resourceNIC, replicaIndex, nicsOfReplica)
 	if err != nil {
-		e.log.Info("error fetching nics", "error", err)
+		e.log.Info("error fetching nics", "name", crName, "replicaIndex", replicaIndex, "error", err)
 		return []v1alpha1.NicStatus{}
 	}
 
@@ -278,7 +284,7 @@ func fetchRole(ctx context.Context, e *external, sset v1alpha1.ServerSet, replic
 	if sset.Spec.ForProvider.IdentityConfigMap.Namespace == "" ||
 		sset.Spec.ForProvider.IdentityConfigMap.Name == "" ||
 		sset.Spec.ForProvider.IdentityConfigMap.KeyName == "" {
-		e.log.Info("no identity configmap values provided, setting role based on replica index only")
+		e.log.Info("no identity configmap values provided, setting role based on replica index only for", "serverset name", sset.Name)
 		if replicaIndex == 0 {
 			return v1alpha1.Active
 		}
@@ -290,7 +296,7 @@ func fetchRole(ctx context.Context, e *external, sset v1alpha1.ServerSet, replic
 	cfgLease := &v1.ConfigMap{}
 	err := e.kube.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, cfgLease)
 	if err != nil {
-		e.log.Info("error fetching config lease, will default to PASSIVE role", "error", err)
+		e.log.Info("error fetching config lease, will default to PASSIVE role", "serverset name", sset.Name, "error", err)
 		return v1alpha1.Passive
 	}
 
@@ -385,7 +391,12 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	if err := e.reconcileVolumesFromTemplate(ctx, cr); err != nil {
 		return managed.ExternalUpdate{}, err
 	}
+	servers, err := GetServersOfSSet(ctx, e.kube, cr.Name)
+	if err != nil {
+		return managed.ExternalUpdate{}, err
+	}
 
+	e.populateReplicasStatuses(ctx, cr, servers)
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
 		// externalServerSet resource. These will be stored as the connection secret.
@@ -431,7 +442,7 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 	masterIndex := getIdentityFromStatus(cr.Status.AtProvider.ReplicaStatuses)
 	err = e.updateOrRecreateVolumes(ctx, cr, volumes, masterIndex)
 	if err != nil {
-		return fmt.Errorf("while updating volumes %w", err)
+		return fmt.Errorf("while updating volumes for serverset %s %w", cr.Name, err)
 	}
 	return nil
 }
@@ -446,7 +457,7 @@ func getIdentityFromStatus(statuses []v1alpha1.ServerSetReplicaStatus) int {
 }
 
 func (e *external) updateOrRecreateVolumes(ctx context.Context, cr *v1alpha1.ServerSet, volumes []v1alpha1.Volume, masterIndex int) error {
-	recreateMaster := false
+	recreateLeader := false
 	for idx := range volumes {
 		update := false
 		deleteAndCreate := false
@@ -454,22 +465,24 @@ func (e *external) updateOrRecreateVolumes(ctx context.Context, cr *v1alpha1.Ser
 		if deleteAndCreate {
 			// we want to recreate master at the end
 			if masterIndex == idx {
-				recreateMaster = true
+				recreateLeader = true
 				continue
 			}
 			err := e.updateByIndex(ctx, idx, cr)
 			if err != nil {
 				return err
 			}
+			// we want to return here to be able to update the status before we move to the next bootvolume to update
+			return nil
 		} else if update {
 			if err := e.kube.Update(ctx, &volumes[idx]); err != nil {
-				return fmt.Errorf("error updating server %w", err)
+				return fmt.Errorf("error updating volume %w", err)
 			}
 		}
 	}
 	if masterIndex != -1 {
-		e.log.Info("updating master with", "index", masterIndex, "template", cr.Spec.ForProvider.BootVolumeTemplate.Spec)
-		if recreateMaster {
+		e.log.Info("updating leader", "serverset", cr.Name, "index", masterIndex, "template", cr.Spec.ForProvider.BootVolumeTemplate.Spec)
+		if recreateLeader {
 			err := e.updateByIndex(ctx, masterIndex, cr)
 			if err != nil {
 				return err
@@ -493,7 +506,7 @@ func (e *external) updateByIndex(ctx context.Context, idx int, cr *v1alpha1.Serv
 func (e *external) getUpdaterByStrategy(strategyType v1alpha1.UpdateStrategyType) updater {
 	switch strategyType {
 	case v1alpha1.CreateAllBeforeDestroy:
-		return newCreateBeforeDestroy(e.bootVolumeController, e.serverController, e.nicController)
+		return newCreateBeforeDestroy(e.bootVolumeController, e.serverController, e.nicController, e.firewallRuleController)
 	case v1alpha1.CreateBeforeDestroyBootVolume:
 		return newCreateBeforeDestroyOnlyBootVolume(e.bootVolumeController, e.serverController)
 	default:
@@ -520,10 +533,10 @@ func updateOrRecreate(volumeParams *v1alpha1.VolumeParameters, volumeSpec v1alph
 	return update, deleteAndCreate
 }
 
-func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
+func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.ServerSet)
 	if !ok {
-		return errors.New(errUnexpectedObject)
+		return managed.ExternalDelete{}, errors.New(errUnexpectedObject)
 	}
 	e.log.Info("Deleting the ServerSet", "name", cr.Name)
 	cr.SetConditions(xpv1.Deleting())
@@ -531,18 +544,33 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
 		volumeVersion, serverVersion, err := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), replicaIndex)
 		if err != nil {
-			return err
+			return managed.ExternalDelete{}, err
 		}
 		if err := e.bootVolumeController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion), cr.Namespace); err != nil {
-			return err
+			return managed.ExternalDelete{}, err
 		}
-		if err := e.serverController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, serverVersion), cr.Namespace); err != nil {
-			return err
-		}
+
 		for nicIndex := range cr.Spec.ForProvider.Template.Spec.NICs {
-			if err := e.nicController.Delete(ctx, getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, serverVersion), cr.Namespace); err != nil {
-				return err
+			for firewallRuleIdx := range cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].FirewallRules {
+				if err := e.firewallRuleController.Delete(
+					ctx,
+					getFirewallRuleName(
+						cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].FirewallRules[firewallRuleIdx].Name,
+						replicaIndex, nicIndex, firewallRuleIdx, serverVersion,
+					),
+					cr.Namespace,
+				); err != nil {
+					return managed.ExternalDelete{}, err
+				}
 			}
+
+			if err := e.nicController.Delete(ctx, getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, serverVersion), cr.Namespace); err != nil {
+				return managed.ExternalDelete{}, err
+			}
+		}
+
+		if err := e.serverController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, serverVersion), cr.Namespace); err != nil {
+			return managed.ExternalDelete{}, err
 		}
 	}
 
@@ -550,11 +578,11 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
 	globalStateMap[cr.Name] = substitution.GlobalState{}
 	delete(globalStateMap, cr.Name)
 	if err := e.configMapController.Delete(ctx, cr.Name); err != nil {
-		return err
+		return managed.ExternalDelete{}, err
 	}
 	e.log.Info("Finished deleting the ServerSet", "name", cr.Name)
 
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 // AreServersReady checks if replicas and template params are equal to server obj params
@@ -635,9 +663,10 @@ func GetNICsOfSSet(ctx context.Context, kube client.Client, name string) ([]v1al
 
 // ListResFromSSetWithIndex - lists resources from a server set with a specific index label
 func ListResFromSSetWithIndex(ctx context.Context, kube client.Client, serversetName, resType string, index int, list client.ObjectList) error {
-	return kube.List(ctx, list, client.MatchingLabels{
+	label := client.MatchingLabels{
 		fmt.Sprintf(indexLabel, serversetName, resType): strconv.Itoa(index),
-	})
+	}
+	return kube.List(ctx, list, label)
 }
 
 // listResFromSSetWithIndexAndVersion - lists resources from a server set with a specific index and version label
@@ -723,9 +752,30 @@ func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.S
 		if err := e.serverController.Ensure(ctx, cr, replicaIndex, version, volumeVersion); err != nil {
 			return err
 		}
+
+		// refresh the server list after creation
+		if err := ListResFromSSetWithIndex(ctx, e.kube, cr.GetName(), ResourceServer, replicaIndex, resSrv); err != nil {
+			return err
+		}
 	}
-	if err := e.nicController.EnsureNICs(ctx, cr, replicaIndex, version); err != nil {
-		return err
+
+	if len(resSrv.Items) > 0 {
+		serverID := resSrv.Items[0].Status.AtProvider.ServerID
+		if serverID == "" {
+			_ = e.serverController.Delete(ctx, resSrv.Items[0].Name, cr.Namespace)
+			return fmt.Errorf(
+				"server creation went wrong, serverID is empty for replica %d of serverset %s, attempting to recreate",
+				replicaIndex, cr.Name,
+			)
+		}
+
+		if err := e.nicController.EnsureNICs(ctx, cr, replicaIndex, version, serverID); err != nil {
+			return err
+		}
+
+		if err := e.firewallRuleController.EnsureFirewallRules(ctx, cr, replicaIndex, version, serverID); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -762,4 +812,9 @@ func ComputeReplicaIdx(log logging.Logger, idxLabel string, labels map[string]st
 		return -1
 	}
 	return replicaIdx
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (e *external) Disconnect(_ context.Context) error {
+	return nil
 }

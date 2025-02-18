@@ -47,9 +47,7 @@ func IsS3KeyUpToDate(cr *v1alpha1.S3Key, s3Key sdkgo.S3Key) bool { // nolint:goc
 	switch {
 	case s3Key.Properties == nil:
 		return true
-	case s3Key.Properties != nil:
-		return false
-	case s3Key.Properties.Active == nil && cr.Spec.ForProvider.Active != *s3Key.Properties.Active:
+	case s3Key.Properties.Active != nil && cr.Spec.ForProvider.Active != *s3Key.Properties.Active:
 		return false
 	default:
 		return true

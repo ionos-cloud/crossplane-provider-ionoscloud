@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.0
   name: groups.compute.ionoscloud.crossplane.io
 spec:
   group: compute.ionoscloud.crossplane.io
@@ -77,52 +77,66 @@ spec:
                   Name
                 properties:
                   accessActivityLog:
+                    default: false
                     description: AccessActivityLog privilege for a group to access
                       activity logs.
                     type: boolean
                   accessAndManageCertificates:
+                    default: false
                     description: AccessAndManageCertificates privilege for a group
                       to access and manage certificates.
                     type: boolean
                   accessAndManageDns:
+                    default: false
                     description: AccessAndManageDNS privilege for a group to access
                       and manage dns records.
                     type: boolean
                   accessAndManageMonitoring:
+                    default: false
                     description: AccessAndManageMonitoring privilege for a group to
                       access and manage monitoring related functionality
                     type: boolean
                   createBackupUnit:
+                    default: false
                     description: CreateBackupUnit privilege to create backup unit
                       resource
                     type: boolean
                   createDataCenter:
+                    default: false
                     description: CreateDataCenter privilege to create datacenter resource
                     type: boolean
                   createFlowLog:
+                    default: false
                     description: CreateFlowLog privilege to create flow log resource
                     type: boolean
                   createInternetAccess:
+                    default: false
                     description: CreateInternetAccess privilege to create internet
                       access
                     type: boolean
                   createK8sCluster:
+                    default: false
                     description: CreateK8sCluster privilege to create kubernetes cluster
                     type: boolean
                   createPcc:
+                    default: false
                     description: CreatePcc privilege to create private cross connect
                     type: boolean
                   createSnapshot:
+                    default: false
                     description: CreateSnapshot privilege to create snapshot
                     type: boolean
                   manageDBaaS:
+                    default: false
                     description: ManageDBaaS privilege to manage DBaaS related functionality
                     type: boolean
                   manageDataplatform:
+                    default: false
                     description: ManageDataPlatform privilege to access and manage
                       the Data Platform
                     type: boolean
                   manageRegistry:
+                    default: false
                     description: ManageRegistry privilege to access container registry
                       related functionality
                     type: boolean
@@ -130,9 +144,11 @@ spec:
                     description: Name of the resource.
                     type: string
                   reserveIp:
+                    default: false
                     description: ReserveIp privilege to reserve ip block
                     type: boolean
                   s3Privilege:
+                    default: false
                     description: S3Privilege privilege to access S3 functionality
                     type: boolean
                   sharedResourcesConfig:
@@ -157,6 +173,7 @@ spec:
                           description: ResourceShare
                           properties:
                             editPrivilege:
+                              default: false
                               description: EditPrivilege for the Resource
                               type: boolean
                             resourceId:
@@ -166,6 +183,7 @@ spec:
                               format: uuid
                               type: string
                             sharePrivilege:
+                              default: false
                               description: SharePrivilege for the Resource
                               type: boolean
                           type: object
@@ -179,7 +197,6 @@ spec:
                       In order to add a User as member to the Group, it is recommended to use UserCfg
                       to add an existing User as a member (via id or via reference).
                       To remove a User from the Group, update the CR spec by removing it.
-
 
                       UserCfg contains information about an existing User resource
                       which will be added to the Group
@@ -457,6 +474,7 @@ spec:
                         privileges to its members on the resource referenced by ResourceID
                       properties:
                         editPrivilege:
+                          default: false
                           description: EditPrivilege for the Resource
                           type: boolean
                         resourceId:
@@ -466,6 +484,7 @@ spec:
                           format: uuid
                           type: string
                         sharePrivilege:
+                          default: false
                           description: SharePrivilege for the Resource
                           type: boolean
                       type: object

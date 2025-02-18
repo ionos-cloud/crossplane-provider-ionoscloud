@@ -24,13 +24,11 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
@@ -52,9 +50,8 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(controller.Options{
-			RateLimiter: ratelimiter.NewController(),
-		}).
+		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
+		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.FirewallRule{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.FirewallRuleGroupVersionKind),
@@ -255,27 +252,27 @@ func (c *externalFirewallRule) Update(ctx context.Context, mg resource.Managed) 
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalFirewallRule) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalFirewallRule) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.FirewallRule)
 	if !ok {
-		return errors.New(errNotFirewallRule)
+		return managed.ExternalDelete{}, errors.New(errNotFirewallRule)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == compute.DESTROYING {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 
 	apiResponse, err := c.service.DeleteFirewallRule(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 		cr.Spec.ForProvider.ServerCfg.ServerID, cr.Spec.ForProvider.NicCfg.NicID, cr.Status.AtProvider.FirewallRuleID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete firewallRule. error: %w", err)
-		return compute.ErrorUnlessNotFound(apiResponse, retErr)
+		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return err
+		return managed.ExternalDelete{}, err
 	}
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 // getTargetIPSet will return the TargetIP set by the user on targetIpConfig.ip or
@@ -324,4 +321,9 @@ func (c *externalFirewallRule) getSourceIPSet(ctx context.Context, cr *v1alpha1.
 	// return nil if nothing is set,
 	// since SourceIP can be empty
 	return "", nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalFirewallRule) Disconnect(_ context.Context) error {
+	return nil
 }

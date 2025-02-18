@@ -176,6 +176,9 @@ Password must have a minimum length o 10
 			* description: Database on which to set the role
 		* `role` (string)
 			* description: Role to set for the user
+	* required properties:
+		* `database`
+		* `role`
 
 ### Required Properties
 
@@ -183,6 +186,7 @@ The user needs to set the following properties in order to configure the IONOS C
 
 * `clusterConfig`
 * `credentials`
+* `userRoles`
 
 ## Resource Definition
 

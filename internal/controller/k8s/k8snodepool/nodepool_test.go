@@ -471,7 +471,7 @@ func TestExternalNodePoolDelete(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			c := tt.NewExternalNodepool(ctrl)
-			err := c.Delete(context.Background(), tt.args)
+			_, err := c.Delete(context.Background(), tt.args)
 			if tt.wantErr {
 				assert.NotNil(t, err)
 			} else {

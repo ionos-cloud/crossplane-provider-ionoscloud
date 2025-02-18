@@ -38,7 +38,7 @@ type kubeBootVolumeController struct {
 func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) (v1alpha1.Volume, error) {
 	name := getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, version)
 	hostname := getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, version)
-	k.log.Info("Creating BootVolume", "name", name)
+	k.log.Info("Creating BootVolume", "name", name, "serverset", cr.Name)
 	var userDataPatcher *ccpatch.CloudInitPatcher
 	var err error
 	userDataPatcher, err = k.setPatcher(ctx, cr, replicaIndex, version, name, k.kube)
@@ -53,14 +53,14 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	}
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
 		_ = k.Delete(ctx, createVolume.Name, cr.Namespace)
-		return v1alpha1.Volume{}, fmt.Errorf("while waiting for BootVolume to be populated %w ", err)
+		return v1alpha1.Volume{}, fmt.Errorf("while waiting for BootVolume %s to be populated %w ", createVolume.Name, err)
 	}
 	// get the volume again before returning to have the id populated
 	kubeVolume, err := k.Get(ctx, name, cr.Namespace)
 	if err != nil {
 		return v1alpha1.Volume{}, err
 	}
-	k.log.Info("Finished creating BootVolume", "name", name)
+	k.log.Info("Finished creating BootVolume", "name", name, "serverset", cr.Name)
 
 	return *kubeVolume, nil
 }
@@ -80,7 +80,7 @@ func (k *kubeBootVolumeController) setPatcher(ctx context.Context, cr *v1alpha1.
 		substitutions := extractSubstitutions(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions)
 		userDataPatcher, err = ccpatch.NewCloudInitPatcherWithSubstitutions(userData, identifier, substitutions, ionoscloud.ToPtr(globalStateMap[cr.Name]))
 		if err != nil {
-			return userDataPatcher, fmt.Errorf("while creating cloud init patcher with substitutions for BootVolume %s %w", name, err)
+			return userDataPatcher, fmt.Errorf("while creating cloud init patcher with substitutions for BootVolume %s on serverset %s %w", name, cr.Name, err)
 		}
 		namespace := "default"
 		if cr.Spec.ForProvider.IdentityConfigMap.Namespace != "" {
@@ -98,12 +98,12 @@ func (k *kubeBootVolumeController) setPatcher(ctx context.Context, cr *v1alpha1.
 		}
 		err := k.mapController.CreateOrUpdate(ctx, cr.Name)
 		if err != nil {
-			k.log.Info("while writing to substConfig map", "error", err)
+			k.log.Info("while writing to substConfig map", "error", err, "serverset", cr.Name)
 		}
 	} else {
 		userDataPatcher, err = ccpatch.NewCloudInitPatcher(userData)
 		if err != nil {
-			return userDataPatcher, fmt.Errorf("while creating cloud init patcher for BootVolume %s %w", name, err)
+			return userDataPatcher, fmt.Errorf("while creating cloud init patcher for BootVolume %s serverset %s  %w", name, cr.Name, err)
 		}
 	}
 	err = setPCINICSlotEnv(ctx, cr.Spec.ForProvider.Template.Spec.NICs, cr.Name, replicaIndex, kube, *userDataPatcher)
@@ -157,7 +157,7 @@ func (k *kubeBootVolumeController) Delete(ctx context.Context, name, namespace s
 		return err
 	}
 	if err := k.kube.Delete(ctx, condemnedVolume); err != nil {
-		return fmt.Errorf("error deleting BootVolume %w", err)
+		return fmt.Errorf("error deleting BootVolume %s %w", name, err)
 	}
 	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isBootVolumeDeleted, condemnedVolume.Name, namespace)
 }
@@ -173,7 +173,7 @@ func (k *kubeBootVolumeController) isAvailable(ctx context.Context, name, namesp
 	}
 	if !kube.IsSuccessfullyCreated(obj) {
 		conditions := obj.Status.ResourceStatus.Conditions
-		return false, fmt.Errorf("reason %s %w", conditions[len(conditions)-1].Message, kube.ErrExternalCreateFailed)
+		return false, fmt.Errorf("resource name %s reason %s %w", obj.Name, conditions[len(conditions)-1].Message, kube.ErrExternalCreateFailed)
 	}
 	if obj != nil && obj.Status.AtProvider.VolumeID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
 		return true, nil
@@ -216,14 +216,19 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 				DeletionPolicy:          cr.GetDeletionPolicy(),
 			},
 			ForProvider: v1alpha1.VolumeParameters{
-				DatacenterCfg:     cr.Spec.ForProvider.DatacenterCfg,
-				Name:              name,
-				AvailabilityZone:  GetZoneFromIndex(replicaIndex),
-				Size:              cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size,
-				Type:              cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type,
-				Image:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image,
-				UserData:          cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData,
-				DiscVirtioHotPlug: true,
+				DatacenterCfg:       cr.Spec.ForProvider.DatacenterCfg,
+				Name:                name,
+				AvailabilityZone:    GetZoneFromIndex(replicaIndex),
+				Size:                cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size,
+				Type:                cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type,
+				Image:               cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image,
+				UserData:            cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData,
+				CPUHotPlug:          true,
+				RAMHotPlug:          true,
+				NicHotPlug:          true,
+				NicHotUnplug:        true,
+				DiscVirtioHotPlug:   true,
+				DiscVirtioHotUnplug: true,
 			},
 		}}
 	if cr.Spec.ForProvider.BootVolumeTemplate.Spec.ImagePassword != "" {
@@ -237,7 +242,7 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 
 // Ensure - creates a boot volume if it does not exist
 func (k *kubeBootVolumeController) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
-	k.log.Info("Ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
+	k.log.Info("Ensuring BootVolume from serverset", "name", cr.Name, "replicaIndex", replicaIndex, "version", version)
 	res := &v1alpha1.VolumeList{}
 	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, cr.GetName(), resourceBootVolume, replicaIndex, version, res); err != nil {
 		return err
@@ -247,8 +252,7 @@ func (k *kubeBootVolumeController) Ensure(ctx context.Context, cr *v1alpha1.Serv
 		_, err := k.Create(ctx, cr, replicaIndex, version)
 		return err
 	}
-	k.log.Info("Finished ensuring BootVolume", "replicaIndex", replicaIndex, "version", version)
-
+	k.log.Info("Finished ensuring BootVolume", "replicaIndex", replicaIndex, "version", version, "serverset", cr.Name)
 	return nil
 }
 

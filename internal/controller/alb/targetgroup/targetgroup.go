@@ -25,13 +25,11 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
@@ -52,9 +50,8 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(controller.Options{
-			RateLimiter: ratelimiter.NewController(),
-		}).
+		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
+		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.TargetGroup{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.TargetGroupGroupVersionKind),
@@ -209,23 +206,28 @@ func (c *externalTargetGroup) Update(ctx context.Context, mg resource.Managed) (
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalTargetGroup) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalTargetGroup) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.TargetGroup)
 	if !ok {
-		return errors.New(errNotTargetGroup)
+		return managed.ExternalDelete{}, errors.New(errNotTargetGroup)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == compute.DESTROYING {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 	apiResponse, err := c.service.DeleteTargetGroup(ctx, cr.Status.AtProvider.TargetGroupID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete target group. error: %w", err)
-		return compute.ErrorUnlessNotFound(apiResponse, retErr)
+		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return err
+		return managed.ExternalDelete{}, err
 	}
+	return managed.ExternalDelete{}, nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalTargetGroup) Disconnect(_ context.Context) error {
 	return nil
 }

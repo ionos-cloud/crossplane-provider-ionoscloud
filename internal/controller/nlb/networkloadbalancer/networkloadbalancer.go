@@ -25,13 +25,11 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
@@ -53,9 +51,8 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(controller.Options{
-			RateLimiter: ratelimiter.NewController(),
-		}).
+		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
+		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.NetworkLoadBalancer{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.NetworkLoadBalancerGroupVersionKind),
@@ -221,23 +218,23 @@ func (c *externalNetworkLoadBalancer) Update(ctx context.Context, mg resource.Ma
 	return managed.ExternalUpdate{}, err
 }
 
-func (c *externalNetworkLoadBalancer) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalNetworkLoadBalancer) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.NetworkLoadBalancer)
 	if !ok {
-		return errors.New(errNotNetworkLoadBalancer)
+		return managed.ExternalDelete{}, errors.New(errNotNetworkLoadBalancer)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == compute.DESTROYING {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
 	nlbID := cr.Status.AtProvider.NetworkLoadBalancerID
 	err := c.service.DeleteNetworkLoadBalancer(ctx, datacenterID, nlbID)
 	if !errors.Is(err, networkloadbalancer.ErrNotFound) {
-		return err
+		return managed.ExternalDelete{}, err
 	}
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 func (c *externalNetworkLoadBalancer) getConfiguredIPs(ctx context.Context, cr *v1alpha1.NetworkLoadBalancer) ([]string, error) {
@@ -268,4 +265,9 @@ func getConfiguredLanIDs(cr *v1alpha1.NetworkLoadBalancer) (int32, int32, error)
 		return 0, 0, fmt.Errorf("error converting target Lan id: %w", err)
 	}
 	return listenerLanID, targetLanID, nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalNetworkLoadBalancer) Disconnect(_ context.Context) error {
+	return nil
 }

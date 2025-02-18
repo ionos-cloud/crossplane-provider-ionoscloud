@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.0
   name: s3keys.compute.ionoscloud.crossplane.io
 spec:
   group: compute.ionoscloud.crossplane.io
@@ -78,12 +78,14 @@ spec:
                   UserID
                 properties:
                   active:
-                    description: Whether the S3 is active / enabled or not. Can only
-                      be updated to false, by default the key will be created as active.
-                      Default value is true.
+                    default: true
+                    description: Whether the IONOS Object Storage is active / enabled
+                      or not. Can only be updated to false, by default the key will
+                      be created as active. Default value is true.
                     type: boolean
                   userID:
-                    description: The UUID of the user owning the S3 Key.
+                    description: The UUID of the user owning the IONOS Object Storage
+                      Key.
                     type: string
                 required:
                 - userID

@@ -97,7 +97,7 @@ type FirewallRuleParameters struct {
 	// The type of the firewall rule. If not specified, the default INGRESS value is used.
 	//
 	// +kubebuilder:validation:Enum=INGRESS;EGRESS
-	// +kubebuilder:validation:default=INGRESS
+	// +kubebuilder:default=INGRESS
 	Type string `json:"type,omitempty"`
 }
 

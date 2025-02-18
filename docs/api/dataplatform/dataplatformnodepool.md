@@ -225,6 +225,7 @@ Possible values HDD;SSD
 The user needs to set the following properties in order to configure the IONOS Cloud Resource:
 
 * `clusterConfig`
+* `name`
 * `nodeCount`
 
 ## Resource Definition

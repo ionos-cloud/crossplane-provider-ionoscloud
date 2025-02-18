@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.0
   name: users.compute.ionoscloud.crossplane.io
 spec:
   group: compute.ionoscloud.crossplane.io
@@ -85,6 +85,7 @@ spec:
                   Password
                 properties:
                   active:
+                    default: true
                     description: 'Active Indicates if the user is active. Default:
                       true.'
                     type: boolean
@@ -116,6 +117,7 @@ spec:
                     description: Password A password for the user.
                     type: string
                   secAuthActive:
+                    default: false
                     description: |-
                       SecAuthActive Indicates if secure authentication is active for the user or not.
                       It can not be used in create requests - can be used in update. Default: false.

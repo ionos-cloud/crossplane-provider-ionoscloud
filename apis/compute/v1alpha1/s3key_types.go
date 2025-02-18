@@ -13,14 +13,14 @@ import (
 // Required values when creating an S3Key:
 // UserID
 type S3KeyParameters struct {
-	// The UUID of the user owning the S3 Key.
+	// The UUID of the user owning the IONOS Object Storage Key.
 	//
 	// +kubebuilder:validation:Required
 	UserID string `json:"userID"`
-	// Whether the S3 is active / enabled or not. Can only be updated to false, by default the key will be created as active. Default value is true.
+	// Whether the IONOS Object Storage is active / enabled or not. Can only be updated to false, by default the key will be created as active. Default value is true.
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=true
+	// +kubebuilder:default=true
 	Active bool `json:"active,omitempty"`
 }
 

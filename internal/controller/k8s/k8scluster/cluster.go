@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/ipblock"
 	"strings"
 
 	"github.com/google/go-cmp/cmp"
@@ -28,14 +29,12 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
@@ -65,9 +64,8 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(controller.Options{
-			RateLimiter: ratelimiter.NewController(),
-		}).
+		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
+		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.Cluster{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.ClusterGroupVersionKind),
@@ -109,6 +107,7 @@ func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (ma
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalCluster{
 		service:              &k8scluster.APIClient{IonosServices: svc},
+		ipBlockService:       &ipblock.APIClient{IonosServices: svc},
 		log:                  c.log,
 		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
@@ -119,6 +118,7 @@ type externalCluster struct {
 	// A 'client' used to connect to the externalK8sCluster resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
 	service              k8scluster.Client
+	ipBlockService       ipblock.Client
 	log                  logging.Logger
 	isUniqueNamesEnabled bool
 }
@@ -154,12 +154,12 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 		ResourceUpToDate:        k8scluster.IsK8sClusterUpToDate(cr, observed),
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 	}
-	if !strings.EqualFold(cr.Status.AtProvider.State, k8s.DEPLOYING) {
+	if strings.EqualFold(cr.Status.AtProvider.State, k8s.ACTIVE) {
 		if kubeconfig, _, err = c.service.GetKubeConfig(ctx, cr.Status.AtProvider.ClusterID); err != nil {
 			c.log.Info(fmt.Sprintf("failed to get connection details. error: %v", err))
 		}
+		mo.ConnectionDetails = createKubernetesConnectionDetails(c, kubeconfig, mg)
 	}
-	mo.ConnectionDetails = createKubernetesConnectionDetails(c, kubeconfig, mg)
 
 	return mo, nil
 }
@@ -210,8 +210,12 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 			return managed.ExternalCreation{}, nil
 		}
 	}
-
-	instanceInput := k8scluster.GenerateCreateK8sClusterInput(cr)
+	natGatewayIP := ""
+	var err error
+	if natGatewayIP, err = c.getNATGatewayIPSet(ctx, cr); err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	instanceInput := k8scluster.GenerateCreateK8sClusterInput(cr, natGatewayIP)
 	newInstance, apiResponse, err := c.service.CreateK8sCluster(ctx, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
@@ -244,39 +248,69 @@ func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (mana
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.Cluster)
 	if !ok {
-		return errors.New(errNotK8sCluster)
+		return managed.ExternalDelete{}, errors.New(errNotK8sCluster)
 	}
 
 	if meta.GetExternalName(cr) == "" {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 
 	// Note: If the K8s Cluster still has NodePools, the API Request will fail.
 	hasNodePools, err := c.service.HasActiveK8sNodePools(ctx, cr.Status.AtProvider.ClusterID)
 	if err != nil {
-		return fmt.Errorf("failed to check if the Kubernetes Cluster has Active NodePools. error: %w", err)
+		return managed.ExternalDelete{}, fmt.Errorf("failed to check if the Kubernetes Cluster has Active NodePools. error: %w", err)
 	}
 	if hasNodePools {
-		return fmt.Errorf("kubernetes cluster cannot be deleted. NodePools still exist")
+		return managed.ExternalDelete{}, fmt.Errorf("kubernetes cluster cannot be deleted. NodePools still exist")
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	switch cr.Status.AtProvider.State {
 	case k8s.DESTROYING:
-		return nil
+		return managed.ExternalDelete{}, nil
 	case k8s.TERMINATED:
-		return nil
+		return managed.ExternalDelete{}, nil
 	case k8s.ACTIVE:
 		apiResponse, err := c.service.DeleteK8sCluster(ctx, cr.Status.AtProvider.ClusterID)
 		if err != nil {
 			retErr := fmt.Errorf("failed to delete k8s cluster. error: %w", err)
-			return compute.ErrorUnlessNotFound(apiResponse, retErr)
+			return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 		}
 	default:
-		return fmt.Errorf("resource needs to be in ACTIVE state to delete it, current state: %v", cr.Status.AtProvider.State)
+		return managed.ExternalDelete{}, fmt.Errorf("resource needs to be in ACTIVE state to delete it, current state: %v", cr.Status.AtProvider.State)
 	}
+	return managed.ExternalDelete{}, nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalCluster) Disconnect(_ context.Context) error {
 	return nil
+}
+
+// getNATGatewayIPSet will return the SourceIP set by the user on sourceIpConfig.ip or
+// sourceIpConfig.ipBlockConfig fields of the spec.
+// If both fields are set, only the sourceIpConfig.ip field will be considered by
+// the Crossplane Provider IONOS Cloud.
+func (c *externalCluster) getNATGatewayIPSet(ctx context.Context, cr *v1alpha1.Cluster) (string, error) {
+	if cr.Spec.ForProvider.NATGatewayIPCfg.IP != "" {
+		return cr.Spec.ForProvider.NATGatewayIPCfg.IP, nil
+	}
+	if cr.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.IPBlockID != "" {
+		ipsCfg, err := c.ipBlockService.GetIPs(ctx, cr.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.IPBlockID,
+			cr.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.Index)
+		if err != nil {
+			return "", err
+		}
+		if len(ipsCfg) != 1 {
+			return "", fmt.Errorf("error getting source IP with index %v from IPBlock %v",
+				cr.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.Index, cr.Spec.ForProvider.NATGatewayIPCfg.IPBlockCfg.IPBlockID)
+		}
+		return ipsCfg[0], nil
+	}
+	// return nil if nothing is set,
+	// since SourceIP can be empty
+	return "", nil
 }

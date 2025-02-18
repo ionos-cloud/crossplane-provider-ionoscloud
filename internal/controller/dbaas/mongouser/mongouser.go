@@ -26,13 +26,11 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
@@ -54,9 +52,8 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(controller.Options{
-			RateLimiter: ratelimiter.NewController(),
-		}).
+		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
+		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.MongoUser{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.MongoUserGroupVersionKind),
@@ -209,21 +206,21 @@ func (u *externalUser) Update(ctx context.Context, mg resource.Managed) (managed
 }
 
 // Delete deletes the user
-func (u *externalUser) Delete(ctx context.Context, mg resource.Managed) error {
+func (u *externalUser) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.MongoUser)
 	if !ok {
-		return errors.New(errNotUser)
+		return managed.ExternalDelete{}, errors.New(errNotUser)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	apiResponse, err := u.service.DeleteUser(ctx, cr.Spec.ForProvider.ClusterCfg.ClusterID, meta.GetExternalName(cr))
 	if err != nil {
 		if apiResponse.HttpNotFound() {
-			return nil
+			return managed.ExternalDelete{}, nil
 		}
-		return fmt.Errorf("failed to delete mongo user. error: %w", err)
+		return managed.ExternalDelete{}, fmt.Errorf("failed to delete mongo user. error: %w", err)
 	}
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 func (u *externalUser) readCredentials(ctx context.Context, cr *v1alpha1.MongoUser) (v1alpha1.DBUser, error) {
@@ -258,4 +255,9 @@ func (u *externalUser) lateInitialize(ctx context.Context, cr *v1alpha1.MongoUse
 	hashStr := string(hash)
 	cr.Spec.ForProvider.Credentials.Password = hashStr
 	return true
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (u *externalUser) Disconnect(_ context.Context) error {
+	return nil
 }

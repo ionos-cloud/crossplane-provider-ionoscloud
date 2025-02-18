@@ -39,21 +39,21 @@ type kubeLANController struct {
 // Create creates a lan CR and waits until in reaches AVAILABLE state
 func (k *kubeLANController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) (v1alpha1.Lan, error) {
 	name := cr.Spec.ForProvider.Lans[lanIndex].Metadata.Name
-	k.log.Info("Creating LAN", "name", name)
+	k.log.Info("Creating LAN", "name", name, "ssset", cr.Name)
 
 	createLAN := fromStatefulServerSetToLAN(cr, name, lanIndex)
 	if err := k.kube.Create(ctx, &createLAN); err != nil {
-		return v1alpha1.Lan{}, err
+		return v1alpha1.Lan{}, fmt.Errorf("while creating lan %s %w", createLAN.Name, err)
 	}
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
 		_ = k.Delete(ctx, name, cr.Namespace)
-		return v1alpha1.Lan{}, fmt.Errorf("while waiting for LAN to be populated %w ", err)
+		return v1alpha1.Lan{}, fmt.Errorf("while waiting for LAN to be populated %s %w", name, err)
 	}
 	kubeLAN, err := k.Get(ctx, name, cr.Namespace)
 	if err != nil {
 		return v1alpha1.Lan{}, err
 	}
-	k.log.Info("Finished creating LAN", "name", name)
+	k.log.Info("Finished creating LAN", "name", name, "ssset", cr.Name)
 
 	return *kubeLAN, nil
 }
@@ -84,19 +84,19 @@ func (k *kubeLANController) Update(ctx context.Context, cr *v1alpha1.StatefulSer
 		return v1alpha1.Lan{}, nil
 	}
 
-	k.log.Info("Updating LAN", "name", name)
+	k.log.Info("Updating LAN", "name", name, "ssset", cr.Name)
 
 	if err := k.kube.Update(ctx, updateKubeLAN); err != nil {
 		return v1alpha1.Lan{}, err
 	}
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
-		return v1alpha1.Lan{}, err
+		return v1alpha1.Lan{}, fmt.Errorf("while waiting for resource %s to be populated %w ", name, err)
 	}
 	updateKubeLAN, err = k.Get(ctx, name, cr.Namespace)
 	if err != nil {
 		return v1alpha1.Lan{}, err
 	}
-	k.log.Info("Finished updating LAN", "name", name)
+	k.log.Info("Finished updating LAN", "name", name, "ssset", cr.Name)
 	return *updateKubeLAN, nil
 }
 
@@ -128,7 +128,7 @@ func (k *kubeLANController) Delete(ctx context.Context, name, namespace string) 
 		return err
 	}
 	if err := k.kube.Delete(ctx, condemnedLAN); err != nil {
-		return fmt.Errorf("while deleting lan %w", err)
+		return fmt.Errorf("while deleting lan %s %w", name, err)
 	}
 	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isLANDeleted, condemnedLAN.Name, namespace)
 }
@@ -144,7 +144,7 @@ func (k *kubeLANController) isAvailable(ctx context.Context, name, namespace str
 	}
 	if !kube.IsSuccessfullyCreated(obj) {
 		conditions := obj.Status.ResourceStatus.Conditions
-		return false, fmt.Errorf("reason %s %w", conditions[len(conditions)-1].Message, kube.ErrExternalCreateFailed)
+		return false, fmt.Errorf("resource name %s reason %s %w", obj.Name, conditions[len(conditions)-1].Message, kube.ErrExternalCreateFailed)
 	}
 	if obj != nil && obj.Status.AtProvider.LanID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
 		return true, nil
@@ -200,7 +200,7 @@ func fromStatefulServerSetToLAN(cr *v1alpha1.StatefulServerSet, name string, lan
 
 // Ensure - creates a lan if it does not exist
 func (k *kubeLANController) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) error {
-	k.log.Info("Ensuring LAN", "lanIndex", lanIndex)
+	k.log.Info("Ensuring LAN", "lanIndex", lanIndex, "ssset", cr.Name)
 	res := &v1alpha1.LanList{}
 	if err := k.kube.List(ctx, res, client.MatchingLabels{
 		fmt.Sprintf(volumeselector.IndexLabel, getSSetName(cr), resourceLAN): strconv.Itoa(lanIndex),
@@ -212,7 +212,6 @@ func (k *kubeLANController) Ensure(ctx context.Context, cr *v1alpha1.StatefulSer
 		_, err := k.Create(ctx, cr, lanIndex)
 		return err
 	}
-	k.log.Info("Finished ensuring LAN", "lanIndex", lanIndex)
-
+	k.log.Info("Finished ensuring LAN", "lanIndex", lanIndex, "ssset", cr.Name)
 	return nil
 }

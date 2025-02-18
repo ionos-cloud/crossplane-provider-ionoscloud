@@ -27,13 +27,11 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
@@ -55,9 +53,8 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(controller.Options{
-			RateLimiter: ratelimiter.NewController(),
-		}).
+		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
+		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.PostgresCluster{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.PostgresClusterGroupVersionKind),
@@ -240,23 +237,28 @@ func (c *externalCluster) Update(ctx context.Context, mg resource.Managed) (mana
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalCluster) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.PostgresCluster)
 	if !ok {
-		return errors.New(errNotCluster)
+		return managed.ExternalDelete{}, errors.New(errNotCluster)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == string(ionoscloud.STATE_DESTROYING) {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 
 	apiResponse, err := c.service.DeleteCluster(ctx, cr.Status.AtProvider.ClusterID)
 	if err != nil {
 		if apiResponse != nil && apiResponse.Response != nil && apiResponse.StatusCode == http.StatusNotFound {
-			return nil
+			return managed.ExternalDelete{}, nil
 		}
-		return fmt.Errorf("failed to delete postgres cluster. error: %w", err)
+		return managed.ExternalDelete{}, fmt.Errorf("failed to delete postgres cluster. error: %w", err)
 	}
+	return managed.ExternalDelete{}, nil
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalCluster) Disconnect(_ context.Context) error {
 	return nil
 }

@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.0
   name: clusters.k8s.ionoscloud.crossplane.io
 spec:
   group: k8s.ionoscloud.crossplane.io
@@ -104,6 +104,15 @@ spec:
                       Additionally, not all Kubernetes versions are viable upgrade targets for all prior versions.
                       Example: 1.15.4
                     type: string
+                  location:
+                    description: |-
+                      This attribute is mandatory if the cluster is private.
+                      The location must be enabled for your contract, or you must have a data center at that location.
+                      This attribute is immutable.
+                    type: string
+                    x-kubernetes-validations:
+                    - message: Location is immutable
+                      rule: self == oldSelf
                   maintenanceWindow:
                     description: |-
                       The maintenance window is used for updating the cluster's control plane and for upgrading the cluster's K8s version.
@@ -120,10 +129,136 @@ spec:
                       A Kubernetes cluster name. Valid Kubernetes cluster name must be 63 characters or less and must be empty
                       or begin and end with an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
                     type: string
+                  natGatewayIpConfig:
+                    description: |-
+                      The nat gateway IP of the cluster if the cluster is private. This
+                      property is immutable. Must be a reserved IP in the same location as
+                      the cluster's location. This attribute is mandatory if the cluster
+                      is private.
+                    properties:
+                      ip:
+                        description: |-
+                          Use IP to set specific IP to the resource. If both IP and IPBlockConfig are set,
+                          only `ip` field will be considered.
+                        type: string
+                      ipBlockConfig:
+                        description: |-
+                          Use IpBlockConfig to reference existing IPBlock, and to mention the index for the IP.
+                          Index starts from 0 and it must be provided.
+                        properties:
+                          index:
+                            description: |-
+                              Index is referring to the IP index retrieved from the IPBlock.
+                              Index is starting from 0.
+                            type: integer
+                          ipBlockId:
+                            description: |-
+                              IPBlockID is the ID of the IPBlock on which the resource will be created.
+                              It needs to be provided via directly or via reference.
+                            format: uuid
+                            type: string
+                          ipBlockIdRef:
+                            description: IPBlockIDRef references to a IPBlock to retrieve
+                              its ID.
+                            properties:
+                              name:
+                                description: Name of the referenced object.
+                                type: string
+                              policy:
+                                description: Policies for referencing.
+                                properties:
+                                  resolution:
+                                    default: Required
+                                    description: |-
+                                      Resolution specifies whether resolution of this reference is required.
+                                      The default is 'Required', which means the reconcile will fail if the
+                                      reference cannot be resolved. 'Optional' means this reference will be
+                                      a no-op if it cannot be resolved.
+                                    enum:
+                                    - Required
+                                    - Optional
+                                    type: string
+                                  resolve:
+                                    description: |-
+                                      Resolve specifies when this reference should be resolved. The default
+                                      is 'IfNotPresent', which will attempt to resolve the reference only when
+                                      the corresponding field is not present. Use 'Always' to resolve the
+                                      reference on every reconcile.
+                                    enum:
+                                    - Always
+                                    - IfNotPresent
+                                    type: string
+                                type: object
+                            required:
+                            - name
+                            type: object
+                          ipBlockIdSelector:
+                            description: IPBlockIDSelector selects reference to a
+                              IPBlock to retrieve its IPBlockID.
+                            properties:
+                              matchControllerRef:
+                                description: |-
+                                  MatchControllerRef ensures an object with the same controller reference
+                                  as the selecting object is selected.
+                                type: boolean
+                              matchLabels:
+                                additionalProperties:
+                                  type: string
+                                description: MatchLabels ensures an object with matching
+                                  labels is selected.
+                                type: object
+                              policy:
+                                description: Policies for selection.
+                                properties:
+                                  resolution:
+                                    default: Required
+                                    description: |-
+                                      Resolution specifies whether resolution of this reference is required.
+                                      The default is 'Required', which means the reconcile will fail if the
+                                      reference cannot be resolved. 'Optional' means this reference will be
+                                      a no-op if it cannot be resolved.
+                                    enum:
+                                    - Required
+                                    - Optional
+                                    type: string
+                                  resolve:
+                                    description: |-
+                                      Resolve specifies when this reference should be resolved. The default
+                                      is 'IfNotPresent', which will attempt to resolve the reference only when
+                                      the corresponding field is not present. Use 'Always' to resolve the
+                                      reference on every reconcile.
+                                    enum:
+                                    - Always
+                                    - IfNotPresent
+                                    type: string
+                                type: object
+                            type: object
+                        required:
+                        - index
+                        type: object
+                    type: object
+                  nodeSubnet:
+                    description: |-
+                      The node subnet of the cluster, if the cluster is private.
+                      This attribute is optional and immutable.
+                      Must be a valid CIDR notation for an IPv4 network prefix of 16 bits length.
+                    type: string
+                    x-kubernetes-validations:
+                    - message: NodeSubnet is immutable
+                      rule: self == oldSelf
+                  public:
+                    default: true
+                    description: |-
+                      The indicator if the cluster is public or private.
+                      Be aware that setting it to false is currently in beta phase.
+                    type: boolean
+                    x-kubernetes-validations:
+                    - message: Public is immutable
+                      rule: self == oldSelf
                   s3Buckets:
                     description: |-
-                      List of S3 bucket configured for K8s usage.
-                      For now, it contains only an S3 bucket used to store K8s API audit logs.
+                      List of IONOS Object Storage buckets configured for K8s usage.
+                      For now, it contains only an IONOS Object Storage bucket used to store K8s API audit logs.
                     items:
                       description: S3Bucket configured for K8s usage.
                       properties:

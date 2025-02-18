@@ -18,8 +18,12 @@ package main
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
+	"time"
+
+	"sigs.k8s.io/controller-runtime/pkg/config"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/feature"
@@ -52,7 +56,7 @@ func main() {
 		leaderElection    = app.Flag("leader-election", "Use leader election for the controller manager.").Short('l').Default("false").Envar("LEADER_ELECTION").Bool()
 		createGracePeriod = app.Flag("create-grace-period", "Grace period for creation of IONOS Cloud resources.").Default("1m").Duration()
 		maxReconcileRate  = app.Flag("max-reconcile-rate", "The global maximum rate per second at which resources may checked for drift from the desired state.").Default("1").Int()
-		timeout           = app.Flag("timeout", "Timeout duration cumulatively for all the calls happening in the reconciliation functions.").Default("30m").Duration()
+		timeout           = app.Flag("timeout", "Timeout duration cumulatively for all the calls happening in the reconciliation functions.").Default("1h").Duration()
 
 		namespace                  = app.Flag("namespace", "Namespace used to set as default scope in default secret store config.").Default("crossplane-system").Envar("POD_NAMESPACE").String()
 		enableExternalSecretStores = app.Flag("enable-external-secret-stores", "Enable support for ExternalSecretStores.").Default("false").Envar("ENABLE_EXTERNAL_SECRET_STORES").Bool()
@@ -65,17 +69,25 @@ func main() {
 		// *very* verbose even at info level, so we only provide it a real
 		// logger when we're running in debug mode.
 		ctrl.SetLogger(zl)
+	} else {
+		// explicitly provide a no-op logger by default, otherwise controller-runtime gives a warning
+		ctrl.SetLogger(zap.New(zap.WriteTo(io.Discard)))
 	}
 
-	log.Debug("Starting", "sync-period", syncInterval.String())
+	log.Debug("Starting", "sync-period", syncInterval.String(), "poll-interval", pollInterval.String(), "max-reconcile-rate", *maxReconcileRate, "debug", *debug)
 
 	cfg, err := ctrl.GetConfig()
 	kingpin.FatalIfError(err, "Cannot get API server rest config")
-
+	skipControllerNameValidation := true
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		LeaderElection:   *leaderElection,
+		LeaderElection: *leaderElection,
+		Controller: config.Controller{
+			SkipNameValidation: &skipControllerNameValidation,
+		},
 		LeaderElectionID: "crossplane-leader-election-provider-ionoscloud",
 		Cache:            cache.Options{SyncPeriod: syncInterval},
+		LeaseDuration:    func() *time.Duration { d := 60 * time.Second; return &d }(),
+		RenewDeadline:    func() *time.Duration { d := 50 * time.Second; return &d }(),
 	})
 	kingpin.FatalIfError(err, "Cannot create controller manager")
 	kingpin.FatalIfError(apis.AddToScheme(mgr.GetScheme()), "Cannot add IONOS Cloud APIs to scheme")

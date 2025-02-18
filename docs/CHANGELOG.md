@@ -1,6 +1,26 @@
-## [1.1.3] (TBD)
+## [1.1.7]
+### Fixes:
+- Write kubeconfig to k8s cluster, only if not in deploying state.
+
+## [1.1.6]
+### Chore
+- Update crossplane-runtime to 1.18.0
+
+## [1.1.4]
+- **Fixes**:
+ - Volume should populate the status ID from the bootvolume of the server, because it cannot store it on create. This can cause larger wait times for volume attach.
+
+## [1.1.3]
 - **Features**:
     - Enable `publishConnectionDetails` option for s3 key, compute user and k8s clusters
+- **Misc**:
+    - Removed enum validation for `cpuFamily` fields.
+
+## [1.1.2]
+- **Features**:
+    - Connection pooler for psql, switch to sdk-go-bundle for postgres
+- **Fixes**:
+    - Add missing ipv6 property for nic
 
 ## [1.1.1] (July 2024)
 - **Fixes**:

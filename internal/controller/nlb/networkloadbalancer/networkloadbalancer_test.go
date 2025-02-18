@@ -828,7 +828,7 @@ func TestNetworkLoadBalancerDelete(t *testing.T) {
 				ipBlockService: ipBlockClient,
 				log:            logging.NewNopLogger(),
 			}
-			err := external.Delete(ctx, tt.mg)
+			_, err := external.Delete(ctx, tt.mg)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

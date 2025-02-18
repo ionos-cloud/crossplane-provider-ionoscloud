@@ -1,0 +1,56 @@
+name: CD - Release To Upbound
+
+on:
+  workflow_run:
+    workflows:
+      - CD
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'The version tag to publish (e.g., v1.1.6)'
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Upbound CLI
+        run: |
+          curl -sL https://cli.upbound.io | sh
+          sudo mv up /usr/local/bin/
+
+      - name: Login to Upbound
+        env:
+          UP_API_KEY: ${{ secrets.UP_API_KEY }}
+        run: up login --token $UP_API_KEY
+
+      - name: Set version tag for workflow_run
+        if: github.event_name == 'workflow_run'
+        run: |
+          VERSION_TAG=${{ github.event.workflow_run.head_branch }}
+
+          if [[ ! "$VERSION_TAG" =~ ^v[0-9]+(\.[0-9]+)?(\.[0-9]+)?(-[a-zA-Z0-9]+(\.[0-9]+)?)?$ ]]; then
+            echo "Invalid tag format: $VERSION_TAG. Expected a semantic versioning tag (e.g., v1, v1.0.0, v1.0.0-beta, v1.0.0-rc.2)."
+            exit 1
+          fi
+
+          echo "VERSION_TAG=$VERSION_TAG" >> $GITHUB_ENV
+
+      - name: Set version tag for workflow_dispatch
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "VERSION_TAG=${{ github.event.inputs.version_tag }}" >> $GITHUB_ENV
+
+      - name: Debug Environment
+        run: |
+          echo "Version Tag: $VERSION_TAG"
+
+      - name: Build and push Crossplane provider
+        run: |
+          up xpkg build --name provider-ionoscloud.xpkg -f package
+          up xpkg push xpkg.upbound.io/ionos-cloud/provider-ionoscloud:${VERSION_TAG} -f package/provider-ionoscloud.xpkg

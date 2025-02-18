@@ -9,14 +9,12 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
@@ -45,9 +43,8 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	logger := opts.CtrlOpts.Logger
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(controller.Options{
-			RateLimiter: ratelimiter.NewController(),
-		}).
+		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
+		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.Volumeselector{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.VolumeselectorGroupVersionKind),
@@ -146,6 +143,8 @@ func (c *externalVolumeselector) Observe(ctx context.Context, mg resource.Manage
 
 func (c *externalVolumeselector) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
 	cr, ok := mg.(*v1alpha1.Volumeselector)
+	c.log.Debug("Create volumeselector", "name", cr.Name, "serverset", cr.Spec.ForProvider.ServersetName)
+
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotVolumeSelector)
 	}
@@ -157,6 +156,7 @@ func (c *externalVolumeselector) Create(ctx context.Context, mg resource.Managed
 
 func (c *externalVolumeselector) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
 	cr, ok := mg.(*v1alpha1.Volumeselector)
+	c.log.Debug("Update volumeselector	", "name", cr.Name, "serverset", cr.Spec.ForProvider.ServersetName)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotVolumeSelector)
 	}
@@ -182,17 +182,17 @@ func (c *externalVolumeselector) Update(ctx context.Context, mg resource.Managed
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalVolumeselector) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalVolumeselector) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.Volumeselector)
 	if !ok {
-		return errors.New(errNotVolumeSelector)
+		return managed.ExternalDelete{}, errors.New(errNotVolumeSelector)
 	}
 	if meta.GetExternalName(cr) == "" {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 	meta.SetExternalName(cr, "")
 	cr.SetConditions(xpv1.Deleting())
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 // listResFromSSetWithIndex - lists resources from a stateful server set with a specific index label
@@ -247,7 +247,7 @@ func (c *externalVolumeselector) areVolumesAndServersReady(volumeList v1alpha1.V
 		return false
 	}
 	if serverList.Items[0].Status.AtProvider.ServerID == "" {
-		c.log.Info("Server does not have ID")
+		c.log.Info("Server does not have ID", "name", serverList.Items[0].Name)
 		return false
 	}
 
@@ -268,4 +268,9 @@ func (c *externalVolumeselector) getVolumesAndServers(ctx context.Context, serve
 		return volumeList, serverList, err
 	}
 	return volumeList, serverList, err
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalVolumeselector) Disconnect(_ context.Context) error {
+	return nil
 }

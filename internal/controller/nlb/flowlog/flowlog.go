@@ -24,13 +24,11 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
@@ -51,9 +49,8 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(controller.Options{
-			RateLimiter: ratelimiter.NewController(),
-		}).
+		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
+		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.FlowLog{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.FlowLogGroupVersionKind),
@@ -195,21 +192,25 @@ func (c *externalFlowLog) Update(ctx context.Context, mg resource.Managed) (mana
 	return managed.ExternalUpdate{}, err
 }
 
-func (c *externalFlowLog) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalFlowLog) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.FlowLog)
 	if !ok {
-		return errNotFlowLog
+		return managed.ExternalDelete{}, errNotFlowLog
 	}
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == compute.DESTROYING {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 
 	datacenterID := cr.Spec.ForProvider.DatacenterCfg.DatacenterID
 	nlbID := cr.Spec.ForProvider.NLBCfg.NetworkLoadBalancerID
 	err := c.service.DeleteFlowLog(ctx, datacenterID, nlbID, cr.Status.AtProvider.FlowLogID)
 	if !errors.Is(err, flowlog.ErrNotFound) {
-		return err
+		return managed.ExternalDelete{}, err
 	}
+	return managed.ExternalDelete{}, nil
+}
+
+func (c *externalFlowLog) Disconnect(_ context.Context) error {
 	return nil
 }

@@ -25,7 +25,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	ionosdk "github.com/ionos-cloud/sdk-go/v6"
 
@@ -33,7 +32,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/google/go-cmp/cmp"
@@ -62,9 +60,8 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(controller.Options{
-			RateLimiter: ratelimiter.NewController(),
-		}).
+		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
+		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.S3Key{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.S3KeyGroupVersionKind),
@@ -106,7 +103,8 @@ func (c *connectorS3Key) Connect(ctx context.Context, mg resource.Managed) (mana
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalS3Key{
 		service: s3key.APIClient{IonosServices: svc},
-		log:     c.log}, err
+		log:     c.log,
+	}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -128,7 +126,7 @@ func (c *externalS3Key) Observe(ctx context.Context, mg resource.Managed) (manag
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
-	observed, apiResponse, err := c.service.GetS3Key(ctx, cr.Spec.ForProvider.UserID, cr.Status.AtProvider.S3KeyID)
+	observed, apiResponse, err := c.service.GetS3Key(ctx, cr.Spec.ForProvider.UserID, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get S3Key by id. error: %w", err)
 		// we get a 422 error response on key not found instead of 404
@@ -191,10 +189,10 @@ func (c *externalS3Key) Update(ctx context.Context, mg resource.Managed) (manage
 	}, nil
 }
 
-func (c *externalS3Key) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalS3Key) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.S3Key)
 	if !ok {
-		return errors.New(errNotS3Key)
+		return managed.ExternalDelete{}, errors.New(errNotS3Key)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
@@ -202,10 +200,10 @@ func (c *externalS3Key) Delete(ctx context.Context, mg resource.Managed) error {
 	apiResponse, err := c.service.DeleteS3Key(ctx, cr.Spec.ForProvider.UserID, cr.Status.AtProvider.S3KeyID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete S3Key. error: %w", err)
-		return compute.ErrorUnlessNotFound(apiResponse, retErr)
+		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 
-	return compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse)
+	return managed.ExternalDelete{}, compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse)
 }
 
 func s3ConnectionDetailsTo(observed ionosdk.S3Key) managed.ConnectionDetails {
@@ -218,4 +216,8 @@ func s3ConnectionDetailsTo(observed ionosdk.S3Key) managed.ConnectionDetails {
 	details["s3SecretKey"] = []byte(*props.SecretKey)
 
 	return details
+}
+
+func (c *externalS3Key) Disconnect(_ context.Context) error {
+	return nil
 }

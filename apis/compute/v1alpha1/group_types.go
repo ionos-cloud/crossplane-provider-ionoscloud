@@ -36,82 +36,82 @@ type GroupParameters struct {
 	// AccessActivityLog privilege for a group to access activity logs.
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	AccessActivityLog bool `json:"accessActivityLog"`
 	// AccessAndManageCertificates privilege for a group to access and manage certificates.
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	AccessAndManageCertificates bool `json:"accessAndManageCertificates"`
 	// AccessAndManageDNS privilege for a group to access and manage dns records.
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	AccessAndManageDNS bool `json:"accessAndManageDns"`
 	// AccessAndManageMonitoring privilege for a group to access and manage monitoring related functionality
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	AccessAndManageMonitoring bool `json:"accessAndManageMonitoring"`
 	// CreateBackupUnit privilege to create backup unit resource
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	CreateBackupUnit bool `json:"createBackupUnit"`
 	// CreateDataCenter privilege to create datacenter resource
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	CreateDataCenter bool `json:"createDataCenter"`
 	// CreateFlowLog privilege to create flow log resource
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	CreateFlowLog bool `json:"createFlowLog"`
 	// CreateInternetAccess privilege to create internet access
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	CreateInternetAccess bool `json:"createInternetAccess"`
 	// CreateK8sCluster privilege to create kubernetes cluster
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	CreateK8sCluster bool `json:"createK8sCluster"`
 	// CreatePcc privilege to create private cross connect
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	CreatePcc bool `json:"createPcc"`
 	// CreateSnapshot privilege to create snapshot
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	CreateSnapshot bool `json:"createSnapshot"`
 	// ManageDBaaS privilege to manage DBaaS related functionality
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	ManageDBaaS bool `json:"manageDBaaS"`
 	// ManageDataPlatform privilege to access and manage the Data Platform
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	ManageDataPlatform bool `json:"manageDataplatform"`
 	// ManageRegistry privilege to access container registry related functionality
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	ManageRegistry bool `json:"manageRegistry"`
 	// ReserveIp privilege to reserve ip block
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	ReserveIP bool `json:"reserveIp"`
 	// S3Privilege privilege to access S3 functionality
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	S3Privilege bool `json:"s3Privilege"`
 	// In order to add a User as member to the Group, it is recommended to use UserCfg
 	// to add an existing User as a member (via id or via reference).
@@ -152,12 +152,12 @@ type ResourceShare struct {
 	// EditPrivilege for the Resource
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	EditPrivilege bool `json:"editPrivilege,omitempty"`
 	// SharePrivilege for the Resource
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:default=false
+	// +kubebuilder:default=false
 	SharePrivilege bool `json:"sharePrivilege,omitempty"`
 	// ResourceID is the ID of the Resource to which Group members gain privileges
 	// It can only be provided directly

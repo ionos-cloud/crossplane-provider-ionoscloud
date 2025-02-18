@@ -187,7 +187,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	}, nil
 }
 
-func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *external) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.{{ .Env.KIND }})
 	if !ok {
 		return errors.New(errNot{{ .Env.KIND }})

@@ -170,7 +170,7 @@ func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha
 	if err != nil {
 		return false, false, false, err
 	}
-	e.log.Info("Observing the StatefulServerSet", "creationLansUpToDate", creationLansUpToDate, "lansUpToDate", lansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate,
+	e.log.Info("Observing the StatefulServerSet", "name", cr.Name, "creationLansUpToDate", creationLansUpToDate, "lansUpToDate", lansUpToDate, "creationVolumesUpToDate", creationVolumesUpToDate,
 		"areVolumesUpToDate", areVolumesUpToDate, "creationSSetUpToDate", creationSSetUpToDate, "isSSetUpToDate", isSSetUpToDate, "creationVSUpToDate", creationVSUpToDate, "areVolumesAvailable", areVolumesAvailable)
 	areResourcesCreated = creationLansUpToDate && creationVolumesUpToDate && creationSSetUpToDate && creationVSUpToDate
 	areResourcesUpdated = lansUpToDate && areVolumesUpToDate && isSSetUpToDate
@@ -286,49 +286,49 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	}, nil
 }
 
-func (e *external) Delete(ctx context.Context, mg resource.Managed) error {
+func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
-		return errors.New(errNotStatefulServerSet)
+		return managed.ExternalDelete{}, errors.New(errNotStatefulServerSet)
 	}
 	cr.SetConditions(xpv1.Deleting())
 
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
 		for volumeIndex := range cr.Spec.ForProvider.Volumes {
 			name := generateNameFrom(cr.Spec.ForProvider.Volumes[volumeIndex].Metadata.Name, replicaIndex, volumeIndex)
-			e.log.Info("Deleting the DataVolume with name", "name", name)
+			e.log.Info("Deleting the DataVolume with", "name", name, "ssset", cr.Name)
 			err := e.dataVolumeController.Delete(ctx, name, cr.Namespace)
 			if err != nil {
-				return err
+				return managed.ExternalDelete{}, err
 			}
 		}
 	}
 
-	e.log.Info("Deleting the ServerSet with name", "name", cr.Spec.ForProvider.Template.Metadata.Name)
+	e.log.Info("Deleting the ServerSet with name", "name", cr.Spec.ForProvider.Template.Metadata.Name, "ssset", cr.Name)
 	if err := e.SSetController.Delete(ctx, cr.Spec.ForProvider.Template.Metadata.Name, cr.Namespace); err != nil {
-		return err
+		return managed.ExternalDelete{}, err
 	}
 
 	for lanIndex := range cr.Spec.ForProvider.Lans {
 		name := cr.Spec.ForProvider.Lans[lanIndex].Metadata.Name
-		e.log.Info("Deleting the LANs with name", "name", name)
+		e.log.Info("Deleting the LANs with name", "name", name, "ssset", cr.Name)
 		err := e.LANController.Delete(ctx, name, cr.Namespace)
 		if err != nil {
-			return err
+			return managed.ExternalDelete{}, err
 		}
 	}
 	e.log.Info("Deleting the volumeselector with name", "name", cr.Name)
 
 	err := e.volumeSelectorController.Delete(ctx, fmt.Sprintf(volumeSelectorName, cr.Name), cr.Namespace)
 	if err != nil {
-		return err
+		return managed.ExternalDelete{}, err
 	}
 
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex int) error {
-	e.log.Info("Ensuring the DataVolumes")
+	e.log.Info("Ensuring the DataVolumes for ", "name", cr.Name)
 	for volumeIndex := range cr.Spec.ForProvider.Volumes {
 		err := e.dataVolumeController.Ensure(ctx, cr, replicaIndex, volumeIndex)
 		if err != nil {
@@ -339,7 +339,7 @@ func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulS
 }
 
 func (e *external) ensureLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	e.log.Info("Ensuring the LANs")
+	e.log.Info("Ensuring the LANs for", "name", cr.Name)
 	for lanIndex := range cr.Spec.ForProvider.Lans {
 		err := e.LANController.Ensure(ctx, cr, lanIndex)
 		if err != nil {
@@ -478,4 +478,9 @@ func computeLanStatuses(lans []v1alpha1.Lan) []v1alpha1.StatefulServerSetLanStat
 		status[idx].IPv6CIDRBlock = lans[idx].Spec.ForProvider.Ipv6Cidr
 	}
 	return status
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (e *external) Disconnect(_ context.Context) error {
+	return nil
 }

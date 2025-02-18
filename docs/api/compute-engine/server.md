@@ -85,7 +85,6 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `cpuFamily` (string)
 	* description: CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions;
 available CPU architectures can be retrieved from the datacenter resource.
-	* possible values: "INTEL_SKYLAKE";"INTEL_XEON"
 * `datacenterConfig` (object)
 	* description: DatacenterConfig contains information about the datacenter resource
 on which the server will be created.
@@ -155,7 +154,6 @@ then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size 
 	* description: In order to attach a volume to the server, it is recommended to use VolumeConfig
 to set the existing volume (via id or via reference).
 To detach a volume from the server, update the CR spec by removing it.
-
 
 VolumeConfig contains information about the existing volume resource
 which will be attached to the server and set as bootVolume
@@ -227,3 +225,4 @@ The corresponding resource definition can be found [here](https://github.com/ion
 ## Resource Instance Example
 
 An example of a resource instance can be found [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples/ionoscloud/compute/server.yaml).
+

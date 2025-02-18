@@ -12,10 +12,10 @@ import (
 )
 
 // ResourceReadyTimeout time to wait for resource to be ready
-const ResourceReadyTimeout = 30 * time.Minute
+const ResourceReadyTimeout = 50 * time.Minute
 
 // ServerSetReadyTimeout time to wait for serverset to be ready
-const ServerSetReadyTimeout = 1 * time.Hour
+const ServerSetReadyTimeout = 3 * time.Hour
 
 // ErrExternalCreateFailed error when external create fails, so we know to delete kube object
 var ErrExternalCreateFailed = errors.New("external create failed")

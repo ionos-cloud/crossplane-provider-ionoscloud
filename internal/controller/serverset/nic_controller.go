@@ -23,7 +23,7 @@ type kubeNicControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, nicIndex, version int) (v1alpha1.Nic, error)
 	Get(ctx context.Context, name, ns string) (*v1alpha1.Nic, error)
 	Delete(ctx context.Context, name, namespace string) error
-	EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error
+	EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int, serverID string) error
 }
 
 // kubeNicController - kubernetes client wrapper
@@ -40,7 +40,7 @@ func getNicName(resourceName string, replicaIndex, nicIndex, version int) string
 // Create creates a NIC CR and waits until in reaches AVAILABLE state
 func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, nicIndex, version int) (v1alpha1.Nic, error) {
 	name := getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, version)
-	k.log.Info("Creating NIC", "name", name)
+	k.log.Info("Creating NIC", "name", name, "serverset", cr.Name)
 	lan := v1alpha1.Lan{}
 	if err := k.kube.Get(ctx, types.NamespacedName{
 		Namespace: cr.GetNamespace(),
@@ -51,19 +51,19 @@ func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, 
 	// no NIC found, create one
 	createNic := k.fromServerSetToNic(cr, name, serverID, lan, replicaIndex, nicIndex, version)
 	if err := k.kube.Create(ctx, &createNic); err != nil {
-		return v1alpha1.Nic{}, fmt.Errorf("while creating NIC %w ", err)
+		return v1alpha1.Nic{}, fmt.Errorf("while creating NIC %s for serverset %s %w ", createNic.Name, cr.Name, err)
 	}
 
 	err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createNic.Name, cr.Namespace)
 	if err != nil {
 		_ = k.Delete(ctx, createNic.Name, cr.Namespace)
-		return v1alpha1.Nic{}, fmt.Errorf("while waiting for NIC to be populated %w ", err)
+		return v1alpha1.Nic{}, fmt.Errorf("while waiting for NIC name %s to be populated for serverset %s %w ", createNic.Name, cr.Name, err)
 	}
 	createdNic, err := k.Get(ctx, createNic.Name, cr.Namespace)
 	if err != nil {
-		return v1alpha1.Nic{}, fmt.Errorf("while getting NIC %w ", err)
+		return v1alpha1.Nic{}, fmt.Errorf("while getting NIC name %s for serverset %s %w ", createNic.Name, cr.Name, err)
 	}
-	k.log.Info("Finished creating NIC", "name", name)
+	k.log.Info("Finished creating NIC", "name", name, "serverset", cr.Name)
 	return *createdNic, nil
 }
 
@@ -78,7 +78,7 @@ func (k *kubeNicController) isAvailable(ctx context.Context, name, namespace str
 	}
 	if !kube.IsSuccessfullyCreated(obj) {
 		conditions := obj.Status.ResourceStatus.Conditions
-		return false, fmt.Errorf("reason %s %w", conditions[len(conditions)-1].Message, kube.ErrExternalCreateFailed)
+		return false, fmt.Errorf("resource name %s reason %s %w", obj.Name, conditions[len(conditions)-1].Message, kube.ErrExternalCreateFailed)
 	}
 
 	if obj != nil && obj.Status.AtProvider.NicID != "" && strings.EqualFold(obj.Status.AtProvider.State, ionoscloud.Available) {
@@ -119,14 +119,14 @@ func (k *kubeNicController) isNicDeleted(ctx context.Context, name, namespace st
 
 // Delete - deletes the nic k8s client and waits until it is deleted
 func (k *kubeNicController) Delete(ctx context.Context, name, namespace string) error {
-	condemnedVolume, err := k.Get(ctx, name, namespace)
+	condemnedNIC, err := k.Get(ctx, name, namespace)
 	if err != nil {
 		return err
 	}
-	if err := k.kube.Delete(ctx, condemnedVolume); err != nil {
+	if err := k.kube.Delete(ctx, condemnedNIC); err != nil {
 		return err
 	}
-	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isNicDeleted, condemnedVolume.Name, namespace)
+	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isNicDeleted, condemnedNIC.Name, namespace)
 }
 
 func (k *kubeNicController) fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID string, lan v1alpha1.Lan, replicaIndex, nicIndex, version int) v1alpha1.Nic {
@@ -175,22 +175,16 @@ func (k *kubeNicController) fromServerSetToNic(cr *v1alpha1.ServerSet, name, ser
 }
 
 // EnsureNICs - creates NICS if they do not exist
-func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
-	k.log.Info("Ensuring NICs", "index", replicaIndex, "version", version)
-	res := &v1alpha1.ServerList{}
-	if err := listResFromSSetWithIndexAndVersion(ctx, k.kube, cr.GetName(), ResourceServer, replicaIndex, version, res); err != nil {
-		return err
-	}
-	servers := res.Items
-	// check if the NIC is attached to the server
-	if len(servers) > 0 {
-		for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
-			if err := k.ensure(ctx, cr, servers[0].Status.AtProvider.ServerID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].LanReference, replicaIndex, nicx, version); err != nil {
-				return err
-			}
+func (k *kubeNicController) EnsureNICs(
+	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int,serverID string,
+) error {
+	k.log.Info("Ensuring NICs", "index", replicaIndex, "version", version, "serverset", cr.Name)
+	for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
+		if err := k.ensure(ctx, cr, serverID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].LanReference, replicaIndex, nicx, version); err != nil {
+			return err
 		}
 	}
-	k.log.Info("Finished ensuring NICs", "index", replicaIndex, "version", version)
+	k.log.Info("Finished ensuring NICs", "index", replicaIndex, "version", version, "serverset", cr.Name)
 
 	return nil
 }
@@ -199,7 +193,9 @@ func (k *kubeNicController) EnsureNICs(ctx context.Context, cr *v1alpha1.ServerS
 func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, serverID, lanName string, replicaIndex, nicIndex, version int) error {
 	var nic *v1alpha1.Nic
 	var err error
-	nic, err = k.Get(ctx, getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, version), cr.Namespace)
+
+	nicName := getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, version)
+	nic, err = k.Get(ctx, nicName, cr.Namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			createdNic, err := k.Create(ctx, cr, serverID, lanName, replicaIndex, nicIndex, version)
@@ -210,8 +206,8 @@ func (k *kubeNicController) ensure(ctx context.Context, cr *v1alpha1.ServerSet, 
 		} else {
 			return err
 		}
-
 	}
+
 	if !strings.EqualFold(nic.Status.AtProvider.State, ionoscloud.Available) {
 		return fmt.Errorf("observed NIC %s got state %s but expected %s", nic.GetName(), nic.Status.AtProvider.State, ionoscloud.Available)
 	}

@@ -25,13 +25,11 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
@@ -53,9 +51,8 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(controller.Options{
-			RateLimiter: ratelimiter.NewController(),
-		}).
+		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
+		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.IPFailover{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.IPFailoverGroupVersionKind),
@@ -234,42 +231,42 @@ func (c *externalIPFailover) Update(ctx context.Context, mg resource.Managed) (m
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalIPFailover) Delete(ctx context.Context, mg resource.Managed) error {
+func (c *externalIPFailover) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.IPFailover)
 	if !ok {
-		return errors.New(errNotIPFailover)
+		return managed.ExternalDelete{}, errors.New(errNotIPFailover)
 	}
 
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == string(deleting) {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 	instanceIPFailovers, err := c.service.GetLanIPFailovers(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID)
 	if err != nil {
 		if strings.Contains(err.Error(), "404 Not Found") {
-			return nil
+			return managed.ExternalDelete{}, nil
 		}
-		return fmt.Errorf("failed to get lan ipfailovers. error: %w", err)
+		return managed.ExternalDelete{}, fmt.Errorf("failed to get lan ipfailovers. error: %w", err)
 	}
 	if !lan.IsIPFailoverPresent(instanceIPFailovers, cr.Status.AtProvider.IP, cr.Spec.ForProvider.NicCfg.NicID) {
-		return nil
+		return managed.ExternalDelete{}, nil
 	}
 	instanceInput, err := lan.GenerateRemoveIPFailoverInput(instanceIPFailovers, cr.Status.AtProvider.IP)
 	if err != nil {
-		return fmt.Errorf("failed to generate input for ipfailover deletion: %w", err)
+		return managed.ExternalDelete{}, fmt.Errorf("failed to generate input for ipfailover deletion: %w", err)
 	}
 	// Remove IPFailover - Update Lan with the new ipfailovers - without the one needed to be deleted
 	_, apiResponse, err := c.service.UpdateLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Spec.ForProvider.LanCfg.LanID, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to update lan to remove ipfailover. error: %w", err)
-		return compute.ErrorUnlessNotFound(apiResponse, retErr)
+		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return fmt.Errorf("failed to wait for request on removing ipfailover: %w", err)
+		return managed.ExternalDelete{}, fmt.Errorf("failed to wait for request on removing ipfailover: %w", err)
 	}
 
 	cr.Status.AtProvider.State = string(deleting)
-	return nil
+	return managed.ExternalDelete{}, nil
 }
 
 // getIPSet will return ip set by the user on ip or ipConfig fields of the spec.
@@ -291,4 +288,9 @@ func (c *externalIPFailover) getIPSet(ctx context.Context, cr *v1alpha1.IPFailov
 		return ipsCfg[0], nil
 	}
 	return "", fmt.Errorf("error getting IP set")
+}
+
+// Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
+func (c *externalIPFailover) Disconnect(_ context.Context) error {
+	return nil
 }

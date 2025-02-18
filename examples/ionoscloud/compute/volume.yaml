@@ -19,12 +19,6 @@ spec:
     bus: VIRTIO
     licenceType: LINUX
     availabilityZone: AUTO
-    substitutions:
-      - key: $NIC0_ipv6Address
-        type: random-ipv6
-        unique: true
-        additionalProperties:
-          cidr: fd00:1337:1::/64
     #    imageAlias: ubuntu:latest
     #    imagePassword:
     datacenterConfig:
