@@ -181,7 +181,7 @@ func GenerateUpdateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIps []string) *
 			K8sVersion: &cr.Spec.ForProvider.K8sVersion,
 		},
 	}
-	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AutoScaling.MinNodeCount)) {
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AutoScaling)) {
 		instanceUpdateInput.Properties.SetAutoScaling(sdkgo.KubernetesAutoScaling{
 			MinNodeCount: &cr.Spec.ForProvider.AutoScaling.MinNodeCount,
 			MaxNodeCount: &cr.Spec.ForProvider.AutoScaling.MaxNodeCount,
@@ -284,7 +284,9 @@ func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodeP
 		return false
 	case nodepool.Properties.K8sVersion != nil && *nodepool.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
 		return false
-	case nodepool.Properties.NodeCount != nil && *nodepool.Properties.NodeCount != cr.Spec.ForProvider.NodeCount:
+	case nodepool.Properties.NodeCount != nil &&
+		*nodepool.Properties.NodeCount != cr.Spec.ForProvider.NodeCount &&
+		utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AutoScaling)):
 		return false
 	case nodepool.Properties.PublicIps != nil && !utils.ContainsStringSlices(*nodepool.Properties.PublicIps, publicIPs):
 		return false
