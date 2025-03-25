@@ -18,8 +18,11 @@ package user
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -45,12 +48,16 @@ import (
 )
 
 const (
-	errUserObserve   = "failed to get user by id"
-	errUserDelete    = "failed to delete user"
-	errUserUpdate    = "failed to update user"
-	errUserCreate    = "failed to create user"
-	errGetUserGroups = "failed to fetch user groups"
-	errNotUser       = "managed resource is not of a User type"
+	errUserObserve                             = "failed to get user by id"
+	errUserDelete                              = "failed to delete user"
+	errUserUpdate                              = "failed to update user"
+	errUserCreate                              = "failed to create user"
+	errGetUserGroups                           = "failed to fetch user groups"
+	errGetCredentialsSecret                    = "cannot get credentials secret"
+	errNotUser                                 = "managed resource is not of a User type"
+	warningCannotResolveReference event.Reason = "CannotResolveReference"
+	warningCannotResolveKey       event.Reason = "CannotResolveKey"
+	warningDeprecatedField        event.Reason = "DeprecatedField"
 )
 
 // Setup adds a controller that reconciles User managed resources.
@@ -62,6 +69,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	if opts.CtrlOpts.Features.Enabled(features.EnableAlphaExternalSecretStores) {
 		cps = append(cps, connection.NewDetailsManager(mgr.GetClient(), apisv1alpha1.StoreConfigGroupVersionKind))
 	}
+	eventRecorder := event.NewAPIRecorder(mgr.GetEventRecorderFor(name))
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -76,14 +84,49 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 				log:   logger,
 			}),
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
-			managed.WithInitializers(),
+			managed.WithInitializers(resourceInitializer{kube: mgr.GetClient(), eventRecorder: eventRecorder}),
 			managed.WithPollInterval(opts.GetPollInterval()),
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(logger.WithValues("controller", name)),
-			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
+			managed.WithRecorder(eventRecorder),
 			managed.WithConnectionPublishers(cps...),
 		))
+}
+
+// resourceInitializer is intended to pre-check the user managed resource.
+type resourceInitializer struct {
+	kube          client.Client
+	eventRecorder event.Recorder
+}
+
+// Initialize will check if the user's credentials secret exists.
+func (ri resourceInitializer) Initialize(ctx context.Context, mg resource.Managed) error {
+	user := mg.(*v1alpha1.User)
+	if user.DeletionTimestamp != nil {
+		return nil
+	}
+	
+	if user.Spec.ForProvider.Password != "" {
+		err := errors.New("spec.ForProvider.Password is deprecated, please use spec.ForProvider.CredentialsSecretRef.")
+		ri.eventRecorder.Event(user, event.Warning(warningDeprecatedField, err))
+	}
+
+	if !user.HasCredentialsSecretRef() {
+		return nil
+	}
+
+	secret, err := getCredentialsSecret(ctx, ri.kube, user.Spec.ForProvider.CredentialsSecretRef)
+	if err != nil {
+		ri.eventRecorder.Event(user, event.Warning(warningCannotResolveReference, err))
+		return nil
+	}
+	key := user.Spec.ForProvider.CredentialsSecretRef.Key
+	if _, ok := secret.Data[key]; !ok {
+		err := fmt.Errorf("credentials secret key %q not found in secret", key)
+		ri.eventRecorder.Event(user, event.Warning(warningCannotResolveKey, err))
+	}
+	return nil
 }
 
 // A connectorUser is expected to produce an ExternalClient when its Connect method
@@ -111,6 +154,7 @@ func (c *connectorUser) Connect(ctx context.Context, mg resource.Managed) (manag
 	return &externalUser{
 		service: userapi.NewAPIClient(svc, compute.WaitForRequest),
 		log:     c.log,
+		client:  c.kube,
 	}, err
 }
 
@@ -121,9 +165,22 @@ type externalUser struct {
 	// see https://api.ionos.com/docs/cloud/v6/#tag/User-management
 	service userapi.Client
 	log     logging.Logger
+	client  client.Client
 }
 
-func connectionDetails(cr *v1alpha1.User, observed ionosdk.User) managed.ConnectionDetails {
+func getCredentialsSecret(ctx context.Context, c client.Client, selector xpv1.SecretKeySelector) (*v1.Secret, error) {
+	secret := &v1.Secret{}
+	key := types.NamespacedName{
+		Namespace: selector.Namespace,
+		Name:      selector.Name,
+	}
+	if err := c.Get(ctx, key, secret); err != nil {
+		return nil, errors.Wrap(err, errGetCredentialsSecret)
+	}
+	return secret, nil
+}
+
+func connectionDetails(cr *v1alpha1.User, observed ionosdk.User) (managed.ConnectionDetails, error) {
 	var details = make(managed.ConnectionDetails)
 	props := observed.GetProperties()
 	details["email"] = []byte(utils.DereferenceOrZero(props.GetEmail()))
@@ -135,7 +192,7 @@ func connectionDetails(cr *v1alpha1.User, observed ionosdk.User) managed.Connect
 		details[xpv1.ResourceCredentialsSecretPasswordKey] = []byte(pw)
 	}
 
-	return details
+	return details, nil
 }
 
 func setStatus(cr *v1alpha1.User, observed ionosdk.User, groupIDs []string) {
@@ -179,11 +236,27 @@ func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (manag
 	cr.SetConditions(xpv1.Available())
 
 	linit := cr.Spec.ForProvider.Password != ""
-	conn := connectionDetails(cr, observed)
+	conn, err := connectionDetails(cr, observed)
+	if err != nil {
+		return managed.ExternalObservation{ConnectionDetails: conn}, errors.Wrap(err, errUserObserve)
+	}
+
+	isUserUpToDate := userapi.IsUserUpToDate(cr.Spec.ForProvider, observed, groupIDs)
+	if cr.HasCredentialsSecretRef() {
+		secret, err := getCredentialsSecret(ctx, eu.client, cr.Spec.ForProvider.CredentialsSecretRef)
+		if err != nil {
+			return managed.ExternalObservation{}, errors.Wrap(err, errUserObserve)
+		}
+		if cr.Status.AtProvider.CredentialsVersion != secret.GetResourceVersion() {
+			isUserUpToDate = false
+			conn[xpv1.ResourceCredentialsSecretPasswordKey] = secret.Data[cr.Spec.ForProvider.CredentialsSecretRef.Key]
+			cr.Status.AtProvider.CredentialsVersion = secret.GetResourceVersion()
+		}
+	}
 
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        userapi.IsUserUpToDate(cr.Spec.ForProvider, observed, groupIDs),
+		ResourceUpToDate:        isUserUpToDate,
 		ConnectionDetails:       conn,
 		ResourceLateInitialized: linit,
 	}, nil
@@ -196,14 +269,30 @@ func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (manage
 	}
 	cr.SetConditions(xpv1.Creating())
 
-	observed, resp, err := eu.service.CreateUser(ctx, cr.Spec.ForProvider)
+	var passw string
+	if cr.HasCredentialsSecretRef() {
+		secret, err := getCredentialsSecret(ctx, eu.client, cr.Spec.ForProvider.CredentialsSecretRef)
+		if err != nil {
+			return managed.ExternalCreation{}, errors.Wrap(err, errUserCreate)
+		}
+		passw = string(secret.Data[cr.Spec.ForProvider.CredentialsSecretRef.Key])
+		cr.Status.AtProvider.CredentialsVersion = secret.GetResourceVersion()
+	}
+
+	observed, resp, err := eu.service.CreateUser(ctx, cr.Spec.ForProvider, passw)
 	if err != nil {
 		werr := errors.Wrap(err, errUserCreate)
 		return managed.ExternalCreation{}, compute.AddAPIResponseInfo(resp, werr)
 	}
 
 	meta.SetExternalName(cr, *observed.GetId())
-	conn := connectionDetails(cr, observed)
+	conn, err := connectionDetails(cr, observed)
+	if err != nil {
+		return managed.ExternalCreation{ConnectionDetails: conn}, errors.Wrap(err, errUserCreate)
+	}
+	if cr.HasCredentialsSecretRef() {
+		conn[xpv1.ResourceCredentialsSecretPasswordKey] = []byte(passw)
+	}
 
 	err = eu.service.UpdateUserGroups(ctx, *observed.GetId(), nil, cr.Spec.ForProvider.GroupIDs)
 	if err != nil {
@@ -223,12 +312,27 @@ func (eu *externalUser) Update(ctx context.Context, mg resource.Managed) (manage
 
 	userID := cr.Status.AtProvider.UserID
 
-	observed, resp, err := eu.service.UpdateUser(ctx, userID, cr.Spec.ForProvider)
+	var passw string
+	if cr.HasCredentialsSecretRef() {
+		secret, err := getCredentialsSecret(ctx, eu.client, cr.Spec.ForProvider.CredentialsSecretRef)
+		if err != nil {
+			return managed.ExternalUpdate{}, errors.Wrap(err, errUserUpdate)
+		}
+		passw = string(secret.Data[cr.Spec.ForProvider.CredentialsSecretRef.Key])
+	}
+
+	observed, resp, err := eu.service.UpdateUser(ctx, userID, cr.Spec.ForProvider, passw)
 	if err != nil {
 		werr := errors.Wrap(err, errUserUpdate)
 		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(resp, werr)
 	}
-	conn := connectionDetails(cr, observed)
+	conn, err := connectionDetails(cr, observed)
+	if err != nil {
+		return managed.ExternalUpdate{ConnectionDetails: conn}, errors.Wrap(err, errUserUpdate)
+	}
+	if cr.HasCredentialsSecretRef() {
+		conn[xpv1.ResourceCredentialsSecretPasswordKey] = []byte(passw)
+	}
 
 	err = eu.service.UpdateUserGroups(ctx, userID, cr.Status.AtProvider.GroupIDs, cr.Spec.ForProvider.GroupIDs)
 	if err != nil {

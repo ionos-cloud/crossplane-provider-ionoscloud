@@ -19,14 +19,17 @@ spec:
     - "*"
   forProvider:
     administrator: false
-    email: "your-username-here"
-    firstName: "xplane test"
-    lastName: "user"
+    email: "your-email@here.com"
+    firstName: "First Name"
+    lastName: "Last Name"
     forceSecAuth: true
-    password: "$3cr3t"
     active: true
+    credentialsSecretRef:
+      key: password
+      name: my-user-password
+      namespace: default
   providerConfigRef:
-    name: example
+    name: provider-ionoscloud-config
   writeConnectionSecretToRef:
     name: "xplane-user"
     namespace: "crossplane-system"

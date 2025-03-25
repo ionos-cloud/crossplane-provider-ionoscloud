@@ -40,8 +40,9 @@ type UserParameters struct {
 	LastName string `json:"lastName"`
 	// Password A password for the user.
 	//
-	// +kubebuilder:validation:Required
-	Password string `json:"password"`
+	// +kubebuilder:validation:Optional
+	// Deprecated: use CredentialsSecretRef
+	Password string `json:"password,omitempty"`
 	// SecAuthActive Indicates if secure authentication is active for the user or not.
 	// It can not be used in create requests - can be used in update. Default: false.
 	//
@@ -58,6 +59,10 @@ type UserParameters struct {
 	//
 	// +kubebuilder:validation:Optional
 	GroupIDs []string `json:"groupIDs"`
+	// CredentialsSecretRef holds a reference to a secret containing the user's password.
+	//
+	// +kubebuilder:validation:Optional
+	CredentialsSecretRef xpv1.SecretKeySelector `json:"credentialsSecretRef,omitempty"`
 }
 
 // UserConfig is used by resources that need to link Users via id or via reference.
@@ -99,6 +104,11 @@ type User struct {
 	Status UserStatus `json:"status,omitempty"`
 }
 
+func (u *User) HasCredentialsSecretRef() bool {
+	return u.Spec.ForProvider.CredentialsSecretRef.Name != "" &&
+		u.Spec.ForProvider.CredentialsSecretRef.Namespace != ""
+}
+
 // A UserSpec defines the desired state of a User.
 type UserSpec struct {
 	xpv1.ResourceSpec `json:",inline"`
@@ -124,6 +134,8 @@ type UserObservation struct {
 	SecAuthActive bool `json:"secAuthActive"`
 	// GroupIDs that this user will be a member of
 	GroupIDs []string `json:"groupIDs,omitempty"`
+	// CredentialsVersion holds the resource version of the secret containing the user's password.
+	CredentialsVersion string `json:"credentialsVersion,omitempty"`
 }
 
 // +kubebuilder:object:root=true

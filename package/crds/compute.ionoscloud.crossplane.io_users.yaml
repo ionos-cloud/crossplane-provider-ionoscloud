@@ -93,6 +93,24 @@ spec:
                     description: Administrator The group has permission to edit privileges
                       on this resource.
                     type: boolean
+                  credentialsSecretRef:
+                    description: Credentials holds a reference to a secret containing
+                      the user's password.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
                   email:
                     description: Email An e-mail address for the user.
                     type: string
@@ -114,7 +132,10 @@ spec:
                     description: LastName A last name for the user.
                     type: string
                   password:
-                    description: Password A password for the user.
+                    description: |-
+                      Password A password for the user.
+
+                      Deprecated: use SecretRef
                     type: string
                   secAuthActive:
                     default: false
@@ -128,7 +149,6 @@ spec:
                 - firstName
                 - forceSecAuth
                 - lastName
-                - password
                 type: object
               managementPolicies:
                 default:
@@ -306,6 +326,10 @@ spec:
                   active:
                     description: Active Indicates if the user is active.
                     type: boolean
+                  credentialsVersion:
+                    description: CredentialsVersion holds the resource version of
+                      the secret containing the user's password.
+                    type: string
                   groupIDs:
                     description: GroupIDs that this user will be a member of
                     items:

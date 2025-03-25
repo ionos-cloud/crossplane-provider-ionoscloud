@@ -38,8 +38,8 @@ func NewAPIClient(svc *clients.IonosServices, fn requestWaiter) Client {
 // Currently used for mocking the interaction with the client.
 type Client interface {
 	GetUser(ctx context.Context, id string) (ionosdk.User, *ionosdk.APIResponse, error)
-	CreateUser(ctx context.Context, p v1alpha1.UserParameters) (ionosdk.User, *ionosdk.APIResponse, error)
-	UpdateUser(ctx context.Context, id string, p v1alpha1.UserParameters) (ionosdk.User, *ionosdk.APIResponse, error)
+	CreateUser(ctx context.Context, p v1alpha1.UserParameters, passw string) (ionosdk.User, *ionosdk.APIResponse, error)
+	UpdateUser(ctx context.Context, id string, p v1alpha1.UserParameters, passw string) (ionosdk.User, *ionosdk.APIResponse, error)
 	DeleteUser(ctx context.Context, id string) (*ionosdk.APIResponse, error)
 	AddUserToGroup(ctx context.Context, groupID string, userID string) (ionosdk.User, *ionosdk.APIResponse, error)
 	DeleteUserFromGroup(ctx context.Context, groupID string, userID string) error
@@ -54,14 +54,16 @@ func (ac *apiClient) GetUser(ctx context.Context, id string) (ionosdk.User, *ion
 }
 
 // CreateUser creates a user in the ionoscloud.
-func (ac *apiClient) CreateUser(ctx context.Context, p v1alpha1.UserParameters) (ionosdk.User, *ionosdk.APIResponse, error) {
+func (ac *apiClient) CreateUser(ctx context.Context, p v1alpha1.UserParameters, passw string) (ionosdk.User, *ionosdk.APIResponse, error) {
 	props := ionosdk.NewUserPropertiesPost()
 	props.SetFirstname(p.FirstName)
 	props.SetLastname(p.LastName)
 	props.SetEmail(p.Email)
 	props.SetAdministrator(p.Administrator)
 	props.SetForceSecAuth(p.ForceSecAuth)
+	props.SetPassword(passw)
 	// props-Password is a pointer, and we want to set it only if the provided password is not empty, otherwise we want it to be nil.
+	// Deprecated: this functionality is deprecated as of v1.1.10
 	if pw := p.Password; pw != "" {
 		props.SetPassword(pw)
 	}
@@ -79,13 +81,15 @@ func (ac *apiClient) CreateUser(ctx context.Context, p v1alpha1.UserParameters) 
 }
 
 // UpdateUser updates a user.
-func (ac *apiClient) UpdateUser(ctx context.Context, id string, p v1alpha1.UserParameters) (ionosdk.User, *ionosdk.APIResponse, error) {
+func (ac *apiClient) UpdateUser(ctx context.Context, id string, p v1alpha1.UserParameters, passw string) (ionosdk.User, *ionosdk.APIResponse, error) {
 	props := ionosdk.NewUserPropertiesPut()
 	props.SetFirstname(p.FirstName)
 	props.SetLastname(p.LastName)
 	props.SetEmail(p.Email)
 	props.SetAdministrator(p.Administrator)
 	props.SetForceSecAuth(p.ForceSecAuth)
+	props.SetPassword(passw)
+	// Deprecated: this functionality is deprecated as of v1.1.10
 	if pw := p.Password; pw != "" {
 		props.SetPassword(pw)
 	}
