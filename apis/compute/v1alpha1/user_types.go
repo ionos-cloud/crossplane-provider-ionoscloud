@@ -39,9 +39,9 @@ type UserParameters struct {
 	// +kubebuilder:validation:Required
 	LastName string `json:"lastName"`
 	// Password A password for the user.
+	// Deprecated: use CredentialsSecretRef
 	//
 	// +kubebuilder:validation:Optional
-	// Deprecated: use CredentialsSecretRef
 	Password string `json:"password,omitempty"`
 	// SecAuthActive Indicates if secure authentication is active for the user or not.
 	// It can not be used in create requests - can be used in update. Default: false.

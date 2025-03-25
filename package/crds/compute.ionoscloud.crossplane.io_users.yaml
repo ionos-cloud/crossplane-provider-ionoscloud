@@ -94,8 +94,8 @@ spec:
                       on this resource.
                     type: boolean
                   credentialsSecretRef:
-                    description: Credentials holds a reference to a secret containing
-                      the user's password.
+                    description: CredentialsSecretRef holds a reference to a secret
+                      containing the user's password.
                     properties:
                       key:
                         description: The key to select.
@@ -134,8 +134,7 @@ spec:
                   password:
                     description: |-
                       Password A password for the user.
-
-                      Deprecated: use SecretRef
+                      Deprecated: use CredentialsSecretRef
                     type: string
                   secAuthActive:
                     default: false

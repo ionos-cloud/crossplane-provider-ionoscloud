@@ -79,6 +79,19 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* default: true
 * `administrator` (boolean)
 	* description: Administrator The group has permission to edit privileges on this resource.
+* `credentialsSecretRef` (object)
+	* description: CredentialsSecretRef holds a reference to a secret containing the user's password.
+	* properties:
+		* `key` (string)
+			* description: The key to select.
+		* `name` (string)
+			* description: Name of the secret.
+		* `namespace` (string)
+			* description: Namespace of the secret.
+	* required properties:
+		* `key`
+		* `name`
+		* `namespace`
 * `email` (string)
 	* description: Email An e-mail address for the user.
 * `firstName` (string)
@@ -92,6 +105,7 @@ NOTE: It is recommended to manage group membership through the group CRD as it o
 	* description: LastName A last name for the user.
 * `password` (string)
 	* description: Password A password for the user.
+Deprecated: use CredentialsSecretRef
 * `secAuthActive` (boolean)
 	* description: SecAuthActive Indicates if secure authentication is active for the user or not.
 It can not be used in create requests - can be used in update. Default: false.
@@ -106,7 +120,6 @@ The user needs to set the following properties in order to configure the IONOS C
 * `firstName`
 * `forceSecAuth`
 * `lastName`
-* `password`
 
 ## Resource Definition
 
