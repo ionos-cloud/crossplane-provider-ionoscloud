@@ -106,7 +106,7 @@ func (ri resourceInitializer) Initialize(ctx context.Context, mg resource.Manage
 	if user.DeletionTimestamp != nil {
 		return nil
 	}
-	
+
 	if user.Spec.ForProvider.Password != "" {
 		err := errors.New("spec.ForProvider.Password is deprecated, please use spec.ForProvider.CredentialsSecretRef.")
 		ri.eventRecorder.Event(user, event.Warning(warningDeprecatedField, err))
@@ -180,7 +180,7 @@ func getCredentialsSecret(ctx context.Context, c client.Client, selector xpv1.Se
 	return secret, nil
 }
 
-func connectionDetails(cr *v1alpha1.User, observed ionosdk.User) (managed.ConnectionDetails, error) {
+func connectionDetails(cr *v1alpha1.User, observed ionosdk.User) managed.ConnectionDetails {
 	var details = make(managed.ConnectionDetails)
 	props := observed.GetProperties()
 	details["email"] = []byte(utils.DereferenceOrZero(props.GetEmail()))
@@ -192,7 +192,7 @@ func connectionDetails(cr *v1alpha1.User, observed ionosdk.User) (managed.Connec
 		details[xpv1.ResourceCredentialsSecretPasswordKey] = []byte(pw)
 	}
 
-	return details, nil
+	return details
 }
 
 func setStatus(cr *v1alpha1.User, observed ionosdk.User, groupIDs []string) {
@@ -236,10 +236,7 @@ func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (manag
 	cr.SetConditions(xpv1.Available())
 
 	linit := cr.Spec.ForProvider.Password != ""
-	conn, err := connectionDetails(cr, observed)
-	if err != nil {
-		return managed.ExternalObservation{ConnectionDetails: conn}, errors.Wrap(err, errUserObserve)
-	}
+	conn := connectionDetails(cr, observed)
 
 	isUserUpToDate := userapi.IsUserUpToDate(cr.Spec.ForProvider, observed, groupIDs)
 	if cr.HasCredentialsSecretRef() {
@@ -286,10 +283,7 @@ func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (manage
 	}
 
 	meta.SetExternalName(cr, *observed.GetId())
-	conn, err := connectionDetails(cr, observed)
-	if err != nil {
-		return managed.ExternalCreation{ConnectionDetails: conn}, errors.Wrap(err, errUserCreate)
-	}
+	conn := connectionDetails(cr, observed)
 	if cr.HasCredentialsSecretRef() {
 		conn[xpv1.ResourceCredentialsSecretPasswordKey] = []byte(passw)
 	}
@@ -326,10 +320,7 @@ func (eu *externalUser) Update(ctx context.Context, mg resource.Managed) (manage
 		werr := errors.Wrap(err, errUserUpdate)
 		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(resp, werr)
 	}
-	conn, err := connectionDetails(cr, observed)
-	if err != nil {
-		return managed.ExternalUpdate{ConnectionDetails: conn}, errors.Wrap(err, errUserUpdate)
-	}
+	conn := connectionDetails(cr, observed)
 	if cr.HasCredentialsSecretRef() {
 		conn[xpv1.ResourceCredentialsSecretPasswordKey] = []byte(passw)
 	}
