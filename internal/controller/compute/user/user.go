@@ -266,7 +266,9 @@ func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (manage
 	}
 	cr.SetConditions(xpv1.Creating())
 
-	var passw string
+	// Deprecated: this functionality is deprecated as of v1.1.10
+	passw := cr.Spec.ForProvider.Password
+
 	if cr.HasCredentialsSecretRef() {
 		secret, err := getCredentialsSecret(ctx, eu.client, cr.Spec.ForProvider.CredentialsSecretRef)
 		if err != nil {
@@ -306,7 +308,9 @@ func (eu *externalUser) Update(ctx context.Context, mg resource.Managed) (manage
 
 	userID := cr.Status.AtProvider.UserID
 
-	var passw string
+	// Deprecated: this functionality is deprecated as of v1.1.10
+	passw := cr.Spec.ForProvider.Password
+	
 	if cr.HasCredentialsSecretRef() {
 		secret, err := getCredentialsSecret(ctx, eu.client, cr.Spec.ForProvider.CredentialsSecretRef)
 		if err != nil {

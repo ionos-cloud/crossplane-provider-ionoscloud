@@ -61,11 +61,8 @@ func (ac *apiClient) CreateUser(ctx context.Context, p v1alpha1.UserParameters, 
 	props.SetEmail(p.Email)
 	props.SetAdministrator(p.Administrator)
 	props.SetForceSecAuth(p.ForceSecAuth)
-	props.SetPassword(passw)
-	// props-Password is a pointer, and we want to set it only if the provided password is not empty, otherwise we want it to be nil.
-	// Deprecated: this functionality is deprecated as of v1.1.10
-	if pw := p.Password; pw != "" {
-		props.SetPassword(pw)
+	if passw != "" {
+		props.SetPassword(passw)
 	}
 	props.SetActive(p.Active)
 	u := *ionosdk.NewUserPost(*props)
@@ -88,10 +85,8 @@ func (ac *apiClient) UpdateUser(ctx context.Context, id string, p v1alpha1.UserP
 	props.SetEmail(p.Email)
 	props.SetAdministrator(p.Administrator)
 	props.SetForceSecAuth(p.ForceSecAuth)
-	props.SetPassword(passw)
-	// Deprecated: this functionality is deprecated as of v1.1.10
-	if pw := p.Password; pw != "" {
-		props.SetPassword(pw)
+	if passw != "" {
+		props.SetPassword(passw)
 	}
 	props.SetActive(p.Active)
 	props.SetSecAuthActive(p.SecAuthActive)

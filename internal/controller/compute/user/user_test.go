@@ -293,7 +293,7 @@ func TestUserCreate(t *testing.T) {
 						Active:            ptr.To(true),
 					},
 				}
-				client.EXPECT().CreateUser(ctx, gomock.Any(), "").Return(user, apires, nil)
+				client.EXPECT().CreateUser(ctx, gomock.Any(), "$3cr3t").Return(user, apires, nil)
 				client.EXPECT().UpdateUserGroups(ctx, userIDInTest, nil, []string{groupIDInTest}).Return(nil)
 			},
 			cr: &v1alpha1.User{Spec: v1alpha1.UserSpec{
@@ -437,7 +437,7 @@ func TestUserUpdate(t *testing.T) {
 					},
 				}
 				var p v1alpha1.UserParameters
-				client.EXPECT().UpdateUser(ctx, userIDInTest, gomock.AssignableToTypeOf(p), gomock.Any()).
+				client.EXPECT().UpdateUser(ctx, userIDInTest, gomock.AssignableToTypeOf(p), "anotherpassw").
 					DoAndReturn(func(_ context.Context, _ string, p v1alpha1.UserParameters, _ string) (ionoscloud.User, *ionoscloud.APIResponse, error) {
 						user.Properties.Email = &p.Email
 						return user, apires, nil
