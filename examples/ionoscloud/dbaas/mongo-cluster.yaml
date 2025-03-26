@@ -51,7 +51,7 @@ spec:
     - "*"
   forProvider:
     displayName: testDemo
-    mongoDBVersion: "5.0"
+    mongoDBVersion: "7.0"
     connections:
       - datacenterConfig:
           datacenterIdRef:
@@ -65,12 +65,12 @@ spec:
     instances: 1
     type   : "sharded-cluster"
     shards: 2
-    edition: "enterprise"
-    ram    : 2048
-    cores  : 1
-    storageSize: 5120
-    storageType: "HDD"
-#    templateID: 6b78ea06-ee0e-4689-998c-fc9c46e781f6
+    edition: "playground"
+#    ram    : 2048
+#    cores  : 1
+#    storageSize: 5120
+#    storageType: "HDD"
+    templateID: 33457e53-1f8b-4ed2-8a12-2d42355aa759
     synchronizationMode: ASYNCHRONOUS
   providerConfigRef:
     name: example
