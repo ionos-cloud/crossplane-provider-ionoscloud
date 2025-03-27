@@ -16,7 +16,6 @@ import (
 // FirstName
 // ForceSecAuth
 // LastName
-// Password
 type UserParameters struct {
 	// Administrator The group has permission to edit privileges on this resource.
 	//
@@ -39,7 +38,7 @@ type UserParameters struct {
 	// +kubebuilder:validation:Required
 	LastName string `json:"lastName"`
 	// Password A password for the user.
-	// Deprecated: use CredentialsSecretRef
+	// Deprecated: use PasswordSecretRef
 	//
 	// +kubebuilder:validation:Optional
 	Password string `json:"password,omitempty"`
@@ -59,10 +58,10 @@ type UserParameters struct {
 	//
 	// +kubebuilder:validation:Optional
 	GroupIDs []string `json:"groupIDs"`
-	// CredentialsSecretRef holds a reference to a secret containing the user's password.
+	// PasswordSecretRef holds a reference to a secret containing the user's password.
 	//
 	// +kubebuilder:validation:Optional
-	CredentialsSecretRef xpv1.SecretKeySelector `json:"credentialsSecretRef,omitempty"`
+	PasswordSecretRef xpv1.SecretKeySelector `json:"passwordSecretRef,omitempty"`
 }
 
 // UserConfig is used by resources that need to link Users via id or via reference.
@@ -105,8 +104,8 @@ type User struct {
 }
 
 func (u *User) HasCredentialsSecretRef() bool {
-	return u.Spec.ForProvider.CredentialsSecretRef.Name != "" &&
-		u.Spec.ForProvider.CredentialsSecretRef.Namespace != ""
+	return u.Spec.ForProvider.PasswordSecretRef.Name != "" &&
+		u.Spec.ForProvider.PasswordSecretRef.Namespace != ""
 }
 
 // A UserSpec defines the desired state of a User.

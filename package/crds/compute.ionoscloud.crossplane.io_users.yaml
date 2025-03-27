@@ -82,7 +82,6 @@ spec:
                   FirstName
                   ForceSecAuth
                   LastName
-                  Password
                 properties:
                   active:
                     default: true
@@ -93,24 +92,6 @@ spec:
                     description: Administrator The group has permission to edit privileges
                       on this resource.
                     type: boolean
-                  credentialsSecretRef:
-                    description: CredentialsSecretRef holds a reference to a secret
-                      containing the user's password.
-                    properties:
-                      key:
-                        description: The key to select.
-                        type: string
-                      name:
-                        description: Name of the secret.
-                        type: string
-                      namespace:
-                        description: Namespace of the secret.
-                        type: string
-                    required:
-                    - key
-                    - name
-                    - namespace
-                    type: object
                   email:
                     description: Email An e-mail address for the user.
                     type: string
@@ -134,8 +115,26 @@ spec:
                   password:
                     description: |-
                       Password A password for the user.
-                      Deprecated: use CredentialsSecretRef
+                      Deprecated: use PasswordSecretRef
                     type: string
+                  passwordSecretRef:
+                    description: PasswordSecretRef holds a reference to a secret containing
+                      the user's password.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: Name of the secret.
+                        type: string
+                      namespace:
+                        description: Namespace of the secret.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
                   secAuthActive:
                     default: false
                     description: |-

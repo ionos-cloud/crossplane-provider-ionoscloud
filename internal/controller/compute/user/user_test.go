@@ -111,7 +111,7 @@ func TestUserObserve(t *testing.T) {
 				Spec: v1alpha1.UserSpec{
 					ForProvider: userParams(func(p *v1alpha1.UserParameters) {
 						p.Password = ""
-						p.CredentialsSecretRef = xpv1.SecretKeySelector{
+						p.PasswordSecretRef = xpv1.SecretKeySelector{
 							SecretReference: xpv1.SecretReference{
 								Name:      "my-user-creds",
 								Namespace: "system",
@@ -255,7 +255,7 @@ func TestUserCreate(t *testing.T) {
 				Spec: v1alpha1.UserSpec{
 					ForProvider: userParams(func(p *v1alpha1.UserParameters) {
 						p.Password = ""
-						p.CredentialsSecretRef = xpv1.SecretKeySelector{
+						p.PasswordSecretRef = xpv1.SecretKeySelector{
 							SecretReference: xpv1.SecretReference{
 								Name:      "my-user-creds",
 								Namespace: "system",
@@ -393,7 +393,7 @@ func TestUserUpdate(t *testing.T) {
 				Spec: v1alpha1.UserSpec{
 					ForProvider: userParams(func(p *v1alpha1.UserParameters) {
 						p.Password = ""
-						p.CredentialsSecretRef = xpv1.SecretKeySelector{
+						p.PasswordSecretRef = xpv1.SecretKeySelector{
 							SecretReference: xpv1.SecretReference{
 								Name:      "my-user-creds",
 								Namespace: "system",

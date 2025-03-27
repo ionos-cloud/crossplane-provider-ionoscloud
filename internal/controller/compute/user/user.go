@@ -108,7 +108,7 @@ func (ri resourceInitializer) Initialize(ctx context.Context, mg resource.Manage
 	}
 
 	if user.Spec.ForProvider.Password != "" {
-		err := errors.New("spec.ForProvider.Password is deprecated, please use spec.ForProvider.CredentialsSecretRef.")
+		err := errors.New("spec.ForProvider.Password is deprecated, please use spec.ForProvider.PasswordSecretRef.")
 		ri.eventRecorder.Event(user, event.Warning(warningDeprecatedField, err))
 	}
 
@@ -116,12 +116,12 @@ func (ri resourceInitializer) Initialize(ctx context.Context, mg resource.Manage
 		return nil
 	}
 
-	secret, err := getCredentialsSecret(ctx, ri.kube, user.Spec.ForProvider.CredentialsSecretRef)
+	secret, err := getPasswordSecret(ctx, ri.kube, user.Spec.ForProvider.PasswordSecretRef)
 	if err != nil {
 		ri.eventRecorder.Event(user, event.Warning(warningCannotResolveReference, err))
 		return nil
 	}
-	key := user.Spec.ForProvider.CredentialsSecretRef.Key
+	key := user.Spec.ForProvider.PasswordSecretRef.Key
 	if _, ok := secret.Data[key]; !ok {
 		err := fmt.Errorf("credentials secret key %q not found in secret", key)
 		ri.eventRecorder.Event(user, event.Warning(warningCannotResolveKey, err))
@@ -168,7 +168,7 @@ type externalUser struct {
 	client  client.Client
 }
 
-func getCredentialsSecret(ctx context.Context, c client.Client, selector xpv1.SecretKeySelector) (*v1.Secret, error) {
+func getPasswordSecret(ctx context.Context, c client.Client, selector xpv1.SecretKeySelector) (*v1.Secret, error) {
 	secret := &v1.Secret{}
 	key := types.NamespacedName{
 		Namespace: selector.Namespace,
@@ -240,13 +240,13 @@ func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (manag
 
 	isUserUpToDate := userapi.IsUserUpToDate(cr.Spec.ForProvider, observed, groupIDs)
 	if cr.HasCredentialsSecretRef() {
-		secret, err := getCredentialsSecret(ctx, eu.client, cr.Spec.ForProvider.CredentialsSecretRef)
+		secret, err := getPasswordSecret(ctx, eu.client, cr.Spec.ForProvider.PasswordSecretRef)
 		if err != nil {
 			return managed.ExternalObservation{}, errors.Wrap(err, errUserObserve)
 		}
 		if cr.Status.AtProvider.CredentialsVersion != secret.GetResourceVersion() {
 			isUserUpToDate = false
-			conn[xpv1.ResourceCredentialsSecretPasswordKey] = secret.Data[cr.Spec.ForProvider.CredentialsSecretRef.Key]
+			conn[xpv1.ResourceCredentialsSecretPasswordKey] = secret.Data[cr.Spec.ForProvider.PasswordSecretRef.Key]
 			cr.Status.AtProvider.CredentialsVersion = secret.GetResourceVersion()
 		}
 	}
@@ -270,11 +270,11 @@ func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (manage
 	passw := cr.Spec.ForProvider.Password
 
 	if cr.HasCredentialsSecretRef() {
-		secret, err := getCredentialsSecret(ctx, eu.client, cr.Spec.ForProvider.CredentialsSecretRef)
+		secret, err := getPasswordSecret(ctx, eu.client, cr.Spec.ForProvider.PasswordSecretRef)
 		if err != nil {
 			return managed.ExternalCreation{}, errors.Wrap(err, errUserCreate)
 		}
-		passw = string(secret.Data[cr.Spec.ForProvider.CredentialsSecretRef.Key])
+		passw = string(secret.Data[cr.Spec.ForProvider.PasswordSecretRef.Key])
 		cr.Status.AtProvider.CredentialsVersion = secret.GetResourceVersion()
 	}
 
@@ -310,13 +310,13 @@ func (eu *externalUser) Update(ctx context.Context, mg resource.Managed) (manage
 
 	// Deprecated: this functionality is deprecated as of v1.1.10
 	passw := cr.Spec.ForProvider.Password
-	
+
 	if cr.HasCredentialsSecretRef() {
-		secret, err := getCredentialsSecret(ctx, eu.client, cr.Spec.ForProvider.CredentialsSecretRef)
+		secret, err := getPasswordSecret(ctx, eu.client, cr.Spec.ForProvider.PasswordSecretRef)
 		if err != nil {
 			return managed.ExternalUpdate{}, errors.Wrap(err, errUserUpdate)
 		}
-		passw = string(secret.Data[cr.Spec.ForProvider.CredentialsSecretRef.Key])
+		passw = string(secret.Data[cr.Spec.ForProvider.PasswordSecretRef.Key])
 	}
 
 	observed, resp, err := eu.service.UpdateUser(ctx, userID, cr.Spec.ForProvider, passw)
