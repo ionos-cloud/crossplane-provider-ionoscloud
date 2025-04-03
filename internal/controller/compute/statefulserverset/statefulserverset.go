@@ -395,9 +395,11 @@ func areDataVolumesUpToDateAndAvailable(cr *v1alpha1.StatefulServerSet, volumes 
 
 			if volumes[volumeIndex].ObjectMeta.Name == generatedName {
 				if volumes[volumeIndex].Spec.ForProvider.Size != specVolume.Spec.Size {
+					log.Info("DataVolume size is not up to date, triggering an update for", "name", volumes[volumeIndex].ObjectMeta.Name, "expectedSize", specVolume.Spec.Size, "actualSize", volumes[volumeIndex].Spec.ForProvider.Size)
 					return true, false, false
 				}
 				if volumes[volumeIndex].Status.AtProvider.State != ionoscloud.Available {
+					log.Info("DataVolume is not available", "name", volumes[volumeIndex].ObjectMeta.Name, "expectedState", ionoscloud.Available, "actualState", volumes[volumeIndex].Status.AtProvider.State)
 					return true, true, false
 				}
 			}
