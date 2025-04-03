@@ -391,6 +391,10 @@ func areDataVolumesUpToDateAndAvailable(cr *v1alpha1.StatefulServerSet, volumes 
 			volVersionLabel := fmt.Sprintf(volumeselector.VolumeIndexLabel, cr.Spec.ForProvider.Template.Metadata.Name, volumeselector.ResourceDataVolume)
 			replicaIndex := serverset.ComputeReplicaIdx(log, idxLabel, volumes[volumeIndex].Labels)
 			version := serverset.ComputeReplicaIdx(log, volVersionLabel, volumes[volumeIndex].Labels)
+			if replicaIndex == -1 || version == -1 {
+				log.Info("DataVolume does not have the right labels", "name", volumes[volumeIndex].ObjectMeta.Name)
+				return true, false, false
+			}
 			generatedName := generateNameFrom(specVolume.Metadata.Name, replicaIndex, version)
 
 			if volumes[volumeIndex].ObjectMeta.Name == generatedName {
