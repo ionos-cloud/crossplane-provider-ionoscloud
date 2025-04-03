@@ -286,6 +286,7 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	}, nil
 }
 
+// Delete todo mock a timeout, see what gets orphaned
 func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
@@ -385,11 +386,20 @@ func areDataVolumesUpToDateAndAvailable(cr *v1alpha1.StatefulServerSet, volumes 
 	}
 	for volumeIndex := range volumes {
 		for _, specVolume := range cr.Spec.ForProvider.Volumes {
-			if isAVolumeFieldNotUpToDate(specVolume, volumeIndex, volumes) {
-				return true, false, false
-			}
-			if volumes[volumeIndex].Status.AtProvider.State != ionoscloud.Available {
-				return true, true, false
+			// there can be multiple volumes, so we need to match names before checking size and updating
+			idxLabel := fmt.Sprintf(volumeselector.IndexLabel, cr.Spec.ForProvider.Template.Metadata.Name, volumeselector.ResourceDataVolume)
+			volVersionLabel := fmt.Sprintf(volumeselector.VolumeIndexLabel, cr.Spec.ForProvider.Template.Metadata.Name, volumeselector.ResourceDataVolume)
+			replicaIndex := serverset.ComputeReplicaIdx(nil, idxLabel, volumes[volumeIndex].Labels)
+			version := serverset.ComputeReplicaIdx(nil, volVersionLabel, volumes[volumeIndex].Labels)
+			generatedName := generateNameFrom(specVolume.Metadata.Name, replicaIndex, version)
+
+			if volumes[volumeIndex].ObjectMeta.Name == generatedName {
+				if volumes[volumeIndex].Spec.ForProvider.Size != specVolume.Spec.Size {
+					return true, false, false
+				}
+				if volumes[volumeIndex].Status.AtProvider.State != ionoscloud.Available {
+					return true, true, false
+				}
 			}
 		}
 	}
