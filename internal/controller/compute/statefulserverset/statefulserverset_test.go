@@ -158,7 +158,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 			},
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
-				ResourceUpToDate:  true,
+				ResourceUpToDate:  false,
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
