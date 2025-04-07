@@ -54,7 +54,10 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	if err := k.kube.Create(ctx, &createVolume); err != nil {
 		return v1alpha1.Volume{}, err
 	}
+
+	k.log.Info("Waiting for BootVolume to become available", "name", name, "serverset", cr.Name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
+		k.log.Info("BootVolume failed to become available, deleting it", "name", name, "serverset", cr.Name)
 		_ = k.Delete(ctx, createVolume.Name, cr.Namespace)
 		return v1alpha1.Volume{}, fmt.Errorf("while waiting for BootVolume %s to be populated %w ", createVolume.Name, err)
 	}

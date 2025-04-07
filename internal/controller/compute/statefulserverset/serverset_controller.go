@@ -118,7 +118,10 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 		if err != nil {
 			return err
 		}
+
+		k.log.Info("Waiting for ServerSet to be available", "name", SSetName)
 		if err = kube.WaitForResource(ctx, kube.ServerSetReadyTimeout, k.isAvailable, SSetName, cr.Namespace); err != nil {
+			k.log.Info("ServerSet failed to become available, deleting it", "name", SSetName)
 			_ = k.Delete(ctx, SSetName, cr.Namespace)
 			return err
 		}

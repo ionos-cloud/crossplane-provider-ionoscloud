@@ -57,9 +57,11 @@ func (k *kubeFirewallRuleController) Create(
 		)
 	}
 
+	k.log.Info("Waiting for Firewall Rule to become available", "name", firewallRuleName, "serverset", cr.Name)
 	if err := kube.WaitForResource(
 		ctx, kube.ResourceReadyTimeout, k.isAvailable, toBeCreatedFirewallRule.Name, cr.Namespace,
 	); err != nil {
+		k.log.Info("Firewall Rule failed to become available, deleting it", "name", toBeCreatedFirewallRule.Name, "serverset", cr.Name)
 		_ = k.Delete(ctx, toBeCreatedFirewallRule.Name, cr.Namespace)
 		return v1alpha1.FirewallRule{}, fmt.Errorf(
 			"while waiting for Firewall Rule name %s to be populated for serverset %s %w", toBeCreatedFirewallRule.Name,

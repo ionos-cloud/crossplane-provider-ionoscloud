@@ -46,7 +46,10 @@ func (k *kubeDataVolumeController) Create(ctx context.Context, cr *v1alpha1.Stat
 	if err := k.kube.Create(ctx, &createVolume); err != nil {
 		return v1alpha1.Volume{}, err
 	}
+
+	k.log.Info("Waiting for DataVolume to become available", "name", name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
+		k.log.Info("DataVolume failed to become available, deleting it", "name", name)
 		_ = k.Delete(ctx, name, cr.Namespace)
 		return v1alpha1.Volume{}, err
 	}
@@ -210,6 +213,8 @@ func (k *kubeDataVolumeController) Update(ctx context.Context, cr *v1alpha1.Stat
 	if err := k.kube.Update(ctx, updateKubeDataVolume); err != nil {
 		return v1alpha1.Volume{}, err
 	}
+
+	k.log.Info("Waiting for DataVolume to become available after update", "name", name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
 		return v1alpha1.Volume{}, err
 	}

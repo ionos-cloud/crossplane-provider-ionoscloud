@@ -65,8 +65,10 @@ func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, 
 		return v1alpha1.Nic{}, fmt.Errorf("while creating NIC %s for serverset %s %w ", createNic.Name, cr.Name, err)
 	}
 
+	k.log.Info("Waiting for NIC to become available", "name", name, "serverset", cr.Name)
 	err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createNic.Name, cr.Namespace)
 	if err != nil {
+		k.log.Info("NIC failed to become available, deleting it", "name", name, "serverset", cr.Name)
 		_ = k.Delete(ctx, createNic.Name, cr.Namespace)
 		return v1alpha1.Nic{}, fmt.Errorf("while waiting for NIC name %s to be populated for serverset %s %w ", createNic.Name, cr.Name, err)
 	}

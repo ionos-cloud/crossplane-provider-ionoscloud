@@ -47,7 +47,10 @@ func (k *kubeLANController) Create(ctx context.Context, cr *v1alpha1.StatefulSer
 	if err := k.kube.Create(ctx, &createLAN); err != nil {
 		return v1alpha1.Lan{}, fmt.Errorf("while creating lan %s %w", createLAN.Name, err)
 	}
+
+	k.log.Info("Waiting for LAN to become available", "name", name, "ssset", cr.Name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
+		k.log.Info("LAN failed to become available, deleting it", "name", name, "ssset", cr.Name)
 		_ = k.Delete(ctx, name, cr.Namespace)
 		return v1alpha1.Lan{}, fmt.Errorf("while waiting for LAN to be populated %s %w", name, err)
 	}
@@ -91,6 +94,8 @@ func (k *kubeLANController) Update(ctx context.Context, cr *v1alpha1.StatefulSer
 	if err := k.kube.Update(ctx, updateKubeLAN); err != nil {
 		return v1alpha1.Lan{}, err
 	}
+
+	k.log.Info("Waiting for LAN to become available after update", "name", name, "ssset", cr.Name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
 		return v1alpha1.Lan{}, fmt.Errorf("while waiting for resource %s to be populated %w ", name, err)
 	}

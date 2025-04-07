@@ -138,6 +138,7 @@ func MapStringToAny(sMap map[string]string) map[string]any {
 	return aMap
 }
 
+// NewControllerOwnerReference creates a new OwnerReference to be added to a child resource's metadata
 func NewControllerOwnerReference(parentTypeMeta v1.TypeMeta, parentObjectMeta v1.ObjectMeta, isController, blockOwnerDeletion bool) []v1.OwnerReference {
 	return []v1.OwnerReference{
 		{
