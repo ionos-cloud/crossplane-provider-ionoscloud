@@ -6,6 +6,8 @@ import (
 	"strconv"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	maps2 "golang.org/x/exp/maps"
 	v1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -18,7 +20,7 @@ import (
 type kubeConfigmapControlManager interface {
 	Get(ctx context.Context, name, ns string) (*v1.ConfigMap, error)
 	Delete(ctx context.Context, crName string) error
-	CreateOrUpdate(ctx context.Context, crName string) error
+	CreateOrUpdate(ctx context.Context, cr *v1alpha1.ServerSet) error
 	SetSubstitutionConfigMap(name, namespace string)
 	SetIdentity(crName, key, val string)
 	FetchSubstitutionFromMap(ctx context.Context, crName, key string, replicaIndex, version int) string
@@ -58,8 +60,9 @@ func (k *kubeConfigmapController) FetchSubstitutionFromMap(ctx context.Context, 
 }
 
 // CreateOrUpdate - creates a config map if it doesn't exist
-func (k *kubeConfigmapController) CreateOrUpdate(ctx context.Context, crName string) error {
+func (k *kubeConfigmapController) CreateOrUpdate(ctx context.Context, cr *v1alpha1.ServerSet) error {
 	cfgMap := &v1.ConfigMap{}
+	crName := cr.Name
 	err := k.kube.Get(ctx, client.ObjectKey{Namespace: k.substConfigMap[crName].namespace, Name: k.substConfigMap[crName].name}, cfgMap)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
@@ -71,6 +74,8 @@ func (k *kubeConfigmapController) CreateOrUpdate(ctx context.Context, crName str
 				},
 				Data: k.substConfigMap[crName].identities,
 			}
+
+			cfgMap.SetOwnerReferences(utils.NewControllerOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false))
 			k.log.Info("Creating ConfigMap", "name", k.substConfigMap[crName].name, "namespace", k.substConfigMap[crName].namespace, "identities", k.substConfigMap[crName].identities)
 			return k.kube.Create(ctx, cfgMap)
 		}

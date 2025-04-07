@@ -8,6 +8,7 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -48,8 +49,18 @@ func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, 
 	}, &lan); err != nil {
 		return v1alpha1.Nic{}, err
 	}
+
+	server := v1alpha1.Server{}
+	if err := k.kube.Get(ctx, types.NamespacedName{
+		Namespace: cr.GetNamespace(),
+		Name: getNameFrom(cr.Name, replicaIndex, version),
+	}, &server); err != nil {
+		return v1alpha1.Nic{}, err
+	}
+
 	// no NIC found, create one
 	createNic := k.fromServerSetToNic(cr, name, serverID, lan, replicaIndex, nicIndex, version)
+	createNic.SetOwnerReferences(utils.NewControllerOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false))
 	if err := k.kube.Create(ctx, &createNic); err != nil {
 		return v1alpha1.Nic{}, fmt.Errorf("while creating NIC %s for serverset %s %w ", createNic.Name, cr.Name, err)
 	}
