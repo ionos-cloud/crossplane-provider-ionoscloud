@@ -499,7 +499,7 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 			volumes: createVolumeList().Items,
 			want: want{
 				creationUpToDate: true,
-				areUpToDate:      true,
+				areUpToDate:      false,
 				areAvailable:     false,
 			},
 		},
@@ -525,7 +525,7 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 			}, ionoscloud.Busy)},
 			want: want{
 				creationUpToDate: true,
-				areUpToDate:      true,
+				areUpToDate:      false,
 				areAvailable:     false,
 			},
 		},
