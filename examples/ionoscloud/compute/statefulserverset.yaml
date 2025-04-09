@@ -18,7 +18,7 @@ metadata:
   name: sss-example
 spec:
   forProvider:
-    replicas: 1
+    replicas: 2
     deploymentStrategy:
       type: ZONES
     datacenterConfig:
@@ -96,6 +96,11 @@ spec:
           name: storage-disk
         spec:
           size: 10
+          type: SSD
+      - metadata:
+          name: second-storage-disk
+        spec:
+          size: 40
           type: SSD
   providerConfigRef:
     name: example

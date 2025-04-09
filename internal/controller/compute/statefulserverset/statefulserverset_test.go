@@ -158,7 +158,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 			},
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
-				ResourceUpToDate:  true,
+				ResourceUpToDate:  false,
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -499,7 +499,7 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 			volumes: createVolumeList().Items,
 			want: want{
 				creationUpToDate: true,
-				areUpToDate:      true,
+				areUpToDate:      false,
 				areAvailable:     false,
 			},
 		},
@@ -525,7 +525,7 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 			}, ionoscloud.Busy)},
 			want: want{
 				creationUpToDate: true,
-				areUpToDate:      true,
+				areUpToDate:      false,
 				areAvailable:     false,
 			},
 		},
@@ -559,7 +559,7 @@ func Test_areDataVolumesUpToDate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			creationUpToDate, areUpToDate, areAvailable := areDataVolumesUpToDateAndAvailable(tt.sSSet, tt.volumes)
+			creationUpToDate, areUpToDate, areAvailable := areDataVolumesUpToDateAndAvailable(tt.sSSet, tt.volumes, logging.NewNopLogger())
 			assert.Equalf(t, tt.want.creationUpToDate, creationUpToDate, "creationUpToDate is not equal")
 			assert.Equal(t, tt.want.areUpToDate, areUpToDate, "areUpToDate is not equal")
 			assert.Equal(t, tt.want.areAvailable, areAvailable, "areAvailable is not equal")

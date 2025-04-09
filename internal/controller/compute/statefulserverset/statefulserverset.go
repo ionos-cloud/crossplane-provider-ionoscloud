@@ -152,7 +152,7 @@ func (e *external) observeResourcesUpdateStatus(ctx context.Context, cr *v1alpha
 	if err != nil {
 		return false, false, false, fmt.Errorf("while listing volumes %w", err)
 	}
-	creationVolumesUpToDate, areVolumesUpToDate, areVolumesAvailable := areDataVolumesUpToDateAndAvailable(cr, volumes.Items)
+	creationVolumesUpToDate, areVolumesUpToDate, areVolumesAvailable := areDataVolumesUpToDateAndAvailable(cr, volumes.Items, e.log)
 	cr.Status.AtProvider.DataVolumeStatuses = computeVolumeStatuses(e.log, cr.Spec.ForProvider.Template.Metadata.Name, volumes.Items)
 
 	// ******************* SERVERSET *******************
@@ -286,6 +286,7 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	}, nil
 }
 
+// Delete todo mock a timeout, see what gets orphaned
 func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
@@ -378,26 +379,37 @@ func isALanFieldNotUpToDate(specLan v1alpha1.StatefulServerSetLan, gotLan v1alph
 	return false
 }
 
-func areDataVolumesUpToDateAndAvailable(cr *v1alpha1.StatefulServerSet, volumes []v1alpha1.Volume) (creationVolumesUpToDate, areVolumesUpToDate, volumesAvailable bool) {
+func areDataVolumesUpToDateAndAvailable(cr *v1alpha1.StatefulServerSet, volumes []v1alpha1.Volume, log logging.Logger) (creationVolumesUpToDate, areVolumesUpToDate, volumesAvailable bool) {
 	crExpectedNrOfVolumes := len(cr.Spec.ForProvider.Volumes) * cr.Spec.ForProvider.Replicas
 	if len(volumes) != crExpectedNrOfVolumes {
 		return false, false, false
 	}
 	for volumeIndex := range volumes {
 		for _, specVolume := range cr.Spec.ForProvider.Volumes {
-			if isAVolumeFieldNotUpToDate(specVolume, volumeIndex, volumes) {
+			// there can be multiple volumes, so we need to match names before checking size and updating
+			idxLabel := fmt.Sprintf(volumeselector.IndexLabel, cr.Spec.ForProvider.Template.Metadata.Name, volumeselector.ResourceDataVolume)
+			volVersionLabel := fmt.Sprintf(volumeselector.VolumeIndexLabel, cr.Spec.ForProvider.Template.Metadata.Name, volumeselector.ResourceDataVolume)
+			replicaIndex := serverset.ComputeReplicaIdx(log, idxLabel, volumes[volumeIndex].Labels)
+			version := serverset.ComputeReplicaIdx(log, volVersionLabel, volumes[volumeIndex].Labels)
+			if replicaIndex == -1 || version == -1 {
+				log.Info("DataVolume does not have the right labels", "name", volumes[volumeIndex].ObjectMeta.Name)
 				return true, false, false
 			}
-			if volumes[volumeIndex].Status.AtProvider.State != ionoscloud.Available {
-				return true, true, false
+			generatedName := generateNameFrom(specVolume.Metadata.Name, replicaIndex, version)
+
+			if volumes[volumeIndex].ObjectMeta.Name == generatedName {
+				if volumes[volumeIndex].Spec.ForProvider.Size != specVolume.Spec.Size {
+					log.Info("DataVolume size is not up to date, triggering an update for", "name", volumes[volumeIndex].ObjectMeta.Name, "expectedSize", specVolume.Spec.Size, "actualSize", volumes[volumeIndex].Spec.ForProvider.Size)
+					return true, false, false
+				}
+				if volumes[volumeIndex].Status.AtProvider.State != ionoscloud.Available {
+					log.Info("DataVolume is not available", "name", volumes[volumeIndex].ObjectMeta.Name, "expectedState", ionoscloud.Available, "actualState", volumes[volumeIndex].Status.AtProvider.State)
+					return true, true, false
+				}
 			}
 		}
 	}
 	return true, true, true
-}
-
-func isAVolumeFieldNotUpToDate(specVolume v1alpha1.StatefulServerSetVolume, volumeIndex int, volumes []v1alpha1.Volume) bool {
-	return volumes[volumeIndex].Spec.ForProvider.Size != specVolume.Spec.Size
 }
 
 func areSSetResourcesReady(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (isSsetUpToDate, isSsetAvailable bool, err error) {
