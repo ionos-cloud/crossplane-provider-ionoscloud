@@ -50,7 +50,9 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	userDataPatcher.SetEnv("hostname", hostname)
 	createVolume.Spec.ForProvider.UserData = userDataPatcher.Patch("hostname", hostname).Encode()
 
-	createVolume.SetOwnerReferences(utils.NewControllerOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false))
+	createVolume.SetOwnerReferences([]metav1.OwnerReference{
+		utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+	})
 	if err := k.kube.Create(ctx, &createVolume); err != nil {
 		return v1alpha1.Volume{}, err
 	}

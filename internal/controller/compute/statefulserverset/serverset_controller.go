@@ -35,7 +35,9 @@ type kubeServerSetController struct {
 func (k *kubeServerSetController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error) {
 	SSet := extractSSetFromSSSet(cr)
 	k.log.Info("Creating ServerSet", "name", SSet.Name)
-	SSet.SetOwnerReferences(utils.NewControllerOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false))
+	SSet.SetOwnerReferences([]metav1.OwnerReference{
+		utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+	})
 	if err := k.kube.Create(ctx, SSet); err != nil {
 		return nil, err
 	}

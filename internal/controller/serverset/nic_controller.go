@@ -50,17 +50,11 @@ func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, 
 		return v1alpha1.Nic{}, err
 	}
 
-	server := v1alpha1.Server{}
-	if err := k.kube.Get(ctx, types.NamespacedName{
-		Namespace: cr.GetNamespace(),
-		Name: getNameFrom(cr.Name, replicaIndex, version),
-	}, &server); err != nil {
-		return v1alpha1.Nic{}, err
-	}
-
 	// no NIC found, create one
 	createNic := k.fromServerSetToNic(cr, name, serverID, lan, replicaIndex, nicIndex, version)
-	createNic.SetOwnerReferences(utils.NewControllerOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false))
+	createNic.SetOwnerReferences([]metav1.OwnerReference{
+		utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+	})
 	if err := k.kube.Create(ctx, &createNic); err != nil {
 		return v1alpha1.Nic{}, fmt.Errorf("while creating NIC %s for serverset %s %w ", createNic.Name, cr.Name, err)
 	}
@@ -189,7 +183,7 @@ func (k *kubeNicController) fromServerSetToNic(cr *v1alpha1.ServerSet, name, ser
 
 // EnsureNICs - creates NICS if they do not exist
 func (k *kubeNicController) EnsureNICs(
-	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int,serverID string,
+	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int, serverID string,
 ) error {
 	k.log.Info("Ensuring NICs", "index", replicaIndex, "version", version, "serverset", cr.Name)
 	for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {

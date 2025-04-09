@@ -37,7 +37,9 @@ func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSe
 	createServer := fromServerSetToServer(cr, replicaIndex, version)
 	k.log.Info("Creating Server", "name", createServer.Name, "serverset", cr.Name)
 
-	createServer.SetOwnerReferences(utils.NewControllerOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false))
+	createServer.SetOwnerReferences([]metav1.OwnerReference{
+		utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+	})
 	if err := k.kube.Create(ctx, &createServer); err != nil {
 		return v1alpha1.Server{}, fmt.Errorf("while creating Server for serverset %s %w", cr.Name, err)
 	}

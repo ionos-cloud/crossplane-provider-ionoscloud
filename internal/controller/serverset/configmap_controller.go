@@ -75,7 +75,9 @@ func (k *kubeConfigmapController) CreateOrUpdate(ctx context.Context, cr *v1alph
 				Data: k.substConfigMap[crName].identities,
 			}
 
-			cfgMap.SetOwnerReferences(utils.NewControllerOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false))
+			cfgMap.SetOwnerReferences([]metav1.OwnerReference{
+				utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+			})
 			k.log.Info("Creating ConfigMap", "name", k.substConfigMap[crName].name, "namespace", k.substConfigMap[crName].namespace, "identities", k.substConfigMap[crName].identities)
 			return k.kube.Create(ctx, cfgMap)
 		}

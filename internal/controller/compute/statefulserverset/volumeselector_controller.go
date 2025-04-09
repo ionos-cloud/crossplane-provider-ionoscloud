@@ -103,7 +103,9 @@ func (k *kubeVolumeSelectorController) Create(ctx context.Context, cr *v1alpha1.
 
 	volSelector := fromStatefulServerSetToVolumeSelector(cr)
 	volSelector.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
-	volSelector.SetOwnerReferences(utils.NewControllerOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false))
+	volSelector.SetOwnerReferences([]metav1.OwnerReference{
+		utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+	})
 	if err := k.kube.Create(ctx, &volSelector); err != nil {
 		return v1alpha1.Volumeselector{}, err
 	}

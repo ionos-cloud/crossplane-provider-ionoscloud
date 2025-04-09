@@ -42,7 +42,9 @@ func (k *kubeDataVolumeController) Create(ctx context.Context, cr *v1alpha1.Stat
 	k.log.Info("Creating DataVolume", "name", name)
 
 	createVolume := fromSSSetToVolume(cr, name, replicaIndex, volumeIndex)
-	createVolume.SetOwnerReferences(utils.NewControllerOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false))
+	createVolume.SetOwnerReferences([]metav1.OwnerReference{
+		utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+	})
 	if err := k.kube.Create(ctx, &createVolume); err != nil {
 		return v1alpha1.Volume{}, err
 	}

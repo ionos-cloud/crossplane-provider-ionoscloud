@@ -50,7 +50,9 @@ func (k *kubeFirewallRuleController) Create(
 	k.log.Info("Creating Firewall Rule", "name", firewallRuleName, "serverset", cr.Name)
 
 	toBeCreatedFirewallRule := fwRule(nic, cr, firewallRuleSpec, serverID, firewallRuleName)
-	toBeCreatedFirewallRule.SetOwnerReferences(utils.NewControllerOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false))
+	toBeCreatedFirewallRule.SetOwnerReferences([]metav1.OwnerReference{
+		utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+	})
 	if err := k.kube.Create(ctx, &toBeCreatedFirewallRule); err != nil {
 		return v1alpha1.FirewallRule{}, fmt.Errorf(
 			"while creating Firewall Rule %s for serverset %s %w", firewallRuleName, cr.Name, err,

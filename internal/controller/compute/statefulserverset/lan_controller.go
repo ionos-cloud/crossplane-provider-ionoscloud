@@ -43,7 +43,9 @@ func (k *kubeLANController) Create(ctx context.Context, cr *v1alpha1.StatefulSer
 	k.log.Info("Creating LAN", "name", name, "ssset", cr.Name)
 
 	createLAN := fromStatefulServerSetToLAN(cr, name, lanIndex)
-	createLAN.SetOwnerReferences(utils.NewControllerOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false))
+	createLAN.SetOwnerReferences([]metav1.OwnerReference{
+		utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+	})
 	if err := k.kube.Create(ctx, &createLAN); err != nil {
 		return v1alpha1.Lan{}, fmt.Errorf("while creating lan %s %w", createLAN.Name, err)
 	}
