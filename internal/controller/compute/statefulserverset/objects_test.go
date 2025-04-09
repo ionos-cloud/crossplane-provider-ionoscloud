@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/ionos-cloud/sdk-go-bundle/shared"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -180,6 +181,16 @@ func createSSet() *v1alpha1.ServerSet {
 			ResourceVersion: "1",
 			Labels: map[string]string{
 				statefulServerSetLabel: statefulServerSetName,
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         "",
+					Kind:               "",
+					Name:               statefulServerSetName,
+					UID:                "",
+					Controller:         shared.ToPtr(true),
+					BlockOwnerDeletion: shared.ToPtr(false),
+				},
 			},
 		},
 		Spec: v1alpha1.ServerSetSpec{
