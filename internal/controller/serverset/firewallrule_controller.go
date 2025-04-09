@@ -8,6 +8,7 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -49,15 +50,20 @@ func (k *kubeFirewallRuleController) Create(
 	k.log.Info("Creating Firewall Rule", "name", firewallRuleName, "serverset", cr.Name)
 
 	toBeCreatedFirewallRule := fwRule(nic, cr, firewallRuleSpec, serverID, firewallRuleName)
+	toBeCreatedFirewallRule.SetOwnerReferences([]metav1.OwnerReference{
+		utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+	})
 	if err := k.kube.Create(ctx, &toBeCreatedFirewallRule); err != nil {
 		return v1alpha1.FirewallRule{}, fmt.Errorf(
 			"while creating Firewall Rule %s for serverset %s %w", firewallRuleName, cr.Name, err,
 		)
 	}
 
+	k.log.Info("Waiting for Firewall Rule to become available", "name", firewallRuleName, "serverset", cr.Name)
 	if err := kube.WaitForResource(
 		ctx, kube.ResourceReadyTimeout, k.isAvailable, toBeCreatedFirewallRule.Name, cr.Namespace,
 	); err != nil {
+		k.log.Info("Firewall Rule failed to become available, deleting it", "name", toBeCreatedFirewallRule.Name, "serverset", cr.Name)
 		_ = k.Delete(ctx, toBeCreatedFirewallRule.Name, cr.Namespace)
 		return v1alpha1.FirewallRule{}, fmt.Errorf(
 			"while waiting for Firewall Rule name %s to be populated for serverset %s %w", toBeCreatedFirewallRule.Name,
@@ -208,6 +214,9 @@ func fwRule(
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fwrName,
 			Namespace: cr.Namespace,
+			Labels: map[string]string{
+				serverSetLabel: cr.Name,
+			},
 		},
 		Spec: v1alpha1.FirewallRuleSpec{
 			ResourceSpec: xpv1.ResourceSpec{

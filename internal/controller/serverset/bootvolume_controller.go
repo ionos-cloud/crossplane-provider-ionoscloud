@@ -8,6 +8,7 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,10 +49,17 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	createVolume := fromServerSetToVolume(cr, name, replicaIndex, version)
 	userDataPatcher.SetEnv("hostname", hostname)
 	createVolume.Spec.ForProvider.UserData = userDataPatcher.Patch("hostname", hostname).Encode()
+
+	createVolume.SetOwnerReferences([]metav1.OwnerReference{
+		utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+	})
 	if err := k.kube.Create(ctx, &createVolume); err != nil {
 		return v1alpha1.Volume{}, err
 	}
+
+	k.log.Info("Waiting for BootVolume to become available", "name", name, "serverset", cr.Name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
+		k.log.Info("BootVolume failed to become available, deleting it", "name", name, "serverset", cr.Name)
 		_ = k.Delete(ctx, createVolume.Name, cr.Namespace)
 		return v1alpha1.Volume{}, fmt.Errorf("while waiting for BootVolume %s to be populated %w ", createVolume.Name, err)
 	}
@@ -96,7 +104,7 @@ func (k *kubeBootVolumeController) setPatcher(ctx context.Context, cr *v1alpha1.
 				}
 			}
 		}
-		err := k.mapController.CreateOrUpdate(ctx, cr.Name)
+		err := k.mapController.CreateOrUpdate(ctx, cr)
 		if err != nil {
 			k.log.Info("while writing to substConfig map", "error", err, "serverset", cr.Name)
 		}

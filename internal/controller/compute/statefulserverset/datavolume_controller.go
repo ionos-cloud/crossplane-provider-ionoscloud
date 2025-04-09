@@ -8,6 +8,7 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,10 +42,16 @@ func (k *kubeDataVolumeController) Create(ctx context.Context, cr *v1alpha1.Stat
 	k.log.Info("Creating DataVolume", "name", name)
 
 	createVolume := fromSSSetToVolume(cr, name, replicaIndex, volumeIndex)
+	createVolume.SetOwnerReferences([]metav1.OwnerReference{
+		utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+	})
 	if err := k.kube.Create(ctx, &createVolume); err != nil {
 		return v1alpha1.Volume{}, err
 	}
+
+	k.log.Info("Waiting for DataVolume to become available", "name", name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
+		k.log.Info("DataVolume failed to become available, deleting it", "name", name)
 		_ = k.Delete(ctx, name, cr.Namespace)
 		return v1alpha1.Volume{}, err
 	}
@@ -208,6 +215,8 @@ func (k *kubeDataVolumeController) Update(ctx context.Context, cr *v1alpha1.Stat
 	if err := k.kube.Update(ctx, updateKubeDataVolume); err != nil {
 		return v1alpha1.Volume{}, err
 	}
+
+	k.log.Info("Waiting for DataVolume to become available after update", "name", name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
 		return v1alpha1.Volume{}, err
 	}

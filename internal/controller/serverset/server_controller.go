@@ -7,6 +7,7 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,10 +37,16 @@ func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSe
 	createServer := fromServerSetToServer(cr, replicaIndex, version)
 	k.log.Info("Creating Server", "name", createServer.Name, "serverset", cr.Name)
 
+	createServer.SetOwnerReferences([]metav1.OwnerReference{
+		utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+	})
 	if err := k.kube.Create(ctx, &createServer); err != nil {
 		return v1alpha1.Server{}, fmt.Errorf("while creating Server for serverset %s %w", cr.Name, err)
 	}
+
+	k.log.Info("Waiting for Server to become available", "name", createServer.Name, "serverset", cr.Name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createServer.Name, cr.Namespace); err != nil {
+		k.log.Info("Server failed to become available, deleting it", "name", createServer.Name, "serverset", cr.Name)
 		_ = k.Delete(ctx, createServer.Name, cr.Namespace)
 		return v1alpha1.Server{}, fmt.Errorf("while waiting for Server to be populated in serverset %s %w ", cr.Name, err)
 	}

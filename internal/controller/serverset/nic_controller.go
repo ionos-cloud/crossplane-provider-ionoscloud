@@ -8,6 +8,7 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -48,14 +49,20 @@ func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, 
 	}, &lan); err != nil {
 		return v1alpha1.Nic{}, err
 	}
+
 	// no NIC found, create one
 	createNic := k.fromServerSetToNic(cr, name, serverID, lan, replicaIndex, nicIndex, version)
+	createNic.SetOwnerReferences([]metav1.OwnerReference{
+		utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+	})
 	if err := k.kube.Create(ctx, &createNic); err != nil {
 		return v1alpha1.Nic{}, fmt.Errorf("while creating NIC %s for serverset %s %w ", createNic.Name, cr.Name, err)
 	}
 
+	k.log.Info("Waiting for NIC to become available", "name", name, "serverset", cr.Name)
 	err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createNic.Name, cr.Namespace)
 	if err != nil {
+		k.log.Info("NIC failed to become available, deleting it", "name", name, "serverset", cr.Name)
 		_ = k.Delete(ctx, createNic.Name, cr.Namespace)
 		return v1alpha1.Nic{}, fmt.Errorf("while waiting for NIC name %s to be populated for serverset %s %w ", createNic.Name, cr.Name, err)
 	}
@@ -176,7 +183,7 @@ func (k *kubeNicController) fromServerSetToNic(cr *v1alpha1.ServerSet, name, ser
 
 // EnsureNICs - creates NICS if they do not exist
 func (k *kubeNicController) EnsureNICs(
-	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int,serverID string,
+	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int, serverID string,
 ) error {
 	k.log.Info("Ensuring NICs", "index", replicaIndex, "version", version, "serverset", cr.Name)
 	for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {

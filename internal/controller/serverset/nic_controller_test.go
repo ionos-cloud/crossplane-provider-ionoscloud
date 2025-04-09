@@ -7,8 +7,10 @@ import (
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/google/go-cmp/cmp"
+	"github.com/ionos-cloud/sdk-go-bundle/shared"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 
@@ -241,6 +243,16 @@ func populateBasicNicMetadataAndSpec(nic *v1alpha1.Nic, nicName string) {
 		serverSetNicIndexLabel:    "1",
 		serverSetNicVersionLabel:  "0",
 		serverSetNicNicIndexLabel: "0",
+	}
+	nic.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion:         "",
+			Kind:               "",
+			Name:               serverSetName,
+			UID:                "",
+			Controller:         shared.ToPtr(true),
+			BlockOwnerDeletion: shared.ToPtr(false),
+		},
 	}
 	nic.Spec.ForProvider.Name = nicName
 	nic.Spec.ForProvider.ServerCfg.ServerID = serverID

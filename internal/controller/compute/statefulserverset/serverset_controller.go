@@ -3,6 +3,8 @@ package statefulserverset
 import (
 	"context"
 	"fmt"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -33,7 +35,9 @@ type kubeServerSetController struct {
 func (k *kubeServerSetController) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error) {
 	SSet := extractSSetFromSSSet(cr)
 	k.log.Info("Creating ServerSet", "name", SSet.Name)
-
+	SSet.SetOwnerReferences([]metav1.OwnerReference{
+		utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+	})
 	if err := k.kube.Create(ctx, SSet); err != nil {
 		return nil, err
 	}
@@ -116,7 +120,10 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 		if err != nil {
 			return err
 		}
+
+		k.log.Info("Waiting for ServerSet to be available", "name", SSetName)
 		if err = kube.WaitForResource(ctx, kube.ServerSetReadyTimeout, k.isAvailable, SSetName, cr.Namespace); err != nil {
+			k.log.Info("ServerSet failed to become available, deleting it", "name", SSetName)
 			_ = k.Delete(ctx, SSetName, cr.Namespace)
 			return err
 		}

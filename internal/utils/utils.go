@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // DepthQueryParam is used in GET requests in Cloud API
@@ -135,4 +136,16 @@ func MapStringToAny(sMap map[string]string) map[string]any {
 		aMap[k] = v
 	}
 	return aMap
+}
+
+// NewOwnerReference creates a new OwnerReference to be added to a child resource's metadata
+func NewOwnerReference(parentTypeMeta v1.TypeMeta, parentObjectMeta v1.ObjectMeta, isController, blockOwnerDeletion bool) v1.OwnerReference {
+	return v1.OwnerReference{
+		APIVersion:         parentTypeMeta.APIVersion,
+		Kind:               parentTypeMeta.Kind,
+		Name:               parentObjectMeta.Name,
+		UID:                parentObjectMeta.UID,
+		Controller:         &isController,
+		BlockOwnerDeletion: &blockOwnerDeletion,
+	}
 }

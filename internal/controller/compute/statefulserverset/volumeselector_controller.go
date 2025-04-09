@@ -8,6 +8,7 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -102,6 +103,9 @@ func (k *kubeVolumeSelectorController) Create(ctx context.Context, cr *v1alpha1.
 
 	volSelector := fromStatefulServerSetToVolumeSelector(cr)
 	volSelector.SetProviderConfigReference(cr.Spec.ProviderConfigReference)
+	volSelector.SetOwnerReferences([]metav1.OwnerReference{
+		utils.NewOwnerReference(cr.TypeMeta, cr.ObjectMeta, true, false),
+	})
 	if err := k.kube.Create(ctx, &volSelector); err != nil {
 		return v1alpha1.Volumeselector{}, err
 	}
