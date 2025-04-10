@@ -49,5 +49,6 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(logger.WithValues("controller", name)),
+			managed.WithMetricRecorder(opts.CtrlOpts.MetricOptions.MRMetrics),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }

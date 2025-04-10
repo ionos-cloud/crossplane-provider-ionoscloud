@@ -19,7 +19,6 @@ package applicationloadbalancer
 import (
 	"context"
 	"fmt"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"github.com/rung/go-safecast"
@@ -68,6 +67,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			managed.WithPollInterval(opts.GetPollInterval()),
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithLogger(logger.WithValues("controller", name)),
+			managed.WithMetricRecorder(opts.CtrlOpts.MetricOptions.MRMetrics),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 
