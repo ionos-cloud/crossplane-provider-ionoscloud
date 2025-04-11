@@ -14,7 +14,7 @@ spec:
     - "*"
   forProvider:
     name: exampleDatacenter
-    location: us/las
+    location: de/fra
     description: test
   #    secAuthProtection: true
   providerConfigRef:
@@ -76,7 +76,6 @@ spec:
         labels:
           key: value
       spec:
-        cpuFamily: INTEL_XEON
         cores: 1
         ram: 1024
         nics:
@@ -99,7 +98,7 @@ spec:
         updateStrategy:
 #          createBeforeDestroyBootVolume createAllBeforeDestroy
           type: "createBeforeDestroyBootVolume"
-        image: "28d0fa34-927f-11ee-8008-6202af74e858"
+        image: "d53c1486-eeaa-11ef-8fa7-aee9942a25aa"
         size: 20
         type: HDD
         userData: "" #cloud-config

@@ -12,17 +12,19 @@ type ConfigurationOptions struct {
 	CreationGracePeriod  time.Duration
 	Timeout              time.Duration
 	IsUniqueNamesEnabled bool
+	PollJitter           time.Duration
 	// CtrlOpts are crossplane-specific controller options
 	CtrlOpts controller.Options
 }
 
 // NewConfigurationOptions sets fields for ConfigurationOptions and return a new ConfigurationOptions
-func NewConfigurationOptions(timeout, createGracePeriod time.Duration, uniqueNamesEnable bool, ctrlOpts controller.Options) *ConfigurationOptions {
+func NewConfigurationOptions(timeout, createGracePeriod time.Duration, uniqueNamesEnable bool, pollJitter time.Duration, ctrlOpts controller.Options) *ConfigurationOptions {
 	return &ConfigurationOptions{
 		CreationGracePeriod:  createGracePeriod,
 		IsUniqueNamesEnabled: uniqueNamesEnable,
 		Timeout:              timeout,
 		CtrlOpts:             ctrlOpts,
+		PollJitter:           pollJitter,
 	}
 }
 
