@@ -23,8 +23,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/config"
-
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/feature"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -33,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	xpcontroller "github.com/crossplane/crossplane-runtime/pkg/controller"
@@ -48,16 +47,16 @@ import (
 
 func main() {
 	var (
-		app               = kingpin.New(filepath.Base(os.Args[0]), "IONOS Cloud support for Crossplane.").DefaultEnvars()
-		debug             = app.Flag("debug", "Run with debug logging.").Short('d').Bool()
-		uniqueNames       = app.Flag("unique-names", "Enable uniqueness name support for IONOS Cloud resources").Short('u').Default("false").Bool()
-		syncInterval      = app.Flag("sync", "Controller manager sync interval such as 300ms, 1.5h, or 2h45m").Short('s').Default("1h").Duration()
-		pollInterval      = app.Flag("poll", "Poll interval controls how often an individual resource should be checked for changes.").Default("1m").Duration()
-		leaderElection    = app.Flag("leader-election", "Use leader election for the controller manager.").Short('l').Default("false").Envar("LEADER_ELECTION").Bool()
-		createGracePeriod = app.Flag("create-grace-period", "Grace period for creation of IONOS Cloud resources.").Default("1m").Duration()
-		maxReconcileRate  = app.Flag("max-reconcile-rate", "The global maximum rate per second at which resources may checked for drift from the desired state.").Default("1").Int()
-		timeout           = app.Flag("timeout", "Timeout duration cumulatively for all the calls happening in the reconciliation functions.").Default("1h").Duration()
-
+		app                        = kingpin.New(filepath.Base(os.Args[0]), "IONOS Cloud support for Crossplane.").DefaultEnvars()
+		debug                      = app.Flag("debug", "Run with debug logging.").Short('d').Bool()
+		uniqueNames                = app.Flag("unique-names", "Enable uniqueness name support for IONOS Cloud resources").Short('u').Default("false").Bool()
+		syncInterval               = app.Flag("sync", "Controller manager sync interval such as 300ms, 1.5h, or 2h45m").Short('s').Default("1h").Duration()
+		pollInterval               = app.Flag("poll", "Poll interval controls how often an individual resource should be checked for changes.").Default("10m").Duration()
+		leaderElection             = app.Flag("leader-election", "Use leader election for the controller manager.").Short('l').Default("false").Envar("LEADER_ELECTION").Bool()
+		createGracePeriod          = app.Flag("create-grace-period", "Grace period for creation of IONOS Cloud resources.").Default("1m").Duration()
+		maxReconcileRate           = app.Flag("max-reconcile-rate", "The global maximum rate per second at which resources may checked for drift from the desired state.").Default("10").Int()
+		timeout                    = app.Flag("timeout", "Timeout duration cumulatively for all the calls happening in the reconciliation functions.").Default("1h").Duration()
+		pollJitterPercentage       = app.Flag("poll-jitter-percentage", "Percentage of jitter to apply to poll interval. It cannot be negative, and must be less than 100.").Default("10").Uint()
 		namespace                  = app.Flag("namespace", "Namespace used to set as default scope in default secret store config.").Default("crossplane-system").Envar("POD_NAMESPACE").String()
 		enableExternalSecretStores = app.Flag("enable-external-secret-stores", "Enable support for ExternalSecretStores.").Default("false").Envar("ENABLE_EXTERNAL_SECRET_STORES").Bool()
 	)
@@ -115,8 +114,11 @@ func main() {
 			},
 		})), "cannot create default store config")
 	}
-
-	options := utils.NewConfigurationOptions(*timeout, *createGracePeriod, *uniqueNames, ctrlOpts)
+	if *pollJitterPercentage >= 100 {
+		kingpin.Fatalf("invalid --poll-jitter-percentage %v must be less than 100", *pollJitterPercentage)
+	}
+	pollJitter := time.Duration(float64(*pollInterval) * (float64(*pollJitterPercentage) / 100.0))
+	options := utils.NewConfigurationOptions(*timeout, *createGracePeriod, *uniqueNames, pollJitter, ctrlOpts)
 	kingpin.FatalIfError(controller.Setup(mgr, options), "Cannot setup IONOS Cloud controllers")
 	kingpin.FatalIfError(mgr.Start(ctrl.SetupSignalHandler()), "Cannot start controller manager")
 }
