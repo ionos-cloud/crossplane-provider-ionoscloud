@@ -92,6 +92,20 @@ NOTE: It is recommended to manage group membership through the group CRD as it o
 	* description: LastName A last name for the user.
 * `password` (string)
 	* description: Password A password for the user.
+Deprecated: use PasswordSecretRef
+* `passwordSecretRef` (object)
+	* description: PasswordSecretRef holds a reference to a secret containing the user's password.
+	* properties:
+		* `key` (string)
+			* description: The key to select.
+		* `name` (string)
+			* description: Name of the secret.
+		* `namespace` (string)
+			* description: Namespace of the secret.
+	* required properties:
+		* `key`
+		* `name`
+		* `namespace`
 * `secAuthActive` (boolean)
 	* description: SecAuthActive Indicates if secure authentication is active for the user or not.
 It can not be used in create requests - can be used in update. Default: false.
@@ -106,7 +120,6 @@ The user needs to set the following properties in order to configure the IONOS C
 * `firstName`
 * `forceSecAuth`
 * `lastName`
-* `password`
 
 ## Resource Definition
 
