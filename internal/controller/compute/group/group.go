@@ -19,6 +19,7 @@ package group
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -71,6 +72,9 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(logger.WithValues("controller", name)),
+			managed.WithPollIntervalHook(func(mg resource.Managed, pollInterval time.Duration) time.Duration {
+				return utils.CalculatePollInterval(mg, pollInterval, opts.PollJitter)
+			}),
 			managed.WithRecorder(r)))
 
 }

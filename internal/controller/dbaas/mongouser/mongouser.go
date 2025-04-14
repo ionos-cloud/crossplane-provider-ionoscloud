@@ -20,12 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
-	"github.com/pkg/errors"
-	"golang.org/x/crypto/bcrypt"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
@@ -33,6 +28,10 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	"github.com/pkg/errors"
+	"golang.org/x/crypto/bcrypt"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-mongo"
 
@@ -67,6 +66,9 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(logger.WithValues("controller", name)),
+			managed.WithPollIntervalHook(func(mg resource.Managed, pollInterval time.Duration) time.Duration {
+				return utils.CalculatePollInterval(mg, pollInterval, opts.PollJitter)
+			}),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 

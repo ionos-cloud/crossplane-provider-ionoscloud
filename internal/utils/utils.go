@@ -7,8 +7,12 @@ import (
 	"strings"
 	"time"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	xv1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"math/rand/v2"
 )
 
 // DepthQueryParam is used in GET requests in Cloud API
@@ -148,4 +152,14 @@ func NewOwnerReference(parentTypeMeta v1.TypeMeta, parentObjectMeta v1.ObjectMet
 		Controller:         &isController,
 		BlockOwnerDeletion: &blockOwnerDeletion,
 	}
+}
+
+// CalculatePollInterval adjusts the poll interval based on the readiness condition of the managed resource.
+func CalculatePollInterval(mg resource.Managed, pollInterval, pollJitter time.Duration) time.Duration {
+	if mg.GetCondition(xpv1.TypeReady).Status != xv1.ConditionTrue {
+		// If the resource is not ready, poll more frequently to reduce time to readiness.
+		pollInterval = 30 * time.Second
+	}
+	// Add jitter to the poll interval.
+	return pollInterval + time.Duration((rand.Float64()-0.5)*2*float64(pollJitter)) //nolint G404 // No need for secure randomness
 }
