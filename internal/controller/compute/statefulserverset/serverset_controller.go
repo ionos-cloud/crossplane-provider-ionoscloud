@@ -2,6 +2,7 @@ package statefulserverset
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
@@ -22,7 +23,6 @@ type kubeSSetControlManager interface {
 	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error
 	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.ServerSet, error)
 	Get(ctx context.Context, ssetName, ns string) (*v1alpha1.ServerSet, error)
-	Delete(ctx context.Context, name, namespace string) error
 }
 
 // kubeServerSetController - kubernetes client wrapper for server set resources
@@ -115,7 +115,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 		return kube.ErrExternalCreateFailed
 	}
 	switch {
-	case err != nil && apiErrors.IsNotFound(err):
+	case err != nil && apiErrors.IsNotFound(err): // || kubeSSet.Status.GetCondition(xpv1.TypeReady).Status != v1.ConditionTrue:
 		_, err := k.Create(ctx, cr)
 		if err != nil {
 			return err
@@ -123,8 +123,10 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 
 		k.log.Info("Waiting for ServerSet to be available", "name", SSetName)
 		if err = kube.WaitForResource(ctx, kube.ServerSetReadyTimeout, k.isAvailable, SSetName, cr.Namespace); err != nil {
-			k.log.Info("ServerSet failed to become available, deleting it", "name", SSetName)
-			_ = k.Delete(ctx, SSetName, cr.Namespace)
+			if !errors.Is(err, context.DeadlineExceeded) {
+				k.log.Info("ServerSet failed to become available, deleting it", "name", SSetName)
+				_ = k.Delete(ctx, SSetName, cr.Namespace)
+			}
 			return err
 		}
 	case err != nil:
@@ -188,7 +190,6 @@ func (k *kubeServerSetController) Delete(ctx context.Context, name, namespace st
 }
 
 func (k *kubeServerSetController) isDeleted(ctx context.Context, name, namespace string) (bool, error) {
-	k.log.Info("Checking if Serverset is deleted", "name", name, "namespace", namespace)
 	obj := &v1alpha1.ServerSet{}
 	err := k.kube.Get(ctx, types.NamespacedName{
 		Namespace: namespace,

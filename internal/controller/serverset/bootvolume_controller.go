@@ -2,6 +2,7 @@ package serverset
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -59,8 +60,10 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 
 	k.log.Info("Waiting for BootVolume to become available", "name", name, "serverset", cr.Name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
-		k.log.Info("BootVolume failed to become available, deleting it", "name", name, "serverset", cr.Name)
-		_ = k.Delete(ctx, createVolume.Name, cr.Namespace)
+		if !errors.Is(err, context.DeadlineExceeded) {
+			k.log.Info("BootVolume failed to become available, deleting it", "name", name, "serverset", cr.Name)
+			_ = k.Delete(ctx, createVolume.Name, cr.Namespace)
+		}
 		return v1alpha1.Volume{}, fmt.Errorf("while waiting for BootVolume %s to be populated %w ", createVolume.Name, err)
 	}
 	// get the volume again before returning to have the id populated
@@ -258,7 +261,9 @@ func (k *kubeBootVolumeController) Ensure(ctx context.Context, cr *v1alpha1.Serv
 	volumes := res.Items
 	if len(volumes) == 0 {
 		_, err := k.Create(ctx, cr, replicaIndex, version)
-		return err
+		if err != nil {
+			return err
+		}
 	}
 	k.log.Info("Finished ensuring BootVolume", "replicaIndex", replicaIndex, "version", version, "serverset", cr.Name)
 	return nil

@@ -176,6 +176,29 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalCreation{}, nil
 	}
 
+	// major ouchie, if the wait on volume creation times out, external name is set to the NAME of the volume by default,
+	// and we cannot use it to check if the volume actually exists by the time creation was requeued.
+	// !!!This results in a flood of volume create requests to the API, which can lead to maxing out the quota for volumes on the account!!!
+	// Aside from that, those volumes are orphan resources, which are not managed by Crossplane and cannot be cleaned up automatically
+	// by the garbage collector.
+	// I believe it is safe to extrapolate and assume that this can happen to any of the basic resources, not just volumes.
+
+	if externalName := meta.GetExternalName(cr); externalName != "" && externalName != cr.Name {
+		vol, resp, err := c.service.GetVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, externalName)
+		if err != nil {
+			retErr := fmt.Errorf("failed to get volume by id. error: %w", err)
+			return managed.ExternalCreation{}, compute.ErrorUnlessNotFound(resp, retErr)
+		}
+
+		if vol.Metadata.State != nil && *vol.Metadata.State == compute.AVAILABLE {
+			return managed.ExternalCreation{
+				ConnectionDetails: managed.ConnectionDetails{},
+			}, nil
+		}
+
+		return managed.ExternalCreation{}, nil
+	}
+
 	if c.isUniqueNamesEnabled {
 		// Volumes should have unique names per datacenter.
 		// Check if there are any existing volumes with the same name.
@@ -208,12 +231,14 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 		retErr := fmt.Errorf("failed to create volume. error: %w", err)
 		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return creation, err
-	}
+
 	// Set External Name
 	cr.Status.AtProvider.VolumeID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
+
+	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+		return creation, err
+	}
 	return creation, nil
 }
 

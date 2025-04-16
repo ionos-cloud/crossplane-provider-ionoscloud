@@ -2,6 +2,7 @@ package statefulserverset
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -26,7 +27,6 @@ type kubeDataVolumeControlManager interface {
 	ListVolumes(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.VolumeList, error)
 	Get(ctx context.Context, volumeName, ns string) (*v1alpha1.Volume, error)
 	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error)
-	Delete(ctx context.Context, name, namespace string) error
 	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, version int) error
 }
 
@@ -51,8 +51,10 @@ func (k *kubeDataVolumeController) Create(ctx context.Context, cr *v1alpha1.Stat
 
 	k.log.Info("Waiting for DataVolume to become available", "name", name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
-		k.log.Info("DataVolume failed to become available, deleting it", "name", name)
-		_ = k.Delete(ctx, name, cr.Namespace)
+		if !errors.Is(err, context.DeadlineExceeded) {
+			k.log.Info("DataVolume failed to become available, deleting it", "name", name)
+			_ = k.Delete(ctx, name, cr.Namespace)
+		}
 		return v1alpha1.Volume{}, err
 	}
 	// get the volume again before returning to have the id populated
@@ -121,7 +123,6 @@ func (k *kubeDataVolumeController) isAvailable(ctx context.Context, name, namesp
 }
 
 func (k *kubeDataVolumeController) isDataVolumeDeleted(ctx context.Context, name, namespace string) (bool, error) {
-	k.log.Info("Checking if DataVolume is deleted", "name", name, "namespace", namespace)
 	obj := &v1alpha1.Volume{}
 	err := k.kube.Get(ctx, types.NamespacedName{
 		Namespace: namespace,
