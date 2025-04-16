@@ -26,7 +26,6 @@ type kubeDataVolumeControlManager interface {
 	ListVolumes(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.VolumeList, error)
 	Get(ctx context.Context, volumeName, ns string) (*v1alpha1.Volume, error)
 	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error)
-	Delete(ctx context.Context, name, namespace string) error
 	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, version int) error
 }
 
@@ -123,7 +122,6 @@ func (k *kubeDataVolumeController) isAvailable(ctx context.Context, name, namesp
 }
 
 func (k *kubeDataVolumeController) isDataVolumeDeleted(ctx context.Context, name, namespace string) (bool, error) {
-	k.log.Info("Checking if DataVolume is deleted", "name", name, "namespace", namespace)
 	obj := &v1alpha1.Volume{}
 	err := k.kube.Get(ctx, types.NamespacedName{
 		Namespace: namespace,
