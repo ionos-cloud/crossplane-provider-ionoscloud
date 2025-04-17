@@ -26,6 +26,30 @@ const (
 	requestHeader = "Location"
 )
 
+func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, targetID, method string) (bool, error) {
+	reqs, _, err := client.RequestsApi.RequestsGet(ctx).FilterRequestStatus(targetID).FilterMethod(method).Execute()
+	if err != nil {
+		return false, fmt.Errorf("failed to get %s request for resource %s. error: %w", method, targetID, err)
+	}
+
+	if len(*reqs.Items) == 0 {
+		return false, fmt.Errorf("no %s request found for resource %s", method, targetID)
+	}
+
+	// we expect only one request per resource
+	for _, req := range *reqs.Items {
+		status := req.Metadata.RequestStatus.Metadata.Status
+		if *status == sdkgo.RequestStatusDone {
+			return true, nil
+		}
+		if *status == sdkgo.RequestStatusFailed {
+			return false, fmt.Errorf("%s request for resource %s failed", method, targetID)
+		}
+	}
+
+	return false, nil
+}
+
 // WaitForRequest waits for the request to be DONE
 func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *sdkgo.APIResponse) error {
 	if client != nil {
