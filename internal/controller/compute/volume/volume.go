@@ -19,6 +19,7 @@ package volume
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
@@ -184,16 +185,13 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 	// I believe it is safe to extrapolate and assume that this can happen to any of the basic resources, not just volumes.
 
 	if externalName := meta.GetExternalName(cr); externalName != "" && externalName != cr.Name {
-		vol, resp, err := c.service.GetVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, externalName)
+		isDone, err := compute.IsRequestDone(ctx, c.service.GetAPIClient(), externalName, http.MethodPost)
 		if err != nil {
-			retErr := fmt.Errorf("failed to get volume by id. error: %w", err)
-			return managed.ExternalCreation{}, compute.ErrorUnlessNotFound(resp, retErr)
+			return managed.ExternalCreation{}, err
 		}
 
-		if vol.Metadata.State != nil && *vol.Metadata.State == compute.AVAILABLE {
-			return managed.ExternalCreation{
-				ConnectionDetails: managed.ConnectionDetails{},
-			}, nil
+		if isDone {
+			return managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}, nil
 		}
 
 		return managed.ExternalCreation{}, nil
