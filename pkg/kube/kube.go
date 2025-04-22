@@ -38,5 +38,29 @@ func WaitForResource(ctx context.Context, timeoutInMinutes time.Duration, fn IsR
 
 // IsSuccessfullyCreated checks if the object was successfully created
 func IsSuccessfullyCreated(obj resource.Managed) bool {
-	return obj.GetAnnotations()[meta.AnnotationKeyExternalCreateFailed] == ""
+	successAnnotation := obj.GetAnnotations()[meta.AnnotationKeyExternalCreateSucceeded]
+	failedAnnotation := obj.GetAnnotations()[meta.AnnotationKeyExternalCreateFailed]
+	if failedAnnotation == "" {
+		return true
+	}
+
+	if successAnnotation == "" {
+		return false
+	}
+
+	successTimestamp, err := time.Parse(time.RFC3339, successAnnotation)
+	if err != nil {
+		return false
+	}
+
+	failedTimestamp, err := time.Parse(time.RFC3339, failedAnnotation)
+	if err != nil {
+		return false
+	}
+
+	if successTimestamp.After(failedTimestamp) {
+		return true
+	}
+
+	return false
 }

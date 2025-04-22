@@ -110,6 +110,11 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
+
+	if meta.WasDeleted(cr) {
+		return managed.ExternalObservation{}, nil
+	}
+
 	areResourcesCreated, areResourcesUpdated, areResourcesAvailable, err := e.observeResourcesUpdateStatus(ctx, cr)
 	if err != nil {
 		return managed.ExternalObservation{}, err
@@ -275,7 +280,7 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 			return managed.ExternalUpdate{}, err
 		}
 	}
-	_, err := e.SSetController.Update(ctx, cr)
+	_, err := e.SSetController.Update(ctx, cr, false)
 	if err != nil {
 		return managed.ExternalUpdate{}, fmt.Errorf("while updating ServerSet CR %w", err)
 	}
@@ -286,45 +291,14 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	}, nil
 }
 
-// Delete todo mock a timeout, see what gets orphaned
-func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
+func (e *external) Delete(_ context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.StatefulServerSet)
 	if !ok {
 		return managed.ExternalDelete{}, errors.New(errNotStatefulServerSet)
 	}
 	cr.SetConditions(xpv1.Deleting())
 
-	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
-		for volumeIndex := range cr.Spec.ForProvider.Volumes {
-			name := generateNameFrom(cr.Spec.ForProvider.Volumes[volumeIndex].Metadata.Name, replicaIndex, volumeIndex)
-			e.log.Info("Deleting the DataVolume with", "name", name, "ssset", cr.Name)
-			err := e.dataVolumeController.Delete(ctx, name, cr.Namespace)
-			if err != nil {
-				return managed.ExternalDelete{}, err
-			}
-		}
-	}
-
-	e.log.Info("Deleting the ServerSet with name", "name", cr.Spec.ForProvider.Template.Metadata.Name, "ssset", cr.Name)
-	if err := e.SSetController.Delete(ctx, cr.Spec.ForProvider.Template.Metadata.Name, cr.Namespace); err != nil {
-		return managed.ExternalDelete{}, err
-	}
-
-	for lanIndex := range cr.Spec.ForProvider.Lans {
-		name := cr.Spec.ForProvider.Lans[lanIndex].Metadata.Name
-		e.log.Info("Deleting the LANs with name", "name", name, "ssset", cr.Name)
-		err := e.LANController.Delete(ctx, name, cr.Namespace)
-		if err != nil {
-			return managed.ExternalDelete{}, err
-		}
-	}
-	e.log.Info("Deleting the volumeselector with name", "name", cr.Name)
-
-	err := e.volumeSelectorController.Delete(ctx, fmt.Sprintf(volumeSelectorName, cr.Name), cr.Namespace)
-	if err != nil {
-		return managed.ExternalDelete{}, err
-	}
-
+	e.log.Info("Successfully deleted StatefulServerSet", "name", cr.Name)
 	return managed.ExternalDelete{}, nil
 }
 

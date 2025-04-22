@@ -117,6 +117,10 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, nil
 	}
 
+	if meta.WasDeleted(cr) {
+		return managed.ExternalObservation{}, nil
+	}
+
 	servers, err := GetServersOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
 		return managed.ExternalObservation{}, err
@@ -540,39 +544,6 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.Ext
 	}
 	e.log.Info("Deleting the ServerSet", "name", cr.Name)
 	cr.SetConditions(xpv1.Deleting())
-	meta.SetExternalName(cr, "")
-	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
-		volumeVersion, serverVersion, err := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), replicaIndex)
-		if err != nil {
-			return managed.ExternalDelete{}, err
-		}
-		if err := e.bootVolumeController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion), cr.Namespace); err != nil {
-			return managed.ExternalDelete{}, err
-		}
-
-		for nicIndex := range cr.Spec.ForProvider.Template.Spec.NICs {
-			for firewallRuleIdx := range cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].FirewallRules {
-				if err := e.firewallRuleController.Delete(
-					ctx,
-					getFirewallRuleName(
-						cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].FirewallRules[firewallRuleIdx].Name,
-						replicaIndex, nicIndex, firewallRuleIdx, serverVersion,
-					),
-					cr.Namespace,
-				); err != nil {
-					return managed.ExternalDelete{}, err
-				}
-			}
-
-			if err := e.nicController.Delete(ctx, getNicName(cr.Spec.ForProvider.Template.Spec.NICs[nicIndex].Name, replicaIndex, nicIndex, serverVersion), cr.Namespace); err != nil {
-				return managed.ExternalDelete{}, err
-			}
-		}
-
-		if err := e.serverController.Delete(ctx, getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, serverVersion), cr.Namespace); err != nil {
-			return managed.ExternalDelete{}, err
-		}
-	}
 
 	e.log.Info("Deleting the substitution configmap", "name", cr.Name)
 	globalStateMap[cr.Name] = substitution.GlobalState{}

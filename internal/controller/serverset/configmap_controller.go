@@ -115,11 +115,9 @@ func (k *kubeConfigmapController) Delete(ctx context.Context, crName string) err
 		return err
 	}
 	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isDeleted, k.substConfigMap[crName].name, k.substConfigMap[crName].namespace)
-
 }
 
 func (k *kubeConfigmapController) isDeleted(ctx context.Context, name, namespace string) (bool, error) {
-	k.log.Info("Checking if ConfigMap is deleted", "name", name, "namespace", namespace)
 	_, err := k.Get(ctx, name, namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
