@@ -19,7 +19,7 @@ import (
 type kubeSSetControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error)
 	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error
-	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.ServerSet, error)
+	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, forceUpdate bool) (v1alpha1.ServerSet, error)
 	Get(ctx context.Context, ssetName, ns string) (*v1alpha1.ServerSet, error)
 }
 
@@ -45,20 +45,21 @@ func (k *kubeServerSetController) Create(ctx context.Context, cr *v1alpha1.State
 }
 
 // Update updates a server set CR
-func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.ServerSet, error) {
+func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, forceUpdate bool) (v1alpha1.ServerSet, error) {
 	name := getSSetName(cr)
 	updateObj, err := k.Get(ctx, name, cr.Namespace)
 	if err != nil {
 		return v1alpha1.ServerSet{}, err
 	}
-
-	areResUpToDate, _, err := areSSetResourcesReady(ctx, k.kube, cr)
-	if err != nil {
-		return v1alpha1.ServerSet{}, err
-	}
-	if areResUpToDate {
-		k.log.Info("ServerSet resources are up to date", "name", name)
-		return v1alpha1.ServerSet{}, nil
+	if !forceUpdate {
+		areResUpToDate, _, err := areSSetResourcesReady(ctx, k.kube, cr)
+		if err != nil {
+			return v1alpha1.ServerSet{}, err
+		}
+		if areResUpToDate {
+			k.log.Info("ServerSet resources are up to date", "name", name)
+			return v1alpha1.ServerSet{}, nil
+		}
 	}
 
 	k.log.Info("Updating ServerSet", "name", name)
@@ -111,7 +112,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 	err := k.kube.Get(ctx, types.NamespacedName{Name: SSetName, Namespace: cr.Namespace}, kubeSSet)
 	if kubeSSet != nil && !kube.IsSuccessfullyCreated(kubeSSet) {
 		// in case the serverset has an error, try to update it so it can update the sub-resources
-		k.Update(ctx, cr)
+		k.Update(ctx, cr, true)
 		return kube.ErrExternalCreateFailed
 	}
 	switch {

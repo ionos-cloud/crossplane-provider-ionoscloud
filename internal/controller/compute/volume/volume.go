@@ -19,8 +19,6 @@ package volume
 import (
 	"context"
 	"fmt"
-	"net/http"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 
@@ -183,19 +181,19 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 	// Aside from that, those volumes are orphan resources, which are not managed by Crossplane and cannot be cleaned up automatically
 	// by the garbage collector.
 	// I believe it is safe to extrapolate and assume that this can happen to any of the basic resources, not just volumes.
-
-	if externalName := meta.GetExternalName(cr); externalName != "" && externalName != cr.Name {
-		isDone, err := compute.IsRequestDone(ctx, c.service.GetAPIClient(), externalName, http.MethodPost)
-		if err != nil {
-			return managed.ExternalCreation{}, err
-		}
-
-		if isDone {
-			return managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}, nil
-		}
-
-		return managed.ExternalCreation{}, nil
-	}
+	//
+	//if externalName := meta.GetExternalName(cr); externalName != "" && externalName != cr.Name {
+	//	isDone, err := compute.IsRequestDone(ctx, c.service.GetAPIClient(), externalName, http.MethodPost)
+	//	if err != nil {
+	//		return managed.ExternalCreation{}, err
+	//	}
+	//
+	//	if isDone {
+	//		return managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}, nil
+	//	}
+	//
+	//	return managed.ExternalCreation{}, nil
+	//}
 
 	if c.isUniqueNamesEnabled {
 		// Volumes should have unique names per datacenter.
