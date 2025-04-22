@@ -2,19 +2,17 @@ package statefulserverset
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
-
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
@@ -112,6 +110,8 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 	kubeSSet := &v1alpha1.ServerSet{}
 	err := k.kube.Get(ctx, types.NamespacedName{Name: SSetName, Namespace: cr.Namespace}, kubeSSet)
 	if kubeSSet != nil && !kube.IsSuccessfullyCreated(kubeSSet) {
+		// in case the serverset has an error, try to update it so it can update the sub-resources
+		k.Update(ctx, cr)
 		return kube.ErrExternalCreateFailed
 	}
 	switch {
@@ -123,10 +123,6 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 
 		k.log.Info("Waiting for ServerSet to be available", "name", SSetName)
 		if err = kube.WaitForResource(ctx, kube.ServerSetReadyTimeout, k.isAvailable, SSetName, cr.Namespace); err != nil {
-			if !errors.Is(err, context.DeadlineExceeded) {
-				k.log.Info("ServerSet failed to become available, deleting it", "name", SSetName)
-				_ = k.Delete(ctx, SSetName, cr.Namespace)
-			}
 			return err
 		}
 	case err != nil:

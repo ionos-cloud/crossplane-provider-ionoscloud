@@ -2,13 +2,11 @@ package serverset
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
@@ -47,13 +46,10 @@ func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSe
 
 	k.log.Info("Waiting for Server to become available", "name", createServer.Name, "serverset", cr.Name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createServer.Name, cr.Namespace); err != nil {
-		if !errors.Is(err, context.DeadlineExceeded) {
-			k.log.Info(
-				"Server failed to become available, deleting it", "name", createServer.Name, "serverset", cr.Name,
-			)
+		if strings.Contains(err.Error(), utils.Error422) {
+			k.log.Info("Server failed to become available, deleting it", "name", createServer.Name, "serverset", cr.Name, "err", err)
 			_ = k.Delete(ctx, createServer.Name, cr.Namespace)
 		}
-
 		return v1alpha1.Server{}, fmt.Errorf("while waiting for Server to be populated in serverset %s %w ", cr.Name, err)
 	}
 	createdServer, err := k.Get(ctx, createServer.Name, cr.Namespace)

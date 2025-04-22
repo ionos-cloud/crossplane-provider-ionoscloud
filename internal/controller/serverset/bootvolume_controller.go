@@ -2,14 +2,12 @@ package serverset
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
@@ -60,7 +59,7 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 
 	k.log.Info("Waiting for BootVolume to become available", "name", name, "serverset", cr.Name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
-		if !errors.Is(err, context.DeadlineExceeded) {
+		if strings.Contains(err.Error(), utils.Error422) {
 			k.log.Info("BootVolume failed to become available, deleting it", "name", name, "serverset", cr.Name)
 			_ = k.Delete(ctx, createVolume.Name, cr.Namespace)
 		}
@@ -265,6 +264,12 @@ func (k *kubeBootVolumeController) Ensure(ctx context.Context, cr *v1alpha1.Serv
 			return err
 		}
 	}
+	//managed := &volumes[0]
+	//if managed != nil && !kube.IsSuccessfullyCreated(managed) {
+	//	k.Update(ctx, cr)
+	//	return kube.ErrExternalCreateFailed
+	//}
+
 	k.log.Info("Finished ensuring BootVolume", "replicaIndex", replicaIndex, "version", version, "serverset", cr.Name)
 	return nil
 }
