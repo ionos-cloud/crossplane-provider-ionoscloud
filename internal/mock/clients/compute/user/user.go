@@ -53,9 +53,9 @@ func (mr *MockClientMockRecorder) AddUserToGroup(ctx, groupID, userID interface{
 }
 
 // CreateUser mocks base method.
-func (m *MockClient) CreateUser(ctx context.Context, p v1alpha1.UserParameters) (ionoscloud.User, *ionoscloud.APIResponse, error) {
+func (m *MockClient) CreateUser(ctx context.Context, p v1alpha1.UserParameters, passw string) (ionoscloud.User, *ionoscloud.APIResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateUser", ctx, p)
+	ret := m.ctrl.Call(m, "CreateUser", ctx, p, passw)
 	ret0, _ := ret[0].(ionoscloud.User)
 	ret1, _ := ret[1].(*ionoscloud.APIResponse)
 	ret2, _ := ret[2].(error)
@@ -63,9 +63,9 @@ func (m *MockClient) CreateUser(ctx context.Context, p v1alpha1.UserParameters) 
 }
 
 // CreateUser indicates an expected call of CreateUser.
-func (mr *MockClientMockRecorder) CreateUser(ctx, p interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) CreateUser(ctx, p, passw interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockClient)(nil).CreateUser), ctx, p)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockClient)(nil).CreateUser), ctx, p, passw)
 }
 
 // DeleteUser mocks base method.
@@ -143,9 +143,9 @@ func (mr *MockClientMockRecorder) GetUserGroups(ctx, userID interface{}) *gomock
 }
 
 // UpdateUser mocks base method.
-func (m *MockClient) UpdateUser(ctx context.Context, id string, p v1alpha1.UserParameters) (ionoscloud.User, *ionoscloud.APIResponse, error) {
+func (m *MockClient) UpdateUser(ctx context.Context, id string, p v1alpha1.UserParameters, passw string) (ionoscloud.User, *ionoscloud.APIResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateUser", ctx, id, p)
+	ret := m.ctrl.Call(m, "UpdateUser", ctx, id, p, passw)
 	ret0, _ := ret[0].(ionoscloud.User)
 	ret1, _ := ret[1].(*ionoscloud.APIResponse)
 	ret2, _ := ret[2].(error)
@@ -153,9 +153,9 @@ func (m *MockClient) UpdateUser(ctx context.Context, id string, p v1alpha1.UserP
 }
 
 // UpdateUser indicates an expected call of UpdateUser.
-func (mr *MockClientMockRecorder) UpdateUser(ctx, id, p interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) UpdateUser(ctx, id, p, passw interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockClient)(nil).UpdateUser), ctx, id, p)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockClient)(nil).UpdateUser), ctx, id, p, passw)
 }
 
 // UpdateUserGroups mocks base method.
