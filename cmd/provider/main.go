@@ -18,29 +18,27 @@ package main
 
 import (
 	"context"
-	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
-	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	"io"
 	"os"
 	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/config"
-
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	xpcontroller "github.com/crossplane/crossplane-runtime/pkg/controller"
 	"github.com/crossplane/crossplane-runtime/pkg/feature"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
+	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	"gopkg.in/alecthomas/kingpin.v2"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	xpcontroller "github.com/crossplane/crossplane-runtime/pkg/controller"
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
@@ -98,7 +96,7 @@ func main() {
 	stateMetrics := statemetrics.NewMRStateMetrics()
 
 	metrics.Registry.MustRegister(metricRecorder)
-
+	metrics.Registry.MustRegister(stateMetrics)
 	mo := xpcontroller.MetricOptions{
 		PollStateMetricInterval: *pollStateMetricInterval,
 		MRMetrics:               metricRecorder,
