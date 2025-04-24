@@ -50,7 +50,7 @@ const errNotK8sNodePool = "managed resource is not a K8s NodePool custom resourc
 func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.NodePoolGroupKind)
 	logger := opts.CtrlOpts.Logger
-	if opts.CtrlOpts.MetricOptions != nil && opts.CtrlOpts.MetricOptions.MRMetrics != nil {
+	if opts.CtrlOpts.MetricOptions != nil && opts.CtrlOpts.MetricOptions.MRStateMetrics != nil {
 		stateMetricsRecorder := statemetrics.NewMRStateRecorder(
 			mgr.GetClient(), opts.CtrlOpts.Logger, opts.CtrlOpts.MetricOptions.MRStateMetrics, &v1alpha1.NodePoolList{}, opts.CtrlOpts.MetricOptions.PollStateMetricInterval,
 		)

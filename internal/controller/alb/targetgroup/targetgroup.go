@@ -46,7 +46,7 @@ const errNotTargetGroup = "managed resource is not a TargetGroup custom resource
 func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.TargetGroupGroupKind)
 	logger := opts.CtrlOpts.Logger
-	if opts.CtrlOpts.MetricOptions != nil && opts.CtrlOpts.MetricOptions.MRMetrics != nil {
+	if opts.CtrlOpts.MetricOptions != nil && opts.CtrlOpts.MetricOptions.MRStateMetrics != nil {
 		stateMetricsRecorder := statemetrics.NewMRStateRecorder(
 			mgr.GetClient(), opts.CtrlOpts.Logger, opts.CtrlOpts.MetricOptions.MRStateMetrics, &v1alpha1.TargetGroupList{}, opts.CtrlOpts.MetricOptions.PollStateMetricInterval,
 		)

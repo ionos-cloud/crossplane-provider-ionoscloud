@@ -32,7 +32,7 @@ const errNotDataplatformNodepool = "managed resource is not a Dataplatform custo
 func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.DataplatformNodepoolGroupKind)
 	logger := opts.CtrlOpts.Logger
-	if opts.CtrlOpts.MetricOptions != nil && opts.CtrlOpts.MetricOptions.MRMetrics != nil {
+	if opts.CtrlOpts.MetricOptions != nil && opts.CtrlOpts.MetricOptions.MRStateMetrics != nil {
 		stateMetricsRecorder := statemetrics.NewMRStateRecorder(
 			mgr.GetClient(), opts.CtrlOpts.Logger, opts.CtrlOpts.MetricOptions.MRStateMetrics, &v1alpha1.DataplatformNodepoolList{}, opts.CtrlOpts.MetricOptions.PollStateMetricInterval,
 		)

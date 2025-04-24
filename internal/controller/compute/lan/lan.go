@@ -49,7 +49,7 @@ const errNotLan = "managed resource is not a Lan custom resource"
 func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.LanGroupKind)
 	logger := opts.CtrlOpts.Logger
-	if opts.CtrlOpts.MetricOptions != nil && opts.CtrlOpts.MetricOptions.MRMetrics != nil {
+	if opts.CtrlOpts.MetricOptions != nil && opts.CtrlOpts.MetricOptions.MRStateMetrics != nil {
 		stateMetricsRecorder := statemetrics.NewMRStateRecorder(
 			mgr.GetClient(), opts.CtrlOpts.Logger, opts.CtrlOpts.MetricOptions.MRStateMetrics, &v1alpha1.LanList{}, opts.CtrlOpts.MetricOptions.PollStateMetricInterval,
 		)

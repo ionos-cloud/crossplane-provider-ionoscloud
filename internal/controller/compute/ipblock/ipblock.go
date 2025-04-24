@@ -48,7 +48,7 @@ const errNotIPBlock = "managed resource is not a IPBlock custom resource"
 func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.IPBlockGroupKind)
 	logger := opts.CtrlOpts.Logger
-	if opts.CtrlOpts.MetricOptions != nil && opts.CtrlOpts.MetricOptions.MRMetrics != nil {
+	if opts.CtrlOpts.MetricOptions != nil && opts.CtrlOpts.MetricOptions.MRStateMetrics != nil {
 		stateMetricsRecorder := statemetrics.NewMRStateRecorder(
 			mgr.GetClient(), opts.CtrlOpts.Logger, opts.CtrlOpts.MetricOptions.MRStateMetrics, &v1alpha1.IPBlockList{}, opts.CtrlOpts.MetricOptions.PollStateMetricInterval,
 		)
