@@ -116,7 +116,7 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 		// in case the serverset has an error, try to update it so it can update the sub-resources
 		_, err := k.Update(ctx, cr, true)
 		if err != nil {
-			k.log.Info("ServerSet failed to update", "name", SSetName)
+			k.log.Info("ServerSet failed to update", "name", SSetName, "error", err)
 		}
 		return kube.ErrExternalCreateFailed
 	}
