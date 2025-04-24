@@ -275,7 +275,7 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 			return managed.ExternalUpdate{}, err
 		}
 	}
-	_, err := e.SSetController.Update(ctx, cr)
+	_, err := e.SSetController.Update(ctx, cr, false)
 	if err != nil {
 		return managed.ExternalUpdate{}, fmt.Errorf("while updating ServerSet CR %w", err)
 	}

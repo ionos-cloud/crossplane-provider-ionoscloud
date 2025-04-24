@@ -105,7 +105,7 @@ func (f *fakeKubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.S
 	return nil
 }
 
-func (f *fakeKubeServerSetController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.ServerSet, error) {
+func (f *fakeKubeServerSetController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, forceUpdate bool) (v1alpha1.ServerSet, error) {
 	f.methodCallCount[update]++
 	return v1alpha1.ServerSet{}, nil
 
