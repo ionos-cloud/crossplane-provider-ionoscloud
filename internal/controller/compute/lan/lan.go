@@ -19,6 +19,7 @@ package lan
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/google/go-cmp/cmp"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
@@ -165,6 +166,19 @@ func (c *externalLan) Create(ctx context.Context, mg resource.Managed) (managed.
 		return managed.ExternalCreation{}, nil
 	}
 
+	if externalName := meta.GetExternalName(cr); externalName != "" && externalName != cr.Name {
+		isDone, err := compute.IsRequestDone(ctx, c.service.GetAPIClient(), externalName, http.MethodPost)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+
+		if isDone {
+			return managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}, nil
+		}
+
+		return managed.ExternalCreation{}, nil
+	}
+
 	if c.isUniqueNamesEnabled {
 		// Lans should have unique names per datacenter.
 		// Check if there are any existing lans with the same name.
@@ -195,12 +209,14 @@ func (c *externalLan) Create(ctx context.Context, mg resource.Managed) (managed.
 		retErr := fmt.Errorf("failed to create lan. error: %w", err)
 		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return creation, err
-	}
+
 	// Set External Name
 	cr.Status.AtProvider.LanID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
+
+	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+		return creation, err
+	}
 	if newInstance.Properties != nil {
 		cr.Status.AtProvider.Name = *newInstance.Properties.Name
 	}

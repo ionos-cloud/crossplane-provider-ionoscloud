@@ -19,6 +19,7 @@ package datacenter
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/pkg/errors"
 
@@ -143,6 +144,19 @@ func (c *externalDatacenter) Create(ctx context.Context, mg resource.Managed) (m
 		return managed.ExternalCreation{}, nil
 	}
 
+	if externalName := meta.GetExternalName(cr); externalName != "" && externalName != cr.Name {
+		isDone, err := compute.IsRequestDone(ctx, c.service.GetAPIClient(), externalName, http.MethodPost)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+
+		if isDone {
+			return managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}, nil
+		}
+
+		return managed.ExternalCreation{}, nil
+	}
+
 	if c.isUniqueNamesEnabled {
 		// Datacenters should have unique names per account.
 		// Check if there are any existing datacenters with the same name.
@@ -174,11 +188,14 @@ func (c *externalDatacenter) Create(ctx context.Context, mg resource.Managed) (m
 		retErr := fmt.Errorf("failed to create datacenter. error: %w", err)
 		return managed.ExternalCreation{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
+
+	cr.Status.AtProvider.DatacenterID = *newInstance.Id
+	meta.SetExternalName(cr, *newInstance.Id)
+
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	cr.Status.AtProvider.DatacenterID = *newInstance.Id
-	meta.SetExternalName(cr, *newInstance.Id)
+
 	return managed.ExternalCreation{}, nil
 }
 

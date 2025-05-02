@@ -27,7 +27,7 @@ const (
 )
 
 func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, targetID, method string) (bool, error) {
-	reqs, _, err := client.RequestsApi.RequestsGet(ctx).FilterRequestStatus(targetID).FilterMethod(method).Execute()
+	reqs, _, err := client.RequestsApi.RequestsGet(ctx).FilterRequestStatus(targetID).FilterMethod(method).Limit(1).Execute()
 	if err != nil {
 		return false, fmt.Errorf("failed to get %s request for resource %s. error: %w", method, targetID, err)
 	}
@@ -36,7 +36,7 @@ func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, targetID, metho
 		return false, fmt.Errorf("no %s request found for resource %s", method, targetID)
 	}
 
-	// we expect only one request per resource
+	// we retrieve only the most recent request that matches the criteria
 	for _, req := range *reqs.Items {
 		status := req.Metadata.RequestStatus.Metadata.Status
 		if *status == sdkgo.RequestStatusDone {
