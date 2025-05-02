@@ -19,6 +19,7 @@ package nic
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	"github.com/google/go-cmp/cmp"
@@ -169,6 +170,19 @@ func (c *externalNic) Create(ctx context.Context, mg resource.Managed) (managed.
 		return managed.ExternalCreation{}, nil
 	}
 
+	if externalName := meta.GetExternalName(cr); externalName != "" && externalName != cr.Name {
+		isDone, err := compute.IsRequestDone(ctx, c.service.GetAPIClient(), externalName, http.MethodPost)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+
+		if isDone {
+			return managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}, nil
+		}
+
+		return managed.ExternalCreation{}, nil
+	}
+
 	if c.isUniqueNamesEnabled {
 		// NICs should have unique names per server.
 		// Check if there are any existing nics with the same name.
@@ -208,12 +222,15 @@ func (c *externalNic) Create(ctx context.Context, mg resource.Managed) (managed.
 		retErr := fmt.Errorf("failed to create nic. error: %w", err)
 		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return creation, err
-	}
+
 	// Set External Name
 	cr.Status.AtProvider.NicID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
+
+	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+		return creation, err
+	}
+
 	return creation, nil
 }
 
