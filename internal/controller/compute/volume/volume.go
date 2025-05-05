@@ -187,13 +187,6 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalCreation{}, nil
 	}
 
-	// major ouchie, if the wait on volume creation times out, external name is set to the NAME of the volume by default,
-	// and we cannot use it to check if the volume actually exists by the time creation was requeued.
-	// !!!This results in a flood of volume create requests to the API, which can lead to maxing out the quota for volumes on the account!!!
-	// Aside from that, those volumes are orphan resources, which are not managed by Crossplane and cannot be cleaned up automatically
-	// by the garbage collector.
-	// I believe it is safe to extrapolate and assume that this can happen to any of the basic resources, not just volumes.
-
 	if externalName := meta.GetExternalName(cr); externalName != "" && externalName != cr.Name {
 		isDone, err := compute.IsRequestDone(ctx, c.service.GetAPIClient(), externalName, http.MethodPost)
 		if err != nil {
