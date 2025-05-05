@@ -34,6 +34,8 @@ func setComputeDefaults(cfg *ionos.Configuration) {
 func setDbaaSDefaults(cfg *shared.Configuration) {
 	cfg.HTTPClient = http.DefaultClient
 	cfg.UserAgent = fmt.Sprintf("%v/sdk_go_bundle_%v_%v", UserAgent, version.Version, psql.Version)
+	cfg.DefaultHeader = nil
+	cfg.DefaultQueryParams = nil
 
 }
 
@@ -88,6 +90,7 @@ func TestNewIonosClient(t *testing.T) {
 			wantDbaasConfig: func() *shared.Configuration {
 				cfg := shared.NewConfiguration("username", "password", "token", hostnameFromSecret)
 				setDbaaSDefaults(cfg)
+				cfg.Servers[0].URL = "https://host/databases/postgresql"
 				return cfg
 			}(),
 			wantErr: false,
@@ -104,6 +107,7 @@ func TestNewIonosClient(t *testing.T) {
 			wantDbaasConfig: func() *shared.Configuration {
 				cfg := shared.NewConfiguration("username", "password", "token", hostnameFromEnv)
 				setDbaaSDefaults(cfg)
+				cfg.Servers[0].URL = "http://host-from-env/databases/postgresql"
 				return cfg
 			}(),
 			wantErr: false,
@@ -120,6 +124,8 @@ func TestNewIonosClient(t *testing.T) {
 			wantDbaasConfig: func() *shared.Configuration {
 				cfg := shared.NewConfiguration("username", "password", "token", hostnameFromSecret)
 				setDbaaSDefaults(cfg)
+				cfg.Servers[0].URL = "https://host/databases/postgresql"
+
 				return cfg
 			}(),
 			wantErr: false,
