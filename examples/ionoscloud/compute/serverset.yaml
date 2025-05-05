@@ -76,7 +76,7 @@ spec:
         labels:
           key: value
       spec:
-        cpuFamily: INTEL_SKYLAKE
+        cpuFamily: INTEL_XEON
         cores: 1
         ram: 1024
         nics:
@@ -98,7 +98,7 @@ spec:
       spec:
         updateStrategy:
 #          createBeforeDestroyBootVolume createAllBeforeDestroy
-          type: "createAllBeforeDestroy"
+          type: "createBeforeDestroyBootVolume"
         image: "c38292f2-eeaa-11ef-8fa7-aee9942a25aa"
         size: 20
         type: HDD
