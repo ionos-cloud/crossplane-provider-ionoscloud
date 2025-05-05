@@ -19,6 +19,7 @@ package ipblock
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	"github.com/google/go-cmp/cmp"
@@ -157,6 +158,19 @@ func (c *externalIPBlock) Create(ctx context.Context, mg resource.Managed) (mana
 		return managed.ExternalCreation{}, nil
 	}
 
+	if externalName := meta.GetExternalName(cr); externalName != "" && externalName != cr.Name {
+		isDone, err := compute.IsRequestDone(ctx, c.service.GetAPIClient(), externalName, http.MethodPost)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+
+		if isDone {
+			return managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}, nil
+		}
+
+		return managed.ExternalCreation{}, nil
+	}
+
 	if c.isUniqueNamesEnabled {
 		// IPBlocks should have unique names per account.
 		// Check if there are any existing volumes with the same name.
@@ -187,12 +201,14 @@ func (c *externalIPBlock) Create(ctx context.Context, mg resource.Managed) (mana
 		retErr := fmt.Errorf("failed to create ipBlock. error: %w", err)
 		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return creation, err
-	}
+
 	// Set External Name
 	cr.Status.AtProvider.IPBlockID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
+	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+		return creation, err
+	}
+
 	return creation, nil
 }
 

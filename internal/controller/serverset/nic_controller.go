@@ -2,6 +2,7 @@ package serverset
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -10,7 +11,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
-	"k8s.io/apimachinery/pkg/api/errors"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -62,8 +62,11 @@ func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, 
 	k.log.Info("Waiting for NIC to become available", "name", name, "serverset", cr.Name)
 	err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createNic.Name, cr.Namespace)
 	if err != nil {
-		k.log.Info("NIC failed to become available, deleting it", "name", name, "serverset", cr.Name)
-		_ = k.Delete(ctx, createNic.Name, cr.Namespace)
+		if !errors.Is(err, context.DeadlineExceeded) {
+			k.log.Info("NIC failed to become available, deleting it", "name", name, "serverset", cr.Name)
+			_ = k.Delete(ctx, createNic.Name, cr.Namespace)
+		}
+
 		return v1alpha1.Nic{}, fmt.Errorf("while waiting for NIC name %s to be populated for serverset %s %w ", createNic.Name, cr.Name, err)
 	}
 	createdNic, err := k.Get(ctx, createNic.Name, cr.Namespace)
@@ -78,7 +81,7 @@ func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, 
 func (k *kubeNicController) isAvailable(ctx context.Context, name, namespace string) (bool, error) {
 	obj, err := k.Get(ctx, name, namespace)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apiErrors.IsNotFound(err) {
 			return false, nil
 		}
 		return false, err
@@ -115,7 +118,7 @@ func (k *kubeNicController) isNicDeleted(ctx context.Context, name, namespace st
 		Name:      name,
 	}, nic)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apiErrors.IsNotFound(err) {
 			k.log.Info("NIC has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}

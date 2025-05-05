@@ -2,6 +2,7 @@ package serverset
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -46,8 +47,13 @@ func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSe
 
 	k.log.Info("Waiting for Server to become available", "name", createServer.Name, "serverset", cr.Name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createServer.Name, cr.Namespace); err != nil {
-		k.log.Info("Server failed to become available, deleting it", "name", createServer.Name, "serverset", cr.Name)
-		_ = k.Delete(ctx, createServer.Name, cr.Namespace)
+		if !errors.Is(err, context.DeadlineExceeded) {
+			k.log.Info(
+				"Server failed to become available, deleting it", "name", createServer.Name, "serverset", cr.Name,
+			)
+			_ = k.Delete(ctx, createServer.Name, cr.Namespace)
+		}
+
 		return v1alpha1.Server{}, fmt.Errorf("while waiting for Server to be populated in serverset %s %w ", cr.Name, err)
 	}
 	createdServer, err := k.Get(ctx, createServer.Name, cr.Namespace)

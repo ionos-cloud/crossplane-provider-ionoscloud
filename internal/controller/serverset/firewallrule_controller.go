@@ -11,6 +11,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
+	"github.com/pkg/errors"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -63,8 +64,13 @@ func (k *kubeFirewallRuleController) Create(
 	if err := kube.WaitForResource(
 		ctx, kube.ResourceReadyTimeout, k.isAvailable, toBeCreatedFirewallRule.Name, cr.Namespace,
 	); err != nil {
-		k.log.Info("Firewall Rule failed to become available, deleting it", "name", toBeCreatedFirewallRule.Name, "serverset", cr.Name)
-		_ = k.Delete(ctx, toBeCreatedFirewallRule.Name, cr.Namespace)
+		if !errors.Is(err, context.DeadlineExceeded) {
+			k.log.Info(
+				"Firewall Rule failed to become available, deleting it", "name", toBeCreatedFirewallRule.Name,
+				"serverset", cr.Name,
+			)
+			_ = k.Delete(ctx, toBeCreatedFirewallRule.Name, cr.Namespace)
+		}
 		return v1alpha1.FirewallRule{}, fmt.Errorf(
 			"while waiting for Firewall Rule name %s to be populated for serverset %s %w", toBeCreatedFirewallRule.Name,
 			cr.Name, err,
