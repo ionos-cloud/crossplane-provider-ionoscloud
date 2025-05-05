@@ -11,6 +11,9 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Error422 is the error code for unprocessable entity
+const Error422 = "422 Unprocessable Entity"
+
 // DepthQueryParam is used in GET requests in Cloud API
 const DepthQueryParam = int32(1)
 

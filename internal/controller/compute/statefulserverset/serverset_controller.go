@@ -4,23 +4,22 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
-
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 type kubeSSetControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.ServerSet, error)
 	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet) error
-	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.ServerSet, error)
+	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, forceUpdate bool) (v1alpha1.ServerSet, error)
 	Get(ctx context.Context, ssetName, ns string) (*v1alpha1.ServerSet, error)
 	Delete(ctx context.Context, name, namespace string) error
 }
@@ -47,23 +46,25 @@ func (k *kubeServerSetController) Create(ctx context.Context, cr *v1alpha1.State
 }
 
 // Update updates a server set CR
-func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet) (v1alpha1.ServerSet, error) {
+func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, forceUpdate bool) (v1alpha1.ServerSet, error) {
 	name := getSSetName(cr)
 	updateObj, err := k.Get(ctx, name, cr.Namespace)
 	if err != nil {
 		return v1alpha1.ServerSet{}, err
 	}
 
-	areResUpToDate, _, err := areSSetResourcesReady(ctx, k.kube, cr)
-	if err != nil {
-		return v1alpha1.ServerSet{}, err
-	}
-	if areResUpToDate {
-		k.log.Info("ServerSet resources are up to date", "name", name)
-		return v1alpha1.ServerSet{}, nil
+	if !forceUpdate {
+		areResUpToDate, _, err := areSSetResourcesReady(ctx, k.kube, cr)
+		if err != nil {
+			return v1alpha1.ServerSet{}, err
+		}
+		if areResUpToDate {
+			k.log.Info("ServerSet resources are up to date", "name", name)
+			return v1alpha1.ServerSet{}, nil
+		}
 	}
 
-	k.log.Info("Updating ServerSet", "name", name)
+	k.log.Info("Updating ServerSet", "name", name, "forceUpdate", forceUpdate)
 	updateObj.Spec.ForProvider.Replicas = cr.Spec.ForProvider.Replicas
 	updateObj.Spec.ForProvider.Template = cr.Spec.ForProvider.Template
 	updateObj.Spec.ForProvider.BootVolumeTemplate = cr.Spec.ForProvider.BootVolumeTemplate
@@ -112,6 +113,11 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 	kubeSSet := &v1alpha1.ServerSet{}
 	err := k.kube.Get(ctx, types.NamespacedName{Name: SSetName, Namespace: cr.Namespace}, kubeSSet)
 	if kubeSSet != nil && !kube.IsSuccessfullyCreated(kubeSSet) {
+		// in case the serverset has an error, try to update it so it can update the sub-resources
+		_, err := k.Update(ctx, cr, true)
+		if err != nil {
+			k.log.Info("ServerSet failed to update", "name", SSetName, "error", err)
+		}
 		return kube.ErrExternalCreateFailed
 	}
 	switch {
@@ -123,8 +129,6 @@ func (k *kubeServerSetController) Ensure(ctx context.Context, cr *v1alpha1.State
 
 		k.log.Info("Waiting for ServerSet to be available", "name", SSetName)
 		if err = kube.WaitForResource(ctx, kube.ServerSetReadyTimeout, k.isAvailable, SSetName, cr.Namespace); err != nil {
-			k.log.Info("ServerSet failed to become available, deleting it", "name", SSetName)
-			_ = k.Delete(ctx, SSetName, cr.Namespace)
 			return err
 		}
 	case err != nil:

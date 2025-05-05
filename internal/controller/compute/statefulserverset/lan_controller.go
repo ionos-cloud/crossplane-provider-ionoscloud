@@ -8,7 +8,6 @@ import (
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,6 +16,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/volumeselector"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
@@ -52,8 +52,10 @@ func (k *kubeLANController) Create(ctx context.Context, cr *v1alpha1.StatefulSer
 
 	k.log.Info("Waiting for LAN to become available", "name", name, "ssset", cr.Name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
-		k.log.Info("LAN failed to become available, deleting it", "name", name, "ssset", cr.Name)
-		_ = k.Delete(ctx, name, cr.Namespace)
+		if strings.Contains(err.Error(), utils.Error422) {
+			k.log.Info("LAN failed to become available, deleting it", "name", name, "ssset", cr.Name)
+			_ = k.Delete(ctx, name, cr.Namespace)
+		}
 		return v1alpha1.Lan{}, fmt.Errorf("while waiting for LAN to be populated %s %w", name, err)
 	}
 	kubeLAN, err := k.Get(ctx, name, cr.Namespace)
