@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"github.com/rung/go-safecast"
@@ -50,6 +51,14 @@ const errNotApplicationLoadBalancer = "managed resource is not a ApplicationLoad
 func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.ApplicationLoadBalancerGroupKind)
 	logger := opts.CtrlOpts.Logger
+	if opts.CtrlOpts.MetricOptions != nil && opts.CtrlOpts.MetricOptions.MRStateMetrics != nil {
+		stateMetricsRecorder := statemetrics.NewMRStateRecorder(
+			mgr.GetClient(), opts.CtrlOpts.Logger, opts.CtrlOpts.MetricOptions.MRStateMetrics, &v1alpha1.ApplicationLoadBalancerList{}, opts.CtrlOpts.MetricOptions.PollStateMetricInterval,
+		)
+		if err := mgr.Add(stateMetricsRecorder); err != nil {
+			return errors.Wrap(err, "cannot register MR state metrics recorder for kind"+name)
+		}
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
@@ -68,6 +77,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			managed.WithPollInterval(opts.GetPollInterval()),
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithLogger(logger.WithValues("controller", name)),
+			managed.WithMetricRecorder(opts.CtrlOpts.MetricOptions.MRMetrics),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 
