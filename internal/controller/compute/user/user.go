@@ -294,17 +294,18 @@ func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (manage
 		conn[xpv1.ResourceCredentialsSecretPasswordKey] = []byte(passw)
 	}
 
-	eu.log.Info("Checking user groups value", "groups", cr.Spec.ForProvider.GroupIDs)
+	if cr.Spec.ForProvider.GroupIDs == nil {
+		setStatus(cr, observed, []string{})
+		return managed.ExternalCreation{ConnectionDetails: conn}, nil
+	}
+
+	eu.log.Info("Checking user groups value", "groups", *cr.Spec.ForProvider.GroupIDs)
 	err = eu.service.UpdateUserGroups(ctx, *observed.GetId(), nil, cr.Spec.ForProvider.GroupIDs)
 	if err != nil {
 		return managed.ExternalCreation{ConnectionDetails: conn}, err
 	}
 
-	var groupIDs []string
-	if cr.Spec.ForProvider.GroupIDs != nil {
-		groupIDs = *cr.Spec.ForProvider.GroupIDs
-	}
-	setStatus(cr, observed, groupIDs)
+	setStatus(cr, observed, *cr.Spec.ForProvider.GroupIDs)
 
 	return managed.ExternalCreation{ConnectionDetails: conn}, nil
 }
