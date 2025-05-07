@@ -86,8 +86,12 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 * `forceSecAuth` (boolean)
 	* description: ForceSecAuth Indicates if secure (two-factor) authentication should be enabled for the user (true) or not (false).
 * `groupIDs` (array)
-	* description: GroupIDs that this user will be a member of.
-NOTE: It is recommended to manage group membership through the group CRD as it offers more flexibility.
+	* description: GroupIDs that this user will be a member of. If not provided at all (null value), this field will be completely
+ignored and will not trigger an update if a user is added to a group externally. If provided, this field will
+need to match the crossplane managed groups that the user is a member of, otherwise a conflict will occur. In
+order to remove a user from all groups that he is a member of, set this field to an empty array, **NOT** null value.
+NOTE: This conflicts with UserConfig slice from Group resource, only use that one.
+Deprecated: use UserConfig from Group resource.
 * `lastName` (string)
 	* description: LastName A last name for the user.
 * `password` (string)

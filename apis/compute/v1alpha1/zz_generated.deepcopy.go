@@ -2612,8 +2612,12 @@ func (in *UserParameters) DeepCopyInto(out *UserParameters) {
 	*out = *in
 	if in.GroupIDs != nil {
 		in, out := &in.GroupIDs, &out.GroupIDs
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+		*out = new([]string)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
 	}
 	out.PasswordSecretRef = in.PasswordSecretRef
 }

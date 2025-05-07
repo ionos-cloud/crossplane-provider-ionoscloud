@@ -73,22 +73,29 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
 		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.User{}).
-		Complete(managed.NewReconciler(mgr,
-			resource.ManagedKind(v1alpha1.UserGroupVersionKind),
-			managed.WithExternalConnecter(&connectorUser{
-				kube:  mgr.GetClient(),
-				usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-				log:   logger,
-			}),
-			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
-			managed.WithInitializers(resourceInitializer{kube: mgr.GetClient(), eventRecorder: eventRecorder}),
-			managed.WithPollInterval(opts.GetPollInterval()),
-			managed.WithTimeout(opts.GetTimeout()),
-			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
-			managed.WithLogger(logger.WithValues("controller", name)),
-			managed.WithRecorder(eventRecorder),
-			managed.WithConnectionPublishers(cps...),
-		))
+		Complete(
+			managed.NewReconciler(
+				mgr,
+				resource.ManagedKind(v1alpha1.UserGroupVersionKind),
+				managed.WithExternalConnecter(
+					&connectorUser{
+						kube: mgr.GetClient(),
+						usage: resource.NewProviderConfigUsageTracker(
+							mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{},
+						),
+						log: logger,
+					},
+				),
+				managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
+				managed.WithInitializers(resourceInitializer{kube: mgr.GetClient(), eventRecorder: eventRecorder}),
+				managed.WithPollInterval(opts.GetPollInterval()),
+				managed.WithTimeout(opts.GetTimeout()),
+				managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
+				managed.WithLogger(logger.WithValues("controller", name)),
+				managed.WithRecorder(eventRecorder),
+				managed.WithConnectionPublishers(cps...),
+			),
+		)
 }
 
 // resourceInitializer is intended to pre-check the user managed resource.
@@ -287,12 +294,18 @@ func (eu *externalUser) Create(ctx context.Context, mg resource.Managed) (manage
 		conn[xpv1.ResourceCredentialsSecretPasswordKey] = []byte(passw)
 	}
 
+	if cr.Spec.ForProvider.GroupIDs == nil {
+		setStatus(cr, observed, []string{})
+		return managed.ExternalCreation{ConnectionDetails: conn}, nil
+	}
+
+	eu.log.Info("Checking user groups value", "groups", *cr.Spec.ForProvider.GroupIDs)
 	err = eu.service.UpdateUserGroups(ctx, *observed.GetId(), nil, cr.Spec.ForProvider.GroupIDs)
 	if err != nil {
 		return managed.ExternalCreation{ConnectionDetails: conn}, err
 	}
 
-	setStatus(cr, observed, cr.Spec.ForProvider.GroupIDs)
+	setStatus(cr, observed, *cr.Spec.ForProvider.GroupIDs)
 
 	return managed.ExternalCreation{ConnectionDetails: conn}, nil
 }
