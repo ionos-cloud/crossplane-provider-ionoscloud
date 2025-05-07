@@ -105,8 +105,8 @@ spec:
                   groupIDs:
                     description: |-
                       GroupIDs that this user will be a member of.
+                      NOTE: This conflicts with UserConfig slice from Group resource, only use that one.
                       Deprecated: use UserConfig from Group resource.
-                      NOTE: This conflicts with UserConfig slice from GroupParameters resource, only use that one.
                     items:
                       type: string
                     type: array

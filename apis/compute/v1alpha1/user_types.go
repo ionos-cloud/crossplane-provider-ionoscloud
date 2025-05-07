@@ -54,8 +54,8 @@ type UserParameters struct {
 	// +kubebuilder:default=true
 	Active bool `json:"active"`
 	// GroupIDs that this user will be a member of.
+	// NOTE: This conflicts with UserConfig slice from Group resource, only use that one.
 	// Deprecated: use UserConfig from Group resource.
-	// NOTE: This conflicts with UserConfig slice from GroupParameters resource, only use that one.
 	//
 	// +kubebuilder:validation:Optional
 	GroupIDs *[]string `json:"groupIDs"`

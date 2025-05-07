@@ -23,7 +23,7 @@ spec:
     lastName: "Last Name"
     forceSecAuth: true
     active: true
-    credentialsSecretRef:
+    passwordSecretRef:
       key: password
       name: my-user-password
       namespace: default
