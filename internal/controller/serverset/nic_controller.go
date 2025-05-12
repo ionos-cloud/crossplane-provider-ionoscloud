@@ -187,6 +187,9 @@ func (k *kubeNicController) fromServerSetToNic(cr *v1alpha1.ServerSet, name, ser
 func (k *kubeNicController) EnsureNICs(
 	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int, serverID string,
 ) error {
+	defer func() {
+		k.log.Info("Finished ensuring NICs", "index", replicaIndex, "version", version, "serverset", cr.Name)
+	}()
 	k.log.Info("Ensuring NICs", "index", replicaIndex, "version", version, "serverset", cr.Name)
 	errGroup, ctx := errgroup.WithContext(ctx)
 	for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
@@ -194,7 +197,6 @@ func (k *kubeNicController) EnsureNICs(
 			return k.ensure(ctx, cr, serverID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].LanReference, replicaIndex, nicx, version)
 		})
 	}
-	k.log.Info("Finished ensuring NICs", "index", replicaIndex, "version", version, "serverset", cr.Name)
 	return errGroup.Wait()
 }
 
