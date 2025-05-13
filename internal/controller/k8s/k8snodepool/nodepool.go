@@ -217,6 +217,7 @@ func (c *externalNodePool) Create(ctx context.Context, mg resource.Managed) (man
 		retErr := fmt.Errorf("failed to create k8s nodepool. error: %w", err)
 		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
+	cr.Status.AtProvider.K8sVersion = *newInstance.Properties.K8sVersion
 	// Set External Name
 	cr.Status.AtProvider.NodePoolID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)

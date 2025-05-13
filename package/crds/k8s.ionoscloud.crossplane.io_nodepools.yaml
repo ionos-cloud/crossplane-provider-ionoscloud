@@ -41,7 +41,7 @@ spec:
       name: DATACENTER ID
       priority: 1
       type: string
-    - jsonPath: .spec.forProvider.k8sVersion
+    - jsonPath: .status.atProvider.k8sVersion
       name: K8S VERSION
       priority: 1
       type: string
@@ -807,6 +807,8 @@ spec:
                       type: string
                     type: array
                   state:
+                    type: string
+                  k8sVersion:
                     type: string
                 type: object
               conditions:

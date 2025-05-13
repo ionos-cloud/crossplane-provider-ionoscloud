@@ -60,6 +60,12 @@ fallthrough: submodules
 	@echo Initial setup complete. Running make again . . .
 	@make
 
+
+# Define macros for logging
+INFO = @echo "[INFO]"
+OK = @echo "[OK]"
+FAIL = @echo "[FAIL]"
+
 crds.clean:
 	@$(INFO) cleaning generated CRDs
 	@find package/crds -name *.yaml -exec sed -i.sed -e '1,2d' {} \; || $(FAIL)

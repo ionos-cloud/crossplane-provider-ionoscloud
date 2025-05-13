@@ -230,6 +230,8 @@ func (c *externalCluster) Create(ctx context.Context, mg resource.Managed) (mana
 		retErr := fmt.Errorf("failed to create k8s cluster. error: %w", err)
 		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
+	// Set the K8sVersion in the status
+	cr.Status.AtProvider.K8sVersion = *newInstance.Properties.K8sVersion
 	// Set External Name
 	cr.Status.AtProvider.ClusterID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
