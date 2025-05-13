@@ -26,6 +26,8 @@ const (
 	requestHeader = "Location"
 )
 
+// IsRequestDone fetches the latest request that matches both the targetID and the method provided, and checks if it has
+// reached status DONE. In case of request failure (status FAILED), the function will return an error.
 func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, targetID, method string) (bool, error) {
 	reqs, _, err := client.RequestsApi.RequestsGet(ctx).FilterRequestStatus(targetID).FilterMethod(method).Limit(1).Execute()
 	if err != nil {
@@ -43,7 +45,13 @@ func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, targetID, metho
 			return true, nil
 		}
 		if *status == sdkgo.RequestStatusFailed {
-			return false, fmt.Errorf("%s request for resource %s failed", method, targetID)
+			errMsg := fmt.Sprintf("%s request %s for resource %s failed", method, *req.Id, targetID)
+			msg := req.Metadata.RequestStatus.Metadata.Message
+			if msg != nil {
+				errMsg = fmt.Sprintf("%s (%s)", errMsg, *msg)
+			}
+
+			return false, fmt.Errorf(errMsg)
 		}
 	}
 
