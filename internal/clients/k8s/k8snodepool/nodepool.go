@@ -283,7 +283,7 @@ func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodeP
 		return false
 	case nodepool.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
 		return false
-	case nodepool.Properties.K8sVersion != nil && *nodepool.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
+	case nodepool.Properties.K8sVersion != nil && cr.Spec.ForProvider.K8sVersion != "" && *nodepool.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
 		return false
 	case nodepool.Properties.NodeCount != nil &&
 		*nodepool.Properties.NodeCount != cr.Spec.ForProvider.NodeCount &&
