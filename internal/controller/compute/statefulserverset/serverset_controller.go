@@ -178,18 +178,6 @@ func getSSetName(cr *v1alpha1.StatefulServerSet) string {
 	return cr.Spec.ForProvider.Template.Metadata.Name
 }
 
-// Delete - deletes the serverset k8s object and waits until it is deleted
-func (k *kubeServerSetController) Delete(ctx context.Context, name, namespace string) error {
-	serverset, err := k.Get(ctx, name, namespace)
-	if err != nil {
-		return err
-	}
-	if err := k.kube.Delete(ctx, serverset); err != nil {
-		return fmt.Errorf("while deleting serverset %w", err)
-	}
-	return kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isDeleted, serverset.Name, namespace)
-}
-
 func (k *kubeServerSetController) isDeleted(ctx context.Context, name, namespace string) (bool, error) {
 	obj := &v1alpha1.ServerSet{}
 	err := k.kube.Get(ctx, types.NamespacedName{
