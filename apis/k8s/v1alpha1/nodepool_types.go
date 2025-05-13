@@ -305,6 +305,7 @@ type NodePoolObservation struct {
 	AvailableUpgradeVersions []string `json:"availableUpgradeVersions,omitempty"`
 	CPUFamily                string   `json:"cpuFamily,omitempty"`
 	NodeCount                *int32   `json:"nodeCount,omitempty"`
+	K8sVersion               string   `json:"k8sVersion,omitempty"`
 }
 
 // A NodePoolSpec defines the desired state of a NodePool.
@@ -328,7 +329,7 @@ type NodePoolStatus struct {
 // +kubebuilder:printcolumn:name="NODEPOOL ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="NODEPOOL NAME",type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="DATACENTER ID",priority=1,type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
-// +kubebuilder:printcolumn:name="K8S VERSION",priority=1,type="string",JSONPath=".spec.forProvider.k8sVersion"
+// +kubebuilder:printcolumn:name="K8S VERSION",priority=1,type="string",JSONPath=".status.atProvider.k8sVersion"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status

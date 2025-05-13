@@ -231,11 +231,6 @@ func LateInitializer(in *v1alpha1.NodePoolParameters, sg *sdkgo.KubernetesNodePo
 				}
 			}
 		}
-		if versionOk, ok := propertiesOk.GetK8sVersionOk(); ok && versionOk != nil {
-			if utils.IsEmptyValue(reflect.ValueOf(in.K8sVersion)) {
-				in.K8sVersion = *versionOk
-			}
-		}
 	}
 }
 
@@ -245,7 +240,7 @@ func LateStatusInitializer(in *v1alpha1.NodePoolObservation, sg *sdkgo.Kubernete
 	if sg == nil {
 		return
 	}
-	// Add Properties to the Spec, if they were set by the API
+	// Add Properties to the Status, if they were set by the API
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
 		if availableUpgradeVersionsOk, ok := propertiesOk.GetAvailableUpgradeVersionsOk(); ok && availableUpgradeVersionsOk != nil {
 			in.AvailableUpgradeVersions = *availableUpgradeVersionsOk
@@ -262,6 +257,12 @@ func LateStatusInitializer(in *v1alpha1.NodePoolObservation, sg *sdkgo.Kubernete
 
 		if nodeCountOK, ok := propertiesOk.GetNodeCountOk(); ok {
 			in.NodeCount = nodeCountOK
+		}
+
+		if versionOk, ok := propertiesOk.GetK8sVersionOk(); ok && versionOk != nil {
+			if utils.IsEmptyValue(reflect.ValueOf(in.K8sVersion)) {
+				in.K8sVersion = *versionOk
+			}
 		}
 	}
 
