@@ -23,21 +23,22 @@ import (
 	"path/filepath"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/config"
-
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	xpcontroller "github.com/crossplane/crossplane-runtime/pkg/controller"
 	"github.com/crossplane/crossplane-runtime/pkg/feature"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
+	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	"gopkg.in/alecthomas/kingpin.v2"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	xpcontroller "github.com/crossplane/crossplane-runtime/pkg/controller"
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
@@ -48,16 +49,16 @@ import (
 
 func main() {
 	var (
-		app               = kingpin.New(filepath.Base(os.Args[0]), "IONOS Cloud support for Crossplane.").DefaultEnvars()
-		debug             = app.Flag("debug", "Run with debug logging.").Short('d').Bool()
-		uniqueNames       = app.Flag("unique-names", "Enable uniqueness name support for IONOS Cloud resources").Short('u').Default("false").Bool()
-		syncInterval      = app.Flag("sync", "Controller manager sync interval such as 300ms, 1.5h, or 2h45m").Short('s').Default("1h").Duration()
-		pollInterval      = app.Flag("poll", "Poll interval controls how often an individual resource should be checked for changes.").Default("1m").Duration()
-		leaderElection    = app.Flag("leader-election", "Use leader election for the controller manager.").Short('l').Default("false").Envar("LEADER_ELECTION").Bool()
-		createGracePeriod = app.Flag("create-grace-period", "Grace period for creation of IONOS Cloud resources.").Default("1m").Duration()
-		maxReconcileRate  = app.Flag("max-reconcile-rate", "The global maximum rate per second at which resources may checked for drift from the desired state.").Default("1").Int()
-		timeout           = app.Flag("timeout", "Timeout duration cumulatively for all the calls happening in the reconciliation functions.").Default("1h").Duration()
-
+		app                        = kingpin.New(filepath.Base(os.Args[0]), "IONOS Cloud support for Crossplane.").DefaultEnvars()
+		debug                      = app.Flag("debug", "Run with debug logging.").Short('d').Bool()
+		uniqueNames                = app.Flag("unique-names", "Enable uniqueness name support for IONOS Cloud resources").Short('u').Default("false").Bool()
+		syncInterval               = app.Flag("sync", "Controller manager sync interval such as 300ms, 1.5h, or 2h45m").Short('s').Default("1h").Duration()
+		pollInterval               = app.Flag("poll", "Poll interval controls how often an individual resource should be checked for changes.").Default("1m").Duration()
+		leaderElection             = app.Flag("leader-election", "Use leader election for the controller manager.").Short('l').Default("false").Envar("LEADER_ELECTION").Bool()
+		createGracePeriod          = app.Flag("create-grace-period", "Grace period for creation of IONOS Cloud resources.").Default("1m").Duration()
+		maxReconcileRate           = app.Flag("max-reconcile-rate", "The global maximum rate per second at which resources may checked for drift from the desired state.").Default("1").Int()
+		timeout                    = app.Flag("timeout", "Timeout duration cumulatively for all the calls happening in the reconciliation functions.").Default("1h").Duration()
+		pollStateMetricInterval    = app.Flag("poll-state-metric", "State metric recording interval").Default("5s").Duration()
 		namespace                  = app.Flag("namespace", "Namespace used to set as default scope in default secret store config.").Default("crossplane-system").Envar("POD_NAMESPACE").String()
 		enableExternalSecretStores = app.Flag("enable-external-secret-stores", "Enable support for ExternalSecretStores.").Default("false").Envar("ENABLE_EXTERNAL_SECRET_STORES").Bool()
 	)
@@ -91,6 +92,16 @@ func main() {
 	})
 	kingpin.FatalIfError(err, "Cannot create controller manager")
 	kingpin.FatalIfError(apis.AddToScheme(mgr.GetScheme()), "Cannot add IONOS Cloud APIs to scheme")
+	metricRecorder := managed.NewMRMetricRecorder()
+	stateMetrics := statemetrics.NewMRStateMetrics()
+
+	metrics.Registry.MustRegister(metricRecorder)
+	metrics.Registry.MustRegister(stateMetrics)
+	mo := xpcontroller.MetricOptions{
+		PollStateMetricInterval: *pollStateMetricInterval,
+		MRMetrics:               metricRecorder,
+		MRStateMetrics:          stateMetrics,
+	}
 
 	ctrlOpts := xpcontroller.Options{
 		Logger:                  log,
@@ -98,6 +109,7 @@ func main() {
 		PollInterval:            *pollInterval,
 		GlobalRateLimiter:       ratelimiter.NewGlobal(*maxReconcileRate),
 		Features:                &feature.Flags{},
+		MetricOptions:           &mo,
 	}
 
 	if *enableExternalSecretStores {

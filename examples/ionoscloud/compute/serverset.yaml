@@ -76,7 +76,6 @@ spec:
         labels:
           key: value
       spec:
-        cpuFamily: INTEL_XEON
         cores: 1
         ram: 1024
         nics:

@@ -2,21 +2,21 @@ package serverset
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
+	"golang.org/x/sync/errgroup"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
@@ -62,11 +62,10 @@ func (k *kubeNicController) Create(ctx context.Context, cr *v1alpha1.ServerSet, 
 	k.log.Info("Waiting for NIC to become available", "name", name, "serverset", cr.Name)
 	err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createNic.Name, cr.Namespace)
 	if err != nil {
-		if !errors.Is(err, context.DeadlineExceeded) {
+		if strings.Contains(err.Error(), utils.Error422) {
 			k.log.Info("NIC failed to become available, deleting it", "name", name, "serverset", cr.Name)
 			_ = k.Delete(ctx, createNic.Name, cr.Namespace)
 		}
-
 		return v1alpha1.Nic{}, fmt.Errorf("while waiting for NIC name %s to be populated for serverset %s %w ", createNic.Name, cr.Name, err)
 	}
 	createdNic, err := k.Get(ctx, createNic.Name, cr.Namespace)
@@ -188,15 +187,17 @@ func (k *kubeNicController) fromServerSetToNic(cr *v1alpha1.ServerSet, name, ser
 func (k *kubeNicController) EnsureNICs(
 	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int, serverID string,
 ) error {
+	defer func() {
+		k.log.Info("Finished ensuring NICs", "index", replicaIndex, "version", version, "serverset", cr.Name)
+	}()
 	k.log.Info("Ensuring NICs", "index", replicaIndex, "version", version, "serverset", cr.Name)
+	errGroup, ctx := errgroup.WithContext(ctx)
 	for nicx := range cr.Spec.ForProvider.Template.Spec.NICs {
-		if err := k.ensure(ctx, cr, serverID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].LanReference, replicaIndex, nicx, version); err != nil {
-			return err
-		}
+		errGroup.Go(func() error {
+			return k.ensure(ctx, cr, serverID, cr.Spec.ForProvider.Template.Spec.NICs[nicx].LanReference, replicaIndex, nicx, version)
+		})
 	}
-	k.log.Info("Finished ensuring NICs", "index", replicaIndex, "version", version, "serverset", cr.Name)
-
-	return nil
+	return errGroup.Wait()
 }
 
 // EnsureNIC - creates a NIC if it does not exist

@@ -21,19 +21,17 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/pkg/errors"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-
+	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-mongo"
+	"github.com/pkg/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/mongo/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
@@ -48,6 +46,14 @@ const errNotCluster = "managed resource is not a Cluster custom resource"
 func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.MongoClusterGroupKind)
 	logger := opts.CtrlOpts.Logger
+	if opts.CtrlOpts.MetricOptions != nil && opts.CtrlOpts.MetricOptions.MRStateMetrics != nil {
+		stateMetricsRecorder := statemetrics.NewMRStateRecorder(
+			mgr.GetClient(), opts.CtrlOpts.Logger, opts.CtrlOpts.MetricOptions.MRStateMetrics, &v1alpha1.MongoClusterList{}, opts.CtrlOpts.MetricOptions.PollStateMetricInterval,
+		)
+		if err := mgr.Add(stateMetricsRecorder); err != nil {
+			return errors.Wrap(err, "cannot register MR state metrics recorder for kind"+name)
+		}
+	}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
@@ -67,6 +73,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(logger.WithValues("controller", name)),
+			managed.WithMetricRecorder(opts.CtrlOpts.MetricOptions.MRMetrics),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 

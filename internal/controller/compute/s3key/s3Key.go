@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
+	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -52,6 +53,14 @@ const errNotS3Key = "managed resource is not a S3Key custom resource"
 func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	name := managed.ControllerName(v1alpha1.S3KeyGroupKind)
 	logger := opts.CtrlOpts.Logger
+	if opts.CtrlOpts.MetricOptions != nil && opts.CtrlOpts.MetricOptions.MRStateMetrics != nil {
+		stateMetricsRecorder := statemetrics.NewMRStateRecorder(
+			mgr.GetClient(), opts.CtrlOpts.Logger, opts.CtrlOpts.MetricOptions.MRStateMetrics, &v1alpha1.S3KeyList{}, opts.CtrlOpts.MetricOptions.PollStateMetricInterval,
+		)
+		if err := mgr.Add(stateMetricsRecorder); err != nil {
+			return errors.Wrap(err, "cannot register MR state metrics recorder for kind"+name)
+		}
+	}
 
 	cps := []managed.ConnectionPublisher{managed.NewAPISecretPublisher(mgr.GetClient(), mgr.GetScheme())}
 	if opts.CtrlOpts.Features.Enabled(features.EnableAlphaExternalSecretStores) {
@@ -76,6 +85,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(logger.WithValues("controller", name)),
+			managed.WithMetricRecorder(opts.CtrlOpts.MetricOptions.MRMetrics),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
 			managed.WithConnectionPublishers(cps...)),
 		)

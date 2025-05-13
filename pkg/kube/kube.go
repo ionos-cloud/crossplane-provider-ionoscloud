@@ -43,24 +43,19 @@ func IsSuccessfullyCreated(obj resource.Managed) bool {
 	if failedAnnotation == "" {
 		return true
 	}
-
 	if successAnnotation == "" {
 		return false
 	}
-
 	successTimestamp, err := time.Parse(time.RFC3339, successAnnotation)
 	if err != nil {
 		return false
 	}
-
 	failedTimestamp, err := time.Parse(time.RFC3339, failedAnnotation)
 	if err != nil {
 		return false
 	}
-
 	if successTimestamp.After(failedTimestamp) {
 		return true
 	}
-
 	return false
 }
