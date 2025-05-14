@@ -91,6 +91,7 @@ type LanObservation struct {
 	LanID       string   `json:"lanId,omitempty"`
 	State       string   `json:"state,omitempty"`
 	Name        string   `json:"name,omitempty"`
+	Ipv4Cidr    string   `json:"ipv4Cidr,omitempty"`
 }
 
 // A LanSpec defines the desired state of a Lan.
@@ -115,6 +116,7 @@ type LanStatus struct {
 // +kubebuilder:printcolumn:name="LAN NAME",type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="PUBLIC",priority=1,type="string",JSONPath=".spec.forProvider.public"
 // +kubebuilder:printcolumn:name="IPFAILOVERS",priority=1,type="string",JSONPath=".status.atProvider.ipFailovers"
+// +kubebuilder:printcolumn:name="IPV4CIDR",priority=1,type="string",JSONPath=".status.atProvider.ipv4Cidr"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status

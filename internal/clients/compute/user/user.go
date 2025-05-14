@@ -124,7 +124,7 @@ func (ac *apiClient) DeleteUserFromGroup(ctx context.Context, groupID string, us
 
 // AddUserToGroup adds userID to the group of groupID.
 func (ac *apiClient) AddUserToGroup(ctx context.Context, groupID string, userID string) (ionosdk.User, *ionosdk.APIResponse, error) {
-	u := ionosdk.User{Id: &userID}
+	u := ionosdk.UserGroupPost{Id: &userID}
 	user, resp, err := ac.svc.UserManagementApi.UmGroupsUsersPost(ctx, groupID).User(u).Execute()
 	if err != nil {
 		return ionosdk.User{}, resp, err

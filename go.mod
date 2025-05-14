@@ -9,18 +9,18 @@ require (
 	github.com/crossplane/crossplane-tools v0.0.0-20240522174801-1ad3d4c87f21
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/go-logr/zapr v1.3.0
-	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.30.0
 	github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2 v2.0.5
 	github.com/ionos-cloud/sdk-go-bundle/shared v0.1.4
 	github.com/ionos-cloud/sdk-go-dataplatform v1.0.2
 	github.com/ionos-cloud/sdk-go-dbaas-mongo v1.3.1
-	github.com/ionos-cloud/sdk-go/v6 v6.1.11
+	github.com/ionos-cloud/sdk-go/v6 v6.3.4
 	github.com/onsi/gomega v1.34.1
 	github.com/pkg/errors v0.9.1
 	github.com/rung/go-safecast v1.0.1
 	github.com/stretchr/testify v1.10.0
+	go.uber.org/mock v0.5.2
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.36.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56

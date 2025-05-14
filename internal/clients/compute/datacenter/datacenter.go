@@ -21,8 +21,8 @@ type Client interface {
 	CheckDuplicateDatacenter(ctx context.Context, datacenterName, location string) (*sdkgo.Datacenter, error)
 	GetDatacenterID(datacenter *sdkgo.Datacenter) (string, error)
 	GetDatacenter(ctx context.Context, datacenterID string) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
-	CreateDatacenter(ctx context.Context, datacenter sdkgo.Datacenter) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
-	UpdateDatacenter(ctx context.Context, datacenterID string, datacenter sdkgo.DatacenterProperties) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
+	CreateDatacenter(ctx context.Context, datacenter sdkgo.DatacenterPost) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
+	UpdateDatacenter(ctx context.Context, datacenterID string, datacenter sdkgo.DatacenterPropertiesPut) (sdkgo.Datacenter, *sdkgo.APIResponse, error)
 	DeleteDatacenter(ctx context.Context, datacenterID string) (*sdkgo.APIResponse, error)
 	GetCPUFamiliesForDatacenter(ctx context.Context, datacenterID string) ([]string, error)
 	GetAPIClient() *sdkgo.APIClient
@@ -78,12 +78,12 @@ func (cp *APIClient) GetDatacenter(ctx context.Context, datacenterID string) (sd
 }
 
 // CreateDatacenter based on Datacenter properties
-func (cp *APIClient) CreateDatacenter(ctx context.Context, datacenter sdkgo.Datacenter) (sdkgo.Datacenter, *sdkgo.APIResponse, error) {
+func (cp *APIClient) CreateDatacenter(ctx context.Context, datacenter sdkgo.DatacenterPost) (sdkgo.Datacenter, *sdkgo.APIResponse, error) {
 	return cp.ComputeClient.DataCentersApi.DatacentersPost(ctx).Datacenter(datacenter).Execute()
 }
 
 // UpdateDatacenter based on datacenterID and Datacenter properties
-func (cp *APIClient) UpdateDatacenter(ctx context.Context, datacenterID string, datacenter sdkgo.DatacenterProperties) (sdkgo.Datacenter, *sdkgo.APIResponse, error) {
+func (cp *APIClient) UpdateDatacenter(ctx context.Context, datacenterID string, datacenter sdkgo.DatacenterPropertiesPut) (sdkgo.Datacenter, *sdkgo.APIResponse, error) {
 	return cp.ComputeClient.DataCentersApi.DatacentersPatch(ctx, datacenterID).Datacenter(datacenter).Execute()
 }
 
@@ -118,9 +118,9 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 }
 
 // GenerateCreateDatacenterInput returns sdkgo.Datacenter based on the CR spec
-func GenerateCreateDatacenterInput(cr *v1alpha1.Datacenter) (*sdkgo.Datacenter, error) {
-	instanceCreateInput := sdkgo.Datacenter{
-		Properties: &sdkgo.DatacenterProperties{
+func GenerateCreateDatacenterInput(cr *v1alpha1.Datacenter) (*sdkgo.DatacenterPost, error) {
+	instanceCreateInput := sdkgo.DatacenterPost{
+		Properties: &sdkgo.DatacenterPropertiesPost{
 			Name:              &cr.Spec.ForProvider.Name,
 			Description:       &cr.Spec.ForProvider.Description,
 			Location:          &cr.Spec.ForProvider.Location,
@@ -131,8 +131,8 @@ func GenerateCreateDatacenterInput(cr *v1alpha1.Datacenter) (*sdkgo.Datacenter, 
 }
 
 // GenerateUpdateDatacenterInput returns sdkgo.DatacenterProperties based on the CR spec modifications
-func GenerateUpdateDatacenterInput(cr *v1alpha1.Datacenter) (*sdkgo.DatacenterProperties, error) {
-	instanceUpdateInput := sdkgo.DatacenterProperties{
+func GenerateUpdateDatacenterInput(cr *v1alpha1.Datacenter) (*sdkgo.DatacenterPropertiesPut, error) {
+	instanceUpdateInput := sdkgo.DatacenterPropertiesPut{
 		Name:        &cr.Spec.ForProvider.Name,
 		Description: &cr.Spec.ForProvider.Description,
 	}
