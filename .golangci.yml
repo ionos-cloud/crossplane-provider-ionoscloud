@@ -1,9 +1,12 @@
 run:
   deadline: 2m
-
   skip-files:
     - _test\.go$
     - zz_generated
+  skip-dirs:
+    - vendor
+    - ../../../go/pkg
+  skip-dirs-use-default: true # skips vendor and other common dirs
 output:
   # colored-line-number|line-number|json|tab|checkstyle|code-climate, default is "colored-line-number"
   format: colored-line-number
