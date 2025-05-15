@@ -623,9 +623,6 @@ func TestExternalControlPlaneClientCreate(t *testing.T) {
 				}
 				returnedCluster := ionoscloud.KubernetesCluster{
 					Id: ionoscloud.PtrString("1234"),
-					Properties: &ionoscloud.KubernetesClusterProperties{
-						K8sVersion: ionoscloud.PtrString("v1.22.33"),
-					},
 				}
 				client.EXPECT().
 					CreateK8sCluster(
