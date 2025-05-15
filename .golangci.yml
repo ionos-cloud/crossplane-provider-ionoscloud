@@ -3,6 +3,7 @@ run:
 
   skip-files:
     - _test\.go$
+    - zz_generated
 output:
   # colored-line-number|line-number|json|tab|checkstyle|code-climate, default is "colored-line-number"
   format: colored-line-number
@@ -127,10 +128,6 @@ linters:
 
 issues:
   # Excluding configuration per-path and per-linter
-  exclude-files:
-  - "zz_generated\\..+\\.go$"
-  - "\\..+\\_test.go$"
-  - "_test.go"
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test(ing)?\.go
