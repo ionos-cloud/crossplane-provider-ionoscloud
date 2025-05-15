@@ -27,6 +27,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -275,7 +276,7 @@ func (e *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 			return managed.ExternalUpdate{}, err
 		}
 	}
-	_, err := e.SSetController.Update(ctx, cr)
+	_, err := e.SSetController.Update(ctx, cr, false)
 	if err != nil {
 		return managed.ExternalUpdate{}, fmt.Errorf("while updating ServerSet CR %w", err)
 	}
@@ -330,24 +331,20 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.Ext
 
 func (e *external) ensureDataVolumes(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex int) error {
 	e.log.Info("Ensuring the DataVolumes for ", "name", cr.Name)
+	errGroup, ctx := errgroup.WithContext(ctx)
 	for volumeIndex := range cr.Spec.ForProvider.Volumes {
-		err := e.dataVolumeController.Ensure(ctx, cr, replicaIndex, volumeIndex)
-		if err != nil {
-			return err
-		}
+		errGroup.Go(func() error { return e.dataVolumeController.Ensure(ctx, cr, replicaIndex, volumeIndex) })
 	}
-	return nil
+	return errGroup.Wait()
 }
 
 func (e *external) ensureLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
 	e.log.Info("Ensuring the LANs for", "name", cr.Name)
+	errGroup, ctx := errgroup.WithContext(ctx)
 	for lanIndex := range cr.Spec.ForProvider.Lans {
-		err := e.LANController.Ensure(ctx, cr, lanIndex)
-		if err != nil {
-			return err
-		}
+		errGroup.Go(func() error { return e.LANController.Ensure(ctx, cr, lanIndex) })
 	}
-	return nil
+	return errGroup.Wait()
 }
 
 func areLansUpToDate(cr *v1alpha1.StatefulServerSet, lans []v1alpha1.Lan) (bool, bool) {

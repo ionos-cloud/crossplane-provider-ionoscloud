@@ -88,7 +88,7 @@ func (cp *APIClient) GetLanIPFailovers(ctx context.Context, datacenterID, lanID 
 
 // CreateLan based on datacenterID and Lan properties
 func (cp *APIClient) CreateLan(ctx context.Context, datacenterID string, lan sdkgo.Lan) (sdkgo.Lan, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.LANsApi.DatacentersLansPost(ctx, datacenterID).Lan(lan).Execute()
+	return cp.ComputeClient.LANsApi.DatacentersLansPost(ctx, datacenterID).Lan(lan).Execute()
 }
 
 // UpdateLan based on datacenterID, lanID and Lan properties

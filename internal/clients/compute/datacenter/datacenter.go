@@ -79,12 +79,12 @@ func (cp *APIClient) GetDatacenter(ctx context.Context, datacenterID string) (sd
 
 // CreateDatacenter based on Datacenter properties
 func (cp *APIClient) CreateDatacenter(ctx context.Context, datacenter sdkgo.DatacenterPost) (sdkgo.Datacenter, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.DataCentersApi.DatacentersPost(ctx).Datacenter(datacenter).Execute()
+	return cp.ComputeClient.DataCentersApi.DatacentersPost(ctx).Datacenter(datacenter).Execute()
 }
 
 // UpdateDatacenter based on datacenterID and Datacenter properties
 func (cp *APIClient) UpdateDatacenter(ctx context.Context, datacenterID string, datacenter sdkgo.DatacenterPropertiesPut) (sdkgo.Datacenter, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.DataCentersApi.DatacentersPatch(ctx, datacenterID).Datacenter(datacenter).Execute()
+	return cp.ComputeClient.DataCentersApi.DatacentersPatch(ctx, datacenterID).Datacenter(datacenter).Execute()
 }
 
 // DeleteDatacenter based on datacenterID

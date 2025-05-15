@@ -17,6 +17,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
@@ -60,8 +61,10 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 
 	k.log.Info("Waiting for BootVolume to become available", "name", name, "serverset", cr.Name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
-		k.log.Info("BootVolume failed to become available, deleting it", "name", name, "serverset", cr.Name)
-		_ = k.Delete(ctx, createVolume.Name, cr.Namespace)
+		if strings.Contains(err.Error(), utils.Error422) {
+			k.log.Info("BootVolume failed to become available, deleting it", "name", name, "serverset", cr.Name)
+			_ = k.Delete(ctx, createVolume.Name, cr.Namespace)
+		}
 		return v1alpha1.Volume{}, fmt.Errorf("while waiting for BootVolume %s to be populated %w ", createVolume.Name, err)
 	}
 	// get the volume again before returning to have the id populated

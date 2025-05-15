@@ -16,6 +16,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
@@ -47,10 +48,13 @@ func (k *kubeServerController) Create(ctx context.Context, cr *v1alpha1.ServerSe
 
 	k.log.Info("Waiting for Server to become available", "name", createServer.Name, "serverset", cr.Name)
 	if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, createServer.Name, cr.Namespace); err != nil {
-		k.log.Info("Server failed to become available, deleting it", "name", createServer.Name, "serverset", cr.Name)
-		_ = k.Delete(ctx, createServer.Name, cr.Namespace)
+		if strings.Contains(err.Error(), utils.Error422) {
+			k.log.Info("Server failed to become available, deleting it", "name", createServer.Name, "serverset", cr.Name, "err", err)
+			_ = k.Delete(ctx, createServer.Name, cr.Namespace)
+		}
 		return v1alpha1.Server{}, fmt.Errorf("while waiting for Server to be populated in serverset %s %w ", cr.Name, err)
 	}
+
 	createdServer, err := k.Get(ctx, createServer.Name, cr.Namespace)
 	if err != nil {
 		return v1alpha1.Server{}, fmt.Errorf("while getting created Server for serverset %s %w", cr.Name, err)

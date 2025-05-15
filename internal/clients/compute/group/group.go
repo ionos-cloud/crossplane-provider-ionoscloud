@@ -140,7 +140,7 @@ func (cp *APIClient) UpdateGroup(ctx context.Context, groupID string, group sdkg
 
 // AddGroupMember adds the User referenced by userID to the Group with groupID
 func (cp *APIClient) AddGroupMember(ctx context.Context, groupID, userID string) (*sdkgo.APIResponse, error) {
-	_, apiResponse, err := cp.IonosServices.ComputeClient.UserManagementApi.UmGroupsUsersPost(ctx, groupID).User(sdkgo.UserGroupPost{Id: &userID}).Execute()
+	_, apiResponse, err := cp.ComputeClient.UserManagementApi.UmGroupsUsersPost(ctx, groupID).User(sdkgo.UserGroupPost{Id: &userID}).Execute()
 	if err != nil {
 		return apiResponse, err
 	}

@@ -165,7 +165,7 @@ func (mr *MockClientMockRecorder) UpdateUser(ctx, id, p, passw any) *gomock.Call
 }
 
 // UpdateUserGroups mocks base method.
-func (m *MockClient) UpdateUserGroups(ctx context.Context, userID string, observedGroupIDs, configuredGroupIDs []string) error {
+func (m *MockClient) UpdateUserGroups(ctx context.Context, userID string, observedGroupIDs []string, configuredGroupIDs *[]string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUserGroups", ctx, userID, observedGroupIDs, configuredGroupIDs)
 	ret0, _ := ret[0].(error)
