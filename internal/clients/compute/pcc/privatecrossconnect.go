@@ -29,7 +29,7 @@ type Client interface {
 
 // CheckDuplicatePrivateCrossConnect based on privateCrossConnectName, and the immutable property location
 func (cp *APIClient) CheckDuplicatePrivateCrossConnect(ctx context.Context, privateCrossConnectName string) (*sdkgo.PrivateCrossConnect, error) { // nolint: gocyclo
-	privateCrossConnects, _, err := cp.ComputeClient.PrivateCrossConnectsApi.PccsGet(ctx).Depth(utils.DepthQueryParam).Execute()
+	privateCrossConnects, _, err := cp.IonosServices.ComputeClient.PrivateCrossConnectsApi.PccsGet(ctx).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -68,28 +68,28 @@ func (cp *APIClient) GetPrivateCrossConnectID(privateCrossConnect *sdkgo.Private
 
 // GetPrivateCrossConnect based on privateCrossConnectID
 func (cp *APIClient) GetPrivateCrossConnect(ctx context.Context, privateCrossConnectID string) (sdkgo.PrivateCrossConnect, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.PrivateCrossConnectsApi.PccsFindById(ctx, privateCrossConnectID).Depth(utils.DepthQueryParam).Execute()
+	return cp.IonosServices.ComputeClient.PrivateCrossConnectsApi.PccsFindById(ctx, privateCrossConnectID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreatePrivateCrossConnect based on pcc properties
 func (cp *APIClient) CreatePrivateCrossConnect(ctx context.Context, privateCrossConnect sdkgo.PrivateCrossConnect) (sdkgo.PrivateCrossConnect, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.PrivateCrossConnectsApi.PccsPost(ctx).Pcc(privateCrossConnect).Execute()
+	return cp.IonosServices.ComputeClient.PrivateCrossConnectsApi.PccsPost(ctx).Pcc(privateCrossConnect).Execute()
 }
 
 // UpdatePrivateCrossConnect based on privateCrossConnectID and pcc properties
 func (cp *APIClient) UpdatePrivateCrossConnect(ctx context.Context, privateCrossConnectID string, privateCrossConnect sdkgo.PrivateCrossConnectProperties) (sdkgo.PrivateCrossConnect, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.PrivateCrossConnectsApi.PccsPatch(ctx, privateCrossConnectID).Pcc(privateCrossConnect).Execute()
+	return cp.IonosServices.ComputeClient.PrivateCrossConnectsApi.PccsPatch(ctx, privateCrossConnectID).Pcc(privateCrossConnect).Execute()
 }
 
 // DeletePrivateCrossConnect based on privateCrossConnectID
 func (cp *APIClient) DeletePrivateCrossConnect(ctx context.Context, privateCrossConnectID string) (*sdkgo.APIResponse, error) {
-	resp, err := cp.ComputeClient.PrivateCrossConnectsApi.PccsDelete(ctx, privateCrossConnectID).Execute()
+	resp, err := cp.IonosServices.ComputeClient.PrivateCrossConnectsApi.PccsDelete(ctx, privateCrossConnectID).Execute()
 	return resp, err
 }
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.ComputeClient
+	return cp.IonosServices.ComputeClient
 }
 
 // GenerateCreatePrivateCrossConnectInput returns sdkgo.pcc based on the CR spec

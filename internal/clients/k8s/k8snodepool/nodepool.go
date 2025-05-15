@@ -34,7 +34,7 @@ type Client interface {
 
 // CheckDuplicateK8sNodePool based on clusterID, nodepoolName and on multiple properties for CR spec
 func (cp *APIClient) CheckDuplicateK8sNodePool(ctx context.Context, clusterID, nodePoolName string, cr *v1alpha1.NodePool) (*sdkgo.KubernetesNodePool, error) { // nolint: gocyclo
-	nodePools, _, err := cp.ComputeClient.KubernetesApi.K8sNodepoolsGet(ctx, clusterID).Depth(utils.DepthQueryParam).Execute()
+	nodePools, _, err := cp.IonosServices.ComputeClient.KubernetesApi.K8sNodepoolsGet(ctx, clusterID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -107,28 +107,28 @@ func (cp *APIClient) GetK8sNodePoolID(nodepool *sdkgo.KubernetesNodePool) (strin
 
 // GetK8sNodePool based on clusterID, nodepoolID
 func (cp *APIClient) GetK8sNodePool(ctx context.Context, clusterID, nodepoolID string) (sdkgo.KubernetesNodePool, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.KubernetesApi.K8sNodepoolsFindById(ctx, clusterID, nodepoolID).Depth(utils.DepthQueryParam).Execute()
+	return cp.IonosServices.ComputeClient.KubernetesApi.K8sNodepoolsFindById(ctx, clusterID, nodepoolID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateK8sNodePool based on clusterID, KubernetesNodePoolForPost
 func (cp *APIClient) CreateK8sNodePool(ctx context.Context, clusterID string, nodepool sdkgo.KubernetesNodePoolForPost) (sdkgo.KubernetesNodePool, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.KubernetesApi.K8sNodepoolsPost(ctx, clusterID).KubernetesNodePool(nodepool).Execute()
+	return cp.IonosServices.ComputeClient.KubernetesApi.K8sNodepoolsPost(ctx, clusterID).KubernetesNodePool(nodepool).Execute()
 }
 
 // UpdateK8sNodePool based on clusterID, nodepoolID and KubernetesNodePoolForPut
 func (cp *APIClient) UpdateK8sNodePool(ctx context.Context, clusterID, nodepoolID string, nodepool sdkgo.KubernetesNodePoolForPut) (sdkgo.KubernetesNodePool, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.KubernetesApi.K8sNodepoolsPut(ctx, clusterID, nodepoolID).KubernetesNodePool(nodepool).Execute()
+	return cp.IonosServices.ComputeClient.KubernetesApi.K8sNodepoolsPut(ctx, clusterID, nodepoolID).KubernetesNodePool(nodepool).Execute()
 }
 
 // DeleteK8sNodePool based on clusterID, nodepoolID
 func (cp *APIClient) DeleteK8sNodePool(ctx context.Context, clusterID, nodepoolID string) (*sdkgo.APIResponse, error) {
-	resp, err := cp.ComputeClient.KubernetesApi.K8sNodepoolsDelete(ctx, clusterID, nodepoolID).Execute()
+	resp, err := cp.IonosServices.ComputeClient.KubernetesApi.K8sNodepoolsDelete(ctx, clusterID, nodepoolID).Execute()
 	return resp, err
 }
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.ComputeClient
+	return cp.IonosServices.ComputeClient
 }
 
 // GenerateCreateK8sNodePoolInput returns sdkgo.KubernetesNodePoolForPost based on the CR spec
