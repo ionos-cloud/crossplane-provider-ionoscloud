@@ -451,14 +451,14 @@ spec:
                     type: array
                   clusterId:
                     type: string
+                  k8sVersion:
+                    type: string
                   state:
                     type: string
                   viableNodePoolVersions:
                     items:
                       type: string
                     type: array
-                  k8sVersion:
-                    type: string
                 type: object
               conditions:
                 description: Conditions of the resource.

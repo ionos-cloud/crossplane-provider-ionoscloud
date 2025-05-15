@@ -797,6 +797,8 @@ spec:
                     type: array
                   cpuFamily:
                     type: string
+                  k8sVersion:
+                    type: string
                   nodeCount:
                     format: int32
                     type: integer
@@ -807,8 +809,6 @@ spec:
                       type: string
                     type: array
                   state:
-                    type: string
-                  k8sVersion:
                     type: string
                 type: object
               conditions:
