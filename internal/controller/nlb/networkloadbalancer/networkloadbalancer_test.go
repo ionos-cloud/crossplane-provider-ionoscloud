@@ -10,9 +10,9 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	"github.com/golang/mock/gomock"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/nlb/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"

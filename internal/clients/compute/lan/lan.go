@@ -23,7 +23,7 @@ type Client interface {
 	GetLanID(lan *sdkgo.Lan) (string, error)
 	GetLan(ctx context.Context, datacenterID, lanID string) (sdkgo.Lan, *sdkgo.APIResponse, error)
 	GetLanIPFailovers(ctx context.Context, datacenterID, lanID string) ([]sdkgo.IPFailover, error)
-	CreateLan(ctx context.Context, datacenterID string, lan sdkgo.LanPost) (sdkgo.LanPost, *sdkgo.APIResponse, error)
+	CreateLan(ctx context.Context, datacenterID string, lan sdkgo.Lan) (sdkgo.Lan, *sdkgo.APIResponse, error)
 	UpdateLan(ctx context.Context, datacenterID, lanID string, lan sdkgo.LanProperties) (sdkgo.Lan, *sdkgo.APIResponse, error)
 	DeleteLan(ctx context.Context, datacenterID, lanID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
@@ -87,7 +87,7 @@ func (cp *APIClient) GetLanIPFailovers(ctx context.Context, datacenterID, lanID 
 }
 
 // CreateLan based on datacenterID and Lan properties
-func (cp *APIClient) CreateLan(ctx context.Context, datacenterID string, lan sdkgo.LanPost) (sdkgo.LanPost, *sdkgo.APIResponse, error) {
+func (cp *APIClient) CreateLan(ctx context.Context, datacenterID string, lan sdkgo.Lan) (sdkgo.Lan, *sdkgo.APIResponse, error) {
 	return cp.ComputeClient.LANsApi.DatacentersLansPost(ctx, datacenterID).Lan(lan).Execute()
 }
 
@@ -108,9 +108,9 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 }
 
 // GenerateCreateLanInput returns sdkgo.LanPost based on the CR spec
-func GenerateCreateLanInput(cr *v1alpha1.Lan) (*sdkgo.LanPost, error) {
-	instanceCreateInput := sdkgo.LanPost{
-		Properties: &sdkgo.LanPropertiesPost{
+func GenerateCreateLanInput(cr *v1alpha1.Lan) (*sdkgo.Lan, error) {
+	instanceCreateInput := sdkgo.Lan{
+		Properties: &sdkgo.LanProperties{
 			Public: &cr.Spec.ForProvider.Public,
 		},
 	}
@@ -272,4 +272,16 @@ func GetIPFailoverIPs(lan sdkgo.Lan) []string {
 		}
 	}
 	return ips
+}
+
+// GetIpv4CidrBlock returns the Ipv4CidrBlock set on Lan
+func GetIpv4CidrBlock(lan sdkgo.Lan) string {
+	var cidr string
+	if propertiesOk, ok := lan.GetPropertiesOk(); ok && propertiesOk != nil {
+		if ipv4CidrBlock, ok := propertiesOk.GetIpv4CidrBlockOk(); ok && ipv4CidrBlock != nil {
+			cidr = *ipv4CidrBlock
+		}
+	}
+
+	return cidr
 }

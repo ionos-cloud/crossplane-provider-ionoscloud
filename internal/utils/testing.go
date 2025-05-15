@@ -3,7 +3,7 @@ package utils
 import (
 	"encoding/json"
 
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 )
 
 // MatchEqFormatter returns a gomock.Eq that uses formatterFunc for want and got values

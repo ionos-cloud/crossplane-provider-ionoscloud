@@ -1223,6 +1223,8 @@ spec:
                               items:
                                 type: string
                               type: array
+                            ipv4Cidr:
+                              type: string
                             lanId:
                               type: string
                             name:
