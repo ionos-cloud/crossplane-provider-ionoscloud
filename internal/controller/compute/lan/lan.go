@@ -134,6 +134,7 @@ func (c *externalLan) Observe(ctx context.Context, mg resource.Managed) (managed
 	current := cr.Spec.ForProvider.DeepCopy()
 	lateInitializer(&cr.Spec.ForProvider, &instance)
 	cr.Status.AtProvider.IPFailovers = lan.GetIPFailoverIPs(instance)
+	cr.Status.AtProvider.Ipv4Cidr = lan.GetIpv4CidrBlock(instance)
 	cr.Status.AtProvider.LanID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&instance)
 	if instance.Properties != nil {

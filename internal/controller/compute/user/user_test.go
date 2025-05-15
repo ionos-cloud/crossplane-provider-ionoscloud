@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -246,7 +246,7 @@ func TestUserCreate(t *testing.T) {
 					},
 				}
 				client.EXPECT().CreateUser(ctx, gomock.Any(), "strongpassword").Return(user, apires, nil)
-				client.EXPECT().UpdateUserGroups(ctx, userIDInTest, nil, []string{groupIDInTest}).Return(nil)
+				client.EXPECT().UpdateUserGroups(ctx, userIDInTest, nil, &[]string{groupIDInTest}).Return(nil)
 			},
 			cr: &v1alpha1.User{ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
@@ -294,7 +294,7 @@ func TestUserCreate(t *testing.T) {
 					},
 				}
 				client.EXPECT().CreateUser(ctx, gomock.Any(), "$3cr3t").Return(user, apires, nil)
-				client.EXPECT().UpdateUserGroups(ctx, userIDInTest, nil, []string{groupIDInTest}).Return(nil)
+				client.EXPECT().UpdateUserGroups(ctx, userIDInTest, nil, &[]string{groupIDInTest}).Return(nil)
 			},
 			cr: &v1alpha1.User{Spec: v1alpha1.UserSpec{
 				ForProvider: userParams(defaultParams),
@@ -387,7 +387,7 @@ func TestUserUpdate(t *testing.T) {
 						user.Properties.Email = &p.Email
 						return user, apires, nil
 					})
-				client.EXPECT().UpdateUserGroups(ctx, userIDInTest, nil, []string{groupIDInTest}).Return(nil)
+				client.EXPECT().UpdateUserGroups(ctx, userIDInTest, nil, &[]string{groupIDInTest}).Return(nil)
 			},
 			cr: &v1alpha1.User{
 				Spec: v1alpha1.UserSpec{
@@ -442,7 +442,7 @@ func TestUserUpdate(t *testing.T) {
 						user.Properties.Email = &p.Email
 						return user, apires, nil
 					})
-				client.EXPECT().UpdateUserGroups(ctx, userIDInTest, nil, []string{groupIDInTest}).Return(nil)
+				client.EXPECT().UpdateUserGroups(ctx, userIDInTest, nil, &[]string{groupIDInTest}).Return(nil)
 			},
 			cr: &v1alpha1.User{
 				Spec: v1alpha1.UserSpec{
@@ -570,7 +570,7 @@ func userParams(mod func(*v1alpha1.UserParameters)) v1alpha1.UserParameters {
 		Password:      "$3cr3t",
 		SecAuthActive: false,
 		Active:        false,
-		GroupIDs:      []string{groupIDInTest},
+		GroupIDs:      &[]string{groupIDInTest},
 	}
 	if mod != nil {
 		mod(p)

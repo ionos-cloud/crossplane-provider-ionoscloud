@@ -43,7 +43,7 @@ type Client interface {
 	DeleteUser(ctx context.Context, id string) (*ionosdk.APIResponse, error)
 	AddUserToGroup(ctx context.Context, groupID string, userID string) (ionosdk.User, *ionosdk.APIResponse, error)
 	DeleteUserFromGroup(ctx context.Context, groupID string, userID string) error
-	UpdateUserGroups(ctx context.Context, userID string, observedGroupIDs, configuredGroupIDs []string) error
+	UpdateUserGroups(ctx context.Context, userID string, observedGroupIDs []string, configuredGroupIDs *[]string) error
 	GetUserGroups(ctx context.Context, userID string) ([]string, error)
 	GetAPIClient() *ionosdk.APIClient
 }
@@ -124,7 +124,7 @@ func (ac *apiClient) DeleteUserFromGroup(ctx context.Context, groupID string, us
 
 // AddUserToGroup adds userID to the group of groupID.
 func (ac *apiClient) AddUserToGroup(ctx context.Context, groupID string, userID string) (ionosdk.User, *ionosdk.APIResponse, error) {
-	u := ionosdk.User{Id: &userID}
+	u := ionosdk.UserGroupPost{Id: &userID}
 	user, resp, err := ac.svc.UserManagementApi.UmGroupsUsersPost(ctx, groupID).User(u).Execute()
 	if err != nil {
 		return ionosdk.User{}, resp, err
@@ -137,9 +137,12 @@ func (ac *apiClient) AddUserToGroup(ctx context.Context, groupID string, userID 
 }
 
 // UpdateUserGroups adds or remove groups for the userID.
-func (ac *apiClient) UpdateUserGroups(ctx context.Context, userID string, observedGroupIDs, configuredGroupIDs []string) error {
+func (ac *apiClient) UpdateUserGroups(ctx context.Context, userID string, observedGroupIDs []string, configuredGroupIDs *[]string) error {
+	if configuredGroupIDs == nil {
+		return nil
+	}
 
-	configured := sets.New[string](configuredGroupIDs...)
+	configured := sets.New[string](*configuredGroupIDs...)
 	observed := sets.New[string](observedGroupIDs...)
 
 	errs := make([]error, 0, len(observed)+len(configured))
@@ -217,6 +220,10 @@ func IsUserUpToDate(params v1alpha1.UserParameters, observed ionosdk.User, obser
 		return false
 	}
 
-	configuredGroups := sets.New[string](params.GroupIDs...)
+	if params.GroupIDs == nil {
+		return true
+	}
+
+	configuredGroups := sets.New[string](*params.GroupIDs...)
 	return configuredGroups.Equal(sets.New[string](observedGroups...))
 }

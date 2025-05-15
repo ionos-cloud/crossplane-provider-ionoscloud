@@ -42,6 +42,10 @@ spec:
       name: IPFAILOVERS
       priority: 1
       type: string
+    - jsonPath: .status.atProvider.ipv4Cidr
+      name: IPV4CIDR
+      priority: 1
+      type: string
     - jsonPath: .status.atProvider.state
       name: STATE
       type: string
@@ -466,6 +470,8 @@ spec:
                     items:
                       type: string
                     type: array
+                  ipv4Cidr:
+                    type: string
                   lanId:
                     type: string
                   name:
