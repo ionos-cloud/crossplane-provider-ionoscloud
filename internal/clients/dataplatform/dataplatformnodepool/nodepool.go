@@ -30,22 +30,22 @@ type Client interface {
 
 // GetDataplatformNodepoolByID based on clusterID
 func (dp *APIClient) GetDataplatformNodepoolByID(ctx context.Context, clusterID, nodepoolID string) (sdkgo.NodePoolResponseData, *sdkgo.APIResponse, error) {
-	return dp.IonosServices.DataplatformClient.DataPlatformNodePoolApi.ClustersNodepoolsFindById(ctx, clusterID, nodepoolID).Execute()
+	return dp.DataplatformClient.DataPlatformNodePoolApi.ClustersNodepoolsFindById(ctx, clusterID, nodepoolID).Execute()
 }
 
 // CreateDataplatformNodepool based on NodepoolsPost
 func (dp *APIClient) CreateDataplatformNodepool(ctx context.Context, clusterID string, cluster sdkgo.CreateNodePoolRequest) (sdkgo.NodePoolResponseData, *sdkgo.APIResponse, error) {
-	return dp.IonosServices.DataplatformClient.DataPlatformNodePoolApi.ClustersNodepoolsPost(ctx, clusterID).CreateNodePoolRequest(cluster).Execute()
+	return dp.DataplatformClient.DataPlatformNodePoolApi.ClustersNodepoolsPost(ctx, clusterID).CreateNodePoolRequest(cluster).Execute()
 }
 
 // PatchDataPlatformNodepool based on clusterID and NodePoolsPatch
 func (dp *APIClient) PatchDataPlatformNodepool(ctx context.Context, clusterID, nodepoolID string, cluster sdkgo.PatchNodePoolRequest) (sdkgo.NodePoolResponseData, *sdkgo.APIResponse, error) {
-	return dp.IonosServices.DataplatformClient.DataPlatformNodePoolApi.ClustersNodepoolsPatch(ctx, clusterID, nodepoolID).PatchNodePoolRequest(cluster).Execute()
+	return dp.DataplatformClient.DataPlatformNodePoolApi.ClustersNodepoolsPatch(ctx, clusterID, nodepoolID).PatchNodePoolRequest(cluster).Execute()
 }
 
 // DeleteDataPlatformNodepool based on clusterID and nodepoolID
 func (dp *APIClient) DeleteDataPlatformNodepool(ctx context.Context, clusterID, nodepoolID string) (*sdkgo.APIResponse, error) {
-	_, resp, err := dp.IonosServices.DataplatformClient.DataPlatformNodePoolApi.ClustersNodepoolsDelete(ctx, clusterID, nodepoolID).Execute()
+	_, resp, err := dp.DataplatformClient.DataPlatformNodePoolApi.ClustersNodepoolsDelete(ctx, clusterID, nodepoolID).Execute()
 	return resp, err
 }
 
@@ -68,7 +68,7 @@ func (dp *APIClient) IsDataplatformDeleted(ctx context.Context, ids ...string) (
 
 // GetAPIClient gets the APIClient
 func (dp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return dp.IonosServices.DataplatformClient
+	return dp.DataplatformClient
 }
 
 // GenerateCreateInput returns sdkgo.KubernetesNodepoolForPost based on the CR spec

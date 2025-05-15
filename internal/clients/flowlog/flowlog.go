@@ -89,7 +89,7 @@ func (c *client) createFlowLog(ctx context.Context, createFn createOrPatchFunc) 
 	if err != nil {
 		return sdkgo.FlowLog{}, fmt.Errorf("%w: %w", errCreate, err)
 	}
-	if err = compute.WaitForRequest(ctx, c.IonosServices.ComputeClient, apiResponse); err != nil {
+	if err = compute.WaitForRequest(ctx, c.ComputeClient, apiResponse); err != nil {
 		return sdkgo.FlowLog{}, fmt.Errorf("%w: %w", errCreateWait, err)
 	}
 	return flowLog, nil
@@ -100,7 +100,7 @@ func (c *client) updateFlowLog(ctx context.Context, updateFn createOrPatchFunc) 
 	if err != nil {
 		return sdkgo.FlowLog{}, fmt.Errorf("%w: %w", errUpdate, err)
 	}
-	if err = compute.WaitForRequest(ctx, c.IonosServices.ComputeClient, apiResponse); err != nil {
+	if err = compute.WaitForRequest(ctx, c.ComputeClient, apiResponse); err != nil {
 		return sdkgo.FlowLog{}, fmt.Errorf("%w: %w", errUpdateWait, err)
 	}
 	return flowLog, nil
@@ -114,7 +114,7 @@ func (c *client) deleteFlowLog(ctx context.Context, deleteFn deleteFunc) error {
 		}
 		return fmt.Errorf("%w: %w", errDelete, err)
 	}
-	if err = compute.WaitForRequest(ctx, c.IonosServices.ComputeClient, apiResponse); err != nil {
+	if err = compute.WaitForRequest(ctx, c.ComputeClient, apiResponse); err != nil {
 		return fmt.Errorf("%w: %w", errDeleteWait, err)
 	}
 	return nil

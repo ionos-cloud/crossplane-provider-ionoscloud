@@ -30,27 +30,27 @@ type Client interface {
 
 // GetDataplatformClusterByID based on clusterID
 func (dp *APIClient) GetDataplatformClusterByID(ctx context.Context, clusterID string) (sdkgo.ClusterResponseData, *sdkgo.APIResponse, error) {
-	return dp.IonosServices.DataplatformClient.DataPlatformClusterApi.ClustersFindById(ctx, clusterID).Execute()
+	return dp.DataplatformClient.DataPlatformClusterApi.ClustersFindById(ctx, clusterID).Execute()
 }
 
 // GetKubeConfig based on clusterID
 func (dp *APIClient) GetKubeConfig(ctx context.Context, clusterID string) (map[string]any, *sdkgo.APIResponse, error) {
-	return dp.IonosServices.DataplatformClient.DataPlatformClusterApi.ClustersKubeconfigFindByClusterId(ctx, clusterID).Execute()
+	return dp.DataplatformClient.DataPlatformClusterApi.ClustersKubeconfigFindByClusterId(ctx, clusterID).Execute()
 }
 
 // CreateDataplatformCluster based on ClustersPost
 func (dp *APIClient) CreateDataplatformCluster(ctx context.Context, cluster sdkgo.CreateClusterRequest) (sdkgo.ClusterResponseData, *sdkgo.APIResponse, error) {
-	return dp.IonosServices.DataplatformClient.DataPlatformClusterApi.ClustersPost(ctx).CreateClusterRequest(cluster).Execute()
+	return dp.DataplatformClient.DataPlatformClusterApi.ClustersPost(ctx).CreateClusterRequest(cluster).Execute()
 }
 
 // PatchDataPlatformCluster based on clusterID and ClustersPatch
 func (dp *APIClient) PatchDataPlatformCluster(ctx context.Context, clusterID string, cluster sdkgo.PatchClusterRequest) (sdkgo.ClusterResponseData, *sdkgo.APIResponse, error) {
-	return dp.IonosServices.DataplatformClient.DataPlatformClusterApi.ClustersPatch(ctx, clusterID).PatchClusterRequest(cluster).Execute()
+	return dp.DataplatformClient.DataPlatformClusterApi.ClustersPatch(ctx, clusterID).PatchClusterRequest(cluster).Execute()
 }
 
 // DeleteDataPlatformCluster based on clusterID
 func (dp *APIClient) DeleteDataPlatformCluster(ctx context.Context, clusterID string) (*sdkgo.APIResponse, error) {
-	_, resp, err := dp.IonosServices.DataplatformClient.DataPlatformClusterApi.ClustersDelete(ctx, clusterID).Execute()
+	_, resp, err := dp.DataplatformClient.DataPlatformClusterApi.ClustersDelete(ctx, clusterID).Execute()
 	return resp, err
 }
 
@@ -72,7 +72,7 @@ func (dp *APIClient) IsDataplatformDeleted(ctx context.Context, ids ...string) (
 
 // GetAPIClient gets the APIClient
 func (dp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return dp.IonosServices.DataplatformClient
+	return dp.DataplatformClient
 }
 
 // GenerateCreateInput returns sdkgo.KubernetesClusterForPost based on the CR spec

@@ -49,7 +49,7 @@ type Client interface {
 // CheckDuplicateForwardingRule returns the ID of the duplicate Forwarding Rule if any,
 // or an error if multiple Forwarding Rules with the same name are found
 func (cp *APIClient) CheckDuplicateForwardingRule(ctx context.Context, datacenterID, nlbID, ruleName string) (string, error) {
-	ForwardingRules, _, err := cp.IonosServices.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersForwardingrulesGet(ctx, datacenterID, nlbID).Depth(utils.DepthQueryParam).Execute()
+	ForwardingRules, _, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersForwardingrulesGet(ctx, datacenterID, nlbID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return "", fmt.Errorf(ruleListErr, err)
 	}
@@ -78,7 +78,7 @@ func (cp *APIClient) CheckDuplicateForwardingRule(ctx context.Context, datacente
 
 // GetForwardingRuleByID based on Datacenter ID, NetworkLoadBalancer ID and ForwardingRule ID
 func (cp *APIClient) GetForwardingRuleByID(ctx context.Context, datacenterID, nlbID, ruleID string) (sdkgo.NetworkLoadBalancerForwardingRule, error) {
-	rule, apiResponse, err := cp.IonosServices.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersForwardingrulesFindByForwardingRuleId(ctx, datacenterID, nlbID, ruleID).Depth(utils.DepthQueryParam).Execute()
+	rule, apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersForwardingrulesFindByForwardingRuleId(ctx, datacenterID, nlbID, ruleID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		err = ErrNotFound
 		if !apiResponse.HttpNotFound() {
@@ -90,11 +90,11 @@ func (cp *APIClient) GetForwardingRuleByID(ctx context.Context, datacenterID, nl
 
 // CreateForwardingRule based on Datacenter ID, NetworkLoadBalancer ID and ForwardingRule
 func (cp *APIClient) CreateForwardingRule(ctx context.Context, datacenterID, nlbID string, rule sdkgo.NetworkLoadBalancerForwardingRule) (sdkgo.NetworkLoadBalancerForwardingRule, error) {
-	rule, apiResponse, err := cp.IonosServices.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersForwardingrulesPost(ctx, datacenterID, nlbID).NetworkLoadBalancerForwardingRule(rule).Execute()
+	rule, apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersForwardingrulesPost(ctx, datacenterID, nlbID).NetworkLoadBalancerForwardingRule(rule).Execute()
 	if err != nil {
 		return sdkgo.NetworkLoadBalancerForwardingRule{}, fmt.Errorf(ruleCreateErr, err)
 	}
-	if err = compute.WaitForRequest(ctx, cp.IonosServices.ComputeClient, apiResponse); err != nil {
+	if err = compute.WaitForRequest(ctx, cp.ComputeClient, apiResponse); err != nil {
 		return sdkgo.NetworkLoadBalancerForwardingRule{}, fmt.Errorf(ruleCreateWaitErr, err)
 	}
 	return rule, err
@@ -102,11 +102,11 @@ func (cp *APIClient) CreateForwardingRule(ctx context.Context, datacenterID, nlb
 
 // UpdateForwardingRule based on Datacenter ID, NetworkLoadBalancer ID, ForwardingRule ID and ForwardingRule
 func (cp *APIClient) UpdateForwardingRule(ctx context.Context, datacenterID, nlbID, ruleID string, ruleProperties sdkgo.NetworkLoadBalancerForwardingRuleProperties) (sdkgo.NetworkLoadBalancerForwardingRule, error) {
-	rule, apiResponse, err := cp.IonosServices.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersForwardingrulesPatch(ctx, datacenterID, nlbID, ruleID).NetworkLoadBalancerForwardingRuleProperties(ruleProperties).Execute()
+	rule, apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersForwardingrulesPatch(ctx, datacenterID, nlbID, ruleID).NetworkLoadBalancerForwardingRuleProperties(ruleProperties).Execute()
 	if err != nil {
 		return sdkgo.NetworkLoadBalancerForwardingRule{}, fmt.Errorf(ruleUpdateErr, err)
 	}
-	if err = compute.WaitForRequest(ctx, cp.IonosServices.ComputeClient, apiResponse); err != nil {
+	if err = compute.WaitForRequest(ctx, cp.ComputeClient, apiResponse); err != nil {
 		return sdkgo.NetworkLoadBalancerForwardingRule{}, fmt.Errorf(ruleUpdateWaitErr, err)
 	}
 	return rule, nil
@@ -114,14 +114,14 @@ func (cp *APIClient) UpdateForwardingRule(ctx context.Context, datacenterID, nlb
 
 // DeleteForwardingRule based on Datacenter ID, NetworkLoadBalancer ID and ForwardingRule ID
 func (cp *APIClient) DeleteForwardingRule(ctx context.Context, datacenterID, nlbID, ruleID string) error {
-	apiResponse, err := cp.IonosServices.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersForwardingrulesDelete(ctx, datacenterID, nlbID, ruleID).Execute()
+	apiResponse, err := cp.ComputeClient.NetworkLoadBalancersApi.DatacentersNetworkloadbalancersForwardingrulesDelete(ctx, datacenterID, nlbID, ruleID).Execute()
 	if err != nil {
 		if apiResponse.HttpNotFound() {
 			return ErrNotFound
 		}
 		return fmt.Errorf(ruleDeleteErr, err)
 	}
-	if err = compute.WaitForRequest(ctx, cp.IonosServices.ComputeClient, apiResponse); err != nil {
+	if err = compute.WaitForRequest(ctx, cp.ComputeClient, apiResponse); err != nil {
 		return fmt.Errorf(ruleDeleteWaitErr, err)
 	}
 	return nil

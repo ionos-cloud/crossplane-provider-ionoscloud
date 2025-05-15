@@ -30,7 +30,7 @@ type Client interface {
 
 // CheckDuplicateFirewallRule based on firewallRuleName, and the immutable property protocol
 func (cp *APIClient) CheckDuplicateFirewallRule(ctx context.Context, datacenterID, serverID, nicID, firewallRuleName, protocol string) (*sdkgo.FirewallRule, error) { // nolint: gocyclo
-	firewallRules, _, err := cp.IonosServices.ComputeClient.FirewallRulesApi.DatacentersServersNicsFirewallrulesGet(ctx, datacenterID, serverID, nicID).Depth(utils.DepthQueryParam).Execute()
+	firewallRules, _, err := cp.ComputeClient.FirewallRulesApi.DatacentersServersNicsFirewallrulesGet(ctx, datacenterID, serverID, nicID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -74,28 +74,28 @@ func (cp *APIClient) GetFirewallRuleID(firewallRule *sdkgo.FirewallRule) (string
 
 // GetFirewallRule based on firewallRuleID
 func (cp *APIClient) GetFirewallRule(ctx context.Context, datacenterID, serverID, nicID, firewallRuleID string) (sdkgo.FirewallRule, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.FirewallRulesApi.DatacentersServersNicsFirewallrulesFindById(ctx, datacenterID, serverID, nicID, firewallRuleID).Depth(utils.DepthQueryParam).Execute()
+	return cp.ComputeClient.FirewallRulesApi.DatacentersServersNicsFirewallrulesFindById(ctx, datacenterID, serverID, nicID, firewallRuleID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateFirewallRule based on FirewallRule properties
 func (cp *APIClient) CreateFirewallRule(ctx context.Context, datacenterID, serverID, nicID string, firewallRule sdkgo.FirewallRule) (sdkgo.FirewallRule, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.FirewallRulesApi.DatacentersServersNicsFirewallrulesPost(ctx, datacenterID, serverID, nicID).Firewallrule(firewallRule).Execute()
+	return cp.ComputeClient.FirewallRulesApi.DatacentersServersNicsFirewallrulesPost(ctx, datacenterID, serverID, nicID).Firewallrule(firewallRule).Execute()
 }
 
 // UpdateFirewallRule based on firewallRuleID and FirewallRule properties
 func (cp *APIClient) UpdateFirewallRule(ctx context.Context, datacenterID, serverID, nicID, firewallRuleID string, firewallRule sdkgo.FirewallruleProperties) (sdkgo.FirewallRule, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.FirewallRulesApi.DatacentersServersNicsFirewallrulesPatch(ctx, datacenterID, serverID, nicID, firewallRuleID).Firewallrule(firewallRule).Execute()
+	return cp.ComputeClient.FirewallRulesApi.DatacentersServersNicsFirewallrulesPatch(ctx, datacenterID, serverID, nicID, firewallRuleID).Firewallrule(firewallRule).Execute()
 }
 
 // DeleteFirewallRule based on firewallRuleID
 func (cp *APIClient) DeleteFirewallRule(ctx context.Context, datacenterID, serverID, nicID, firewallRuleID string) (*sdkgo.APIResponse, error) {
-	resp, err := cp.IonosServices.ComputeClient.FirewallRulesApi.DatacentersServersNicsFirewallrulesDelete(ctx, datacenterID, serverID, nicID, firewallRuleID).Execute()
+	resp, err := cp.ComputeClient.FirewallRulesApi.DatacentersServersNicsFirewallrulesDelete(ctx, datacenterID, serverID, nicID, firewallRuleID).Execute()
 	return resp, err
 }
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.IonosServices.ComputeClient
+	return cp.ComputeClient
 }
 
 // GenerateCreateFirewallRuleInput returns sdkgo.FirewallRule based on the CR spec

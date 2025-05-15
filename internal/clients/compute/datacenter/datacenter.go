@@ -30,7 +30,7 @@ type Client interface {
 
 // CheckDuplicateDatacenter based on datacenterName, and the immutable property location
 func (cp *APIClient) CheckDuplicateDatacenter(ctx context.Context, datacenterName, location string) (*sdkgo.Datacenter, error) { // nolint: gocyclo
-	datacenters, _, err := cp.IonosServices.ComputeClient.DataCentersApi.DatacentersGet(ctx).Depth(utils.DepthQueryParam).Execute()
+	datacenters, _, err := cp.ComputeClient.DataCentersApi.DatacentersGet(ctx).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (cp *APIClient) GetDatacenterID(datacenter *sdkgo.Datacenter) (string, erro
 
 // GetDatacenter based on datacenterID
 func (cp *APIClient) GetDatacenter(ctx context.Context, datacenterID string) (sdkgo.Datacenter, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.DataCentersApi.DatacentersFindById(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
+	return cp.ComputeClient.DataCentersApi.DatacentersFindById(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateDatacenter based on Datacenter properties
@@ -89,14 +89,14 @@ func (cp *APIClient) UpdateDatacenter(ctx context.Context, datacenterID string, 
 
 // DeleteDatacenter based on datacenterID
 func (cp *APIClient) DeleteDatacenter(ctx context.Context, datacenterID string) (*sdkgo.APIResponse, error) {
-	resp, err := cp.IonosServices.ComputeClient.DataCentersApi.DatacentersDelete(ctx, datacenterID).Execute()
+	resp, err := cp.ComputeClient.DataCentersApi.DatacentersDelete(ctx, datacenterID).Execute()
 	return resp, err
 }
 
 // GetCPUFamiliesForDatacenter based on datacenterID
 func (cp *APIClient) GetCPUFamiliesForDatacenter(ctx context.Context, datacenterID string) ([]string, error) {
 	cpuFamiliesAvailable := make([]string, 0)
-	datacenter, _, err := cp.IonosServices.ComputeClient.DataCentersApi.DatacentersFindById(ctx, datacenterID).Execute()
+	datacenter, _, err := cp.ComputeClient.DataCentersApi.DatacentersFindById(ctx, datacenterID).Execute()
 	if err != nil {
 		return cpuFamiliesAvailable, err
 	}
@@ -114,7 +114,7 @@ func (cp *APIClient) GetCPUFamiliesForDatacenter(ctx context.Context, datacenter
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.IonosServices.ComputeClient
+	return cp.ComputeClient
 }
 
 // GenerateCreateDatacenterInput returns sdkgo.Datacenter based on the CR spec

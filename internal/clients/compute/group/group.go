@@ -51,7 +51,7 @@ type SharesUpdateOp struct {
 
 // CheckDuplicateGroup based on groupName, returns the ID of the duplicate group if any, or an error if multiple duplicate name groups are found
 func (cp *APIClient) CheckDuplicateGroup(ctx context.Context, groupName string) (string, error) {
-	groups, _, err := cp.IonosServices.ComputeClient.UserManagementApi.UmGroupsGet(ctx).Depth(utils.DepthQueryParam).Execute()
+	groups, _, err := cp.ComputeClient.UserManagementApi.UmGroupsGet(ctx).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return "", err
 	}
@@ -79,12 +79,12 @@ func (cp *APIClient) CheckDuplicateGroup(ctx context.Context, groupName string) 
 
 // GetGroup based on groupID
 func (cp *APIClient) GetGroup(ctx context.Context, groupID string) (sdkgo.Group, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.UserManagementApi.UmGroupsFindById(ctx, groupID).Depth(utils.DepthQueryParam).Execute()
+	return cp.ComputeClient.UserManagementApi.UmGroupsFindById(ctx, groupID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // GetGroupMembers retrieves users that are added to the group
 func (cp *APIClient) GetGroupMembers(ctx context.Context, groupID string) ([]string, *sdkgo.APIResponse, error) {
-	members, apiResponse, err := cp.IonosServices.ComputeClient.UserManagementApi.UmGroupsUsersGet(ctx, groupID).Execute()
+	members, apiResponse, err := cp.ComputeClient.UserManagementApi.UmGroupsUsersGet(ctx, groupID).Execute()
 	if err != nil {
 		return nil, apiResponse, err
 	}
@@ -103,7 +103,7 @@ func (cp *APIClient) GetGroupMembers(ctx context.Context, groupID string) ([]str
 
 // GetGroupResourceShares retrieves resources shares that have been added to the group
 func (cp *APIClient) GetGroupResourceShares(ctx context.Context, groupID string) ([]v1alpha1.ResourceShare, *sdkgo.APIResponse, error) {
-	shares, apiResponse, err := cp.IonosServices.ComputeClient.UserManagementApi.UmGroupsSharesGet(ctx, groupID).Depth(2).Execute()
+	shares, apiResponse, err := cp.ComputeClient.UserManagementApi.UmGroupsSharesGet(ctx, groupID).Depth(2).Execute()
 	if err != nil {
 		return nil, apiResponse, err
 	}
@@ -130,12 +130,12 @@ func (cp *APIClient) GetGroupResourceShares(ctx context.Context, groupID string)
 
 // CreateGroup based on Group properties
 func (cp *APIClient) CreateGroup(ctx context.Context, group sdkgo.Group) (sdkgo.Group, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.UserManagementApi.UmGroupsPost(ctx).Group(group).Execute()
+	return cp.ComputeClient.UserManagementApi.UmGroupsPost(ctx).Group(group).Execute()
 }
 
 // UpdateGroup based on groupID and Group properties
 func (cp *APIClient) UpdateGroup(ctx context.Context, groupID string, group sdkgo.Group) (sdkgo.Group, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.UserManagementApi.UmGroupsPut(ctx, groupID).Group(group).Execute()
+	return cp.ComputeClient.UserManagementApi.UmGroupsPut(ctx, groupID).Group(group).Execute()
 }
 
 // AddGroupMember adds the User referenced by userID to the Group with groupID
@@ -152,7 +152,7 @@ func (cp *APIClient) AddGroupMember(ctx context.Context, groupID, userID string)
 
 // RemoveGroupMember removes the User referenced by userID from the Group with groupID
 func (cp *APIClient) RemoveGroupMember(ctx context.Context, groupID, userID string) (*sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.UserManagementApi.UmGroupsUsersDelete(ctx, groupID, userID).Execute()
+	return cp.ComputeClient.UserManagementApi.UmGroupsUsersDelete(ctx, groupID, userID).Execute()
 }
 
 // UpdateGroupMembers updates the members of Group depending on modFn using the userIDs set
@@ -178,7 +178,7 @@ func (cp *APIClient) UpdateGroupMembers(ctx context.Context, groupID string, mem
 // AddResourceShare adds a ResourceShare to the Group with groupID
 func (cp *APIClient) AddResourceShare(ctx context.Context, groupID string, share v1alpha1.ResourceShare) (*sdkgo.APIResponse, error) {
 	groupShare := sdkgo.GroupShare{Properties: &sdkgo.GroupShareProperties{EditPrivilege: &share.EditPrivilege, SharePrivilege: &share.SharePrivilege}}
-	_, apiResponse, err := cp.IonosServices.ComputeClient.UserManagementApi.UmGroupsSharesPost(ctx, groupID, share.ResourceID).Resource(groupShare).Execute()
+	_, apiResponse, err := cp.ComputeClient.UserManagementApi.UmGroupsSharesPost(ctx, groupID, share.ResourceID).Resource(groupShare).Execute()
 	if err != nil {
 		return apiResponse, err
 	}
@@ -191,7 +191,7 @@ func (cp *APIClient) AddResourceShare(ctx context.Context, groupID string, share
 // UpdateResourceShare updates a ResourceShare of the Group with groupID
 func (cp *APIClient) UpdateResourceShare(ctx context.Context, groupID string, share v1alpha1.ResourceShare) (*sdkgo.APIResponse, error) {
 	groupShare := sdkgo.GroupShare{Properties: &sdkgo.GroupShareProperties{EditPrivilege: &share.EditPrivilege, SharePrivilege: &share.SharePrivilege}}
-	_, apiResponse, err := cp.IonosServices.ComputeClient.UserManagementApi.UmGroupsSharesPut(ctx, groupID, share.ResourceID).Resource(groupShare).Execute()
+	_, apiResponse, err := cp.ComputeClient.UserManagementApi.UmGroupsSharesPut(ctx, groupID, share.ResourceID).Resource(groupShare).Execute()
 	if err != nil {
 		return apiResponse, err
 	}
@@ -203,7 +203,7 @@ func (cp *APIClient) UpdateResourceShare(ctx context.Context, groupID string, sh
 
 // RemoveResourceShare removes a ResourceShare from the Group with groupID
 func (cp *APIClient) RemoveResourceShare(ctx context.Context, groupID string, share v1alpha1.ResourceShare) (*sdkgo.APIResponse, error) {
-	apiResponse, err := cp.IonosServices.ComputeClient.UserManagementApi.UmGroupsSharesDelete(ctx, groupID, share.ResourceID).Execute()
+	apiResponse, err := cp.ComputeClient.UserManagementApi.UmGroupsSharesDelete(ctx, groupID, share.ResourceID).Execute()
 	if err != nil {
 		return apiResponse, err
 	}
@@ -242,13 +242,13 @@ func (cp *APIClient) UpdateGroupResourceShares(ctx context.Context, groupID stri
 
 // DeleteGroup based on groupID
 func (cp *APIClient) DeleteGroup(ctx context.Context, groupID string) (*sdkgo.APIResponse, error) {
-	resp, err := cp.IonosServices.ComputeClient.UserManagementApi.UmGroupsDelete(ctx, groupID).Execute()
+	resp, err := cp.ComputeClient.UserManagementApi.UmGroupsDelete(ctx, groupID).Execute()
 	return resp, err
 }
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.IonosServices.ComputeClient
+	return cp.ComputeClient
 }
 
 // GenerateUpdateGroupInput returns sdkgo.Group and members that need to be added and deleted based or CR and observed member IDs

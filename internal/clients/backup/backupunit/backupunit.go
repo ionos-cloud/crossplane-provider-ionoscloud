@@ -31,7 +31,7 @@ type Client interface {
 
 // CheckDuplicateBackupUnit based on backupUnitName
 func (cp *APIClient) CheckDuplicateBackupUnit(ctx context.Context, backupUnitName, email string) (*sdkgo.BackupUnit, error) { // nolint: gocyclo
-	backupUnits, _, err := cp.IonosServices.ComputeClient.BackupUnitsApi.BackupunitsGet(ctx).Depth(utils.DepthQueryParam).Execute()
+	backupUnits, _, err := cp.ComputeClient.BackupUnitsApi.BackupunitsGet(ctx).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -76,17 +76,17 @@ func (cp *APIClient) GetBackupUnitID(backupUnit *sdkgo.BackupUnit) (string, erro
 
 // GetBackupUnit based on backupUnitID
 func (cp *APIClient) GetBackupUnit(ctx context.Context, backupUnitID string) (sdkgo.BackupUnit, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.BackupUnitsApi.BackupunitsFindById(ctx, backupUnitID).Depth(utils.DepthQueryParam).Execute()
+	return cp.ComputeClient.BackupUnitsApi.BackupunitsFindById(ctx, backupUnitID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // GetBackupUnits returns all existing BackupUnits
 func (cp *APIClient) GetBackupUnits(ctx context.Context) (sdkgo.BackupUnits, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.BackupUnitsApi.BackupunitsGet(ctx).Depth(utils.DepthQueryParam).Execute()
+	return cp.ComputeClient.BackupUnitsApi.BackupunitsGet(ctx).Depth(utils.DepthQueryParam).Execute()
 }
 
 // GetBackupUnitIDByName returns BackupUnit with the name specified
 func (cp *APIClient) GetBackupUnitIDByName(ctx context.Context, backupUnitName string) (string, error) {
-	backupUnits, _, err := cp.IonosServices.ComputeClient.BackupUnitsApi.BackupunitsGet(ctx).Depth(utils.DepthQueryParam).Filter("name", backupUnitName).Execute()
+	backupUnits, _, err := cp.ComputeClient.BackupUnitsApi.BackupunitsGet(ctx).Depth(utils.DepthQueryParam).Filter("name", backupUnitName).Execute()
 	if err != nil {
 		return "", err
 	}
@@ -109,22 +109,22 @@ func (cp *APIClient) GetBackupUnitIDByName(ctx context.Context, backupUnitName s
 
 // CreateBackupUnit based on BackupUnit properties
 func (cp *APIClient) CreateBackupUnit(ctx context.Context, backupUnit sdkgo.BackupUnit) (sdkgo.BackupUnit, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.BackupUnitsApi.BackupunitsPost(ctx).BackupUnit(backupUnit).Execute()
+	return cp.ComputeClient.BackupUnitsApi.BackupunitsPost(ctx).BackupUnit(backupUnit).Execute()
 }
 
 // UpdateBackupUnit based on backupUnitID and BackupUnit properties
 func (cp *APIClient) UpdateBackupUnit(ctx context.Context, backupUnitID string, backupUnit sdkgo.BackupUnitProperties) (sdkgo.BackupUnit, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.BackupUnitsApi.BackupunitsPatch(ctx, backupUnitID).BackupUnit(backupUnit).Execute()
+	return cp.ComputeClient.BackupUnitsApi.BackupunitsPatch(ctx, backupUnitID).BackupUnit(backupUnit).Execute()
 }
 
 // DeleteBackupUnit based on backupUnitID
 func (cp *APIClient) DeleteBackupUnit(ctx context.Context, backupUnitID string) (*sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.BackupUnitsApi.BackupunitsDelete(ctx, backupUnitID).Execute()
+	return cp.ComputeClient.BackupUnitsApi.BackupunitsDelete(ctx, backupUnitID).Execute()
 }
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.IonosServices.ComputeClient
+	return cp.ComputeClient
 }
 
 var oldPassword string

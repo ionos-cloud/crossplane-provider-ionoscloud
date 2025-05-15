@@ -30,7 +30,7 @@ type Client interface {
 
 // CheckDuplicateForwardingRule based on datacenterID, applicationloadbalancerName
 func (cp *APIClient) CheckDuplicateForwardingRule(ctx context.Context, datacenterID, applicationloadbalancerID, forwardingruleName string) (*sdkgo.ApplicationLoadBalancerForwardingRule, error) { // nolint: gocyclo
-	forwardingRules, _, err := cp.IonosServices.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersForwardingrulesGet(ctx, datacenterID, applicationloadbalancerID).Depth(utils.DepthQueryParam).Execute()
+	forwardingRules, _, err := cp.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersForwardingrulesGet(ctx, datacenterID, applicationloadbalancerID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -68,28 +68,28 @@ func (cp *APIClient) GetForwardingRuleID(forwardingrule *sdkgo.ApplicationLoadBa
 
 // GetForwardingRule based on datacenterID, applicationloadbalancerID, forwardingruleID
 func (cp *APIClient) GetForwardingRule(ctx context.Context, datacenterID, applicationloadbalancerID, forwardingruleID string) (sdkgo.ApplicationLoadBalancerForwardingRule, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersForwardingrulesFindByForwardingRuleId(ctx, datacenterID, applicationloadbalancerID, forwardingruleID).Depth(utils.DepthQueryParam).Execute()
+	return cp.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersForwardingrulesFindByForwardingRuleId(ctx, datacenterID, applicationloadbalancerID, forwardingruleID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateForwardingRule based on datacenterID, applicationloadbalancerID, ApplicationLoadBalancerForwardingRule
 func (cp *APIClient) CreateForwardingRule(ctx context.Context, datacenterID, applicationloadbalancerID string, forwardingrule sdkgo.ApplicationLoadBalancerForwardingRule) (sdkgo.ApplicationLoadBalancerForwardingRule, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersForwardingrulesPost(ctx, datacenterID, applicationloadbalancerID).ApplicationLoadBalancerForwardingRule(forwardingrule).Execute()
+	return cp.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersForwardingrulesPost(ctx, datacenterID, applicationloadbalancerID).ApplicationLoadBalancerForwardingRule(forwardingrule).Execute()
 }
 
 // UpdateForwardingRule based on datacenterID, applicationloadbalancerID, forwardingruleID and ApplicationLoadBalancerForwardingRulePut
 func (cp *APIClient) UpdateForwardingRule(ctx context.Context, datacenterID, applicationloadbalancerID, forwardingruleID string, applicationloadbalancer sdkgo.ApplicationLoadBalancerForwardingRulePut) (sdkgo.ApplicationLoadBalancerForwardingRule, *sdkgo.APIResponse, error) {
-	return cp.IonosServices.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersForwardingrulesPut(ctx, datacenterID, applicationloadbalancerID, forwardingruleID).ApplicationLoadBalancerForwardingRule(applicationloadbalancer).Execute()
+	return cp.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersForwardingrulesPut(ctx, datacenterID, applicationloadbalancerID, forwardingruleID).ApplicationLoadBalancerForwardingRule(applicationloadbalancer).Execute()
 }
 
 // DeleteForwardingRule based on datacenterID, applicationloadbalancerID, forwardingruleID
 func (cp *APIClient) DeleteForwardingRule(ctx context.Context, datacenterID, applicationloadbalancerID, forwardingruleID string) (*sdkgo.APIResponse, error) {
-	resp, err := cp.IonosServices.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersForwardingrulesDelete(ctx, datacenterID, applicationloadbalancerID, forwardingruleID).Execute()
+	resp, err := cp.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersForwardingrulesDelete(ctx, datacenterID, applicationloadbalancerID, forwardingruleID).Execute()
 	return resp, err
 }
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.IonosServices.ComputeClient
+	return cp.ComputeClient
 }
 
 // GenerateCreateForwardingRuleInput returns sdkgo.ApplicationLoadBalancer based on the CR spec
