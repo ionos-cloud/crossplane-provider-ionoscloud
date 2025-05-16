@@ -231,11 +231,6 @@ func LateInitializer(in *v1alpha1.NodePoolParameters, sg *sdkgo.KubernetesNodePo
 				}
 			}
 		}
-		if versionOk, ok := propertiesOk.GetK8sVersionOk(); ok && versionOk != nil {
-			if utils.IsEmptyValue(reflect.ValueOf(in.K8sVersion)) {
-				in.K8sVersion = *versionOk
-			}
-		}
 	}
 }
 
@@ -245,7 +240,7 @@ func LateStatusInitializer(in *v1alpha1.NodePoolObservation, sg *sdkgo.Kubernete
 	if sg == nil {
 		return
 	}
-	// Add Properties to the Spec, if they were set by the API
+	// Add Properties to the Status, if they were set by the API
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
 		if availableUpgradeVersionsOk, ok := propertiesOk.GetAvailableUpgradeVersionsOk(); ok && availableUpgradeVersionsOk != nil {
 			in.AvailableUpgradeVersions = *availableUpgradeVersionsOk
@@ -262,6 +257,12 @@ func LateStatusInitializer(in *v1alpha1.NodePoolObservation, sg *sdkgo.Kubernete
 
 		if nodeCountOK, ok := propertiesOk.GetNodeCountOk(); ok {
 			in.NodeCount = nodeCountOK
+		}
+
+		if versionOk, ok := propertiesOk.GetK8sVersionOk(); ok && versionOk != nil {
+			if utils.IsEmptyValue(reflect.ValueOf(in.K8sVersion)) {
+				in.K8sVersion = *versionOk
+			}
 		}
 	}
 
@@ -282,7 +283,7 @@ func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodeP
 		return false
 	case nodepool.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
 		return false
-	case nodepool.Properties.K8sVersion != nil && *nodepool.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
+	case nodepool.Properties.K8sVersion != nil && cr.Spec.ForProvider.K8sVersion != "" && *nodepool.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
 		return false
 	case nodepool.Properties.NodeCount != nil &&
 		*nodepool.Properties.NodeCount != cr.Spec.ForProvider.NodeCount &&

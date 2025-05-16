@@ -195,11 +195,6 @@ func LateInitializer(in *v1alpha1.ClusterParameters, sg *sdkgo.KubernetesCluster
 				}
 			}
 		}
-		if versionOk, ok := propertiesOk.GetK8sVersionOk(); ok && versionOk != nil {
-			if utils.IsEmptyValue(reflect.ValueOf(in.K8sVersion)) {
-				in.K8sVersion = *versionOk
-			}
-		}
 		if apiSubnetAllowListOk, ok := propertiesOk.GetApiSubnetAllowListOk(); ok && apiSubnetAllowListOk != nil {
 			if !utils.IsEmptyValue(reflect.ValueOf(in.APISubnetAllowList)) && utils.ContainsStringSlices(in.APISubnetAllowList, *apiSubnetAllowListOk) {
 				in.APISubnetAllowList = *apiSubnetAllowListOk
@@ -214,13 +209,16 @@ func LateStatusInitializer(in *v1alpha1.ClusterObservation, sg *sdkgo.Kubernetes
 	if sg == nil {
 		return
 	}
-	// Add Properties to the Spec, if they were set by the API
+	// Add Properties to the Status, if they were set by the API
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
 		if availableUpgradeVersionsOk, ok := propertiesOk.GetAvailableUpgradeVersionsOk(); ok && availableUpgradeVersionsOk != nil {
 			in.AvailableUpgradeVersions = *availableUpgradeVersionsOk
 		}
 		if viableNodePoolVersionsOk, ok := propertiesOk.GetViableNodePoolVersionsOk(); ok && viableNodePoolVersionsOk != nil {
 			in.ViableNodePoolVersions = *viableNodePoolVersionsOk
+		}
+		if versionOk, ok := propertiesOk.GetK8sVersionOk(); ok && versionOk != nil {
+			in.K8sVersion = *versionOk
 		}
 	}
 }
@@ -240,7 +238,7 @@ func IsK8sClusterUpToDate(cr *v1alpha1.Cluster, cluster sdkgo.KubernetesCluster)
 		return false
 	case cluster.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
 		return false
-	case cluster.Properties.K8sVersion != nil && *cluster.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
+	case cluster.Properties.K8sVersion != nil && cr.Spec.ForProvider.K8sVersion != "" && *cluster.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
 		return false
 	case cluster.Properties.S3Buckets != nil && !isEqS3Buckets(cr.Spec.ForProvider.S3Buckets, *cluster.Properties.S3Buckets):
 		return false
