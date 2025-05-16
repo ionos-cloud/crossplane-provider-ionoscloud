@@ -1,5 +1,6 @@
 # ====================================================================================
 # Setup Project
+# If you are building the provider locally for the first time and you see macro errors related to the makefile, run `make submodules`
 PROJECT_NAME := crossplane-provider-ionoscloud
 PROJECT_REPO := github.com/ionos-cloud/$(PROJECT_NAME)
 
