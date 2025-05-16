@@ -6,7 +6,7 @@ import (
 	"reflect"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
-	"github.com/rung/go-safecast"
+	safecast "github.com/rung/go-safecast"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/alb/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
@@ -31,7 +31,7 @@ type Client interface {
 
 // CheckDuplicateApplicationLoadBalancer based on datacenterID, applicationloadbalancerName
 func (cp *APIClient) CheckDuplicateApplicationLoadBalancer(ctx context.Context, datacenterID, applicationloadbalancerName string) (*sdkgo.ApplicationLoadBalancer, error) { // nolint: gocyclo
-	applicationLoadBalancers, _, err := cp.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
+	applicationLoadBalancers, _, err := cp.IonosServices.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -69,28 +69,28 @@ func (cp *APIClient) GetApplicationLoadBalancerID(applicationloadbalancer *sdkgo
 
 // GetApplicationLoadBalancer based on applicationloadbalancerID
 func (cp *APIClient) GetApplicationLoadBalancer(ctx context.Context, datacenterID, applicationloadbalancerID string) (sdkgo.ApplicationLoadBalancer, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersFindByApplicationLoadBalancerId(ctx, datacenterID, applicationloadbalancerID).Depth(utils.DepthQueryParam).Execute()
+	return cp.IonosServices.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersFindByApplicationLoadBalancerId(ctx, datacenterID, applicationloadbalancerID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateApplicationLoadBalancer based on ApplicationLoadBalancer
 func (cp *APIClient) CreateApplicationLoadBalancer(ctx context.Context, datacenterID string, applicationloadbalancer sdkgo.ApplicationLoadBalancer) (sdkgo.ApplicationLoadBalancer, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersPost(ctx, datacenterID).ApplicationLoadBalancer(applicationloadbalancer).Execute()
+	return cp.IonosServices.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersPost(ctx, datacenterID).ApplicationLoadBalancer(applicationloadbalancer).Execute()
 }
 
 // UpdateApplicationLoadBalancer based on applicationloadbalancerID and ApplicationLoadBalancerProperties
 func (cp *APIClient) UpdateApplicationLoadBalancer(ctx context.Context, datacenterID, applicationloadbalancerID string, applicationloadbalancer sdkgo.ApplicationLoadBalancerProperties) (sdkgo.ApplicationLoadBalancer, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersPatch(ctx, datacenterID, applicationloadbalancerID).ApplicationLoadBalancerProperties(applicationloadbalancer).Execute()
+	return cp.IonosServices.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersPatch(ctx, datacenterID, applicationloadbalancerID).ApplicationLoadBalancerProperties(applicationloadbalancer).Execute()
 }
 
 // DeleteApplicationLoadBalancer based on applicationloadbalancerID
 func (cp *APIClient) DeleteApplicationLoadBalancer(ctx context.Context, datacenterID, applicationloadbalancerID string) (*sdkgo.APIResponse, error) {
-	resp, err := cp.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersDelete(ctx, datacenterID, applicationloadbalancerID).Execute()
+	resp, err := cp.IonosServices.ComputeClient.ApplicationLoadBalancersApi.DatacentersApplicationloadbalancersDelete(ctx, datacenterID, applicationloadbalancerID).Execute()
 	return resp, err
 }
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.ComputeClient
+	return cp.IonosServices.ComputeClient
 }
 
 // GenerateCreateApplicationLoadBalancerInput returns sdkgo.ApplicationLoadBalancer based on the CR spec

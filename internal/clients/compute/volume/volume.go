@@ -31,7 +31,7 @@ type Client interface {
 
 // CheckDuplicateVolume based on datacenterID, volumeName
 func (cp *APIClient) CheckDuplicateVolume(ctx context.Context, datacenterID, volumeName, storageType, availabilityZone, licenceType, image string) (*sdkgo.Volume, error) { // nolint: gocyclo
-	volumes, _, err := cp.ComputeClient.VolumesApi.DatacentersVolumesGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
+	volumes, _, err := cp.IonosServices.ComputeClient.VolumesApi.DatacentersVolumesGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (cp *APIClient) GetVolumeID(volume *sdkgo.Volume) (string, error) {
 // GetServerNameByID based on boot server ID
 func (cp *APIClient) GetServerNameByID(ctx context.Context, datacenterID, serverID string) (string, error) {
 	if serverID != "" && datacenterID != "" {
-		server, apiResponse, err := cp.ComputeClient.ServersApi.DatacentersServersFindById(ctx, datacenterID, serverID).Execute()
+		server, apiResponse, err := cp.IonosServices.ComputeClient.ServersApi.DatacentersServersFindById(ctx, datacenterID, serverID).Execute()
 		if apiResponse.HttpNotFound() {
 			return "", nil
 		}
@@ -108,27 +108,27 @@ func (cp *APIClient) GetServerNameByID(ctx context.Context, datacenterID, server
 
 // GetVolume based on datacenterID and volumeID
 func (cp *APIClient) GetVolume(ctx context.Context, datacenterID, volumeID string) (sdkgo.Volume, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.VolumesApi.DatacentersVolumesFindById(ctx, datacenterID, volumeID).Depth(utils.DepthQueryParam).Execute()
+	return cp.IonosServices.ComputeClient.VolumesApi.DatacentersVolumesFindById(ctx, datacenterID, volumeID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateVolume based on Volume properties
 func (cp *APIClient) CreateVolume(ctx context.Context, datacenterID string, volume sdkgo.Volume) (sdkgo.Volume, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.VolumesApi.DatacentersVolumesPost(ctx, datacenterID).Volume(volume).Execute()
+	return cp.IonosServices.ComputeClient.VolumesApi.DatacentersVolumesPost(ctx, datacenterID).Volume(volume).Execute()
 }
 
 // UpdateVolume based on datacenterID, volumeID and Volume properties
 func (cp *APIClient) UpdateVolume(ctx context.Context, datacenterID, volumeID string, volume sdkgo.VolumeProperties) (sdkgo.Volume, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.VolumesApi.DatacentersVolumesPatch(ctx, datacenterID, volumeID).Volume(volume).Execute()
+	return cp.IonosServices.ComputeClient.VolumesApi.DatacentersVolumesPatch(ctx, datacenterID, volumeID).Volume(volume).Execute()
 }
 
 // DeleteVolume based on datacenterID, volumeID
 func (cp *APIClient) DeleteVolume(ctx context.Context, datacenterID, volumeID string) (*sdkgo.APIResponse, error) {
-	return cp.ComputeClient.VolumesApi.DatacentersVolumesDelete(ctx, datacenterID, volumeID).Execute()
+	return cp.IonosServices.ComputeClient.VolumesApi.DatacentersVolumesDelete(ctx, datacenterID, volumeID).Execute()
 }
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.ComputeClient
+	return cp.IonosServices.ComputeClient
 }
 
 // GenerateCreateVolumeInput returns sdkgo.Volume based on the CR spec

@@ -38,7 +38,7 @@ type Client interface {
 
 // CheckDuplicateServer based on serverName, and the immutable property location
 func (cp *APIClient) CheckDuplicateServer(ctx context.Context, datacenterID, serverName, cpuFamily string) (*sdkgo.Server, error) { // nolint: gocyclo
-	servers, _, err := cp.ComputeClient.ServersApi.DatacentersServersGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
+	servers, _, err := cp.IonosServices.ComputeClient.ServersApi.DatacentersServersGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (cp *APIClient) CheckDuplicateServer(ctx context.Context, datacenterID, ser
 
 // CheckDuplicateCubeServer based on serverName, and on the immutable properties
 func (cp *APIClient) CheckDuplicateCubeServer(ctx context.Context, datacenterID, serverName, templateID string) (string, error) { // nolint: gocyclo
-	servers, _, err := cp.ComputeClient.ServersApi.DatacentersServersGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
+	servers, _, err := cp.IonosServices.ComputeClient.ServersApi.DatacentersServersGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return "", err
 	}
@@ -114,32 +114,32 @@ func (cp *APIClient) GetServerID(server *sdkgo.Server) (string, error) {
 // GetServer based on datacenterID and serverID
 func (cp *APIClient) GetServer(ctx context.Context, datacenterID, serverID string) (sdkgo.Server, *sdkgo.APIResponse, error) {
 	// Use depth=2 to make sure the Managed Resource Server has access to server's entities
-	return cp.ComputeClient.ServersApi.DatacentersServersFindById(ctx, datacenterID, serverID).Depth(int32(2)).Execute()
+	return cp.IonosServices.ComputeClient.ServersApi.DatacentersServersFindById(ctx, datacenterID, serverID).Depth(int32(2)).Execute()
 }
 
 // CreateServer based on Server properties
 func (cp *APIClient) CreateServer(ctx context.Context, datacenterID string, server sdkgo.Server) (sdkgo.Server, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.ServersApi.DatacentersServersPost(ctx, datacenterID).Server(server).Execute()
+	return cp.IonosServices.ComputeClient.ServersApi.DatacentersServersPost(ctx, datacenterID).Server(server).Execute()
 }
 
 // UpdateServer based on datacenterID, serverID and Server properties
 func (cp *APIClient) UpdateServer(ctx context.Context, datacenterID, serverID string, server sdkgo.ServerProperties) (sdkgo.Server, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.ServersApi.DatacentersServersPatch(ctx, datacenterID, serverID).Server(server).Execute()
+	return cp.IonosServices.ComputeClient.ServersApi.DatacentersServersPatch(ctx, datacenterID, serverID).Server(server).Execute()
 }
 
 // DeleteServer based on datacenterID, serverID
 func (cp *APIClient) DeleteServer(ctx context.Context, datacenterID, serverID string) (*sdkgo.APIResponse, error) {
-	return cp.ComputeClient.ServersApi.DatacentersServersDelete(ctx, datacenterID, serverID).Execute()
+	return cp.IonosServices.ComputeClient.ServersApi.DatacentersServersDelete(ctx, datacenterID, serverID).Execute()
 }
 
 // AttachVolume based on datacenterID, serverID, and volume
 func (cp *APIClient) AttachVolume(ctx context.Context, datacenterID, serverID string, volume sdkgo.Volume) (sdkgo.Volume, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.ServersApi.DatacentersServersVolumesPost(ctx, datacenterID, serverID).Volume(volume).Execute()
+	return cp.IonosServices.ComputeClient.ServersApi.DatacentersServersVolumesPost(ctx, datacenterID, serverID).Volume(volume).Execute()
 }
 
 // IsVolumeAttached based on datacenterID, serverID, and volume
 func (cp *APIClient) IsVolumeAttached(ctx context.Context, datacenterID, serverID string, volumeID string) (bool, error) {
-	_, apiResponse, err := cp.ComputeClient.ServersApi.DatacentersServersVolumesFindById(ctx, datacenterID, serverID, volumeID).Execute()
+	_, apiResponse, err := cp.IonosServices.ComputeClient.ServersApi.DatacentersServersVolumesFindById(ctx, datacenterID, serverID, volumeID).Execute()
 	if apiResponse.HttpNotFound() {
 		return false, nil
 	}
@@ -151,22 +151,22 @@ func (cp *APIClient) IsVolumeAttached(ctx context.Context, datacenterID, serverI
 
 // DetachVolume based on datacenterID, serverID, and volume
 func (cp *APIClient) DetachVolume(ctx context.Context, datacenterID, serverID, volumeID string) (*sdkgo.APIResponse, error) {
-	return cp.ComputeClient.ServersApi.DatacentersServersVolumesDelete(ctx, datacenterID, serverID, volumeID).Execute()
+	return cp.IonosServices.ComputeClient.ServersApi.DatacentersServersVolumesDelete(ctx, datacenterID, serverID, volumeID).Execute()
 }
 
 // AttachCdrom based on datacenterID, serverID, and image
 func (cp *APIClient) AttachCdrom(ctx context.Context, datacenterID, serverID string, cdrom sdkgo.Image) (sdkgo.Image, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.ServersApi.DatacentersServersCdromsPost(ctx, datacenterID, serverID).Cdrom(cdrom).Execute()
+	return cp.IonosServices.ComputeClient.ServersApi.DatacentersServersCdromsPost(ctx, datacenterID, serverID).Cdrom(cdrom).Execute()
 }
 
 // DetachCdrom based on datacenterID, serverID, and imageId
 func (cp *APIClient) DetachCdrom(ctx context.Context, datacenterID, serverID, imageID string) (*sdkgo.APIResponse, error) {
-	return cp.ComputeClient.ServersApi.DatacentersServersCdromsDelete(ctx, datacenterID, serverID, imageID).Execute()
+	return cp.IonosServices.ComputeClient.ServersApi.DatacentersServersCdromsDelete(ctx, datacenterID, serverID, imageID).Execute()
 }
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.ComputeClient
+	return cp.IonosServices.ComputeClient
 }
 
 // GenerateCreateServerInput returns sdkgo.Server based on the CR spec

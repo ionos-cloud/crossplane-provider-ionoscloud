@@ -37,7 +37,7 @@ type ClusterClient interface {
 
 // CheckDuplicateCluster based on clusterName and on multiple properties from CR spec
 func (cp *ClusterAPIClient) CheckDuplicateCluster(ctx context.Context, clusterName string, cr *v1alpha1.MongoCluster) (*ionoscloud.ClusterResponse, error) { // nolint: gocyclo
-	clusterList, _, err := cp.DBaaSMongoClient.ClustersApi.ClustersGet(ctx).Execute()
+	clusterList, _, err := cp.IonosServices.DBaaSMongoClient.ClustersApi.ClustersGet(ctx).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (cp *ClusterAPIClient) CheckDuplicateCluster(ctx context.Context, clusterNa
 
 // CheckDuplicateUser based on clusterName and on multiple properties from CR spec
 func (cp *ClusterAPIClient) CheckDuplicateUser(ctx context.Context, clusterID, userName string) (*ionoscloud.User, error) { // nolint: gocyclo
-	_, resp, err := cp.DBaaSMongoClient.UsersApi.ClustersUsersFindById(ctx, clusterID, userName).Execute()
+	_, resp, err := cp.IonosServices.DBaaSMongoClient.UsersApi.ClustersUsersFindById(ctx, clusterID, userName).Execute()
 	if err != nil && !resp.HttpNotFound() {
 		return nil, err
 	}
@@ -95,49 +95,49 @@ func (cp *ClusterAPIClient) GetClusterID(cluster *ionoscloud.ClusterResponse) (s
 
 // GetCluster based on clusterID
 func (cp *ClusterAPIClient) GetCluster(ctx context.Context, clusterID string) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error) {
-	return cp.DBaaSMongoClient.ClustersApi.ClustersFindById(ctx, clusterID).Execute()
+	return cp.IonosServices.DBaaSMongoClient.ClustersApi.ClustersFindById(ctx, clusterID).Execute()
 }
 
 // DeleteCluster based on clusterID
 func (cp *ClusterAPIClient) DeleteCluster(ctx context.Context, clusterID string) (*ionoscloud.APIResponse, error) {
-	_, apiResponse, err := cp.DBaaSMongoClient.ClustersApi.ClustersDelete(ctx, clusterID).Execute()
+	_, apiResponse, err := cp.IonosServices.DBaaSMongoClient.ClustersApi.ClustersDelete(ctx, clusterID).Execute()
 	return apiResponse, err
 }
 
 // DeleteUser based on clusterID
 func (cp *ClusterAPIClient) DeleteUser(ctx context.Context, clusterID, userName string) (*ionoscloud.APIResponse, error) {
-	_, response, err := cp.DBaaSMongoClient.UsersApi.ClustersUsersDelete(ctx, clusterID, userName).Execute()
+	_, response, err := cp.IonosServices.DBaaSMongoClient.UsersApi.ClustersUsersDelete(ctx, clusterID, userName).Execute()
 	return response, err
 }
 
 // CreateCluster based on cluster properties
 func (cp *ClusterAPIClient) CreateCluster(ctx context.Context, cluster ionoscloud.CreateClusterRequest) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error) {
-	return cp.DBaaSMongoClient.ClustersApi.ClustersPost(ctx).CreateClusterRequest(cluster).Execute()
+	return cp.IonosServices.DBaaSMongoClient.ClustersApi.ClustersPost(ctx).CreateClusterRequest(cluster).Execute()
 }
 
 // CreateUser based on clusterID and user properties
 func (cp *ClusterAPIClient) CreateUser(ctx context.Context, clusterID string, user ionoscloud.User) (ionoscloud.User, *ionoscloud.APIResponse, error) {
-	return cp.DBaaSMongoClient.UsersApi.ClustersUsersPost(ctx, clusterID).User(user).Execute()
+	return cp.IonosServices.DBaaSMongoClient.UsersApi.ClustersUsersPost(ctx, clusterID).User(user).Execute()
 }
 
 // GetUser based on clusterID and user properties
 func (cp *ClusterAPIClient) GetUser(ctx context.Context, clusterID, username string) (ionoscloud.User, *ionoscloud.APIResponse, error) {
-	return cp.DBaaSMongoClient.UsersApi.ClustersUsersFindById(ctx, clusterID, username).Execute()
+	return cp.IonosServices.DBaaSMongoClient.UsersApi.ClustersUsersFindById(ctx, clusterID, username).Execute()
 }
 
 // PatchUser based on clusterID, username and user properties
 func (cp *ClusterAPIClient) PatchUser(ctx context.Context, clusterID, username string, patchReq ionoscloud.PatchUserRequest) (ionoscloud.User, *ionoscloud.APIResponse, error) {
-	return cp.DBaaSMongoClient.UsersApi.ClustersUsersPatch(ctx, clusterID, username).PatchUserRequest(patchReq).Execute()
+	return cp.IonosServices.DBaaSMongoClient.UsersApi.ClustersUsersPatch(ctx, clusterID, username).PatchUserRequest(patchReq).Execute()
 }
 
 // UpdateCluster based on clusterID and cluster properties
 func (cp *ClusterAPIClient) UpdateCluster(ctx context.Context, clusterID string, cluster ionoscloud.PatchClusterRequest) (ionoscloud.ClusterResponse, *ionoscloud.APIResponse, error) {
-	return cp.DBaaSMongoClient.ClustersApi.ClustersPatch(ctx, clusterID).PatchClusterRequest(cluster).Execute()
+	return cp.IonosServices.DBaaSMongoClient.ClustersApi.ClustersPatch(ctx, clusterID).PatchClusterRequest(cluster).Execute()
 }
 
 // UpdateUser based on clusterID and cluster properties
 func (cp *ClusterAPIClient) UpdateUser(ctx context.Context, clusterID, userName string, patchReq ionoscloud.PatchUserRequest) (ionoscloud.User, *ionoscloud.APIResponse, error) {
-	return cp.DBaaSMongoClient.UsersApi.ClustersUsersPatch(ctx, clusterID, userName).PatchUserRequest(patchReq).Execute()
+	return cp.IonosServices.DBaaSMongoClient.UsersApi.ClustersUsersPatch(ctx, clusterID, userName).PatchUserRequest(patchReq).Execute()
 }
 
 // GenerateCreateClusterInput returns CreateClusterRequest based on the CR spec

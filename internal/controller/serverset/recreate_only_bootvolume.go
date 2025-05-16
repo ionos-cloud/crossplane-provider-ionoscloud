@@ -3,6 +3,7 @@ package serverset
 import (
 	"context"
 	"fmt"
+
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
@@ -27,7 +28,7 @@ func (c *createBeforeDestroyOnlyBootVolume) update(ctx context.Context, cr *v1al
 		return err
 	}
 	// no need to recreate bootvolume, we created one already. we need to do this because we update the status between creations of replicas, so a new observe runs so it tries
-	//to create a volume while the other one is creating
+	// to create a volume while the other one is creating
 	// if there are other fields that force re-creation, they should be added here
 	if existingVolume != nil && existingVolume.Spec.ForProvider.Type == cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type &&
 		existingVolume.Spec.ForProvider.Image == cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image {

@@ -7,7 +7,7 @@ import (
 	"reflect"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
-	"github.com/rung/go-safecast"
+	safecast "github.com/rung/go-safecast"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
@@ -32,7 +32,7 @@ type Client interface {
 
 // CheckDuplicateNic based on datacenterID, serverID, nicName and the immutable property location
 func (cp *APIClient) CheckDuplicateNic(ctx context.Context, datacenterID, serverID, nicName string) (*sdkgo.Nic, error) { // nolint: gocyclo
-	nics, _, err := cp.ComputeClient.NetworkInterfacesApi.DatacentersServersNicsGet(ctx, datacenterID, serverID).Depth(utils.DepthQueryParam).Execute()
+	nics, _, err := cp.IonosServices.ComputeClient.NetworkInterfacesApi.DatacentersServersNicsGet(ctx, datacenterID, serverID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -70,27 +70,27 @@ func (cp *APIClient) GetNicID(nic *sdkgo.Nic) (string, error) {
 
 // GetNic based on datacenterID, serverID, nicID
 func (cp *APIClient) GetNic(ctx context.Context, datacenterID, serverID, nicID string) (sdkgo.Nic, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.NetworkInterfacesApi.DatacentersServersNicsFindById(ctx, datacenterID, serverID, nicID).Depth(utils.DepthQueryParam).Execute()
+	return cp.IonosServices.ComputeClient.NetworkInterfacesApi.DatacentersServersNicsFindById(ctx, datacenterID, serverID, nicID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateNic based on Nic properties, using datacenterID and serverID
 func (cp *APIClient) CreateNic(ctx context.Context, datacenterID, serverID string, nic sdkgo.Nic) (sdkgo.Nic, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.NetworkInterfacesApi.DatacentersServersNicsPost(ctx, datacenterID, serverID).Nic(nic).Execute()
+	return cp.IonosServices.ComputeClient.NetworkInterfacesApi.DatacentersServersNicsPost(ctx, datacenterID, serverID).Nic(nic).Execute()
 }
 
 // UpdateNic based on datacenterID, serverID, nicID and Nic properties
 func (cp *APIClient) UpdateNic(ctx context.Context, datacenterID, serverID, nicID string, nicProperties sdkgo.NicProperties) (sdkgo.Nic, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.NetworkInterfacesApi.DatacentersServersNicsPatch(ctx, datacenterID, serverID, nicID).Nic(nicProperties).Execute()
+	return cp.IonosServices.ComputeClient.NetworkInterfacesApi.DatacentersServersNicsPatch(ctx, datacenterID, serverID, nicID).Nic(nicProperties).Execute()
 }
 
 // DeleteNic based on datacenterID, serverID, nicID
 func (cp *APIClient) DeleteNic(ctx context.Context, datacenterID, serverID, nicID string) (*sdkgo.APIResponse, error) {
-	return cp.ComputeClient.NetworkInterfacesApi.DatacentersServersNicsDelete(ctx, datacenterID, serverID, nicID).Execute()
+	return cp.IonosServices.ComputeClient.NetworkInterfacesApi.DatacentersServersNicsDelete(ctx, datacenterID, serverID, nicID).Execute()
 }
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.ComputeClient
+	return cp.IonosServices.ComputeClient
 }
 
 // LateInitializer fills the empty fields in *v1alpha1.NicParameters with
