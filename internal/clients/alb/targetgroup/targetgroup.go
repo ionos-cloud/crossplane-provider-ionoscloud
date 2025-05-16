@@ -30,7 +30,7 @@ type Client interface {
 
 // CheckDuplicateTargetGroup based on targetGroupName
 func (cp *APIClient) CheckDuplicateTargetGroup(ctx context.Context, targetGroupName string) (*sdkgo.TargetGroup, error) { // nolint: gocyclo
-	targetGroups, _, err := cp.ComputeClient.TargetGroupsApi.TargetgroupsGet(ctx).Depth(utils.DepthQueryParam).Execute()
+	targetGroups, _, err := cp.IonosServices.ComputeClient.TargetGroupsApi.TargetgroupsGet(ctx).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -68,32 +68,32 @@ func (cp *APIClient) GetTargetGroupID(targetGroup *sdkgo.TargetGroup) (string, e
 
 // GetTargetGroup based on targetGroupID
 func (cp *APIClient) GetTargetGroup(ctx context.Context, targetGroupID string) (sdkgo.TargetGroup, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.TargetGroupsApi.TargetgroupsFindByTargetGroupId(ctx, targetGroupID).Depth(utils.DepthQueryParam).Execute()
+	return cp.IonosServices.ComputeClient.TargetGroupsApi.TargetgroupsFindByTargetGroupId(ctx, targetGroupID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateTargetGroup based on TargetGroup
 func (cp *APIClient) CreateTargetGroup(ctx context.Context, targetGroup sdkgo.TargetGroup) (sdkgo.TargetGroup, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.TargetGroupsApi.TargetgroupsPost(ctx).TargetGroup(targetGroup).Execute()
+	return cp.IonosServices.ComputeClient.TargetGroupsApi.TargetgroupsPost(ctx).TargetGroup(targetGroup).Execute()
 }
 
 // UpdateTargetGroup based on targetGroupID and TargetGroupProperties
 func (cp *APIClient) UpdateTargetGroup(ctx context.Context, targetGroupID string, targetGroup sdkgo.TargetGroupPut) (sdkgo.TargetGroup, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.TargetGroupsApi.TargetgroupsPut(ctx, targetGroupID).TargetGroup(targetGroup).Execute()
+	return cp.IonosServices.ComputeClient.TargetGroupsApi.TargetgroupsPut(ctx, targetGroupID).TargetGroup(targetGroup).Execute()
 }
 
 // DeleteTargetGroup based on targetGroupID
 func (cp *APIClient) DeleteTargetGroup(ctx context.Context, targetGroupID string) (*sdkgo.APIResponse, error) {
-	return cp.ComputeClient.TargetGroupsApi.TargetGroupsDelete(ctx, targetGroupID).Execute()
+	return cp.IonosServices.ComputeClient.TargetGroupsApi.TargetGroupsDelete(ctx, targetGroupID).Execute()
 }
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.ComputeClient
+	return cp.IonosServices.ComputeClient
 }
 
 // GetTargetGroupTargets set by the user based on targetGroupID
 func (cp *APIClient) GetTargetGroupTargets(ctx context.Context, targetGroupID string) (sdkgo.TargetGroup, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.TargetGroupsApi.TargetgroupsFindByTargetGroupId(ctx, targetGroupID).Depth(utils.DepthQueryParam).Execute()
+	return cp.IonosServices.ComputeClient.TargetGroupsApi.TargetgroupsFindByTargetGroupId(ctx, targetGroupID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // GenerateCreateTargetGroupInput returns sdkgo.TargetGroup based on the CR spec
