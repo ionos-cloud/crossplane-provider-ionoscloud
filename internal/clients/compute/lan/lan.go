@@ -31,7 +31,7 @@ type Client interface {
 
 // CheckDuplicateLan based on datacenterID, lanName
 func (cp *APIClient) CheckDuplicateLan(ctx context.Context, datacenterID, lanName string) (*sdkgo.Lan, error) { // nolint: gocyclo
-	lans, _, err := cp.ComputeClient.LANsApi.DatacentersLansGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
+	lans, _, err := cp.IonosServices.ComputeClient.LANsApi.DatacentersLansGet(ctx, datacenterID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -69,12 +69,12 @@ func (cp *APIClient) GetLanID(lan *sdkgo.Lan) (string, error) {
 
 // GetLan based on datacenterID, lanID
 func (cp *APIClient) GetLan(ctx context.Context, datacenterID, lanID string) (sdkgo.Lan, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.LANsApi.DatacentersLansFindById(ctx, datacenterID, lanID).Depth(utils.DepthQueryParam).Execute()
+	return cp.IonosServices.ComputeClient.LANsApi.DatacentersLansFindById(ctx, datacenterID, lanID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // GetLanIPFailovers based on datacenterID, lanID
 func (cp *APIClient) GetLanIPFailovers(ctx context.Context, datacenterID, lanID string) ([]sdkgo.IPFailover, error) {
-	lan, _, err := cp.ComputeClient.LANsApi.DatacentersLansFindById(ctx, datacenterID, lanID).Depth(utils.DepthQueryParam).Execute()
+	lan, _, err := cp.IonosServices.ComputeClient.LANsApi.DatacentersLansFindById(ctx, datacenterID, lanID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -88,23 +88,23 @@ func (cp *APIClient) GetLanIPFailovers(ctx context.Context, datacenterID, lanID 
 
 // CreateLan based on datacenterID and Lan properties
 func (cp *APIClient) CreateLan(ctx context.Context, datacenterID string, lan sdkgo.Lan) (sdkgo.Lan, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.LANsApi.DatacentersLansPost(ctx, datacenterID).Lan(lan).Execute()
+	return cp.IonosServices.ComputeClient.LANsApi.DatacentersLansPost(ctx, datacenterID).Lan(lan).Execute()
 }
 
 // UpdateLan based on datacenterID, lanID and Lan properties
 func (cp *APIClient) UpdateLan(ctx context.Context, datacenterID, lanID string, lan sdkgo.LanProperties) (sdkgo.Lan, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.LANsApi.DatacentersLansPatch(ctx, datacenterID, lanID).Lan(lan).Execute()
+	return cp.IonosServices.ComputeClient.LANsApi.DatacentersLansPatch(ctx, datacenterID, lanID).Lan(lan).Execute()
 }
 
 // DeleteLan based on datacenterID, lanID
 func (cp *APIClient) DeleteLan(ctx context.Context, datacenterID, lanID string) (*sdkgo.APIResponse, error) {
-	resp, err := cp.ComputeClient.LANsApi.DatacentersLansDelete(ctx, datacenterID, lanID).Execute()
+	resp, err := cp.IonosServices.ComputeClient.LANsApi.DatacentersLansDelete(ctx, datacenterID, lanID).Execute()
 	return resp, err
 }
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.ComputeClient
+	return cp.IonosServices.ComputeClient
 }
 
 // GenerateCreateLanInput returns sdkgo.LanPost based on the CR spec

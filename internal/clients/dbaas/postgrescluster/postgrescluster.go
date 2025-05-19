@@ -44,7 +44,7 @@ type ClusterClient interface {
 
 // CheckDuplicateCluster based on clusterName and on multiple properties from CR spec
 func (cp *ClusterAPIClient) CheckDuplicateCluster(ctx context.Context, clusterName string, cr *v1alpha1.PostgresCluster) (*ionoscloud.ClusterResponse, error) { // nolint: gocyclo
-	clusterList, _, err := cp.DBaaSPostgresClient.ClustersApi.ClustersGet(ctx).Execute()
+	clusterList, _, err := cp.IonosServices.DBaaSPostgresClient.ClustersApi.ClustersGet(ctx).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (cp *ClusterAPIClient) CheckDuplicateCluster(ctx context.Context, clusterNa
 
 // CheckDuplicateUser based on clusterName and on multiple properties from CR spec
 func (cp *ClusterAPIClient) CheckDuplicateUser(ctx context.Context, clusterID, userName string) (*ionoscloud.UserResource, error) { // nolint: gocyclo
-	_, resp, err := cp.DBaaSPostgresClient.UsersApi.UsersGet(ctx, clusterID, userName).Execute()
+	_, resp, err := cp.IonosServices.DBaaSPostgresClient.UsersApi.UsersGet(ctx, clusterID, userName).Execute()
 	if err != nil && !resp.HttpNotFound() {
 		return nil, err
 	}
@@ -120,64 +120,64 @@ func (cp *ClusterAPIClient) GetUserID(user *ionoscloud.UserResource) (string, er
 
 // GetCluster based on clusterID
 func (cp *ClusterAPIClient) GetCluster(ctx context.Context, clusterID string) (ionoscloud.ClusterResponse, *shared.APIResponse, error) {
-	return cp.DBaaSPostgresClient.ClustersApi.ClustersFindById(ctx, clusterID).Execute()
+	return cp.IonosServices.DBaaSPostgresClient.ClustersApi.ClustersFindById(ctx, clusterID).Execute()
 }
 
 // GetUser based on clusterID and username
 func (cp *ClusterAPIClient) GetUser(ctx context.Context, clusterID, userName string) (ionoscloud.UserResource, *shared.APIResponse, error) {
-	return cp.DBaaSPostgresClient.UsersApi.UsersGet(ctx, clusterID, userName).Execute()
+	return cp.IonosServices.DBaaSPostgresClient.UsersApi.UsersGet(ctx, clusterID, userName).Execute()
 }
 
 // DeleteCluster based on clusterID
 func (cp *ClusterAPIClient) DeleteCluster(ctx context.Context, clusterID string) (*shared.APIResponse, error) {
-	_, apiResponse, err := cp.DBaaSPostgresClient.ClustersApi.ClustersDelete(ctx, clusterID).Execute()
+	_, apiResponse, err := cp.IonosServices.DBaaSPostgresClient.ClustersApi.ClustersDelete(ctx, clusterID).Execute()
 	return apiResponse, err
 }
 
 // DeleteUser based on clusterID
 func (cp *ClusterAPIClient) DeleteUser(ctx context.Context, clusterID, userName string) (*shared.APIResponse, error) {
-	return cp.DBaaSPostgresClient.UsersApi.UsersDelete(ctx, clusterID, userName).Execute()
+	return cp.IonosServices.DBaaSPostgresClient.UsersApi.UsersDelete(ctx, clusterID, userName).Execute()
 }
 
 // CreateCluster based on cluster properties
 func (cp *ClusterAPIClient) CreateCluster(ctx context.Context, cluster ionoscloud.CreateClusterRequest) (ionoscloud.ClusterResponse, *shared.APIResponse, error) {
-	return cp.DBaaSPostgresClient.ClustersApi.ClustersPost(ctx).CreateClusterRequest(cluster).Execute()
+	return cp.IonosServices.DBaaSPostgresClient.ClustersApi.ClustersPost(ctx).CreateClusterRequest(cluster).Execute()
 }
 
 // CreateUser based on clusterID and user properties
 func (cp *ClusterAPIClient) CreateUser(ctx context.Context, clusterID string, user ionoscloud.User) (ionoscloud.UserResource, *shared.APIResponse, error) {
-	return cp.DBaaSPostgresClient.UsersApi.UsersPost(ctx, clusterID).User(user).Execute()
+	return cp.IonosServices.DBaaSPostgresClient.UsersApi.UsersPost(ctx, clusterID).User(user).Execute()
 }
 
 // PatchUser based on clusterID, username and user properties
 func (cp *ClusterAPIClient) PatchUser(ctx context.Context, clusterID, username string, patchReq ionoscloud.UsersPatchRequest) (ionoscloud.UserResource, *shared.APIResponse, error) {
-	return cp.DBaaSPostgresClient.UsersApi.UsersPatch(ctx, clusterID, username).UsersPatchRequest(patchReq).Execute()
+	return cp.IonosServices.DBaaSPostgresClient.UsersApi.UsersPatch(ctx, clusterID, username).UsersPatchRequest(patchReq).Execute()
 }
 
 // UpdateCluster based on clusterID and cluster properties
 func (cp *ClusterAPIClient) UpdateCluster(ctx context.Context, clusterID string, cluster ionoscloud.PatchClusterRequest) (ionoscloud.ClusterResponse, *shared.APIResponse, error) {
-	return cp.DBaaSPostgresClient.ClustersApi.ClustersPatch(ctx, clusterID).PatchClusterRequest(cluster).Execute()
+	return cp.IonosServices.DBaaSPostgresClient.ClustersApi.ClustersPatch(ctx, clusterID).PatchClusterRequest(cluster).Execute()
 }
 
 // UpdateUser based on clusterID and cluster properties
 func (cp *ClusterAPIClient) UpdateUser(ctx context.Context, clusterID, userName string, patchReq ionoscloud.UsersPatchRequest) (ionoscloud.UserResource, *shared.APIResponse, error) {
-	return cp.DBaaSPostgresClient.UsersApi.UsersPatch(ctx, clusterID, userName).UsersPatchRequest(patchReq).Execute()
+	return cp.IonosServices.DBaaSPostgresClient.UsersApi.UsersPatch(ctx, clusterID, userName).UsersPatchRequest(patchReq).Execute()
 }
 
 // CreateDatabase based on clusterID and database properties
 func (cp *ClusterAPIClient) CreateDatabase(ctx context.Context, clusterID string, database v1alpha1.PostgresDatabase) (ionoscloud.DatabaseResource, *shared.APIResponse, error) {
 	sdkDatabase := generateDatabaseInput(database)
-	return cp.DBaaSPostgresClient.DatabasesApi.DatabasesPost(ctx, clusterID).Database(sdkDatabase).Execute()
+	return cp.IonosServices.DBaaSPostgresClient.DatabasesApi.DatabasesPost(ctx, clusterID).Database(sdkDatabase).Execute()
 }
 
 // GetDatabase based on clusterID and databaseID
 func (cp *ClusterAPIClient) GetDatabase(ctx context.Context, clusterID, databaseName string) (ionoscloud.DatabaseResource, *shared.APIResponse, error) {
-	return cp.DBaaSPostgresClient.DatabasesApi.DatabasesGet(ctx, clusterID, databaseName).Execute()
+	return cp.IonosServices.DBaaSPostgresClient.DatabasesApi.DatabasesGet(ctx, clusterID, databaseName).Execute()
 }
 
 // DeleteDatabase based on clusterID and databaseID
 func (cp *ClusterAPIClient) DeleteDatabase(ctx context.Context, clusterID, databaseID string) (*shared.APIResponse, error) {
-	return cp.DBaaSPostgresClient.DatabasesApi.DatabasesDelete(ctx, clusterID, databaseID).Execute()
+	return cp.IonosServices.DBaaSPostgresClient.DatabasesApi.DatabasesDelete(ctx, clusterID, databaseID).Execute()
 }
 
 // GenerateCreateClusterInput returns CreateClusterRequest based on the CR spec

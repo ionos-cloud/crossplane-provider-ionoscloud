@@ -34,7 +34,7 @@ type Client interface {
 
 // CheckDuplicateK8sCluster based on clusterName
 func (cp *APIClient) CheckDuplicateK8sCluster(ctx context.Context, clusterName string) (*sdkgo.KubernetesCluster, error) { // nolint: gocyclo
-	kubernetesClusters, _, err := cp.ComputeClient.KubernetesApi.K8sGet(ctx).Depth(utils.DepthQueryParam).Execute()
+	kubernetesClusters, _, err := cp.IonosServices.ComputeClient.KubernetesApi.K8sGet(ctx).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -72,33 +72,33 @@ func (cp *APIClient) GetK8sClusterID(cluster *sdkgo.KubernetesCluster) (string, 
 
 // GetK8sCluster based on clusterID
 func (cp *APIClient) GetK8sCluster(ctx context.Context, clusterID string) (sdkgo.KubernetesCluster, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.KubernetesApi.K8sFindByClusterId(ctx, clusterID).Depth(utils.DepthQueryParam).Execute()
+	return cp.IonosServices.ComputeClient.KubernetesApi.K8sFindByClusterId(ctx, clusterID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // GetKubeConfig based on clusterID
 func (cp *APIClient) GetKubeConfig(ctx context.Context, clusterID string) (string, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.KubernetesApi.K8sKubeconfigGet(ctx, clusterID).Depth(utils.DepthQueryParam).Execute()
+	return cp.IonosServices.ComputeClient.KubernetesApi.K8sKubeconfigGet(ctx, clusterID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateK8sCluster based on KubernetesClusterForPost
 func (cp *APIClient) CreateK8sCluster(ctx context.Context, cluster sdkgo.KubernetesClusterForPost) (sdkgo.KubernetesCluster, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.KubernetesApi.K8sPost(ctx).KubernetesCluster(cluster).Execute()
+	return cp.IonosServices.ComputeClient.KubernetesApi.K8sPost(ctx).KubernetesCluster(cluster).Execute()
 }
 
 // UpdateK8sCluster based on clusterID and KubernetesClusterForPut
 func (cp *APIClient) UpdateK8sCluster(ctx context.Context, clusterID string, cluster sdkgo.KubernetesClusterForPut) (sdkgo.KubernetesCluster, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.KubernetesApi.K8sPut(ctx, clusterID).KubernetesCluster(cluster).Execute()
+	return cp.IonosServices.ComputeClient.KubernetesApi.K8sPut(ctx, clusterID).KubernetesCluster(cluster).Execute()
 }
 
 // DeleteK8sCluster based on clusterID
 func (cp *APIClient) DeleteK8sCluster(ctx context.Context, clusterID string) (*sdkgo.APIResponse, error) {
-	resp, err := cp.ComputeClient.KubernetesApi.K8sDelete(ctx, clusterID).Execute()
+	resp, err := cp.IonosServices.ComputeClient.KubernetesApi.K8sDelete(ctx, clusterID).Execute()
 	return resp, err
 }
 
 // HasActiveK8sNodePools based on clusterID
 func (cp *APIClient) HasActiveK8sNodePools(ctx context.Context, clusterID string) (bool, error) {
-	cluster, _, err := cp.ComputeClient.KubernetesApi.K8sFindByClusterId(ctx, clusterID).Depth(utils.DepthQueryParam).Execute()
+	cluster, _, err := cp.IonosServices.ComputeClient.KubernetesApi.K8sFindByClusterId(ctx, clusterID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return false, err
 	}
@@ -116,7 +116,7 @@ func (cp *APIClient) HasActiveK8sNodePools(ctx context.Context, clusterID string
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.ComputeClient
+	return cp.IonosServices.ComputeClient
 }
 
 // GenerateCreateK8sClusterInput returns sdkgo.KubernetesClusterForPost based on the CR spec

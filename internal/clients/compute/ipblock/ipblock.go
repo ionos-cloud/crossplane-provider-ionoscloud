@@ -31,7 +31,7 @@ type Client interface {
 
 // CheckDuplicateIPBlock based on ipBlockName, and the immutable property location
 func (cp *APIClient) CheckDuplicateIPBlock(ctx context.Context, ipBlockName, location string) (*sdkgo.IpBlock, error) { // nolint: gocyclo
-	ipBlocks, _, err := cp.ComputeClient.IPBlocksApi.IpblocksGet(ctx).Depth(utils.DepthQueryParam).Execute()
+	ipBlocks, _, err := cp.IonosServices.ComputeClient.IPBlocksApi.IpblocksGet(ctx).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -75,22 +75,22 @@ func (cp *APIClient) GetIPBlockID(ipBlock *sdkgo.IpBlock) (string, error) {
 
 // GetIPBlock based on ipBlockID
 func (cp *APIClient) GetIPBlock(ctx context.Context, ipBlockID string) (sdkgo.IpBlock, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.IPBlocksApi.IpblocksFindById(ctx, ipBlockID).Depth(utils.DepthQueryParam).Execute()
+	return cp.IonosServices.ComputeClient.IPBlocksApi.IpblocksFindById(ctx, ipBlockID).Depth(utils.DepthQueryParam).Execute()
 }
 
 // CreateIPBlock based on IPBlock properties
 func (cp *APIClient) CreateIPBlock(ctx context.Context, ipBlock sdkgo.IpBlock) (sdkgo.IpBlock, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.IPBlocksApi.IpblocksPost(ctx).Ipblock(ipBlock).Execute()
+	return cp.IonosServices.ComputeClient.IPBlocksApi.IpblocksPost(ctx).Ipblock(ipBlock).Execute()
 }
 
 // UpdateIPBlock based on ipBlockID and IPBlock properties
 func (cp *APIClient) UpdateIPBlock(ctx context.Context, ipBlockID string, ipBlock sdkgo.IpBlockProperties) (sdkgo.IpBlock, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.IPBlocksApi.IpblocksPatch(ctx, ipBlockID).Ipblock(ipBlock).Execute()
+	return cp.IonosServices.ComputeClient.IPBlocksApi.IpblocksPatch(ctx, ipBlockID).Ipblock(ipBlock).Execute()
 }
 
 // DeleteIPBlock based on ipBlockID
 func (cp *APIClient) DeleteIPBlock(ctx context.Context, ipBlockID string) (*sdkgo.APIResponse, error) {
-	resp, err := cp.ComputeClient.IPBlocksApi.IpblocksDelete(ctx, ipBlockID).Execute()
+	resp, err := cp.IonosServices.ComputeClient.IPBlocksApi.IpblocksDelete(ctx, ipBlockID).Execute()
 	return resp, err
 }
 
@@ -98,7 +98,7 @@ func (cp *APIClient) DeleteIPBlock(ctx context.Context, ipBlockID string) (*sdkg
 // If indexes (0-indexes) are not set, all IPs will be returned.
 func (cp *APIClient) GetIPs(ctx context.Context, ipBlockID string, indexes ...int) ([]string, error) {
 	ipBlockIds := make([]string, 0)
-	ipBlock, _, err := cp.ComputeClient.IPBlocksApi.IpblocksFindById(ctx, ipBlockID).Depth(utils.DepthQueryParam).Execute()
+	ipBlock, _, err := cp.IonosServices.ComputeClient.IPBlocksApi.IpblocksFindById(ctx, ipBlockID).Depth(utils.DepthQueryParam).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (cp *APIClient) GetIPs(ctx context.Context, ipBlockID string, indexes ...in
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.ComputeClient
+	return cp.IonosServices.ComputeClient
 }
 
 // GenerateCreateIPBlockInput returns IpBlock based on the CR spec

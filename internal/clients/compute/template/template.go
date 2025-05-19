@@ -24,12 +24,12 @@ type Client interface {
 
 // GetTemplates returns all existing Templates
 func (cp *APIClient) GetTemplates(ctx context.Context) (sdkgo.Templates, *sdkgo.APIResponse, error) {
-	return cp.ComputeClient.TemplatesApi.TemplatesGet(ctx).Depth(utils.DepthQueryParam).Execute()
+	return cp.IonosServices.ComputeClient.TemplatesApi.TemplatesGet(ctx).Depth(utils.DepthQueryParam).Execute()
 }
 
 // GetTemplateIDByName returns Template with the name specified
 func (cp *APIClient) GetTemplateIDByName(ctx context.Context, templateName string) (string, error) {
-	templates, _, err := cp.ComputeClient.TemplatesApi.TemplatesGet(ctx).Depth(utils.DepthQueryParam).Filter("name", templateName).Execute()
+	templates, _, err := cp.IonosServices.ComputeClient.TemplatesApi.TemplatesGet(ctx).Depth(utils.DepthQueryParam).Filter("name", templateName).Execute()
 	if err != nil {
 		return "", err
 	}
@@ -52,5 +52,5 @@ func (cp *APIClient) GetTemplateIDByName(ctx context.Context, templateName strin
 
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
-	return cp.ComputeClient
+	return cp.IonosServices.ComputeClient
 }
