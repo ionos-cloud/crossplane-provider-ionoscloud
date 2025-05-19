@@ -138,9 +138,7 @@ func main() {
 		// convert to lowercase and convert string to int
 		for k, v := range *reconcileMap {
 			reconcileRate, err := strconv.Atoi(v)
-			if err != nil {
-				kingpin.FatalIfError(err, fmt.Sprintf("Cannot convert maxReconcileRate for %s, value (%s) from string to int", k, v))
-			}
+			kingpin.FatalIfError(err, fmt.Sprintf("Cannot convert maxReconcileRate for %s, value (%s) from string to int", k, v))
 			options.MaxReconcilesPerResource[strings.ToLower(k)] = reconcileRate
 		}
 	}
