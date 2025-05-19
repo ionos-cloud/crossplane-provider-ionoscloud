@@ -18,9 +18,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -61,6 +64,7 @@ func main() {
 		pollStateMetricInterval    = app.Flag("poll-state-metric", "State metric recording interval").Default("5s").Duration()
 		namespace                  = app.Flag("namespace", "Namespace used to set as default scope in default secret store config.").Default("crossplane-system").Envar("POD_NAMESPACE").String()
 		enableExternalSecretStores = app.Flag("enable-external-secret-stores", "Enable support for ExternalSecretStores.").Default("false").Envar("ENABLE_EXTERNAL_SECRET_STORES").Bool()
+		reconcileMap               = app.Flag("max-reconcile-rate-per-resource", "Overrides the max-reconcile-rate on a per resource basis. Use the Kind of the resource as the key.").PlaceHolder("nic:2").StringMap()
 	)
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 	zl := zap.New(zap.UseDevMode(*debug))
@@ -129,6 +133,18 @@ func main() {
 	}
 
 	options := utils.NewConfigurationOptions(*timeout, *createGracePeriod, *uniqueNames, ctrlOpts)
+	if len(*reconcileMap) > 0 {
+		options.MaxReconcilesPerResource = make(map[string]int, len(*reconcileMap))
+		// convert to lowercase and convert string to int
+		for k, v := range *reconcileMap {
+			reconcileRate, err := strconv.Atoi(v)
+			if err != nil {
+				kingpin.FatalIfError(err, fmt.Sprintf("Cannot convert maxReconcileRate for %s, value (%s) from string to int", k, v))
+			}
+			options.MaxReconcilesPerResource[strings.ToLower(k)] = reconcileRate
+		}
+	}
+
 	kingpin.FatalIfError(controller.Setup(mgr, options), "Cannot setup IONOS Cloud controllers")
 	kingpin.FatalIfError(mgr.Start(ctrl.SetupSignalHandler()), "Cannot start controller manager")
 }
