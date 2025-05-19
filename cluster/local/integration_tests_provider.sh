@@ -6,14 +6,27 @@ function install_provider() {
   echo_step "installing ${PROJECT_NAME} into \"${CROSSPLANE_NAMESPACE}\" namespace"
   INSTALL_YAML="$(
     cat <<EOF
-apiVersion: pkg.crossplane.io/v1alpha1
-kind: ControllerConfig
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
 metadata:
+  creationTimestamp: "2025-05-19T09:04:26Z"
   name: debug-config
 spec:
-  serviceAccountName: crossplane
-  args:
-    - --debug
+  deploymentTemplate:
+    spec:
+      selector: {}
+      strategy: {}
+      template:
+        spec:
+          containers:
+          - args:
+            - --debug
+            name: package-runtime
+            resources: {}
+          serviceAccountName: crossplane
+  serviceAccountTemplate:
+    metadata:
+      name: crossplane
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
@@ -98,13 +111,23 @@ EOF
 
   INSTALL_YAML="$(
     cat <<EOF
-apiVersion: pkg.crossplane.io/v1alpha1
-kind: ControllerConfig
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
 metadata:
+  creationTimestamp: "2025-05-19T09:07:29Z"
   name: debug-config
 spec:
-  args:
-    - --debug
+  deploymentTemplate:
+    spec:
+      selector: {}
+      strategy: {}
+      template:
+        spec:
+          containers:
+          - args:
+            - --debug
+            name: package-runtime
+            resources: {}
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider

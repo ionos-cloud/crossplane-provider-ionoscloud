@@ -82,19 +82,28 @@ kubectl create secret generic --namespace crossplane-system example-provider-sec
 {% hint style="info" %}
 **Note:** 
 * You can overwrite the default IONOS Cloud API endpoint, by setting the credentials to: `credentials="{\"host_url\":\"${IONOS_API_URL}\"}"`.
-* You can also set the `IONOS_API_URL` environment variable in the `ControllerConfig` of the provider globally for
-all resources. The following snippet shows how to set it globally in the ControllerConfig:
+* You can also set the `IONOS_API_URL` environment variable in the `DeploymentRuntimeConfig` of the provider globally for
+all resources. The following snippet shows how to set it globally in the DeploymentRuntimeConfig:
 
     ```bash
   cat <<EOF | kubectl apply -f -
-  apiVersion: pkg.crossplane.io/v1alpha1
-  kind: ControllerConfig
+  apiVersion: pkg.crossplane.io/v1beta1
+  kind: DeploymentRuntimeConfig
   metadata:
     name: overwrite-ionos-api-url
   spec:
-    env:
-      - name: IONOS_API_URL
-        value: "${IONOS_API_URL}"
+    deploymentTemplate:
+      spec:
+        selector: {}
+        strategy: {}
+        template:
+          spec:
+            containers:
+            - env:
+              - name: IONOS_API_URL
+                value: ${IONOS_API_URL}
+              name: package-runtime
+              resources: {}
   EOF
   ```
 
@@ -292,17 +301,26 @@ To enable name uniqueness support for IONOS Cloud Resources, the Crossplane Prov
 Pools will have unique name per k8s cluster.
 {% endhint %}
 
-You can create a ``ControllerConfig`` file using:
+You can create a ``DeploymentRuntimeConfig`` file using:
 
 ```bash
 cat <<EOF | kubectl apply -f -
-apiVersion: pkg.crossplane.io/v1alpha1
-kind: ControllerConfig
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
 metadata:
   name: provider-config
 spec:
-  args:
-    - --unique-names
+  deploymentTemplate:
+    spec:
+      selector: {}
+      strategy: {}
+      template:
+        spec:
+          containers:
+          - args:
+            - --unique-names
+            name: package-runtime
+            resources: {}
 EOF
 ```
 
@@ -327,17 +345,26 @@ To debug the Crossplane Provider IONOS Cloud you can use the ```--debug`` flag.
 
 ### Provider logs
 
-You can create a ``ControllerConfig`` file using:
+You can create a ``DeploymentRuntimeConfig`` file using:
 
 ```bash
 cat <<EOF | kubectl apply -f -
-apiVersion: pkg.crossplane.io/v1alpha1
-kind: ControllerConfig
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
 metadata:
   name: debug-config
 spec:
-  args:
-    - --debug
+  deploymentTemplate:
+    spec:
+      selector: {}
+      strategy: {}
+      template:
+        spec:
+          containers:
+          - args:
+            - --debug
+            name: package-runtime
+            resources: {}
 EOF
 ```
 

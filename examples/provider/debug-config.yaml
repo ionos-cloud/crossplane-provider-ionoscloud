@@ -1,9 +1,18 @@
-apiVersion: pkg.crossplane.io/v1alpha1
-kind: ControllerConfig
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
 metadata:
   name: debug-config
 spec:
-  args:
-    - --debug
-    # In order to enable name uniqueness support for IONOS Cloud Resources, uncomment the next line:
-    # - --unique-names
+  deploymentTemplate:
+    spec:
+      selector: {}
+      strategy: {}
+      template:
+        spec:
+          containers:
+          - args:
+            - --debug
+            # In order to enable name uniqueness support for IONOS Cloud Resources, uncomment the next line:
+            # - --unique-names
+            name: package-runtime
+            resources: {}
