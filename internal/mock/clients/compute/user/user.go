@@ -10,12 +10,13 @@
 package user
 
 import (
-	context "context"
-	reflect "reflect"
+	"context"
+	"reflect"
 
-	v1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
-	gomock "go.uber.org/mock/gomock"
+	"go.uber.org/mock/gomock"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
 // MockClient is a mock of Client interface.

@@ -320,8 +320,6 @@ spec:
     name: exampletest
     cores: 4
     ram: 2048
-    availabilityZone: AUTO
-    cpuFamily: INTEL_ICELAKE
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -358,8 +356,6 @@ spec:
     name: exampleServerUpdate
     cores: 4
     ram: 2048
-    availabilityZone: AUTO
-    cpuFamily: INTEL_ICELAKE
     datacenterConfig:
       datacenterIdRef:
         name: example
@@ -394,8 +390,6 @@ spec:
     name: exampleServerUpdate
     cores: 4
     ram: 2048
-    availabilityZone: AUTO
-    cpuFamily: INTEL_ICELAKE
     datacenterConfig:
       datacenterIdRef:
         name: example

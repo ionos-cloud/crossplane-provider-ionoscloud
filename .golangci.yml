@@ -1,9 +1,12 @@
 run:
   deadline: 2m
-
   skip-files:
-  - "zz_generated\\..+\\.go$"
-
+    - _test\.go$
+    - zz_generated
+  skip-dirs:
+    - vendor
+    - ../../../go/pkg
+  skip-dirs-use-default: true # skips vendor and other common dirs
 output:
   # colored-line-number|line-number|json|tab|checkstyle|code-climate, default is "colored-line-number"
   format: colored-line-number
@@ -21,11 +24,11 @@ linters-settings:
     # [deprecated] comma-separated list of pairs of the form pkg:regex
     # the regex is used to ignore names within pkg. (default "fmt:.*").
     # see https://github.com/kisielk/errcheck#the-deprecated-method for details
-    ignore: fmt:.*,io/ioutil:^Read.*
+    exclude-functions: fmt:.*,io/ioutil:^Read.*
 
   govet:
     # report about shadowed variables
-    check-shadowing: false
+    shadow: false
 
   golint:
     # minimal confidence for issues, default is 0.8
@@ -42,7 +45,7 @@ linters-settings:
 
   gocyclo:
     # minimal code complexity to report, 30 by default (but we recommend 10-20)
-    min-complexity: 10
+    min-complexity: 15
 
   maligned:
     # print struct with more effective memory layout or not, false by default
@@ -106,16 +109,16 @@ linters-settings:
 
 linters:
   enable:
-    - megacheck
+    - gosimple
+    - staticcheck
+    - unused
     - govet
     - gocyclo
     - gocritic
-    - interfacer
     - goconst
     - goimports
     - gofmt  # We enable this as well as goimports for its simplify mode.
     - prealloc
-    - golint
     - unconvert
     - misspell
     - nakedret
@@ -138,7 +141,9 @@ issues:
         - gosec
         - scopelint
         - unparam
-    
+    - text: "G115:"
+      linters:
+        - gosec
     # Ease some gocritic warnings on test files.
     - path: _test\.go
       text: "(unnamedResult|exitAfterDefer)"
@@ -171,6 +176,11 @@ issues:
       - gas
 
     # This is an 'errors unhandled' warning that duplicates errcheck.
+    - text: "G104:"
+      linters:
+      - gosec
+      - gas
+      
     - text: "G104:"
       linters:
       - gosec

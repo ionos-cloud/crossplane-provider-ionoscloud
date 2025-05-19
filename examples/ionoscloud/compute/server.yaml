@@ -19,8 +19,6 @@ spec:
     name: exampleServer
     cores: 4
     ram: 2048
-    availabilityZone: AUTO
-    cpuFamily: INTEL_XEON
     datacenterConfig:
       datacenterIdRef:
         name: example

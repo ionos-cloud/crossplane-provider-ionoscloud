@@ -19,6 +19,11 @@
 
 ## Overview
 
+⚠️ **_Note: If you are building the provider locally for the first time and you see macro errors in your makefile, run:
+```bash
+make submodules
+```
+
 This `crossplane-provider-ionoscloud` repository is the Crossplane infrastructure provider for IONOS Cloud. The provider
 that is built from the source code from this repository can be installed into a Crossplane control plane and adds the
 following new functionality:
@@ -36,7 +41,7 @@ For getting started with Crossplane Provider IONOS Cloud, check out this step-by
 ## Set up Crossplane Provider IONOS Cloud
 
 In order to set up Crossplane Provider IONOS Cloud, see details
-in [here](examples/example.md#setup-crossplane-provider-ionos-cloud).
+in [here](examples/example.md#set-up-crossplane-provider-ionos-cloud).
 
 ## Authentication on IONOS Cloud
 
@@ -96,7 +101,7 @@ More details about ProviderConfig and authentication [here](docs/README.md#authe
 
 ## Provision Resources on IONOS Cloud
 
-Crossplane Provider IONOS Cloud Managed Resources list is available [here](docs/RESOURCES.md).
+Crossplane Provider IONOS Cloud Managed Resources list is available [here](docs/summary.md).
 
 ## Build images
 
@@ -177,7 +182,7 @@ corresponding release tag.
 
 New resources can be added by defining the required types in `apis` and the controllers `internal/controller/`.
 
-If you are running crossplane for the first time, run:
+If you are building the provider locally for the first time, run:
 ```bash
 make submodules
 ```
