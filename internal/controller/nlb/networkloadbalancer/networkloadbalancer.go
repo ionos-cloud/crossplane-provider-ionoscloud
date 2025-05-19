@@ -28,8 +28,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	"github.com/pkg/errors"
-	safecast "github.com/rung/go-safecast"
-	"k8s.io/utils/ptr"
+	"github.com/rung/go-safecast"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
