@@ -334,7 +334,7 @@ metadata:
   name: provider-ionos
 spec:
   package: ghcr.io/ionos-cloud/crossplane-provider-ionoscloud:latest
-  controllerConfigRef:
+  runtimeConfigRef:
     name: provider-config
 EOF
 ```
@@ -378,7 +378,7 @@ metadata:
   name: provider-ionos
 spec:
   package: ghcr.io/ionos-cloud/crossplane-provider-ionoscloud:latest
-  controllerConfigRef:
+  runtimeConfigRef:
     name: debug-config
 EOF
 ```

@@ -34,7 +34,7 @@ metadata:
   name: "${PACKAGE_NAME}"
 spec:
   package: "${PACKAGE_NAME}"
-  controllerConfigRef:
+  runtimeConfigRef:
     name: debug-config
   packagePullPolicy: Never
 EOF
@@ -135,7 +135,7 @@ metadata:
   name: "${PACKAGE_NAME}"
 spec:
   package: "${PACKAGE_NAME}"
-  controllerConfigRef:
+  runtimeConfigRef:
     name: debug-config
   packagePullPolicy: Never
 EOF
