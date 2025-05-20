@@ -26,6 +26,38 @@ const (
 	requestHeader = "Location"
 )
 
+// IsRequestDone fetches the latest request that matches both the targetID and the method provided, and checks if it has
+// reached status DONE. In case of request failure (status FAILED), the function will return an error.
+func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, targetID, method string) (bool, error) {
+	reqs, _, err := client.RequestsApi.RequestsGet(ctx).FilterRequestStatus(targetID).FilterMethod(method).Limit(1).Execute()
+	if err != nil {
+		return false, fmt.Errorf("failed to get %s request for resource %s. error: %w", method, targetID, err)
+	}
+
+	if len(*reqs.Items) == 0 {
+		return false, fmt.Errorf("no %s request found for resource %s", method, targetID)
+	}
+
+	// we retrieve only the most recent request that matches the criteria
+	for _, req := range *reqs.Items {
+		status := req.Metadata.RequestStatus.Metadata.Status
+		if *status == sdkgo.RequestStatusDone {
+			return true, nil
+		}
+		if *status == sdkgo.RequestStatusFailed {
+			errMsg := fmt.Sprintf("%s request %s for resource %s failed", method, *req.Id, targetID)
+			msg := req.Metadata.RequestStatus.Metadata.Message
+			if msg != nil {
+				errMsg = fmt.Sprintf("%s (%s)", errMsg, *msg)
+			}
+
+			return false, fmt.Errorf(errMsg)
+		}
+	}
+
+	return false, nil
+}
+
 // WaitForRequest waits for the request to be DONE
 func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *sdkgo.APIResponse) error {
 	if client != nil {

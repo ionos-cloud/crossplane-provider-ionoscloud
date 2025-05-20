@@ -25,7 +25,6 @@ const resourceLAN = "lan"
 type kubeLANControlManager interface {
 	Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) (v1alpha1.Lan, error)
 	Get(ctx context.Context, lanName, ns string) (*v1alpha1.Lan, error)
-	Delete(ctx context.Context, name, namespace string) error
 	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) error
 	ListLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.LanList, error)
 	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) (v1alpha1.Lan, error)
@@ -164,7 +163,6 @@ func (k *kubeLANController) isAvailable(ctx context.Context, name, namespace str
 }
 
 func (k *kubeLANController) isLANDeleted(ctx context.Context, name, namespace string) (bool, error) {
-	k.log.Info("Checking if LAN is deleted", "name", name, "namespace", namespace)
 	obj := &v1alpha1.Lan{}
 	err := k.kube.Get(ctx, types.NamespacedName{
 		Namespace: namespace,

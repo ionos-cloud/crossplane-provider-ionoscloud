@@ -19,6 +19,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
@@ -166,6 +167,19 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalCreation{}, nil
 	}
 
+	if externalName := meta.GetExternalName(cr); externalName != "" && externalName != cr.Name {
+		isDone, err := compute.IsRequestDone(ctx, c.service.GetAPIClient(), externalName, http.MethodPost)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+
+		if isDone {
+			return managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}, nil
+		}
+
+		return managed.ExternalCreation{}, nil
+	}
+
 	if c.isUniqueNamesEnabled {
 		// Servers should have unique names per datacenter.
 		// Check if there are any existing servers with the same name.
@@ -194,12 +208,14 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		retErr := fmt.Errorf("failed to create server. error: %w", err)
 		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return creation, err
-	}
+
 	// Set External Name
 	cr.Status.AtProvider.ServerID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
+
+	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+		return creation, err
+	}
 	if cr.Spec.ForProvider.VolumeCfg.VolumeID != "" {
 		c.log.Debug("Attaching Volume...", "volume", cr.Spec.ForProvider.VolumeCfg.VolumeID)
 		_, apiResponse, err = c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,

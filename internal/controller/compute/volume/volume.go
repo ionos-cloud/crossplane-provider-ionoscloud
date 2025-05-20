@@ -19,6 +19,7 @@ package volume
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	"github.com/google/go-cmp/cmp"
@@ -186,6 +187,19 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalCreation{}, nil
 	}
 
+	if externalName := meta.GetExternalName(cr); externalName != "" && externalName != cr.Name {
+		isDone, err := compute.IsRequestDone(ctx, c.service.GetAPIClient(), externalName, http.MethodPost)
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+
+		if isDone {
+			return managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}, nil
+		}
+
+		return managed.ExternalCreation{}, nil
+	}
+
 	if c.isUniqueNamesEnabled {
 		// Volumes should have unique names per datacenter.
 		// Check if there are any existing volumes with the same name.
@@ -218,12 +232,14 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 		retErr := fmt.Errorf("failed to create volume. error: %w", err)
 		return creation, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return creation, err
-	}
+
 	// Set External Name
 	cr.Status.AtProvider.VolumeID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
+
+	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+		return creation, err
+	}
 	return creation, nil
 }
 
