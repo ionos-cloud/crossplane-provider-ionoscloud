@@ -6,5 +6,5 @@ spec:
   package: ghcr.io/ionos-cloud/crossplane-provider-ionoscloud:latest
   # Uncomment the following lines in order to see logs
   # for Crossplane Provider IONOS Cloud controller pod:
-  # controllerConfigRef:
+  # runtimeConfigRef:
   #  name: debug-config
