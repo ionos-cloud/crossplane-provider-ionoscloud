@@ -9,7 +9,6 @@ function install_provider() {
 apiVersion: pkg.crossplane.io/v1beta1
 kind: DeploymentRuntimeConfig
 metadata:
-  creationTimestamp: "2025-05-19T09:04:26Z"
   name: debug-config
 spec:
   deploymentTemplate:
@@ -114,7 +113,6 @@ EOF
 apiVersion: pkg.crossplane.io/v1beta1
 kind: DeploymentRuntimeConfig
 metadata:
-  creationTimestamp: "2025-05-19T09:07:29Z"
   name: debug-config
 spec:
   deploymentTemplate:
