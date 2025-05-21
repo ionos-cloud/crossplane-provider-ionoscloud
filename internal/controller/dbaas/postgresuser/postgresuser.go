@@ -21,20 +21,21 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
-	"github.com/ionos-cloud/sdk-go-bundle/shared"
-	"github.com/pkg/errors"
-	"golang.org/x/crypto/bcrypt"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
+	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
+	"github.com/ionos-cloud/sdk-go-bundle/shared"
+	"github.com/pkg/errors"
+	"golang.org/x/crypto/bcrypt"
+	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/postgres/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
@@ -60,7 +61,11 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: opts.GetMaxConcurrentReconcileRate(v1alpha1.PostgresUserKind),
+			RateLimiter:             ratelimiter.NewController(),
+			RecoverPanic:            ptr.To(true),
+		}).
 		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.PostgresUser{}).
 		Complete(managed.NewReconciler(mgr,

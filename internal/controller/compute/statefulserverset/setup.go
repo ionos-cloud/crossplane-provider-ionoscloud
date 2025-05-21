@@ -25,9 +25,14 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			return errors.Wrap(err, "cannot register MR state metrics recorder for kind"+name)
 		}
 	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: opts.GetMaxConcurrentReconcileRate(v1alpha1.StatefulServerSetKind),
+			RateLimiter:             ratelimiter.NewController(),
+			RecoverPanic:            ptr.To(true),
+		}).
 		For(&v1alpha1.StatefulServerSet{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.StatefulServerSetGroupVersionKind),

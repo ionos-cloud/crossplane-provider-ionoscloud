@@ -31,8 +31,11 @@ func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
-		// WithEventFilter(resource.DesiredStateChanged()).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: opts.GetMaxConcurrentReconcileRate(v1alpha1.ServerSetKind),
+			RateLimiter:             ratelimiter.NewController(),
+			RecoverPanic:            ptr.To(true),
+		}).
 		For(&v1alpha1.ServerSet{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.ServerSetGroupVersionKind),

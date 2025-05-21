@@ -20,21 +20,19 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
-	"github.com/google/go-cmp/cmp"
-	"github.com/pkg/errors"
-	safecast "github.com/rung/go-safecast"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-
+	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
+	"github.com/google/go-cmp/cmp"
 	ionoscloud "github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2"
+	"github.com/pkg/errors"
+	"github.com/rung/go-safecast"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/alb/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"

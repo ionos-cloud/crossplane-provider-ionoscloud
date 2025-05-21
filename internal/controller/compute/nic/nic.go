@@ -61,7 +61,11 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(opts.CtrlOpts.ForControllerRuntime()).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: opts.GetMaxConcurrentReconcileRate(v1alpha1.NicKind),
+			RateLimiter:             ratelimiter.NewController(),
+			RecoverPanic:            ptr.To(true),
+		}).
 		For(&v1alpha1.Nic{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.NicGroupVersionKind),

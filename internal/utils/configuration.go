@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"strings"
 	"time"
 
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
@@ -9,9 +10,10 @@ import (
 // ConfigurationOptions are options used in setting the provider
 // and the controllers of the provider.
 type ConfigurationOptions struct {
-	CreationGracePeriod  time.Duration
-	Timeout              time.Duration
-	IsUniqueNamesEnabled bool
+	CreationGracePeriod      time.Duration
+	Timeout                  time.Duration
+	IsUniqueNamesEnabled     bool
+	MaxReconcilesPerResource map[string]int
 	// CtrlOpts are crossplane-specific controller options
 	CtrlOpts controller.Options
 }
@@ -56,4 +58,18 @@ func (o *ConfigurationOptions) GetIsUniqueNamesEnabled() bool {
 		return false
 	}
 	return o.IsUniqueNamesEnabled
+}
+
+// DefaultMaxReconcileRatePerResource is the default max reconcile rate for stateful server sets
+const DefaultMaxReconcileRatePerResource = 1
+
+// GetMaxConcurrentReconcileRate returns the value set in the map for the kind provided, or the default global values set in max-reconcile-rate
+func (o *ConfigurationOptions) GetMaxConcurrentReconcileRate(kind string) int {
+	if o == nil {
+		return DefaultMaxReconcileRatePerResource
+	}
+	if reconcileRate, ok := o.MaxReconcilesPerResource[strings.ToLower(kind)]; ok {
+		return reconcileRate
+	}
+	return o.CtrlOpts.MaxConcurrentReconciles
 }
