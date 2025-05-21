@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
+	vv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -15,9 +17,12 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	sigsobj "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
@@ -120,7 +125,10 @@ func (c *externalVolumeselector) Observe(ctx context.Context, mg resource.Manage
 	if meta.GetExternalName(cr) == "" || meta.WasDeleted(cr) {
 		return managed.ExternalObservation{}, nil
 	}
-
+	// Remove pending annotations for all the resources of the statefulServerSet in case of a reboot, so creation can continue
+	if err := c.removePendingAnnotations(ctx, *cr); err != nil {
+		return managed.ExternalObservation{}, err
+	}
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
 		volumeList, serverList, err := c.getVolumesAndServers(ctx, cr.Spec.ForProvider.ServersetName, replicaIndex)
 		if err != nil {
@@ -129,7 +137,7 @@ func (c *externalVolumeselector) Observe(ctx context.Context, mg resource.Manage
 		if !c.areVolumesAndServersReady(volumeList, serverList) {
 			return managed.ExternalObservation{
 				ResourceExists:    true,
-				ResourceUpToDate:  false,
+				ResourceUpToDate:  true,
 				ConnectionDetails: managed.ConnectionDetails{},
 			}, nil
 		}
@@ -284,6 +292,141 @@ func (c *externalVolumeselector) getVolumesAndServers(ctx context.Context, serve
 		return volumeList, serverList, err
 	}
 	return volumeList, serverList, err
+}
+
+func (c *externalVolumeselector) getAllWithLabel(ctx context.Context, labelKey, labelValue string, list client.ObjectList) {
+	if err := c.kube.List(ctx, list, client.MatchingLabels{
+		labelKey: labelValue,
+	}); err != nil {
+		if !apiErrors.IsNotFound(err) {
+			c.log.Info("[volumeselector] While listing resources with label", "labelKey", labelKey, "labelValue", labelValue, "error", err)
+		}
+	}
+}
+
+const errCreateIncomplete = "cannot determine creation result - remove the " + meta.AnnotationKeyExternalCreatePending + " annotation if it is safe to proceed"
+const (
+	statefulServerSetLabel = "statefulServerSet"
+	serversetLabel         = "serverset"
+)
+
+// removePendingAnnotations - removes the pending annotations from the resources of the statefulserverset in case of a reboot
+func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, cr v1alpha1.Volumeselector) error {
+	sssetName := cr.GetLabels()[statefulServerSetLabel]
+	ssset := v1alpha1.StatefulServerSet{}
+	if err := c.kube.Get(ctx, types.NamespacedName{Name: sssetName}, &ssset); err != nil {
+		if !apiErrors.IsNotFound(err) {
+			return err
+		}
+	}
+	conditions := ssset.Status.ResourceStatus.Conditions
+	if err := c.handlePendingAnnotations(ctx, conditions, &ssset); err != nil {
+		return err
+	}
+
+	sset := v1alpha1.ServerSet{}
+	if err := c.kube.Get(ctx, types.NamespacedName{Name: cr.Spec.ForProvider.ServersetName}, &sset); err != nil {
+		if !apiErrors.IsNotFound(err) {
+			return err
+		}
+	}
+	conditions = sset.Status.ResourceStatus.Conditions
+	if err := c.handlePendingAnnotations(ctx, conditions, &sset); err != nil {
+		return err
+	}
+	datVolumeList := v1alpha1.VolumeList{}
+	c.getAllWithLabel(ctx, statefulServerSetLabel, sssetName, &datVolumeList)
+	if len(datVolumeList.Items) > 0 {
+		for _, dataVolume := range datVolumeList.Items {
+			conditions = dataVolume.Status.ResourceStatus.Conditions
+			err := c.handlePendingAnnotations(ctx, conditions, &dataVolume)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	lanList := v1alpha1.LanList{}
+	c.getAllWithLabel(ctx, statefulServerSetLabel, sssetName, &lanList)
+	if len(lanList.Items) > 0 {
+		for _, foundLan := range lanList.Items {
+			conditions = foundLan.Status.ResourceStatus.Conditions
+			err := c.handlePendingAnnotations(ctx, conditions, &foundLan)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// serverset resources
+	serverList := v1alpha1.ServerList{}
+	c.getAllWithLabel(ctx, serversetLabel, cr.Spec.ForProvider.ServersetName, &serverList)
+	if len(serverList.Items) > 0 {
+		for _, foundServer := range serverList.Items {
+			conditions = foundServer.Status.ResourceStatus.Conditions
+			err := c.handlePendingAnnotations(ctx, conditions, &foundServer)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	bootVolumeList := v1alpha1.VolumeList{}
+	c.getAllWithLabel(ctx, serversetLabel, cr.Spec.ForProvider.ServersetName, &bootVolumeList)
+	if len(bootVolumeList.Items) > 0 {
+		for _, foundBootVolume := range bootVolumeList.Items {
+			conditions = foundBootVolume.Status.ResourceStatus.Conditions
+			err := c.handlePendingAnnotations(ctx, conditions, &foundBootVolume)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	nicList := v1alpha1.NicList{}
+	c.getAllWithLabel(ctx, serversetLabel, cr.Spec.ForProvider.ServersetName, &nicList)
+	if len(nicList.Items) > 0 {
+		for _, foundNic := range nicList.Items {
+			conditions = foundNic.Status.ResourceStatus.Conditions
+			if err := c.handlePendingAnnotations(ctx, conditions, &foundNic); err != nil {
+				return err
+			}
+		}
+	}
+
+	fwRuleList := v1alpha1.FirewallRuleList{}
+	c.getAllWithLabel(ctx, serversetLabel, cr.Spec.ForProvider.ServersetName, &fwRuleList)
+	if len(fwRuleList.Items) > 0 {
+		for _, foundFwRule := range fwRuleList.Items {
+			conditions = foundFwRule.Status.ResourceStatus.Conditions
+			if err := c.handlePendingAnnotations(ctx, conditions, &foundFwRule); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// handlePendingAnnotations - handles pending annotations for the given object. The annotation will be removed only in case of a reboot which triggers an errCreateIncomplete
+func (c *externalVolumeselector) handlePendingAnnotations(ctx context.Context, conditions []vv1.Condition, obj sigsobj.Object) error {
+	if obj == nil {
+		return nil
+	}
+	if len(conditions) > 0 {
+		for _, condition := range conditions {
+			// pending := meta.GetExternalCreatePending(obj)
+			if strings.Contains(condition.Message, errCreateIncomplete) { // &&  && condition.LastTransitionTime.After(pending)
+				c.log.Info("[volumeselector] handlePendingAnnotations create pending annotation removed from obj", "name", obj.GetName(), "kind", obj.GetObjectKind())
+				meta.RemoveAnnotations(obj, meta.AnnotationKeyExternalCreatePending)
+				err := c.kube.Update(ctx, obj)
+				if err != nil {
+					c.log.Info("[volumeselector] error removing pending annotation from", "kind", obj.GetObjectKind(), "name", obj.GetName(), "error", err)
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
