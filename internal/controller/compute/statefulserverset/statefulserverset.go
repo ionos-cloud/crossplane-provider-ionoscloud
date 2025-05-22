@@ -207,7 +207,7 @@ func (e *external) isVolumeSelectorUpToDate(ctx context.Context, cr *v1alpha1.St
 		}
 		return false, err
 	}
-	return true, nil
+	return e.volumeSelectorController.IsAvailable(ctx, vsName, cr.Namespace)
 }
 
 func (e *external) setSSetStatusOnCR(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {

@@ -24,6 +24,7 @@ const volumeSelectorName = "%s-volume-selector"
 type kubeVolumeSelectorManager interface {
 	Get(ctx context.Context, name, ns string) (*v1alpha1.Volumeselector, error)
 	CreateOrUpdate(ctx context.Context, cr *v1alpha1.StatefulServerSet) error
+	IsAvailable(ctx context.Context, name, namespace string) (bool, error)
 }
 
 // kubeBootVolumeController - kubernetes client wrapper  for server resources
@@ -78,7 +79,7 @@ func (k *kubeVolumeSelectorController) Create(ctx context.Context, cr *v1alpha1.
 	if err := k.kube.Create(ctx, &volSelector); err != nil {
 		return v1alpha1.Volumeselector{}, err
 	}
-	// if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isAvailable, name, cr.Namespace); err != nil {
+	// if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.IsAvailable, name, cr.Namespace); err != nil {
 	// 	return v1alpha1.Volumeselector{}, err
 	// }
 	// get the volume again before returning to have the id populated
@@ -91,8 +92,8 @@ func (k *kubeVolumeSelectorController) Create(ctx context.Context, cr *v1alpha1.
 	return volSelector, nil
 }
 
-// IsVolumeAvailable - checks if a volume selector is available
-func (k *kubeVolumeSelectorController) isAvailable(ctx context.Context, name, namespace string) (bool, error) {
+// IsAvailable - checks if a volume selector is available
+func (k *kubeVolumeSelectorController) IsAvailable(ctx context.Context, name, namespace string) (bool, error) {
 	obj, err := k.Get(ctx, name, namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
