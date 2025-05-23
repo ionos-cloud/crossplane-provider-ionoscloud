@@ -321,8 +321,7 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 			return err
 		}
 	}
-	conditions := ssset.Status.ResourceStatus.Conditions
-	if err := c.handlePendingAnnotations(ctx, conditions, &ssset); err != nil {
+	if err := c.handlePendingAnnotations(ctx, ssset.Status.ResourceStatus.Conditions, &ssset); err != nil {
 		return err
 	}
 
@@ -332,16 +331,14 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 			return err
 		}
 	}
-	conditions = sset.Status.ResourceStatus.Conditions
-	if err := c.handlePendingAnnotations(ctx, conditions, &sset); err != nil {
+	if err := c.handlePendingAnnotations(ctx, sset.Status.ResourceStatus.Conditions, &sset); err != nil {
 		return err
 	}
 	datVolumeList := v1alpha1.VolumeList{}
 	c.getAllWithLabel(ctx, statefulServerSetLabel, sssetName, &datVolumeList)
 	if len(datVolumeList.Items) > 0 {
 		for _, dataVolume := range datVolumeList.Items {
-			conditions = dataVolume.Status.ResourceStatus.Conditions
-			err := c.handlePendingAnnotations(ctx, conditions, &dataVolume)
+			err := c.handlePendingAnnotations(ctx, dataVolume.Status.ResourceStatus.Conditions, &dataVolume)
 			if err != nil {
 				return err
 			}
@@ -352,8 +349,7 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 	c.getAllWithLabel(ctx, statefulServerSetLabel, sssetName, &lanList)
 	if len(lanList.Items) > 0 {
 		for _, foundLan := range lanList.Items {
-			conditions = foundLan.Status.ResourceStatus.Conditions
-			err := c.handlePendingAnnotations(ctx, conditions, &foundLan)
+			err := c.handlePendingAnnotations(ctx, foundLan.Status.ResourceStatus.Conditions, &foundLan)
 			if err != nil {
 				return err
 			}
@@ -365,8 +361,7 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 	c.getAllWithLabel(ctx, serversetLabel, cr.Spec.ForProvider.ServersetName, &serverList)
 	if len(serverList.Items) > 0 {
 		for _, foundServer := range serverList.Items {
-			conditions = foundServer.Status.ResourceStatus.Conditions
-			err := c.handlePendingAnnotations(ctx, conditions, &foundServer)
+			err := c.handlePendingAnnotations(ctx, foundServer.Status.ResourceStatus.Conditions, &foundServer)
 			if err != nil {
 				return err
 			}
@@ -377,8 +372,7 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 	c.getAllWithLabel(ctx, serversetLabel, cr.Spec.ForProvider.ServersetName, &bootVolumeList)
 	if len(bootVolumeList.Items) > 0 {
 		for _, foundBootVolume := range bootVolumeList.Items {
-			conditions = foundBootVolume.Status.ResourceStatus.Conditions
-			err := c.handlePendingAnnotations(ctx, conditions, &foundBootVolume)
+			err := c.handlePendingAnnotations(ctx, foundBootVolume.Status.ResourceStatus.Conditions, &foundBootVolume)
 			if err != nil {
 				return err
 			}
@@ -389,8 +383,7 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 	c.getAllWithLabel(ctx, serversetLabel, cr.Spec.ForProvider.ServersetName, &nicList)
 	if len(nicList.Items) > 0 {
 		for _, foundNic := range nicList.Items {
-			conditions = foundNic.Status.ResourceStatus.Conditions
-			if err := c.handlePendingAnnotations(ctx, conditions, &foundNic); err != nil {
+			if err := c.handlePendingAnnotations(ctx, foundNic.Status.ResourceStatus.Conditions, &foundNic); err != nil {
 				return err
 			}
 		}
@@ -400,8 +393,7 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 	c.getAllWithLabel(ctx, serversetLabel, cr.Spec.ForProvider.ServersetName, &fwRuleList)
 	if len(fwRuleList.Items) > 0 {
 		for _, foundFwRule := range fwRuleList.Items {
-			conditions = foundFwRule.Status.ResourceStatus.Conditions
-			if err := c.handlePendingAnnotations(ctx, conditions, &foundFwRule); err != nil {
+			if err := c.handlePendingAnnotations(ctx, foundFwRule.Status.ResourceStatus.Conditions, &foundFwRule); err != nil {
 				return err
 			}
 		}
@@ -411,20 +403,17 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 
 // handlePendingAnnotations - handles pending annotations for the given object. The annotation will be removed only in case of a reboot which triggers an errCreateIncomplete
 func (c *externalVolumeselector) handlePendingAnnotations(ctx context.Context, conditions []vv1.Condition, obj sigsobj.Object) error {
-	if obj == nil {
+	if obj == nil || len(conditions) == 0 {
 		return nil
 	}
-	if len(conditions) > 0 {
-		for _, condition := range conditions {
-			// pending := meta.GetExternalCreatePending(obj)
-			if strings.Contains(condition.Message, errCreateIncomplete) { // &&  && condition.LastTransitionTime.After(pending)
-				c.log.Info("[volumeselector] handlePendingAnnotations create pending annotation removed from obj", "name", obj.GetName(), "kind", obj.GetObjectKind())
-				meta.RemoveAnnotations(obj, meta.AnnotationKeyExternalCreatePending)
-				err := c.kube.Update(ctx, obj)
-				if err != nil {
-					c.log.Info("[volumeselector] error removing pending annotation from", "kind", obj.GetObjectKind(), "name", obj.GetName(), "error", err)
-					return err
-				}
+	for _, condition := range conditions {
+		if strings.Contains(condition.Message, errCreateIncomplete) {
+			c.log.Info("[volumeselector] handlePendingAnnotations create pending annotation removed from obj", "name", obj.GetName(), "kind", obj.GetObjectKind())
+			meta.RemoveAnnotations(obj, meta.AnnotationKeyExternalCreatePending)
+			err := c.kube.Update(ctx, obj)
+			if err != nil {
+				c.log.Info("[volumeselector] error removing pending annotation from", "kind", obj.GetObjectKind(), "name", obj.GetName(), "error", err)
+				return err
 			}
 		}
 	}
