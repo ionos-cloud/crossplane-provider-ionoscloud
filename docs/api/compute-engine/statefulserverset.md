@@ -271,8 +271,8 @@ the first server as the ACTIVE.
 		* `metadata`
 		* `spec`
 * `removePendingOnReboot` (boolean)
-	* description: RemovePendingOnReboot is a flag that indicates whether the create-pending annotation should be removed on crossplane reboot.
-This is useful to continue creation of the statefulserverset if by any chance the crossplane provider is rebooted while the statefulServerSet is being created.
+	* description: RemovePendingOnReboot indicates whether the create-pending annotation should be removed after a crossplane reboot.
+This is useful to continue creation of the statefulserverset if the provider is rebooted while the statefulServerSet is being created.
 Use this in conjunction the global `uniqueNames` field to avoid leaking resources.
 	* default: false
 * `replicas` (integer)
