@@ -315,7 +315,7 @@ const (
 // removePendingAnnotations - removes the pending annotations from the resources of the statefulserverset in case of a reboot
 func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, cr v1alpha1.Volumeselector) error {
 	sssetName := cr.GetLabels()[statefulServerSetLabel]
-	resourcesWIthConditions := map[sigsobj.Object][]xpv1.Condition{}
+	resourcesWithConditions := map[sigsobj.Object][]xpv1.Condition{}
 	ssset := v1alpha1.StatefulServerSet{}
 	if err := c.kube.Get(ctx, types.NamespacedName{Name: sssetName}, &ssset); err != nil {
 		if !apiErrors.IsNotFound(err) {
@@ -323,7 +323,7 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 		}
 	}
 	if len(ssset.Status.ResourceStatus.Conditions) > 0 {
-		resourcesWIthConditions[&ssset] = ssset.Status.ResourceStatus.Conditions
+		resourcesWithConditions[&ssset] = ssset.Status.ResourceStatus.Conditions
 	}
 
 	sset := v1alpha1.ServerSet{}
@@ -333,7 +333,7 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 		}
 	}
 	if len(sset.Status.ResourceStatus.Conditions) > 0 {
-		resourcesWIthConditions[&sset] = sset.Status.ResourceStatus.Conditions
+		resourcesWithConditions[&sset] = sset.Status.ResourceStatus.Conditions
 	}
 
 	datVolumeList := v1alpha1.VolumeList{}
@@ -341,7 +341,7 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 	if len(datVolumeList.Items) > 0 {
 		for _, dataVolume := range datVolumeList.Items {
 			if len(dataVolume.Status.ResourceStatus.Conditions) > 0 {
-				resourcesWIthConditions[&dataVolume] = dataVolume.Status.ResourceStatus.Conditions
+				resourcesWithConditions[&dataVolume] = dataVolume.Status.ResourceStatus.Conditions
 			}
 		}
 	}
@@ -351,7 +351,7 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 	if len(lanList.Items) > 0 {
 		for _, foundLan := range lanList.Items {
 			if len(foundLan.Status.ResourceStatus.Conditions) > 0 {
-				resourcesWIthConditions[&foundLan] = foundLan.Status.ResourceStatus.Conditions
+				resourcesWithConditions[&foundLan] = foundLan.Status.ResourceStatus.Conditions
 			}
 		}
 	}
@@ -362,7 +362,7 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 	if len(serverList.Items) > 0 {
 		for _, foundServer := range serverList.Items {
 			if len(foundServer.Status.ResourceStatus.Conditions) > 0 {
-				resourcesWIthConditions[&foundServer] = foundServer.Status.ResourceStatus.Conditions
+				resourcesWithConditions[&foundServer] = foundServer.Status.ResourceStatus.Conditions
 			}
 		}
 	}
@@ -372,7 +372,7 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 	if len(bootVolumeList.Items) > 0 {
 		for _, foundBootVolume := range bootVolumeList.Items {
 			if len(foundBootVolume.Status.ResourceStatus.Conditions) > 0 {
-				resourcesWIthConditions[&foundBootVolume] = foundBootVolume.Status.ResourceStatus.Conditions
+				resourcesWithConditions[&foundBootVolume] = foundBootVolume.Status.ResourceStatus.Conditions
 			}
 		}
 	}
@@ -382,7 +382,7 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 	if len(nicList.Items) > 0 {
 		for _, foundNic := range nicList.Items {
 			if len(foundNic.Status.ResourceStatus.Conditions) > 0 {
-				resourcesWIthConditions[&foundNic] = foundNic.Status.ResourceStatus.Conditions
+				resourcesWithConditions[&foundNic] = foundNic.Status.ResourceStatus.Conditions
 			}
 		}
 	}
@@ -392,11 +392,11 @@ func (c *externalVolumeselector) removePendingAnnotations(ctx context.Context, c
 	if len(fwRuleList.Items) > 0 {
 		for _, foundFwRule := range fwRuleList.Items {
 			if len(foundFwRule.Status.ResourceStatus.Conditions) > 0 {
-				resourcesWIthConditions[&foundFwRule] = foundFwRule.Status.ResourceStatus.Conditions
+				resourcesWithConditions[&foundFwRule] = foundFwRule.Status.ResourceStatus.Conditions
 			}
 		}
 	}
-	for obj, conditions := range resourcesWIthConditions {
+	for obj, conditions := range resourcesWithConditions {
 		if err := c.handlePendingAnnotations(ctx, conditions, obj); err != nil {
 			return err
 		}
