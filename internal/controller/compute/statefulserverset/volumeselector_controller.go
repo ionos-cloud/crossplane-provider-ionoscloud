@@ -124,8 +124,9 @@ func fromStatefulServerSetToVolumeSelector(cr *v1alpha1.StatefulServerSet) v1alp
 				ManagementPolicies: cr.GetManagementPolicies(),
 			},
 			ForProvider: v1alpha1.VolumeSelectorParameters{
-				Replicas:      cr.Spec.ForProvider.Replicas,
-				ServersetName: getSSetName(cr),
+				Replicas:              cr.Spec.ForProvider.Replicas,
+				ServersetName:         getSSetName(cr),
+				RemovePendingOnReboot: cr.Spec.ForProvider.RemovePendingOnReboot,
 			},
 		},
 	}

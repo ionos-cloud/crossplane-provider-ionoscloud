@@ -126,8 +126,10 @@ func (c *externalVolumeselector) Observe(ctx context.Context, mg resource.Manage
 		return managed.ExternalObservation{}, nil
 	}
 	// Remove pending annotations for all the resources of the statefulServerSet in case of a reboot, so creation can continue
-	if err := c.removePendingAnnotations(ctx, *cr); err != nil {
-		return managed.ExternalObservation{}, err
+	if cr.Spec.ForProvider.RemovePendingOnReboot {
+		if err := c.removePendingAnnotations(ctx, *cr); err != nil {
+			return managed.ExternalObservation{}, err
+		}
 	}
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
 		volumeList, serverList, err := c.getVolumesAndServers(ctx, cr.Spec.ForProvider.ServersetName, replicaIndex)

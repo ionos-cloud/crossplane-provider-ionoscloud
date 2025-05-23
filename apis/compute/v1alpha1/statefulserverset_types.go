@@ -117,6 +117,12 @@ type StatefulServerSetParameters struct {
 	// should be created separately. The stateful serverset only reads the status from it. If it does not find it, it sets
 	// the first server as the ACTIVE.
 	IdentityConfigMap IdentityConfigMap `json:"identityConfigMap,omitempty"`
+	// RemovePendingOnReboot is a flag that indicates whether the create-pending annotation should be removed on crossplane reboot.
+	// This is useful to continue creation of the statefulserverset if by any chance the crossplane provider is rebooted while the statefulServerSet is being created.
+	// Use this in conjunction the global `uniqueNames` field to avoid leaking resources.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	RemovePendingOnReboot bool `json:"removePendingOnReboot"`
 }
 
 // A StatefulServerSetSpec defines the desired state of a StatefulServerSet.

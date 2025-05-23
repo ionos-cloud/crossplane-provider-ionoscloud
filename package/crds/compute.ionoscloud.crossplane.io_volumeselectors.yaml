@@ -77,6 +77,13 @@ spec:
                 description: VolumeSelectorParameters are the configurable fields
                   of a Volume.
                 properties:
+                  removePendingOnReboot:
+                    default: false
+                    description: |-
+                      RemovePendingOnReboot is a flag that indicates whether the create-pending annotation should be removed on crossplane reboot.
+                      This is useful to continue creation of the statefulserverset if by any chance the crossplane provider is rebooted while the statefulServerSet is being created.
+                      Use this in conjunction the global `uniqueNames` field to avoid leaking resources.
+                    type: boolean
                   replicas:
                     description: The number of servers that will be created.
                     minimum: 1
