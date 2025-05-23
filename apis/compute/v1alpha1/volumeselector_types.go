@@ -35,6 +35,12 @@ type VolumeSelectorParameters struct {
 	//
 	// +kubebuilder:validation:Required
 	ServersetName string `json:"serversetName"`
+	// RemovePendingOnReboot indicates whether the create-pending annotation should be removed after a crossplane reboot.
+	// This is useful to continue creation of the statefulserverset if the provider is rebooted while the statefulServerSet is being created.
+	// Use this in conjunction the global `uniqueNames` field to avoid leaking resources.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	RemovePendingOnReboot bool `json:"removePendingOnReboot,omitempty"`
 }
 
 // A VolumeselectorSpec defines the desired state of a Volumeselector.

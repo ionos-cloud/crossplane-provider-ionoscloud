@@ -32,7 +32,6 @@ func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 		kube: mgr.GetClient(),
 		log:  logger,
 	}
-
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
@@ -40,7 +39,6 @@ func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			RateLimiter:             ratelimiter.NewController(),
 			RecoverPanic:            ptr.To(true),
 		}).
-		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.ServerSet{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.ServerSetGroupVersionKind),
