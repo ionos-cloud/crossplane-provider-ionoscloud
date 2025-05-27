@@ -248,6 +248,19 @@ func createLanList() v1alpha1.LanList {
 	}
 }
 
+func createVolumeSelector() v1alpha1.Volumeselector {
+	return v1alpha1.Volumeselector{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf(volumeSelectorName, statefulServerSetName),
+		},
+		Status: v1alpha1.VolumeselectorStatus{
+			AtProvider: v1alpha1.VolumeselectorObservation{
+				State: ionoscloud.Available,
+			},
+		},
+	}
+}
+
 func createCustomerLANWithIpv6CidrUpdated() *v1alpha1.Lan {
 	lan := createCustomerLANWithIpv6Cidr()
 	lan.ResourceVersion = strconv.Itoa(lanResourceVersion + 1)
