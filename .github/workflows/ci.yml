@@ -182,7 +182,7 @@ jobs:
       - name: Vendor Dependencies
         run: make vendor vendor.check
       - name: Build Artifacts
-        run: make -j2 build VERSION=latest
+        run: make -j2 build.all VERSION=latest
         env:
           BUILD_ARGS: "--load"
       - name: Publish Artifacts to GitHub
