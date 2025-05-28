@@ -79,16 +79,6 @@ func (k *kubeVolumeSelectorController) Create(ctx context.Context, cr *v1alpha1.
 	if err := k.kube.Create(ctx, &volSelector); err != nil {
 		return v1alpha1.Volumeselector{}, err
 	}
-	// if err := kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.IsAvailable, name, cr.Namespace); err != nil {
-	// 	return v1alpha1.Volumeselector{}, err
-	// }
-	// get the volume again before returning to have the id populated
-	// kubeVolume, err := k.Get(ctx, name, cr.Namespace)
-	// if err != nil {
-	// 	return v1alpha1.Volumeselector{}, err
-	// }
-	// k.log.Info("Finished creating Volume", "name", name)
-
 	return volSelector, nil
 }
 
