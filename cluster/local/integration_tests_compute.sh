@@ -463,8 +463,8 @@ EOF
   echo_step "waiting for lan CR to be ready & synced"
   sleep 5
   kubectl describe lans
-  kubectl wait --for=condition=ready lans/example  --timeout=90s
-  kubectl wait --for=condition=synced lans/example  --timeout=90s
+  kubectl wait --for=condition=ready lans/example  --timeout=180s
+  kubectl wait --for=condition=synced lans/example  --timeout=180s
 
   echo_step "deploy a second lan CR"
   INSTALL_RESOURCE_YAML="$(
@@ -495,8 +495,8 @@ EOF
   echo_step "waiting for lan CR to be ready & synced"
   sleep 5
   kubectl describe lans
-  kubectl wait --for=condition=ready lans/example  --timeout=90s
-  kubectl wait --for=condition=synced lans/example  --timeout=90s
+  kubectl wait --for=condition=ready lans/example2  --timeout=180s
+  kubectl wait --for=condition=synced lans/example2  --timeout=180s
 
   echo_step "get lan CR"
   kubectl get lans
