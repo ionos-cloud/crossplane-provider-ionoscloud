@@ -150,7 +150,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 				LANController:            fakeKubeLANController{LanList: createLanList()},
 				dataVolumeController:     fakeKubeDataVolumeController{VolumeList: createVolumeList()},
 				ssetController:           &fakeKubeServerSetController{},
-				volumeselectorController: &fakeKubeVolumeSelectorController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{Volume: createVolumeSelector()},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -177,7 +177,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 					VolumeList: createVolumeList(),
 				},
 				ssetController:           &fakeKubeServerSetController{},
-				volumeselectorController: &fakeKubeVolumeSelectorController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{Volume: createVolumeSelector()},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -204,7 +204,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 					VolumeList: createVolumeList(),
 				},
 				ssetController:           &fakeKubeServerSetController{},
-				volumeselectorController: &fakeKubeVolumeSelectorController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{Volume: createVolumeSelector()},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -229,7 +229,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 					VolumeList: createVolumeList(),
 				},
 				ssetController:           &fakeKubeServerSetController{},
-				volumeselectorController: &fakeKubeVolumeSelectorController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{Volume: createVolumeSelector()},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -254,7 +254,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 					VolumeList: createVolumeListNotUpToDate(VolumeFieldUpToDate{}),
 				},
 				ssetController:           &fakeKubeServerSetController{},
-				volumeselectorController: &fakeKubeVolumeSelectorController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{Volume: createVolumeSelector()},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -279,7 +279,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 					VolumeList: createVolumeListNotUpToDate(VolumeFieldUpToDate{}),
 				},
 				ssetController:           &fakeKubeServerSetController{},
-				volumeselectorController: &fakeKubeVolumeSelectorController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{Volume: createVolumeSelector()},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -308,7 +308,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 					VolumeList: createVolumeList(),
 				},
 				ssetController:           &fakeKubeServerSetController{},
-				volumeselectorController: &fakeKubeVolumeSelectorController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{Volume: createVolumeSelector()},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -337,7 +337,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 					VolumeList: createVolumeList(),
 				},
 				ssetController:           &fakeKubeServerSetController{},
-				volumeselectorController: &fakeKubeVolumeSelectorController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{Volume: createVolumeSelector()},
 			},
 			args: args{
 				ctx: context.Background(),
@@ -366,7 +366,7 @@ func Test_statefulServerSetController_Observe(t *testing.T) {
 					VolumeList: createVolumeList(),
 				},
 				ssetController:           &fakeKubeServerSetController{},
-				volumeselectorController: &fakeKubeVolumeSelectorController{},
+				volumeselectorController: &fakeKubeVolumeSelectorController{Volume: createVolumeSelector()},
 			},
 			args: args{
 				ctx: context.Background(),

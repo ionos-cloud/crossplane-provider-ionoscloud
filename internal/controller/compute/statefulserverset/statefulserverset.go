@@ -200,13 +200,18 @@ func (e *external) isServerSetUpToDate(ctx context.Context, cr *v1alpha1.Statefu
 
 func (e *external) isVolumeSelectorUpToDate(ctx context.Context, cr *v1alpha1.StatefulServerSet) (creationVSUpToDate bool, err error) {
 	vsName := fmt.Sprintf(volumeSelectorName, cr.Name)
-	_, err = e.volumeSelectorController.Get(ctx, vsName, cr.Namespace)
+	vs, err := e.volumeSelectorController.Get(ctx, vsName, cr.Namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			return false, nil
 		}
 		return false, err
 	}
+
+	if vs.Status.AtProvider.State != ionoscloud.Available {
+		return false, nil
+	}
+
 	return true, nil
 }
 
