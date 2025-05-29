@@ -119,6 +119,10 @@ func (f fakeKubeVolumeSelectorController) Get(ctx context.Context, name, ns stri
 	return &f.Volume, f.Err
 }
 
+func (f fakeKubeVolumeSelectorController) IsAvailable(ctx context.Context, name, ns string) (bool, error) {
+	return true, f.Err
+}
+
 func (f fakeKubeVolumeSelectorController) Delete(ctx context.Context, name, ns string) error {
 	return nil
 }
