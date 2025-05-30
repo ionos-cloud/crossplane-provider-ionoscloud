@@ -8,6 +8,7 @@ import (
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
+	"golang.org/x/sync/errgroup"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -104,6 +105,8 @@ func (k *kubeFirewallRuleController) EnsureFirewallRules(
 	ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int, serverID string,
 ) error {
 	// loop through all NICs and attempt to ensure firewall rules
+
+	errGroup, ctx := errgroup.WithContext(ctx)
 	for nicIdx, nicSpec := range cr.Spec.ForProvider.Template.Spec.NICs {
 		// if firewall is not active, ignore any firewall rules declared in the NIC spec
 		if !nicSpec.FirewallActive {
@@ -113,6 +116,7 @@ func (k *kubeFirewallRuleController) EnsureFirewallRules(
 		nicName := getNicName(nicSpec.Name, replicaIndex, nicIdx, version)
 		nic := &v1alpha1.Nic{}
 		if err := k.kube.Get(ctx, client.ObjectKey{Name: nicName, Namespace: cr.Namespace}, nic); err != nil {
+			errGroup.Wait()
 			return err
 		}
 
@@ -121,11 +125,15 @@ func (k *kubeFirewallRuleController) EnsureFirewallRules(
 			firewallRuleName := getFirewallRuleName(
 				firewallRuleSpec.Name, replicaIndex, nicIdx, firewallIdx, version,
 			)
-			if err := k.ensure(ctx, cr, firewallRuleSpec, nic, firewallRuleName, serverID); err != nil {
-				return err
-			}
+			errGroup.Go(func() error {
+				return k.ensure(ctx, cr, firewallRuleSpec, nic, firewallRuleName, serverID)
+			})
 		}
 		k.log.Info("Finished ensuring Firewall Rules", "NIC", nicSpec.Name, "index", replicaIndex, "version", version)
+	}
+
+	if err := errGroup.Wait(); err != nil {
+		return err
 	}
 
 	return nil
