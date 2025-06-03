@@ -58,7 +58,7 @@ jobs:
       - name: Vendor Dependencies
         run: make vendor vendor.check
       - name: Lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v7
         with:
           version: ${{ env.GOLANGCI_VERSION }}
           skip-cache: true
