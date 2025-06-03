@@ -155,7 +155,7 @@ func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (mana
 			cr.Status.AtProvider.ServerName = name
 		}
 	}
-	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+	c.log.Debug("Observed Volume: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	// Set Ready condition based on State
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
@@ -164,6 +164,7 @@ func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (mana
 		ResourceUpToDate:        volume.IsVolumeUpToDate(cr, &instance),
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		Diff:                    volume.NeedsUpdate(cr, &instance),
 	}, nil
 }
 

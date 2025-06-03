@@ -127,7 +127,7 @@ func TestIsServerUpToDate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IsServerUpToDate(tt.args.cr, tt.args.Server); got != tt.want {
+			if got := IsUpToDate(tt.args.cr, tt.args.Server); got != tt.want {
 				t.Errorf("isServerUpToDate() = %v, want %v", got, tt.want)
 			}
 		})

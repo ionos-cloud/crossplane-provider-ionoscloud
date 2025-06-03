@@ -148,7 +148,7 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 
 	cr.Status.AtProvider.ClusterID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = string(clients.GetDBaaSPsqlResourceState(&observed))
-	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+	c.log.Debug("Observed psql cluster: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.DisplayName)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
 	return managed.ExternalObservation{

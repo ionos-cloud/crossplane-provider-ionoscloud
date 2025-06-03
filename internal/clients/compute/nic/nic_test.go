@@ -314,7 +314,7 @@ func TestIsNicUpToDate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IsNicUpToDate(tt.args.cr, tt.args.Nic, tt.args.ips); got != tt.want {
+			if got := IsUpToDate(tt.args.cr, tt.args.Nic, tt.args.ips); got != tt.want {
 				t.Errorf("isNicUpToDate() = %v, want %v", got, tt.want)
 			}
 		})

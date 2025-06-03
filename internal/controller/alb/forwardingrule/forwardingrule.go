@@ -147,7 +147,7 @@ func (c *externalForwardingRule) Observe(ctx context.Context, mg resource.Manage
 	forwardingrule.LateInitializer(&cr.Spec.ForProvider, &observed)
 	cr.Status.AtProvider.ForwardingRuleID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
-	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+	c.log.Debug("Observed forwarding rule: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 	// Resolve IPs
 	listenerIP, err := c.getIPSet(ctx, cr)

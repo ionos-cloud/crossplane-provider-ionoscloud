@@ -145,15 +145,16 @@ func (c *externalLan) Observe(ctx context.Context, mg resource.Managed) (managed
 	if instance.Properties != nil {
 		cr.Status.AtProvider.Name = *instance.Properties.Name
 	}
-	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+	c.log.Debug("Observed LAN: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	// Set Ready condition based on State
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        lan.IsLanUpToDate(cr, instance),
+		ResourceUpToDate:        lan.IsUpToDate(cr, instance),
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		Diff:                    lan.NeedsUpDate(cr, instance),
 	}, nil
 }
 

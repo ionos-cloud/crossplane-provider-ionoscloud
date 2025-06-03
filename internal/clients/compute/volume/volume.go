@@ -200,6 +200,44 @@ func GenerateUpdateVolumeInput(cr *v1alpha1.Volume, properties *sdkgo.VolumeProp
 	return &instanceUpdateInput, nil
 }
 
+// NeedsUpdate returns a string describing the reason why the Volume needs to be updated.
+func NeedsUpdate(cr *v1alpha1.Volume, volume *sdkgo.Volume) string {
+	if volume == nil {
+		return "Volume is nil"
+	}
+	if cr == nil {
+		return "Custom resource is nil"
+	}
+	switch {
+	case volume.Properties == nil:
+		return "Volume properties are nil"
+	case volume.Metadata.State != nil && *volume.Metadata.State == "BUSY":
+		return "Volume is busy, cannot update"
+	case volume.Properties.Name != nil && *volume.Properties.Name != cr.Spec.ForProvider.Name:
+		return "Volume name does not match the desired name: " + *volume.Properties.Name + " != " + cr.Spec.ForProvider.Name
+	case volume.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
+		return "Volume name is nil, but cr name is not empty: " + cr.Spec.ForProvider.Name
+	case volume.Properties.Size != nil && *volume.Properties.Size != cr.Spec.ForProvider.Size:
+		return "Volume size does not match the desired size: " + fmt.Sprintf("%.2f != %.2f", *volume.Properties.Size, cr.Spec.ForProvider.Size)
+	case volume.Properties.CpuHotPlug != nil && *volume.Properties.CpuHotPlug != cr.Spec.ForProvider.CPUHotPlug:
+		return "CPU hot plug does not match the desired value: " + fmt.Sprintf("%t != %t", *volume.Properties.CpuHotPlug, cr.Spec.ForProvider.CPUHotPlug)
+	case volume.Properties.RamHotPlug != nil && *volume.Properties.RamHotPlug != cr.Spec.ForProvider.RAMHotPlug:
+		return "RAM hot plug does not match the desired value: " + fmt.Sprintf("%t != %t", *volume.Properties.RamHotPlug, cr.Spec.ForProvider.RAMHotPlug)
+	case volume.Properties.NicHotPlug != nil && *volume.Properties.NicHotPlug != cr.Spec.ForProvider.NicHotPlug:
+		return "NIC hot plug does not match the desired value: " + fmt.Sprintf("%t != %t", *volume.Properties.NicHotPlug, cr.Spec.ForProvider.NicHotPlug)
+	case volume.Properties.NicHotUnplug != nil && *volume.Properties.NicHotUnplug != cr.Spec.ForProvider.NicHotUnplug:
+		return "NIC hot unplug does not match the desired value: " + fmt.Sprintf("%t != %t", *volume.Properties.NicHotUnplug, cr.Spec.ForProvider.NicHotUnplug)
+	case volume.Properties.DiscVirtioHotPlug != nil && *volume.Properties.DiscVirtioHotPlug != cr.Spec.ForProvider.DiscVirtioHotPlug:
+		return "Disc Virtio hot plug does not match the desired value: " + fmt.Sprintf("%t != %t", *volume.Properties.DiscVirtioHotPlug, cr.Spec.ForProvider.DiscVirtioHotPlug)
+	case volume.Properties.DiscVirtioHotUnplug != nil && *volume.Properties.DiscVirtioHotUnplug != cr.Spec.ForProvider.DiscVirtioHotUnplug:
+		return "Disc Virtio hot unplug does not match the desired value: " + fmt.Sprintf("%t != %t", *volume.Properties.DiscVirtioHotUnplug, cr.Spec.ForProvider.DiscVirtioHotUnplug)
+	case volume.Properties.Bus != nil && *volume.Properties.Bus != cr.Spec.ForProvider.Bus:
+		return "Volume bus does not match the desired bus: " + *volume.Properties.Bus + " != " + cr.Spec.ForProvider.Bus
+	default:
+		return ""
+	}
+}
+
 // IsVolumeUpToDate returns true if the Volume is up-to-date or false if it does not
 func IsVolumeUpToDate(cr *v1alpha1.Volume, volume *sdkgo.Volume) bool { // nolint:gocyclo
 	switch {
