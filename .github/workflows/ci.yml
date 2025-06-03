@@ -63,7 +63,7 @@ jobs:
           version: ${{ env.GOLANGCI_VERSION }}
           skip-cache: true
           only-new-issues: true
-          args: --timeout 10m0s --verbose --out-format=colored-line-number
+          args: --timeout 10m0s --verbose
   unit-tests:
     runs-on: ubuntu-latest
     needs: detect-noop
