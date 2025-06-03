@@ -128,7 +128,7 @@ func (c *externalDataplatform) Observe(ctx context.Context, mg resource.Managed)
 	dataplatformcluster.LateStatusInitializer(&cr.Status.AtProvider, &instance)
 	cr.Status.AtProvider.DataplatformID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = *instance.Metadata.State
-	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+	c.log.Debug("Observed dp cluster: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
 	return managed.ExternalObservation{

@@ -158,7 +158,7 @@ func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (
 		cr.Status.AtProvider.IP = ipSetByUser
 		cr.Status.AtProvider.State = string(available)
 	}
-	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+	c.log.Debug("Observed ip failover: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr))
 	// Set Ready condition based on State
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 

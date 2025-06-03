@@ -18,7 +18,6 @@ package flowlog
 
 import (
 	"context"
-	"fmt"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
@@ -140,7 +139,7 @@ func (c *externalFlowLog) Observe(ctx context.Context, mg resource.Managed) (man
 	}
 	flowlog.SetStatus(cr, observed)
 	cr.Status.AtProvider.FlowLogID = flowLogID
-	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+	c.log.Debug("Observed flowlog: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 	return managed.ExternalObservation{
 		ResourceExists:    true,

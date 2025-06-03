@@ -232,7 +232,7 @@ func (c *externalVolumeselector) attachVolume(ctx context.Context, datacenterID,
 	if datacenterID == "" || serverID == "" || volumeID == "" {
 		return errors.New("datacenterID, serverID and volumeID cannot be empty")
 	}
-	c.log.Debug("attachVolume, starting to attach Volume", "volumeID", volumeID)
+	c.log.Debug("attachVolume, starting to attach Volume", "volumeID", volumeID, "serverID", serverID, "datacenterID", datacenterID)
 	isAttached := false
 	var err error
 	if isAttached, err = c.serverClient.IsVolumeAttached(ctx, datacenterID, serverID, volumeID); err != nil {

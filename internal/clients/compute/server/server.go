@@ -239,8 +239,39 @@ func LateInitializer(in *v1alpha1.ServerParameters, sg *sdkgo.Server) {
 	}
 }
 
-// IsServerUpToDate returns true if the Server is up-to-date or false if it does not
-func IsServerUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool { // nolint:gocyclo
+// NeedsUpdate returns a string describing the reason why the Server needs to be updated
+func NeedsUpdate(cr *v1alpha1.Server, server sdkgo.Server) string {
+	switch {
+	case cr == nil && server.Properties == nil:
+		return "Server is nil"
+	case cr == nil && server.Properties != nil:
+		return "Server is nil, but server properties are not nil"
+	case cr != nil && server.Properties == nil:
+		return "Server properties are nil, but server is not nil"
+	case server.Properties.Name != nil && cr.Spec.ForProvider.Name != *server.Properties.Name:
+		return "Server name does not match the CR name" + cr.Spec.ForProvider.Name + " != " + *server.Properties.Name
+	case server.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
+		return "Server name is nil, but CR name is not empty: " + cr.Spec.ForProvider.Name
+	case server.Properties.Cores != nil && cr.Spec.ForProvider.Cores != *server.Properties.Cores:
+		return "Server cores do not match the CR cores" + fmt.Sprintf("%d != %d", cr.Spec.ForProvider.Cores, *server.Properties.Cores)
+	case server.Properties.Ram != nil && cr.Spec.ForProvider.RAM != *server.Properties.Ram:
+		return "Server RAM does not match the CR RAM" + fmt.Sprintf("%d != %d", cr.Spec.ForProvider.RAM, *server.Properties.Ram)
+	case server.Properties.CpuFamily != nil && cr.Spec.ForProvider.CPUFamily != "" && cr.Spec.ForProvider.CPUFamily != *server.Properties.CpuFamily:
+		return "Server CPU family does not match the CR CPU family" + cr.Spec.ForProvider.CPUFamily + " != " + *server.Properties.CpuFamily
+	case server.Properties.AvailabilityZone != nil && cr.Spec.ForProvider.AvailabilityZone != *server.Properties.AvailabilityZone:
+		return "Server availability zone does not match the CR availability zone" + cr.Spec.ForProvider.AvailabilityZone + " != " + *server.Properties.AvailabilityZone
+	case server.Metadata != nil && server.Metadata.State != nil && *server.Metadata.State == sdkgo.Busy:
+		return "Server is busy, cannot update"
+	case cr.Spec.ForProvider.VolumeCfg.VolumeID != cr.Status.AtProvider.VolumeID:
+		return "Server volume ID does not match the CR volume ID" + cr.Spec.ForProvider.VolumeCfg.VolumeID + " != " + cr.Status.AtProvider.VolumeID
+	case server.Properties.PlacementGroupId != nil && cr.Spec.ForProvider.PlacementGroupID != *server.Properties.PlacementGroupId:
+		return "Server placement group ID does not match the CR placement group ID" + cr.Spec.ForProvider.PlacementGroupID + " != " + *server.Properties.PlacementGroupId
+	}
+	return ""
+}
+
+// IsUpToDate returns true if the Server is up-to-date or false if it does not
+func IsUpToDate(cr *v1alpha1.Server, server sdkgo.Server) bool { // nolint:gocyclo
 	switch {
 	case cr == nil && server.Properties == nil:
 		return true

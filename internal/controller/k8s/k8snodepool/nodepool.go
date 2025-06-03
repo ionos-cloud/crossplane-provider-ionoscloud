@@ -153,7 +153,7 @@ func (c *externalNodePool) Observe(ctx context.Context, mg resource.Managed) (ma
 	// Set Ready condition based on State
 	cr.Status.AtProvider.NodePoolID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
-	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+	c.log.Debug("Observed k8s nodepool: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
 	publicIps, err := c.getPublicIPsSet(ctx, cr)
