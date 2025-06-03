@@ -6,14 +6,26 @@ function install_provider() {
   echo_step "installing ${PROJECT_NAME} into \"${CROSSPLANE_NAMESPACE}\" namespace"
   INSTALL_YAML="$(
     cat <<EOF
-apiVersion: pkg.crossplane.io/v1alpha1
-kind: ControllerConfig
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
 metadata:
   name: debug-config
 spec:
-  serviceAccountName: crossplane
-  args:
-    - --debug
+  deploymentTemplate:
+    spec:
+      selector: {}
+      strategy: {}
+      template:
+        spec:
+          containers:
+          - args:
+            - --debug
+            name: package-runtime
+            resources: {}
+          serviceAccountName: crossplane
+  serviceAccountTemplate:
+    metadata:
+      name: crossplane
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
@@ -21,7 +33,7 @@ metadata:
   name: "${PACKAGE_NAME}"
 spec:
   package: "${PACKAGE_NAME}"
-  controllerConfigRef:
+  runtimeConfigRef:
     name: debug-config
   packagePullPolicy: Never
 EOF
@@ -98,13 +110,22 @@ EOF
 
   INSTALL_YAML="$(
     cat <<EOF
-apiVersion: pkg.crossplane.io/v1alpha1
-kind: ControllerConfig
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
 metadata:
   name: debug-config
 spec:
-  args:
-    - --debug
+  deploymentTemplate:
+    spec:
+      selector: {}
+      strategy: {}
+      template:
+        spec:
+          containers:
+          - args:
+            - --debug
+            name: package-runtime
+            resources: {}
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
@@ -112,7 +133,7 @@ metadata:
   name: "${PACKAGE_NAME}"
 spec:
   package: "${PACKAGE_NAME}"
-  controllerConfigRef:
+  runtimeConfigRef:
     name: debug-config
   packagePullPolicy: Never
 EOF
