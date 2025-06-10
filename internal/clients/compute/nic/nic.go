@@ -186,43 +186,8 @@ func GenerateUpdateNicInput(cr *v1alpha1.Nic, ips []string) (*sdkgo.NicPropertie
 	return &instanceUpdateInput, nil
 }
 
-// NeedsUpdate returns a string with the reason why the Nic needs to be updated
-func NeedsUpdate(cr *v1alpha1.Nic, nic sdkgo.Nic, ips []string) string {
-	var ipv4s []string
-	var ipv6s []string
-
-	if len(ips) > 0 {
-		ipv4s, ipv6s = GetIPvSlices(ips)
-	}
-
-	switch {
-	case nic.Metadata != nil && nic.Metadata.State != nil && *nic.Metadata.State == sdkgo.Busy:
-		return "cannot update Nic while it is busy"
-	case nic.Properties.Name != nil && *nic.Properties.Name != cr.Spec.ForProvider.Name:
-		return "Nic name does not match the one in the CR " + *nic.Properties.Name + " != " + cr.Spec.ForProvider.Name
-	case nic.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return "Nic name is not set in the Nic properties, but it is set in the CR " + cr.Spec.ForProvider.Name
-	case nic.Properties.Dhcp != nil && *nic.Properties.Dhcp != cr.Spec.ForProvider.Dhcp:
-		return "Nic DHCP does not match the one in the CR " + fmt.Sprintf("%t != %t", *nic.Properties.Dhcp, cr.Spec.ForProvider.Dhcp)
-	case nic.Properties.Dhcpv6 != nil && cr.Spec.ForProvider.DhcpV6 != nil && *nic.Properties.Dhcpv6 != *cr.Spec.ForProvider.DhcpV6:
-		return "Nic DHCPv6 does not match the one in the CR " + fmt.Sprintf("%t != %t", *nic.Properties.Dhcpv6, *cr.Spec.ForProvider.DhcpV6)
-	case nic.Properties.FirewallActive != nil && *nic.Properties.FirewallActive != cr.Spec.ForProvider.FirewallActive:
-		return "Nic FirewallActive does not match the one in the CR " + fmt.Sprintf("%t != %t", *nic.Properties.FirewallActive, cr.Spec.ForProvider.FirewallActive)
-	case nic.Properties.FirewallType != nil && *nic.Properties.FirewallType != cr.Spec.ForProvider.FirewallType:
-		return "Nic FirewallType does not match the one in the CR " + fmt.Sprintf("%s != %s", *nic.Properties.FirewallType, cr.Spec.ForProvider.FirewallType)
-	case nic.Properties.Vnet != nil && *nic.Properties.Vnet != cr.Spec.ForProvider.Vnet:
-		return "Nic Vnet does not match the one in the CR " + fmt.Sprintf("%s != %s", *nic.Properties.Vnet, cr.Spec.ForProvider.Vnet)
-	case len(ipv4s) != 0 && nic.Properties.HasIps() && !utils.ContainsStringSlices(ipv4s, *nic.Properties.Ips):
-		return "Nic IPv4s do not match the ones in the CR " + fmt.Sprintf("%v != %v", *nic.Properties.Ips, ipv4s)
-	case len(ipv6s) != 0 && nic.Properties.HasIpv6Ips() && !utils.ContainsStringSlices(ipv6s, *nic.Properties.Ipv6Ips):
-		return "Nic IPv6s do not match the ones in the CR " + fmt.Sprintf("%v != %v", *nic.Properties.Ipv6Ips, ipv6s)
-	default:
-		return ""
-	}
-}
-
-// IsUpToDate returns true if the Nic is up-to-date or false if it does not
-func IsUpToDate(cr *v1alpha1.Nic, nic sdkgo.Nic, ips []string) bool { // nolint:gocyclo
+// IsUpToDateWithDiff returns true if the Nic is up-to-date or false if it does not
+func IsUpToDateWithDiff(cr *v1alpha1.Nic, nic sdkgo.Nic, ips []string) (bool, string) { // nolint:gocyclo
 	var ipv4s []string
 	var ipv6s []string
 
@@ -232,33 +197,33 @@ func IsUpToDate(cr *v1alpha1.Nic, nic sdkgo.Nic, ips []string) bool { // nolint:
 
 	switch {
 	case cr == nil && nic.Properties == nil:
-		return true
+		return true, "Nic is not created yet, no properties to compare"
 	case cr == nil && nic.Properties != nil:
-		return false
+		return false, "Nic is not created yet, but properties are set in the Nic object"
 	case cr != nil && nic.Properties == nil:
-		return false
+		return false, "Nic properties are not set in the Nic object, but CR is set"
 	case nic.Metadata != nil && nic.Metadata.State != nil && *nic.Metadata.State == sdkgo.Busy:
-		return true
+		return true, "Nic is busy, cannot update it now"
 	case nic.Properties.Name != nil && *nic.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
+		return false, "Nic name does not match the one in the CR " + *nic.Properties.Name + " != " + cr.Spec.ForProvider.Name
 	case nic.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false
+		return false, "Nic name is not set in the Nic properties, but it is set in the CR " + cr.Spec.ForProvider.Name
 	case nic.Properties.Dhcp != nil && *nic.Properties.Dhcp != cr.Spec.ForProvider.Dhcp:
-		return false
+		return false, "Nic DHCP does not match the one in the CR " + fmt.Sprintf("%t != %t", *nic.Properties.Dhcp, cr.Spec.ForProvider.Dhcp)
 	case nic.Properties.Dhcpv6 != nil && cr.Spec.ForProvider.DhcpV6 != nil && *nic.Properties.Dhcpv6 != *cr.Spec.ForProvider.DhcpV6:
-		return false
+		return false, "Nic DHCPv6 does not match the one in the CR " + fmt.Sprintf("%t != %t", *nic.Properties.Dhcpv6, *cr.Spec.ForProvider.DhcpV6)
 	case nic.Properties.FirewallActive != nil && *nic.Properties.FirewallActive != cr.Spec.ForProvider.FirewallActive:
-		return false
+		return false, "Nic FirewallActive does not match the one in the CR " + fmt.Sprintf("%t != %t", *nic.Properties.FirewallActive, cr.Spec.ForProvider.FirewallActive)
 	case nic.Properties.FirewallType != nil && *nic.Properties.FirewallType != cr.Spec.ForProvider.FirewallType:
-		return false
+		return false, "Nic FirewallType does not match the one in the CR " + fmt.Sprintf("%s != %s", *nic.Properties.FirewallType, cr.Spec.ForProvider.FirewallType)
 	case nic.Properties.Vnet != nil && *nic.Properties.Vnet != cr.Spec.ForProvider.Vnet:
-		return false
+		return false, "Nic Vnet does not match the one in the CR " + fmt.Sprintf("%s != %s", *nic.Properties.Vnet, cr.Spec.ForProvider.Vnet)
 	case len(ipv4s) != 0 && nic.Properties.HasIps() && !utils.ContainsStringSlices(ipv4s, *nic.Properties.Ips):
-		return false
+		return false, "Nic IPv4s do not match the ones in the CR " + fmt.Sprintf("%v != %v", *nic.Properties.Ips, ipv4s)
 	case len(ipv6s) != 0 && nic.Properties.HasIpv6Ips() && !utils.ContainsStringSlices(ipv6s, *nic.Properties.Ipv6Ips):
-		return false
+		return false, "Nic IPv6s do not match the ones in the CR " + fmt.Sprintf("%v != %v", *nic.Properties.Ipv6Ips, ipv6s)
 	default:
-		return true
+		return true, "Nic is up-to-date"
 	}
 }
 
