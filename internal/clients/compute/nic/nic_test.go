@@ -331,8 +331,8 @@ func TestIsNicUpToDate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, gotDiff := IsUpToDateWithDiff(tt.args.cr, tt.args.Nic, tt.args.ips)
-			assert.Equal(t, got, tt.want)
-			assert.Equal(t, gotDiff, tt.wantDiff)
+			assert.Equal(t, tt.want, got)
+			assert.Equal(t, tt.wantDiff, gotDiff)
 		})
 	}
 }

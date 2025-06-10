@@ -15,10 +15,10 @@ func TestIsServerUpToDate(t *testing.T) {
 		Server ionoscloud.Server
 	}
 	tests := []struct {
-		name     string
-		args     args
-		want     bool
-		wantDiff string
+		name           string
+		args           args
+		wantIsUpToDate bool
+		wantDiff       string
 	}{
 		{
 			name: "both empty",
@@ -26,8 +26,8 @@ func TestIsServerUpToDate(t *testing.T) {
 				cr:     nil,
 				Server: ionoscloud.Server{},
 			},
-			want:     true,
-			wantDiff: "Server is nil",
+			wantIsUpToDate: true,
+			wantDiff:       "Server is nil",
 		},
 		{
 			name: "cr empty",
@@ -37,8 +37,8 @@ func TestIsServerUpToDate(t *testing.T) {
 					Name: ionoscloud.PtrString("foo"),
 				}},
 			},
-			want:     false,
-			wantDiff: "Server is nil, but server properties are not nil",
+			wantIsUpToDate: false,
+			wantDiff:       "Server is nil, but server properties are not nil",
 		},
 		{
 			name: "api response empty",
@@ -52,8 +52,8 @@ func TestIsServerUpToDate(t *testing.T) {
 				},
 				Server: ionoscloud.Server{Properties: nil},
 			},
-			want:     false,
-			wantDiff: "Server properties are nil, but server is not nil",
+			wantIsUpToDate: false,
+			wantDiff:       "Server properties are nil, but server is not nil",
 		},
 		{
 			name: "all equal",
@@ -79,8 +79,8 @@ func TestIsServerUpToDate(t *testing.T) {
 					PlacementGroupId: ionoscloud.PtrString("testPlacementGroup"),
 				}},
 			},
-			want:     true,
-			wantDiff: "Server is up-to-date",
+			wantIsUpToDate: true,
+			wantDiff:       "Server is up-to-date",
 		},
 		{
 			name: "all different",
@@ -106,8 +106,8 @@ func TestIsServerUpToDate(t *testing.T) {
 					PlacementGroupId: ionoscloud.PtrString("testPlacementGroupUpdated"),
 				}},
 			},
-			want:     false,
-			wantDiff: "Server name does not match the CR name: different != not empty",
+			wantIsUpToDate: false,
+			wantDiff:       "Server name does not match the CR name: different != not empty",
 		},
 		{
 			name: "only placementGroup differ",
@@ -129,15 +129,15 @@ func TestIsServerUpToDate(t *testing.T) {
 					PlacementGroupId: ionoscloud.PtrString("testPlacementGroupUpdated"),
 				}},
 			},
-			want:     false,
-			wantDiff: "Server placement group ID does not match the CR placement group ID: testPlacementGroup != testPlacementGroupUpdated",
+			wantIsUpToDate: false,
+			wantDiff:       "Server placement group ID does not match the CR placement group ID: testPlacementGroup != testPlacementGroupUpdated",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotDiff := IsUpToDateWithDiff(tt.args.cr, tt.args.Server)
-			assert.Equal(t, got, tt.want)
-			assert.Equal(t, gotDiff, tt.wantDiff)
+			isUpToDate, wantDiff := IsUpToDateWithDiff(tt.args.cr, tt.args.Server)
+			assert.Equal(t, tt.wantIsUpToDate, isUpToDate)
+			assert.Equal(t, tt.wantDiff, wantDiff)
 		})
 	}
 }

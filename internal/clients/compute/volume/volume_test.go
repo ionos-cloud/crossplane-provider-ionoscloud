@@ -158,9 +158,9 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			upToDate, reason := IsUpToDateWithDiff(tt.cr, tt.volume)
-			assert.Equal(t, upToDate, tt.want)
-			assert.Equal(t, reason, tt.wantDiff)
+			upToDate, wantDiff := IsUpToDateWithDiff(tt.cr, tt.volume)
+			assert.Equal(t, tt.want, upToDate)
+			assert.Equal(t, tt.wantDiff, wantDiff)
 		})
 	}
 }
