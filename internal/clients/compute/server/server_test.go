@@ -107,7 +107,7 @@ func TestIsServerUpToDate(t *testing.T) {
 				}},
 			},
 			wantIsUpToDate: false,
-			wantDiff:       "Server name does not match the CR name: different != not empty",
+			wantDiff:       "Server name does not match the CR name: not empty != different",
 		},
 		{
 			name: "only placementGroup differ",
@@ -130,7 +130,7 @@ func TestIsServerUpToDate(t *testing.T) {
 				}},
 			},
 			wantIsUpToDate: false,
-			wantDiff:       "Server placement group ID does not match the CR placement group ID: testPlacementGroup != testPlacementGroupUpdated",
+			wantDiff:       "Server placement group ID does not match the CR placement group ID: testPlacementGroupUpdated != testPlacementGroup",
 		},
 	}
 	for _, tt := range tests {
