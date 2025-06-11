@@ -51,7 +51,7 @@ func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, targetID, metho
 				errMsg = fmt.Sprintf("%s (%s)", errMsg, *msg)
 			}
 
-			return false, fmt.Errorf(errMsg)
+			return false, errors.New(errMsg)
 		}
 	}
 
