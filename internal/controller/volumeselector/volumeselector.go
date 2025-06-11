@@ -196,7 +196,7 @@ func (c *externalVolumeselector) Update(ctx context.Context, mg resource.Managed
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
 		volumeList, serverList, err := c.getVolumesAndServers(ctx, cr.Spec.ForProvider.ServersetName, replicaIndex)
 		if err != nil {
-			errGroup.Wait()
+			_ = errGroup.Wait()
 			return managed.ExternalUpdate{}, err
 		}
 		if !c.areVolumesAndServersReady(volumeList, serverList) {
