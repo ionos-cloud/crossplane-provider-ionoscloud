@@ -116,7 +116,7 @@ func (k *kubeFirewallRuleController) EnsureFirewallRules(
 		nicName := getNicName(nicSpec.Name, replicaIndex, nicIdx, version)
 		nic := &v1alpha1.Nic{}
 		if err := k.kube.Get(ctx, client.ObjectKey{Name: nicName, Namespace: cr.Namespace}, nic); err != nil {
-			errGroup.Wait()
+			_ = errGroup.Wait()
 			return err
 		}
 
