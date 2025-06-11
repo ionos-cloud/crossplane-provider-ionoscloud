@@ -249,23 +249,23 @@ func IsUpToDateWithDiff(cr *v1alpha1.Server, server sdkgo.Server) (bool, string)
 	case cr != nil && server.Properties == nil:
 		return false, "Server properties are nil, but server is not nil"
 	case server.Properties.Name != nil && cr.Spec.ForProvider.Name != *server.Properties.Name:
-		return false, "Server name does not match the CR name: " + cr.Spec.ForProvider.Name + " != " + *server.Properties.Name
+		return false, "Server name does not match the CR name: " + *server.Properties.Name + " != " + cr.Spec.ForProvider.Name
 	case server.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
 		return false, "Server name is nil, but CR name is not empty: " + cr.Spec.ForProvider.Name
 	case server.Properties.Cores != nil && cr.Spec.ForProvider.Cores != *server.Properties.Cores:
-		return false, "Server cores do not match the CR cores: " + fmt.Sprintf("%d != %d", cr.Spec.ForProvider.Cores, *server.Properties.Cores)
+		return false, "Server cores do not match the CR cores: " + fmt.Sprintf("%d != %d", *server.Properties.Cores, cr.Spec.ForProvider.Cores)
 	case server.Properties.Ram != nil && cr.Spec.ForProvider.RAM != *server.Properties.Ram:
-		return false, "Server RAM does not match the CR RAM: " + fmt.Sprintf("%d != %d", cr.Spec.ForProvider.RAM, *server.Properties.Ram)
+		return false, "Server RAM does not match the CR RAM: " + fmt.Sprintf("%d != %d", *server.Properties.Ram, cr.Spec.ForProvider.RAM)
 	case server.Properties.CpuFamily != nil && cr.Spec.ForProvider.CPUFamily != "" && cr.Spec.ForProvider.CPUFamily != *server.Properties.CpuFamily:
-		return false, "Server CPU family does not match the CR CPU family: " + cr.Spec.ForProvider.CPUFamily + " != " + *server.Properties.CpuFamily
+		return false, "Server CPU family does not match the CR CPU family: " + *server.Properties.CpuFamily + " != " + cr.Spec.ForProvider.CPUFamily
 	case server.Properties.AvailabilityZone != nil && cr.Spec.ForProvider.AvailabilityZone != *server.Properties.AvailabilityZone:
-		return false, "Server availability zone does not match the CR availability zone: " + cr.Spec.ForProvider.AvailabilityZone + " != " + *server.Properties.AvailabilityZone
+		return false, "Server availability zone does not match the CR availability zone: " + *server.Properties.AvailabilityZone + " != " + cr.Spec.ForProvider.AvailabilityZone
 	case server.Metadata != nil && server.Metadata.State != nil && *server.Metadata.State == sdkgo.Busy:
 		return true, "Server is busy, cannot update"
 	case cr.Spec.ForProvider.VolumeCfg.VolumeID != cr.Status.AtProvider.VolumeID:
-		return false, "Server volume ID does not match the CR volume ID: " + cr.Spec.ForProvider.VolumeCfg.VolumeID + " != " + cr.Status.AtProvider.VolumeID
+		return false, "Server volume ID does not match the CR volume ID: " + cr.Status.AtProvider.VolumeID + " != " + cr.Spec.ForProvider.VolumeCfg.VolumeID
 	case server.Properties.PlacementGroupId != nil && cr.Spec.ForProvider.PlacementGroupID != *server.Properties.PlacementGroupId:
-		return false, "Server placement group ID does not match the CR placement group ID: " + cr.Spec.ForProvider.PlacementGroupID + " != " + *server.Properties.PlacementGroupId
+		return false, "Server placement group ID does not match the CR placement group ID: " + *server.Properties.PlacementGroupId + " != " + cr.Spec.ForProvider.PlacementGroupID
 	default:
 		return true, "Server is up-to-date"
 	}

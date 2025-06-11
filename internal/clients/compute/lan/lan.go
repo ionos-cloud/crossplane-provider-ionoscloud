@@ -159,15 +159,15 @@ func IsUpToDateWithDiff(cr *v1alpha1.Lan, lan sdkgo.Lan) (bool, string) { // nol
 	case lan.Metadata != nil && lan.Metadata.State != nil && *lan.Metadata.State == "BUSY":
 		return true, "Lan is busy, cannot update it now"
 	case lan.Properties.Name != nil && *lan.Properties.Name != cr.Spec.ForProvider.Name:
-		return false, "Lan name does not match: " + fmt.Sprintf("%s != %s", *lan.Properties.Name, cr.Spec.ForProvider.Name)
+		return false, "Lan name does not match the CR name: " + fmt.Sprintf("%s != %s", *lan.Properties.Name, cr.Spec.ForProvider.Name)
 	case lan.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
 		return false, "Lan name is not set, expected: " + cr.Spec.ForProvider.Name + ", got: nil"
 	case lan.Properties.Public != nil && *lan.Properties.Public != cr.Spec.ForProvider.Public:
-		return false, "Lan public property does not match: " + fmt.Sprintf("%t != %t", *lan.Properties.Public, cr.Spec.ForProvider.Public)
+		return false, "Lan public property does not match the CR values: " + fmt.Sprintf("%t != %t", *lan.Properties.Public, cr.Spec.ForProvider.Public)
 	case lan.Properties.Ipv6CidrBlock != nil && *lan.Properties.Ipv6CidrBlock != cr.Spec.ForProvider.Ipv6Cidr:
-		return false, "Lan Ipv6CidrBlock does not match: " + cr.Spec.ForProvider.Ipv6Cidr + " != " + *lan.Properties.Ipv6CidrBlock
+		return false, "Lan Ipv6CidrBlock does not match the CR: " + *lan.Properties.Ipv6CidrBlock + " != " + cr.Spec.ForProvider.Ipv6Cidr
 	case lan.Properties.Pcc != nil && *lan.Properties.Pcc != cr.Spec.ForProvider.Pcc.PrivateCrossConnectID:
-		return false, "Lan Pcc does not match: " + cr.Spec.ForProvider.Pcc.PrivateCrossConnectID + " != " + *lan.Properties.Pcc
+		return false, "Lan Pcc does not match the CR Pcc: " + *lan.Properties.Pcc + " != " + cr.Spec.ForProvider.Pcc.PrivateCrossConnectID
 	default:
 		return true, "Lan is up-to-date"
 	}

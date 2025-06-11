@@ -55,7 +55,7 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 			cr:           &v1alpha1.Lan{Spec: v1alpha1.LanSpec{ForProvider: v1alpha1.LanParameters{Name: "foo"}}},
 			lan:          sdkgo.Lan{Properties: &sdkgo.LanProperties{Name: sdkgo.ToPtr("bar")}},
 			wantUpToDate: false,
-			wantReason:   "Lan name does not match: bar != foo",
+			wantReason:   "Lan name does not match the CR name: bar != foo",
 		},
 		{
 			name:         "Name not set but expected",
@@ -69,21 +69,21 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 			cr:           &v1alpha1.Lan{Spec: v1alpha1.LanSpec{ForProvider: v1alpha1.LanParameters{Public: false}}},
 			lan:          sdkgo.Lan{Properties: &sdkgo.LanProperties{Public: sdkgo.ToPtr(true)}},
 			wantUpToDate: false,
-			wantReason:   "Lan public property does not match: true != false",
+			wantReason:   "Lan public property does not match the CR values: true != false",
 		},
 		{
 			name:         "Ipv6CidrBlock mismatch",
 			cr:           &v1alpha1.Lan{Spec: v1alpha1.LanSpec{ForProvider: v1alpha1.LanParameters{Ipv6Cidr: "2001:db8::/64"}}},
 			lan:          sdkgo.Lan{Properties: &sdkgo.LanProperties{Ipv6CidrBlock: sdkgo.ToPtr("2001:db8::/65")}},
 			wantUpToDate: false,
-			wantReason:   "Lan Ipv6CidrBlock does not match: 2001:db8::/64 != 2001:db8::/65",
+			wantReason:   "Lan Ipv6CidrBlock does not match the CR: 2001:db8::/65 != 2001:db8::/64",
 		},
 		{
 			name:         "Pcc mismatch",
 			cr:           &v1alpha1.Lan{Spec: v1alpha1.LanSpec{ForProvider: v1alpha1.LanParameters{Pcc: v1alpha1.PccConfig{PrivateCrossConnectID: "pcc-abc"}}}},
 			lan:          sdkgo.Lan{Properties: &sdkgo.LanProperties{Pcc: sdkgo.ToPtr("pcc-def")}},
 			wantUpToDate: false,
-			wantReason:   "Lan Pcc does not match: pcc-abc != pcc-def",
+			wantReason:   "Lan Pcc does not match the CR Pcc: pcc-def != pcc-abc",
 		},
 		{
 			name: "Up to date",
