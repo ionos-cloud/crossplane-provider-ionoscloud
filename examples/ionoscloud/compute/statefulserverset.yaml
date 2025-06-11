@@ -18,7 +18,8 @@ metadata:
   name: sss-example
 spec:
   forProvider:
-    replicas: 2
+    replicas: 1
+    removePendingOnReboot: true
     deploymentStrategy:
       type: ZONES
     datacenterConfig:

@@ -207,7 +207,7 @@ func (e *external) isVolumeSelectorUpToDate(ctx context.Context, cr *v1alpha1.St
 		}
 		return false, err
 	}
-	return true, nil
+	return e.volumeSelectorController.IsAvailable(ctx, vsName, cr.Namespace)
 }
 
 func (e *external) setSSetStatusOnCR(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
@@ -232,6 +232,11 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	cr.SetConditions(xpv1.Creating())
 
+	// volume selector attaches data volumes to the servers created in the serverset
+	if err := e.volumeSelectorController.CreateOrUpdate(ctx, cr); err != nil {
+		return managed.ExternalCreation{}, err
+	}
+
 	e.log.Info("Creating a new StatefulServerSet", "name", cr.Name, "replicas", cr.Spec.ForProvider.Replicas)
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
 		err := e.ensureDataVolumes(ctx, cr, replicaIndex)
@@ -246,11 +251,6 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	if err := e.SSetController.Ensure(ctx, cr); err != nil {
 		return managed.ExternalCreation{}, fmt.Errorf("while ensuring ServerSet %w", err)
-	}
-
-	// volume selector attaches data volumes to the servers created in the serverset
-	if err := e.volumeSelectorController.CreateOrUpdate(ctx, cr); err != nil {
-		return managed.ExternalCreation{}, err
 	}
 
 	// When all conditions are met, the managed resource is considered available

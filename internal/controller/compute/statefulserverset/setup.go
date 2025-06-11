@@ -36,7 +36,6 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			RateLimiter:             ratelimiter.NewController(),
 			RecoverPanic:            ptr.To(true),
 		}).
-		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.StatefulServerSet{}).
 		Complete(managed.NewReconciler(mgr,
 			resource.ManagedKind(v1alpha1.StatefulServerSetGroupVersionKind),
