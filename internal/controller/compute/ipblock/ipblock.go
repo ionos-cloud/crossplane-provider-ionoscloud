@@ -141,7 +141,7 @@ func (c *externalIPBlock) Observe(ctx context.Context, mg resource.Managed) (man
 
 	cr.Status.AtProvider.IPBlockID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
-	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+	c.log.Debug("Observed ipblock: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	// Set Ready condition based on State
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 

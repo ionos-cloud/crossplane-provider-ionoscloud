@@ -147,7 +147,7 @@ func (c *externalNic) Observe(ctx context.Context, mg resource.Managed) (managed
 	cr.Status.AtProvider.NicID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&instance)
 
-	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+	c.log.Debug("Observed NIC: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	// Set Ready condition based on State
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
@@ -156,11 +156,13 @@ func (c *externalNic) Observe(ctx context.Context, mg resource.Managed) (managed
 	if err != nil {
 		return managed.ExternalObservation{}, fmt.Errorf("failed to get ips: %w", err)
 	}
+	isUpToDate, diff := nic.IsUpToDateWithDiff(cr, instance, ips)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        nic.IsNicUpToDate(cr, instance, ips),
+		ResourceUpToDate:        isUpToDate,
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		Diff:                    diff,
 	}, nil
 }
 

@@ -156,8 +156,7 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	if instance.Properties != nil {
 		cr.Status.AtProvider.Name = *instance.Properties.Name
 	}
-	c.log.Debug(fmt.Sprintf("Observing state %v.te"+
-		"..", cr.Status.AtProvider.State))
+	c.log.Debug("Observed cube server: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	// Set Ready condition based on State
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 

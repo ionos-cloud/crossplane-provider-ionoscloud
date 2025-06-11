@@ -9,7 +9,7 @@ on:
 
 
 env:
-  GOLANGCI_VERSION: 'v1.54.0'
+  GOLANGCI_VERSION: 'v2.0'
   DOCKER_BUILDX_VERSION: 'v0.11.2'
 
 jobs:
@@ -58,11 +58,12 @@ jobs:
       - name: Vendor Dependencies
         run: make vendor vendor.check
       - name: Lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v7
         with:
           version: ${{ env.GOLANGCI_VERSION }}
           skip-cache: true
-          args: --timeout 10m0s --verbose --out-format=colored-line-number
+          only-new-issues: true
+          args: --timeout 10m0s --verbose
   unit-tests:
     runs-on: ubuntu-latest
     needs: detect-noop

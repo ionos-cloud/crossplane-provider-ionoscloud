@@ -5,6 +5,7 @@ import (
 
 	"github.com/ionos-cloud/sdk-go-bundle/shared"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
@@ -16,9 +17,10 @@ func TestIsNicUpToDate(t *testing.T) {
 		ips []string
 	}
 	tests := []struct {
-		name string
-		args args
-		want bool
+		name     string
+		args     args
+		want     bool
+		wantDiff string
 	}{
 		{
 			name: "both empty",
@@ -26,7 +28,8 @@ func TestIsNicUpToDate(t *testing.T) {
 				cr:  nil,
 				Nic: ionoscloud.Nic{},
 			},
-			want: true,
+			want:     true,
+			wantDiff: "Nic is not created yet, no properties to compare",
 		},
 		{
 			name: "CR empty",
@@ -36,7 +39,8 @@ func TestIsNicUpToDate(t *testing.T) {
 					Name: shared.ToPtr("foo"),
 				}},
 			},
-			want: false,
+			want:     false,
+			wantDiff: "Nic is not created yet, but properties are set in the Nic object",
 		},
 		{
 			name: "api response empty",
@@ -50,7 +54,8 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 				Nic: ionoscloud.Nic{Properties: nil},
 			},
-			want: false,
+			want:     false,
+			wantDiff: "Nic properties are not set in the Nic object, but CR is set",
 		},
 		{
 			name: "all equal",
@@ -75,7 +80,8 @@ func TestIsNicUpToDate(t *testing.T) {
 					},
 				},
 			},
-			want: true,
+			want:     true,
+			wantDiff: "Nic is up-to-date",
 		},
 		{
 			name: "all different",
@@ -98,7 +104,8 @@ func TestIsNicUpToDate(t *testing.T) {
 					Vnet:           shared.ToPtr("2"),
 				}},
 			},
-			want: false,
+			want:     false,
+			wantDiff: "Nic name does not match the one in the CR not empty != different",
 		},
 		{
 			name: "only vnet differs",
@@ -121,7 +128,8 @@ func TestIsNicUpToDate(t *testing.T) {
 					Vnet:           shared.ToPtr("2"),
 				}},
 			},
-			want: false,
+			want:     false,
+			wantDiff: "Nic Vnet does not match the one in the CR 2 != 1",
 		},
 		{
 			name: "metadata state 'Busy', different name",
@@ -143,7 +151,8 @@ func TestIsNicUpToDate(t *testing.T) {
 					},
 				},
 			},
-			want: true,
+			want:     true,
+			wantDiff: "Nic is busy, cannot update it now",
 		},
 		{
 			name: "IPs different from previous IPs",
@@ -181,7 +190,8 @@ func TestIsNicUpToDate(t *testing.T) {
 					},
 				},
 			},
-			want: false,
+			want:     false,
+			wantDiff: "Nic IPv4s do not match the ones in the CR [10.11.12.13 192.168.8.14] != [10.10.10.10 10.10.10.11]",
 		},
 		{
 			name: "IPs equal",
@@ -219,7 +229,8 @@ func TestIsNicUpToDate(t *testing.T) {
 					},
 				},
 			},
-			want: true,
+			want:     true,
+			wantDiff: "Nic is up-to-date",
 		},
 		{
 			name: "NIC dhcpv6 is nil",
@@ -227,7 +238,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				cr: &v1alpha1.Nic{
 					Spec: v1alpha1.NicSpec{
 						ForProvider: v1alpha1.NicParameters{
-							DhcpV6: ionoscloud.PtrBool(true),
+							DhcpV6: ionoscloud.ToPtr(true),
 						},
 					},
 				},
@@ -237,7 +248,8 @@ func TestIsNicUpToDate(t *testing.T) {
 					},
 				},
 			},
-			want: true,
+			want:     true,
+			wantDiff: "Nic is up-to-date",
 		},
 		{
 			name: "CR dhcpv6 is nil",
@@ -251,11 +263,12 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Dhcpv6: ionoscloud.PtrBool(true),
+						Dhcpv6: ionoscloud.ToPtr(true),
 					},
 				},
 			},
-			want: true,
+			want:     true,
+			wantDiff: "Nic is up-to-date",
 		},
 		{
 			name: "CR and NIC dhcpv6 are nil",
@@ -273,7 +286,8 @@ func TestIsNicUpToDate(t *testing.T) {
 					},
 				},
 			},
-			want: true,
+			want:     true,
+			wantDiff: "Nic is up-to-date",
 		},
 		{
 			name: "CR and NIC dhcpv6 are equal",
@@ -281,17 +295,18 @@ func TestIsNicUpToDate(t *testing.T) {
 				cr: &v1alpha1.Nic{
 					Spec: v1alpha1.NicSpec{
 						ForProvider: v1alpha1.NicParameters{
-							DhcpV6: ionoscloud.PtrBool(true),
+							DhcpV6: ionoscloud.ToPtr(true),
 						},
 					},
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Dhcpv6: ionoscloud.PtrBool(true),
+						Dhcpv6: ionoscloud.ToPtr(true),
 					},
 				},
 			},
-			want: true,
+			want:     true,
+			wantDiff: "Nic is up-to-date",
 		},
 		{
 			name: "CR and NIC dhcpv6 are different",
@@ -299,24 +314,25 @@ func TestIsNicUpToDate(t *testing.T) {
 				cr: &v1alpha1.Nic{
 					Spec: v1alpha1.NicSpec{
 						ForProvider: v1alpha1.NicParameters{
-							DhcpV6: ionoscloud.PtrBool(false),
+							DhcpV6: ionoscloud.ToPtr(false),
 						},
 					},
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Dhcpv6: ionoscloud.PtrBool(true),
+						Dhcpv6: ionoscloud.ToPtr(true),
 					},
 				},
 			},
-			want: false,
+			want:     false,
+			wantDiff: "Nic DHCPv6 does not match the one in the CR true != false",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IsNicUpToDate(tt.args.cr, tt.args.Nic, tt.args.ips); got != tt.want {
-				t.Errorf("isNicUpToDate() = %v, want %v", got, tt.want)
-			}
+			got, gotDiff := IsUpToDateWithDiff(tt.args.cr, tt.args.Nic, tt.args.ips)
+			assert.Equal(t, tt.want, got)
+			assert.Equal(t, tt.wantDiff, gotDiff)
 		})
 	}
 }

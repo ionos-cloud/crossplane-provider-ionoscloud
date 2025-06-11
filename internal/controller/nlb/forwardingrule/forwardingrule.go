@@ -160,7 +160,7 @@ func (c *externalForwardingRule) Observe(ctx context.Context, mg resource.Manage
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+	c.log.Debug("Observed nlb fw rule: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 	return managed.ExternalObservation{
 		ResourceExists:    true,

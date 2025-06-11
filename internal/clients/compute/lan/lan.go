@@ -147,29 +147,29 @@ func GenerateUpdateLanInput(cr *v1alpha1.Lan) (*sdkgo.LanProperties, error) {
 	return &instanceUpdateInput, nil
 }
 
-// IsLanUpToDate returns true if the Lan is up-to-date or false if it does not
-func IsLanUpToDate(cr *v1alpha1.Lan, lan sdkgo.Lan) bool { // nolint:gocyclo
+// IsUpToDateWithDiff returns true if the Lan is up-to-date or false if it does not
+func IsUpToDateWithDiff(cr *v1alpha1.Lan, lan sdkgo.Lan) (bool, string) { // nolint:gocyclo
 	switch {
 	case cr == nil && lan.Properties == nil:
-		return true
+		return true, "Lan does not exist, no update needed"
 	case cr == nil && lan.Properties != nil:
-		return false
+		return false, "Lan exists but not managed by Crossplane, no update needed"
 	case cr != nil && lan.Properties == nil:
-		return false
-	case lan.Metadata.State != nil && *lan.Metadata.State == "BUSY":
-		return true
+		return false, "Lan properties are nil, but custom resource is not nil"
+	case lan.Metadata != nil && lan.Metadata.State != nil && *lan.Metadata.State == "BUSY":
+		return true, "Lan is busy, cannot update it now"
 	case lan.Properties.Name != nil && *lan.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
+		return false, "Lan name does not match: " + fmt.Sprintf("%s != %s", *lan.Properties.Name, cr.Spec.ForProvider.Name)
 	case lan.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false
+		return false, "Lan name is not set, expected: " + cr.Spec.ForProvider.Name + ", got: nil"
 	case lan.Properties.Public != nil && *lan.Properties.Public != cr.Spec.ForProvider.Public:
-		return false
+		return false, "Lan public property does not match: " + fmt.Sprintf("%t != %t", *lan.Properties.Public, cr.Spec.ForProvider.Public)
 	case lan.Properties.Ipv6CidrBlock != nil && *lan.Properties.Ipv6CidrBlock != cr.Spec.ForProvider.Ipv6Cidr:
-		return false
+		return false, "Lan Ipv6CidrBlock does not match: " + cr.Spec.ForProvider.Ipv6Cidr + " != " + *lan.Properties.Ipv6CidrBlock
 	case lan.Properties.Pcc != nil && *lan.Properties.Pcc != cr.Spec.ForProvider.Pcc.PrivateCrossConnectID:
-		return false
+		return false, "Lan Pcc does not match: " + cr.Spec.ForProvider.Pcc.PrivateCrossConnectID + " != " + *lan.Properties.Pcc
 	default:
-		return true
+		return true, "Lan is up-to-date"
 	}
 }
 

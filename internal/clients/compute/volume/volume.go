@@ -44,22 +44,22 @@ func (cp *APIClient) CheckDuplicateVolume(ctx context.Context, datacenterID, vol
 						// After checking the name, check the immutable properties
 						if typeOk, ok := propertiesOk.GetTypeOk(); ok && typeOk != nil {
 							if *typeOk != storageType {
-								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property type different. expected: %v actual: %v", volumeName, storageType, *typeOk)
+								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property type different. want: %v actual: %v", volumeName, storageType, *typeOk)
 							}
 						}
 						if availabilityZoneOk, ok := propertiesOk.GetAvailabilityZoneOk(); ok && availabilityZoneOk != nil {
 							if *availabilityZoneOk != availabilityZone {
-								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property availabilityZone different. expected: %v actual: %v", volumeName, availabilityZone, *availabilityZoneOk)
+								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property availabilityZone different. want: %v actual: %v", volumeName, availabilityZone, *availabilityZoneOk)
 							}
 						}
 						if licenceTypeOk, ok := propertiesOk.GetLicenceTypeOk(); ok && licenceTypeOk != nil && licenceType != "" {
 							if *licenceTypeOk != licenceType {
-								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property licenceType different. expected: %v actual: %v", volumeName, licenceType, *licenceTypeOk)
+								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property licenceType different. want: %v actual: %v", volumeName, licenceType, *licenceTypeOk)
 							}
 						}
 						if imageOk, ok := propertiesOk.GetImageOk(); ok && imageOk != nil && image != "" {
 							if *imageOk != image {
-								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property image different. expected: %v actual: %v", volumeName, image, *imageOk)
+								return nil, fmt.Errorf("error: found volume with the name %v, but immutable property image different. want: %v actual: %v", volumeName, image, *imageOk)
 							}
 						}
 						matchedItems = append(matchedItems, item)
@@ -200,38 +200,38 @@ func GenerateUpdateVolumeInput(cr *v1alpha1.Volume, properties *sdkgo.VolumeProp
 	return &instanceUpdateInput, nil
 }
 
-// IsVolumeUpToDate returns true if the Volume is up-to-date or false if it does not
-func IsVolumeUpToDate(cr *v1alpha1.Volume, volume *sdkgo.Volume) bool { // nolint:gocyclo
+// IsUpToDateWithDiff returns true if the Volume is up-to-date or false if it does not
+func IsUpToDateWithDiff(cr *v1alpha1.Volume, volume *sdkgo.Volume) (bool, string) { // nolint:gocyclo
 	switch {
 	case cr == nil && volume.Properties == nil:
-		return true
+		return true, "Volume is nil and custom resource is nil"
 	case cr == nil && volume.Properties != nil:
-		return false
+		return false, "Custom resource is nil, but volume properties are not nil"
 	case cr != nil && volume.Properties == nil:
-		return false
-	case volume.Metadata.State != nil && *volume.Metadata.State == "BUSY":
-		return true
+		return false, "Volume properties are nil, but custom resource is not nil"
+	case volume.Metadata != nil && volume.Metadata.State != nil && *volume.Metadata.State == "BUSY":
+		return true, "Volume is busy, cannot update it now"
 	case volume.Properties.Name != nil && *volume.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
+		return false, "Volume name does not match the one in the CR: " + *volume.Properties.Name + " != " + cr.Spec.ForProvider.Name
 	case volume.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false
+		return false, "Volume name is nil, but CR name is not empty: " + cr.Spec.ForProvider.Name
 	case volume.Properties.Size != nil && *volume.Properties.Size != cr.Spec.ForProvider.Size:
-		return false
+		return false, "Volume size does not match the one in the CR: " + fmt.Sprintf("%.2f != %.2f", *volume.Properties.Size, cr.Spec.ForProvider.Size)
 	case volume.Properties.CpuHotPlug != nil && *volume.Properties.CpuHotPlug != cr.Spec.ForProvider.CPUHotPlug:
-		return false
+		return false, "CpuHotPlug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.CpuHotPlug, cr.Spec.ForProvider.CPUHotPlug)
 	case volume.Properties.RamHotPlug != nil && *volume.Properties.RamHotPlug != cr.Spec.ForProvider.RAMHotPlug:
-		return false
+		return false, "RamHotPlug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.RamHotPlug, cr.Spec.ForProvider.RAMHotPlug)
 	case volume.Properties.NicHotPlug != nil && *volume.Properties.NicHotPlug != cr.Spec.ForProvider.NicHotPlug:
-		return false
+		return false, "NicHotPlug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.NicHotPlug, cr.Spec.ForProvider.NicHotPlug)
 	case volume.Properties.NicHotUnplug != nil && *volume.Properties.NicHotUnplug != cr.Spec.ForProvider.NicHotUnplug:
-		return false
+		return false, "NicHotUnplug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.NicHotUnplug, cr.Spec.ForProvider.NicHotUnplug)
 	case volume.Properties.DiscVirtioHotPlug != nil && *volume.Properties.DiscVirtioHotPlug != cr.Spec.ForProvider.DiscVirtioHotPlug:
-		return false
+		return false, "DiscVirtioHotPlug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.DiscVirtioHotPlug, cr.Spec.ForProvider.DiscVirtioHotPlug)
 	case volume.Properties.DiscVirtioHotUnplug != nil && *volume.Properties.DiscVirtioHotUnplug != cr.Spec.ForProvider.DiscVirtioHotUnplug:
-		return false
+		return false, "DiscVirtioHotUnplug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.DiscVirtioHotUnplug, cr.Spec.ForProvider.DiscVirtioHotUnplug)
 	case volume.Properties.Bus != nil && *volume.Properties.Bus != cr.Spec.ForProvider.Bus:
-		return false
+		return false, "Volume bus does not match the desired bus: " + *volume.Properties.Bus + " != " + cr.Spec.ForProvider.Bus
 	default:
-		return true
+		return true, "Volume is up-to-date"
 	}
 }

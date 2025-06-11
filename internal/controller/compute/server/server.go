@@ -149,14 +149,15 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 			cr.Status.AtProvider.VolumeID = *observed.Properties.BootVolume.Id
 		}
 	}
-	c.log.Debug(fmt.Sprintf("Observing state: %v", cr.Status.AtProvider.State))
+	c.log.Debug("Observed Server: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
-
+	isUpToDate, diff := server.IsUpToDateWithDiff(cr, observed)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        server.IsServerUpToDate(cr, observed),
+		ResourceUpToDate:        isUpToDate,
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		Diff:                    diff,
 	}, nil
 }
 
@@ -220,7 +221,7 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 		return creation, err
 	}
 	if cr.Spec.ForProvider.VolumeCfg.VolumeID != "" {
-		c.log.Debug("Attaching Volume...", "volume", cr.Spec.ForProvider.VolumeCfg.VolumeID)
+		c.log.Debug("Attaching Volume...", "volume", cr.Spec.ForProvider.VolumeCfg.VolumeID, "for server name", cr.Spec.ForProvider.Name)
 		_, apiResponse, err = c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 			cr.Status.AtProvider.ServerID, sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
 		if err != nil {

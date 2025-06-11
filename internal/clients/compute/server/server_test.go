@@ -3,9 +3,10 @@ package server
 import (
 	"testing"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
-
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
 func TestIsServerUpToDate(t *testing.T) {
@@ -14,9 +15,10 @@ func TestIsServerUpToDate(t *testing.T) {
 		Server ionoscloud.Server
 	}
 	tests := []struct {
-		name string
-		args args
-		want bool
+		name           string
+		args           args
+		wantIsUpToDate bool
+		wantDiff       string
 	}{
 		{
 			name: "both empty",
@@ -24,17 +26,19 @@ func TestIsServerUpToDate(t *testing.T) {
 				cr:     nil,
 				Server: ionoscloud.Server{},
 			},
-			want: true,
+			wantIsUpToDate: true,
+			wantDiff:       "Server is nil",
 		},
 		{
 			name: "cr empty",
 			args: args{
 				cr: nil,
 				Server: ionoscloud.Server{Properties: &ionoscloud.ServerProperties{
-					Name: ionoscloud.PtrString("foo"),
+					Name: ionoscloud.ToPtr("foo"),
 				}},
 			},
-			want: false,
+			wantIsUpToDate: false,
+			wantDiff:       "Server is nil, but server properties are not nil",
 		},
 		{
 			name: "api response empty",
@@ -48,7 +52,8 @@ func TestIsServerUpToDate(t *testing.T) {
 				},
 				Server: ionoscloud.Server{Properties: nil},
 			},
-			want: false,
+			wantIsUpToDate: false,
+			wantDiff:       "Server properties are nil, but server is not nil",
 		},
 		{
 			name: "all equal",
@@ -66,15 +71,16 @@ func TestIsServerUpToDate(t *testing.T) {
 					},
 				},
 				Server: ionoscloud.Server{Properties: &ionoscloud.ServerProperties{
-					Name:             ionoscloud.PtrString("not empty"),
-					CpuFamily:        ionoscloud.PtrString("super fast"),
-					AvailabilityZone: ionoscloud.PtrString("AUTO"),
+					Name:             ionoscloud.ToPtr("not empty"),
+					CpuFamily:        ionoscloud.ToPtr("super fast"),
+					AvailabilityZone: ionoscloud.ToPtr("AUTO"),
 					Cores:            ionoscloud.PtrInt32(4),
 					Ram:              ionoscloud.PtrInt32(2048),
-					PlacementGroupId: ionoscloud.PtrString("testPlacementGroup"),
+					PlacementGroupId: ionoscloud.ToPtr("testPlacementGroup"),
 				}},
 			},
-			want: true,
+			wantIsUpToDate: true,
+			wantDiff:       "Server is up-to-date",
 		},
 		{
 			name: "all different",
@@ -92,15 +98,16 @@ func TestIsServerUpToDate(t *testing.T) {
 					},
 				},
 				Server: ionoscloud.Server{Properties: &ionoscloud.ServerProperties{
-					Name:             ionoscloud.PtrString("not empty"),
+					Name:             ionoscloud.ToPtr("not empty"),
 					Cores:            ionoscloud.PtrInt32(8),
 					Ram:              ionoscloud.PtrInt32(4086),
-					AvailabilityZone: ionoscloud.PtrString("AUTO"),
-					CpuFamily:        ionoscloud.PtrString("super fast"),
-					PlacementGroupId: ionoscloud.PtrString("testPlacementGroupUpdated"),
+					AvailabilityZone: ionoscloud.ToPtr("AUTO"),
+					CpuFamily:        ionoscloud.ToPtr("super fast"),
+					PlacementGroupId: ionoscloud.ToPtr("testPlacementGroupUpdated"),
 				}},
 			},
-			want: false,
+			wantIsUpToDate: false,
+			wantDiff:       "Server name does not match the CR name: different != not empty",
 		},
 		{
 			name: "only placementGroup differ",
@@ -116,20 +123,21 @@ func TestIsServerUpToDate(t *testing.T) {
 					},
 				},
 				Server: ionoscloud.Server{Properties: &ionoscloud.ServerProperties{
-					Name:             ionoscloud.PtrString("not empty"),
-					CpuFamily:        ionoscloud.PtrString("super fast"),
-					AvailabilityZone: ionoscloud.PtrString("AUTO"),
-					PlacementGroupId: ionoscloud.PtrString("testPlacementGroupUpdated"),
+					Name:             ionoscloud.ToPtr("not empty"),
+					CpuFamily:        ionoscloud.ToPtr("super fast"),
+					AvailabilityZone: ionoscloud.ToPtr("AUTO"),
+					PlacementGroupId: ionoscloud.ToPtr("testPlacementGroupUpdated"),
 				}},
 			},
-			want: false,
+			wantIsUpToDate: false,
+			wantDiff:       "Server placement group ID does not match the CR placement group ID: testPlacementGroup != testPlacementGroupUpdated",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IsServerUpToDate(tt.args.cr, tt.args.Server); got != tt.want {
-				t.Errorf("isServerUpToDate() = %v, want %v", got, tt.want)
-			}
+			isUpToDate, wantDiff := IsUpToDateWithDiff(tt.args.cr, tt.args.Server)
+			assert.Equal(t, tt.wantIsUpToDate, isUpToDate)
+			assert.Equal(t, tt.wantDiff, wantDiff)
 		})
 	}
 }

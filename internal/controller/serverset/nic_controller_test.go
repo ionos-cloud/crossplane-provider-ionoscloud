@@ -154,7 +154,7 @@ func Test_fromServerSetToNic(t *testing.T) {
 				Name:      nicName,
 				ServerCfg: v1alpha1.ServerConfig{ServerID: serverID},
 				LanCfg:    v1alpha1.LanConfig{LanID: lanID},
-				DhcpV6:    ionoscloud.PtrBool(false),
+				DhcpV6:    ionoscloud.ToPtr(false),
 			}),
 		},
 		{
@@ -172,7 +172,7 @@ func Test_fromServerSetToNic(t *testing.T) {
 				Name:      nicName,
 				ServerCfg: v1alpha1.ServerConfig{ServerID: serverID},
 				LanCfg:    v1alpha1.LanConfig{LanID: lanID},
-				DhcpV6:    ionoscloud.PtrBool(true),
+				DhcpV6:    ionoscloud.ToPtr(true),
 			}),
 		},
 		{
@@ -190,7 +190,7 @@ func Test_fromServerSetToNic(t *testing.T) {
 				Name:      nicName,
 				ServerCfg: v1alpha1.ServerConfig{ServerID: serverID},
 				LanCfg:    v1alpha1.LanConfig{LanID: lanID},
-				DhcpV6:    ionoscloud.PtrBool(true),
+				DhcpV6:    ionoscloud.ToPtr(true),
 			}),
 		},
 	}
@@ -230,7 +230,7 @@ func createServerSetWithoutVNetAndIPV4() *v1alpha1.ServerSet {
 func createServerSetWithDhcpV6() *v1alpha1.ServerSet {
 	s := createBasicServerSet()
 	for nicIndex := range s.Spec.ForProvider.Template.Spec.NICs {
-		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].DHCPv6 = ionoscloud.PtrBool(true)
+		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].DHCPv6 = ionoscloud.ToPtr(true)
 		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].LanReference = dataLAN
 	}
 	return s
