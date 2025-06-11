@@ -238,7 +238,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				cr: &v1alpha1.Nic{
 					Spec: v1alpha1.NicSpec{
 						ForProvider: v1alpha1.NicParameters{
-							DhcpV6: ionoscloud.PtrBool(true),
+							DhcpV6: ionoscloud.ToPtr(true),
 						},
 					},
 				},
@@ -263,7 +263,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Dhcpv6: ionoscloud.PtrBool(true),
+						Dhcpv6: ionoscloud.ToPtr(true),
 					},
 				},
 			},
@@ -295,13 +295,13 @@ func TestIsNicUpToDate(t *testing.T) {
 				cr: &v1alpha1.Nic{
 					Spec: v1alpha1.NicSpec{
 						ForProvider: v1alpha1.NicParameters{
-							DhcpV6: ionoscloud.PtrBool(true),
+							DhcpV6: ionoscloud.ToPtr(true),
 						},
 					},
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Dhcpv6: ionoscloud.PtrBool(true),
+						Dhcpv6: ionoscloud.ToPtr(true),
 					},
 				},
 			},
@@ -314,13 +314,13 @@ func TestIsNicUpToDate(t *testing.T) {
 				cr: &v1alpha1.Nic{
 					Spec: v1alpha1.NicSpec{
 						ForProvider: v1alpha1.NicParameters{
-							DhcpV6: ionoscloud.PtrBool(false),
+							DhcpV6: ionoscloud.ToPtr(false),
 						},
 					},
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Dhcpv6: ionoscloud.PtrBool(true),
+						Dhcpv6: ionoscloud.ToPtr(true),
 					},
 				},
 			},
