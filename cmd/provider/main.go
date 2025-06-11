@@ -58,7 +58,7 @@ func main() {
 		pollInterval               = app.Flag("poll", "Poll interval controls how often an individual resource should be checked for changes.").Default("1m").Duration()
 		leaderElection             = app.Flag("leader-election", "Use leader election for the controller manager.").Short('l').Default("false").Envar("LEADER_ELECTION").Bool()
 		createGracePeriod          = app.Flag("create-grace-period", "Grace period for creation of IONOS Cloud resources.").Default("1m").Duration()
-		maxReconcileRate           = app.Flag("max-reconcile-rate", "The global maximum rate per second at which resources may checked for drift from the desired state.").Default("1").Int()
+		maxReconcileRate           = app.Flag("max-reconcile-rate", "The global maximum rate per second at which resources may checked for drift from the desired state.").Default("10").Int()
 		timeout                    = app.Flag("timeout", "Timeout duration cumulatively for all the calls happening in the reconciliation functions.").Default("1h").Duration()
 		pollStateMetricInterval    = app.Flag("poll-state-metric", "State metric recording interval").Default("5s").Duration()
 		namespace                  = app.Flag("namespace", "Namespace used to set as default scope in default secret store config.").Default("crossplane-system").Envar("POD_NAMESPACE").String()
