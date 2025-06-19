@@ -167,7 +167,9 @@ func (k *kubeNicController) fromServerSetToNic(cr *v1alpha1.ServerSet, name, ser
 				LanCfg: v1alpha1.LanConfig{
 					LanID: lan.Status.AtProvider.LanID,
 				},
-				Dhcp: serverSetNic.DHCP,
+				Dhcp:           serverSetNic.DHCP,
+				FirewallActive: serverSetNic.FirewallActive,
+				FirewallType:   serverSetNic.FirewallType,
 			},
 		},
 	}
