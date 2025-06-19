@@ -167,11 +167,13 @@ func (k *kubeNicController) fromServerSetToNic(cr *v1alpha1.ServerSet, name, ser
 				LanCfg: v1alpha1.LanConfig{
 					LanID: lan.Status.AtProvider.LanID,
 				},
-				Dhcp:           serverSetNic.DHCP,
-				FirewallActive: serverSetNic.FirewallActive,
-				FirewallType:   serverSetNic.FirewallType,
+				Dhcp: serverSetNic.DHCP,
 			},
 		},
+	}
+	if serverSetNic.FirewallActive {
+		nic.Spec.ForProvider.FirewallActive = serverSetNic.FirewallActive
+		nic.Spec.ForProvider.FirewallType = serverSetNic.FirewallType
 	}
 	if lan.Spec.ForProvider.Ipv6Cidr != "" {
 		nic.Spec.ForProvider.DhcpV6 = serverSetNic.DHCPv6
