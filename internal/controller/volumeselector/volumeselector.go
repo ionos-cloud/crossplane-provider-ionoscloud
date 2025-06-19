@@ -17,6 +17,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -189,21 +190,31 @@ func (c *externalVolumeselector) Update(ctx context.Context, mg resource.Managed
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalUpdate{}, nil
 	}
+
+	errGroup, ctx := errgroup.WithContext(ctx)
+
 	for replicaIndex := 0; replicaIndex < cr.Spec.ForProvider.Replicas; replicaIndex++ {
 		volumeList, serverList, err := c.getVolumesAndServers(ctx, cr.Spec.ForProvider.ServersetName, replicaIndex)
 		if err != nil {
+			_ = errGroup.Wait()
 			return managed.ExternalUpdate{}, err
 		}
 		if !c.areVolumesAndServersReady(volumeList, serverList) {
 			continue
 		}
 		for _, volume := range volumeList.Items {
-			if err = c.attachVolume(ctx, serverList.Items[0].Spec.ForProvider.DatacenterCfg.DatacenterID,
-				serverList.Items[0].Status.AtProvider.ServerID, volume.Status.AtProvider.VolumeID); err != nil {
-				return managed.ExternalUpdate{}, err
-			}
+			errGroup.Go(func() error {
+				if err = c.attachVolume(ctx, serverList.Items[0].Spec.ForProvider.DatacenterCfg.DatacenterID,
+					serverList.Items[0].Status.AtProvider.ServerID, volume.Status.AtProvider.VolumeID); err != nil {
+					return err
+				}
+				return nil
+			})
 		}
+	}
 
+	if err := errGroup.Wait(); err != nil {
+		return managed.ExternalUpdate{}, err
 	}
 	return managed.ExternalUpdate{}, nil
 }
