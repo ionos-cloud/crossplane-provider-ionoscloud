@@ -130,6 +130,12 @@ type NodePoolParameters struct {
 	//
 	// +kubebuilder:validation:Optional
 	PublicIPsCfg IPsConfigs `json:"publicIpsConfigs,omitempty"`
+	// The type of server for the Kubernetes node pool can be either
+	// 'DedicatedCore' (nodes with dedicated CPU cores) or 'VCPU' (nodes with shared CPU cores).
+	// This selection corresponds to the server type for the compute engine.
+	//
+	// +kubebuilder:validation:Optional
+	ServerType string `json:"serverType,omitempty"`
 }
 
 // KubernetesAutoScaling struct for KubernetesAutoScaling.
@@ -306,6 +312,7 @@ type NodePoolObservation struct {
 	CPUFamily                string   `json:"cpuFamily,omitempty"`
 	NodeCount                *int32   `json:"nodeCount,omitempty"`
 	K8sVersion               string   `json:"k8sVersion,omitempty"`
+	ServerType               string   `json:"serverType,omitempty"`
 }
 
 // A NodePoolSpec defines the desired state of a NodePool.

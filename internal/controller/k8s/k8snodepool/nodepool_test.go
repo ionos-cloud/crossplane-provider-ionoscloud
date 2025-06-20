@@ -492,6 +492,7 @@ func TestExternalNodePoolCreate(t *testing.T) {
 				},
 				Name:             "testNodePool",
 				K8sVersion:       "v1.22.33",
+				ServerType:       "VCPU",
 				NodeCount:        2,
 				CoresCount:       4,
 				StorageSize:      15,
@@ -608,7 +609,8 @@ func TestExternalNodePoolCreate(t *testing.T) {
 							AvailabilityZone: ionoscloud.PtrString("AUTO"),
 							StorageType:      ionoscloud.PtrString("SSD"),
 							StorageSize:      ionoscloud.PtrInt32(15),
-							K8sVersion:       ionoscloud.PtrString("v1.22.33")},
+							K8sVersion:       ionoscloud.PtrString("v1.22.33"),
+							ServerType:       ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("VCPU"))},
 					}
 					expectedNodePoolForPost := ionoscloud.KubernetesNodePoolForPost{
 						Properties: &ionoscloud.KubernetesNodePoolPropertiesForPost{
@@ -618,6 +620,7 @@ func TestExternalNodePoolCreate(t *testing.T) {
 							CpuFamily:        ionoscloud.PtrString("SUPER_FAST"),
 							DatacenterId:     ionoscloud.PtrString("12345"),
 							K8sVersion:       ionoscloud.PtrString("v1.22.33"),
+							ServerType:       ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("VCPU")),
 							Lans:             &[]ionoscloud.KubernetesNodePoolLan{},
 							Name:             ionoscloud.PtrString("testNodePool"),
 							NodeCount:        ionoscloud.PtrInt32(2),
