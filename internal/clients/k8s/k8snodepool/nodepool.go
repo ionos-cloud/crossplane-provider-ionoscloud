@@ -224,6 +224,9 @@ func LateInitializer(in *v1alpha1.NodePoolParameters, sg *sdkgo.KubernetesNodePo
 	}
 	// Add Properties to the Spec, if they were set by the API
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
+		if serverTypeOk, ok := propertiesOk.GetServerTypeOk(); ok && serverTypeOk != nil {
+			in.ServerType = string(*serverTypeOk)
+		}
 		if maintenanceWindowOk, ok := propertiesOk.GetMaintenanceWindowOk(); ok && maintenanceWindowOk != nil {
 			if timeOk, ok := maintenanceWindowOk.GetTimeOk(); ok && timeOk != nil {
 				if utils.IsEmptyValue(reflect.ValueOf(in.MaintenanceWindow.Time)) {
