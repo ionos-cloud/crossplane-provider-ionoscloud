@@ -379,6 +379,9 @@ reference on every reconcile.
 * `storageType` (string)
 	* description: The type of hardware for the volume.
 	* possible values: "HDD";"SSD"
+* `serverType` (string)
+	* description: The server type for the compute engine.
+	* possible values: "DedicatedCore";"VCPU"
 
 ### Required Properties
 

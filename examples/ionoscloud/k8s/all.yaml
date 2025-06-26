@@ -95,6 +95,7 @@ spec:
     ramSize: 2048
     availabilityZone: AUTO
     storageType: HDD
+    serverType: DedicatedCore
     storageSize: 10
     publicIpsConfigs:
       ipsBlockConfigs:

@@ -595,6 +595,12 @@ spec:
                     minimum: 2048
                     multipleOf: 1024
                     type: integer
+                  serverType:
+                    description: |-
+                      The type of server for the Kubernetes node pool can be either
+                      'DedicatedCore' (nodes with dedicated CPU cores) or 'VCPU' (nodes with shared CPU cores).
+                      This selection corresponds to the server type for the compute engine.
+                    type: string
                   storageSize:
                     description: The size of the volume in GB. The size should be
                       greater than 10GB.
@@ -808,6 +814,8 @@ spec:
                     items:
                       type: string
                     type: array
+                  serverType:
+                    type: string
                   state:
                     type: string
                 type: object

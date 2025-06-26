@@ -59,6 +59,7 @@ func TestIsNodePoolUpToDate(t *testing.T) {
 						ForProvider: v1alpha1.NodePoolParameters{
 							Name:             "not empty",
 							K8sVersion:       "v1.22.33",
+							ServerType:       "VCPU",
 							NodeCount:        4,
 							CPUFamily:        "super fast",
 							CoresCount:       5,
@@ -84,6 +85,7 @@ func TestIsNodePoolUpToDate(t *testing.T) {
 					StorageType:      ionoscloud.ToPtr("SSD"),
 					StorageSize:      ionoscloud.PtrInt32(7),
 					K8sVersion:       ionoscloud.ToPtr("v1.22.33"),
+					ServerType:       ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("VCPU")),
 					MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
 						DayOfTheWeek: ionoscloud.ToPtr("Mon"),
 						Time:         ionoscloud.ToPtr("15:24:30Z"),
@@ -106,6 +108,7 @@ func TestIsNodePoolUpToDate(t *testing.T) {
 						ForProvider: v1alpha1.NodePoolParameters{
 							Name:             "different",
 							K8sVersion:       "v2.33.55",
+							ServerType:       "VCPU",
 							NodeCount:        2,
 							CPUFamily:        "super slow",
 							CoresCount:       1,
@@ -131,6 +134,7 @@ func TestIsNodePoolUpToDate(t *testing.T) {
 					StorageType:      ionoscloud.ToPtr("SSD"),
 					StorageSize:      ionoscloud.PtrInt32(7),
 					K8sVersion:       ionoscloud.ToPtr("v1.22.33"),
+					ServerType:       ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("DedicatedCore")),
 					MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
 						DayOfTheWeek: ionoscloud.ToPtr("Mon"),
 						Time:         ionoscloud.ToPtr("15:24:30Z"),
@@ -208,6 +212,7 @@ func TestLateStatusInitializer(t *testing.T) {
 			ForProvider: v1alpha1.NodePoolParameters{
 				Name:             "not empty",
 				K8sVersion:       "v1.22.33",
+				ServerType:       "VCPU",
 				NodeCount:        4,
 				CPUFamily:        "super fast",
 				CoresCount:       5,
@@ -237,6 +242,7 @@ func TestLateStatusInitializer(t *testing.T) {
 		StorageType:      ionoscloud.ToPtr("SSD"),
 		StorageSize:      ionoscloud.PtrInt32(7),
 		K8sVersion:       ionoscloud.ToPtr("v1.22.33"),
+		ServerType:       ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("VCPU")),
 		MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
 			DayOfTheWeek: ionoscloud.ToPtr("Fri"),
 			Time:         ionoscloud.ToPtr("03:24:30Z"),

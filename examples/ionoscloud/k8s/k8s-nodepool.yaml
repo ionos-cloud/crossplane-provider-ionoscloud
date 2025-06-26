@@ -27,6 +27,7 @@ spec:
     availabilityZone: AUTO
     storageType: HDD
     storageSize: 10
+    serverType: VCPU
     #    lans:
     #      - lanConfig:
     #          lanIdRef:

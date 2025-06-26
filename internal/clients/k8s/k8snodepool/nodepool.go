@@ -149,6 +149,9 @@ func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIPs []string) *
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.K8sVersion)) {
 		instanceCreateInput.Properties.SetK8sVersion(cr.Spec.ForProvider.K8sVersion)
 	}
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.ServerType)) {
+		instanceCreateInput.Properties.SetServerType(sdkgo.KubernetesNodePoolServerType(cr.Spec.ForProvider.ServerType))
+	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Labels)) {
 		instanceCreateInput.Properties.SetLabels(cr.Spec.ForProvider.Labels)
 	}
@@ -175,10 +178,12 @@ func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIPs []string) *
 
 // GenerateUpdateK8sNodePoolInput returns sdkgo.KubernetesNodePoolForPut based on the CR spec modifications
 func GenerateUpdateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIps []string) *sdkgo.KubernetesNodePoolForPut {
+	serverType := sdkgo.KubernetesNodePoolServerType(cr.Spec.ForProvider.ServerType)
 	instanceUpdateInput := sdkgo.KubernetesNodePoolForPut{
 		Properties: &sdkgo.KubernetesNodePoolPropertiesForPut{
 			NodeCount:  &cr.Spec.ForProvider.NodeCount,
 			K8sVersion: &cr.Spec.ForProvider.K8sVersion,
+			ServerType: &serverType,
 		},
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AutoScaling)) {
@@ -219,6 +224,9 @@ func LateInitializer(in *v1alpha1.NodePoolParameters, sg *sdkgo.KubernetesNodePo
 	}
 	// Add Properties to the Spec, if they were set by the API
 	if propertiesOk, ok := sg.GetPropertiesOk(); ok && propertiesOk != nil {
+		if serverTypeOk, ok := propertiesOk.GetServerTypeOk(); ok && serverTypeOk != nil {
+			in.ServerType = string(*serverTypeOk)
+		}
 		if maintenanceWindowOk, ok := propertiesOk.GetMaintenanceWindowOk(); ok && maintenanceWindowOk != nil {
 			if timeOk, ok := maintenanceWindowOk.GetTimeOk(); ok && timeOk != nil {
 				if utils.IsEmptyValue(reflect.ValueOf(in.MaintenanceWindow.Time)) {
@@ -284,6 +292,8 @@ func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodeP
 	case nodepool.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
 		return false
 	case nodepool.Properties.K8sVersion != nil && cr.Spec.ForProvider.K8sVersion != "" && *nodepool.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
+		return false
+	case nodepool.Properties.ServerType != nil && cr.Spec.ForProvider.ServerType != "" && string(*nodepool.Properties.ServerType) != cr.Spec.ForProvider.ServerType:
 		return false
 	case nodepool.Properties.NodeCount != nil &&
 		*nodepool.Properties.NodeCount != cr.Spec.ForProvider.NodeCount &&

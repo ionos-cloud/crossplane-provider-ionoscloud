@@ -492,6 +492,7 @@ func TestExternalNodePoolCreate(t *testing.T) {
 				},
 				Name:             "testNodePool",
 				K8sVersion:       "v1.22.33",
+				ServerType:       "VCPU",
 				NodeCount:        2,
 				CoresCount:       4,
 				StorageSize:      15,
@@ -608,7 +609,8 @@ func TestExternalNodePoolCreate(t *testing.T) {
 							AvailabilityZone: ionoscloud.PtrString("AUTO"),
 							StorageType:      ionoscloud.PtrString("SSD"),
 							StorageSize:      ionoscloud.PtrInt32(15),
-							K8sVersion:       ionoscloud.PtrString("v1.22.33")},
+							K8sVersion:       ionoscloud.PtrString("v1.22.33"),
+							ServerType:       ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("VCPU"))},
 					}
 					expectedNodePoolForPost := ionoscloud.KubernetesNodePoolForPost{
 						Properties: &ionoscloud.KubernetesNodePoolPropertiesForPost{
@@ -618,6 +620,7 @@ func TestExternalNodePoolCreate(t *testing.T) {
 							CpuFamily:        ionoscloud.PtrString("SUPER_FAST"),
 							DatacenterId:     ionoscloud.PtrString("12345"),
 							K8sVersion:       ionoscloud.PtrString("v1.22.33"),
+							ServerType:       ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("VCPU")),
 							Lans:             &[]ionoscloud.KubernetesNodePoolLan{},
 							Name:             ionoscloud.PtrString("testNodePool"),
 							NodeCount:        ionoscloud.PtrInt32(2),
@@ -699,7 +702,8 @@ func TestExternalNodePoolCreate(t *testing.T) {
 							AvailabilityZone: ionoscloud.PtrString("AUTO"),
 							StorageType:      ionoscloud.PtrString("SSD"),
 							StorageSize:      ionoscloud.PtrInt32(15),
-							K8sVersion:       ionoscloud.PtrString("v1.22.33")},
+							K8sVersion:       ionoscloud.PtrString("v1.22.33"),
+							ServerType:       ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("VCPU"))},
 					}
 					returnedNodePool := expectedNodePool
 					returnedNodePool.Id = ionoscloud.PtrString("1234")
@@ -857,7 +861,8 @@ func TestExternalNodePoolUpdate(t *testing.T) {
 	basicUpdateNodePool := &v1alpha1.NodePool{
 		Spec: v1alpha1.NodePoolSpec{
 			ForProvider: v1alpha1.NodePoolParameters{
-				Name: testNodePoolName,
+				Name:       testNodePoolName,
+				ServerType: "DedicatedCore",
 				ClusterCfg: v1alpha1.ClusterConfig{
 					ClusterID: testClusterID,
 				},
@@ -995,6 +1000,7 @@ func TestExternalNodePoolUpdate(t *testing.T) {
 								Labels:      &map[string]string{},
 								Annotations: &map[string]string{},
 								PublicIps:   &[]string{},
+								ServerType:  ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("DedicatedCore")),
 							},
 						})),
 					).
@@ -1008,6 +1014,7 @@ func TestExternalNodePoolUpdate(t *testing.T) {
 						ForProvider: v1alpha1.NodePoolParameters{
 							Name:          "nodepool",
 							DatacenterCfg: v1alpha1.DatacenterConfig{DatacenterID: "12345"},
+							ServerType:    "DedicatedCore",
 							ClusterCfg: v1alpha1.ClusterConfig{
 								ClusterID: testClusterID,
 							},
