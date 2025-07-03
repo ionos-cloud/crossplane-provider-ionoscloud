@@ -679,7 +679,6 @@ func TestExternalNodePoolCreate(t *testing.T) {
 							Name:             ionoscloud.PtrString("testNodePool"),
 							DatacenterId:     ionoscloud.PtrString("12345"),
 							NodeCount:        ionoscloud.PtrInt32(2),
-							CpuFamily:        ionoscloud.PtrString("INTEL_XEON"),
 							CoresCount:       ionoscloud.PtrInt32(4),
 							RamSize:          ionoscloud.PtrInt32(5),
 							AvailabilityZone: ionoscloud.PtrString("AUTO"),
@@ -693,7 +692,6 @@ func TestExternalNodePoolCreate(t *testing.T) {
 							DatacenterId:     ionoscloud.PtrString("12345"),
 							Lans:             &[]ionoscloud.KubernetesNodePoolLan{},
 							NodeCount:        ionoscloud.PtrInt32(2),
-							CpuFamily:        ionoscloud.PtrString("INTEL_XEON"),
 							CoresCount:       ionoscloud.PtrInt32(4),
 							RamSize:          ionoscloud.PtrInt32(5),
 							AvailabilityZone: ionoscloud.PtrString("AUTO"),
@@ -714,9 +712,6 @@ func TestExternalNodePoolCreate(t *testing.T) {
 						Return(returnedNodePool, nil, nil)
 				},
 				setupClusterService: clusterActiveService,
-				setupDatacenterService: func(service *datacenter.MockClient) {
-					service.EXPECT().GetCPUFamiliesForDatacenter(context.Background(), "12345").Return([]string{"INTEL_XEON", "AMD_OPTERON"}, nil)
-				},
 			},
 			args: func() *v1alpha1.NodePool {
 				np := basicCreateNodepool.DeepCopy()
@@ -731,29 +726,6 @@ func TestExternalNodePoolCreate(t *testing.T) {
 			wantCondition:    xpv1.Creating(),
 		},
 		{
-			name: "IONOS API doesn't returns error instead of CPUFamilies",
-			nodepoolMocker: nodepoolMocker{
-				setupClusterService: clusterActiveService,
-				setupDatacenterService: func(service *datacenter.MockClient) {
-					service.EXPECT().GetCPUFamiliesForDatacenter(context.Background(), "12345").Return(nil, errors.New("everything is broken"))
-				},
-			},
-			args: func() *v1alpha1.NodePool {
-				np := basicCreateNodepool.DeepCopy()
-				np.Spec.ForProvider.CPUFamily = ""
-				return np
-			}(),
-			want: managed.ExternalCreation{
-				ConnectionDetails: nil,
-			},
-			wantErr:          true,
-			wantExternalName: "",
-			wantCondition: xpv1.Condition{
-				Type:   "Ready",
-				Status: "False",
-			},
-		},
-		{
 			name: "IONOS API returns empty list of CPU families",
 			nodepoolMocker: nodepoolMocker{
 				setupNodePoolService: func(service *k8snodepool.MockClient) {
@@ -762,7 +734,6 @@ func TestExternalNodePoolCreate(t *testing.T) {
 							Name:             ionoscloud.PtrString("testNodePool"),
 							DatacenterId:     ionoscloud.PtrString("12345"),
 							NodeCount:        ionoscloud.PtrInt32(2),
-							CpuFamily:        ionoscloud.PtrString("INTEL_XEON"),
 							CoresCount:       ionoscloud.PtrInt32(4),
 							RamSize:          ionoscloud.PtrInt32(5),
 							AvailabilityZone: ionoscloud.PtrString("AUTO"),
@@ -776,7 +747,6 @@ func TestExternalNodePoolCreate(t *testing.T) {
 							DatacenterId:     ionoscloud.PtrString("12345"),
 							Lans:             &[]ionoscloud.KubernetesNodePoolLan{},
 							NodeCount:        ionoscloud.PtrInt32(2),
-							CpuFamily:        ionoscloud.PtrString(""),
 							CoresCount:       ionoscloud.PtrInt32(4),
 							RamSize:          ionoscloud.PtrInt32(5),
 							AvailabilityZone: ionoscloud.PtrString("AUTO"),
@@ -797,9 +767,6 @@ func TestExternalNodePoolCreate(t *testing.T) {
 						Return(returnedNodePool, nil, nil)
 				},
 				setupClusterService: clusterActiveService,
-				setupDatacenterService: func(service *datacenter.MockClient) {
-					service.EXPECT().GetCPUFamiliesForDatacenter(context.Background(), "12345").Return([]string{}, nil)
-				},
 			},
 			args: func() *v1alpha1.NodePool {
 				np := &v1alpha1.NodePool{
