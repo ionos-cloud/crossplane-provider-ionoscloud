@@ -3,7 +3,7 @@ kind: Provider
 metadata:
   name: provider-ionos
 spec:
-  package: ghcr.io/ionos-cloud/crossplane-provider-ionoscloud:latest
+  package: ghcr.io/ionos-cloud/crossplane-provider-ionoscloud:v1.1.15
   # Uncomment the following lines in order to see logs
   # for Crossplane Provider IONOS Cloud controller pod:
   # runtimeConfigRef:

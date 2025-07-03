@@ -1,0 +1,74 @@
+---
+# Use this file to create Datacenter.
+# Required values for creating a Datacenter CR are:
+# - Location.
+apiVersion: compute.ionoscloud.crossplane.io/v1alpha1
+kind: Datacenter
+metadata:
+  name: example-txl
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: nodepool-datacenter
+    location: de/txl
+    description: test
+  providerConfigRef:
+    name: example
+---
+
+# Use this file to create a K8s NodePool CR.
+# Required values for creating a K8s NodePool CR are:
+# - Name,
+# - ClusterConfig (via ID or reference),
+# - DatacenterConfig (via ID or reference),
+# - NodeCount,
+# - CoresCount,
+# - RAMSize,
+# - AvailabilityZone,
+# - StorageType,
+# - StorageSize.
+apiVersion: k8s.ionoscloud.crossplane.io/v1alpha1
+kind: NodePool
+metadata:
+  name: exampletxlnodepool
+spec:
+  managementPolicies:
+    - "*"
+  forProvider:
+    name: examplek8snodepooltxl
+    nodeCount: 1
+    # Note: If the CPU Family is not set, the Crossplane Provider
+    # will set the first one offered by the Datacenter.
+    coresCount: 1
+    ramSize: 2048
+    availabilityZone: AUTO
+    storageType: HDD
+    storageSize: 10
+    serverType: DedicatedCore
+    #    lans:
+    #      - lanConfig:
+    #          lanIdRef:
+    #            name:
+    #        dhcp:
+    #        routes:
+    #          - network:
+    #            gatewayIp:
+    #    autoScaling:
+    #      minNodeCount: 1
+    #      maxNodeCount: 2
+    #    labels:
+    #      key: "value"
+    #    annotations:
+    #      key: "value"
+    #    publicIpsConfigs:
+    #      ipsBlockConfigs:
+    #        - ipBlockIdRef:
+    #            name: example
+    datacenterConfig:
+      datacenterIdRef:
+        name: example-txl
+    clusterConfig:
+      clusterId: 250e4c63-d80b-4ea1-8cb4-ea0d1d1ed2b7
+  providerConfigRef:
+    name: example
