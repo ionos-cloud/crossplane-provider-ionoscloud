@@ -59,7 +59,7 @@ type NodePoolParameters struct {
 	// +kubebuilder:validation:Required
 	NodeCount int32 `json:"nodeCount"`
 	// A valid CPU family name.
-	// If no CPUFamily is provided, it will be set the first CPUFamily supported by the location.
+	// If no CPUFamily is provided, the API will set a CPUFamily supported by the location.
 	//
 	// +immutable
 	// +kubebuilder:validation:Optional

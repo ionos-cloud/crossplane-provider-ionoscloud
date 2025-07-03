@@ -154,7 +154,7 @@ reference on every reconcile.
 	* format: int32
 * `cpuFamily` (string)
 	* description: A valid CPU family name.
-If no CPUFamily is provided, it will be set the first CPUFamily supported by the location.
+If no CPUFamily is provided, the API will set a CPUFamily supported by the location.
 * `datacenterConfig` (object)
 	* description: A Datacenter, to which the user has access.
 	* properties:

@@ -138,13 +138,15 @@ func GenerateCreateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIPs []string) *
 			Name:             &cr.Spec.ForProvider.Name,
 			DatacenterId:     &cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 			NodeCount:        &cr.Spec.ForProvider.NodeCount,
-			CpuFamily:        &cr.Spec.ForProvider.CPUFamily,
 			CoresCount:       &cr.Spec.ForProvider.CoresCount,
 			RamSize:          &cr.Spec.ForProvider.RAMSize,
 			AvailabilityZone: &cr.Spec.ForProvider.AvailabilityZone,
 			StorageType:      &cr.Spec.ForProvider.StorageType,
 			StorageSize:      &cr.Spec.ForProvider.StorageSize,
 		},
+	}
+	if cr.Spec.ForProvider.CPUFamily != "" {
+		instanceCreateInput.Properties.CpuFamily = &cr.Spec.ForProvider.CPUFamily
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.K8sVersion)) {
 		instanceCreateInput.Properties.SetK8sVersion(cr.Spec.ForProvider.K8sVersion)
