@@ -84,14 +84,8 @@ func (k *kubeConfigmapController) CreateOrUpdate(ctx context.Context, cr *v1alph
 		}
 	} else {
 		if len(k.substConfigMap[crName].identities) > 0 && !maps.Equal(k.substConfigMap[crName].identities, cfgMap.Data) {
-			cfgMap = &v1.ConfigMap{
-				TypeMeta: metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      k.substConfigMap[crName].name,
-					Namespace: k.substConfigMap[crName].namespace,
-				},
-				Data: k.substConfigMap[crName].identities,
-			}
+			maps.Copy(cfgMap.Data, k.substConfigMap[crName].identities)
+
 			k.log.Info("Updating ConfigMap", "name", k.substConfigMap[crName].name, "namespace", k.substConfigMap[crName].namespace, "identities", k.substConfigMap[crName].identities)
 			return k.kube.Update(ctx, cfgMap)
 		}
