@@ -22,7 +22,7 @@ spec:
   forProvider:
     name: exampleIpBlock
     size: 2
-    location: de/fra
+    location: de/txl
   providerConfigRef:
     name: example
 EOF
@@ -52,7 +52,7 @@ spec:
   forProvider:
     name: exampleIpBlockUpdate
     size: 2
-    location: de/fra
+    location: de/txl
   providerConfigRef:
     name: example
 EOF
@@ -81,7 +81,7 @@ spec:
   forProvider:
     name: exampleIpBlockUpdate
     size: 2
-    location: de/fra
+    location: de/txl
   providerConfigRef:
     name: example
 EOF
@@ -134,7 +134,7 @@ spec:
     - "*"
   forProvider:
     name: testdatacenter
-    location: de/fra
+    location: de/txl
   providerConfigRef:
     name: example
 EOF
@@ -163,7 +163,7 @@ spec:
     - "*"
   forProvider:
     name: Test Datacenter CR
-    location: de/fra
+    location: de/txl
     description: e2e crossplane testing
   providerConfigRef:
     name: example
@@ -191,7 +191,7 @@ spec:
     - "*"
   forProvider:
     name: Test Datacenter CR
-    location: de/fra
+    location: de/txl
     description: e2e crossplane testing
   providerConfigRef:
     name: example
@@ -269,8 +269,8 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "waiting for updated volume CR to be ready & synced"
-  kubectl wait --for=condition=ready volumes/example
-  kubectl wait --for=condition=synced volumes/example
+  kubectl wait --for=condition=ready volumes/example --timeout=180s
+  kubectl wait --for=condition=synced volumes/example --timeout=180s
 }
 
 function volume_tests_cleanup() {
@@ -527,8 +527,8 @@ EOF
   echo_step "waiting for update lan CR to be ready & synced"
   sleep 5
   kubectl describe lans
-  kubectl wait --for=condition=ready lans/example
-  kubectl wait --for=condition=synced lans/example
+  kubectl wait --for=condition=ready lans/example  --timeout=180s
+  kubectl wait --for=condition=synced lans/example --timeout=180s
 
 echo_step "deploy a lan 3 CR for pcc"
   INSTALL_RESOURCE_YAML="$(
