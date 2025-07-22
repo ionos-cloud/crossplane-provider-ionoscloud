@@ -2,7 +2,6 @@ package serverset
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
@@ -32,7 +31,7 @@ func (c *createBeforeDestroyOnlyBootVolume) update(ctx context.Context, cr *v1al
 	// if there are other fields that force re-creation, they should be added here
 	if existingVolume != nil && existingVolume.Spec.ForProvider.Type == cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type &&
 		existingVolume.Spec.ForProvider.Image == cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image {
-		return fmt.Errorf("existing bootvolume %s found, no need to recreate", existingVolume.Name)
+		return nil
 	}
 	if err := c.bootVolumeController.Ensure(ctx, cr, replicaIndex, newVolumeVersion); err != nil {
 		return err
