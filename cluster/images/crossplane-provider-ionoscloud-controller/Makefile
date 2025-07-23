@@ -8,7 +8,7 @@ include ../../../build/makelib/common.mk
 #  Options
 # IMAGE = $(BUILD_REGISTRY)/crossplane-provider-ionoscloud-controller-$(ARCH)
 IMAGE = ghcr.io/ionos-cloud/crossplane-provider-ionoscloud-controller
-OSBASEIMAGE = alpine:3.20.3
+OSBASEIMAGE = alpine:3.22.1
 include ../../../build/makelib/image.mk
 
 # ====================================================================================

@@ -1,6 +1,6 @@
 module github.com/ionos-cloud/crossplane-provider-ionoscloud
 
-go 1.24
+go 1.24.4
 
 require (
 	github.com/crossplane/crossplane-runtime v1.20.0
