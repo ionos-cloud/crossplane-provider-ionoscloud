@@ -22,7 +22,7 @@ spec:
   forProvider:
     name: exampleBackupUnit
     email: test12345@gmail.com
-    password: test12345
+    password: "${TEST_IMAGE_PASSWORD}"
   providerConfigRef:
     name: example
 EOF
@@ -50,7 +50,7 @@ spec:
   forProvider:
     name: exampleBackupUnit
     email: test123456@gmail.com
-    password: test12345
+    password: "${TEST_IMAGE_PASSWORD}"
   providerConfigRef:
     name: example
 EOF
@@ -76,7 +76,7 @@ spec:
   forProvider:
     name: exampleBackupUnit
     email: test123456@gmail.com
-    password: test12345
+    password: "${TEST_IMAGE_PASSWORD}"
   providerConfigRef:
     name: example
 EOF
