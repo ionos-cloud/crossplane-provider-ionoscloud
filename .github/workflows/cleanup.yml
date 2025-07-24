@@ -12,8 +12,7 @@ jobs:
     name: cleanup
     runs-on: ubuntu-latest
     env:
-      IONOS_USERNAME: ${{ secrets.IONOS_USERNAME }}
-      IONOS_PASSWORD: ${{ secrets.IONOS_PASSWORD }}
+      IONOS_TOKEN: ${{ secrets.IONOS_TOKEN }}
       IONOSCTL_VERSION: '6.2.0'
 
     steps:
