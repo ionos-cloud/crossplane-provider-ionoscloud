@@ -177,7 +177,9 @@ func LateStatusInitializer(in *v1alpha1.VolumeObservation, volume *sdkgo.Volume)
 	// Add options to the Spec, if they were updated by the API
 	if propertiesOk, ok := volume.GetPropertiesOk(); ok && propertiesOk != nil {
 		if PCISlotOk, ok := propertiesOk.GetPciSlotOk(); ok && PCISlotOk != nil {
-			in.PCISlot = *PCISlotOk
+			if in.PCISlot == 0 {
+				in.PCISlot = *PCISlotOk
+			}
 		}
 	}
 }
