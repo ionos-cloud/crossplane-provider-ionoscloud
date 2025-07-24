@@ -116,10 +116,10 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "describe statefulserverset CR with resources"
-  sleep 30
-  kubectl describe sss
+  sleep 180
+  kubectl describe dc
   sleep 120
-  kubectl describe vol
+  kubectl describe sss
   echo_step "waiting for statefulserverset CR to be ready & synced"
   kubectl wait --for=condition=ready statefulserverset/sss-example --timeout=30m
   kubectl wait --for=condition=synced statefulserverset/sss-example --timeout=30m
