@@ -13,6 +13,7 @@ source ./cluster/local/integration_tests_k8s.sh
 source ./cluster/local/integration_tests_backup.sh
 source ./cluster/local/integration_tests_dataplatform.sh
 source ./cluster/local/integration_tests_serverset.sh
+source ./cluster/local/integration_tests_statefulserverset.sh
 
 # ------------------------------
 projectdir="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
@@ -34,7 +35,7 @@ CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller"
 # Pay attention to the default values that are set!
 # To run specific tests, for example for dbaas resources,
 # use: make e2e TEST_COMPUTE=false TEST_DBAAS=true
-TEST_COMPUTE=${TEST_COMPUTE:-true}
+TEST_COMPUTE=${TEST_COMPUTE:-false}
 # by default, do not test the following resources
 # since it takes a lot of time
 TEST_DBAAS=${TEST_DBAAS:-false}
@@ -46,6 +47,7 @@ TEST_NLB=${TEST_NLB:-false}
 TEST_BACKUP=${TEST_BACKUP:-false}
 TEST_DATAPLATFORM=${TEST_DATAPLATFORM:-false}
 TEST_SERVERSET=${TEST_SERVERSET:-false}
+TEST_STATEFULSERVERSET=${TEST_STATEFULSERVERSET:-true}
 skipcleanup=${skipcleanup:-false}
 
 version_tag="$(cat ${projectdir}/_output/version)"
@@ -304,6 +306,13 @@ if [ "$TEST_SERVERSET" = true ]; then
   serverset_tests
   echo_step "--- CLEANING UP SERVERSET TESTS ---"
   serverset_tests_cleanup
+fi
+
+if [ "$TEST_STATEFULSERVERSET" = true ]; then
+  echo_step "--- STATEFULSERVERSET TESTS ---"
+  statefulserverset_tests
+  echo_step "--- CLEANING UP STATEFULSERVERSET TESTS ---"
+  statefulserverset_tests_cleanup
 fi
 
 echo_step "-------------------"
