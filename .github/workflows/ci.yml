@@ -1,12 +1,8 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - master
   pull_request: { }
   workflow_dispatch: { }
-
 
 env:
   GOLANGCI_VERSION: 'v2.0'
