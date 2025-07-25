@@ -13,6 +13,7 @@ source ./cluster/local/integration_tests_k8s.sh
 source ./cluster/local/integration_tests_backup.sh
 source ./cluster/local/integration_tests_dataplatform.sh
 source ./cluster/local/integration_tests_serverset.sh
+source ./cluster/local/integration_tests_statefulserverset.sh
 
 # ------------------------------
 projectdir="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
@@ -46,6 +47,7 @@ TEST_NLB=${TEST_NLB:-false}
 TEST_BACKUP=${TEST_BACKUP:-false}
 TEST_DATAPLATFORM=${TEST_DATAPLATFORM:-false}
 TEST_SERVERSET=${TEST_SERVERSET:-false}
+TEST_STATEFULSERVERSET=${TEST_STATEFULSERVERSET:-true}
 skipcleanup=${skipcleanup:-false}
 
 version_tag="$(cat ${projectdir}/_output/version)"
@@ -304,6 +306,13 @@ if [ "$TEST_SERVERSET" = true ]; then
   serverset_tests
   echo_step "--- CLEANING UP SERVERSET TESTS ---"
   serverset_tests_cleanup
+fi
+
+if [ "$TEST_STATEFULSERVERSET" = true ]; then
+  echo_step "--- STATEFULSERVERSET TESTS ---"
+  statefulserverset_tests
+  echo_step "--- CLEANING UP STATEFULSERVERSET TESTS ---"
+  statefulserverset_tests_cleanup
 fi
 
 echo_step "-------------------"
