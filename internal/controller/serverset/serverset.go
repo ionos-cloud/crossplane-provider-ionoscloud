@@ -24,6 +24,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -337,21 +338,28 @@ func (e *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	// for n times of cr.Spec.Replicas, create a server
 	// for each server, create a volume
 	e.log.Info("Creating a new ServerSet", "name", cr.Name, "replicas", cr.Spec.ForProvider.Replicas)
+	errGroup, ctx := errgroup.WithContext(ctx)
 	for i := 0; i < cr.Spec.ForProvider.Replicas; i++ {
-		volumeVersion, serverVersion, err := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), i)
-		if err != nil && !errors.Is(err, errNoVolumesFound) {
-			return managed.ExternalCreation{}, err
-		}
-		if err := e.ensureServerAndNicByIndex(ctx, cr, i, serverVersion); err != nil {
-			return managed.ExternalCreation{}, err
-		}
+		errGroup.Go(func() error {
+			volumeVersion, serverVersion, err := getVersionsFromVolumeAndServer(ctx, e.kube, cr.GetName(), i)
+			if err != nil && !errors.Is(err, errNoVolumesFound) {
+				return err
+			}
+			if err := e.ensureServerAndNicByIndex(ctx, cr, i, serverVersion); err != nil {
+				return err
+			}
 
-		if err := e.ensureBootVolumeByIndex(ctx, cr, i, volumeVersion); err != nil {
-			return managed.ExternalCreation{}, fmt.Errorf("while ensuring bootVolume (%w)", err)
-		}
-		if err := e.attachBootVolume(ctx, cr, i, serverVersion, volumeVersion); err != nil {
-			return managed.ExternalCreation{}, fmt.Errorf("while attaching volume to server (%w)", err)
-		}
+			if err := e.ensureBootVolumeByIndex(ctx, cr, i, volumeVersion); err != nil {
+				return fmt.Errorf("while ensuring bootVolume (%w)", err)
+			}
+			if err := e.attachBootVolume(ctx, cr, i, serverVersion, volumeVersion); err != nil {
+				return fmt.Errorf("while attaching volume to server (%w)", err)
+			}
+			return nil
+		})
+	}
+	if err := errGroup.Wait(); err != nil {
+		return managed.ExternalCreation{}, err
 	}
 
 	// When all conditions are met, the managed resource is considered available
