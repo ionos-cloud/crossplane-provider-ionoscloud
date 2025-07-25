@@ -812,7 +812,7 @@ EOF
 
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
-  echo_step "waiting for firewallrule CR to be ready & synced"
+  echo_step "waiting for firewallrules CR to be ready & synced"
   kubectl wait --for=condition=ready firewallrules/example --timeout 120s
   kubectl wait --for=condition=synced firewallrules/example --timeout 120s
 }
