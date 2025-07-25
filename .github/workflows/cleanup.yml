@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IONOS_TOKEN: ${{ secrets.IONOS_TOKEN }}
+      TEST_IMAGE_PASSWORD: ${{ secrets.TEST_IMAGE_PASSWORD }}
       IONOSCTL_VERSION: '6.2.0'
 
     steps:

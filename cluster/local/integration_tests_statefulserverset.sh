@@ -174,7 +174,7 @@ spec:
         size: 10
         type: SSD
         userData: ""
-        imagePassword: ${TEST_IMAGE_PASSWORD}
+        imagePassword: "${TEST_IMAGE_PASSWORD}"
         substitutions:
           - options:
               cidr: "fd1d:15db:cf64:1337::/64"
@@ -287,8 +287,8 @@ spec:
         image: "c38292f2-eeaa-11ef-8fa7-aee9942a25aa"
         size: 10
         type: SSD
-        userData: "" #cloud-config
-        imagePassword: ${TEST_IMAGE_PASSWORD}
+        userData: ""
+        imagePassword: "${TEST_IMAGE_PASSWORD}"
         substitutions:
           - options:
               cidr: "fd1d:15db:cf64:1337::/64"
