@@ -81,8 +81,8 @@ spec:
         type: HDD
 #        todo - add sshKeys or imagePassword
 #        todo - add userdata in volume creation
-        userData: "" #cloud-config
-        imagePassword: "thisshouldbesecret"
+        userData: ""
+        imagePassword: "${TEST_IMAGE_PASSWORD}"
 EOF
   )"
 
@@ -144,8 +144,8 @@ spec:
         type: SSD
 #        todo - add sshKeys or imagePassword
 #        todo - add userdata in volume creation
-        userData: "" #cloud-config
-        imagePassword: "thisshouldbesecret"
+        userData: ""
+        imagePassword: ${TEST_IMAGE_PASSWORD}
 EOF
   )"
 
@@ -229,10 +229,8 @@ spec:
         image: "28d0fa34-927f-11ee-8008-6202af74e858"
         size: 10
         type: SSD
-#        todo - add sshKeys or imagePassword
-#        todo - add userdata in volume creation
-        userData: "" #cloud-config
-        imagePassword: "thisshouldbesecret"
+        userData: ""
+        imagePassword: ${TEST_IMAGE_PASSWORD}
 EOF
   )"
 

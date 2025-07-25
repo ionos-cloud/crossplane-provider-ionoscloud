@@ -70,8 +70,8 @@ spec:
         image: "c38292f2-eeaa-11ef-8fa7-aee9942a25aa"
         size: 10
         type: HDD
-        userData: "" #cloud-config
-        imagePassword: "thisshouldwork11"
+        userData: ""
+        imagePassword: "${TEST_IMAGE_PASSWORD}"
         substitutions:
           - options:
               cidr: "fd1d:15db:cf64:1337::/64"
@@ -116,10 +116,9 @@ EOF
   echo "${INSTALL_RESOURCE_YAML}" | "${KUBECTL}" apply -f -
 
   echo_step "describe statefulserverset CR with resources"
-  sleep 180
-  kubectl describe dc
-  sleep 120
-  kubectl describe sss
+  echo_step "waiting for Datacenter resource to be ready"
+  kubectl wait --for=condition=ready dc/examplestatefulserverset --timeout=30m
+  kubectl get dc
   echo_step "waiting for statefulserverset CR to be ready & synced"
   kubectl wait --for=condition=ready statefulserverset/sss-example --timeout=30m
   kubectl wait --for=condition=synced statefulserverset/sss-example --timeout=30m
@@ -175,7 +174,7 @@ spec:
         size: 10
         type: SSD
         userData: ""
-        imagePassword: "thisshouldwork11"
+        imagePassword: "${TEST_IMAGE_PASSWORD}"
         substitutions:
           - options:
               cidr: "fd1d:15db:cf64:1337::/64"
@@ -288,8 +287,8 @@ spec:
         image: "c38292f2-eeaa-11ef-8fa7-aee9942a25aa"
         size: 10
         type: SSD
-        userData: "" #cloud-config
-        imagePassword: "thisshouldwork11"
+        userData: ""
+        imagePassword: "${TEST_IMAGE_PASSWORD}"
         substitutions:
           - options:
               cidr: "fd1d:15db:cf64:1337::/64"
