@@ -147,7 +147,6 @@ func (c *ExternalVolume) Observe(ctx context.Context, mg resource.Managed) (mana
 		cr.Status.AtProvider.Name = *instance.Properties.Name
 		cr.Status.AtProvider.Size = *instance.Properties.Size
 		if instance.Properties.BootServer != nil {
-
 			name, err := c.Service.GetServerNameByID(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instance.Properties.BootServer)
 			if err != nil {
 				return managed.ExternalObservation{}, err
