@@ -835,11 +835,11 @@ func Test_external_Observe_Update_PCISlot(t *testing.T) {
 	require.NoError(t, err)
 	// Check PCISlot in DataVolumeStatuses
 	require.Len(t, cr.Status.AtProvider.DataVolumeStatuses, 1)
-	require.Equal(t, firstPciSLot, cr.Status.AtProvider.DataVolumeStatuses[0].VolumeStatus.AtProvider.PCISlot)
+	require.Equal(t, firstPciSLot, cr.Status.AtProvider.DataVolumeStatuses[0].AtProvider.PCISlot)
 
 	_, err = ext.Observe(context.Background(), cr)
 	require.NoError(t, err)
 	// Check PCISlot in DataVolumeStatuses
 	require.Len(t, cr.Status.AtProvider.DataVolumeStatuses, 1)
-	require.Equal(t, secondPciSlot, cr.Status.AtProvider.DataVolumeStatuses[0].VolumeStatus.AtProvider.PCISlot)
+	require.Equal(t, secondPciSlot, cr.Status.AtProvider.DataVolumeStatuses[0].AtProvider.PCISlot)
 }

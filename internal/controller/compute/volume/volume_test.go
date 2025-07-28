@@ -88,7 +88,7 @@ func TestObserve_PciSlotUpdate(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, firstPciSLot, cr.Status.AtProvider.PCISlot)
 	require.Equal(t, name, cr.Status.AtProvider.Name)
-	require.Equal(t, size, cr.Status.AtProvider.Size)
+	require.InEpsilon(t, size, cr.Status.AtProvider.Size, 0.001)
 	require.Equal(t, serverName, cr.Status.AtProvider.ServerName)
 	require.Equal(t, volID, cr.Status.AtProvider.VolumeID)
 
@@ -97,7 +97,7 @@ func TestObserve_PciSlotUpdate(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, secondPciSlot, cr.Status.AtProvider.PCISlot)
 	require.Equal(t, name, cr.Status.AtProvider.Name)
-	require.Equal(t, size, cr.Status.AtProvider.Size)
+	require.InEpsilon(t, size, cr.Status.AtProvider.Size, 0.001)
 	require.Equal(t, serverName, cr.Status.AtProvider.ServerName)
 	require.Equal(t, volID, cr.Status.AtProvider.VolumeID)
 }
