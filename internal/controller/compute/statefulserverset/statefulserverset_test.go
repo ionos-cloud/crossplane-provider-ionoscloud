@@ -754,7 +754,7 @@ func (m *mockDataVolumeControllerPciSlotUpdate) Create(ctx context.Context, cr *
 }
 
 var (
-	firstPciSLot  int32 = 5
+	firstPciSLot  int32 = 4
 	secondPciSlot int32 = 7
 )
 
