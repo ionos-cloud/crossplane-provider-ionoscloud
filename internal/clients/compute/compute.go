@@ -58,8 +58,13 @@ func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, targetID, metho
 	return false, nil
 }
 
-// WaitForRequest waits for the request to be DONE
-func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *sdkgo.APIResponse) error {
+// WaitForRequester is an interface that defines a method to wait for a request to complete.
+type WaitForRequester interface {
+	WaitForRequest(ctx context.Context, location string) (*sdkgo.APIResponse, error)
+}
+
+// WaitForRequest waits for the request to complete by checking the APIResponse header for the request ID.
+func WaitForRequest(ctx context.Context, client WaitForRequester, apiResponse *sdkgo.APIResponse) error {
 	if client != nil {
 		if apiResponse != nil && apiResponse.Response != nil {
 			if _, err := client.WaitForRequest(ctx, apiResponse.Response.Header.Get(requestHeader)); err != nil {
