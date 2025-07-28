@@ -744,13 +744,12 @@ func Test_computeVolumeStatuses(t *testing.T) {
 	}
 }
 
-type mockDataVolumeController2 struct {
+type mockDataVolumeControllerPciSlotUpdate struct {
 	volumes   []v1alpha1.Volume
 	callCount int
 }
 
-func (m *mockDataVolumeController2) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
-	// TODO implement me
+func (m *mockDataVolumeControllerPciSlotUpdate) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
 	panic("implement me")
 }
 
@@ -759,7 +758,7 @@ var (
 	secondPciSlot int32 = 7
 )
 
-func (m *mockDataVolumeController2) ListVolumes(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.VolumeList, error) {
+func (m *mockDataVolumeControllerPciSlotUpdate) ListVolumes(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.VolumeList, error) {
 	m.callCount++
 	pciSlot := firstPciSLot
 	if m.callCount == 2 {
@@ -769,17 +768,16 @@ func (m *mockDataVolumeController2) ListVolumes(ctx context.Context, cr *v1alpha
 	return &v1alpha1.VolumeList{Items: m.volumes}, nil
 }
 
-func (m *mockDataVolumeController2) Get(ctx context.Context, volumeName, ns string) (*v1alpha1.Volume, error) {
-	// TODO implement me
+func (m *mockDataVolumeControllerPciSlotUpdate) Get(ctx context.Context, volumeName, ns string) (*v1alpha1.Volume, error) {
 	panic("implement me")
 }
 
-func (m *mockDataVolumeController2) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
+func (m *mockDataVolumeControllerPciSlotUpdate) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
 	panic("implement me")
 }
 
 // Other methods can be no-ops
-func (m *mockDataVolumeController2) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) error {
+func (m *mockDataVolumeControllerPciSlotUpdate) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) error {
 	return nil
 }
 
@@ -821,7 +819,7 @@ func Test_external_Observe_Update_PCISlot(t *testing.T) {
 	}
 	ext := &external{
 		kube:                     fakeKubeClientWithObjs(),
-		dataVolumeController:     &mockDataVolumeController2{volumes: []v1alpha1.Volume{volume}},
+		dataVolumeController:     &mockDataVolumeControllerPciSlotUpdate{volumes: []v1alpha1.Volume{volume}},
 		LANController:            &fakeKubeLANController{},
 		SSetController:           &fakeKubeServerSetController{},
 		volumeSelectorController: &fakeKubeVolumeSelectorController{},
