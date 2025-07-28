@@ -1,12 +1,8 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - master
   pull_request: { }
   workflow_dispatch: { }
-
 
 env:
   GOLANGCI_VERSION: 'v2.0'
@@ -185,6 +181,19 @@ jobs:
         run: make -j2 build.all VERSION=latest
         env:
           BUILD_ARGS: "--load"
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          image-ref: 'ghcr.io/ionos-cloud/crossplane-provider-ionoscloud-controller:latest'
+          format: 'sarif'
+          exit-code: 0
+          severity: 'CRITICAL,HIGH'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
       - name: Publish Artifacts to GitHub
         uses: actions/upload-artifact@v4
         with:
