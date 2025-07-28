@@ -8,6 +8,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/volume"
@@ -84,19 +85,19 @@ func TestObserve_PciSlotUpdate(t *testing.T) {
 
 	// First Observe: PciSlot should be "5" - firstPciSLot
 	_, err := ext.Observe(context.Background(), cr)
-	assert.NoError(t, err)
-	assert.Equal(t, firstPciSLot, cr.Status.AtProvider.PCISlot)
-	assert.Equal(t, name, cr.Status.AtProvider.Name)
-	assert.Equal(t, size, cr.Status.AtProvider.Size)
-	assert.Equal(t, serverName, cr.Status.AtProvider.ServerName)
-	assert.Equal(t, volID, cr.Status.AtProvider.VolumeID)
+	require.NoError(t, err)
+	require.Equal(t, firstPciSLot, cr.Status.AtProvider.PCISlot)
+	require.Equal(t, name, cr.Status.AtProvider.Name)
+	require.Equal(t, size, cr.Status.AtProvider.Size)
+	require.Equal(t, serverName, cr.Status.AtProvider.ServerName)
+	require.Equal(t, volID, cr.Status.AtProvider.VolumeID)
 
 	// Second Observe: PciSlot should be "7" - secondPciSlot
 	_, err = ext.Observe(context.Background(), cr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, secondPciSlot, cr.Status.AtProvider.PCISlot)
-	assert.Equal(t, name, cr.Status.AtProvider.Name)
-	assert.Equal(t, size, cr.Status.AtProvider.Size)
-	assert.Equal(t, serverName, cr.Status.AtProvider.ServerName)
-	assert.Equal(t, volID, cr.Status.AtProvider.VolumeID)
+	require.Equal(t, name, cr.Status.AtProvider.Name)
+	require.Equal(t, size, cr.Status.AtProvider.Size)
+	require.Equal(t, serverName, cr.Status.AtProvider.ServerName)
+	require.Equal(t, volID, cr.Status.AtProvider.VolumeID)
 }

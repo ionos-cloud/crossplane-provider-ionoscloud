@@ -783,7 +783,7 @@ func (m *mockDataVolumeController2) Ensure(ctx context.Context, cr *v1alpha1.Sta
 	return nil
 }
 
-func Test_external_Observe_PCISlot(t *testing.T) {
+func Test_external_Observe_Update_PCISlot(t *testing.T) {
 
 	// Create a StatefulServerSet CR
 	cr := &v1alpha1.StatefulServerSet{}
@@ -832,14 +832,14 @@ func Test_external_Observe_PCISlot(t *testing.T) {
 	meta.SetExternalName(cr, "test")
 
 	_, err := ext.Observe(context.Background(), cr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// Check PCISlot in DataVolumeStatuses
 	require.Len(t, cr.Status.AtProvider.DataVolumeStatuses, 1)
-	assert.Equal(t, firstPciSLot, cr.Status.AtProvider.DataVolumeStatuses[0].VolumeStatus.AtProvider.PCISlot)
+	require.Equal(t, firstPciSLot, cr.Status.AtProvider.DataVolumeStatuses[0].VolumeStatus.AtProvider.PCISlot)
 
 	_, err = ext.Observe(context.Background(), cr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// Check PCISlot in DataVolumeStatuses
 	require.Len(t, cr.Status.AtProvider.DataVolumeStatuses, 1)
-	assert.Equal(t, secondPciSlot, cr.Status.AtProvider.DataVolumeStatuses[0].VolumeStatus.AtProvider.PCISlot)
+	require.Equal(t, secondPciSlot, cr.Status.AtProvider.DataVolumeStatuses[0].VolumeStatus.AtProvider.PCISlot)
 }
