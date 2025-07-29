@@ -108,7 +108,7 @@ func TestServer_CreateObserveUpdateVolumeID(t *testing.T) {
 
 	// Create
 	_, err := ext.Create(context.Background(), cr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "srv-1", cr.Status.AtProvider.ServerID)
 
 	meta.SetExternalName(cr, "srv-1")
