@@ -749,6 +749,10 @@ type mockDataVolumeControllerPciSlotUpdate struct {
 	callCount int
 }
 
+func (m *mockDataVolumeControllerPciSlotUpdate) Delete(ctx context.Context, name, namespace string) error {
+	panic("implement me")
+}
+
 func (m *mockDataVolumeControllerPciSlotUpdate) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
 	panic("implement me")
 }
