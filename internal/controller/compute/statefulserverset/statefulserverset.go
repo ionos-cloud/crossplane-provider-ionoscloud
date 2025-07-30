@@ -111,7 +111,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
-
+	// todo uncomment if we add owner references on observe
 	if meta.WasDeleted(cr) {
 		return managed.ExternalObservation{}, nil
 	}
