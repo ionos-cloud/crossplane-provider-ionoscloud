@@ -27,6 +27,7 @@ type kubeDataVolumeControlManager interface {
 	Get(ctx context.Context, volumeName, ns string) (*v1alpha1.Volume, error)
 	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error)
 	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, version int) error
+	Delete(ctx context.Context, name, namespace string) error
 }
 
 // kubeDataVolumeController - kubernetes client wrapper  for server resources
