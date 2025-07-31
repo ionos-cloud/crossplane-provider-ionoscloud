@@ -209,7 +209,7 @@ func IsVolumeUpToDate(cr *v1alpha1.Volume, volume *sdkgo.Volume) bool { // nolin
 		return false
 	case cr != nil && volume.Properties == nil:
 		return false
-	case volume.Metadata.State != nil && *volume.Metadata.State == "BUSY":
+	case volume.Metadata != nil && volume.Metadata.State != nil && *volume.Metadata.State == "BUSY":
 		return true
 	case volume.Properties.Name != nil && *volume.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
