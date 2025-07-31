@@ -112,9 +112,9 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, nil
 	}
 	// todo uncomment if we add owner references on observe
-	if meta.WasDeleted(cr) {
-		return managed.ExternalObservation{}, nil
-	}
+	// if meta.WasDeleted(cr) {
+	// 	return managed.ExternalObservation{}, nil
+	// }
 
 	areResourcesCreated, areResourcesUpdated, areResourcesAvailable, err := e.observeResourcesUpdateStatus(ctx, cr)
 	if err != nil {
