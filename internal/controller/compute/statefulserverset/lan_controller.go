@@ -28,6 +28,7 @@ type kubeLANControlManager interface {
 	Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) error
 	ListLans(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.LanList, error)
 	Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, lanIndex int) (v1alpha1.Lan, error)
+	Delete(ctx context.Context, name, namespace string) error
 }
 
 // kubeLANController - kubernetes client wrapper  for server resources

@@ -26,6 +26,7 @@ const volumeSelectorName = "%s-volume-selector"
 type kubeVolumeSelectorManager interface {
 	Get(ctx context.Context, name, ns string) (*v1alpha1.Volumeselector, error)
 	CreateOrUpdate(ctx context.Context, cr *v1alpha1.StatefulServerSet) error
+	Delete(ctx context.Context, name, ns string) error
 }
 
 // kubeBootVolumeController - kubernetes client wrapper  for server resources
@@ -130,4 +131,33 @@ func fromStatefulServerSetToVolumeSelector(cr *v1alpha1.StatefulServerSet) v1alp
 			},
 		},
 	}
+}
+
+func (k *kubeVolumeSelectorController) Delete(ctx context.Context, name, ns string) error {
+	obj, err := k.Get(ctx, name, ns)
+	if err != nil {
+		if apiErrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	if err := k.kube.Delete(ctx, obj); err != nil {
+		return err
+	}
+	err = kube.WaitForResource(ctx, kube.ResourceReadyTimeout, k.isDeleted, name, ns)
+	if err != nil {
+		return fmt.Errorf("an error occurred while deleting %w", err)
+	}
+	return nil
+}
+
+func (k *kubeVolumeSelectorController) isDeleted(ctx context.Context, name, namespace string) (bool, error) {
+	_, err := k.Get(ctx, name, namespace)
+	if err != nil {
+		if apiErrors.IsNotFound(err) {
+			return true, nil
+		}
+		return false, err
+	}
+	return false, nil
 }
