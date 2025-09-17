@@ -63,7 +63,7 @@ spec:
     - "*"
   forProvider:
     displayName: testDemo
-    postgresVersion: "13"
+    postgresVersion: "15"
     connectionPooler:
         enabled: true
         poolMode: session
