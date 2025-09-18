@@ -152,6 +152,7 @@ func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version int) v1
 				RAM:              cr.Spec.ForProvider.Template.Spec.RAM,
 				AvailabilityZone: GetZoneFromIndex(replicaIndex),
 				CPUFamily:        cr.Spec.ForProvider.Template.Spec.CPUFamily,
+				NicMultiQueue:    cr.Spec.ForProvider.Template.Spec.NicMultiQueue,
 				// todo revert if we go back to attaching volume on server creation
 				// VolumeCfg: v1alpha1.VolumeConfig{
 				// 	VolumeIDRef: &xpv1.Reference{
