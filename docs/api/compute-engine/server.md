@@ -150,6 +150,9 @@ however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. I
 then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
 	* format: int32
 	* multiple of: 256.000000
+* `nicMultiqueue` (bool)
+	* description: Activate or deactivate the Multi Queue feature on all NICs of this server.
+	* format: bool
 * `volumeConfig` (object)
 	* description: In order to attach a volume to the server, it is recommended to use VolumeConfig
 to set the existing volume (via id or via reference).

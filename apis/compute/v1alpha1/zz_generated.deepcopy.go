@@ -1779,6 +1779,11 @@ func (in *ServerObservation) DeepCopy() *ServerObservation {
 func (in *ServerParameters) DeepCopyInto(out *ServerParameters) {
 	*out = *in
 	in.DatacenterCfg.DeepCopyInto(&out.DatacenterCfg)
+	if in.NicMultiQueue != nil {
+		in, out := &in.NicMultiQueue, &out.NicMultiQueue
+		*out = new(bool)
+		**out = **in
+	}
 	in.VolumeCfg.DeepCopyInto(&out.VolumeCfg)
 }
 

@@ -67,6 +67,7 @@ func TestIsServerUpToDate(t *testing.T) {
 							Cores:            4,
 							RAM:              2048,
 							PlacementGroupID: "testPlacementGroup",
+							NicMultiQueue:    ionoscloud.ToPtr(true),
 						},
 					},
 				},
@@ -77,6 +78,7 @@ func TestIsServerUpToDate(t *testing.T) {
 					Cores:            ionoscloud.PtrInt32(4),
 					Ram:              ionoscloud.PtrInt32(2048),
 					PlacementGroupId: ionoscloud.ToPtr("testPlacementGroup"),
+					NicMultiQueue:    ionoscloud.ToPtr(true),
 				}},
 			},
 			wantIsUpToDate: true,
@@ -131,6 +133,35 @@ func TestIsServerUpToDate(t *testing.T) {
 			},
 			wantIsUpToDate: false,
 			wantDiff:       "Server placement group ID does not match the CR placement group ID: testPlacementGroupUpdated != testPlacementGroup",
+		},
+		{
+			name: "only nicMultiQueue different",
+			args: args{
+				cr: &v1alpha1.Server{
+					Spec: v1alpha1.ServerSpec{
+						ForProvider: v1alpha1.ServerParameters{
+							Name:             "not empty",
+							CPUFamily:        "super fast",
+							AvailabilityZone: "AUTO",
+							Cores:            4,
+							RAM:              2048,
+							PlacementGroupID: "testPlacementGroup",
+							NicMultiQueue:    ionoscloud.ToPtr(true),
+						},
+					},
+				},
+				Server: ionoscloud.Server{Properties: &ionoscloud.ServerProperties{
+					Name:             ionoscloud.ToPtr("not empty"),
+					CpuFamily:        ionoscloud.ToPtr("super fast"),
+					AvailabilityZone: ionoscloud.ToPtr("AUTO"),
+					Cores:            ionoscloud.PtrInt32(4),
+					Ram:              ionoscloud.PtrInt32(2048),
+					PlacementGroupId: ionoscloud.ToPtr("testPlacementGroup"),
+					NicMultiQueue:    ionoscloud.ToPtr(false),
+				}},
+			},
+			wantIsUpToDate: true,
+			wantDiff:       "NicMultiQueue do not match the CR NicMultiQueue: ",
 		},
 	}
 	for _, tt := range tests {
