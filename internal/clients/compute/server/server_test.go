@@ -160,7 +160,7 @@ func TestIsServerUpToDate(t *testing.T) {
 					NicMultiQueue:    ionoscloud.ToPtr(false),
 				}},
 			},
-			wantIsUpToDate: true,
+			wantIsUpToDate: false,
 			wantDiff:       "NicMultiQueue do not match the CR NicMultiQueue: false != true",
 		},
 	}
