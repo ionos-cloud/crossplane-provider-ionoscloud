@@ -161,7 +161,7 @@ func TestIsServerUpToDate(t *testing.T) {
 				}},
 			},
 			wantIsUpToDate: true,
-			wantDiff:       "NicMultiQueue do not match the CR NicMultiQueue: ",
+			wantDiff:       "NicMultiQueue do not match the CR NicMultiQueue: false != true",
 		},
 	}
 	for _, tt := range tests {

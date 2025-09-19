@@ -260,7 +260,7 @@ func IsUpToDateWithDiff(cr *v1alpha1.Server, server sdkgo.Server) (bool, string)
 		return false, "Server name does not match the CR name: " + *server.Properties.Name + " != " + cr.Spec.ForProvider.Name
 	case server.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
 		return false, "Server name is nil, but CR name is not empty: " + cr.Spec.ForProvider.Name
-	case server.Properties.NicMultiQueue != nil && cr.Spec.ForProvider.NicMultiQueue != nil && cr.Spec.ForProvider.NicMultiQueue != server.Properties.NicMultiQueue:
+	case server.Properties.NicMultiQueue != nil && cr.Spec.ForProvider.NicMultiQueue != nil && *cr.Spec.ForProvider.NicMultiQueue != *server.Properties.NicMultiQueue:
 		return false, "NicMultiQueue do not match the CR NicMultiQueue: " + fmt.Sprintf("%t != %t", *server.Properties.NicMultiQueue, *cr.Spec.ForProvider.NicMultiQueue)
 	case server.Properties.Cores != nil && cr.Spec.ForProvider.Cores != *server.Properties.Cores:
 		return false, "Server cores do not match the CR cores: " + fmt.Sprintf("%d != %d", *server.Properties.Cores, cr.Spec.ForProvider.Cores)
