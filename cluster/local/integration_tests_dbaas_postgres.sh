@@ -55,7 +55,7 @@ spec:
     - "*"
   forProvider:
     displayName: testDBaaS
-    postgresVersion: "13"
+    postgresVersion: "15"
     connections:
       - datacenterConfig:
           datacenterIdRef:
@@ -104,7 +104,7 @@ spec:
     - "*"
   forProvider:
     displayName: testDBaaSPostgres
-    postgresVersion: "13"
+    postgresVersion: "15"
     connections:
       - datacenterConfig:
           datacenterIdRef:
@@ -212,7 +212,7 @@ spec:
     - "*"
   forProvider:
     displayName: testDBaaS
-    postgresVersion: "13"
+    postgresVersion: "15"
     connections:
       - datacenterConfig:
           datacenterIdRef:

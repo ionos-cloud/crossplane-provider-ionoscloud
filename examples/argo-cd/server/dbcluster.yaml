@@ -15,7 +15,7 @@ spec:
     - "*"
   forProvider:
     displayName: testDemo
-    postgresVersion: "13"
+    postgresVersion: "15"
     connections:
       - datacenterConfig:
           datacenterIdRef:
