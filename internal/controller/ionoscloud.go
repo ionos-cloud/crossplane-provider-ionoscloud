@@ -38,8 +38,6 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/user"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/volume"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dataplatform/dataplatformcluster"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dataplatform/dataplatformnodepool"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/mongocluster"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/mongouser"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/dbaas/postgrescluster"
@@ -85,8 +83,6 @@ var controllers = []controllerSetup{
 	postgresuser.Setup,
 	mongocluster.Setup,
 	mongouser.Setup,
-	dataplatformcluster.Setup,
-	dataplatformnodepool.Setup,
 	group.Setup,
 	networkloadbalancer.Setup,
 	flowlog.Setup,
