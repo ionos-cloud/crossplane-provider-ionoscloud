@@ -233,12 +233,12 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 				Type:                cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type,
 				Image:               cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image,
 				UserData:            cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData,
-				CPUHotPlug:          true,
-				RAMHotPlug:          true,
-				NicHotPlug:          true,
-				NicHotUnplug:        true,
-				DiscVirtioHotPlug:   true,
-				DiscVirtioHotUnplug: true,
+				CPUHotPlug:          cr.Spec.ForProvider.BootVolumeTemplate.Spec.CPUHotPlug,
+				RAMHotPlug:          cr.Spec.ForProvider.BootVolumeTemplate.Spec.RAMHotPlug,
+				NicHotPlug:          cr.Spec.ForProvider.BootVolumeTemplate.Spec.NicHotPlug,
+				NicHotUnplug:        cr.Spec.ForProvider.BootVolumeTemplate.Spec.NicHotUnplug,
+				DiscVirtioHotPlug:   cr.Spec.ForProvider.BootVolumeTemplate.Spec.DiscVirtioHotPlug,
+				DiscVirtioHotUnplug: cr.Spec.ForProvider.BootVolumeTemplate.Spec.DiscVirtioHotUnplug,
 			},
 		}}
 	if cr.Spec.ForProvider.BootVolumeTemplate.Spec.ImagePassword != "" {

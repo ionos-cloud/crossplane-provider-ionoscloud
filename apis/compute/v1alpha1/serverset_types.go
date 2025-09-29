@@ -278,6 +278,18 @@ type ServerSetBootVolumeSpec struct {
 	// +kubebuilder:validation:Enum=HDD;SSD;SSD Standard;SSD Premium;DAS;ISO
 	// +kubebuilder:validation:Required
 	Type string `json:"type"`
+	// Hot-plug capable CPU (no reboot required).
+	CPUHotPlug bool `json:"cpuHotPlug,omitempty"`
+	// Hot-plug capable RAM (no reboot required).
+	RAMHotPlug bool `json:"ramHotPlug,omitempty"`
+	// Hot-plug capable NIC (no reboot required).
+	NicHotPlug bool `json:"nicHotPlug,omitempty"`
+	// Hot-unplug capable NIC (no reboot required).
+	NicHotUnplug bool `json:"nicHotUnplug,omitempty"`
+	// Hot-plug capable Virt-IO drive (no reboot required).
+	DiscVirtioHotPlug bool `json:"discVirtioHotPlug,omitempty"`
+	// Hot-unplug capable Virt-IO drive (no reboot required). Not supported with Windows VMs.
+	DiscVirtioHotUnplug bool `json:"discVirtioHotUnplug,omitempty"`
 	// The cloud-init configuration for the volume as base64 encoded string.
 	// The property is immutable and is only allowed to be set on creation of a new a volume.
 	// It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
