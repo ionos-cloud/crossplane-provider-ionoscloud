@@ -56,6 +56,7 @@ spec:
       spec:
         updateStrategy:
           type: "createBeforeDestroyBootVolume" # createBeforeDestroyBootVolume createAllBeforeDestroy
+        setHotPlugsFromImage: false
         image: "c38292f2-eeaa-11ef-8fa7-aee9942a25aa"
         size: 10
         type: SSD

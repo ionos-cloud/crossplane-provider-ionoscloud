@@ -135,17 +135,21 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 func GenerateCreateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.Volume, error) { // nolint:gocyclo
 	instanceCreateInput := sdkgo.Volume{
 		Properties: &sdkgo.VolumeProperties{
-			Name:                &cr.Spec.ForProvider.Name,
-			Type:                &cr.Spec.ForProvider.Type,
-			Size:                &cr.Spec.ForProvider.Size,
-			CpuHotPlug:          &cr.Spec.ForProvider.CPUHotPlug,
-			RamHotPlug:          &cr.Spec.ForProvider.RAMHotPlug,
-			NicHotPlug:          &cr.Spec.ForProvider.NicHotPlug,
-			NicHotUnplug:        &cr.Spec.ForProvider.NicHotUnplug,
-			DiscVirtioHotPlug:   &cr.Spec.ForProvider.DiscVirtioHotPlug,
-			DiscVirtioHotUnplug: &cr.Spec.ForProvider.DiscVirtioHotUnplug,
+			Name: &cr.Spec.ForProvider.Name,
+			Type: &cr.Spec.ForProvider.Type,
+			Size: &cr.Spec.ForProvider.Size,
 		},
 	}
+
+	if !cr.Spec.ForProvider.SetHotPlugsFromImage {
+		instanceCreateInput.Properties.CpuHotPlug = &cr.Spec.ForProvider.CPUHotPlug
+		instanceCreateInput.Properties.RamHotPlug = &cr.Spec.ForProvider.RAMHotPlug
+		instanceCreateInput.Properties.NicHotPlug = &cr.Spec.ForProvider.NicHotPlug
+		instanceCreateInput.Properties.NicHotUnplug = &cr.Spec.ForProvider.NicHotUnplug
+		instanceCreateInput.Properties.DiscVirtioHotPlug = &cr.Spec.ForProvider.DiscVirtioHotPlug
+		instanceCreateInput.Properties.DiscVirtioHotUnplug = &cr.Spec.ForProvider.DiscVirtioHotUnplug
+	}
+
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AvailabilityZone)) {
 		instanceCreateInput.Properties.SetAvailabilityZone(cr.Spec.ForProvider.AvailabilityZone)
 	}
@@ -179,14 +183,18 @@ func GenerateCreateVolumeInput(cr *v1alpha1.Volume) (*sdkgo.Volume, error) { // 
 // GenerateUpdateVolumeInput returns sdkgo.VolumeProperties based on the CR spec modifications
 func GenerateUpdateVolumeInput(cr *v1alpha1.Volume, properties *sdkgo.VolumeProperties) (*sdkgo.VolumeProperties, error) {
 	instanceUpdateInput := sdkgo.VolumeProperties{
-		Name:                &cr.Spec.ForProvider.Name,
-		CpuHotPlug:          &cr.Spec.ForProvider.CPUHotPlug,
-		RamHotPlug:          &cr.Spec.ForProvider.RAMHotPlug,
-		NicHotPlug:          &cr.Spec.ForProvider.NicHotPlug,
-		NicHotUnplug:        &cr.Spec.ForProvider.NicHotUnplug,
-		DiscVirtioHotPlug:   &cr.Spec.ForProvider.DiscVirtioHotPlug,
-		DiscVirtioHotUnplug: &cr.Spec.ForProvider.DiscVirtioHotUnplug,
+		Name: &cr.Spec.ForProvider.Name,
 	}
+
+	if !cr.Spec.ForProvider.SetHotPlugsFromImage {
+		instanceUpdateInput.CpuHotPlug = &cr.Spec.ForProvider.CPUHotPlug
+		instanceUpdateInput.RamHotPlug = &cr.Spec.ForProvider.RAMHotPlug
+		instanceUpdateInput.NicHotPlug = &cr.Spec.ForProvider.NicHotPlug
+		instanceUpdateInput.NicHotUnplug = &cr.Spec.ForProvider.NicHotUnplug
+		instanceUpdateInput.DiscVirtioHotPlug = &cr.Spec.ForProvider.DiscVirtioHotPlug
+		instanceUpdateInput.DiscVirtioHotUnplug = &cr.Spec.ForProvider.DiscVirtioHotUnplug
+	}
+
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.Bus)) {
 		instanceUpdateInput.SetBus(cr.Spec.ForProvider.Bus)
 	}
@@ -217,17 +225,17 @@ func IsUpToDateWithDiff(cr *v1alpha1.Volume, volume *sdkgo.Volume) (bool, string
 		return false, "Volume name is nil, but CR name is not empty: " + cr.Spec.ForProvider.Name
 	case volume.Properties.Size != nil && *volume.Properties.Size != cr.Spec.ForProvider.Size:
 		return false, "Volume size does not match the one in the CR: " + fmt.Sprintf("%.2f != %.2f", *volume.Properties.Size, cr.Spec.ForProvider.Size)
-	case volume.Properties.CpuHotPlug != nil && *volume.Properties.CpuHotPlug != cr.Spec.ForProvider.CPUHotPlug:
+	case !cr.Spec.ForProvider.SetHotPlugsFromImage && volume.Properties.CpuHotPlug != nil && *volume.Properties.CpuHotPlug != cr.Spec.ForProvider.CPUHotPlug:
 		return false, "CpuHotPlug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.CpuHotPlug, cr.Spec.ForProvider.CPUHotPlug)
-	case volume.Properties.RamHotPlug != nil && *volume.Properties.RamHotPlug != cr.Spec.ForProvider.RAMHotPlug:
+	case !cr.Spec.ForProvider.SetHotPlugsFromImage && volume.Properties.RamHotPlug != nil && *volume.Properties.RamHotPlug != cr.Spec.ForProvider.RAMHotPlug:
 		return false, "RamHotPlug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.RamHotPlug, cr.Spec.ForProvider.RAMHotPlug)
-	case volume.Properties.NicHotPlug != nil && *volume.Properties.NicHotPlug != cr.Spec.ForProvider.NicHotPlug:
+	case !cr.Spec.ForProvider.SetHotPlugsFromImage && volume.Properties.NicHotPlug != nil && *volume.Properties.NicHotPlug != cr.Spec.ForProvider.NicHotPlug:
 		return false, "NicHotPlug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.NicHotPlug, cr.Spec.ForProvider.NicHotPlug)
-	case volume.Properties.NicHotUnplug != nil && *volume.Properties.NicHotUnplug != cr.Spec.ForProvider.NicHotUnplug:
+	case !cr.Spec.ForProvider.SetHotPlugsFromImage && volume.Properties.NicHotUnplug != nil && *volume.Properties.NicHotUnplug != cr.Spec.ForProvider.NicHotUnplug:
 		return false, "NicHotUnplug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.NicHotUnplug, cr.Spec.ForProvider.NicHotUnplug)
-	case volume.Properties.DiscVirtioHotPlug != nil && *volume.Properties.DiscVirtioHotPlug != cr.Spec.ForProvider.DiscVirtioHotPlug:
+	case !cr.Spec.ForProvider.SetHotPlugsFromImage && volume.Properties.DiscVirtioHotPlug != nil && *volume.Properties.DiscVirtioHotPlug != cr.Spec.ForProvider.DiscVirtioHotPlug:
 		return false, "DiscVirtioHotPlug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.DiscVirtioHotPlug, cr.Spec.ForProvider.DiscVirtioHotPlug)
-	case volume.Properties.DiscVirtioHotUnplug != nil && *volume.Properties.DiscVirtioHotUnplug != cr.Spec.ForProvider.DiscVirtioHotUnplug:
+	case !cr.Spec.ForProvider.SetHotPlugsFromImage && volume.Properties.DiscVirtioHotUnplug != nil && *volume.Properties.DiscVirtioHotUnplug != cr.Spec.ForProvider.DiscVirtioHotUnplug:
 		return false, "DiscVirtioHotUnplug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.DiscVirtioHotUnplug, cr.Spec.ForProvider.DiscVirtioHotUnplug)
 	case volume.Properties.Bus != nil && *volume.Properties.Bus != cr.Spec.ForProvider.Bus:
 		return false, "Volume bus does not match the desired bus: " + *volume.Properties.Bus + " != " + cr.Spec.ForProvider.Bus

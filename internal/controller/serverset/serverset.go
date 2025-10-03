@@ -466,6 +466,7 @@ func (e *external) updateOrRecreateVolumes(ctx context.Context, cr *v1alpha1.Ser
 		update := false
 		deleteAndCreate := false
 		update, deleteAndCreate = updateOrRecreate(&volumes[idx].Spec.ForProvider, cr.Spec.ForProvider.BootVolumeTemplate.Spec)
+        e.log.Info("UpdateOrRecreate result", "index", idx, "volumeName", volumes[idx].Name, "update", update, "deleteAndCreate", deleteAndCreate, "SetHotPlugsFromImage", volumes[idx].Spec.ForProvider.SetHotPlugsFromImage)
 		if deleteAndCreate {
 			// we want to recreate master at the end
 			if masterIndex == idx {
@@ -534,6 +535,23 @@ func updateOrRecreate(volumeParams *v1alpha1.VolumeParameters, volumeSpec v1alph
 		deleteAndCreate = true
 		volumeParams.Image = volumeSpec.Image
 	}
+    if volumeParams.SetHotPlugsFromImage != volumeSpec.SetHotPlugsFromImage {
+        deleteAndCreate = true
+        volumeParams.SetHotPlugsFromImage = volumeSpec.SetHotPlugsFromImage
+    }
+
+    // Only update hotplug settings if SetHotPlugsFromImage is false, even if it changed to false from true.
+    // This way, if SetHotPlugsFromImage is toggled to false, we will delete and recreate the volume with the new hotplug settings
+    // from the template.
+    // if !volumeParams.SetHotPlugsFromImage && volumeParams.CPUHotPlug != volumeSpec.CPUHotPlug{
+    //     update = true
+    //     volumeParams.CPUHotPlug = volumeSpec.CPUHotPlug
+    // }
+    // if !volumeParams.SetHotPlugsFromImage && volumeParams.RAMHotPlug != volumeSpec.RAMHotPlug {
+    //     update = true
+    //     volumeParams.RAMHotPlug = volumeSpec.RAMHotPlug
+    // }
+
 	return update, deleteAndCreate
 }
 
@@ -588,6 +606,18 @@ func AreBootVolumesReady(templateParams v1alpha1.BootVolumeTemplate, volumes []v
 		if volumeObj.Spec.ForProvider.Type != templateParams.Spec.Type {
 			return false, false
 		}
+        if volumeObj.Spec.ForProvider.SetHotPlugsFromImage != templateParams.Spec.SetHotPlugsFromImage {
+            return false, false
+        }
+
+        // Only check hotplug settings if SetHotPlugsFromImage is false
+        // if !volumeObj.Spec.ForProvider.SetHotPlugsFromImage && volumeObj.Spec.ForProvider.CPUHotPlug != templateParams.Spec.CPUHotPlug {
+        //     return false, false
+        // }
+        // if !volumeObj.Spec.ForProvider.SetHotPlugsFromImage && volumeObj.Spec.ForProvider.RAMHotPlug != templateParams.Spec.RAMHotPlug {
+        //     return false, false
+        // }
+
 		if volumeObj.Status.AtProvider.State != ionoscloud.Available {
 			return true, false
 		}

@@ -90,6 +90,13 @@ type VolumeParameters struct {
 	// +immutable
 	// +kubebuilder:validation:Enum=UNKNOWN;WINDOWS;WINDOWS2016;WINDOWS2022;LINUX;OTHER
 	LicenceType string `json:"licenceType,omitempty"`
+	// Whether to pull hot-plug capabilities from the image. If true, the volume will inherit the hot-plug capabilities of the image.
+	// If not specified, the default value is false. Is incompatible with other hot plug settings - if set to true, it will ignore any other hot plug settings.
+	//
+	// +kubebuilder:default=false
+	// +kubebuilder:validation:Optional
+	// +immutable
+	SetHotPlugsFromImage bool `json:"setHotPlugFromImage,omitempty"`
 	// Hot-plug capable CPU (no reboot required).
 	CPUHotPlug bool `json:"cpuHotPlug,omitempty"`
 	// Hot-plug capable RAM (no reboot required).
