@@ -1008,7 +1008,7 @@ func TestExternalNodePoolUpdate(t *testing.T) {
 			nodepoolMocker: nodepoolMocker{
 				setupNodePoolService: func(service *k8snodepool.MockClient) {
 					service.EXPECT().UpdateK8sNodePool(context.Background(), testClusterID, testNodePoolID,
-						gomock.GotFormatterAdapter(nodePoolGotFormatter{}, matchesNodePoolPutWithoutK8sVersion(ionoscloud.KubernetesNodePoolForPut{
+						gomock.GotFormatterAdapter(nodePoolGotFormatter{}, matchesNodePoolPut(ionoscloud.KubernetesNodePoolForPut{
 							Properties: &ionoscloud.KubernetesNodePoolPropertiesForPut{
 								NodeCount: ionoscloud.PtrInt32(2),
 								MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
@@ -1143,59 +1143,6 @@ func (n nodePoolPutMatcher) Matches(x interface{}) bool {
 }
 
 func (n nodePoolPutMatcher) String() string {
-	return mustMarshal(n.expected)
-}
-
-type nodePoolPutMatcherWithoutK8sVersion struct {
-	expected ionoscloud.KubernetesNodePoolForPut
-}
-
-func matchesNodePoolPutWithoutK8sVersion(expected ionoscloud.KubernetesNodePoolForPut) nodePoolPutMatcherWithoutK8sVersion {
-	return nodePoolPutMatcherWithoutK8sVersion{
-		expected: expected,
-	}
-}
-
-func (n nodePoolPutMatcherWithoutK8sVersion) Matches(x interface{}) bool {
-	np, ok := x.(ionoscloud.KubernetesNodePoolForPut)
-	if !ok {
-		return false
-	}
-
-	// Check that k8sVersion is NOT set in the actual request
-	if np.Properties != nil && np.Properties.K8sVersion != nil {
-		return false
-	}
-
-	switch {
-	case np.Id != nil && n.expected.Id == nil:
-		return false
-	case np.Id == nil && n.expected.Id != nil:
-		return false
-	case np.Id != nil && n.expected.Id != nil:
-		if *np.Id != *n.expected.Id {
-			return false
-		}
-	}
-
-	// Compare all properties except K8sVersion
-	expectedProps := *n.expected.Properties
-	actualProps := *np.Properties
-
-	// Temporarily set k8sVersion to nil for comparison since we expect it to be absent
-	actualK8sVersion := actualProps.K8sVersion
-	actualProps.K8sVersion = nil
-	expectedProps.K8sVersion = nil
-
-	result := reflect.DeepEqual(expectedProps, actualProps)
-
-	// Restore original value for safety
-	actualProps.K8sVersion = actualK8sVersion
-
-	return result
-}
-
-func (n nodePoolPutMatcherWithoutK8sVersion) String() string {
 	return mustMarshal(n.expected)
 }
 
