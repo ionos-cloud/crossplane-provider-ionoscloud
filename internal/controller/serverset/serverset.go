@@ -20,12 +20,14 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -35,7 +37,9 @@ import (
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 const (
@@ -414,22 +418,45 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 		return err
 	}
 	for idx := range servers {
-		update := false
-		if servers[idx].Spec.ForProvider.RAM != cr.Spec.ForProvider.Template.Spec.RAM {
-			update = true
-			servers[idx].Spec.ForProvider.RAM = cr.Spec.ForProvider.Template.Spec.RAM
+		volumeVersion, err := getVolumeVersion(ctx, e.kube, cr.GetName(), idx)
+		if err != nil {
+			return fmt.Errorf("error getting boot volume version for server %s: %w", servers[idx].Name, err)
 		}
-		if servers[idx].Spec.ForProvider.Cores != cr.Spec.ForProvider.Template.Spec.Cores {
-			update = true
-			servers[idx].Spec.ForProvider.Cores = cr.Spec.ForProvider.Template.Spec.Cores
+		bootVolumeName := getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, idx, volumeVersion)
+		bootVolume := &v1alpha1.Volume{}
+		if err := e.kube.Get(ctx, types.NamespacedName{
+			Name:      bootVolumeName,
+			Namespace: cr.Namespace,
+		}, bootVolume); err != nil {
+			return fmt.Errorf("error getting boot volume %s to check hotplug settings to server %s: %w", bootVolumeName, servers[idx].Name, err)
 		}
-		if servers[idx].Spec.ForProvider.CPUFamily != cr.Spec.ForProvider.Template.Spec.CPUFamily {
-			update = true
-			servers[idx].Spec.ForProvider.CPUFamily = cr.Spec.ForProvider.Template.Spec.CPUFamily
-		}
+
+		update, failover := checkServerDiff(servers[idx], cr, bootVolume)
 		if update {
+			requestTimestamp := time.Now()
 			if err := e.kube.Update(ctx, &servers[idx]); err != nil {
 				return fmt.Errorf("error updating server %w", err)
+			}
+
+			if failover {
+				if err := kube.WaitForResource(
+					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, name, namespace string) (bool, error) {
+						server := &v1alpha1.Server{}
+						if err := e.kube.Get(
+							ctx, types.NamespacedName{
+								Name:      name,
+								Namespace: namespace,
+							}, server,
+						); err != nil {
+							return false, fmt.Errorf("error getting server %s to check request: %w", name, err)
+						}
+
+						updateCondition := server.GetCondition(utils.UpdateSucceededConditionType)
+						return updateCondition.LastTransitionTime.After(requestTimestamp), nil
+					}, servers[idx].Name, servers[idx].Namespace,
+				); err != nil {
+					return fmt.Errorf("error waiting for server to be updated %w", err)
+				}
 			}
 		}
 	}
@@ -466,7 +493,7 @@ func (e *external) updateOrRecreateVolumes(ctx context.Context, cr *v1alpha1.Ser
 		update := false
 		deleteAndCreate := false
 		update, deleteAndCreate = updateOrRecreate(&volumes[idx].Spec.ForProvider, cr.Spec.ForProvider.BootVolumeTemplate.Spec)
-        e.log.Info("UpdateOrRecreate result", "index", idx, "volumeName", volumes[idx].Name, "update", update, "deleteAndCreate", deleteAndCreate, "SetHotPlugsFromImage", volumes[idx].Spec.ForProvider.SetHotPlugsFromImage)
+		e.log.Info("UpdateOrRecreate result", "index", idx, "volumeName", volumes[idx].Name, "update", update, "deleteAndCreate", deleteAndCreate, "SetHotPlugsFromImage", volumes[idx].Spec.ForProvider.SetHotPlugsFromImage)
 		if deleteAndCreate {
 			// we want to recreate master at the end
 			if masterIndex == idx {
@@ -535,22 +562,10 @@ func updateOrRecreate(volumeParams *v1alpha1.VolumeParameters, volumeSpec v1alph
 		deleteAndCreate = true
 		volumeParams.Image = volumeSpec.Image
 	}
-    if volumeParams.SetHotPlugsFromImage != volumeSpec.SetHotPlugsFromImage {
-        deleteAndCreate = true
-        volumeParams.SetHotPlugsFromImage = volumeSpec.SetHotPlugsFromImage
-    }
-
-    // Only update hotplug settings if SetHotPlugsFromImage is false, even if it changed to false from true.
-    // This way, if SetHotPlugsFromImage is toggled to false, we will delete and recreate the volume with the new hotplug settings
-    // from the template.
-    // if !volumeParams.SetHotPlugsFromImage && volumeParams.CPUHotPlug != volumeSpec.CPUHotPlug{
-    //     update = true
-    //     volumeParams.CPUHotPlug = volumeSpec.CPUHotPlug
-    // }
-    // if !volumeParams.SetHotPlugsFromImage && volumeParams.RAMHotPlug != volumeSpec.RAMHotPlug {
-    //     update = true
-    //     volumeParams.RAMHotPlug = volumeSpec.RAMHotPlug
-    // }
+	if volumeParams.SetHotPlugsFromImage != volumeSpec.SetHotPlugsFromImage {
+		deleteAndCreate = true
+		volumeParams.SetHotPlugsFromImage = volumeSpec.SetHotPlugsFromImage
+	}
 
 	return update, deleteAndCreate
 }
@@ -606,17 +621,9 @@ func AreBootVolumesReady(templateParams v1alpha1.BootVolumeTemplate, volumes []v
 		if volumeObj.Spec.ForProvider.Type != templateParams.Spec.Type {
 			return false, false
 		}
-        if volumeObj.Spec.ForProvider.SetHotPlugsFromImage != templateParams.Spec.SetHotPlugsFromImage {
-            return false, false
-        }
-
-        // Only check hotplug settings if SetHotPlugsFromImage is false
-        // if !volumeObj.Spec.ForProvider.SetHotPlugsFromImage && volumeObj.Spec.ForProvider.CPUHotPlug != templateParams.Spec.CPUHotPlug {
-        //     return false, false
-        // }
-        // if !volumeObj.Spec.ForProvider.SetHotPlugsFromImage && volumeObj.Spec.ForProvider.RAMHotPlug != templateParams.Spec.RAMHotPlug {
-        //     return false, false
-        // }
+		if volumeObj.Spec.ForProvider.SetHotPlugsFromImage != templateParams.Spec.SetHotPlugsFromImage {
+			return false, false
+		}
 
 		if volumeObj.Status.AtProvider.State != ionoscloud.Available {
 			return true, false
@@ -818,4 +825,30 @@ func ComputeReplicaIdx(log logging.Logger, idxLabel string, labels map[string]st
 // Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
 func (e *external) Disconnect(_ context.Context) error {
 	return nil
+}
+
+func checkServerDiff(old v1alpha1.Server, cr *v1alpha1.ServerSet, bootVolume *v1alpha1.Volume) (update, failover bool) {
+	if old.Spec.ForProvider.RAM != cr.Spec.ForProvider.Template.Spec.RAM {
+		update = true
+		old.Spec.ForProvider.RAM = cr.Spec.ForProvider.Template.Spec.RAM
+		if !bootVolume.Spec.ForProvider.RAMHotPlug {
+			failover = true
+		}
+	}
+	if old.Spec.ForProvider.Cores != cr.Spec.ForProvider.Template.Spec.Cores {
+		update = true
+		old.Spec.ForProvider.Cores = cr.Spec.ForProvider.Template.Spec.Cores
+		if !bootVolume.Spec.ForProvider.CPUHotPlug {
+			failover = true
+		}
+	}
+	if old.Spec.ForProvider.CPUFamily != cr.Spec.ForProvider.Template.Spec.CPUFamily {
+		update = true
+		old.Spec.ForProvider.CPUFamily = cr.Spec.ForProvider.Template.Spec.CPUFamily
+		if !bootVolume.Spec.ForProvider.CPUHotPlug {
+			failover = true
+		}
+	}
+
+	return update, failover
 }
