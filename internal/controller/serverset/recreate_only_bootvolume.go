@@ -31,7 +31,7 @@ func (c *createBeforeDestroyOnlyBootVolume) update(ctx context.Context, cr *v1al
 	// if there are other fields that force re-creation, they should be added here
 	if existingVolume != nil && existingVolume.Spec.ForProvider.Type == cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type &&
 		existingVolume.Spec.ForProvider.Image == cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image &&
-        existingVolume.Spec.ForProvider.SetHotPlugsFromImage == cr.Spec.ForProvider.BootVolumeTemplate.Spec.SetHotPlugsFromImage {
+		existingVolume.Spec.ForProvider.SetHotPlugsFromImage == cr.Spec.ForProvider.BootVolumeTemplate.Spec.SetHotPlugsFromImage {
 		return nil
 	}
 	if err := c.bootVolumeController.Ensure(ctx, cr, replicaIndex, newVolumeVersion); err != nil {
