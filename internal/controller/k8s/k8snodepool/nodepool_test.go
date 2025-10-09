@@ -957,7 +957,7 @@ func TestExternalNodePoolUpdate(t *testing.T) {
 						gomock.GotFormatterAdapter(nodePoolGotFormatter{}, matchesNodePoolPut(ionoscloud.KubernetesNodePoolForPut{
 							Properties: &ionoscloud.KubernetesNodePoolPropertiesForPut{
 								NodeCount:  ionoscloud.PtrInt32(0),
-								K8sVersion: ionoscloud.PtrString(""),
+								K8sVersion: ionoscloud.PtrString("1.27.0"),
 								MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
 									DayOfTheWeek: ionoscloud.PtrString("Mon"),
 									Time:         ionoscloud.PtrString("15:24:30Z"),
@@ -981,6 +981,7 @@ func TestExternalNodePoolUpdate(t *testing.T) {
 						ForProvider: v1alpha1.NodePoolParameters{
 							Name:          "nodepool",
 							DatacenterCfg: v1alpha1.DatacenterConfig{DatacenterID: "12345"},
+							K8sVersion:    "1.27.0",
 							ServerType:    "DedicatedCore",
 							ClusterCfg: v1alpha1.ClusterConfig{
 								ClusterID: testClusterID,
@@ -988,6 +989,60 @@ func TestExternalNodePoolUpdate(t *testing.T) {
 							MaintenanceWindow: v1alpha1.MaintenanceWindow{
 								Time:         "15:24:30Z",
 								DayOfTheWeek: "Mon",
+							},
+						},
+					},
+					Status: v1alpha1.NodePoolStatus{AtProvider: v1alpha1.NodePoolObservation{NodePoolID: testNodePoolID}},
+				}
+				meta.SetExternalName(np, np.Status.AtProvider.NodePoolID)
+				return np
+			}(),
+			wantErr: false,
+			wantCondition: xpv1.Condition{
+				Type:   "Ready",
+				Status: "Unknown",
+			},
+		},
+		{
+			name: "API success with empty k8sVersion should not set k8sVersion in PUT request",
+			nodepoolMocker: nodepoolMocker{
+				setupNodePoolService: func(service *k8snodepool.MockClient) {
+					service.EXPECT().UpdateK8sNodePool(context.Background(), testClusterID, testNodePoolID,
+						gomock.GotFormatterAdapter(nodePoolGotFormatter{}, matchesNodePoolPutWithoutK8sVersion(ionoscloud.KubernetesNodePoolForPut{
+							Properties: &ionoscloud.KubernetesNodePoolPropertiesForPut{
+								NodeCount: ionoscloud.PtrInt32(2),
+								MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
+									DayOfTheWeek: ionoscloud.PtrString("Tue"),
+									Time:         ionoscloud.PtrString("16:30:00Z"),
+								},
+								AutoScaling: nil,
+								Lans:        &[]ionoscloud.KubernetesNodePoolLan{},
+								Labels:      &map[string]string{},
+								Annotations: &map[string]string{},
+								PublicIps:   &[]string{},
+								ServerType:  ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("DedicatedCore")),
+							},
+						})),
+					).
+						Return(ionoscloud.KubernetesNodePool{}, nil, nil)
+				},
+				setupClusterService: clusterActiveService,
+			},
+			args: func() *v1alpha1.NodePool {
+				np := &v1alpha1.NodePool{
+					Spec: v1alpha1.NodePoolSpec{
+						ForProvider: v1alpha1.NodePoolParameters{
+							Name:          "nodepool-empty-k8s",
+							DatacenterCfg: v1alpha1.DatacenterConfig{DatacenterID: "12345"},
+							NodeCount:     2,
+							K8sVersion:    "", // Empty k8sVersion should not be set in PUT request
+							ServerType:    "DedicatedCore",
+							ClusterCfg: v1alpha1.ClusterConfig{
+								ClusterID: testClusterID,
+							},
+							MaintenanceWindow: v1alpha1.MaintenanceWindow{
+								Time:         "16:30:00Z",
+								DayOfTheWeek: "Tue",
 							},
 						},
 					},
@@ -1088,6 +1143,59 @@ func (n nodePoolPutMatcher) Matches(x interface{}) bool {
 }
 
 func (n nodePoolPutMatcher) String() string {
+	return mustMarshal(n.expected)
+}
+
+type nodePoolPutMatcherWithoutK8sVersion struct {
+	expected ionoscloud.KubernetesNodePoolForPut
+}
+
+func matchesNodePoolPutWithoutK8sVersion(expected ionoscloud.KubernetesNodePoolForPut) nodePoolPutMatcherWithoutK8sVersion {
+	return nodePoolPutMatcherWithoutK8sVersion{
+		expected: expected,
+	}
+}
+
+func (n nodePoolPutMatcherWithoutK8sVersion) Matches(x interface{}) bool {
+	np, ok := x.(ionoscloud.KubernetesNodePoolForPut)
+	if !ok {
+		return false
+	}
+
+	// Check that k8sVersion is NOT set in the actual request
+	if np.Properties != nil && np.Properties.K8sVersion != nil {
+		return false
+	}
+
+	switch {
+	case np.Id != nil && n.expected.Id == nil:
+		return false
+	case np.Id == nil && n.expected.Id != nil:
+		return false
+	case np.Id != nil && n.expected.Id != nil:
+		if *np.Id != *n.expected.Id {
+			return false
+		}
+	}
+
+	// Compare all properties except K8sVersion
+	expectedProps := *n.expected.Properties
+	actualProps := *np.Properties
+
+	// Temporarily set k8sVersion to nil for comparison since we expect it to be absent
+	actualK8sVersion := actualProps.K8sVersion
+	actualProps.K8sVersion = nil
+	expectedProps.K8sVersion = nil
+
+	result := reflect.DeepEqual(expectedProps, actualProps)
+
+	// Restore original value for safety
+	actualProps.K8sVersion = actualK8sVersion
+
+	return result
+}
+
+func (n nodePoolPutMatcherWithoutK8sVersion) String() string {
 	return mustMarshal(n.expected)
 }
 
