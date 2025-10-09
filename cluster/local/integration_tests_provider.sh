@@ -32,7 +32,7 @@ kind: Provider
 metadata:
   name: "${PACKAGE_NAME}"
 spec:
-  package: "${PACKAGE_NAME}"
+  package: "${PACKAGE_IMAGE}"
   runtimeConfigRef:
     name: debug-config
   packagePullPolicy: Never
@@ -132,7 +132,7 @@ kind: Provider
 metadata:
   name: "${PACKAGE_NAME}"
 spec:
-  package: "${PACKAGE_NAME}"
+  package: "${PACKAGE_IMAGE}"
   runtimeConfigRef:
     name: debug-config
   packagePullPolicy: Never
