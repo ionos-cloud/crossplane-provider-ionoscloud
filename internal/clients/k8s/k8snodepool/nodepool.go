@@ -184,10 +184,14 @@ func GenerateUpdateK8sNodePoolInput(cr *v1alpha1.NodePool, publicIps []string) *
 	instanceUpdateInput := sdkgo.KubernetesNodePoolForPut{
 		Properties: &sdkgo.KubernetesNodePoolPropertiesForPut{
 			NodeCount:  &cr.Spec.ForProvider.NodeCount,
-			K8sVersion: &cr.Spec.ForProvider.K8sVersion,
 			ServerType: &serverType,
 		},
 	}
+
+	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.K8sVersion)) {
+		instanceUpdateInput.Properties.SetK8sVersion(cr.Spec.ForProvider.K8sVersion)
+	}
+
 	if !utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AutoScaling)) {
 		instanceUpdateInput.Properties.SetAutoScaling(sdkgo.KubernetesAutoScaling{
 			MinNodeCount: &cr.Spec.ForProvider.AutoScaling.MinNodeCount,
