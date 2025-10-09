@@ -173,9 +173,9 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 func GenerateCreateServerInput(cr *v1alpha1.Server) *sdkgo.Server {
 	properties := GenerateUpdateServerInput(cr)
 
-	// if properties.NicMultiQueue is false set it to nil si it will default to false without throwing
+	// if properties.NicMultiQueue is false set it to nil so it will default to false without throwing
 	// an error if the client does not have the feature enabled
-	if properties.NicMultiQueue == nil || !*properties.NicMultiQueue {
+	if properties.NicMultiQueue != nil && !*properties.NicMultiQueue {
 		properties.NicMultiQueue = nil
 	}
 
