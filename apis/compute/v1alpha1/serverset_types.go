@@ -312,24 +312,12 @@ type ServerSetBootVolumeSpec struct {
 	Substitutions []Substitution `json:"substitutions,omitempty"`
 	// SetHotPlugsFromImage enables or disables pulling hot plug settings (currently only CPU and RAM) from the image.
 	// If not specified, the default value is false.
-    // Is incompatible with other hot plug settings - if set to true, it will ignore any other hot plug settings.
-    // Changing this value requires the boot volume to be re-created.
+	// Is incompatible with other hot plug settings - if set to true, it will ignore any other hot plug settings.
+	// Changing this value requires the boot volume to be re-created.
 	//
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
 	SetHotPlugsFromImage bool `json:"setHotPlugsFromImage,omitempty"`
-	// CPUHotPlug enables or disables CPU hot plugging for the server.
-	// If not specified, the default value is true (for backwards compatibility).
-	//
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=true
-	// CPUHotPlug bool `json:"cpuHotPlug,omitempty"`
-	// RAMHotPlug enables or disables RAM hot plugging for the server.
-	// If not specified, the default value is true (for backwards compatibility).
-	//
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=true
-	// RAMHotPlug bool `json:"ramHotPlug,omitempty"`
 }
 
 // UpdateStrategy is the update strategy for the boot volume.

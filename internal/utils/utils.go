@@ -7,7 +7,9 @@ import (
 	"strings"
 	"time"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -16,6 +18,8 @@ const Error422 = "422 Unprocessable Entity"
 
 // DepthQueryParam is used in GET requests in Cloud API
 const DepthQueryParam = int32(1)
+
+const UpdateSucceededConditionType = xpv1.ConditionType("UpdateSucceeded")
 
 // DereferenceOrZero returns the value of a pointer or a zero value if the pointer is nil.
 func DereferenceOrZero[T any](v *T) T {
@@ -150,5 +154,15 @@ func NewOwnerReference(parentTypeMeta v1.TypeMeta, parentObjectMeta v1.ObjectMet
 		UID:                parentObjectMeta.UID,
 		Controller:         &isController,
 		BlockOwnerDeletion: &blockOwnerDeletion,
+	}
+}
+
+func UpdateSucceededCondition() xpv1.Condition {
+	return xpv1.Condition{
+		Type:               UpdateSucceededConditionType,
+		Status:             corev1.ConditionTrue,
+		Reason:             "UpdateFinishedSuccessfully",
+		Message:            "Update was performed successfully.",
+		LastTransitionTime: v1.Now(),
 	}
 }

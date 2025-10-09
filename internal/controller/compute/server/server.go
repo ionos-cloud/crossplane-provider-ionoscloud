@@ -17,32 +17,32 @@ limitations under the License.
 package server
 
 import (
-    "context"
-    "fmt"
-    "net/http"
+	"context"
+	"fmt"
+	"net/http"
 
-    xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-    "github.com/crossplane/crossplane-runtime/pkg/event"
-    "github.com/crossplane/crossplane-runtime/pkg/logging"
-    "github.com/crossplane/crossplane-runtime/pkg/meta"
-    "github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
-    "github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
-    "github.com/crossplane/crossplane-runtime/pkg/resource"
-    "github.com/crossplane/crossplane-runtime/pkg/statemetrics"
-    "github.com/google/go-cmp/cmp"
-    sdkgo "github.com/ionos-cloud/sdk-go/v6"
-    "github.com/pkg/errors"
-    "k8s.io/utils/ptr"
-    ctrl "sigs.k8s.io/controller-runtime"
-    "sigs.k8s.io/controller-runtime/pkg/client"
-    "sigs.k8s.io/controller-runtime/pkg/controller"
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/event"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
+	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
+	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
+	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
+	"github.com/google/go-cmp/cmp"
+	sdkgo "github.com/ionos-cloud/sdk-go/v6"
+	"github.com/pkg/errors"
+	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-    "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
-    apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
-    "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
-    "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
-    "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
-    "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
 const errNotServer = "managed resource is not a Server custom resource"
@@ -244,7 +244,7 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	if cr.Status.AtProvider.State == compute.BUSY {
 		return managed.ExternalUpdate{}, nil
 	}
-    // Attach or Detach Volume
+	// Attach or Detach Volume
 	if cr.Spec.ForProvider.VolumeCfg.VolumeID != "" && cr.Spec.ForProvider.VolumeCfg.VolumeID != cr.Status.AtProvider.VolumeID {
 		c.log.Debug("Update, attaching ", "volume id", cr.Spec.ForProvider.VolumeCfg.VolumeID, "volume name", cr.Spec.ForProvider.Name, "for server name", cr.Spec.ForProvider.Name)
 		_, apiResponse, err := c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID,
@@ -280,12 +280,12 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 		retErr := fmt.Errorf("failed to update server. error: %w", err)
 		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
-    if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalUpdate{}, err
 	}
 	c.log.Debug("Update, finished updating server", "name", cr.Spec.ForProvider.Name)
 
-    cr.SetConditions(utils.UpdateSucceededCondition())
+	cr.SetConditions(utils.UpdateSucceededCondition())
 	return managed.ExternalUpdate{}, nil
 }
 
