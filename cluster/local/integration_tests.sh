@@ -148,8 +148,10 @@ echo "${PVC_YAML}" | "${KUBECTL}" create -f -
 echo_step "installing crossplane from stable channel"
 "${HELM3}" version
 "${HELM3}" repo add crossplane-stable https://charts.crossplane.io/stable --force-update
-# TODO: this is a hotfix until the latest stable version is supported
-chart_version="$("${HELM3}" search repo crossplane-stable/crossplane --devel | awk 'FNR == 2 {print $2}')"
+
+#chart_version="$("${HELM3}" search repo crossplane-stable/crossplane --devel | awk 'FNR == 2 {print $2}')"
+# hardcoding the last crossplane version to be released before 2.0.0
+chart_version=1.20.1
 echo_info "using crossplane version ${chart_version}"
 echo
 # we replace empty dir with our PVC so that the /cache dir in the kind node
