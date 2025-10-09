@@ -434,6 +434,10 @@ spec:
                               CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions;
                               available CPU architectures can be retrieved from the datacenter resource.
                             type: string
+                          nicMultiQueue:
+                            description: Activate or deactivate the Multi Queue feature
+                              on all NICs of this server.
+                            type: boolean
                           nics:
                             description: NICs are the network interfaces of the server.
                             items:

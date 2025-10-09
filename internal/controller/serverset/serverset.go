@@ -423,6 +423,10 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 			update = true
 			servers[idx].Spec.ForProvider.Cores = cr.Spec.ForProvider.Template.Spec.Cores
 		}
+		if servers[idx].Spec.ForProvider.NicMultiQueue != cr.Spec.ForProvider.Template.Spec.NicMultiQueue {
+			update = true
+			servers[idx].Spec.ForProvider.NicMultiQueue = cr.Spec.ForProvider.Template.Spec.NicMultiQueue
+		}
 		if servers[idx].Spec.ForProvider.CPUFamily != cr.Spec.ForProvider.Template.Spec.CPUFamily {
 			update = true
 			servers[idx].Spec.ForProvider.CPUFamily = cr.Spec.ForProvider.Template.Spec.CPUFamily
@@ -563,6 +567,9 @@ func AreServersReady(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1
 			return false, false
 		}
 		if serverObj.Spec.ForProvider.RAM != templateParams.RAM {
+			return false, false
+		}
+		if serverObj.Spec.ForProvider.NicMultiQueue != templateParams.NicMultiQueue {
 			return false, false
 		}
 		if serverObj.Spec.ForProvider.CPUFamily != templateParams.CPUFamily {

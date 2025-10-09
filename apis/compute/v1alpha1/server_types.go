@@ -59,6 +59,10 @@ type ServerParameters struct {
 	//
 	// +immutable
 	CPUFamily string `json:"cpuFamily,omitempty"`
+	// Activate or deactivate the Multi Queue feature on all NICs of this server.
+	//
+	// +kubebuilder:validation:Optional
+	NicMultiQueue *bool `json:"nicMultiQueue,omitempty"`
 	// +kubebuilder:validation:Optional
 	BootCdromID string `json:"bootCdromId,omitempty"`
 	// In order to attach a volume to the server, it is recommended to use VolumeConfig

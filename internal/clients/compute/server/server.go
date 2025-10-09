@@ -173,6 +173,12 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 func GenerateCreateServerInput(cr *v1alpha1.Server) *sdkgo.Server {
 	properties := GenerateUpdateServerInput(cr)
 
+	// if properties.NicMultiQueue is false set it to nil so it will default to false without throwing
+	// an error if the client does not have the feature enabled
+	if properties.NicMultiQueue != nil && !*properties.NicMultiQueue {
+		properties.NicMultiQueue = nil
+	}
+
 	return &sdkgo.Server{
 		Properties: properties,
 	}
@@ -184,6 +190,10 @@ func GenerateUpdateServerInput(cr *v1alpha1.Server) *sdkgo.ServerProperties {
 		Name:  &cr.Spec.ForProvider.Name,
 		Cores: &cr.Spec.ForProvider.Cores,
 		Ram:   &cr.Spec.ForProvider.RAM,
+	}
+
+	if cr.Spec.ForProvider.NicMultiQueue != nil {
+		instanceUpdateInput.NicMultiQueue = cr.Spec.ForProvider.NicMultiQueue
 	}
 	// Set CPUFamily only if it is specified into the Spec.
 	// If not, the CPUFamily will be set corresponding with the datacenter's location
@@ -252,6 +262,8 @@ func IsUpToDateWithDiff(cr *v1alpha1.Server, server sdkgo.Server) (bool, string)
 		return false, "Server name does not match the CR name: " + *server.Properties.Name + " != " + cr.Spec.ForProvider.Name
 	case server.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
 		return false, "Server name is nil, but CR name is not empty: " + cr.Spec.ForProvider.Name
+	case server.Properties.NicMultiQueue != nil && cr.Spec.ForProvider.NicMultiQueue != nil && *cr.Spec.ForProvider.NicMultiQueue != *server.Properties.NicMultiQueue:
+		return false, "NicMultiQueue do not match the CR NicMultiQueue: " + fmt.Sprintf("%t != %t", *server.Properties.NicMultiQueue, *cr.Spec.ForProvider.NicMultiQueue)
 	case server.Properties.Cores != nil && cr.Spec.ForProvider.Cores != *server.Properties.Cores:
 		return false, "Server cores do not match the CR cores: " + fmt.Sprintf("%d != %d", *server.Properties.Cores, cr.Spec.ForProvider.Cores)
 	case server.Properties.Ram != nil && cr.Spec.ForProvider.RAM != *server.Properties.Ram:
