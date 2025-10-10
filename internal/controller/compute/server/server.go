@@ -32,6 +32,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -239,7 +240,7 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	cr, ok := mg.(*v1alpha1.Server)
 	if !ok {
 		err := errors.New(errNotServer)
-		cr.SetConditions(UpdateFailedCondition(err))
+		cr.SetConditions(UpdateFailedCondition(err, metav1.Now()))
 		return managed.ExternalUpdate{}, err
 	}
 	c.log.Debug("Update, started updating server", "name", cr.Spec.ForProvider.Name)
@@ -253,11 +254,11 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 			sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
 		if err != nil {
 			retErr := fmt.Errorf("failed to attach volume to server. error: %w", err)
-			cr.SetConditions(UpdateFailedCondition(retErr))
+			cr.SetConditions(UpdateFailedCondition(retErr, metav1.Now()))
 			return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 		}
 		if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-			cr.SetConditions(UpdateFailedCondition(err))
+			cr.SetConditions(UpdateFailedCondition(err, metav1.Now()))
 			return managed.ExternalUpdate{}, err
 		}
 		c.log.Debug("Update, finished attaching Volume", "volume", cr.Spec.ForProvider.VolumeCfg.VolumeID, "volume name", cr.Spec.ForProvider.Name, "for server name", cr.Spec.ForProvider.Name)
@@ -268,11 +269,11 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 			cr.Status.AtProvider.ServerID, cr.Status.AtProvider.VolumeID)
 		if err != nil {
 			retErr := fmt.Errorf("failed to detach volume from server. error: %w", err)
-			cr.SetConditions(UpdateFailedCondition(retErr))
+			cr.SetConditions(UpdateFailedCondition(retErr, metav1.Now()))
 			return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 		}
 		if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-			cr.SetConditions(UpdateFailedCondition(err))
+			cr.SetConditions(UpdateFailedCondition(err, metav1.Now()))
 			return managed.ExternalUpdate{}, err
 		}
 	}
@@ -284,17 +285,17 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	_, apiResponse, err := c.service.UpdateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to update server. error: %w", err)
-		cr.SetConditions(UpdateFailedCondition(retErr))
+		cr.SetConditions(UpdateFailedCondition(retErr, metav1.Now()))
 		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		cr.SetConditions(UpdateFailedCondition(err))
+		cr.SetConditions(UpdateFailedCondition(err, metav1.Now()))
 		return managed.ExternalUpdate{}, err
 	}
 	c.log.Debug("Update, finished updating server", "name", cr.Spec.ForProvider.Name)
 
 	// set a successful update condition, so that the update process can be tracked and monitored for success
-	cr.SetConditions(UpdateSucceededCondition())
+	cr.SetConditions(UpdateSucceededCondition(metav1.Now()))
 	return managed.ExternalUpdate{}, nil
 }
 

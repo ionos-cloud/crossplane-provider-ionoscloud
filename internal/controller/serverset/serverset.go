@@ -433,7 +433,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 		}
 
 		update, failover := checkServerDiff(&servers[idx], cr, bootVolume)
-        e.log.Info("Checking server for update", "serverset", cr.Name, "index", idx, "update", update, "failover", failover)
+		e.log.Info("Checking server for update", "serverset", cr.Name, "index", idx, "update", update, "failover", failover)
 		if update {
 			requestTimestamp := time.Now()
 			if err := e.kube.Update(ctx, &servers[idx]); err != nil {
