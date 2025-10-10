@@ -9,6 +9,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
@@ -34,6 +35,11 @@ type Client interface {
 	DetachCdrom(ctx context.Context, datacenterID, serverID, imageID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
 	GetServerID(server *sdkgo.Server) (string, error)
+	WaitForRequest(ctx context.Context, apiResponse *sdkgo.APIResponse) error
+}
+
+func (cp *APIClient) WaitForRequest(ctx context.Context, apiResponse *sdkgo.APIResponse) error {
+	return compute.WaitForRequest(ctx, cp.GetAPIClient(), apiResponse)
 }
 
 // CheckDuplicateServer based on serverName, and the immutable property location
