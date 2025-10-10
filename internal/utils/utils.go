@@ -19,6 +19,7 @@ const Error422 = "422 Unprocessable Entity"
 // DepthQueryParam is used in GET requests in Cloud API
 const DepthQueryParam = int32(1)
 
+// UpdateSucceededConditionType is the condition type that should be set when an update is successful
 const UpdateSucceededConditionType = xpv1.ConditionType("UpdateSucceeded")
 
 // DereferenceOrZero returns the value of a pointer or a zero value if the pointer is nil.
@@ -157,6 +158,7 @@ func NewOwnerReference(parentTypeMeta v1.TypeMeta, parentObjectMeta v1.ObjectMet
 	}
 }
 
+// UpdateSucceededCondition returns the condition that should be set when an update is successful
 func UpdateSucceededCondition() xpv1.Condition {
 	return xpv1.Condition{
 		Type:               UpdateSucceededConditionType,

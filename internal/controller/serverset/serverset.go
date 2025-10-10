@@ -431,7 +431,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 			return fmt.Errorf("error getting boot volume %s to check hotplug settings to server %s: %w", bootVolumeName, servers[idx].Name, err)
 		}
 
-		update, failover := checkServerDiff(servers[idx], cr, bootVolume)
+		update, failover := checkServerDiff(&servers[idx], cr, bootVolume)
 		if update {
 			requestTimestamp := time.Now()
 			if err := e.kube.Update(ctx, &servers[idx]); err != nil {
@@ -441,18 +441,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 			if failover {
 				if err := kube.WaitForResource(
 					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, name, namespace string) (bool, error) {
-						server := &v1alpha1.Server{}
-						if err := e.kube.Get(
-							ctx, types.NamespacedName{
-								Name:      name,
-								Namespace: namespace,
-							}, server,
-						); err != nil {
-							return false, fmt.Errorf("error getting server %s to check request: %w", name, err)
-						}
-
-						updateCondition := server.GetCondition(utils.UpdateSucceededConditionType)
-						return updateCondition.LastTransitionTime.After(requestTimestamp), nil
+                        return e.isUpdateConditionMet(ctx, requestTimestamp, name, namespace)
 					}, servers[idx].Name, servers[idx].Namespace,
 				); err != nil {
 					return fmt.Errorf("error waiting for server to be updated %w", err)
@@ -827,7 +816,9 @@ func (e *external) Disconnect(_ context.Context) error {
 	return nil
 }
 
-func checkServerDiff(old v1alpha1.Server, cr *v1alpha1.ServerSet, bootVolume *v1alpha1.Volume) (update, failover bool) {
+// checkServerDiff checks if server parameters are equal to template parameters to decide if an update is needed, as well as if a failover is needed.
+// It mutates the server parameters if they are not equal to the template parameters, so that the server can be updated afterwards.
+func checkServerDiff(old *v1alpha1.Server, cr *v1alpha1.ServerSet, bootVolume *v1alpha1.Volume) (update, failover bool) {
 	if old.Spec.ForProvider.RAM != cr.Spec.ForProvider.Template.Spec.RAM {
 		update = true
 		old.Spec.ForProvider.RAM = cr.Spec.ForProvider.Template.Spec.RAM
@@ -851,4 +842,21 @@ func checkServerDiff(old v1alpha1.Server, cr *v1alpha1.ServerSet, bootVolume *v1
 	}
 
 	return update, failover
+}
+
+// isUpdateConditionMet checks if the update condition's last transition time is after the request timestamp.
+// This is used to determine if the update request has been fulfilled
+func (e *external) isUpdateConditionMet(ctx context.Context, requestTimestamp time.Time, name, namespace string) (bool, error) {
+    server := &v1alpha1.Server{}
+    if err := e.kube.Get(
+        ctx, types.NamespacedName{
+            Name:      name,
+            Namespace: namespace,
+        }, server,
+    ); err != nil {
+        return false, fmt.Errorf("error getting server %s to check request: %w", name, err)
+    }
+
+    updateCondition := server.GetCondition(utils.UpdateSucceededConditionType)
+    return updateCondition.LastTransitionTime.After(requestTimestamp), nil
 }
