@@ -203,6 +203,10 @@ spec:
                   name:
                     description: The name of the  resource.
                     type: string
+                  nicMultiQueue:
+                    description: Activate or deactivate the Multi Queue feature on
+                      all NICs of this server.
+                    type: boolean
                   placementGroupId:
                     description: The placement group ID that belongs to this server.
                       Requires system privileges

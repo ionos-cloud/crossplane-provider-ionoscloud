@@ -47,13 +47,12 @@ var (
 	// The <service-name> is taken from the Managed Resource Spec Group (e.g.: group=k8s.ionoscloud.crossplane.io -> service-name=k8s).
 	// The <service-long-name> is taken from the collection defined below, using the <service-name> key:
 	servicesAbbrevDirectoriesMap = map[string]string{
-		"nlb":          "network-load-balancer",
-		"alb":          "application-load-balancer",
-		"compute":      "compute-engine",
-		"dbaas":        "database-as-a-service",
-		"k8s":          "managed-kubernetes",
-		"backup":       "managed-backup",
-		"dataplatform": "dataplatform",
+		"nlb":     "network-load-balancer",
+		"alb":     "application-load-balancer",
+		"compute": "compute-engine",
+		"dbaas":   "database-as-a-service",
+		"k8s":     "managed-kubernetes",
+		"backup":  "managed-backup",
 	}
 	// Resources excluded from documentation generation.
 	excludedResources = []string{"volumeselector"}

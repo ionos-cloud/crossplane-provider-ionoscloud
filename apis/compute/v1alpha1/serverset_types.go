@@ -68,6 +68,10 @@ type ServerSetTemplateSpec struct {
 	//
 	// +kubebuilder:validation:Required
 	Cores int32 `json:"cores"`
+	// Activate or deactivate the Multi Queue feature on all NICs of this server.
+	//
+	// +kubebuilder:validation:Optional
+	NicMultiQueue *bool `json:"nicMultiQueue,omitempty"`
 	// The memory size for the server in MB, such as 2048. Size must be specified in multiples of 256 MB with a minimum of 256 MB.
 	// however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB,
 	// then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.

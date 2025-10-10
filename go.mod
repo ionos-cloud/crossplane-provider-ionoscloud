@@ -11,7 +11,6 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.30.0
 	github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2 v2.0.5
 	github.com/ionos-cloud/sdk-go-bundle/shared v0.1.4
-	github.com/ionos-cloud/sdk-go-dataplatform v1.0.2
 	github.com/ionos-cloud/sdk-go-dbaas-mongo v1.3.1
 	github.com/ionos-cloud/sdk-go/v6 v6.3.4
 	github.com/onsi/gomega v1.34.1

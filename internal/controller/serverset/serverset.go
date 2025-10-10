@@ -441,7 +441,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 			if failover {
 				if err := kube.WaitForResource(
 					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, name, namespace string) (bool, error) {
-                        return e.isUpdateConditionMet(ctx, requestTimestamp, name, namespace)
+						return e.isUpdateConditionMet(ctx, requestTimestamp, name, namespace)
 					}, servers[idx].Name, servers[idx].Namespace,
 				); err != nil {
 					return fmt.Errorf("error waiting for server to be updated %w", err)
@@ -482,7 +482,6 @@ func (e *external) updateOrRecreateVolumes(ctx context.Context, cr *v1alpha1.Ser
 		update := false
 		deleteAndCreate := false
 		update, deleteAndCreate = updateOrRecreate(&volumes[idx].Spec.ForProvider, cr.Spec.ForProvider.BootVolumeTemplate.Spec)
-		e.log.Info("UpdateOrRecreate result", "index", idx, "volumeName", volumes[idx].Name, "update", update, "deleteAndCreate", deleteAndCreate, "SetHotPlugsFromImage", volumes[idx].Spec.ForProvider.SetHotPlugsFromImage)
 		if deleteAndCreate {
 			// we want to recreate master at the end
 			if masterIndex == idx {
@@ -585,6 +584,9 @@ func AreServersReady(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1
 			return false, false
 		}
 		if serverObj.Spec.ForProvider.RAM != templateParams.RAM {
+			return false, false
+		}
+		if serverObj.Spec.ForProvider.NicMultiQueue != templateParams.NicMultiQueue {
 			return false, false
 		}
 		if serverObj.Spec.ForProvider.CPUFamily != templateParams.CPUFamily {
@@ -840,6 +842,14 @@ func checkServerDiff(old *v1alpha1.Server, cr *v1alpha1.ServerSet, bootVolume *v
 			failover = true
 		}
 	}
+	if old.Spec.ForProvider.NicMultiQueue != cr.Spec.ForProvider.Template.Spec.NicMultiQueue {
+		update = true
+		old.Spec.ForProvider.NicMultiQueue = cr.Spec.ForProvider.Template.Spec.NicMultiQueue
+	}
+	if old.Spec.ForProvider.CPUFamily != cr.Spec.ForProvider.Template.Spec.CPUFamily {
+		update = true
+		old.Spec.ForProvider.CPUFamily = cr.Spec.ForProvider.Template.Spec.CPUFamily
+	}
 
 	return update, failover
 }
@@ -847,16 +857,16 @@ func checkServerDiff(old *v1alpha1.Server, cr *v1alpha1.ServerSet, bootVolume *v
 // isUpdateConditionMet checks if the update condition's last transition time is after the request timestamp.
 // This is used to determine if the update request has been fulfilled
 func (e *external) isUpdateConditionMet(ctx context.Context, requestTimestamp time.Time, name, namespace string) (bool, error) {
-    server := &v1alpha1.Server{}
-    if err := e.kube.Get(
-        ctx, types.NamespacedName{
-            Name:      name,
-            Namespace: namespace,
-        }, server,
-    ); err != nil {
-        return false, fmt.Errorf("error getting server %s to check request: %w", name, err)
-    }
+	server := &v1alpha1.Server{}
+	if err := e.kube.Get(
+		ctx, types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		}, server,
+	); err != nil {
+		return false, fmt.Errorf("error getting server %s to check request: %w", name, err)
+	}
 
-    updateCondition := server.GetCondition(utils.UpdateSucceededConditionType)
-    return updateCondition.LastTransitionTime.After(requestTimestamp), nil
+	updateCondition := server.GetCondition(utils.UpdateSucceededConditionType)
+	return updateCondition.LastTransitionTime.After(requestTimestamp), nil
 }

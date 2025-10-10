@@ -266,6 +266,8 @@ Version increases if the Server is re-created due to an immutable field changing
 				* `cores` (integer)
 					* description: The total number of cores for the server.
 					* format: int32
+				* `nicMultiqueue` (boolean)
+					* description: Activate or deactivate the Multi Queue feature on all NICs of this server.
 				* `cpuFamily` (string)
 					* description: CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions;
 available CPU architectures can be retrieved from the datacenter resource.
