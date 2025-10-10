@@ -40,7 +40,7 @@ jobs:
                                    {
                                      "keyValue": {
                                           "topLabel": "Title",
-                                          "content": "'$ISSUE_TITLE'"
+                                          "content": "'"$ISSUE_TITLE"'"
                                       }
                                    },
                                    {
