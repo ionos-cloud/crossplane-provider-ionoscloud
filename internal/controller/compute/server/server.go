@@ -238,7 +238,9 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) { // nolint:gocyclo
 	cr, ok := mg.(*v1alpha1.Server)
 	if !ok {
-		return managed.ExternalUpdate{}, errors.New(errNotServer)
+		err := errors.New(errNotServer)
+		cr.SetConditions(UpdateFailedCondition(err))
+		return managed.ExternalUpdate{}, err
 	}
 	c.log.Debug("Update, started updating server", "name", cr.Spec.ForProvider.Name)
 	if cr.Status.AtProvider.State == compute.BUSY {
@@ -251,9 +253,11 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 			sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
 		if err != nil {
 			retErr := fmt.Errorf("failed to attach volume to server. error: %w", err)
+			cr.SetConditions(UpdateFailedCondition(retErr))
 			return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 		}
 		if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+			cr.SetConditions(UpdateFailedCondition(err))
 			return managed.ExternalUpdate{}, err
 		}
 		c.log.Debug("Update, finished attaching Volume", "volume", cr.Spec.ForProvider.VolumeCfg.VolumeID, "volume name", cr.Spec.ForProvider.Name, "for server name", cr.Spec.ForProvider.Name)
@@ -264,9 +268,11 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 			cr.Status.AtProvider.ServerID, cr.Status.AtProvider.VolumeID)
 		if err != nil {
 			retErr := fmt.Errorf("failed to detach volume from server. error: %w", err)
+			cr.SetConditions(UpdateFailedCondition(retErr))
 			return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 		}
 		if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+			cr.SetConditions(UpdateFailedCondition(err))
 			return managed.ExternalUpdate{}, err
 		}
 	}
@@ -278,15 +284,17 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	_, apiResponse, err := c.service.UpdateServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to update server. error: %w", err)
+		cr.SetConditions(UpdateFailedCondition(retErr))
 		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+		cr.SetConditions(UpdateFailedCondition(err))
 		return managed.ExternalUpdate{}, err
 	}
 	c.log.Debug("Update, finished updating server", "name", cr.Spec.ForProvider.Name)
 
 	// set a successful update condition, so that the update process can be tracked and monitored for success
-	cr.SetConditions(utils.UpdateSucceededCondition())
+	cr.SetConditions(UpdateSucceededCondition())
 	return managed.ExternalUpdate{}, nil
 }
 

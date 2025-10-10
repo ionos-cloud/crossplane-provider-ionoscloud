@@ -37,7 +37,7 @@ import (
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
+	control "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
@@ -418,6 +418,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 		return err
 	}
 	for idx := range servers {
+		// Retrieve the boot-volume associated with the server, so we can check hotplug settings for CPU/RAM changes
 		volumeVersion, err := getVolumeVersion(ctx, e.kube, cr.GetName(), idx)
 		if err != nil {
 			return fmt.Errorf("error getting boot volume version for server %s: %w", servers[idx].Name, err)
@@ -432,6 +433,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 		}
 
 		update, failover := checkServerDiff(&servers[idx], cr, bootVolume)
+        e.log.Info("Checking server for update", "serverset", cr.Name, "index", idx, "update", update, "failover", failover)
 		if update {
 			requestTimestamp := time.Now()
 			if err := e.kube.Update(ctx, &servers[idx]); err != nil {
@@ -441,10 +443,10 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 			if failover {
 				if err := kube.WaitForResource(
 					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, name, namespace string) (bool, error) {
-						return e.isUpdateConditionMet(ctx, requestTimestamp, name, namespace)
+						return e.isUpdateFinished(ctx, requestTimestamp, name, namespace)
 					}, servers[idx].Name, servers[idx].Namespace,
 				); err != nil {
-					return fmt.Errorf("error waiting for server to be updated %w", err)
+					return fmt.Errorf("error waiting for server to be updated: %w", err)
 				}
 			}
 		}
@@ -819,7 +821,9 @@ func (e *external) Disconnect(_ context.Context) error {
 }
 
 // checkServerDiff checks if server parameters are equal to template parameters to decide if an update is needed, as well as if a failover is needed.
-// It mutates the server parameters if they are not equal to the template parameters, so that the server can be updated afterwards.
+// To determine if the failover mechanism needs to be triggered, it checks the hotplug settings of the boot volume for the CPU/RAM.
+// If hotplug is disabled for either CPU or RAM and there is a change in the respective parameter, failover is required and is set to true.
+// The function mutates the server parameters if they are not equal to the template parameters, so that the server can be updated afterwards.
 func checkServerDiff(old *v1alpha1.Server, cr *v1alpha1.ServerSet, bootVolume *v1alpha1.Volume) (update, failover bool) {
 	if old.Spec.ForProvider.RAM != cr.Spec.ForProvider.Template.Spec.RAM {
 		update = true
@@ -846,17 +850,14 @@ func checkServerDiff(old *v1alpha1.Server, cr *v1alpha1.ServerSet, bootVolume *v
 		update = true
 		old.Spec.ForProvider.NicMultiQueue = cr.Spec.ForProvider.Template.Spec.NicMultiQueue
 	}
-	if old.Spec.ForProvider.CPUFamily != cr.Spec.ForProvider.Template.Spec.CPUFamily {
-		update = true
-		old.Spec.ForProvider.CPUFamily = cr.Spec.ForProvider.Template.Spec.CPUFamily
-	}
 
 	return update, failover
 }
 
-// isUpdateConditionMet checks if the update condition's last transition time is after the request timestamp.
-// This is used to determine if the update request has been fulfilled
-func (e *external) isUpdateConditionMet(ctx context.Context, requestTimestamp time.Time, name, namespace string) (bool, error) {
+// isUpdateFinished checks the update condition of a server to see if it has been updated after a specific timestamp
+// and if it was successful. If the update was processed after the requestTimestamp and was successful, it returns true.
+// If the update was processed after the requestTimestamp but failed, it returns an error.
+func (e *external) isUpdateFinished(ctx context.Context, requestTimestamp time.Time, name, namespace string) (bool, error) {
 	server := &v1alpha1.Server{}
 	if err := e.kube.Get(
 		ctx, types.NamespacedName{
@@ -867,6 +868,11 @@ func (e *external) isUpdateConditionMet(ctx context.Context, requestTimestamp ti
 		return false, fmt.Errorf("error getting server %s to check request: %w", name, err)
 	}
 
-	updateCondition := server.GetCondition(utils.UpdateSucceededConditionType)
-	return updateCondition.LastTransitionTime.After(requestTimestamp), nil
+	updateCondition := server.GetCondition(control.UpdatedConditionType)
+	wasProcessed := updateCondition.LastTransitionTime.After(requestTimestamp)
+	wasSuccessful := updateCondition.Status == v1.ConditionTrue
+	if wasProcessed && !wasSuccessful {
+		return false, fmt.Errorf("server %s update failed: %s", name, updateCondition.Message)
+	}
+	return wasProcessed && wasSuccessful, nil
 }

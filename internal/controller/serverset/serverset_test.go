@@ -37,10 +37,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
-
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
 const (
@@ -1818,7 +1817,6 @@ func (f *kubeServerControlManagerFake) Get(ctx context.Context, name, ns string)
 
 func (f *kubeServerControlManagerFake) Update(ctx context.Context, cr *v1alpha1.Server) error {
 	args := f.Called(ctx, cr)
-	cr.SetConditions(utils.UpdateSucceededCondition())
 	return args.Error(0)
 }
 
