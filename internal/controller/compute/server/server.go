@@ -285,7 +285,7 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	}
 	c.log.Debug("Update, finished updating server", "name", cr.Spec.ForProvider.Name)
 
-    // set a successful update condition, so that the update process can be tracked and monitored for success
+	// set a successful update condition, so that the update process can be tracked and monitored for success
 	cr.SetConditions(utils.UpdateSucceededCondition())
 	return managed.ExternalUpdate{}, nil
 }
