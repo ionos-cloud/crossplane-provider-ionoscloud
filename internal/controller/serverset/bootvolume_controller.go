@@ -226,21 +226,26 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 				DeletionPolicy:          cr.GetDeletionPolicy(),
 			},
 			ForProvider: v1alpha1.VolumeParameters{
-				DatacenterCfg:       cr.Spec.ForProvider.DatacenterCfg,
-				Name:                name,
-				AvailabilityZone:    GetZoneFromIndex(replicaIndex),
-				Size:                cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size,
-				Type:                cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type,
-				Image:               cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image,
-				UserData:            cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData,
-				CPUHotPlug:          true,
-				RAMHotPlug:          true,
-				NicHotPlug:          true,
-				NicHotUnplug:        true,
-				DiscVirtioHotPlug:   true,
-				DiscVirtioHotUnplug: true,
+				DatacenterCfg:        cr.Spec.ForProvider.DatacenterCfg,
+				Name:                 name,
+				AvailabilityZone:     GetZoneFromIndex(replicaIndex),
+				Size:                 cr.Spec.ForProvider.BootVolumeTemplate.Spec.Size,
+				Type:                 cr.Spec.ForProvider.BootVolumeTemplate.Spec.Type,
+				Image:                cr.Spec.ForProvider.BootVolumeTemplate.Spec.Image,
+				UserData:             cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData,
+				SetHotPlugsFromImage: cr.Spec.ForProvider.BootVolumeTemplate.Spec.SetHotPlugsFromImage,
 			},
 		}}
+
+	if !cr.Spec.ForProvider.BootVolumeTemplate.Spec.SetHotPlugsFromImage {
+		vol.Spec.ForProvider.CPUHotPlug = true
+		vol.Spec.ForProvider.RAMHotPlug = true
+		vol.Spec.ForProvider.NicHotPlug = true
+		vol.Spec.ForProvider.NicHotUnplug = true
+		vol.Spec.ForProvider.DiscVirtioHotPlug = true
+		vol.Spec.ForProvider.DiscVirtioHotUnplug = true
+	}
+
 	if cr.Spec.ForProvider.BootVolumeTemplate.Spec.ImagePassword != "" {
 		vol.Spec.ForProvider.ImagePassword = cr.Spec.ForProvider.BootVolumeTemplate.Spec.ImagePassword
 	}

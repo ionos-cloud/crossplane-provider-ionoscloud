@@ -314,6 +314,14 @@ type ServerSetBootVolumeSpec struct {
 	//
 	// +immutable
 	Substitutions []Substitution `json:"substitutions,omitempty"`
+	// SetHotPlugsFromImage enables or disables pulling hot plug settings (currently only CPU and RAM) from the image.
+	// If not specified, the default value is false.
+	// Is incompatible with other hot plug settings - if set to true, it will ignore any other hot plug settings.
+	// Changing this value requires the boot volume to be re-created.
+	//
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	SetHotPlugsFromImage bool `json:"setHotPlugsFromImage,omitempty"`
 }
 
 // UpdateStrategy is the update strategy for the boot volume.

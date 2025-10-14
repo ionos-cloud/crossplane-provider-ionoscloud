@@ -37,9 +37,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
-
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
 const (
@@ -1510,7 +1510,7 @@ func fakeKubeClientUpdateMethodReturnsError() client.Client {
 	kubeClient := kubeClientFake{
 		Client: fakeKubeClientObjs(
 			createServer("server1"), createServer("server2"),
-			createBootVolume("boot-volume-server1"), createBootVolume("boot-volume-server2"),
+			createBootVolumeWithIndexLabels("bootvolumename-0-0", 0), createBootVolumeWithIndexLabels("bootvolumename-1-0", 1),
 			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
 			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
 		),
@@ -1532,7 +1532,7 @@ func fakeKubeClientUpdateMethod(expectedObj client.Object) client.Client {
 	kubeClient := kubeClientFake{
 		Client: fakeKubeClientObjs(
 			createServer("server1"), createServer("server2"),
-			createBootVolume("boot-volume-server1"), createBootVolume("boot-volume-server2"),
+			createBootVolumeWithIndexLabels("bootvolumename-0-0", 0), createBootVolumeWithIndexLabels("bootvolumename-1-0", 1),
 			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
 			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
 		),
@@ -1569,8 +1569,8 @@ func kubeClientWithObjsForBootVolume() client.WithWatch {
 	server2.Labels[computeIndexLabel(ResourceServer)] = one
 	server2.Labels[computeVersionLabel(ResourceServer)] = zero
 
-	bootVolume1 := createBootVolumeWithIndexLabels("boot-volume-server1", 0)
-	bootVolume2 := createBootVolumeWithIndexLabels("boot-volume-server2", 1)
+	bootVolume1 := createBootVolumeWithIndexLabels("bootvolumename-0-0", 0)
+	bootVolume2 := createBootVolumeWithIndexLabels("bootvolumename-1-0", 1)
 
 	return fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2,
 		createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
@@ -2000,9 +2000,11 @@ func createBootVolume(name string) *v1alpha1.Volume {
 		},
 		Spec: v1alpha1.VolumeSpec{
 			ForProvider: v1alpha1.VolumeParameters{
-				Image: bootVolumeImage,
-				Type:  bootVolumeType,
-				Size:  bootVolumeSize,
+				Image:      bootVolumeImage,
+				Type:       bootVolumeType,
+				Size:       bootVolumeSize,
+				CPUHotPlug: true,
+				RAMHotPlug: true,
 			},
 		},
 	}

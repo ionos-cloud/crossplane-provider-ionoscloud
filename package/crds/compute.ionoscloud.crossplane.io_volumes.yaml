@@ -346,6 +346,12 @@ spec:
                   ramHotPlug:
                     description: Hot-plug capable RAM (no reboot required).
                     type: boolean
+                  setHotPlugFromImage:
+                    default: false
+                    description: |-
+                      Whether to pull hot-plug capabilities from the image. If true, the volume will inherit the hot-plug capabilities of the image.
+                      If not specified, the default value is false. Is incompatible with other hot plug settings - if set to true, it will ignore any other hot plug settings.
+                    type: boolean
                   size:
                     description: The size of the volume in GB.
                     type: number

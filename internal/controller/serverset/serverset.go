@@ -20,12 +20,14 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -35,7 +37,9 @@ import (
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	control "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 const (
@@ -414,26 +418,36 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 		return err
 	}
 	for idx := range servers {
-		update := false
-		if servers[idx].Spec.ForProvider.RAM != cr.Spec.ForProvider.Template.Spec.RAM {
-			update = true
-			servers[idx].Spec.ForProvider.RAM = cr.Spec.ForProvider.Template.Spec.RAM
+		// Retrieve the boot-volume associated with the server, so we can check hotplug settings for CPU/RAM changes
+		volumeVersion, err := getVolumeVersion(ctx, e.kube, cr.GetName(), idx)
+		if err != nil {
+			return fmt.Errorf("error getting boot volume version for server %s: %w", servers[idx].Name, err)
 		}
-		if servers[idx].Spec.ForProvider.Cores != cr.Spec.ForProvider.Template.Spec.Cores {
-			update = true
-			servers[idx].Spec.ForProvider.Cores = cr.Spec.ForProvider.Template.Spec.Cores
+		bootVolumeName := getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, idx, volumeVersion)
+		bootVolume := &v1alpha1.Volume{}
+		if err := e.kube.Get(ctx, types.NamespacedName{
+			Name:      bootVolumeName,
+			Namespace: cr.Namespace,
+		}, bootVolume); err != nil {
+			return fmt.Errorf("error getting boot volume %s to check hotplug settings to server %s: %w", bootVolumeName, servers[idx].Name, err)
 		}
-		if servers[idx].Spec.ForProvider.NicMultiQueue != cr.Spec.ForProvider.Template.Spec.NicMultiQueue {
-			update = true
-			servers[idx].Spec.ForProvider.NicMultiQueue = cr.Spec.ForProvider.Template.Spec.NicMultiQueue
-		}
-		if servers[idx].Spec.ForProvider.CPUFamily != cr.Spec.ForProvider.Template.Spec.CPUFamily {
-			update = true
-			servers[idx].Spec.ForProvider.CPUFamily = cr.Spec.ForProvider.Template.Spec.CPUFamily
-		}
+
+		update, failover := checkServerDiff(&servers[idx], cr, bootVolume)
+		e.log.Info("Checking server for update", "serverset", cr.Name, "index", idx, "update", update, "failover", failover)
 		if update {
+			requestTimestamp := time.Now()
 			if err := e.kube.Update(ctx, &servers[idx]); err != nil {
 				return fmt.Errorf("error updating server %w", err)
+			}
+
+			if failover {
+				if err := kube.WaitForResource(
+					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, name, namespace string) (bool, error) {
+						return e.isUpdateFinished(ctx, requestTimestamp, name, namespace)
+					}, servers[idx].Name, servers[idx].Namespace,
+				); err != nil {
+					return fmt.Errorf("error waiting for server to be updated: %w", err)
+				}
 			}
 		}
 	}
@@ -538,6 +552,11 @@ func updateOrRecreate(volumeParams *v1alpha1.VolumeParameters, volumeSpec v1alph
 		deleteAndCreate = true
 		volumeParams.Image = volumeSpec.Image
 	}
+	if volumeParams.SetHotPlugsFromImage != volumeSpec.SetHotPlugsFromImage {
+		deleteAndCreate = true
+		volumeParams.SetHotPlugsFromImage = volumeSpec.SetHotPlugsFromImage
+	}
+
 	return update, deleteAndCreate
 }
 
@@ -595,6 +614,10 @@ func AreBootVolumesReady(templateParams v1alpha1.BootVolumeTemplate, volumes []v
 		if volumeObj.Spec.ForProvider.Type != templateParams.Spec.Type {
 			return false, false
 		}
+		if volumeObj.Spec.ForProvider.SetHotPlugsFromImage != templateParams.Spec.SetHotPlugsFromImage {
+			return false, false
+		}
+
 		if volumeObj.Status.AtProvider.State != ionoscloud.Available {
 			return true, false
 		}
@@ -795,4 +818,61 @@ func ComputeReplicaIdx(log logging.Logger, idxLabel string, labels map[string]st
 // Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
 func (e *external) Disconnect(_ context.Context) error {
 	return nil
+}
+
+// checkServerDiff checks if server parameters are equal to template parameters to decide if an update is needed, as well as if a failover is needed.
+// To determine if the failover mechanism needs to be triggered, it checks the hotplug settings of the boot volume for the CPU/RAM.
+// If hotplug is disabled for either CPU or RAM and there is a change in the respective parameter, failover is required and is set to true.
+// The function mutates the server parameters if they are not equal to the template parameters, so that the server can be updated afterwards.
+func checkServerDiff(old *v1alpha1.Server, cr *v1alpha1.ServerSet, bootVolume *v1alpha1.Volume) (update, failover bool) {
+	if old.Spec.ForProvider.RAM != cr.Spec.ForProvider.Template.Spec.RAM {
+		update = true
+		old.Spec.ForProvider.RAM = cr.Spec.ForProvider.Template.Spec.RAM
+		if !bootVolume.Spec.ForProvider.RAMHotPlug {
+			failover = true
+		}
+	}
+	if old.Spec.ForProvider.Cores != cr.Spec.ForProvider.Template.Spec.Cores {
+		update = true
+		old.Spec.ForProvider.Cores = cr.Spec.ForProvider.Template.Spec.Cores
+		if !bootVolume.Spec.ForProvider.CPUHotPlug {
+			failover = true
+		}
+	}
+	if old.Spec.ForProvider.CPUFamily != cr.Spec.ForProvider.Template.Spec.CPUFamily {
+		update = true
+		old.Spec.ForProvider.CPUFamily = cr.Spec.ForProvider.Template.Spec.CPUFamily
+		if !bootVolume.Spec.ForProvider.CPUHotPlug {
+			failover = true
+		}
+	}
+	if old.Spec.ForProvider.NicMultiQueue != cr.Spec.ForProvider.Template.Spec.NicMultiQueue {
+		update = true
+		old.Spec.ForProvider.NicMultiQueue = cr.Spec.ForProvider.Template.Spec.NicMultiQueue
+	}
+
+	return update, failover
+}
+
+// isUpdateFinished checks the update condition of a server to see if it has been updated after a specific timestamp
+// and if it was successful. If the update was processed after the requestTimestamp and was successful, it returns true.
+// If the update was processed after the requestTimestamp but failed, it returns an error.
+func (e *external) isUpdateFinished(ctx context.Context, requestTimestamp time.Time, name, namespace string) (bool, error) {
+	server := &v1alpha1.Server{}
+	if err := e.kube.Get(
+		ctx, types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		}, server,
+	); err != nil {
+		return false, fmt.Errorf("error getting server %s to check request: %w", name, err)
+	}
+
+	updateCondition := server.GetCondition(control.UpdatedConditionType)
+	wasProcessed := updateCondition.LastTransitionTime.After(requestTimestamp)
+	wasSuccessful := updateCondition.Status == v1.ConditionTrue
+	if wasProcessed && !wasSuccessful {
+		return false, fmt.Errorf("server %s update failed: %s", name, updateCondition.Message)
+	}
+	return wasProcessed && wasSuccessful, nil
 }
