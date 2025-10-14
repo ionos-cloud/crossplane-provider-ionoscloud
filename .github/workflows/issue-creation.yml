@@ -8,6 +8,8 @@ env:
   ISSUE_TITLE: ${{ github.event.issue.title }}
   ISSUE_NUMBER: ${{ github.event.issue.number }}
   ISSUE_URL: ${{ github.event.issue.html_url }}
+  ISSUE_LABELS: "- ${{ join(github.event.issue.labels.*.name) }}"
+  GITHUB_REPO: ${{ github.repository }}
 
 jobs:
   build:
