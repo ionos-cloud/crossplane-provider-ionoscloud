@@ -28,8 +28,10 @@ import (
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
-	apiErrors "k8s.io/apimachinery/pkg/api/errors"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+    v1 "k8s.io/api/core/v1"
+    apiErrors "k8s.io/apimachinery/pkg/api/errors"
+    "k8s.io/apimachinery/pkg/types"
+    "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
@@ -191,7 +193,7 @@ func (e *external) isServerSetUpToDate(ctx context.Context, cr *v1alpha1.Statefu
 			return false, false, false, nil
 		}
 	}
-	serversetUpToDate, ssetAvailable, err = areSSetResourcesReady(ctx, e.kube, cr)
+	serversetUpToDate, ssetAvailable, err = areSSetResourcesReady(ctx, e.kube, e.log, cr)
 	if err != nil {
 		return false, false, false, err
 	}
@@ -383,8 +385,8 @@ func areDataVolumesUpToDateAndAvailable(cr *v1alpha1.StatefulServerSet, volumes 
 	return true, true, true
 }
 
-func areSSetResourcesReady(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (isSsetUpToDate, isSsetAvailable bool, err error) {
-	serversUpToDate, areServersAvailable, err := areServersUpToDate(ctx, kube, cr)
+func areSSetResourcesReady(ctx context.Context, kube client.Client, log logging.Logger, cr *v1alpha1.StatefulServerSet) (isSsetUpToDate, isSsetAvailable bool, err error) {
+    serversUpToDate, areServersAvailable, err := areServersUpToDate(ctx, kube, log, cr)
 	if !serversUpToDate {
 		return false, false, err
 	}
@@ -402,16 +404,31 @@ func areSSetResourcesReady(ctx context.Context, kube client.Client, cr *v1alpha1
 	return true, areServersAvailable && areBootVolumesAvailable, nil
 }
 
-func areServersUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (areServersUpToDate, areServersAvailable bool, err error) {
+func areServersUpToDate(ctx context.Context, kube client.Client, log logging.Logger, cr *v1alpha1.StatefulServerSet) (areServersUpToDate, areServersAvailable bool, err error) {
 	servers, err := serverset.GetServersOfSSet(ctx, kube, getSSetName(cr))
 	if err != nil {
 		return false, false, err
 	}
 
-	if len(servers) < cr.Spec.ForProvider.Replicas {
+    stateMap := v1.ConfigMap{}
+    if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
+        if err = kube.Get(ctx, types.NamespacedName{
+            Name:      cr.Spec.ForProvider.Template.Spec.StateMap.Name,
+            Namespace: cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
+        }, &stateMap); err != nil {
+            return false, false, fmt.Errorf("failed to get state map for statefulserverset %s: %w", cr.Name, err)
+        }
+    }
+
+
+    if len(servers) < cr.Spec.ForProvider.Replicas {
 		return false, false, nil
 	}
-	areServersUpToDate, areServersAvailable = serverset.AreServersReady(cr.Spec.ForProvider.Template.Spec, servers)
+	areServersUpToDate, areServersAvailable, err = serverset.AreServersReady(cr.Spec.ForProvider.Template.Spec, servers, stateMap, log)
+    if err != nil {
+        return false, false, err
+    }
+
 	return areServersUpToDate, areServersAvailable, nil
 }
 

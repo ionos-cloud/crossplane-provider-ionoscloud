@@ -791,6 +791,36 @@ spec:
                             format: int32
                             multipleOf: 1024
                             type: integer
+                          stateMap:
+                            description: |-
+                              StateMap points to a user-created configMap to pull the running state of the server from. This is meant to be used
+                              in scenarios where the state of the software running on the server is needed. We expect the software to report its state
+                              in this configMap.
+                              This will work in conjunction with the API state and it can be seen as a logical AND between the API state and the software state.
+                              The configMap should already exist in the cluster.
+
+                              ConfigMap format:
+                               data:
+                                   <prefix>-<server-name>-state: VM-RUNNING
+                                   <prefix>-<server-name>-timestamp: 2025-10-15T11:26:20+00:00 # RFC3339 format only
+
+                              Accepted states are: VM-RUNNING, VM-BUSY, VM-ERROR. If the configMap is not found or the key with the prefix is not found,
+                              the state will fallback to the API state.
+                            properties:
+                              name:
+                                type: string
+                              namespace:
+                                type: string
+                              prefix:
+                                description: The key in the configMap that corresponds
+                                  to the running state of the server will follow the
+                                  format <prefix>-<server-name>
+                                type: string
+                            required:
+                            - name
+                            - namespace
+                            - prefix
+                            type: object
                         required:
                         - cores
                         - nics

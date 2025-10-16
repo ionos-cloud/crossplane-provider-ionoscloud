@@ -83,6 +83,33 @@ type ServerSetTemplateSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
 	NICs []ServerSetTemplateNIC `json:"nics"`
+
+    // StateMap points to a user-created configMap to pull the running state of the server from. This is meant to be used
+    // in scenarios where the state of the software running on the server is needed. We expect the software to report its state
+    // in this configMap.
+    // This will work in conjunction with the API state and it can be seen as a logical AND between the API state and the software state.
+    // The configMap should already exist in the cluster.
+    //
+    // ConfigMap format:
+    //  data:
+    //      <prefix>-<server-name>-state: VM-RUNNING
+    //      <prefix>-<server-name>-timestamp: 2025-10-15T11:26:20+00:00 # RFC3339 format only
+    //
+    // Accepted states are: VM-RUNNING, VM-BUSY, VM-ERROR. If the configMap is not found or the key with the prefix is not found,
+    // the state will fallback to the API state.
+    // +kubebuilder:validation:Optional
+    StateMap *StateConfigMap `json:"stateMap,omitempty"`
+}
+
+// StateConfigMap defines a configMap to pull the custom running state of the server from.
+type StateConfigMap struct {
+    // +kubebuilder:validation:Required
+    Namespace string `json:"namespace,omitempty"`
+    // +kubebuilder:validation:Required
+    Name string `json:"name,omitempty"`
+    // The key in the configMap that corresponds to the running state of the server will follow the format <prefix>-<server-name>
+    // +kubebuilder:validation:Required
+    Prefix string `json:"prefix,omitempty"`
 }
 
 type ServerSetTemplateFirewallRuleSpec struct {

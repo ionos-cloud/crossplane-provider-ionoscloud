@@ -17,29 +17,29 @@ limitations under the License.
 package serverset
 
 import (
-	"context"
-	"fmt"
-	"strconv"
-	"time"
+    "context"
+    "fmt"
+    "strconv"
+    "time"
 
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/crossplane/crossplane-runtime/pkg/meta"
-	"github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+    "github.com/crossplane/crossplane-runtime/pkg/logging"
+    "github.com/crossplane/crossplane-runtime/pkg/meta"
+    "github.com/pkg/errors"
+    v1 "k8s.io/api/core/v1"
+    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+    "k8s.io/apimachinery/pkg/types"
+    "sigs.k8s.io/controller-runtime/pkg/client"
 
-	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
-	"github.com/crossplane/crossplane-runtime/pkg/resource"
+    xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+    "github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
+    "github.com/crossplane/crossplane-runtime/pkg/resource"
 
-	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
+    ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
-	control "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
+    "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+    control "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
+    "github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
+    "github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 const (
@@ -132,8 +132,23 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	e.populateReplicasStatuses(ctx, cr, servers)
 
+    stateMap := v1.ConfigMap{}
+    if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
+        if err = e.kube.Get(ctx, types.NamespacedName{
+            Name:      cr.Spec.ForProvider.Template.Spec.StateMap.Name,
+            Namespace: cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
+        }, &stateMap); err != nil {
+            e.log.Info("failed to retrieve state configMap for serverset", "name", cr.Name, "error", err)
+            return managed.ExternalObservation{}, err
+        }
+    }
+
 	areServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
-	areServersUpToDate, areServersAvailable := AreServersReady(cr.Spec.ForProvider.Template.Spec, servers)
+	areServersUpToDate, areServersAvailable, err := AreServersReady(cr.Spec.ForProvider.Template.Spec, servers, stateMap, e.log)
+    if err != nil {
+        e.log.Info("failed to check if the servers are available and up-to-date", "name", cr.Name, "error", err)
+        return managed.ExternalObservation{}, fmt.Errorf("failed to check if serversare available and up-to-date: %w", err)
+    }
 
 	volumes, err := GetVolumesOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
@@ -448,6 +463,18 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 				); err != nil {
 					return fmt.Errorf("error waiting for server to be updated: %w", err)
 				}
+
+				if cr.Spec.ForProvider.Template.Spec.StateMap == nil {
+					continue
+				}
+
+				if err := kube.WaitForResource(
+					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, name, namespace string) (bool, error) {
+						return e.isRebootFinished(ctx, requestTimestamp, servers[idx].Name, name, namespace, cr.Spec.ForProvider.Template.Spec.StateMap.Prefix)
+					}, cr.Spec.ForProvider.Template.Spec.StateMap.Name, cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
+				); err != nil {
+					return fmt.Errorf("error waiting for server reboot: %w", err)
+				}
 			}
 		}
 	}
@@ -580,26 +607,53 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 // AreServersReady checks if replicas and template params are equal to server obj params
-func AreServersReady(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server) (areServersUpToDate, areServersAvailable bool) {
+func AreServersReady(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server, stateMap v1.ConfigMap, log logging.Logger) (areServersUpToDate, areServersAvailable bool, err error) {
 	for _, serverObj := range servers {
 		if serverObj.Spec.ForProvider.Cores != templateParams.Cores {
-			return false, false
+			return false, false, nil
 		}
 		if serverObj.Spec.ForProvider.RAM != templateParams.RAM {
-			return false, false
+			return false, false, nil
 		}
 		if serverObj.Spec.ForProvider.NicMultiQueue != templateParams.NicMultiQueue {
-			return false, false
+			return false, false, nil
 		}
 		if serverObj.Spec.ForProvider.CPUFamily != templateParams.CPUFamily {
-			return false, false
+			return false, false, nil
 		}
 		if serverObj.Status.AtProvider.State != ionoscloud.Available {
-			return true, false
+			return true, false, nil
 		}
+
+		if templateParams.StateMap == nil {
+            log.Info("no state map provided, skipping runtime state check", "server", serverObj.Name)
+			continue
+		}
+
+        log.Info("expecting to find state for server", "server", serverObj.Name)
+
+		serverStateKey := fmt.Sprintf("%s-%s-state", templateParams.StateMap.Prefix, serverObj.Name)
+		state, ok := stateMap.Data[serverStateKey]
+		if !ok || state == "" {
+            log.Info("no state for server", "server", serverObj.Name)
+			return true, false, fmt.Errorf("state for server %s not found in state map", serverObj.Name)
+		}
+
+		if state == "VM-ERROR" {
+            log.Info("server is in error runtime state", "server", serverObj.Name)
+			return true, false, fmt.Errorf("server %s is in error runtime state", serverObj.Name)
+		}
+
+		if state != "VM-RUNNING" {
+            log.Info("server is in some kind of state", "server", serverObj.Name, "state", state)
+			return true, false, nil
+		}
+
+        log.Info("server is in running state", "server", serverObj.Name)
 	}
 
-	return true, true
+    log.Info("servers are all in running state")
+	return true, true, nil
 }
 
 // AreBootVolumesReady checks if template params are equal to volume obj params
@@ -875,4 +929,45 @@ func (e *external) isUpdateFinished(ctx context.Context, requestTimestamp time.T
 		return false, fmt.Errorf("server %s update failed: %s", name, updateCondition.Message)
 	}
 	return wasProcessed && wasSuccessful, nil
+}
+
+// isRebootFinished checks the state configMap to see if the server has rebooted successfully and the software on it is back in a running state.
+func (e *external) isRebootFinished(ctx context.Context, requestTimestamp time.Time, serverName, mapName, mapNamespace, keyPrefix string) (bool, error) {
+	stateMap := &v1.ConfigMap{}
+	if err := e.kube.Get(
+		ctx, types.NamespacedName{
+			Name:      mapName,
+			Namespace: mapNamespace,
+		}, stateMap,
+	); err != nil {
+		return false, fmt.Errorf("error getting state map %s (%s) to check running state for server %s: %w", mapName, mapNamespace, serverName, err)
+	}
+
+	stateKey := fmt.Sprintf("%s-%s-state", keyPrefix, serverName)
+	timestampStateKey := fmt.Sprintf("%s-%s-timestamp", keyPrefix, serverName)
+
+	state, ok := stateMap.Data[stateKey]
+	if !ok || state == "" {
+		return false, fmt.Errorf("state for server %s not found in state map %s (%s)", serverName, mapName, mapNamespace)
+	}
+
+	timestampStr, ok := stateMap.Data[timestampStateKey]
+	if !ok || timestampStr == "" {
+		return false, fmt.Errorf("timestamp for server %s not found in state map %s (%s)", serverName, mapName, mapNamespace)
+	}
+
+	timestamp, err := time.Parse(time.RFC3339, timestampStr)
+	if err != nil {
+		return false, fmt.Errorf("error parsing state timestamp for server %s from state map %s (%s): %w", serverName, mapName, mapNamespace, err)
+	}
+
+	if timestamp.Before(requestTimestamp) {
+		return false, nil
+	}
+
+	if state == "VM-ERROR" {
+		return false, fmt.Errorf("server %s is in error runtime state", serverName)
+	}
+
+	return state == "VM-RUNNING", nil
 }
