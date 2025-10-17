@@ -17,29 +17,29 @@ limitations under the License.
 package serverset
 
 import (
-    "context"
-    "fmt"
-    "strconv"
-    "time"
+	"context"
+	"fmt"
+	"strconv"
+	"time"
 
-    "github.com/crossplane/crossplane-runtime/pkg/logging"
-    "github.com/crossplane/crossplane-runtime/pkg/meta"
-    "github.com/pkg/errors"
-    v1 "k8s.io/api/core/v1"
-    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-    "k8s.io/apimachinery/pkg/types"
-    "sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
+	"github.com/pkg/errors"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
-    xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-    "github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
-    "github.com/crossplane/crossplane-runtime/pkg/resource"
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
+	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
-    ionoscloud "github.com/ionos-cloud/sdk-go/v6"
+	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 
-    "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
-    control "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
-    "github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
-    "github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	control "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/kube"
 )
 
 const (
@@ -132,22 +132,22 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	e.populateReplicasStatuses(ctx, cr, servers)
 
-    stateMap := v1.ConfigMap{}
-    if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
-        if err = e.kube.Get(ctx, types.NamespacedName{
-            Name:      cr.Spec.ForProvider.Template.Spec.StateMap.Name,
-            Namespace: cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
-        }, &stateMap); err != nil {
-            e.log.Info("failed to retrieve state configMap for serverset, but reconcile will continue", "name", cr.Name, "error", err)
-        }
-    }
+	stateMap := v1.ConfigMap{}
+	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
+		if err = e.kube.Get(ctx, types.NamespacedName{
+			Name:      cr.Spec.ForProvider.Template.Spec.StateMap.Name,
+			Namespace: cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
+		}, &stateMap); err != nil {
+			e.log.Info("failed to retrieve state configMap for serverset, but reconcile will continue", "name", cr.Name, "error", err)
+		}
+	}
 
 	areServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
 	areServersUpToDate, areServersAvailable, err := AreServersReady(cr.Spec.ForProvider.Template.Spec, servers, stateMap)
-    if err != nil {
-        e.log.Info("failed to check if the servers are available and up-to-date", "name", cr.Name, "error", err)
-        return managed.ExternalObservation{}, fmt.Errorf("failed to check if serversare available and up-to-date: %w", err)
-    }
+	if err != nil {
+		e.log.Info("failed to check if the servers are available and up-to-date", "name", cr.Name, "error", err)
+		return managed.ExternalObservation{}, fmt.Errorf("failed to check if serversare available and up-to-date: %w", err)
+	}
 
 	volumes, err := GetVolumesOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
@@ -455,7 +455,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 			}
 
 			if failover {
-                e.log.Info("Server requires failover, waiting for update to finish before continuing", "serverset", cr.Name, "index", idx)
+				e.log.Info("Server requires failover, waiting for update to finish before continuing", "serverset", cr.Name, "index", idx)
 				if err := kube.WaitForResource(
 					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, name, namespace string) (bool, error) {
 						return e.isUpdateFinished(ctx, requestTimestamp, name, namespace)
@@ -465,11 +465,11 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 				}
 
 				if cr.Spec.ForProvider.Template.Spec.StateMap == nil {
-                    e.log.Info("Successfully updated server", "serverset", cr.Name, "index", idx)
+					e.log.Info("Successfully updated server", "serverset", cr.Name, "index", idx)
 					continue
 				}
 
-                e.log.Info("Server has been updated and uses custom state map, waiting for reboot to finish", "serverset", cr.Name, "index", idx)
+				e.log.Info("Server has been updated and uses custom state map, waiting for reboot to finish", "serverset", cr.Name, "index", idx)
 				if err := kube.WaitForResource(
 					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, mapName, mapNamespace string) (bool, error) {
 						return e.isVMSoftwareRunning(ctx, requestTimestamp, servers[idx].Name, mapName, mapNamespace, cr.Spec.ForProvider.Template.Spec.StateMap.Prefix)
@@ -479,7 +479,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 				}
 			}
 
-            e.log.Info("Successfully updated server", "serverset", cr.Name, "index", idx)
+			e.log.Info("Successfully updated server", "serverset", cr.Name, "index", idx)
 		}
 	}
 	return nil
@@ -633,15 +633,15 @@ func AreServersReady(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1
 			continue
 		}
 
-        // Since we allow the reconcile to continue even if we cannot fetch the config map, we need to check if the data is nil
-        // If it is nil, we consider that the server is not yet available since there is no config map in which it can report its state
-        if stateMap.Data == nil {
-            return true, false, nil
-        }
+		// Since we allow the reconcile to continue even if we cannot fetch the config map, we need to check if the data is nil
+		// If it is nil, we consider that the server is not yet available since there is no config map in which it can report its state
+		if stateMap.Data == nil {
+			return true, false, nil
+		}
 
 		serverStateKey := fmt.Sprintf(stateKeyFormat, templateParams.StateMap.Prefix, serverObj.Name)
 		state, ok := stateMap.Data[serverStateKey]
-        // If we cannot find the state in the config map, we consider that the server is not yet available since it did not report its state
+		// If we cannot find the state in the config map, we consider that the server is not yet available since it did not report its state
 		if !ok || state == "" {
 			return true, false, nil
 		}
@@ -948,8 +948,8 @@ func (e *external) isVMSoftwareRunning(ctx context.Context, requestTimestamp tim
 	stateKey := fmt.Sprintf(stateKeyFormat, keyPrefix, serverName)
 	timestampStateKey := fmt.Sprintf(stateTimestampKeyFormat, keyPrefix, serverName)
 
-    // We expect both state and timestamp to be present in the state config map.
-    // If either one is missing, it will result in the VM being considered not ready.
+	// We expect both state and timestamp to be present in the state config map.
+	// If either one is missing, it will result in the VM being considered not ready.
 	state, ok := stateMap.Data[stateKey]
 	if !ok || state == "" {
 		return false, nil

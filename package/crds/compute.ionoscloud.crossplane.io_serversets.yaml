@@ -805,7 +805,7 @@ spec:
                                    <prefix>-<server-name>-timestamp: 2025-10-15T11:26:20+00:00 # RFC3339 format only
 
                               Accepted states are: VM-RUNNING, VM-BUSY, VM-ERROR. If the configMap is not found or the key with the prefix is not found,
-                              the state will fallback to the API state.
+                              the serverset will be considered as not ready.
                             properties:
                               name:
                                 type: string

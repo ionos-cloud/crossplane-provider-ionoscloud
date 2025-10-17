@@ -28,10 +28,10 @@ import (
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
-    v1 "k8s.io/api/core/v1"
-    apiErrors "k8s.io/apimachinery/pkg/api/errors"
-    "k8s.io/apimachinery/pkg/types"
-    "sigs.k8s.io/controller-runtime/pkg/client"
+	v1 "k8s.io/api/core/v1"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
@@ -386,7 +386,7 @@ func areDataVolumesUpToDateAndAvailable(cr *v1alpha1.StatefulServerSet, volumes 
 }
 
 func areSSetResourcesReady(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (isSsetUpToDate, isSsetAvailable bool, err error) {
-    serversUpToDate, areServersAvailable, err := areServersUpToDate(ctx, kube, cr)
+	serversUpToDate, areServersAvailable, err := areServersUpToDate(ctx, kube, cr)
 	if !serversUpToDate {
 		return false, false, err
 	}
@@ -410,24 +410,23 @@ func areServersUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.St
 		return false, false, err
 	}
 
-    stateMap := v1.ConfigMap{}
-    if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
-        if err = kube.Get(ctx, types.NamespacedName{
-            Name:      cr.Spec.ForProvider.Template.Spec.StateMap.Name,
-            Namespace: cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
-        }, &stateMap); err != nil {
-            return false, false, fmt.Errorf("failed to get state map for statefulserverset %s: %w", cr.Name, err)
-        }
-    }
+	stateMap := v1.ConfigMap{}
+	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
+		if err = kube.Get(ctx, types.NamespacedName{
+			Name:      cr.Spec.ForProvider.Template.Spec.StateMap.Name,
+			Namespace: cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
+		}, &stateMap); err != nil {
+			return false, false, fmt.Errorf("failed to get state map for statefulserverset %s: %w", cr.Name, err)
+		}
+	}
 
-
-    if len(servers) < cr.Spec.ForProvider.Replicas {
+	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return false, false, nil
 	}
 	areServersUpToDate, areServersAvailable, err = serverset.AreServersReady(cr.Spec.ForProvider.Template.Spec, servers, stateMap)
-    if err != nil {
-        return areServersUpToDate, false, err
-    }
+	if err != nil {
+		return areServersUpToDate, false, err
+	}
 
 	return areServersUpToDate, areServersAvailable, nil
 }
