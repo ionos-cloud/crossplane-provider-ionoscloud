@@ -193,7 +193,7 @@ func (e *external) isServerSetUpToDate(ctx context.Context, cr *v1alpha1.Statefu
 			return false, false, false, nil
 		}
 	}
-	serversetUpToDate, ssetAvailable, err = areSSetResourcesReady(ctx, e.kube, e.log, cr)
+	serversetUpToDate, ssetAvailable, err = areSSetResourcesReady(ctx, e.kube, cr)
 	if err != nil {
 		return false, false, false, err
 	}
@@ -385,8 +385,8 @@ func areDataVolumesUpToDateAndAvailable(cr *v1alpha1.StatefulServerSet, volumes 
 	return true, true, true
 }
 
-func areSSetResourcesReady(ctx context.Context, kube client.Client, log logging.Logger, cr *v1alpha1.StatefulServerSet) (isSsetUpToDate, isSsetAvailable bool, err error) {
-    serversUpToDate, areServersAvailable, err := areServersUpToDate(ctx, kube, log, cr)
+func areSSetResourcesReady(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (isSsetUpToDate, isSsetAvailable bool, err error) {
+    serversUpToDate, areServersAvailable, err := areServersUpToDate(ctx, kube, cr)
 	if !serversUpToDate {
 		return false, false, err
 	}
@@ -404,7 +404,7 @@ func areSSetResourcesReady(ctx context.Context, kube client.Client, log logging.
 	return true, areServersAvailable && areBootVolumesAvailable, nil
 }
 
-func areServersUpToDate(ctx context.Context, kube client.Client, log logging.Logger, cr *v1alpha1.StatefulServerSet) (areServersUpToDate, areServersAvailable bool, err error) {
+func areServersUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (areServersUpToDate, areServersAvailable bool, err error) {
 	servers, err := serverset.GetServersOfSSet(ctx, kube, getSSetName(cr))
 	if err != nil {
 		return false, false, err
@@ -424,9 +424,9 @@ func areServersUpToDate(ctx context.Context, kube client.Client, log logging.Log
     if len(servers) < cr.Spec.ForProvider.Replicas {
 		return false, false, nil
 	}
-	areServersUpToDate, areServersAvailable, err = serverset.AreServersReady(cr.Spec.ForProvider.Template.Spec, servers, stateMap, log)
+	areServersUpToDate, areServersAvailable, err = serverset.AreServersReady(cr.Spec.ForProvider.Template.Spec, servers, stateMap)
     if err != nil {
-        return false, false, err
+        return areServersUpToDate, false, err
     }
 
 	return areServersUpToDate, areServersAvailable, nil

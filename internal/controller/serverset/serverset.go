@@ -138,13 +138,12 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
             Name:      cr.Spec.ForProvider.Template.Spec.StateMap.Name,
             Namespace: cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
         }, &stateMap); err != nil {
-            e.log.Info("failed to retrieve state configMap for serverset", "name", cr.Name, "error", err)
-            return managed.ExternalObservation{}, err
+            e.log.Info("failed to retrieve state configMap for serverset, but reconcile will continue", "name", cr.Name, "error", err)
         }
     }
 
 	areServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
-	areServersUpToDate, areServersAvailable, err := AreServersReady(cr.Spec.ForProvider.Template.Spec, servers, stateMap, e.log)
+	areServersUpToDate, areServersAvailable, err := AreServersReady(cr.Spec.ForProvider.Template.Spec, servers, stateMap)
     if err != nil {
         e.log.Info("failed to check if the servers are available and up-to-date", "name", cr.Name, "error", err)
         return managed.ExternalObservation{}, fmt.Errorf("failed to check if serversare available and up-to-date: %w", err)
@@ -456,6 +455,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 			}
 
 			if failover {
+                e.log.Info("Server requires failover, waiting for update to finish before continuing", "serverset", cr.Name, "index", idx)
 				if err := kube.WaitForResource(
 					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, name, namespace string) (bool, error) {
 						return e.isUpdateFinished(ctx, requestTimestamp, name, namespace)
@@ -465,17 +465,21 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 				}
 
 				if cr.Spec.ForProvider.Template.Spec.StateMap == nil {
+                    e.log.Info("Successfully updated server", "serverset", cr.Name, "index", idx)
 					continue
 				}
 
+                e.log.Info("Server has been updated and uses custom state map, waiting for reboot to finish", "serverset", cr.Name, "index", idx)
 				if err := kube.WaitForResource(
-					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, name, namespace string) (bool, error) {
-						return e.isRebootFinished(ctx, requestTimestamp, servers[idx].Name, name, namespace, cr.Spec.ForProvider.Template.Spec.StateMap.Prefix)
+					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, mapName, mapNamespace string) (bool, error) {
+						return e.isVMSoftwareRunning(ctx, requestTimestamp, servers[idx].Name, mapName, mapNamespace, cr.Spec.ForProvider.Template.Spec.StateMap.Prefix)
 					}, cr.Spec.ForProvider.Template.Spec.StateMap.Name, cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
 				); err != nil {
 					return fmt.Errorf("error waiting for server reboot: %w", err)
 				}
 			}
+
+            e.log.Info("Successfully updated server", "serverset", cr.Name, "index", idx)
 		}
 	}
 	return nil
@@ -607,7 +611,7 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 // AreServersReady checks if replicas and template params are equal to server obj params
-func AreServersReady(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server, stateMap v1.ConfigMap, log logging.Logger) (areServersUpToDate, areServersAvailable bool, err error) {
+func AreServersReady(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server, stateMap v1.ConfigMap) (areServersUpToDate, areServersAvailable bool, err error) {
 	for _, serverObj := range servers {
 		if serverObj.Spec.ForProvider.Cores != templateParams.Cores {
 			return false, false, nil
@@ -626,33 +630,31 @@ func AreServersReady(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1
 		}
 
 		if templateParams.StateMap == nil {
-            log.Info("no state map provided, skipping runtime state check", "server", serverObj.Name)
 			continue
 		}
 
-        log.Info("expecting to find state for server", "server", serverObj.Name)
+        // Since we allow the reconcile to continue even if we cannot fetch the config map, we need to check if the data is nil
+        // If it is nil, we consider that the server is not yet available since there is no config map in which it can report its state
+        if stateMap.Data == nil {
+            return true, false, nil
+        }
 
-		serverStateKey := fmt.Sprintf("%s-%s-state", templateParams.StateMap.Prefix, serverObj.Name)
+		serverStateKey := fmt.Sprintf(stateKeyFormat, templateParams.StateMap.Prefix, serverObj.Name)
 		state, ok := stateMap.Data[serverStateKey]
+        // If we cannot find the state in the config map, we consider that the server is not yet available since it did not report its state
 		if !ok || state == "" {
-            log.Info("no state for server", "server", serverObj.Name)
-			return true, false, fmt.Errorf("state for server %s not found in state map", serverObj.Name)
-		}
-
-		if state == "VM-ERROR" {
-            log.Info("server is in error runtime state", "server", serverObj.Name)
-			return true, false, fmt.Errorf("server %s is in error runtime state", serverObj.Name)
-		}
-
-		if state != "VM-RUNNING" {
-            log.Info("server is in some kind of state", "server", serverObj.Name, "state", state)
 			return true, false, nil
 		}
 
-        log.Info("server is in running state", "server", serverObj.Name)
+		if state == statusVMError {
+			return true, false, fmt.Errorf("server %s is in VM-ERROR runtime state", serverObj.Name)
+		}
+
+		if state != statusVMRunning {
+			return true, false, nil
+		}
 	}
 
-    log.Info("servers are all in running state")
 	return true, true, nil
 }
 
@@ -931,8 +933,8 @@ func (e *external) isUpdateFinished(ctx context.Context, requestTimestamp time.T
 	return wasProcessed && wasSuccessful, nil
 }
 
-// isRebootFinished checks the state configMap to see if the server has rebooted successfully and the software on it is back in a running state.
-func (e *external) isRebootFinished(ctx context.Context, requestTimestamp time.Time, serverName, mapName, mapNamespace, keyPrefix string) (bool, error) {
+// isVMSoftwareRunning checks the state configMap to see if the server has rebooted successfully and the software on it is back in a running state.
+func (e *external) isVMSoftwareRunning(ctx context.Context, requestTimestamp time.Time, serverName, mapName, mapNamespace, keyPrefix string) (bool, error) {
 	stateMap := &v1.ConfigMap{}
 	if err := e.kube.Get(
 		ctx, types.NamespacedName{
@@ -943,17 +945,19 @@ func (e *external) isRebootFinished(ctx context.Context, requestTimestamp time.T
 		return false, fmt.Errorf("error getting state map %s (%s) to check running state for server %s: %w", mapName, mapNamespace, serverName, err)
 	}
 
-	stateKey := fmt.Sprintf("%s-%s-state", keyPrefix, serverName)
-	timestampStateKey := fmt.Sprintf("%s-%s-timestamp", keyPrefix, serverName)
+	stateKey := fmt.Sprintf(stateKeyFormat, keyPrefix, serverName)
+	timestampStateKey := fmt.Sprintf(stateTimestampKeyFormat, keyPrefix, serverName)
 
+    // We expect both state and timestamp to be present in the state config map.
+    // If either one is missing, it will result in the VM being considered not ready.
 	state, ok := stateMap.Data[stateKey]
 	if !ok || state == "" {
-		return false, fmt.Errorf("state for server %s not found in state map %s (%s)", serverName, mapName, mapNamespace)
+		return false, nil
 	}
 
 	timestampStr, ok := stateMap.Data[timestampStateKey]
 	if !ok || timestampStr == "" {
-		return false, fmt.Errorf("timestamp for server %s not found in state map %s (%s)", serverName, mapName, mapNamespace)
+		return false, nil
 	}
 
 	timestamp, err := time.Parse(time.RFC3339, timestampStr)
@@ -965,9 +969,9 @@ func (e *external) isRebootFinished(ctx context.Context, requestTimestamp time.T
 		return false, nil
 	}
 
-	if state == "VM-ERROR" {
-		return false, fmt.Errorf("server %s is in error runtime state", serverName)
+	if state == statusVMError {
+		return false, fmt.Errorf("server %s is in VM-ERROR runtime state", serverName)
 	}
 
-	return state == "VM-RUNNING", nil
+	return state == statusVMRunning, nil
 }
