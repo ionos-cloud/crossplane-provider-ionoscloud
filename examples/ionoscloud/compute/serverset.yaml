@@ -76,6 +76,10 @@ spec:
         labels:
           key: value
       spec:
+        stateMap:
+          name: example-state-map
+          namespace: default
+          prefix: test
         cores: 1
         ram: 1024
         nics:
@@ -125,3 +129,14 @@ metadata:
   namespace: default
 data:
   identity: "server-sample-1-0"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-state-map
+  namespace: default
+data:
+  test-server-sample-0-0-state: "VM-RUNNING"
+  test-server-sample-0-0-timestamp: "2025-10-20T07:52:49+00:00"
+  test-server-sample-1-0-state: "VM-RUNNING"
+  test-server-sample-1-0-timestamp: "2025-10-20T07:54:12+00:00"

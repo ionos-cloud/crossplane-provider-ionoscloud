@@ -146,7 +146,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	areServersUpToDate, areServersAvailable, err := AreServersReady(cr.Spec.ForProvider.Template.Spec, servers, stateMap)
 	if err != nil {
 		e.log.Info("failed to check if the servers are available and up-to-date", "name", cr.Name, "error", err)
-		return managed.ExternalObservation{}, fmt.Errorf("failed to check if serversare available and up-to-date: %w", err)
+		return managed.ExternalObservation{}, fmt.Errorf("failed to check if servers are available and up-to-date: %w", err)
 	}
 
 	volumes, err := GetVolumesOfSSet(ctx, e.kube, cr.Name)
@@ -447,7 +447,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 		}
 
 		update, failover := checkServerDiff(&servers[idx], cr, bootVolume)
-		e.log.Info("Checking server for update", "serverset", cr.Name, "index", idx, "update", update, "failover", failover)
+		e.log.Info("Checking server for update", "serverset", cr.Name, "server", servers[idx].Name, "update", update, "failover", failover)
 		if update {
 			requestTimestamp := time.Now()
 			if err := e.kube.Update(ctx, &servers[idx]); err != nil {
@@ -455,7 +455,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 			}
 
 			if failover {
-				e.log.Info("Server requires failover, waiting for update to finish before continuing", "serverset", cr.Name, "index", idx)
+				e.log.Info("Server requires failover, waiting for update to finish before continuing", "serverset", cr.Name, "server", servers[idx].Name)
 				if err := kube.WaitForResource(
 					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, name, namespace string) (bool, error) {
 						return e.isUpdateFinished(ctx, requestTimestamp, name, namespace)
@@ -465,11 +465,11 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 				}
 
 				if cr.Spec.ForProvider.Template.Spec.StateMap == nil {
-					e.log.Info("Successfully updated server", "serverset", cr.Name, "index", idx)
+					e.log.Info("Successfully updated server", "serverset", cr.Name, "server", servers[idx].Name)
 					continue
 				}
 
-				e.log.Info("Server has been updated and uses custom state map, waiting for reboot to finish", "serverset", cr.Name, "index", idx)
+				e.log.Info("Server has been updated and uses custom state map, waiting for reboot to finish", "serverset", cr.Name, "server", servers[idx].Name)
 				if err := kube.WaitForResource(
 					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, mapName, mapNamespace string) (bool, error) {
 						return e.isVMSoftwareRunning(ctx, requestTimestamp, servers[idx].Name, mapName, mapNamespace, cr.Spec.ForProvider.Template.Spec.StateMap.Prefix)
@@ -479,7 +479,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 				}
 			}
 
-			e.log.Info("Successfully updated server", "serverset", cr.Name, "index", idx)
+			e.log.Info("Successfully updated server", "serverset", cr.Name, "server", servers[idx].Name)
 		}
 	}
 	return nil
@@ -640,10 +640,21 @@ func AreServersReady(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1
 		}
 
 		serverStateKey := fmt.Sprintf(stateKeyFormat, templateParams.StateMap.Prefix, serverObj.Name)
+		stateTimestampKey := fmt.Sprintf(stateTimestampKeyFormat, templateParams.StateMap.Prefix, serverObj.Name)
 		state, ok := stateMap.Data[serverStateKey]
 		// If we cannot find the state in the config map, we consider that the server is not yet available since it did not report its state
 		if !ok || state == "" {
 			return true, false, nil
+		}
+		// Also check if the timestamp exists
+		timestamp, ok := stateMap.Data[stateTimestampKey]
+		if !ok || timestamp == "" {
+			return true, false, nil
+		}
+
+		// We need to validate that the timestamp for the state is a valid RFC3339 timestamp, otherwise updates may not be done properly
+		if _, err = time.Parse(time.RFC3339, timestamp); err != nil {
+			return true, false, fmt.Errorf("failed to parse runtime state timestamp (%s) for server %s: %w", timestamp, serverObj.Name, err)
 		}
 
 		if state == statusVMError {

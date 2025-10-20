@@ -238,7 +238,7 @@ func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, ve
 		}}
 
 	if !cr.Spec.ForProvider.BootVolumeTemplate.Spec.SetHotPlugsFromImage {
-		vol.Spec.ForProvider.CPUHotPlug = false
+		vol.Spec.ForProvider.CPUHotPlug = true
 		vol.Spec.ForProvider.RAMHotPlug = true
 		vol.Spec.ForProvider.NicHotPlug = true
 		vol.Spec.ForProvider.NicHotUnplug = true

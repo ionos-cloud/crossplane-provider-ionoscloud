@@ -14,11 +14,9 @@ const (
 	statusBusy    = "BUSY"
 )
 
-// Constants for custom state config map functionality
 const (
 	// custom statuses for VMs
 	statusVMRunning = "VM-RUNNING"
-	statusVMBusy    = "VM-BUSY"
 	statusVMError   = "VM-ERROR"
 
 	// keys formats for config map
