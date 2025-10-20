@@ -200,9 +200,9 @@ func writeProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefini
 func writePropertiesWithPrefix(buf *bytes.Buffer, valueProperty apiextensionsv1.JSONSchemaProps, keyProperty, prefix string) { // nolint: interfacer,gocyclo
 	buf.WriteString(prefix + "* `" + keyProperty + "` (" + valueProperty.Type + ")\n")
 	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Description)) {
-        // align multiline descriptions correctly for markdown format
-        multilinePrefix := fmt.Sprintf("\n%s\t  ", prefix)
-        valueProperty.Description = strings.ReplaceAll(valueProperty.Description, "\n", multilinePrefix)
+		// align multiline descriptions correctly for markdown format
+		multilinePrefix := fmt.Sprintf("\n%s\t  ", prefix)
+		valueProperty.Description = strings.ReplaceAll(valueProperty.Description, "\n", multilinePrefix)
 		buf.WriteString(prefix + "\t* description: " + valueProperty.Description + "\n")
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(valueProperty.Default)) {
