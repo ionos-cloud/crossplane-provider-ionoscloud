@@ -76,46 +76,46 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 
 * `apiSubnetAllowList` (array)
 	* description: Access to the K8s API server is restricted to these CIDRs. Traffic, internal to the cluster, is not affected by this restriction.
-If no allow-list is specified, access is not restricted.
-If an IP without subnet mask is provided, the default value is used: 32 for IPv4 and 128 for IPv6.
-Example: "1.2.3.4/32", "2002::1234:abcd:ffff:c0a8:101/64", "1.2.3.4", "2002::1234:abcd:ffff:c0a8:101"
+	  If no allow-list is specified, access is not restricted.
+	  If an IP without subnet mask is provided, the default value is used: 32 for IPv4 and 128 for IPv6.
+	  Example: "1.2.3.4/32", "2002::1234:abcd:ffff:c0a8:101/64", "1.2.3.4", "2002::1234:abcd:ffff:c0a8:101"
 * `k8sVersion` (string)
 	* description: The Kubernetes version the cluster is running. This imposes restrictions on what Kubernetes versions can be run in a cluster's nodepools.
-Additionally, not all Kubernetes versions are viable upgrade targets for all prior versions.
-Example: 1.15.4
+	  Additionally, not all Kubernetes versions are viable upgrade targets for all prior versions.
+	  Example: 1.15.4
 * `location` (string)
 	* description: This attribute is mandatory if the cluster is private.
-The location must be enabled for your contract, or you must have a data center at that location.
-This attribute is immutable.
+	  The location must be enabled for your contract, or you must have a data center at that location.
+	  This attribute is immutable.
 * `maintenanceWindow` (object)
 	* description: The maintenance window is used for updating the cluster's control plane and for upgrading the cluster's K8s version.
-If no value is given, one is chosen dynamically, so there is no fixed default.
+	  If no value is given, one is chosen dynamically, so there is no fixed default.
 	* properties:
 		* `dayOfTheWeek` (string)
 			* description: DayOfTheWeek The name of the week day.
 		* `time` (string)
 * `name` (string)
 	* description: A Kubernetes cluster name. Valid Kubernetes cluster name must be 63 characters or less and must be empty
-or begin and end with an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
+	  or begin and end with an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
 * `natGatewayIpConfig` (object)
 	* description: The nat gateway IP of the cluster if the cluster is private. This
-property is immutable. Must be a reserved IP in the same location as
-the cluster's location. This attribute is mandatory if the cluster
-is private.
+	  property is immutable. Must be a reserved IP in the same location as
+	  the cluster's location. This attribute is mandatory if the cluster
+	  is private.
 	* properties:
 		* `ip` (string)
 			* description: Use IP to set specific IP to the resource. If both IP and IPBlockConfig are set,
-only `ip` field will be considered.
+			  only `ip` field will be considered.
 		* `ipBlockConfig` (object)
 			* description: Use IpBlockConfig to reference existing IPBlock, and to mention the index for the IP.
-Index starts from 0 and it must be provided.
+			  Index starts from 0 and it must be provided.
 			* properties:
 				* `index` (integer)
 					* description: Index is referring to the IP index retrieved from the IPBlock.
-Index is starting from 0.
+					  Index is starting from 0.
 				* `ipBlockId` (string)
 					* description: IPBlockID is the ID of the IPBlock on which the resource will be created.
-It needs to be provided via directly or via reference.
+					  It needs to be provided via directly or via reference.
 					* format: uuid
 				* `ipBlockIdRef` (object)
 					* description: IPBlockIDRef references to a IPBlock to retrieve its ID.
@@ -127,16 +127,16 @@ It needs to be provided via directly or via reference.
 							* properties:
 								* `resolution` (string)
 									* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+									  The default is 'Required', which means the reconcile will fail if the
+									  reference cannot be resolved. 'Optional' means this reference will be
+									  a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+									  is 'IfNotPresent', which will attempt to resolve the reference only when
+									  the corresponding field is not present. Use 'Always' to resolve the
+									  reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 					* required properties:
 						* `name`
@@ -145,7 +145,7 @@ reference on every reconcile.
 					* properties:
 						* `matchControllerRef` (boolean)
 							* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+							  as the selecting object is selected.
 						* `matchLabels` (object)
 							* description: MatchLabels ensures an object with matching labels is selected.
 						* `policy` (object)
@@ -153,30 +153,30 @@ as the selecting object is selected.
 							* properties:
 								* `resolution` (string)
 									* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+									  The default is 'Required', which means the reconcile will fail if the
+									  reference cannot be resolved. 'Optional' means this reference will be
+									  a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+									  is 'IfNotPresent', which will attempt to resolve the reference only when
+									  the corresponding field is not present. Use 'Always' to resolve the
+									  reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `index`
 * `nodeSubnet` (string)
 	* description: The node subnet of the cluster, if the cluster is private.
-This attribute is optional and immutable.
-Must be a valid CIDR notation for an IPv4 network prefix of 16 bits length.
+	  This attribute is optional and immutable.
+	  Must be a valid CIDR notation for an IPv4 network prefix of 16 bits length.
 * `public` (boolean)
 	* description: The indicator if the cluster is public or private.
-Be aware that setting it to false is currently in beta phase.
+	  Be aware that setting it to false is currently in beta phase.
 	* default: true
 * `s3Buckets` (array)
 	* description: List of IONOS Object Storage buckets configured for K8s usage.
-For now, it contains only an IONOS Object Storage bucket used to store K8s API audit logs.
+	  For now, it contains only an IONOS Object Storage bucket used to store K8s API audit logs.
 	* properties:
 		* `name` (string)
 	* required properties:

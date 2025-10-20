@@ -98,7 +98,7 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* properties:
 				* `datacenterId` (string)
 					* description: DatacenterID is the ID of the Datacenter on which the resource will be created.
-It needs to be provided via directly or via reference.
+					  It needs to be provided via directly or via reference.
 					* format: uuid
 				* `datacenterIdRef` (object)
 					* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
@@ -110,16 +110,16 @@ It needs to be provided via directly or via reference.
 							* properties:
 								* `resolution` (string)
 									* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+									  The default is 'Required', which means the reconcile will fail if the
+									  reference cannot be resolved. 'Optional' means this reference will be
+									  a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+									  is 'IfNotPresent', which will attempt to resolve the reference only when
+									  the corresponding field is not present. Use 'Always' to resolve the
+									  reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 					* required properties:
 						* `name`
@@ -128,7 +128,7 @@ reference on every reconcile.
 					* properties:
 						* `matchControllerRef` (boolean)
 							* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+							  as the selecting object is selected.
 						* `matchLabels` (object)
 							* description: MatchLabels ensures an object with matching labels is selected.
 						* `policy` (object)
@@ -136,23 +136,23 @@ as the selecting object is selected.
 							* properties:
 								* `resolution` (string)
 									* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+									  The default is 'Required', which means the reconcile will fail if the
+									  reference cannot be resolved. 'Optional' means this reference will be
+									  a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+									  is 'IfNotPresent', which will attempt to resolve the reference only when
+									  the corresponding field is not present. Use 'Always' to resolve the
+									  reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 		* `lanConfig` (object)
 			* description: LanConfig contains information about the lan resource.
 			* properties:
 				* `lanId` (string)
 					* description: LanID is the ID of the Lan on which the cluster will connect to.
-It needs to be provided via directly or via reference.
+					  It needs to be provided via directly or via reference.
 				* `lanIdRef` (object)
 					* description: LanIDRef references to a Lan to retrieve its ID.
 					* properties:
@@ -163,16 +163,16 @@ It needs to be provided via directly or via reference.
 							* properties:
 								* `resolution` (string)
 									* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+									  The default is 'Required', which means the reconcile will fail if the
+									  reference cannot be resolved. 'Optional' means this reference will be
+									  a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+									  is 'IfNotPresent', which will attempt to resolve the reference only when
+									  the corresponding field is not present. Use 'Always' to resolve the
+									  reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 					* required properties:
 						* `name`
@@ -181,7 +181,7 @@ reference on every reconcile.
 					* properties:
 						* `matchControllerRef` (boolean)
 							* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+							  as the selecting object is selected.
 						* `matchLabels` (object)
 							* description: MatchLabels ensures an object with matching labels is selected.
 						* `policy` (object)
@@ -189,16 +189,16 @@ as the selecting object is selected.
 							* properties:
 								* `resolution` (string)
 									* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+									  The default is 'Required', which means the reconcile will fail if the
+									  reference cannot be resolved. 'Optional' means this reference will be
+									  a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+									  is 'IfNotPresent', which will attempt to resolve the reference only when
+									  the corresponding field is not present. Use 'Always' to resolve the
+									  reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 	* required properties:
 		* `cidr`
@@ -218,7 +218,7 @@ reference on every reconcile.
 			* description: The unique ID of the snapshot you want to restore.
 		* `recoveryTargetTime` (string)
 			* description: If this value is supplied as ISO 8601 timestamp, the backup will be replayed up until the given timestamp.
-If empty, the backup will be applied completely.
+			  If empty, the backup will be applied completely.
 	* required properties:
 		* `backupId`
 * `instances` (integer)
@@ -246,7 +246,7 @@ If empty, the backup will be applied completely.
 	* format: int32
 * `storageType` (string)
 	* description: The storage type used in your cluster.
-Possible values: HDD, SSD Standard, SSD Premium
+	  Possible values: HDD, SSD Standard, SSD Premium
 * `synchronizationMode` (string)
 	* description: SynchronizationMode Represents different modes of replication.
 	* possible values: "ASYNCHRONOUS";"STRICTLY_SYNCHRONOUS";"SYNCHRONOUS"

@@ -85,12 +85,12 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 			* format: int32
 		* `checkTimeout` (integer)
 			* description: The maximum time in milliseconds to wait for a target to respond to a check.
-For target VMs with 'Check Interval' set, the lesser of the two  values
-is used once the TCP connection is established.
+			  For target VMs with 'Check Interval' set, the lesser of the two  values
+			  is used once the TCP connection is established.
 			* format: int32
 		* `retries` (integer)
 			* description: The maximum number of attempts to reconnect to a target after a connection failure.
-Valid range is 0 to 65535, and default is three reconnection attempts.
+			  Valid range is 0 to 65535, and default is three reconnection attempts.
 			* format: int32
 * `httpHealthCheck` (object)
 	* description: HTTP health check properties for target group.
@@ -120,8 +120,8 @@ Valid range is 0 to 65535, and default is three reconnection attempts.
 	* properties:
 		* `healthCheckEnabled` (boolean)
 			* description: Makes the target available only if it accepts periodic health check TCP connection attempts;
-when turned off, the target is considered always available.
-The health check only consists of a connection attempt to the address and port of the target.
+			  when turned off, the target is considered always available.
+			  The health check only consists of a connection attempt to the address and port of the target.
 		* `ip` (string)
 			* description: The IP of the balanced target VM.
 		* `maintenanceEnabled` (boolean)
@@ -131,9 +131,9 @@ The health check only consists of a connection attempt to the address and port o
 			* format: int32
 		* `weight` (integer)
 			* description: Traffic is distributed in proportion to target weight, relative to the combined weight of all targets.
-A target with higher weight receives a greater share of traffic. Valid range is 0 to 256 and default is 1;
-targets with weight of 0 do not participate in load balancing but still accept persistent connections.
-It is best use values in the middle of the range to leave room for later adjustments.
+			  A target with higher weight receives a greater share of traffic. Valid range is 0 to 256 and default is 1;
+			  targets with weight of 0 do not participate in load balancing but still accept persistent connections.
+			  It is best use values in the middle of the range to leave room for later adjustments.
 			* format: int32
 	* required properties:
 		* `ip`

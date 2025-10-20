@@ -76,11 +76,11 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 
 * `datacenterConfig` (object)
 	* description: DatacenterConfig contains information about the datacenter resource
-on which the lan will be created.
+	  on which the lan will be created.
 	* properties:
 		* `datacenterId` (string)
 			* description: DatacenterID is the ID of the Datacenter on which the resource will be created.
-It needs to be provided via directly or via reference.
+			  It needs to be provided via directly or via reference.
 			* format: uuid
 		* `datacenterIdRef` (object)
 			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
@@ -92,16 +92,16 @@ It needs to be provided via directly or via reference.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
@@ -110,7 +110,7 @@ reference on every reconcile.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+					  as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
@@ -118,23 +118,23 @@ as the selecting object is selected.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `ipv6Cidr` (string)
 	* description: For a GET request, this value is either 'null' or contains the LAN's /64 IPv6 CIDR block if this LAN is IPv6-enabled. For POST/PUT/PATCH requests, 'AUTO' will result in enabling this
-LAN for IPv6 and automatically assign a /64 IPv6 CIDR block to this LAN. If you choose the IPv6 CIDR block on your own, then you must provide a /64 block,
-which is inside the IPv6 CIDR block of the virtual datacenter and unique inside all LANs from this virtual datacenter. If you enable IPv6 on a LAN with NICs,
-those NICs will get a /80 IPv6 CIDR block and one IPv6 address assigned to each automatically, unless you specify them explicitly on the NICs.
-A virtual data center is limited to a maximum of 256 IPv6-enabled LANs.
+	  LAN for IPv6 and automatically assign a /64 IPv6 CIDR block to this LAN. If you choose the IPv6 CIDR block on your own, then you must provide a /64 block,
+	  which is inside the IPv6 CIDR block of the virtual datacenter and unique inside all LANs from this virtual datacenter. If you enable IPv6 on a LAN with NICs,
+	  those NICs will get a /80 IPv6 CIDR block and one IPv6 address assigned to each automatically, unless you specify them explicitly on the NICs.
+	  A virtual data center is limited to a maximum of 256 IPv6-enabled LANs.
 	* default: ""
 * `name` (string)
 	* description: The name of the  resource.
@@ -143,7 +143,7 @@ A virtual data center is limited to a maximum of 256 IPv6-enabled LANs.
 	* properties:
 		* `PrivateCrossConnectId` (string)
 			* description: PrivateCrossConnectID is the ID of the Pcc on which the resource will be created.
-It needs to be provided via directly or via reference.
+			  It needs to be provided via directly or via reference.
 			* format: uuid
 		* `PrivateCrossConnectIdRef` (object)
 			* description: PrivateCrossConnectIDRef references to a Pcc to retrieve its ID.
@@ -155,16 +155,16 @@ It needs to be provided via directly or via reference.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
@@ -173,7 +173,7 @@ reference on every reconcile.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+					  as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
@@ -181,16 +181,16 @@ as the selecting object is selected.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `public` (boolean)
 	* description: This LAN faces the public Internet.

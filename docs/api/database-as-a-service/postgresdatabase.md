@@ -79,7 +79,7 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* properties:
 		* `ClusterId` (string)
 			* description: ClusterID is the ID of the Cluster on which the resource will be created.
-It needs to be provided via directly or via reference.
+			  It needs to be provided via directly or via reference.
 			* format: uuid
 		* `ClusterIdRef` (object)
 			* description: ClusterIDRef references to a Cluster to retrieve its ID.
@@ -91,16 +91,16 @@ It needs to be provided via directly or via reference.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
@@ -109,7 +109,7 @@ reference on every reconcile.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+					  as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
@@ -117,16 +117,16 @@ as the selecting object is selected.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `name` (string)
 	* description: The database name.
@@ -143,16 +143,16 @@ reference on every reconcile.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
@@ -161,7 +161,7 @@ reference on every reconcile.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+					  as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
@@ -169,20 +169,20 @@ as the selecting object is selected.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 		* `userName` (string)
 			* description: UserName is the Name of the User on which the resource will be created.
-It needs to be provided directly or via reference.
+			  It needs to be provided directly or via reference.
 
 ### Required Properties
 

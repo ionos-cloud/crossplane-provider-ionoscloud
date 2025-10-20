@@ -79,7 +79,7 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* properties:
 		* `ClusterId` (string)
 			* description: ClusterID is the ID of the Cluster on which the resource will be created.
-It needs to be provided via directly or via reference.
+			  It needs to be provided via directly or via reference.
 			* format: uuid
 		* `ClusterIdRef` (object)
 			* description: ClusterIDRef references to a Cluster to retrieve its ID.
@@ -91,16 +91,16 @@ It needs to be provided via directly or via reference.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
@@ -109,7 +109,7 @@ reference on every reconcile.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+					  as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
@@ -117,23 +117,23 @@ as the selecting object is selected.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `credentials` (object)
 	* description: Database credentials - either set directly, or as secret/path/env
 	* properties:
 		* `env` (object)
 			* description: Env is a reference to an environment variable that contains credentials
-that must be used to connect to the provider.
+			  that must be used to connect to the provider.
 			* properties:
 				* `name` (string)
 					* description: Name is the name of an environment variable.
@@ -141,7 +141,7 @@ that must be used to connect to the provider.
 				* `name`
 		* `fs` (object)
 			* description: Fs is a reference to a filesystem location that contains credentials that
-must be used to connect to the provider.
+			  must be used to connect to the provider.
 			* properties:
 				* `path` (string)
 					* description: Path is a filesystem path.
@@ -150,7 +150,7 @@ must be used to connect to the provider.
 		* `password` (string)
 		* `secretRef` (object)
 			* description: A SecretRef is a reference to a secret key that contains the credentials
-that must be used to connect to the provider.
+			  that must be used to connect to the provider.
 			* properties:
 				* `key` (string)
 					* description: The key to select.
@@ -167,8 +167,8 @@ that must be used to connect to the provider.
 			* possible values: "None";"Secret";"InjectedIdentity";"Environment";"Filesystem"
 		* `username` (string)
 			* description: The username for the mongo user.
-Some system usernames are restricted (e.g. \"mongo\", \"admin\", \"standby\").
-Password must have a minimum length o 10
+			  Some system usernames are restricted (e.g. \"mongo\", \"admin\", \"standby\").
+			  Password must have a minimum length o 10
 * `userRoles` (array)
 	* description: A list of mongodb user roles
 	* properties:

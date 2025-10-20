@@ -78,18 +78,18 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* description: Map of annotations attached to NodePool.
 * `autoScaling` (object)
 	* description: property to be set when auto-scaling needs to be enabled for the NodePool.
-By default, auto-scaling is not enabled.
+	  By default, auto-scaling is not enabled.
 	* properties:
 		* `maxNodeCount` (integer)
 			* description: The maximum number of worker nodes that the managed node pool can scale-out.
-Should be set together with 'minNodeCount'.
-Value for this attribute must be greater than equal to 1 and minNodeCount.
+			  Should be set together with 'minNodeCount'.
+			  Value for this attribute must be greater than equal to 1 and minNodeCount.
 			* format: int32
 			* minimum: 1.000000
 		* `minNodeCount` (integer)
 			* description: The minimum number of worker nodes that the managed node group can scale in.
-Should be set together with 'maxNodeCount'.
-Value for this attribute must be greater than equal to 1 and less than equal to maxNodeCount.
+			  Should be set together with 'maxNodeCount'.
+			  Value for this attribute must be greater than equal to 1 and less than equal to maxNodeCount.
 			* format: int32
 			* minimum: 1.000000
 * `availabilityZone` (string)
@@ -100,7 +100,7 @@ Value for this attribute must be greater than equal to 1 and less than equal to 
 	* properties:
 		* `clusterId` (string)
 			* description: ClusterID is the ID of the Cluster on which the resource will be created.
-It needs to be provided via directly or via reference.
+			  It needs to be provided via directly or via reference.
 			* format: uuid
 		* `clusterIdRef` (object)
 			* description: ClusterIDRef references to a Cluster to retrieve its ID.
@@ -112,16 +112,16 @@ It needs to be provided via directly or via reference.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
@@ -130,7 +130,7 @@ reference on every reconcile.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+					  as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
@@ -138,29 +138,29 @@ as the selecting object is selected.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `coresCount` (integer)
 	* description: The number of cores for the node.
 	* format: int32
 * `cpuFamily` (string)
 	* description: A valid CPU family name.
-If no CPUFamily is provided, the API will set a CPUFamily supported by the location.
+	  If no CPUFamily is provided, the API will set a CPUFamily supported by the location.
 * `datacenterConfig` (object)
 	* description: A Datacenter, to which the user has access.
 	* properties:
 		* `datacenterId` (string)
 			* description: DatacenterID is the ID of the Datacenter on which the resource should have access.
-It needs to be provided via directly or via reference.
+			  It needs to be provided via directly or via reference.
 			* format: uuid
 		* `datacenterIdRef` (object)
 			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
@@ -172,16 +172,16 @@ It needs to be provided via directly or via reference.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
@@ -190,7 +190,7 @@ reference on every reconcile.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+					  as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
@@ -198,21 +198,21 @@ as the selecting object is selected.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `k8sVersion` (string)
 	* description: The Kubernetes version the NodePool is running. This imposes restrictions on what Kubernetes
-versions can be run in a cluster's NodePools. Additionally, not all Kubernetes versions are
-viable upgrade targets for all prior versions.
+	  versions can be run in a cluster's NodePools. Additionally, not all Kubernetes versions are
+	  viable upgrade targets for all prior versions.
 * `labels` (object)
 	* description: Map of labels attached to NodePool.
 * `lans` (array)
@@ -227,7 +227,7 @@ viable upgrade targets for all prior versions.
 			* properties:
 				* `lanId` (string)
 					* description: LanID is the ID of the Lan on which the NodePool will connect to.
-It needs to be provided via directly or via reference.
+					  It needs to be provided via directly or via reference.
 				* `lanIdRef` (object)
 					* description: LanIDRef references to a Lan to retrieve its ID.
 					* properties:
@@ -238,16 +238,16 @@ It needs to be provided via directly or via reference.
 							* properties:
 								* `resolution` (string)
 									* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+									  The default is 'Required', which means the reconcile will fail if the
+									  reference cannot be resolved. 'Optional' means this reference will be
+									  a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+									  is 'IfNotPresent', which will attempt to resolve the reference only when
+									  the corresponding field is not present. Use 'Always' to resolve the
+									  reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 					* required properties:
 						* `name`
@@ -256,7 +256,7 @@ reference on every reconcile.
 					* properties:
 						* `matchControllerRef` (boolean)
 							* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+							  as the selecting object is selected.
 						* `matchLabels` (object)
 							* description: MatchLabels ensures an object with matching labels is selected.
 						* `policy` (object)
@@ -264,16 +264,16 @@ as the selecting object is selected.
 							* properties:
 								* `resolution` (string)
 									* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+									  The default is 'Required', which means the reconcile will fail if the
+									  reference cannot be resolved. 'Optional' means this reference will be
+									  a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+									  is 'IfNotPresent', which will attempt to resolve the reference only when
+									  the corresponding field is not present. Use 'Always' to resolve the
+									  reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 		* `routes` (array)
 			* description: Array of additional LANs Routes attached to worker nodes.
@@ -284,41 +284,41 @@ reference on every reconcile.
 					* description: IPv4 or IPv6 CIDR to be routed via the interface.
 * `maintenanceWindow` (object)
 	* description: The maintenance window is used for updating the software on the NodePool's nodes and for upgrading the NodePool's K8s version.
-If no value is given, one is chosen dynamically, so there is no fixed default.
+	  If no value is given, one is chosen dynamically, so there is no fixed default.
 	* properties:
 		* `dayOfTheWeek` (string)
 			* description: DayOfTheWeek The name of the week day.
 		* `time` (string)
 * `name` (string)
 	* description: A Kubernetes node pool name. Valid Kubernetes node pool name must be 63 characters or less
-and must be empty or begin and end with an alphanumeric character ([a-z0-9A-Z]) with
-dashes (-), underscores (_), dots (.), and alphanumerics between.
+	  and must be empty or begin and end with an alphanumeric character ([a-z0-9A-Z]) with
+	  dashes (-), underscores (_), dots (.), and alphanumerics between.
 * `nodeCount` (integer)
 	* description: The number of nodes that make up the node pool.
 	* format: int32
 * `publicIpsConfigs` (object)
 	* description: Optional array of reserved public IP addresses to be used by the nodes.
-IPs must be from same location as the Datacenter used for the NodePool.
-The array must contain one more IP than the maximum possible number of nodes
-(nodeCount+1 for fixed number of nodes or maxNodeCount+1 when auto-scaling is used).
-The extra IP is used when the nodes are rebuilt.
-IPs can be set directly or via reference and indexes.
+	  IPs must be from same location as the Datacenter used for the NodePool.
+	  The array must contain one more IP than the maximum possible number of nodes
+	  (nodeCount+1 for fixed number of nodes or maxNodeCount+1 when auto-scaling is used).
+	  The extra IP is used when the nodes are rebuilt.
+	  IPs can be set directly or via reference and indexes.
 	* properties:
 		* `ips` (array)
 			* description: Use IPs to set specific IPs to the resource. If both IPs and IPsBlockConfigs are set,
-only `ips` field will be considered.
+			  only `ips` field will be considered.
 		* `ipsBlockConfigs` (array)
 			* description: Use IpsBlockConfigs to reference existing IPBlocks, and to mention the indexes for the IPs.
-Indexes start from 0, and multiple indexes can be set. If no index is set, all IPs from the
-corresponding IPBlock will be assigned to the resource.
+			  Indexes start from 0, and multiple indexes can be set. If no index is set, all IPs from the
+			  corresponding IPBlock will be assigned to the resource.
 			* properties:
 				* `indexes` (array)
 					* description: Indexes are referring to the IPs indexes retrieved from the IPBlock.
-Indexes are starting from 0. If no index is set, all IPs from the
-corresponding IPBlock will be assigned.
+					  Indexes are starting from 0. If no index is set, all IPs from the
+					  corresponding IPBlock will be assigned.
 				* `ipBlockId` (string)
 					* description: IPBlockID is the ID of the IPBlock on which the resource will be created.
-It needs to be provided via directly or via reference.
+					  It needs to be provided via directly or via reference.
 					* format: uuid
 				* `ipBlockIdRef` (object)
 					* description: IPBlockIDRef references to a IPBlock to retrieve its ID.
@@ -330,16 +330,16 @@ It needs to be provided via directly or via reference.
 							* properties:
 								* `resolution` (string)
 									* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+									  The default is 'Required', which means the reconcile will fail if the
+									  reference cannot be resolved. 'Optional' means this reference will be
+									  a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+									  is 'IfNotPresent', which will attempt to resolve the reference only when
+									  the corresponding field is not present. Use 'Always' to resolve the
+									  reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 					* required properties:
 						* `name`
@@ -348,7 +348,7 @@ reference on every reconcile.
 					* properties:
 						* `matchControllerRef` (boolean)
 							* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+							  as the selecting object is selected.
 						* `matchLabels` (object)
 							* description: MatchLabels ensures an object with matching labels is selected.
 						* `policy` (object)
@@ -356,22 +356,26 @@ as the selecting object is selected.
 							* properties:
 								* `resolution` (string)
 									* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+									  The default is 'Required', which means the reconcile will fail if the
+									  reference cannot be resolved. 'Optional' means this reference will be
+									  a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+									  is 'IfNotPresent', which will attempt to resolve the reference only when
+									  the corresponding field is not present. Use 'Always' to resolve the
+									  reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 * `ramSize` (integer)
 	* description: The RAM size for the node. Must be set in multiples of 1024 MB, with minimum size is of 2048 MB.
 	* format: int32
 	* minimum: 2048.000000
 	* multiple of: 1024.000000
+* `serverType` (string)
+	* description: The type of server for the Kubernetes node pool can be either
+	  'DedicatedCore' (nodes with dedicated CPU cores) or 'VCPU' (nodes with shared CPU cores).
+	  This selection corresponds to the server type for the compute engine.
 * `storageSize` (integer)
 	* description: The size of the volume in GB. The size should be greater than 10GB.
 	* format: int32
@@ -379,9 +383,6 @@ reference on every reconcile.
 * `storageType` (string)
 	* description: The type of hardware for the volume.
 	* possible values: "HDD";"SSD"
-* `serverType` (string)
-	* description: The server type for the compute engine.
-	* possible values: "DedicatedCore";"VCPU"
 
 ### Required Properties
 

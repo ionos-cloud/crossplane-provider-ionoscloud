@@ -76,7 +76,7 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 
 * `location` (string)
 	* description: Location of that IP block. Property cannot be modified after it is created (disallowed in update requests).
-Location can have the following values: de/fra, us/las, us/ewr, de/txl, gb/lhr, es/vit.
+	  Location can have the following values: de/fra, us/las, us/ewr, de/txl, gb/lhr, es/vit.
 * `name` (string)
 	* description: The name of the  resource.
 * `size` (integer)

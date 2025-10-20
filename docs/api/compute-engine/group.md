@@ -126,15 +126,15 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* default: false
 * `sharedResourcesConfig` (array)
 	* description: SharedResources allows sharing privilege to resources between the members of the group
-In order to share a resource within a group, it must be referenced either by providing its ID directly
-or by specifying a set of values by which its K8s object can be identified
+	  In order to share a resource within a group, it must be referenced either by providing its ID directly
+	  or by specifying a set of values by which its K8s object can be identified
 	* properties:
 		* `kind` (string)
 			* description: Kind of the Custom Resource
 		* `name` (string)
 			* description: If ResourceID is not provided directly, the resource can be referenced through other attributes
-These attributes mut all be provided for the Resource to be resolved successfully
-Name of the kubernetes object instance of the Custom Resource
+			  These attributes mut all be provided for the Resource to be resolved successfully
+			  Name of the kubernetes object instance of the Custom Resource
 		* `resourceShare` (object)
 			* description: ResourceShare
 			* properties:
@@ -143,7 +143,7 @@ Name of the kubernetes object instance of the Custom Resource
 					* default: false
 				* `resourceId` (string)
 					* description: ResourceID is the ID of the Resource to which Group members gain privileges
-It can only be provided directly
+					  It can only be provided directly
 					* format: uuid
 				* `sharePrivilege` (boolean)
 					* description: SharePrivilege for the Resource
@@ -152,15 +152,15 @@ It can only be provided directly
 			* description: Version of the Custom Resource
 * `userConfig` (array)
 	* description: In order to add a User as member to the Group, it is recommended to use UserCfg
-to add an existing User as a member (via id or via reference).
-To remove a User from the Group, update the CR spec by removing it.
-
-UserCfg contains information about an existing User resource
-which will be added to the Group
+	  to add an existing User as a member (via id or via reference).
+	  To remove a User from the Group, update the CR spec by removing it.
+	  
+	  UserCfg contains information about an existing User resource
+	  which will be added to the Group
 	* properties:
 		* `userId` (string)
 			* description: UserID is the ID of the User on which the resource should have access.
-It needs to be provided directly or via reference.
+			  It needs to be provided directly or via reference.
 			* format: uuid
 		* `userIdRef` (object)
 			* description: UserIDRef references to a User to retrieve its ID.
@@ -172,16 +172,16 @@ It needs to be provided directly or via reference.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
@@ -190,7 +190,7 @@ reference on every reconcile.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+					  as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
@@ -198,16 +198,16 @@ as the selecting object is selected.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 
 ### Required Properties
