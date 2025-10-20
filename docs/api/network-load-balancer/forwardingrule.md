@@ -82,7 +82,7 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* properties:
 		* `datacenterId` (string)
 			* description: DatacenterID is the ID of the Datacenter on which the resource should have access.
-It needs to be provided directly or via reference.
+			  It needs to be provided directly or via reference.
 			* format: uuid
 		* `datacenterIdRef` (object)
 			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
@@ -94,16 +94,16 @@ It needs to be provided directly or via reference.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
@@ -112,7 +112,7 @@ reference on every reconcile.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+					  as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
@@ -120,16 +120,16 @@ as the selecting object is selected.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `healthCheck` (object)
 	* description: HealthCheck options for the forwarding rule health check
@@ -156,17 +156,17 @@ reference on every reconcile.
 	* properties:
 		* `index` (integer)
 			* description: Index can be used to retrieve an ip from the referenced IPBlock
-Starting index is 0.
+			  Starting index is 0.
 		* `ip` (string)
 			* description: IP can be used to directly specify a single ip to the resource
 			* pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
 		* `ipBlock` (object)
 			* description: IPBlockConfig can be used to reference an existing IPBlock and assign an ip by indexing
-For Network Load Balancer Forwarding Rules, only a single index can be specified
+			  For Network Load Balancer Forwarding Rules, only a single index can be specified
 			* properties:
 				* `ipBlockId` (string)
 					* description: IPBlockID is the ID of the IPBlock on which the resource will be created.
-It needs to be provided directly or via reference.
+					  It needs to be provided directly or via reference.
 					* format: uuid
 				* `ipBlockIdRef` (object)
 					* description: IPBlockIDRef references to a IPBlock to retrieve its ID.
@@ -178,16 +178,16 @@ It needs to be provided directly or via reference.
 							* properties:
 								* `resolution` (string)
 									* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+									  The default is 'Required', which means the reconcile will fail if the
+									  reference cannot be resolved. 'Optional' means this reference will be
+									  a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+									  is 'IfNotPresent', which will attempt to resolve the reference only when
+									  the corresponding field is not present. Use 'Always' to resolve the
+									  reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 					* required properties:
 						* `name`
@@ -196,7 +196,7 @@ reference on every reconcile.
 					* properties:
 						* `matchControllerRef` (boolean)
 							* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+							  as the selecting object is selected.
 						* `matchLabels` (object)
 							* description: MatchLabels ensures an object with matching labels is selected.
 						* `policy` (object)
@@ -204,16 +204,16 @@ as the selecting object is selected.
 							* properties:
 								* `resolution` (string)
 									* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+									  The default is 'Required', which means the reconcile will fail if the
+									  reference cannot be resolved. 'Optional' means this reference will be
+									  a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+									  is 'IfNotPresent', which will attempt to resolve the reference only when
+									  the corresponding field is not present. Use 'Always' to resolve the
+									  reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 * `listenerPort` (integer)
 	* description: Listening (inbound) port number; valid range is 1 to 65535.
@@ -227,7 +227,7 @@ reference on every reconcile.
 	* properties:
 		* `networkLoadBalancerId` (string)
 			* description: NetworkLoadBalancerID is the ID of the NetworkLoadBalancer on which the resource should have access.
-It needs to be provided directly or via reference.
+			  It needs to be provided directly or via reference.
 			* format: uuid
 		* `networkLoadBalancerIdRef` (object)
 			* description: NetworkLoadBalancerIDRef references to a Datacenter to retrieve its ID.
@@ -239,16 +239,16 @@ It needs to be provided directly or via reference.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
@@ -257,7 +257,7 @@ reference on every reconcile.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+					  as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
@@ -265,16 +265,16 @@ as the selecting object is selected.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `protocol` (string)
 	* description: Balancing protocol
@@ -288,8 +288,8 @@ reference on every reconcile.
 			* properties:
 				* `check` (boolean)
 					* description: Check makes the target available only if it accepts periodic health check TCP connection attempts.
-When turned off, the target is considered always available.
-The health check only consists of a connection attempt to the address and port of the target.
+					  When turned off, the target is considered always available.
+					  The health check only consists of a connection attempt to the address and port of the target.
 					* default: true
 				* `checkInterval` (integer)
 					* description: CheckInterval the interval in milliseconds between consecutive health checks; default is 2000.
@@ -302,17 +302,17 @@ The health check only consists of a connection attempt to the address and port o
 			* properties:
 				* `index` (integer)
 					* description: Index can be used to retrieve an ip from the referenced IPBlock
-Starting index is 0.
+					  Starting index is 0.
 				* `ip` (string)
 					* description: IP can be used to directly specify a single ip to the resource
 					* pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
 				* `ipBlock` (object)
 					* description: IPBlockConfig can be used to reference an existing IPBlock and assign an ip by indexing
-For Network Load Balancer Forwarding Rules, only a single index can be specified
+					  For Network Load Balancer Forwarding Rules, only a single index can be specified
 					* properties:
 						* `ipBlockId` (string)
 							* description: IPBlockID is the ID of the IPBlock on which the resource will be created.
-It needs to be provided directly or via reference.
+							  It needs to be provided directly or via reference.
 							* format: uuid
 						* `ipBlockIdRef` (object)
 							* description: IPBlockIDRef references to a IPBlock to retrieve its ID.
@@ -324,16 +324,16 @@ It needs to be provided directly or via reference.
 									* properties:
 										* `resolution` (string)
 											* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+											  The default is 'Required', which means the reconcile will fail if the
+											  reference cannot be resolved. 'Optional' means this reference will be
+											  a no-op if it cannot be resolved.
 											* default: "Required"
 											* possible values: "Required";"Optional"
 										* `resolve` (string)
 											* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+											  is 'IfNotPresent', which will attempt to resolve the reference only when
+											  the corresponding field is not present. Use 'Always' to resolve the
+											  reference on every reconcile.
 											* possible values: "Always";"IfNotPresent"
 							* required properties:
 								* `name`
@@ -342,7 +342,7 @@ reference on every reconcile.
 							* properties:
 								* `matchControllerRef` (boolean)
 									* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+									  as the selecting object is selected.
 								* `matchLabels` (object)
 									* description: MatchLabels ensures an object with matching labels is selected.
 								* `policy` (object)
@@ -350,16 +350,16 @@ as the selecting object is selected.
 									* properties:
 										* `resolution` (string)
 											* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+											  The default is 'Required', which means the reconcile will fail if the
+											  reference cannot be resolved. 'Optional' means this reference will be
+											  a no-op if it cannot be resolved.
 											* default: "Required"
 											* possible values: "Required";"Optional"
 										* `resolve` (string)
 											* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+											  is 'IfNotPresent', which will attempt to resolve the reference only when
+											  the corresponding field is not present. Use 'Always' to resolve the
+											  reference on every reconcile.
 											* possible values: "Always";"IfNotPresent"
 		* `port` (integer)
 			* description: Port of the balanced target
@@ -370,9 +370,9 @@ reference on every reconcile.
 			* possible values: "none";"v1";"v2";"v2ssl"
 		* `weight` (integer)
 			* description: Weight of the balanced target Traffic is distributed in proportion to target weight, relative to the combined weight of all targets.
-A target with higher weight receives a greater share of traffic. Valid range is 0 to 256 and default is 1.
-Targets with weight of 0 do not participate in load balancing but still accept persistent connections.
-It is best to assign weights in the middle of the range to leave room for later adjustments.
+			  A target with higher weight receives a greater share of traffic. Valid range is 0 to 256 and default is 1.
+			  Targets with weight of 0 do not participate in load balancing but still accept persistent connections.
+			  It is best to assign weights in the middle of the range to leave room for later adjustments.
 			* format: int32
 	* required properties:
 		* `ipConfig`

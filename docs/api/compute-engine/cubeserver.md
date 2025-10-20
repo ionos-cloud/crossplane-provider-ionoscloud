@@ -80,11 +80,11 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	* possible values: "AUTO";"ZONE_1";"ZONE_2"
 * `datacenterConfig` (object)
 	* description: DatacenterConfig contains information about the datacenter resource
-on which the server will be created.
+	  on which the server will be created.
 	* properties:
 		* `datacenterId` (string)
 			* description: DatacenterID is the ID of the Datacenter on which the resource will be created.
-It needs to be provided via directly or via reference.
+			  It needs to be provided via directly or via reference.
 			* format: uuid
 		* `datacenterIdRef` (object)
 			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
@@ -96,16 +96,16 @@ It needs to be provided via directly or via reference.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
@@ -114,7 +114,7 @@ reference on every reconcile.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+					  as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
@@ -122,16 +122,16 @@ as the selecting object is selected.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `name` (string)
 	* description: The name of the  resource.
@@ -148,13 +148,13 @@ reference on every reconcile.
 	* properties:
 		* `backupUnitConfig` (object)
 			* description: BackupUnitCfg contains information about the backup unit resource
-that the user has access to.
-The property is immutable and is only allowed to be set on creation of a new a volume.
-It is mandatory to provide either 'public image' or 'imageAlias' in conjunction with this property.
+			  that the user has access to.
+			  The property is immutable and is only allowed to be set on creation of a new a volume.
+			  It is mandatory to provide either 'public image' or 'imageAlias' in conjunction with this property.
 			* properties:
 				* `backupUnitId` (string)
 					* description: BackupUnitID is the ID of the BackupUnit on which the resource will be created.
-It needs to be provided via directly or via reference.
+					  It needs to be provided via directly or via reference.
 					* format: uuid
 				* `backupUnitIdRef` (object)
 					* description: BackupUnitIDRef references to a BackupUnit to retrieve its ID.
@@ -166,16 +166,16 @@ It needs to be provided via directly or via reference.
 							* properties:
 								* `resolution` (string)
 									* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+									  The default is 'Required', which means the reconcile will fail if the
+									  reference cannot be resolved. 'Optional' means this reference will be
+									  a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+									  is 'IfNotPresent', which will attempt to resolve the reference only when
+									  the corresponding field is not present. Use 'Always' to resolve the
+									  reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 					* required properties:
 						* `name`
@@ -184,7 +184,7 @@ reference on every reconcile.
 					* properties:
 						* `matchControllerRef` (boolean)
 							* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+							  as the selecting object is selected.
 						* `matchLabels` (object)
 							* description: MatchLabels ensures an object with matching labels is selected.
 						* `policy` (object)
@@ -192,16 +192,16 @@ as the selecting object is selected.
 							* properties:
 								* `resolution` (string)
 									* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+									  The default is 'Required', which means the reconcile will fail if the
+									  reference cannot be resolved. 'Optional' means this reference will be
+									  a no-op if it cannot be resolved.
 									* default: "Required"
 									* possible values: "Required";"Optional"
 								* `resolve` (string)
 									* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+									  is 'IfNotPresent', which will attempt to resolve the reference only when
+									  the corresponding field is not present. Use 'Always' to resolve the
+									  reference on every reconcile.
 									* possible values: "Always";"IfNotPresent"
 		* `bus` (string)
 			* description: The bus type of the volume.
@@ -214,17 +214,17 @@ reference on every reconcile.
 			* description: Hot-unplug capable Virt-IO drive (no reboot required). Not supported with Windows VMs.
 		* `image` (string)
 			* description: Image or snapshot ID to be used as template for this volume.
-Make sure the image selected is compatible with the datacenter's location.
-Note: when creating a volume - set image, image alias, or licence type.
+			  Make sure the image selected is compatible with the datacenter's location.
+			  Note: when creating a volume - set image, image alias, or licence type.
 		* `imageAlias` (string)
 			* description: Image Alias to be used for this volume.
-Note: when creating a volume - set image, image alias, or licence type.
+			  Note: when creating a volume - set image, image alias, or licence type.
 		* `imagePassword` (string)
 			* description: Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
-Password rules allows all characters from a-z, A-Z, 0-9.
+			  Password rules allows all characters from a-z, A-Z, 0-9.
 		* `licenceType` (string)
 			* description: OS type for this volume.
-Note: when creating a volume - set image, image alias, or licence type.
+			  Note: when creating a volume - set image, image alias, or licence type.
 			* possible values: "UNKNOWN";"WINDOWS";"WINDOWS2016";"WINDOWS2022";"LINUX";"OTHER"
 		* `name` (string)
 			* description: The name of the DAS Volume.
@@ -236,12 +236,12 @@ Note: when creating a volume - set image, image alias, or licence type.
 			* description: Hot-plug capable RAM (no reboot required).
 		* `sshKeys` (array)
 			* description: Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key.
-This field may only be set in creation requests. When reading, it always returns null.
-SSH keys are only supported if a public Linux image is used for the volume creation.
+			  This field may only be set in creation requests. When reading, it always returns null.
+			  SSH keys are only supported if a public Linux image is used for the volume creation.
 		* `userData` (string)
 			* description: The cloud-init configuration for the volume as base64 encoded string.
-The property is immutable and is only allowed to be set on creation of a new a volume.
-It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
+			  The property is immutable and is only allowed to be set on creation of a new a volume.
+			  It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
 	* required properties:
 		* `bus`
 		* `name`

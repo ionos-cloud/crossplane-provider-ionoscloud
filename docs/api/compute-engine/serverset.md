@@ -87,8 +87,8 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 				* `labels` (object)
 				* `name` (string)
 					* description: Name of the BootVolume. Replica index, volume index, and version are appended to the name.
-Resulting name will be in format: {name}-{replicaIndex}-{version}.
-Version increases if the bootvolume is re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
+					  Resulting name will be in format: {name}-{replicaIndex}-{version}.
+					  Version increases if the bootvolume is re-created due to an immutable field changing. E.g. if the image or the disk type are changed, the bootvolume is re-created and the version is increased.
 					* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 			* required properties:
 				* `name`
@@ -97,16 +97,16 @@ Version increases if the bootvolume is re-created due to an immutable field chan
 			* properties:
 				* `image` (string)
 					* description: Image or snapshot ID to be used as template for this volume.
-Make sure the image selected is compatible with the datacenter's location.
-Note: when creating a volume and setting image, set imagePassword or SSKeys as well.
+					  Make sure the image selected is compatible with the datacenter's location.
+					  Note: when creating a volume and setting image, set imagePassword or SSKeys as well.
 				* `imagePassword` (string)
 					* description: Initial password to be set for installed OS. Works with public images only. Not modifiable, forbidden in update requests.
-Password rules allows all characters from a-z, A-Z, 0-9.
+					  Password rules allows all characters from a-z, A-Z, 0-9.
 					* pattern: ^[A-Za-z0-9]+$
 				* `selector` (object)
 					* description: A label selector is a label query over a set of resources. The result of matchLabels and
-matchExpressions are ANDed. An empty label selector matches all objects. A null
-label selector matches no objects.
+					  matchExpressions are ANDed. An empty label selector matches all objects. A null
+					  label selector matches no objects.
 					* properties:
 						* `matchExpressions` (array)
 							* description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
@@ -115,28 +115,34 @@ label selector matches no objects.
 									* description: key is the label key that the selector applies to.
 								* `operator` (string)
 									* description: operator represents a key's relationship to a set of values.
-Valid operators are In, NotIn, Exists and DoesNotExist.
+									  Valid operators are In, NotIn, Exists and DoesNotExist.
 								* `values` (array)
 									* description: values is an array of string values. If the operator is In or NotIn,
-the values array must be non-empty. If the operator is Exists or DoesNotExist,
-the values array must be empty. This array is replaced during a strategic
-merge patch.
+									  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+									  the values array must be empty. This array is replaced during a strategic
+									  merge patch.
 							* required properties:
 								* `key`
 								* `operator`
 						* `matchLabels` (object)
 							* description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-map is equivalent to an element of matchExpressions, whose key field is "key", the
-operator is "In", and the values array contains only "value". The requirements are ANDed.
+							  map is equivalent to an element of matchExpressions, whose key field is "key", the
+							  operator is "In", and the values array contains only "value". The requirements are ANDed.
+				* `setHotPlugsFromImage` (boolean)
+					* description: SetHotPlugsFromImage enables or disables pulling hot plug settings (currently only CPU and RAM) from the image.
+					  If not specified, the default value is false.
+					  Is incompatible with other hot plug settings - if set to true, it will ignore any other hot plug settings.
+					  Changing this value requires the boot volume to be re-created.
+					* default: false
 				* `size` (number)
 					* description: The size of the volume in GB.
 				* `sshKeys` (array)
 					* description: Public SSH keys are set on the image as authorized keys for appropriate SSH login to the instance using the corresponding private key.
-This field may only be set in creation requests. When reading, it always returns null.
-SSH keys are only supported if a public Linux image is used for the volume creation.
+					  This field may only be set in creation requests. When reading, it always returns null.
+					  SSH keys are only supported if a public Linux image is used for the volume creation.
 				* `substitutions` (array)
 					* description: Substitutions are used to replace placeholders in the cloud-init configuration.
-The property is immutable and is only allowed to be set on creation of a new a volume.
+					  The property is immutable and is only allowed to be set on creation of a new a volume.
 					* properties:
 						* `key` (string)
 							* description: The key that will be replaced by the value computed by the handler
@@ -144,7 +150,7 @@ The property is immutable and is only allowed to be set on creation of a new a v
 							* description: The options for the handler. For example, for ipv4Address and ipv6Address handlers, we need to specify cidr as an option
 						* `type` (string)
 							* description: The type of the handler that will be used for this substitution. The handler will
-be responsible for computing the value we put in place of te key
+							  be responsible for computing the value we put in place of te key
 							* possible values: "ipv4Address";"ipv6Address"
 						* `unique` (boolean)
 							* description: The value is unique across multiple ServerSets
@@ -167,10 +173,10 @@ be responsible for computing the value we put in place of te key
 						* `type`
 				* `userData` (string)
 					* description: The cloud-init configuration for the volume as base64 encoded string.
-The property is immutable and is only allowed to be set on creation of a new a volume.
-It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
-Hostname is injected automatically in the userdata, in the format: {bootvolumeNameFromMetadata}-{replicaIndex}-{version}
-PCI slots of the nics attached to the server are injected automatically in the userdata, with the key : {nic_pcislot}_{nicNameFromMetadata with - replaced by _} and the value : {pciSlot}
+					  The property is immutable and is only allowed to be set on creation of a new a volume.
+					  It is mandatory to provide either 'public image' or 'imageAlias' that has cloud-init compatibility in conjunction with this property.
+					  Hostname is injected automatically in the userdata, in the format: {bootvolumeNameFromMetadata}-{replicaIndex}-{version}
+					  PCI slots of the nics attached to the server are injected automatically in the userdata, with the key : {nic_pcislot}_{nicNameFromMetadata with - replaced by _} and the value : {pciSlot}
 			* required properties:
 				* `image`
 				* `size`
@@ -180,11 +186,11 @@ PCI slots of the nics attached to the server are injected automatically in the u
 		* `spec`
 * `datacenterConfig` (object)
 	* description: DatacenterConfig contains information about the datacenter resource
-on which the server will be created.
+	  on which the server will be created.
 	* properties:
 		* `datacenterId` (string)
 			* description: DatacenterID is the ID of the Datacenter on which the resource will be created.
-It needs to be provided via directly or via reference.
+			  It needs to be provided via directly or via reference.
 			* format: uuid
 		* `datacenterIdRef` (object)
 			* description: DatacenterIDRef references to a Datacenter to retrieve its ID.
@@ -196,16 +202,16 @@ It needs to be provided via directly or via reference.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 			* required properties:
 				* `name`
@@ -214,7 +220,7 @@ reference on every reconcile.
 			* properties:
 				* `matchControllerRef` (boolean)
 					* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+					  as the selecting object is selected.
 				* `matchLabels` (object)
 					* description: MatchLabels ensures an object with matching labels is selected.
 				* `policy` (object)
@@ -222,21 +228,21 @@ as the selecting object is selected.
 					* properties:
 						* `resolution` (string)
 							* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+							  The default is 'Required', which means the reconcile will fail if the
+							  reference cannot be resolved. 'Optional' means this reference will be
+							  a no-op if it cannot be resolved.
 							* default: "Required"
 							* possible values: "Required";"Optional"
 						* `resolve` (string)
 							* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+							  is 'IfNotPresent', which will attempt to resolve the reference only when
+							  the corresponding field is not present. Use 'Always' to resolve the
+							  reference on every reconcile.
 							* possible values: "Always";"IfNotPresent"
 * `identityConfigMap` (object)
 	* description: IdentityConfigMap is the configMap from which the identity of the ACTIVE server in the ServerSet is read. The configMap
-should be created separately. The serverset only reads the status from it. If it does not find it, it sets
-	// the first server as the ACTIVE.
+	  should be created separately. The serverset only reads the status from it. If it does not find it, it sets
+	  	// the first server as the ACTIVE.
 	* properties:
 		* `keyName` (string)
 			* description: KeyName the key name in the configMap from which the identity of the ACTIVE server in the ServerSet is read.
@@ -256,7 +262,7 @@ should be created separately. The serverset only reads the status from it. If it
 				* `labels` (object)
 				* `name` (string)
 					* description: Name of the Server. Replica index and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{version}
-Version increases if the Server is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the Server is re-created and the version is increased.
+					  Version increases if the Server is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the Server is re-created and the version is increased.
 					* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 			* required properties:
 				* `name`
@@ -266,11 +272,11 @@ Version increases if the Server is re-created due to an immutable field changing
 				* `cores` (integer)
 					* description: The total number of cores for the server.
 					* format: int32
-				* `nicMultiqueue` (boolean)
-					* description: Activate or deactivate the Multi Queue feature on all NICs of this server.
 				* `cpuFamily` (string)
 					* description: CPU architecture on which server gets provisioned; not all CPU architectures are available in all datacenter regions;
-available CPU architectures can be retrieved from the datacenter resource.
+					  available CPU architectures can be retrieved from the datacenter resource.
+				* `nicMultiQueue` (boolean)
+					* description: Activate or deactivate the Multi Queue feature on all NICs of this server.
 				* `nics` (array)
 					* description: NICs are the network interfaces of the server.
 					* properties:
@@ -294,13 +300,13 @@ available CPU architectures can be retrieved from the datacenter resource.
 									* description: The name of the  resource.
 								* `portRangeEnd` (integer)
 									* description: Defines the end range of the allowed port (from 1 to 65534) if the protocol TCP or UDP is chosen.
-Leave portRangeStart and portRangeEnd null to allow all ports.
+									  Leave portRangeStart and portRangeEnd null to allow all ports.
 									* format: int32
 									* minimum: 1.000000
 									* maximum: 65534.000000
 								* `portRangeStart` (integer)
 									* description: Defines the start range of the allowed port (from 1 to 65534) if protocol TCP or UDP is chosen.
-Leave portRangeStart and portRangeEnd value null to allow all ports.
+									  Leave portRangeStart and portRangeEnd value null to allow all ports.
 									* format: int32
 									* minimum: 1.000000
 									* maximum: 65534.000000
@@ -309,23 +315,23 @@ Leave portRangeStart and portRangeEnd value null to allow all ports.
 									* possible values: "TCP";"UDP";"ICMP";"ANY"
 								* `sourceIpConfig` (object)
 									* description: Only traffic originating from the respective IPv4 address is allowed.
-Value null allows traffic from any IP address.
-SourceIP can be set directly or via reference to an IP Block and index.
+									  Value null allows traffic from any IP address.
+									  SourceIP can be set directly or via reference to an IP Block and index.
 									* properties:
 										* `ip` (string)
 											* description: Use IP or CIDR to set specific IP or CIDR to the resource. If both IP and IPBlockConfig are set,
-only `ip` field will be considered.
+											  only `ip` field will be considered.
 											* pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}(/([0-9]|[1-2][0-9]|3[0-2]))?$
 										* `ipBlockConfig` (object)
 											* description: Use IpBlockConfig to reference existing IPBlock, and to mention the index for the IP.
-Index starts from 0 and it must be provided.
+											  Index starts from 0 and it must be provided.
 											* properties:
 												* `index` (integer)
 													* description: Index is referring to the IP index retrieved from the IPBlock.
-Index is starting from 0.
+													  Index is starting from 0.
 												* `ipBlockId` (string)
 													* description: IPBlockID is the ID of the IPBlock on which the resource will be created.
-It needs to be provided via directly or via reference.
+													  It needs to be provided via directly or via reference.
 													* format: uuid
 												* `ipBlockIdRef` (object)
 													* description: IPBlockIDRef references to a IPBlock to retrieve its ID.
@@ -337,16 +343,16 @@ It needs to be provided via directly or via reference.
 															* properties:
 																* `resolution` (string)
 																	* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+																	  The default is 'Required', which means the reconcile will fail if the
+																	  reference cannot be resolved. 'Optional' means this reference will be
+																	  a no-op if it cannot be resolved.
 																	* default: "Required"
 																	* possible values: "Required";"Optional"
 																* `resolve` (string)
 																	* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+																	  is 'IfNotPresent', which will attempt to resolve the reference only when
+																	  the corresponding field is not present. Use 'Always' to resolve the
+																	  reference on every reconcile.
 																	* possible values: "Always";"IfNotPresent"
 													* required properties:
 														* `name`
@@ -355,7 +361,7 @@ reference on every reconcile.
 													* properties:
 														* `matchControllerRef` (boolean)
 															* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+															  as the selecting object is selected.
 														* `matchLabels` (object)
 															* description: MatchLabels ensures an object with matching labels is selected.
 														* `policy` (object)
@@ -363,42 +369,42 @@ as the selecting object is selected.
 															* properties:
 																* `resolution` (string)
 																	* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+																	  The default is 'Required', which means the reconcile will fail if the
+																	  reference cannot be resolved. 'Optional' means this reference will be
+																	  a no-op if it cannot be resolved.
 																	* default: "Required"
 																	* possible values: "Required";"Optional"
 																* `resolve` (string)
 																	* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+																	  is 'IfNotPresent', which will attempt to resolve the reference only when
+																	  the corresponding field is not present. Use 'Always' to resolve the
+																	  reference on every reconcile.
 																	* possible values: "Always";"IfNotPresent"
 											* required properties:
 												* `index`
 								* `sourceMac` (string)
 									* description: Only traffic originating from the respective MAC address is allowed.
-Valid format: aa:bb:cc:dd:ee:ff. Value null allows traffic from any MAC address.
+									  Valid format: aa:bb:cc:dd:ee:ff. Value null allows traffic from any MAC address.
 									* pattern: ^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$
 								* `targetIpConfig` (object)
 									* description: If the target NIC has multiple IP addresses, only the traffic directed to the respective IP address of the NIC is allowed.
-Value null allows traffic to any target IP address.
-TargetIP can be set directly or via reference to an IP Block and index.
+									  Value null allows traffic to any target IP address.
+									  TargetIP can be set directly or via reference to an IP Block and index.
 									* properties:
 										* `ip` (string)
 											* description: Use IP or CIDR to set specific IP or CIDR to the resource. If both IP and IPBlockConfig are set,
-only `ip` field will be considered.
+											  only `ip` field will be considered.
 											* pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}(/([0-9]|[1-2][0-9]|3[0-2]))?$
 										* `ipBlockConfig` (object)
 											* description: Use IpBlockConfig to reference existing IPBlock, and to mention the index for the IP.
-Index starts from 0 and it must be provided.
+											  Index starts from 0 and it must be provided.
 											* properties:
 												* `index` (integer)
 													* description: Index is referring to the IP index retrieved from the IPBlock.
-Index is starting from 0.
+													  Index is starting from 0.
 												* `ipBlockId` (string)
 													* description: IPBlockID is the ID of the IPBlock on which the resource will be created.
-It needs to be provided via directly or via reference.
+													  It needs to be provided via directly or via reference.
 													* format: uuid
 												* `ipBlockIdRef` (object)
 													* description: IPBlockIDRef references to a IPBlock to retrieve its ID.
@@ -410,16 +416,16 @@ It needs to be provided via directly or via reference.
 															* properties:
 																* `resolution` (string)
 																	* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+																	  The default is 'Required', which means the reconcile will fail if the
+																	  reference cannot be resolved. 'Optional' means this reference will be
+																	  a no-op if it cannot be resolved.
 																	* default: "Required"
 																	* possible values: "Required";"Optional"
 																* `resolve` (string)
 																	* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+																	  is 'IfNotPresent', which will attempt to resolve the reference only when
+																	  the corresponding field is not present. Use 'Always' to resolve the
+																	  reference on every reconcile.
 																	* possible values: "Always";"IfNotPresent"
 													* required properties:
 														* `name`
@@ -428,7 +434,7 @@ reference on every reconcile.
 													* properties:
 														* `matchControllerRef` (boolean)
 															* description: MatchControllerRef ensures an object with the same controller reference
-as the selecting object is selected.
+															  as the selecting object is selected.
 														* `matchLabels` (object)
 															* description: MatchLabels ensures an object with matching labels is selected.
 														* `policy` (object)
@@ -436,16 +442,16 @@ as the selecting object is selected.
 															* properties:
 																* `resolution` (string)
 																	* description: Resolution specifies whether resolution of this reference is required.
-The default is 'Required', which means the reconcile will fail if the
-reference cannot be resolved. 'Optional' means this reference will be
-a no-op if it cannot be resolved.
+																	  The default is 'Required', which means the reconcile will fail if the
+																	  reference cannot be resolved. 'Optional' means this reference will be
+																	  a no-op if it cannot be resolved.
 																	* default: "Required"
 																	* possible values: "Required";"Optional"
 																* `resolve` (string)
 																	* description: Resolve specifies when this reference should be resolved. The default
-is 'IfNotPresent', which will attempt to resolve the reference only when
-the corresponding field is not present. Use 'Always' to resolve the
-reference on every reconcile.
+																	  is 'IfNotPresent', which will attempt to resolve the reference only when
+																	  the corresponding field is not present. Use 'Always' to resolve the
+																	  reference on every reconcile.
 																	* possible values: "Always";"IfNotPresent"
 											* required properties:
 												* `index`
@@ -463,7 +469,7 @@ reference on every reconcile.
 							* description: The Referenced LAN must be created before the ServerSet is applied
 						* `name` (string)
 							* description: Name of the NIC. Replica index, NIC index, and version are appended to the name. Resulting name will be in format: {name}-{replicaIndex}-{nicIndex}-{version}.
-Version increases if the NIC is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the NIC is re-created and the version is increased.
+							  Version increases if the NIC is re-created due to an immutable field changing. E.g. if the bootvolume type or image are changed and the strategy is createAllBeforeDestroy, the NIC is re-created and the version is increased.
 							* pattern: [a-z0-9]([-a-z0-9]*[a-z0-9])?
 						* `vnetId` (string)
 					* required properties:
@@ -472,8 +478,8 @@ Version increases if the NIC is re-created due to an immutable field changing. E
 						* `name`
 				* `ram` (integer)
 					* description: The memory size for the server in MB, such as 2048. Size must be specified in multiples of 256 MB with a minimum of 256 MB.
-however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB,
-then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
+					  however, if you set ramHotPlug to TRUE then you must use a minimum of 1024 MB. If you set the RAM size more than 240GB,
+					  then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
 					* format: int32
 					* multiple of: 1024.000000
 			* required properties:
