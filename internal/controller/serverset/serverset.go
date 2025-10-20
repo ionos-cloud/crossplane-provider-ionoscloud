@@ -944,7 +944,7 @@ func (e *external) isUpdateFinished(ctx context.Context, requestTimestamp time.T
 	return wasProcessed && wasSuccessful, nil
 }
 
-// isVMSoftwareRunning checks the state configMap to see if the server has rebooted successfully and the software on it is back in a running state.
+// isVMSoftwareRunning checks the state ConfigMap to see if the server has rebooted successfully and the software on it is back in a running state.
 func (e *external) isVMSoftwareRunning(ctx context.Context, requestTimestamp time.Time, serverName, mapName, mapNamespace, keyPrefix string) (bool, error) {
 	stateMap := &v1.ConfigMap{}
 	if err := e.kube.Get(
