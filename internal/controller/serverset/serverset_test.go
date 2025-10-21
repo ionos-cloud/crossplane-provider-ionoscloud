@@ -32,6 +32,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -1333,7 +1334,7 @@ func Test_serverSetController_Update(t *testing.T) {
 
 			got, err := e.Update(tt.args.ctx, tt.args.cr)
 
-			assertions := assert.New(t)
+			assertions := require.New(t)
 
 			if tt.wantWrappedErr != nil {
 				assertions.ErrorContains(err, tt.wantWrappedErr.Error())
@@ -1817,7 +1818,7 @@ func fakeKubeClientUpdateMethod(expectedObj client.Object) client.Client {
 	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		arg1 := args.Get(1)
 		if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObj) {
-			panic(fmt.Sprintf("Update called with unexpeted type: want=%v, got=%v", reflect.TypeOf(expectedObj), reflect.TypeOf(arg1)))
+			panic(fmt.Sprintf("Update called with unexpected type: want=%v, got=%v", reflect.TypeOf(expectedObj), reflect.TypeOf(arg1)))
 		}
 	}).Return(nil)
 
@@ -1837,7 +1838,7 @@ func fakeKubeClientUpdateMethodWithSuccessfulFailover(expectedObject client.Obje
 		func(args mock.Arguments) {
 			arg1 := args.Get(1)
 			if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObject) {
-				panic(fmt.Sprintf("Update called with unexpeted type: want=%v, got=%v", reflect.TypeOf(expectedObject), reflect.TypeOf(arg1)))
+				panic(fmt.Sprintf("Update called with unexpected type: want=%v, got=%v", reflect.TypeOf(expectedObject), reflect.TypeOf(arg1)))
 			}
 		},
 	).Return(nil)
@@ -1858,7 +1859,7 @@ func fakeKubeClientUpdateMethodWithFailedFailover(expectedObject client.Object) 
 		func(args mock.Arguments) {
 			arg1 := args.Get(1)
 			if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObject) {
-				panic(fmt.Sprintf("Update called with unexpeted type: want=%v, got=%v", reflect.TypeOf(expectedObject), reflect.TypeOf(arg1)))
+				panic(fmt.Sprintf("Update called with unexpected type: want=%v, got=%v", reflect.TypeOf(expectedObject), reflect.TypeOf(arg1)))
 			}
 		},
 	).Return(nil)
@@ -1880,7 +1881,7 @@ func fakeKubeClientUpdateMethodWithStateMapSuccessfulFailover(expectedObject cli
 		func(args mock.Arguments) {
 			arg1 := args.Get(1)
 			if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObject) {
-				panic(fmt.Sprintf("Update called with unexpeted type: want=%v, got=%v", reflect.TypeOf(expectedObject), reflect.TypeOf(arg1)))
+				panic(fmt.Sprintf("Update called with unexpected type: want=%v, got=%v", reflect.TypeOf(expectedObject), reflect.TypeOf(arg1)))
 			}
 		},
 	).Return(nil)
@@ -1902,7 +1903,7 @@ func fakeKubeClientUpdateMethodWithStateMapFailedFailover(expectedObject client.
 		func(args mock.Arguments) {
 			arg1 := args.Get(1)
 			if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObject) {
-				panic(fmt.Sprintf("Update called with unexpeted type: want=%v, got=%v", reflect.TypeOf(expectedObject), reflect.TypeOf(arg1)))
+				panic(fmt.Sprintf("Update called with unexpected type: want=%v, got=%v", reflect.TypeOf(expectedObject), reflect.TypeOf(arg1)))
 			}
 		},
 	).Return(nil)
@@ -2353,7 +2354,7 @@ func createNic(params v1alpha1.NicParameters) *v1alpha1.Nic {
 	nic := createBasicNic()
 
 	if params.Name != "" {
-		nic.ObjectMeta.Name = params.Name
+		nic.Name = params.Name
 		nic.Spec.ForProvider.Name = params.Name
 	}
 	if params.DatacenterCfg != (v1alpha1.DatacenterConfig{}) {
@@ -2467,29 +2468,29 @@ func createBootVolumeWithoutHotPlug(name string) *v1alpha1.Volume {
 
 func createBootVolumeWithIndexLabelsWithHotPlug(name string, index int) *v1alpha1.Volume {
 	volume := createBootVolumeWithHotPlug(name)
-	volume.ObjectMeta.Labels[computeIndexLabel(resourceBootVolume)] = strconv.Itoa(index)
-	volume.ObjectMeta.Labels[computeVersionLabel(resourceBootVolume)] = "0"
+	volume.Labels[computeIndexLabel(resourceBootVolume)] = strconv.Itoa(index)
+	volume.Labels[computeVersionLabel(resourceBootVolume)] = "0"
 	return volume
 }
 
 func createBootVolumeWithIndexWithHotPlug(name string, index int) *v1alpha1.Volume {
 	volume := createBootVolumeWithHotPlug(name)
 	indexLabelBootVolume := fmt.Sprintf(indexLabel, serverSetName, resourceBootVolume)
-	volume.ObjectMeta.Labels[indexLabelBootVolume] = fmt.Sprintf("%d", index)
+	volume.Labels[indexLabelBootVolume] = fmt.Sprintf("%d", index)
 	return volume
 }
 
 func createBootVolumeWithIndexLabelsWithoutHotPlug(name string, index int) *v1alpha1.Volume {
 	volume := createBootVolumeWithoutHotPlug(name)
-	volume.ObjectMeta.Labels[computeIndexLabel(resourceBootVolume)] = strconv.Itoa(index)
-	volume.ObjectMeta.Labels[computeVersionLabel(resourceBootVolume)] = "0"
+	volume.Labels[computeIndexLabel(resourceBootVolume)] = strconv.Itoa(index)
+	volume.Labels[computeVersionLabel(resourceBootVolume)] = "0"
 	return volume
 }
 
 func createBootVolumeWithIndexWithoutHotPlug(name string, index int) *v1alpha1.Volume {
 	volume := createBootVolumeWithoutHotPlug(name)
 	indexLabelBootVolume := fmt.Sprintf(indexLabel, serverSetName, resourceBootVolume)
-	volume.ObjectMeta.Labels[indexLabelBootVolume] = fmt.Sprintf("%d", index)
+	volume.Labels[indexLabelBootVolume] = fmt.Sprintf("%d", index)
 	return volume
 }
 
@@ -2718,7 +2719,7 @@ func createServerWithReconcileErrorMsg() *v1alpha1.Server {
 func createServerWithIndex(name string, index int) *v1alpha1.Server {
 	server := createServer(name)
 	indexLabelBootVolume := fmt.Sprintf(indexLabel, serverSetName, ResourceServer)
-	server.ObjectMeta.Labels[indexLabelBootVolume] = fmt.Sprintf("%d", index)
+	server.Labels[indexLabelBootVolume] = fmt.Sprintf("%d", index)
 	return server
 }
 

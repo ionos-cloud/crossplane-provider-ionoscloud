@@ -33,7 +33,6 @@ spec:
         stateMap:
           name: example-state-map
           namespace: default
-          prefix: test
         cores: 1
         ram: 1024 # (32*storageTB)
         nics:
@@ -125,7 +124,7 @@ data:
     name: example-state-map
     namespace: default
   data:
-    test-server-name-0-0-state: "VM-RUNNING"
-    test-server-name-0-0-timestamp: "2025-10-20T08:52:49+00:00"
-    test-server-name-1-0-state: "VM-RUNNING"
-    test-server-name-1-0-timestamp: "2025-10-20T08:54:12+00:00"
+    server-name-0-0-state: "VM-RUNNING"
+    server-name-0-0-timestamp: "2025-10-20T08:52:49+00:00"
+    server-name-1-0-state: "VM-RUNNING"
+    server-name-1-0-timestamp: "2025-10-20T08:54:12+00:00"

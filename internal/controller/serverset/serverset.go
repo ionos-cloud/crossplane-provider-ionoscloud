@@ -946,8 +946,9 @@ func (e *external) isVMSoftwareRunning(ctx context.Context, requestTimestamp tim
 			Namespace: mapNamespace,
 		}, &stateMap,
 	); err != nil {
-        // If the state map is not found, we assume that the server is not ready yet.
-        return false, nil
+		// If the state map is not found, we assume that the server is not ready yet (same behavior as for observation).
+		// Suppressing the error to allow for retries.
+		return false, nil //nolint:nilerr
 	}
 
 	return checkRuntimeState(stateMap, serverName, &requestTimestamp, e.log)
@@ -981,11 +982,12 @@ func checkRuntimeState(stateMap v1.ConfigMap, serverName string, requestTimestam
 
 	timestamp, err := time.Parse(time.RFC3339, timestampStr)
 	if err != nil {
-		return false, fmt.Errorf("error parsing state timeststate for server %s: %w", serverName, err)
+		return false, fmt.Errorf("error parsing state timestamp for server %s: %w", serverName, err)
 	}
 
 	switch {
-    case requestTimestamp != nil && requestTimestamp.After(timestamp):
+	// If a requestTimestamp is provided, we check if the requestTimestamp is after the state timestamp, meaning the state has not been refreshed yet.
+	case requestTimestamp != nil && requestTimestamp.After(timestamp):
 		return false, nil
 	case state == statusVMError:
 		return false, fmt.Errorf("server %s is in VM-ERROR runtime state", serverName)
