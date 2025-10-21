@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+	"time"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -67,6 +68,10 @@ const (
 	serverSetRAM       = 4096
 	serverSetName      = "serverset"
 	serverName         = "server-name"
+
+	stateMapName      = "state-map"
+	stateMapNamespace = "default"
+	vmNotRunningState = "VM-NOT-RUNNING"
 
 	reconcileErrorMsg = "some reconcile error happened"
 
@@ -162,14 +167,16 @@ func Test_serverSetController_Observe(t *testing.T) {
 	bootVolume2 := createBootVolume(bootVolumeNamePrefix + server2Name)
 
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    managed.ExternalObservation
-		wantErr bool
+		name                   string
+		fields                 fields
+		args                   args
+		want                   managed.ExternalObservation
+		wantErr                bool
+		wantAvailableCondition bool
+		wantCreatingCondition  bool
 	}{
 		{
-			name: "servers, nics and boot volumes created",
+			name: "servers, nics and boot volumes created without state map",
 			fields: fields{
 				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2),
 			},
@@ -183,6 +190,132 @@ func Test_serverSetController_Observe(t *testing.T) {
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
+		},
+		{
+			name: "servers, nics and boot volumes created with state map, all servers in VM-RUNNING state",
+			fields: fields{
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2, createStateMapRunning()),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSetWithStateMap(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  true,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr:                false,
+			wantAvailableCondition: true,
+		},
+		{
+			name: "servers, nics and boot volumes created, but with server in VM-ERROR state in state map",
+			fields: fields{
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2, createStateMapOneVMError()),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSetWithStateMap(),
+			},
+			want:    managed.ExternalObservation{},
+			wantErr: true,
+		},
+		{
+			name: "servers, nics and boot volumes created, but with server in VM-NOT-RUNNING state in state map",
+			fields: fields{
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2, createStateMapOneVMNotRunning()),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSetWithStateMap(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  true,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr:               false,
+			wantCreatingCondition: true,
+		},
+		{
+			name: "servers, nics and boot volumes created, state map is defined, but not created yet",
+			fields: fields{
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSetWithStateMap(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  true,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr:               false,
+			wantCreatingCondition: true,
+		},
+		{
+			name: "servers, nics and boot volumes created, but one server has wrong timestamp format in state map",
+			fields: fields{
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2, createStateMapOneVMWrongTimestampFormat()),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSetWithStateMap(),
+			},
+			want:    managed.ExternalObservation{},
+			wantErr: true,
+		},
+		{
+			name: "servers, nics and boot volumes created, but one server is missing state in state map",
+			fields: fields{
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2, createStateMapOneVMMissingState()),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSetWithStateMap(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  true,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr:               false,
+			wantCreatingCondition: true,
+		},
+		{
+			name: "servers, nics and boot volumes created, but one server is missing timestamp in state map",
+			fields: fields{
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2, createStateMapOneVMMissingStateTimestamp()),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSetWithStateMap(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  true,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr:               false,
+			wantCreatingCondition: true,
+		},
+		{
+			name: "servers, nics and boot volumes created, but state map is empty",
+			fields: fields{
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2, createStateMapEmpty()),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSetWithStateMap(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  true,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr:               false,
+			wantCreatingCondition: true,
 		},
 		{
 			name: "servers not created",
@@ -384,6 +517,16 @@ func Test_serverSetController_Observe(t *testing.T) {
 				return
 			}
 			assert.Equalf(t, tt.want, got, "Observe() mismatch")
+
+			if tt.wantCreatingCondition {
+				cond := tt.args.cr.GetCondition(xpv1.TypeReady)
+				assert.Equalf(t, xpv1.Creating().Status, cond.Status, "Creating condition status mismatch")
+			}
+
+			if tt.wantAvailableCondition {
+				cond := tt.args.cr.GetCondition(xpv1.TypeReady)
+				assert.Equalf(t, xpv1.Available().Status, cond.Status, "Available condition status mismatch")
+			}
 		})
 	}
 }
@@ -2007,6 +2150,11 @@ func createBootVolume(name string) *v1alpha1.Volume {
 				RAMHotPlug: true,
 			},
 		},
+		Status: v1alpha1.VolumeStatus{
+			AtProvider: v1alpha1.VolumeObservation{
+				State: ionoscloud.Available,
+			},
+		},
 	}
 }
 
@@ -2056,6 +2204,54 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 								DHCP:         false,
 								LanReference: "user",
 							},
+						},
+					},
+				},
+				BootVolumeTemplate: v1alpha1.BootVolumeTemplate{
+					Metadata: v1alpha1.ServerSetBootVolumeMetadata{
+						Name: "bootvolumename",
+					},
+					Spec: v1alpha1.ServerSetBootVolumeSpec{
+						Size:  bootVolumeSize,
+						Image: bootVolumeImage,
+						Type:  bootVolumeType,
+					},
+				},
+			},
+		},
+		Status: v1alpha1.ServerSetStatus{},
+	}
+}
+
+func createBasicServerSetWithStateMap() *v1alpha1.ServerSet {
+	return &v1alpha1.ServerSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: serverSetName,
+			Annotations: map[string]string{
+				"crossplane.io/external-name": serverSetName,
+			},
+		},
+		Spec: v1alpha1.ServerSetSpec{
+			ForProvider: v1alpha1.ServerSetParameters{
+				Replicas: noReplicas,
+				Template: v1alpha1.ServerSetTemplate{
+					Metadata: v1alpha1.ServerSetMetadata{
+						Name: serverName,
+					},
+					Spec: v1alpha1.ServerSetTemplateSpec{
+						Cores:     serverSetCores,
+						RAM:       serverSetRAM,
+						CPUFamily: serverSetCPUFamily,
+						NICs: []v1alpha1.ServerSetTemplateNIC{
+							{
+								Name:         "nic1",
+								DHCP:         false,
+								LanReference: "user",
+							},
+						},
+						StateMap: &v1alpha1.StateConfigMap{
+							Name:      "state-map",
+							Namespace: "default",
 						},
 					},
 				},
@@ -2195,4 +2391,101 @@ func createServerWithIndex(name string, index int) *v1alpha1.Server {
 	indexLabelBootVolume := fmt.Sprintf(indexLabel, serverSetName, ResourceServer)
 	server.ObjectMeta.Labels[indexLabelBootVolume] = fmt.Sprintf("%d", index)
 	return server
+}
+
+func createStateMapRunning() *v1.ConfigMap {
+	return &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      stateMapName,
+			Namespace: stateMapNamespace,
+		},
+		Data: map[string]string{
+			fmt.Sprintf(stateKeyFormat, server1Name):          statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Format(time.RFC3339),
+			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Format(time.RFC3339),
+		},
+	}
+}
+
+func createStateMapOneVMError() *v1.ConfigMap {
+	return &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      stateMapName,
+			Namespace: stateMapNamespace,
+		},
+		Data: map[string]string{
+			fmt.Sprintf(stateKeyFormat, server1Name):          statusVMError,
+			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Format(time.RFC3339),
+			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Format(time.RFC3339),
+		},
+	}
+}
+
+func createStateMapOneVMNotRunning() *v1.ConfigMap {
+	return &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      stateMapName,
+			Namespace: stateMapNamespace,
+		},
+		Data: map[string]string{
+			fmt.Sprintf(stateKeyFormat, server1Name):          vmNotRunningState,
+			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Format(time.RFC3339),
+			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Format(time.RFC3339),
+		},
+	}
+}
+
+func createStateMapOneVMWrongTimestampFormat() *v1.ConfigMap {
+	return &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      stateMapName,
+			Namespace: stateMapNamespace,
+		},
+		Data: map[string]string{
+			fmt.Sprintf(stateKeyFormat, server1Name):          vmNotRunningState,
+			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Format(time.RFC822),
+			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Format(time.RFC3339),
+		},
+	}
+}
+
+func createStateMapOneVMMissingState() *v1.ConfigMap {
+	return &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      stateMapName,
+			Namespace: stateMapNamespace,
+		},
+		Data: map[string]string{
+			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Format(time.RFC3339),
+		},
+	}
+}
+
+func createStateMapOneVMMissingStateTimestamp() *v1.ConfigMap {
+	return &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      stateMapName,
+			Namespace: stateMapNamespace,
+		},
+		Data: map[string]string{
+			fmt.Sprintf(stateKeyFormat, server1Name):          vmNotRunningState,
+			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Format(time.RFC3339),
+		},
+	}
+}
+
+func createStateMapEmpty() *v1.ConfigMap {
+	return &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      stateMapName,
+			Namespace: stateMapNamespace,
+		},
+		Data: map[string]string{},
+	}
 }

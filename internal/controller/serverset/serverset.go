@@ -132,18 +132,29 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	e.populateReplicasStatuses(ctx, cr, servers)
 
-	stateMap := v1.ConfigMap{}
+	// When a state map is configured in the sset, we need to retrieve it to check the runtime state of the servers
+	// If we fail to retrieve it, we log the error and consider the serverset not ready
+	// This allows the reconciliation to continue in case the ConfigMap is temporarily unavailable
+	// If a state map is not configured, we do not care about the value of the stateMap variable at all
+	stateMap := &v1.ConfigMap{}
 	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
 		if err = e.kube.Get(ctx, types.NamespacedName{
 			Name:      cr.Spec.ForProvider.Template.Spec.StateMap.Name,
 			Namespace: cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
-		}, &stateMap); err != nil {
-			e.log.Info("failed to retrieve state configMap for serverset, but reconcile will continue", "name", cr.Name, "error", err)
+		}, stateMap,
+		); err != nil {
+			e.log.Info(
+				"failed to retrieve state ConfigMap for serverset, sset is not ready",
+				"name", cr.Name, "stateMap", cr.Spec.ForProvider.Template.Spec.StateMap.Name,
+				"namespace", cr.Spec.ForProvider.Template.Spec.StateMap.Namespace, "error", err,
+			)
+			// Reset stateMap to nil, so that we can differentiate between not found and empty ConfigMap
+			stateMap = nil
 		}
 	}
 
 	areServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
-	areServersUpToDate, areServersAvailable, err := AreServersReady(cr.Spec.ForProvider.Template.Spec, servers, stateMap)
+	areServersUpToDate, areServersAvailable, err := AreServersReady(cr.Spec.ForProvider.Template.Spec, servers, stateMap, e.log)
 	if err != nil {
 		e.log.Info("failed to check if the servers are available and up-to-date", "name", cr.Name, "error", err)
 		return managed.ExternalObservation{}, fmt.Errorf("failed to check if servers are available and up-to-date: %w", err)
@@ -472,7 +483,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 				e.log.Info("Server has been updated and uses custom state map, waiting for reboot to finish", "serverset", cr.Name, "server", servers[idx].Name)
 				if err := kube.WaitForResource(
 					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, mapName, mapNamespace string) (bool, error) {
-						return e.isVMSoftwareRunning(ctx, requestTimestamp, servers[idx].Name, mapName, mapNamespace, cr.Spec.ForProvider.Template.Spec.StateMap.Prefix)
+						return e.isVMSoftwareRunning(ctx, requestTimestamp, servers[idx].Name, mapName, mapNamespace)
 					}, cr.Spec.ForProvider.Template.Spec.StateMap.Name, cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
 				); err != nil {
 					return fmt.Errorf("error waiting for server reboot: %w", err)
@@ -611,7 +622,9 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 // AreServersReady checks if replicas and template params are equal to server obj params
-func AreServersReady(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server, stateMap v1.ConfigMap) (areServersUpToDate, areServersAvailable bool, err error) {
+func AreServersReady(
+	templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server, stateMap *v1.ConfigMap, log logging.Logger,
+) (areServersUpToDate, areServersAvailable bool, err error) {
 	for _, serverObj := range servers {
 		if serverObj.Spec.ForProvider.Cores != templateParams.Cores {
 			return false, false, nil
@@ -633,36 +646,16 @@ func AreServersReady(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1
 			continue
 		}
 
-		// Since we allow the reconcile to continue even if we cannot fetch the config map, we need to check if the data is nil
-		// If it is nil, we consider that the server is not yet available since there is no config map in which it can report its state
-		if stateMap.Data == nil {
+		// Since we allow reconciliation to continue if state map is not found, we check for nil here to ensure
+		// that the server is not considered ready in this case
+		// We log this info directly in the Observe method
+		if stateMap == nil {
 			return true, false, nil
 		}
 
-		serverStateKey := fmt.Sprintf(stateKeyFormat, templateParams.StateMap.Prefix, serverObj.Name)
-		stateTimestampKey := fmt.Sprintf(stateTimestampKeyFormat, templateParams.StateMap.Prefix, serverObj.Name)
-		state, ok := stateMap.Data[serverStateKey]
-		// If we cannot find the state in the config map, we consider that the server is not yet available since it did not report its state
-		if !ok || state == "" {
-			return true, false, nil
-		}
-		// Also check if the timestamp exists
-		timestamp, ok := stateMap.Data[stateTimestampKey]
-		if !ok || timestamp == "" {
-			return true, false, nil
-		}
-
-		// We need to validate that the timestamp for the state is a valid RFC3339 timestamp, otherwise updates may not be done properly
-		if _, err = time.Parse(time.RFC3339, timestamp); err != nil {
-			return true, false, fmt.Errorf("failed to parse runtime state timestamp (%s) for server %s: %w", timestamp, serverObj.Name, err)
-		}
-
-		if state == statusVMError {
-			return true, false, fmt.Errorf("server %s is in VM-ERROR runtime state", serverObj.Name)
-		}
-
-		if state != statusVMRunning {
-			return true, false, nil
+		runtimeState, err := checkRuntimeState(*stateMap, serverObj.Name, nil, log)
+		if err != nil || !runtimeState {
+			return true, runtimeState, err
 		}
 	}
 
@@ -945,44 +938,59 @@ func (e *external) isUpdateFinished(ctx context.Context, requestTimestamp time.T
 }
 
 // isVMSoftwareRunning checks the state ConfigMap to see if the server has rebooted successfully and the software on it is back in a running state.
-func (e *external) isVMSoftwareRunning(ctx context.Context, requestTimestamp time.Time, serverName, mapName, mapNamespace, keyPrefix string) (bool, error) {
-	stateMap := &v1.ConfigMap{}
+func (e *external) isVMSoftwareRunning(ctx context.Context, requestTimestamp time.Time, serverName, mapName, mapNamespace string) (bool, error) {
+	stateMap := v1.ConfigMap{}
 	if err := e.kube.Get(
 		ctx, types.NamespacedName{
 			Name:      mapName,
 			Namespace: mapNamespace,
-		}, stateMap,
+		}, &stateMap,
 	); err != nil {
 		return false, fmt.Errorf("error getting state map %s (%s) to check running state for server %s: %w", mapName, mapNamespace, serverName, err)
 	}
 
-	stateKey := fmt.Sprintf(stateKeyFormat, keyPrefix, serverName)
-	timestampStateKey := fmt.Sprintf(stateTimestampKeyFormat, keyPrefix, serverName)
+	return checkRuntimeState(stateMap, serverName, &requestTimestamp, e.log)
+}
+
+// checkRuntimeState checks the ConfigMap data for the runtime state of a server. If a requestTimestamp is provided, it also checks if the
+// state timestamp is after the requestTimestamp.
+func checkRuntimeState(stateMap v1.ConfigMap, serverName string, requestTimestamp *time.Time, log logging.Logger) (bool, error) {
+	stateKey := fmt.Sprintf(stateKeyFormat, serverName)
+	timestampStateKey := fmt.Sprintf(stateTimestampKeyFormat, serverName)
+
+	// If the Data field is nil, it means there is no state information available.
+	if stateMap.Data == nil {
+		log.Info("state ConfigMap has empty Data", "stateMap", stateMap.Name, "namespace", stateMap.Namespace)
+		return false, nil
+	}
 
 	// We expect both state and timestamp to be present in the state config map.
 	// If either one is missing, it will result in the VM being considered not ready.
 	state, ok := stateMap.Data[stateKey]
 	if !ok || state == "" {
+		log.Info("state key missing in state ConfigMap", "stateKey", stateKey, "stateMap", stateMap.Name, "namespace", stateMap.Namespace)
 		return false, nil
 	}
 
 	timestampStr, ok := stateMap.Data[timestampStateKey]
 	if !ok || timestampStr == "" {
+		log.Info("timestamp key missing in state ConfigMap", "timestampStateKey", timestampStateKey, "stateMap", stateMap.Name, "namespace", stateMap.Namespace)
 		return false, nil
 	}
 
 	timestamp, err := time.Parse(time.RFC3339, timestampStr)
 	if err != nil {
-		return false, fmt.Errorf("error parsing state timestamp for server %s from state map %s (%s): %w", serverName, mapName, mapNamespace, err)
+		return false, fmt.Errorf("error parsing state timeststate for server %s: %w", serverName, err)
 	}
 
-	if timestamp.Before(requestTimestamp) {
+	switch {
+	case requestTimestamp != nil && requestTimestamp.Before(timestamp):
+		return false, nil
+	case state == statusVMError:
+		return false, fmt.Errorf("server %s is in VM-ERROR runtime state", serverName)
+	case state == statusVMRunning:
+		return true, nil
+	default:
 		return false, nil
 	}
-
-	if state == statusVMError {
-		return false, fmt.Errorf("server %s is in VM-ERROR runtime state", serverName)
-	}
-
-	return state == statusVMRunning, nil
 }

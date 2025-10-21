@@ -20,6 +20,6 @@ const (
 	statusVMError   = "VM-ERROR"
 
 	// keys formats for config map
-	stateKeyFormat          = "%s-%s-state"     // <prefix>-<name>-state
-	stateTimestampKeyFormat = "%s-%s-timestamp" // <prefix>-<name>-timestamp
+	stateKeyFormat          = "%s-state"     // <prefix>-<name>-state
+	stateTimestampKeyFormat = "%s-timestamp" // <prefix>-<name>-timestamp
 )

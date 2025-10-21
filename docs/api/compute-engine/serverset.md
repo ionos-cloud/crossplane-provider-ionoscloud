@@ -482,6 +482,28 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 					  then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
 					* format: int32
 					* multiple of: 1024.000000
+				* `stateMap` (object)
+					* description: StateMap points to a user-created configMap to pull the running state of the server from. This is meant to be used
+					  in scenarios where the state of the software running on the server is needed. We expect the software to report its state
+					  in this configMap. This will work in conjunction with the API state and it can be seen as a logical AND between
+					  the API state and the software state.
+					  
+					  There will be 2 entries expected for a server in the state map in order to consider the state valid:
+					  
+					       1. <server-name>-state : the state of the server (e.g. VM-RUNNING, VM-ERROR)
+					       2. <server-name>-timestamp : the timestamp of the last update of the state, only RFC3339 format is accepted (e.g. 2025-10-15T11:26:20+00:00)
+					  
+					  Accepted states are: VM-RUNNING, VM-ERROR. Any other state will be considered as not ready.
+					  If the configMap is not found or one of the two keys is not found, the serverset will be considered not ready.
+					  The timestamp is used to ensure that the server can update and failover correctly if the case requires it.
+					  A missing timestamp or one that does not follow the RFC3339 format will cause the server to be considered not ready
+					  in the observation loop. For an update, if the timestamp is not the appropriate format, it will error out.
+					* properties:
+						* `name` (string)
+						* `namespace` (string)
+					* required properties:
+						* `name`
+						* `namespace`
 			* required properties:
 				* `cores`
 				* `nics`

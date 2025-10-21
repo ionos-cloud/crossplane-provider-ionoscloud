@@ -193,7 +193,7 @@ func (e *external) isServerSetUpToDate(ctx context.Context, cr *v1alpha1.Statefu
 			return false, false, false, nil
 		}
 	}
-	serversetUpToDate, ssetAvailable, err = areSSetResourcesReady(ctx, e.kube, cr)
+	serversetUpToDate, ssetAvailable, err = areSSetResourcesReady(ctx, e.kube, e.log, cr)
 	if err != nil {
 		return false, false, false, err
 	}
@@ -385,8 +385,8 @@ func areDataVolumesUpToDateAndAvailable(cr *v1alpha1.StatefulServerSet, volumes 
 	return true, true, true
 }
 
-func areSSetResourcesReady(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (isSsetUpToDate, isSsetAvailable bool, err error) {
-	serversUpToDate, areServersAvailable, err := areServersUpToDate(ctx, kube, cr)
+func areSSetResourcesReady(ctx context.Context, kube client.Client, log logging.Logger, cr *v1alpha1.StatefulServerSet) (isSsetUpToDate, isSsetAvailable bool, err error) {
+	serversUpToDate, areServersAvailable, err := areServersUpToDate(ctx, kube, log, cr)
 	if !serversUpToDate {
 		return false, false, err
 	}
@@ -404,28 +404,39 @@ func areSSetResourcesReady(ctx context.Context, kube client.Client, cr *v1alpha1
 	return true, areServersAvailable && areBootVolumesAvailable, nil
 }
 
-func areServersUpToDate(ctx context.Context, kube client.Client, cr *v1alpha1.StatefulServerSet) (areServersUpToDate, areServersAvailable bool, err error) {
+func areServersUpToDate(ctx context.Context, kube client.Client, log logging.Logger, cr *v1alpha1.StatefulServerSet) (areServersUpToDate, areServersAvailable bool, err error) {
 	servers, err := serverset.GetServersOfSSet(ctx, kube, getSSetName(cr))
 	if err != nil {
 		return false, false, err
 	}
 
-	stateMap := v1.ConfigMap{}
+	// Retrieve the state ConfigMap only if it is specified in the spec. Otherwise, we do not care at all about the value
+	// the stateMap variable in the serverset.AreServersReady function
+	stateMap := &v1.ConfigMap{}
 	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
 		if err = kube.Get(ctx, types.NamespacedName{
 			Name:      cr.Spec.ForProvider.Template.Spec.StateMap.Name,
 			Namespace: cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
-		}, &stateMap); err != nil {
-			return false, false, fmt.Errorf("failed to get state map for statefulserverset %s: %w", cr.Name, err)
+		}, stateMap,
+		); err != nil {
+			log.Info(
+				"failed to retrieve state ConfigMap, ssset is not ready",
+				"name", cr.Name, "stateMap", cr.Spec.ForProvider.Template.Spec.StateMap.Name,
+				"namespace", cr.Spec.ForProvider.Template.Spec.StateMap.Namespace, "error", err,
+			)
+
+			// In order to match the server readiness check format of the ssset to that of the sset, we set
+			// stateMap to nil to use the serverset.AreServersReady function to determine that the servers are not ready.
+			stateMap = nil
 		}
 	}
 
 	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return false, false, nil
 	}
-	areServersUpToDate, areServersAvailable, err = serverset.AreServersReady(cr.Spec.ForProvider.Template.Spec, servers, stateMap)
+	areServersUpToDate, areServersAvailable, err = serverset.AreServersReady(cr.Spec.ForProvider.Template.Spec, servers, stateMap, log)
 	if err != nil {
-		return areServersUpToDate, false, err
+		return areServersUpToDate, false, fmt.Errorf("failed to check if servers are available and up-to-date: %w", err)
 	}
 
 	return areServersUpToDate, areServersAvailable, nil
