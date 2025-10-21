@@ -41,6 +41,7 @@ import (
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	serverctrl "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
 )
 
 const (
@@ -163,8 +164,8 @@ func Test_serverSetController_Observe(t *testing.T) {
 	server2 := createServer(server2Name)
 	nic1 := createNic(v1alpha1.NicParameters{Name: server1Name})
 	nic2 := createNic(v1alpha1.NicParameters{Name: server2Name})
-	bootVolume1 := createBootVolume(bootVolumeNamePrefix + server1Name)
-	bootVolume2 := createBootVolume(bootVolumeNamePrefix + server2Name)
+	bootVolume1 := createBootVolumeWithHotPlug(bootVolumeNamePrefix + server1Name)
+	bootVolume2 := createBootVolumeWithHotPlug(bootVolumeNamePrefix + server2Name)
 
 	tests := []struct {
 		name                   string
@@ -958,8 +959,9 @@ func Test_serverSetController_Create(t *testing.T) {
 			fields: fields{
 				log: logging.NewNopLogger(),
 				kube: fakeKubeClientObjs(
-					createBootVolumeWithIndex("boot-volume1", 0),
-					createBootVolumeWithIndex("boot-volume2", 0)),
+					createBootVolumeWithIndexWithHotPlug("boot-volume1", 0),
+					createBootVolumeWithIndexWithHotPlug("boot-volume2", 0),
+				),
 				bootVolumeController:   new(kubeBootVolumeControlManagerFake),
 				serverController:       fakeServerCtrlEnsureMethod(0),
 				nicController:          fakeNicCtrlEnsureNICsMethod(0),
@@ -1096,6 +1098,7 @@ func Test_serverSetController_Update(t *testing.T) {
 		wantErr         error
 		want            managed.ExternalUpdate
 		wantUpdateCalls int
+		wantWrappedErr  error
 	}{
 		{
 			name: "server set successfully updated (no changes)",
@@ -1191,6 +1194,132 @@ func Test_serverSetController_Update(t *testing.T) {
 			want:            managed.ExternalUpdate{},
 			wantUpdateCalls: 1,
 		},
+		{
+			name: "update server with successful failover (CPU non-hotpluggable change) without state map",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodWithSuccessfulFailover(&v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(
+					v1alpha1.ServerSetTemplateSpec{
+						CPUFamily: serverSetCPUFamily,
+						Cores:     10,
+						RAM:       serverSetRAM,
+					},
+				),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantUpdateCalls: 2,
+		},
+		{
+			name: "update server with successful failover (RAM non-hotpluggable change) without state map",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodWithSuccessfulFailover(&v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(
+					v1alpha1.ServerSetTemplateSpec{
+						CPUFamily: serverSetCPUFamily,
+						Cores:     serverSetCores,
+						RAM:       8192,
+					},
+				),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantUpdateCalls: 2,
+		},
+		{
+			name: "update server with successful failover (RAM non-hotpluggable change) with state map",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodWithStateMapSuccessfulFailover(&v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpecWithStateMap(
+					v1alpha1.ServerSetTemplateSpec{
+						CPUFamily: serverSetCPUFamily,
+						Cores:     serverSetCores,
+						RAM:       8192,
+					},
+				),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantUpdateCalls: 2,
+		},
+		{
+			name: "update server with failed failover (CPU non-hotpluggable change) without state map",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodWithFailedFailover(&v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(
+					v1alpha1.ServerSetTemplateSpec{
+						CPUFamily: serverSetCPUFamily,
+						Cores:     10,
+						RAM:       serverSetRAM,
+					},
+				),
+			},
+			wantWrappedErr:  fmt.Errorf("error waiting for server to be updated"),
+			want:            managed.ExternalUpdate{},
+			wantUpdateCalls: 1,
+		},
+		{
+			name: "update server with failed failover (RAM non-hotpluggable change) without state map",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodWithFailedFailover(&v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpecWithStateMap(
+					v1alpha1.ServerSetTemplateSpec{
+						CPUFamily: serverSetCPUFamily,
+						Cores:     serverSetCores,
+						RAM:       8192,
+					},
+				),
+			},
+			wantWrappedErr:  fmt.Errorf("error waiting for server to be updated"),
+			want:            managed.ExternalUpdate{},
+			wantUpdateCalls: 1,
+		},
+		{
+			name: "update server with failed failover (RAM non-hotpluggable change) with state map",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodWithStateMapFailedFailover(&v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpecWithStateMap(
+					v1alpha1.ServerSetTemplateSpec{
+						CPUFamily: serverSetCPUFamily,
+						Cores:     serverSetCores,
+						RAM:       8192,
+					},
+				),
+			},
+			wantWrappedErr:  fmt.Errorf("error waiting for server reboot"),
+			want:            managed.ExternalUpdate{},
+			wantUpdateCalls: 1,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1205,7 +1334,12 @@ func Test_serverSetController_Update(t *testing.T) {
 			got, err := e.Update(tt.args.ctx, tt.args.cr)
 
 			assertions := assert.New(t)
-			assertions.Equalf(tt.wantErr, err, "Wrong error")
+
+			if tt.wantWrappedErr != nil {
+				assertions.ErrorContains(err, tt.wantWrappedErr.Error())
+			} else {
+				assertions.Equalf(tt.wantErr, err, "Wrong error")
+			}
 			assertions.Equalf(tt.want, got, "Wrong response")
 			assertions.Equalf(0, len(tt.args.cr.Status.Conditions), "ServerSet should not have any conditions")
 			kubeClient := tt.fields.kube.(*kubeClientFake)
@@ -1454,8 +1588,8 @@ func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_d
 		Type:  "SSD",
 	})
 	bootVolumes := []v1alpha1.Volume{
-		*createBootVolumeWithIndexLabels("bootvolumename-0-0", 0),
-		*createBootVolumeWithIndexLabels("bootvolumename-1-0", 1),
+		*createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-0-0", 0),
+		*createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-1-0", 1),
 	}
 	masterIndex := 0
 	e := external{
@@ -1498,8 +1632,8 @@ func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_c
 		Type:  "SSD"}, v1alpha1.UpdateStrategy{Stype: v1alpha1.CreateAllBeforeDestroy},
 	)
 	bootVolumes := []v1alpha1.Volume{
-		*createBootVolumeWithIndexLabels("bootvolumename-0-0", 0),
-		*createBootVolumeWithIndexLabels("bootvolumename-1-0", 1),
+		*createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-0-0", 0),
+		*createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-1-0", 1),
 	}
 	masterIndex := 0
 	updatedIndex := 1
@@ -1653,7 +1787,7 @@ func fakeKubeClientUpdateMethodReturnsError() client.Client {
 	kubeClient := kubeClientFake{
 		Client: fakeKubeClientObjs(
 			createServer("server1"), createServer("server2"),
-			createBootVolumeWithIndexLabels("bootvolumename-0-0", 0), createBootVolumeWithIndexLabels("bootvolumename-1-0", 1),
+			createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-0-0", 0), createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-1-0", 1),
 			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
 			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
 		),
@@ -1675,7 +1809,7 @@ func fakeKubeClientUpdateMethod(expectedObj client.Object) client.Client {
 	kubeClient := kubeClientFake{
 		Client: fakeKubeClientObjs(
 			createServer("server1"), createServer("server2"),
-			createBootVolumeWithIndexLabels("bootvolumename-0-0", 0), createBootVolumeWithIndexLabels("bootvolumename-1-0", 1),
+			createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-0-0", 0), createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-1-0", 1),
 			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
 			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
 		),
@@ -1686,6 +1820,92 @@ func fakeKubeClientUpdateMethod(expectedObj client.Object) client.Client {
 			panic(fmt.Sprintf("Update called with unexpeted type: want=%v, got=%v", reflect.TypeOf(expectedObj), reflect.TypeOf(arg1)))
 		}
 	}).Return(nil)
+
+	return &kubeClient
+}
+
+func fakeKubeClientUpdateMethodWithSuccessfulFailover(expectedObject client.Object) client.Client {
+	kubeClient := kubeClientFake{
+		Client: fakeKubeClientObjs(
+			createServerWithUpdateSucceededConditionSet("server1"), createServerWithUpdateSucceededConditionSet("server2"),
+			createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-0-0", 0), createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-1-0", 1),
+			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
+			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
+		),
+	}
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(
+		func(args mock.Arguments) {
+			arg1 := args.Get(1)
+			if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObject) {
+				panic(fmt.Sprintf("Update called with unexpeted type: want=%v, got=%v", reflect.TypeOf(expectedObject), reflect.TypeOf(arg1)))
+			}
+		},
+	).Return(nil)
+
+	return &kubeClient
+}
+
+func fakeKubeClientUpdateMethodWithFailedFailover(expectedObject client.Object) client.Client {
+	kubeClient := kubeClientFake{
+		Client: fakeKubeClientObjs(
+			createServerWithUpdateFailedConditionSet("server1"), createServerWithUpdateFailedConditionSet("server2"),
+			createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-0-0", 0), createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-1-0", 1),
+			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
+			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
+		),
+	}
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(
+		func(args mock.Arguments) {
+			arg1 := args.Get(1)
+			if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObject) {
+				panic(fmt.Sprintf("Update called with unexpeted type: want=%v, got=%v", reflect.TypeOf(expectedObject), reflect.TypeOf(arg1)))
+			}
+		},
+	).Return(nil)
+
+	return &kubeClient
+}
+
+func fakeKubeClientUpdateMethodWithStateMapSuccessfulFailover(expectedObject client.Object) client.Client {
+	kubeClient := kubeClientFake{
+		Client: fakeKubeClientObjs(
+			createServerWithUpdateSucceededConditionSet(server1Name), createServerWithUpdateSucceededConditionSet(server2Name),
+			createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-0-0", 0), createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-1-0", 1),
+			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
+			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
+			createStateMapRunning(),
+		),
+	}
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(
+		func(args mock.Arguments) {
+			arg1 := args.Get(1)
+			if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObject) {
+				panic(fmt.Sprintf("Update called with unexpeted type: want=%v, got=%v", reflect.TypeOf(expectedObject), reflect.TypeOf(arg1)))
+			}
+		},
+	).Return(nil)
+
+	return &kubeClient
+}
+
+func fakeKubeClientUpdateMethodWithStateMapFailedFailover(expectedObject client.Object) client.Client {
+	kubeClient := kubeClientFake{
+		Client: fakeKubeClientObjs(
+			createServerWithUpdateSucceededConditionSet(server1Name), createServerWithUpdateSucceededConditionSet(server2Name),
+			createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-0-0", 0), createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-1-0", 1),
+			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
+			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
+			createStateMapOneVMError(),
+		),
+	}
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(
+		func(args mock.Arguments) {
+			arg1 := args.Get(1)
+			if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObject) {
+				panic(fmt.Sprintf("Update called with unexpeted type: want=%v, got=%v", reflect.TypeOf(expectedObject), reflect.TypeOf(arg1)))
+			}
+		},
+	).Return(nil)
 
 	return &kubeClient
 }
@@ -1712,8 +1932,8 @@ func kubeClientWithObjsForBootVolume() client.WithWatch {
 	server2.Labels[computeIndexLabel(ResourceServer)] = one
 	server2.Labels[computeVersionLabel(ResourceServer)] = zero
 
-	bootVolume1 := createBootVolumeWithIndexLabels("bootvolumename-0-0", 0)
-	bootVolume2 := createBootVolumeWithIndexLabels("bootvolumename-1-0", 1)
+	bootVolume1 := createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-0-0", 0)
+	bootVolume2 := createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-1-0", 1)
 
 	return fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2,
 		createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
@@ -2067,6 +2287,68 @@ func createServer(name string) *v1alpha1.Server {
 	}
 }
 
+func createServerWithUpdateSucceededConditionSet(name string) *v1alpha1.Server {
+	return &v1alpha1.Server{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				serverSetLabel: serverSetName,
+				fmt.Sprintf(indexLabel, serverSetName, ResourceServer): "0",
+			},
+		},
+		Status: v1alpha1.ServerStatus{
+			AtProvider: v1alpha1.ServerObservation{
+				State:    ionoscloud.Available,
+				ServerID: "serverID",
+			},
+			ResourceStatus: xpv1.ResourceStatus{
+				ConditionedStatus: xpv1.ConditionedStatus{
+					// Set the update succeeded condition an hour later to simulate that an update has occurred
+					Conditions: []xpv1.Condition{serverctrl.UpdateSucceededCondition(metav1.NewTime(time.Now().Add(time.Hour)))},
+				},
+			},
+		},
+		Spec: v1alpha1.ServerSpec{
+			ForProvider: v1alpha1.ServerParameters{
+				Cores:     serverSetCores,
+				RAM:       serverSetRAM,
+				CPUFamily: serverSetCPUFamily,
+			},
+		},
+	}
+}
+
+func createServerWithUpdateFailedConditionSet(name string) *v1alpha1.Server {
+	return &v1alpha1.Server{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				serverSetLabel: serverSetName,
+				fmt.Sprintf(indexLabel, serverSetName, ResourceServer): "0",
+			},
+		},
+		Status: v1alpha1.ServerStatus{
+			AtProvider: v1alpha1.ServerObservation{
+				State:    ionoscloud.Available,
+				ServerID: "serverID",
+			},
+			ResourceStatus: xpv1.ResourceStatus{
+				ConditionedStatus: xpv1.ConditionedStatus{
+					// Set the update succeeded condition an hour later to simulate that an update has occurred
+					Conditions: []xpv1.Condition{serverctrl.UpdateFailedCondition(fmt.Errorf("an error of sorts"), metav1.NewTime(time.Now().Add(time.Hour)))},
+				},
+			},
+		},
+		Spec: v1alpha1.ServerSpec{
+			ForProvider: v1alpha1.ServerParameters{
+				Cores:     serverSetCores,
+				RAM:       serverSetRAM,
+				CPUFamily: serverSetCPUFamily,
+			},
+		},
+	}
+}
+
 func createNic(params v1alpha1.NicParameters) *v1alpha1.Nic {
 	nic := createBasicNic()
 
@@ -2133,7 +2415,7 @@ func createBasicNic() *v1alpha1.Nic {
 	}
 }
 
-func createBootVolume(name string) *v1alpha1.Volume {
+func createBootVolumeWithHotPlug(name string) *v1alpha1.Volume {
 	return &v1alpha1.Volume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -2158,15 +2440,54 @@ func createBootVolume(name string) *v1alpha1.Volume {
 	}
 }
 
-func createBootVolumeWithIndexLabels(name string, index int) *v1alpha1.Volume {
-	volume := createBootVolume(name)
+func createBootVolumeWithoutHotPlug(name string) *v1alpha1.Volume {
+	return &v1alpha1.Volume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				serverSetLabel: serverSetName,
+			},
+		},
+		Spec: v1alpha1.VolumeSpec{
+			ForProvider: v1alpha1.VolumeParameters{
+				Image:      bootVolumeImage,
+				Type:       bootVolumeType,
+				Size:       bootVolumeSize,
+				CPUHotPlug: false,
+				RAMHotPlug: false,
+			},
+		},
+		Status: v1alpha1.VolumeStatus{
+			AtProvider: v1alpha1.VolumeObservation{
+				State: ionoscloud.Available,
+			},
+		},
+	}
+}
+
+func createBootVolumeWithIndexLabelsWithHotPlug(name string, index int) *v1alpha1.Volume {
+	volume := createBootVolumeWithHotPlug(name)
 	volume.ObjectMeta.Labels[computeIndexLabel(resourceBootVolume)] = strconv.Itoa(index)
 	volume.ObjectMeta.Labels[computeVersionLabel(resourceBootVolume)] = "0"
 	return volume
 }
 
-func createBootVolumeWithIndex(name string, index int) *v1alpha1.Volume {
-	volume := createBootVolume(name)
+func createBootVolumeWithIndexWithHotPlug(name string, index int) *v1alpha1.Volume {
+	volume := createBootVolumeWithHotPlug(name)
+	indexLabelBootVolume := fmt.Sprintf(indexLabel, serverSetName, resourceBootVolume)
+	volume.ObjectMeta.Labels[indexLabelBootVolume] = fmt.Sprintf("%d", index)
+	return volume
+}
+
+func createBootVolumeWithIndexLabelsWithoutHotPlug(name string, index int) *v1alpha1.Volume {
+	volume := createBootVolumeWithoutHotPlug(name)
+	volume.ObjectMeta.Labels[computeIndexLabel(resourceBootVolume)] = strconv.Itoa(index)
+	volume.ObjectMeta.Labels[computeVersionLabel(resourceBootVolume)] = "0"
+	return volume
+}
+
+func createBootVolumeWithIndexWithoutHotPlug(name string, index int) *v1alpha1.Volume {
+	volume := createBootVolumeWithoutHotPlug(name)
 	indexLabelBootVolume := fmt.Sprintf(indexLabel, serverSetName, resourceBootVolume)
 	volume.ObjectMeta.Labels[indexLabelBootVolume] = fmt.Sprintf("%d", index)
 	return volume
@@ -2250,8 +2571,8 @@ func createBasicServerSetWithStateMap() *v1alpha1.ServerSet {
 							},
 						},
 						StateMap: &v1alpha1.StateConfigMap{
-							Name:      "state-map",
-							Namespace: "default",
+							Name:      stateMapName,
+							Namespace: stateMapNamespace,
 						},
 					},
 				},
@@ -2273,6 +2594,14 @@ func createBasicServerSetWithStateMap() *v1alpha1.ServerSet {
 
 func createServerSetWithUpdatedServerSpec(spec v1alpha1.ServerSetTemplateSpec) *v1alpha1.ServerSet {
 	sset := createBasicServerSet()
+	sset.Spec.ForProvider.Template.Spec.Cores = spec.Cores
+	sset.Spec.ForProvider.Template.Spec.RAM = spec.RAM
+	sset.Spec.ForProvider.Template.Spec.CPUFamily = spec.CPUFamily
+	return sset
+}
+
+func createServerSetWithUpdatedServerSpecWithStateMap(spec v1alpha1.ServerSetTemplateSpec) *v1alpha1.ServerSet {
+	sset := createBasicServerSetWithStateMap()
 	sset.Spec.ForProvider.Template.Spec.Cores = spec.Cores
 	sset.Spec.ForProvider.Template.Spec.RAM = spec.RAM
 	sset.Spec.ForProvider.Template.Spec.CPUFamily = spec.CPUFamily
@@ -2401,9 +2730,9 @@ func createStateMapRunning() *v1.ConfigMap {
 		},
 		Data: map[string]string{
 			fmt.Sprintf(stateKeyFormat, server1Name):          statusVMRunning,
-			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Format(time.RFC3339),
+			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
 			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
-			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Format(time.RFC3339),
+			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
 		},
 	}
 }
@@ -2416,9 +2745,9 @@ func createStateMapOneVMError() *v1.ConfigMap {
 		},
 		Data: map[string]string{
 			fmt.Sprintf(stateKeyFormat, server1Name):          statusVMError,
-			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Format(time.RFC3339),
+			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
 			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
-			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Format(time.RFC3339),
+			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
 		},
 	}
 }
@@ -2431,9 +2760,9 @@ func createStateMapOneVMNotRunning() *v1.ConfigMap {
 		},
 		Data: map[string]string{
 			fmt.Sprintf(stateKeyFormat, server1Name):          vmNotRunningState,
-			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Format(time.RFC3339),
+			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
 			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
-			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Format(time.RFC3339),
+			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
 		},
 	}
 }
@@ -2446,9 +2775,9 @@ func createStateMapOneVMWrongTimestampFormat() *v1.ConfigMap {
 		},
 		Data: map[string]string{
 			fmt.Sprintf(stateKeyFormat, server1Name):          vmNotRunningState,
-			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Format(time.RFC822),
+			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Add(5 * time.Hour).Format(time.RFC822),
 			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
-			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Format(time.RFC3339),
+			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
 		},
 	}
 }
@@ -2461,7 +2790,7 @@ func createStateMapOneVMMissingState() *v1.ConfigMap {
 		},
 		Data: map[string]string{
 			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
-			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Format(time.RFC3339),
+			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
 		},
 	}
 }
@@ -2475,7 +2804,7 @@ func createStateMapOneVMMissingStateTimestamp() *v1.ConfigMap {
 		Data: map[string]string{
 			fmt.Sprintf(stateKeyFormat, server1Name):          vmNotRunningState,
 			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
-			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Format(time.RFC3339),
+			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
 		},
 	}
 }
