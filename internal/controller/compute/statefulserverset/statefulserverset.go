@@ -411,7 +411,7 @@ func areServersUpToDate(ctx context.Context, kube client.Client, log logging.Log
 	}
 
 	// Retrieve the state ConfigMap only if it is specified in the spec. Otherwise, we do not care at all about the value
-	// the stateMap variable in the serverset.AreServersReady function
+    // of the stateMap variable in the serverset.AreServersReady function
 	stateMap := &v1.ConfigMap{}
 	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
 		if err = kube.Get(ctx, types.NamespacedName{
