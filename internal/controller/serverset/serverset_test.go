@@ -31,6 +31,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -2195,4 +2196,205 @@ func createServerWithIndex(name string, index int) *v1alpha1.Server {
 	indexLabelBootVolume := fmt.Sprintf(indexLabel, serverSetName, ResourceServer)
 	server.ObjectMeta.Labels[indexLabelBootVolume] = fmt.Sprintf("%d", index)
 	return server
+}
+
+// helper to create a baseline ServerSet
+func baseServerSet() *v1alpha1.ServerSet {
+	return &v1alpha1.ServerSet{
+		Spec: v1alpha1.ServerSetSpec{
+			ForProvider: v1alpha1.ServerSetParameters{
+				Replicas: 2,
+				Template: v1alpha1.ServerSetTemplate{
+					Spec: v1alpha1.ServerSetTemplateSpec{
+						Cores:         2,
+						RAM:           4096,
+						CPUFamily:     "INTEL_XEON",
+						NicMultiQueue: ionoscloud.ToPtr(false),
+						NICs: []v1alpha1.ServerSetTemplateNIC{
+							{Name: "nic0"},
+						},
+					},
+				},
+				BootVolumeTemplate: v1alpha1.BootVolumeTemplate{
+					Spec: v1alpha1.ServerSetBootVolumeSpec{
+						Size:                 100,
+						Image:                "image",
+						Type:                 "HDD",
+						SetHotPlugsFromImage: false,
+					},
+				},
+			},
+		},
+	}
+}
+
+func makeServer(name string) v1alpha1.Server {
+	return v1alpha1.Server{
+		ObjectMeta: metav1ObjectMeta(name),
+		Spec: v1alpha1.ServerSpec{
+			ForProvider: v1alpha1.ServerParameters{
+				Cores:         2,
+				RAM:           4096,
+				CPUFamily:     "INTEL_XEON",
+				NicMultiQueue: ionoscloud.ToPtr(false),
+			},
+		},
+		Status: v1alpha1.ServerStatus{
+			AtProvider: v1alpha1.ServerObservation{
+				State: ionoscloud.Available,
+			},
+		},
+	}
+}
+
+func makeVolume(name string) v1alpha1.Volume {
+	return v1alpha1.Volume{
+		ObjectMeta: metav1ObjectMeta(name),
+		Spec: v1alpha1.VolumeSpec{
+			ForProvider: v1alpha1.VolumeParameters{
+				Size:                 100,
+				Image:                "image",
+				Type:                 "HDD",
+				SetHotPlugsFromImage: false,
+			},
+		},
+		Status: v1alpha1.VolumeStatus{
+			AtProvider: v1alpha1.VolumeObservation{
+				State: ionoscloud.Available,
+			},
+		},
+	}
+}
+
+func makeNIC(name string) v1alpha1.Nic {
+	return v1alpha1.Nic{
+		ObjectMeta: metav1ObjectMeta(name),
+	}
+}
+
+func metav1ObjectMeta(name string) metav1.ObjectMeta {
+	return metav1.ObjectMeta{Name: name, Labels: map[string]string{serverSetLabel: "serverset"}}
+}
+
+func Test_buildDiff(t *testing.T) {
+	type args struct {
+		cr      *v1alpha1.ServerSet
+		servers []v1alpha1.Server
+		volumes []v1alpha1.Volume
+		nics    []v1alpha1.Nic
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "no diff",
+			args: args{
+				cr:      baseServerSet(),
+				servers: []v1alpha1.Server{makeServer("s1"), makeServer("s2")},
+				volumes: []v1alpha1.Volume{makeVolume("v1"), makeVolume("v2")},
+				nics:    []v1alpha1.Nic{makeNIC("nic-s1-0"), makeNIC("nic-s2-0")},
+			},
+			want: "",
+		},
+		{
+			name: "servers count mismatch",
+			args: args{
+				cr:      baseServerSet(),
+				servers: []v1alpha1.Server{makeServer("s1")},
+				volumes: []v1alpha1.Volume{makeVolume("v1"), makeVolume("v2")},
+				nics:    []v1alpha1.Nic{makeNIC("nic-s1-0"), makeNIC("nic-s2-0")},
+			},
+			want: "servers: expected=2 actual=1",
+		},
+		{
+			name: "volumes count mismatch",
+			args: args{
+				cr:      baseServerSet(),
+				servers: []v1alpha1.Server{makeServer("s1"), makeServer("s2")},
+				volumes: []v1alpha1.Volume{makeVolume("v1")},
+				nics:    []v1alpha1.Nic{makeNIC("nic-s1-0"), makeNIC("nic-s2-0")},
+			},
+			want: "bootVolumes: expected=2 actual=1",
+		},
+		{
+			name: "nics count mismatch",
+			args: args{
+				cr:      baseServerSet(),
+				servers: []v1alpha1.Server{makeServer("s1"), makeServer("s2")},
+				volumes: []v1alpha1.Volume{makeVolume("v1"), makeVolume("v2")},
+				nics:    []v1alpha1.Nic{makeNIC("nic-s1-0")}, // missing one NIC
+			},
+			want: "nics: expected=2 actual=1",
+		},
+		{
+			name: "server spec diff cores and state",
+			args: args{
+				cr: baseServerSet(),
+				servers: []v1alpha1.Server{
+					func() v1alpha1.Server {
+						s := makeServer("s1")
+						s.Spec.ForProvider.Cores = 4
+						s.Status.AtProvider.State = ionoscloud.Busy
+						return s
+					}(),
+					makeServer("s2"),
+				},
+				volumes: []v1alpha1.Volume{makeVolume("v1"), makeVolume("v2")},
+				nics:    []v1alpha1.Nic{makeNIC("nic-s1-0"), makeNIC("nic-s2-0")},
+			},
+			want: "server[0](s1): cores exp=2 act=4; state exp=AVAILABLE act=BUSY",
+		},
+		{
+			name: "volume spec diff size and state",
+			args: args{
+				cr:      baseServerSet(),
+				servers: []v1alpha1.Server{makeServer("s1"), makeServer("s2")},
+				volumes: []v1alpha1.Volume{
+					func() v1alpha1.Volume {
+						v := makeVolume("v1")
+						v.Spec.ForProvider.Size = 200
+						v.Status.AtProvider.State = ionoscloud.Failed
+						return v
+					}(),
+					makeVolume("v2"),
+				},
+				nics: []v1alpha1.Nic{makeNIC("nic-s1-0"), makeNIC("nic-s2-0")},
+			},
+			want: "volume[0](v1): size exp=100 act=200; state exp=AVAILABLE act=FAILED",
+		},
+		{
+			name: "multiple diffs aggregated",
+			args: args{
+				cr: baseServerSet(),
+				servers: []v1alpha1.Server{
+					func() v1alpha1.Server {
+						s := makeServer("s1")
+						s.Spec.ForProvider.RAM = 8192
+						return s
+					}(),
+				}, // count mismatch too
+				volumes: []v1alpha1.Volume{
+					func() v1alpha1.Volume {
+						v := makeVolume("v1")
+						v.Spec.ForProvider.Type = "SSD"
+						return v
+					}(),
+					makeVolume("v2"),
+				},
+				nics: []v1alpha1.Nic{makeNIC("nic-s1-0")}, // NIC count mismatch
+			},
+			want: "servers: expected=2 actual=1 | nics: expected=2 actual=1 | server[0](s1): ram exp=4096 act=8192 | volume[0](v1): type exp=HDD act=SSD",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := buildDiff(tt.args.cr, tt.args.servers, tt.args.volumes, tt.args.nics)
+			if got != tt.want {
+				require.Equal(t, got, tt.want)
+			}
+		})
+	}
 }
