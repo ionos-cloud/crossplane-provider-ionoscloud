@@ -78,9 +78,10 @@ func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }
 
-// DesiredStateChanged - we need event filtering, but we can't use the default predicate because we want to be notived if createfailed appears
+// DesiredStateChanged - we need event filtering, but we can't use the default predicate because we want to be noticed if createfailed appears
 func DesiredStateChanged() predicate.Predicate {
 	return predicate.Or(
+		predicate.AnnotationChangedPredicate{},
 		predicate.LabelChangedPredicate{},
 		predicate.GenerationChangedPredicate{},
 	)
