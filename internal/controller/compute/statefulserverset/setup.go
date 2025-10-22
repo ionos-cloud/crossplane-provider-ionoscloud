@@ -13,6 +13,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/serverset"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
@@ -31,6 +32,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
+		WithEventFilter(serverset.DesiredStateChanged()).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.GetMaxConcurrentReconcileRate(v1alpha1.StatefulServerSetKind),
 			RateLimiter:             ratelimiter.NewController(),

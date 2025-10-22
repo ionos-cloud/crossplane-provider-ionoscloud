@@ -10,6 +10,7 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
@@ -34,6 +35,7 @@ func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
+		WithEventFilter(DesiredStateChanged()).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.GetMaxConcurrentReconcileRate(v1alpha1.ServerSetKind),
 			RateLimiter:             ratelimiter.NewController(),
@@ -74,4 +76,12 @@ func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			managed.WithLogger(logger.WithValues("controller", name)),
 			managed.WithMetricRecorder(opts.CtrlOpts.MetricOptions.MRMetrics),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
+}
+
+// DesiredStateChanged - we need event filtering, but we can't use the default predicate because we want to be notived if createfailed appears
+func DesiredStateChanged() predicate.Predicate {
+	return predicate.Or(
+		predicate.LabelChangedPredicate{},
+		predicate.GenerationChangedPredicate{},
+	)
 }
