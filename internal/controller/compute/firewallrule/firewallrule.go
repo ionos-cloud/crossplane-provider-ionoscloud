@@ -61,6 +61,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
+		WithEventFilter(utils.DesiredStateChanged()).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.GetMaxConcurrentReconcileRate(v1alpha1.FirewallRuleKind),
 			RateLimiter:             ratelimiter.NewController(),
