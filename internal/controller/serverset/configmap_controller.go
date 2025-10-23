@@ -4,6 +4,7 @@ import (
 	"context"
 	"maps"
 	"strconv"
+	"sync"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	maps2 "golang.org/x/exp/maps"
@@ -33,12 +34,19 @@ type kubeConfigmapController struct {
 	log  logging.Logger
 	// substConfigMap is shared between all serversets
 	substConfigMap map[string]*substitutionConfig
+	mut            sync.RWMutex
 }
 
 func (k *kubeConfigmapController) SetIdentity(crName, key, val string) {
+	k.mut.Lock()
+	defer k.mut.Unlock()
+
 	k.substConfigMap[crName].identities[key] = val
 }
 func (k *kubeConfigmapController) SetSubstitutionConfigMap(name, namespace string) {
+	k.mut.Lock()
+	defer k.mut.Unlock()
+
 	if k.substConfigMap == nil {
 		k.substConfigMap = make(map[string]*substitutionConfig)
 	}
@@ -51,6 +59,9 @@ func (k *kubeConfigmapController) SetSubstitutionConfigMap(name, namespace strin
 }
 
 func (k *kubeConfigmapController) FetchSubstitutionFromMap(ctx context.Context, crName, key string, replicaIndex, version int) string {
+	k.mut.RLock()
+	defer k.mut.RUnlock()
+
 	substMap := &v1.ConfigMap{}
 	err := k.kube.Get(ctx, client.ObjectKey{Namespace: k.substConfigMap[crName].namespace, Name: k.substConfigMap[crName].name}, substMap)
 	if err != nil {
@@ -64,6 +75,10 @@ func (k *kubeConfigmapController) FetchSubstitutionFromMap(ctx context.Context, 
 func (k *kubeConfigmapController) CreateOrUpdate(ctx context.Context, cr *v1alpha1.ServerSet) error {
 	cfgMap := &v1.ConfigMap{}
 	crName := cr.Name
+
+	k.mut.RLock()
+	defer k.mut.RUnlock()
+
 	err := k.kube.Get(ctx, client.ObjectKey{Namespace: k.substConfigMap[crName].namespace, Name: k.substConfigMap[crName].name}, cfgMap)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
@@ -101,6 +116,9 @@ func (k *kubeConfigmapController) Get(ctx context.Context, name, ns string) (*v1
 
 func (k *kubeConfigmapController) Delete(ctx context.Context, crName string) error {
 	cfgMap := &v1.ConfigMap{}
+	k.mut.RLock()
+	defer k.mut.RUnlock()
+
 	err := k.kube.Get(ctx, client.ObjectKey{Namespace: k.substConfigMap[crName].namespace, Name: k.substConfigMap[crName].name}, cfgMap)
 	if err != nil {
 		return err
@@ -116,6 +134,8 @@ func (k *kubeConfigmapController) isDeleted(ctx context.Context, name, namespace
 	_, err := k.Get(ctx, name, namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
+			k.mut.RLock()
+			defer k.mut.RUnlock()
 			if k.substConfigMap[name] != nil {
 				maps2.Clear(k.substConfigMap[name].identities)
 				k.substConfigMap[name] = nil
