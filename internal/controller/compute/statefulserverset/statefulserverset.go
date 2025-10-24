@@ -28,9 +28,7 @@ import (
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
-	v1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
@@ -410,31 +408,10 @@ func areServersUpToDate(ctx context.Context, kube client.Client, log logging.Log
 		return false, false, err
 	}
 
-	// Retrieve the state ConfigMap only if it is specified in the spec. Otherwise, we do not care at all about the value
-	// of the stateMap variable in the serverset.AreServersReady function
-	stateMap := &v1.ConfigMap{}
-	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
-		if err = kube.Get(ctx, types.NamespacedName{
-			Name:      cr.Spec.ForProvider.Template.Spec.StateMap.Name,
-			Namespace: cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
-		}, stateMap,
-		); err != nil {
-			log.Info(
-				"failed to retrieve state ConfigMap, ssset is not ready",
-				"name", cr.Name, "stateMap", cr.Spec.ForProvider.Template.Spec.StateMap.Name,
-				"namespace", cr.Spec.ForProvider.Template.Spec.StateMap.Namespace, "error", err,
-			)
-
-			// In order to match the server readiness check format of the ssset to that of the sset, we set
-			// stateMap to nil to use the serverset.AreServersReady function to determine that the servers are not ready.
-			stateMap = nil
-		}
-	}
-
 	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return false, false, nil
 	}
-	areServersUpToDate, areServersAvailable, err = serverset.AreServersReady(cr.Spec.ForProvider.Template.Spec, servers, stateMap, log)
+	areServersUpToDate, areServersAvailable, err = serverset.AreServersReady(ctx, kube, log, cr.Spec.ForProvider.Template.Spec, servers)
 	if err != nil {
 		return areServersUpToDate, false, fmt.Errorf("failed to check if servers are available and up-to-date: %w", err)
 	}

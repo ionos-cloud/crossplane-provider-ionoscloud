@@ -132,29 +132,8 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	e.populateReplicasStatuses(ctx, cr, servers)
 
-	// When a state map is configured in the sset, we need to retrieve it to check the runtime state of the servers
-	// If we fail to retrieve it, we log the error and consider the serverset not ready
-	// This allows the reconciliation to continue in case the ConfigMap is temporarily unavailable
-	// If a state map is not configured, we do not care about the value of the stateMap variable at all
-	stateMap := &v1.ConfigMap{}
-	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
-		if err = e.kube.Get(ctx, types.NamespacedName{
-			Name:      cr.Spec.ForProvider.Template.Spec.StateMap.Name,
-			Namespace: cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
-		}, stateMap,
-		); err != nil {
-			e.log.Info(
-				"failed to retrieve state ConfigMap for serverset, sset is not ready",
-				"name", cr.Name, "stateMap", cr.Spec.ForProvider.Template.Spec.StateMap.Name,
-				"namespace", cr.Spec.ForProvider.Template.Spec.StateMap.Namespace, "error", err,
-			)
-			// Reset stateMap to nil, so that we can differentiate between not found and empty ConfigMap
-			stateMap = nil
-		}
-	}
-
 	areServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
-	areServersUpToDate, areServersAvailable, err := AreServersReady(cr.Spec.ForProvider.Template.Spec, servers, stateMap, e.log)
+	areServersUpToDate, areServersAvailable, err := AreServersReady(ctx, e.kube, e.log, cr.Spec.ForProvider.Template.Spec, servers)
 	if err != nil {
 		e.log.Info("failed to check if the servers are available and up-to-date", "name", cr.Name, "error", err)
 		return managed.ExternalObservation{}, fmt.Errorf("failed to check if servers are available and up-to-date: %w", err)
@@ -623,8 +602,25 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.Ext
 
 // AreServersReady checks if replicas and template params are equal to server obj params
 func AreServersReady(
-	templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server, stateMap *v1.ConfigMap, log logging.Logger,
+	ctx context.Context, kube client.Client, log logging.Logger, templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server,
 ) (areServersUpToDate, areServersAvailable bool, err error) {
+	// When a state map is configured in the sset, we need to retrieve it to check the runtime state of the servers
+	// If we fail to retrieve it, we log the error and consider the serverset not ready
+	// This allows the reconciliation to continue in case the ConfigMap is temporarily unavailable
+	// If a state map is not configured, we do not care about the value of the stateMap variable at all
+	stateMap := &v1.ConfigMap{}
+	if templateParams.StateMap != nil {
+		if err = kube.Get(
+			ctx, types.NamespacedName{
+				Name:      templateParams.StateMap.Name,
+				Namespace: templateParams.StateMap.Namespace,
+			}, stateMap,
+		); err != nil {
+			// Reset stateMap to nil, so that we can differentiate between not found and empty ConfigMap
+			stateMap = nil
+		}
+	}
+
 	for _, serverObj := range servers {
 		if serverObj.Spec.ForProvider.Cores != templateParams.Cores {
 			return false, false, nil
@@ -650,10 +646,15 @@ func AreServersReady(
 		// that the server is not considered ready in this case
 		// We log this info directly in the Observe method
 		if stateMap == nil {
+			log.Info(
+				"failed to retrieve state ConfigMap, serverset not ready",
+				"server", serverObj.Name, "stateMap", templateParams.StateMap.Name,
+				"namespace", templateParams.StateMap.Namespace, "error", err,
+			)
 			return true, false, nil
 		}
 
-		runtimeState, err := checkRuntimeState(*stateMap, serverObj.Name, nil, log)
+		runtimeState, err := checkRuntimeState(*stateMap, serverObj.Name, time.Time{}, log)
 		if err != nil || !runtimeState {
 			return true, runtimeState, err
 		}
@@ -951,12 +952,12 @@ func (e *external) isVMSoftwareRunning(ctx context.Context, requestTimestamp tim
 		return false, nil //nolint:nilerr
 	}
 
-	return checkRuntimeState(stateMap, serverName, &requestTimestamp, e.log)
+	return checkRuntimeState(stateMap, serverName, requestTimestamp, e.log)
 }
 
 // checkRuntimeState checks the ConfigMap data for the runtime state of a server. If a requestTimestamp is provided, it also checks if the
 // state timestamp is after the requestTimestamp.
-func checkRuntimeState(stateMap v1.ConfigMap, serverName string, requestTimestamp *time.Time, log logging.Logger) (bool, error) {
+func checkRuntimeState(stateMap v1.ConfigMap, serverName string, requestTimestamp time.Time, log logging.Logger) (bool, error) {
 	stateKey := fmt.Sprintf(stateKeyFormat, serverName)
 	timestampStateKey := fmt.Sprintf(stateTimestampKeyFormat, serverName)
 
@@ -987,10 +988,10 @@ func checkRuntimeState(stateMap v1.ConfigMap, serverName string, requestTimestam
 
 	switch {
 	// If a requestTimestamp is provided, we check if the requestTimestamp is after the state timestamp, meaning the state has not been refreshed yet.
-	case requestTimestamp != nil && requestTimestamp.After(timestamp):
+	case !requestTimestamp.IsZero() && requestTimestamp.After(timestamp):
 		return false, nil
 	case state == statusVMError:
-		return false, fmt.Errorf("server %s is in VM-ERROR runtime state", serverName)
+		return false, fmt.Errorf("server %s is in %s runtime state", serverName, statusVMError)
 	case state == statusVMRunning:
 		return true, nil
 	default:
