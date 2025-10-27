@@ -76,9 +76,10 @@ spec:
         labels:
           key: value
       spec:
-        stateMap:
-          name: example-state-map
-          namespace: default
+#        this is how to define the usage of a state map
+#        stateMap:
+#          name: example-state-map
+#          namespace: default
         cores: 1
         ram: 1024
         nics:
