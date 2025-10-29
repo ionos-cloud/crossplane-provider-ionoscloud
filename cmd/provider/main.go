@@ -53,7 +53,7 @@ func main() {
 	var (
 		app                        = kingpin.New(filepath.Base(os.Args[0]), "IONOS Cloud support for Crossplane.").DefaultEnvars()
 		debug                      = app.Flag("debug", "Run with debug logging.").Short('d').Bool()
-		uniqueNames                = app.Flag("unique-names", "Enable uniqueness name support for IONOS Cloud resources").Short('u').Default("false").Bool()
+		uniqueNames                = app.Flag("unique-names", "Enable uniqueness name support for IONOS Cloud resources").Short('u').Default("true").Bool()
 		syncInterval               = app.Flag("sync", "Controller manager sync interval such as 300ms, 1.5h, or 2h45m").Short('s').Default("1h").Duration()
 		pollInterval               = app.Flag("poll", "Poll interval controls how often an individual resource should be checked for changes.").Default("1m").Duration()
 		leaderElection             = app.Flag("leader-election", "Use leader election for the controller manager.").Short('l').Default("false").Envar("LEADER_ELECTION").Bool()
@@ -65,6 +65,7 @@ func main() {
 		enableExternalSecretStores = app.Flag("enable-external-secret-stores", "Enable support for ExternalSecretStores.").Default("false").Envar("ENABLE_EXTERNAL_SECRET_STORES").Bool()
 		reconcileMap               = app.Flag("max-reconcile-rate-per-resource", "Overrides the max-reconcile-rate on a per resource basis. Use the Kind of the resource as the key.").PlaceHolder("nic:2").StringMap()
 	)
+	*debug = true
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 	zl := zap.New(zap.UseDevMode(*debug))
 	log := logging.NewLogrLogger(zl.WithName("provider-ionoscloud"))
