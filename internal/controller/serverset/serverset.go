@@ -133,7 +133,11 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	e.populateReplicasStatuses(ctx, cr, servers)
 
 	areServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
-	areServersUpToDate, areServersAvailable := AreServersReady(cr.Spec.ForProvider.Template.Spec, servers)
+	areServersUpToDate, areServersAvailable, err := AreServersReady(ctx, e.kube, e.log, cr.Spec.ForProvider.Template.Spec, servers)
+	if err != nil {
+		e.log.Info("failed to check if the servers are available and up-to-date", "name", cr.Name, "error", err)
+		return managed.ExternalObservation{}, fmt.Errorf("failed to check if servers are available and up-to-date: %w", err)
+	}
 
 	volumes, err := GetVolumesOfSSet(ctx, e.kube, cr.Name)
 	if err != nil {
@@ -433,7 +437,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 		}
 
 		update, failover := checkServerDiff(&servers[idx], cr, bootVolume)
-		e.log.Info("Checking server for update", "serverset", cr.Name, "index", idx, "update", update, "failover", failover)
+		e.log.Info("Checking server for update", "serverset", cr.Name, "server", servers[idx].Name, "update", update, "failover", failover)
 		if update {
 			requestTimestamp := time.Now()
 			if err := e.kube.Update(ctx, &servers[idx]); err != nil {
@@ -441,6 +445,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 			}
 
 			if failover {
+				e.log.Info("Server requires failover, waiting for update to finish before continuing", "serverset", cr.Name, "server", servers[idx].Name)
 				if err := kube.WaitForResource(
 					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, name, namespace string) (bool, error) {
 						return e.isUpdateFinished(ctx, requestTimestamp, name, namespace)
@@ -448,7 +453,23 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 				); err != nil {
 					return fmt.Errorf("error waiting for server to be updated: %w", err)
 				}
+
+				if cr.Spec.ForProvider.Template.Spec.StateMap == nil {
+					e.log.Info("Successfully updated server", "serverset", cr.Name, "server", servers[idx].Name)
+					continue
+				}
+
+				e.log.Info("Server has been updated and uses custom state map, waiting for reboot to finish", "serverset", cr.Name, "server", servers[idx].Name)
+				if err := kube.WaitForResource(
+					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, mapName, mapNamespace string) (bool, error) {
+						return e.isVMSoftwareRunning(ctx, requestTimestamp, servers[idx].Name, mapName, mapNamespace)
+					}, cr.Spec.ForProvider.Template.Spec.StateMap.Name, cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
+				); err != nil {
+					return fmt.Errorf("error waiting for server reboot: %w", err)
+				}
 			}
+
+			e.log.Info("Successfully updated server", "serverset", cr.Name, "server", servers[idx].Name)
 		}
 	}
 	return nil
@@ -580,26 +601,66 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 // AreServersReady checks if replicas and template params are equal to server obj params
-func AreServersReady(templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server) (areServersUpToDate, areServersAvailable bool) {
-	for _, serverObj := range servers {
-		if serverObj.Spec.ForProvider.Cores != templateParams.Cores {
-			return false, false
-		}
-		if serverObj.Spec.ForProvider.RAM != templateParams.RAM {
-			return false, false
-		}
-		if serverObj.Spec.ForProvider.NicMultiQueue != templateParams.NicMultiQueue {
-			return false, false
-		}
-		if serverObj.Spec.ForProvider.CPUFamily != templateParams.CPUFamily {
-			return false, false
-		}
-		if serverObj.Status.AtProvider.State != ionoscloud.Available {
-			return true, false
+func AreServersReady(
+	ctx context.Context, kube client.Client, log logging.Logger, templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server,
+) (areServersUpToDate, areServersAvailable bool, err error) {
+	// When a state map is configured in the sset, we need to retrieve it to check the runtime state of the servers
+	// If we fail to retrieve it, we log the error and consider the serverset not ready
+	// This allows the reconciliation to continue in case the ConfigMap is temporarily unavailable
+	// If a state map is not configured, we do not care about the value of the stateMap variable at all
+	stateMap := &v1.ConfigMap{}
+	if templateParams.StateMap != nil {
+		if err = kube.Get(
+			ctx, types.NamespacedName{
+				Name:      templateParams.StateMap.Name,
+				Namespace: templateParams.StateMap.Namespace,
+			}, stateMap,
+		); err != nil {
+			// Reset stateMap to nil, so that we can differentiate between not found and empty ConfigMap
+			stateMap = nil
 		}
 	}
 
-	return true, true
+	for _, serverObj := range servers {
+		if serverObj.Spec.ForProvider.Cores != templateParams.Cores {
+			return false, false, nil
+		}
+		if serverObj.Spec.ForProvider.RAM != templateParams.RAM {
+			return false, false, nil
+		}
+		if serverObj.Spec.ForProvider.NicMultiQueue != templateParams.NicMultiQueue {
+			return false, false, nil
+		}
+		if serverObj.Spec.ForProvider.CPUFamily != templateParams.CPUFamily {
+			return false, false, nil
+		}
+		if serverObj.Status.AtProvider.State != ionoscloud.Available {
+			return true, false, nil
+		}
+
+		if templateParams.StateMap == nil {
+			continue
+		}
+
+		// Since we allow reconciliation to continue if state map is not found, we check for nil here to ensure
+		// that the server is not considered ready in this case
+		// We log this info directly in the Observe method
+		if stateMap == nil {
+			log.Info(
+				"failed to retrieve state ConfigMap, serverset not ready",
+				"server", serverObj.Name, "stateMap", templateParams.StateMap.Name,
+				"namespace", templateParams.StateMap.Namespace, "error", err,
+			)
+			return true, false, nil
+		}
+
+		runtimeState, err := checkRuntimeState(*stateMap, serverObj.Name, time.Time{}, log)
+		if err != nil || !runtimeState {
+			return true, runtimeState, err
+		}
+	}
+
+	return true, true, nil
 }
 
 // AreBootVolumesReady checks if template params are equal to volume obj params
@@ -875,4 +936,65 @@ func (e *external) isUpdateFinished(ctx context.Context, requestTimestamp time.T
 		return false, fmt.Errorf("server %s update failed: %s", name, updateCondition.Message)
 	}
 	return wasProcessed && wasSuccessful, nil
+}
+
+// isVMSoftwareRunning checks the state ConfigMap to see if the server has rebooted successfully and the software on it is back in a running state.
+func (e *external) isVMSoftwareRunning(ctx context.Context, requestTimestamp time.Time, serverName, mapName, mapNamespace string) (bool, error) {
+	stateMap := v1.ConfigMap{}
+	if err := e.kube.Get(
+		ctx, types.NamespacedName{
+			Name:      mapName,
+			Namespace: mapNamespace,
+		}, &stateMap,
+	); err != nil {
+		// If the state map is not found, we assume that the server is not ready yet (same behavior as for observation).
+		// Suppressing the error to allow for retries.
+		return false, nil //nolint:nilerr
+	}
+
+	return checkRuntimeState(stateMap, serverName, requestTimestamp, e.log)
+}
+
+// checkRuntimeState checks the ConfigMap data for the runtime state of a server. If a requestTimestamp is provided, it also checks if the
+// state timestamp is after the requestTimestamp.
+func checkRuntimeState(stateMap v1.ConfigMap, serverName string, requestTimestamp time.Time, log logging.Logger) (bool, error) {
+	stateKey := fmt.Sprintf(stateKeyFormat, serverName)
+	timestampStateKey := fmt.Sprintf(stateTimestampKeyFormat, serverName)
+
+	// If the Data field is nil, it means there is no state information available.
+	if stateMap.Data == nil {
+		log.Info("state ConfigMap has empty Data", "stateMap", stateMap.Name, "namespace", stateMap.Namespace)
+		return false, nil
+	}
+
+	// We expect both state and timestamp to be present in the state config map.
+	// If either one is missing, it will result in the VM being considered not ready.
+	state, ok := stateMap.Data[stateKey]
+	if !ok || state == "" {
+		log.Info("state key missing in state ConfigMap", "stateKey", stateKey, "stateMap", stateMap.Name, "namespace", stateMap.Namespace)
+		return false, nil
+	}
+
+	timestampStr, ok := stateMap.Data[timestampStateKey]
+	if !ok || timestampStr == "" {
+		log.Info("timestamp key missing in state ConfigMap", "timestampStateKey", timestampStateKey, "stateMap", stateMap.Name, "namespace", stateMap.Namespace)
+		return false, nil
+	}
+
+	timestamp, err := time.Parse(time.RFC3339, timestampStr)
+	if err != nil {
+		return false, fmt.Errorf("error parsing state timestamp for server %s: %w", serverName, err)
+	}
+
+	switch {
+	// If a requestTimestamp is provided, we check if the requestTimestamp is after the state timestamp, meaning the state has not been refreshed yet.
+	case !requestTimestamp.IsZero() && requestTimestamp.After(timestamp):
+		return false, nil
+	case state == statusVMError:
+		return false, fmt.Errorf("server %s is in %s runtime state", serverName, statusVMError)
+	case state == statusVMRunning:
+		return true, nil
+	default:
+		return false, nil
+	}
 }

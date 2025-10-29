@@ -53,7 +53,7 @@ func (k *kubeServerSetController) Update(ctx context.Context, cr *v1alpha1.State
 	}
 
 	if !forceUpdate {
-		areResUpToDate, _, err := areSSetResourcesReady(ctx, k.kube, cr)
+		areResUpToDate, _, err := areSSetResourcesReady(ctx, k.kube, k.log, cr)
 		if err != nil {
 			return v1alpha1.ServerSet{}, err
 		}
