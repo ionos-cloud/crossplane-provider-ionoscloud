@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -153,6 +154,8 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	crExpectedNoOfNICs := len(cr.Spec.ForProvider.Template.Spec.NICs) * cr.Spec.ForProvider.Replicas
 	areNICsCreated := len(nics) == crExpectedNoOfNICs
 
+	diffStr := buildDiff(cr, servers, volumes, nics)
+
 	// at the moment we do not check that fields of nics are updated, because nic fields are immutable
 	e.log.Info("Observing the ServerSet", "name", cr.Name, "areServersUpToDate", areServersUpToDate, "areBootVolumesUpToDate", areBootVolumesUpToDate, "areServersCreated",
 		areServersCreated, "areBootVolumesCreated", areBootVolumesCreated, "areNICsCreated", areNICsCreated, "areServersAvailable", areServersAvailable, "areBootVolumesAvailable", areBootVolumesAvailable)
@@ -172,11 +175,85 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
 		ResourceUpToDate: areServersUpToDate && areBootVolumesUpToDate,
+		Diff:             diffStr,
 
 		// Return any details that may be required to connect to the externalServerSet
 		// resource. These will be stored as the connection secret.
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
+}
+
+func buildDiff(cr *v1alpha1.ServerSet, servers []v1alpha1.Server, volumes []v1alpha1.Volume, nics []v1alpha1.Nic) string {
+	var out []string
+
+	// Servers count
+	if len(servers) != cr.Spec.ForProvider.Replicas {
+		out = append(out, fmt.Sprintf("servers: expected=%d actual=%d", cr.Spec.ForProvider.Replicas, len(servers)))
+	}
+
+	// Volumes count
+	if len(volumes) != cr.Spec.ForProvider.Replicas {
+		out = append(out, fmt.Sprintf("bootVolumes: expected=%d actual=%d", cr.Spec.ForProvider.Replicas, len(volumes)))
+	}
+
+	// NIC count
+	expectedNICs := len(cr.Spec.ForProvider.Template.Spec.NICs) * cr.Spec.ForProvider.Replicas
+	if len(nics) != expectedNICs {
+		out = append(out, fmt.Sprintf("nics: expected=%d actual=%d", expectedNICs, len(nics)))
+	}
+
+	// Per-server spec diffs
+	for index, s := range servers {
+		var srvDiff []string
+		t := cr.Spec.ForProvider.Template.Spec
+		if s.Spec.ForProvider.Cores != t.Cores {
+			srvDiff = append(srvDiff, fmt.Sprintf("cores exp=%d act=%d", t.Cores, s.Spec.ForProvider.Cores))
+		}
+		if s.Spec.ForProvider.RAM != t.RAM {
+			srvDiff = append(srvDiff, fmt.Sprintf("ram exp=%d act=%d", t.RAM, s.Spec.ForProvider.RAM))
+		}
+		if s.Spec.ForProvider.CPUFamily != t.CPUFamily {
+			srvDiff = append(srvDiff, fmt.Sprintf("cpuFamily exp=%s act=%s", t.CPUFamily, s.Spec.ForProvider.CPUFamily))
+		}
+		if t.NicMultiQueue != nil && s.Spec.ForProvider.NicMultiQueue != nil && *s.Spec.ForProvider.NicMultiQueue != *t.NicMultiQueue {
+			srvDiff = append(srvDiff, fmt.Sprintf("nicMultiQueue exp=%t act=%t", *t.NicMultiQueue, *s.Spec.ForProvider.NicMultiQueue))
+		}
+		if s.Status.AtProvider.State != ionoscloud.Available {
+			srvDiff = append(srvDiff, fmt.Sprintf("state exp=%s act=%s", ionoscloud.Available, s.Status.AtProvider.State))
+		}
+		if len(srvDiff) > 0 {
+			out = append(out, fmt.Sprintf("server[%d](%s): %s", index, s.Name, strings.Join(srvDiff, "; ")))
+		}
+	}
+
+	// Per-volume spec diffs
+	for index, volume := range volumes {
+		var volDiff []string
+		bt := cr.Spec.ForProvider.BootVolumeTemplate.Spec
+		if volume.Spec.ForProvider.Size != bt.Size {
+			volDiff = append(volDiff, fmt.Sprintf("size exp=%d act=%d", int(bt.Size), int(volume.Spec.ForProvider.Size)))
+		}
+		if volume.Spec.ForProvider.Image != bt.Image {
+			volDiff = append(volDiff, fmt.Sprintf("image exp=%s act=%s", bt.Image, volume.Spec.ForProvider.Image))
+		}
+		if volume.Spec.ForProvider.Type != bt.Type {
+			volDiff = append(volDiff, fmt.Sprintf("type exp=%s act=%s", bt.Type, volume.Spec.ForProvider.Type))
+		}
+		if volume.Spec.ForProvider.SetHotPlugsFromImage != bt.SetHotPlugsFromImage {
+			volDiff = append(volDiff, fmt.Sprintf("setHotPlugsFromImage exp=%t act=%t", bt.SetHotPlugsFromImage, volume.Spec.ForProvider.SetHotPlugsFromImage))
+		}
+		if volume.Status.AtProvider.State != ionoscloud.Available {
+			volDiff = append(volDiff, fmt.Sprintf("state exp=%s act=%s", ionoscloud.Available, volume.Status.AtProvider.State))
+		}
+		if len(volDiff) > 0 {
+			out = append(out, fmt.Sprintf("volume[%d](%s): %s", index, volume.Name, strings.Join(volDiff, "; ")))
+		}
+	}
+
+	if len(out) == 0 {
+		return ""
+	}
+	return strings.Join(out, " | ")
 }
 
 func didNrOfReplicasChange(cr *v1alpha1.ServerSet, replicas []v1alpha1.Server) bool {
