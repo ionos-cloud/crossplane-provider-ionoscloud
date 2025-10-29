@@ -274,9 +274,7 @@ func LateStatusInitializer(in *v1alpha1.NodePoolObservation, sg *sdkgo.Kubernete
 		}
 
 		if versionOk, ok := propertiesOk.GetK8sVersionOk(); ok && versionOk != nil {
-			if utils.IsEmptyValue(reflect.ValueOf(in.K8sVersion)) {
-				in.K8sVersion = *versionOk
-			}
+			in.K8sVersion = *versionOk
 		}
 	}
 
