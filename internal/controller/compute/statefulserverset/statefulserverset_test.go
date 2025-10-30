@@ -6,10 +6,12 @@ import (
 
 	cv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -740,4 +742,102 @@ func Test_computeVolumeStatuses(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+type mockDataVolumeControllerPciSlotUpdate struct {
+	volumes   []v1alpha1.Volume
+	callCount int
+}
+
+func (m *mockDataVolumeControllerPciSlotUpdate) Create(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
+	panic("implement me")
+}
+
+var (
+	firstPciSLot  int32 = 4
+	secondPciSlot int32 = 7
+)
+
+func (m *mockDataVolumeControllerPciSlotUpdate) ListVolumes(ctx context.Context, cr *v1alpha1.StatefulServerSet) (*v1alpha1.VolumeList, error) {
+	m.callCount++
+	pciSlot := firstPciSLot
+	if m.callCount == 2 {
+		pciSlot = secondPciSlot
+	}
+	m.volumes[0].Status.AtProvider.PCISlot = pciSlot
+	return &v1alpha1.VolumeList{Items: m.volumes}, nil
+}
+
+func (m *mockDataVolumeControllerPciSlotUpdate) Get(ctx context.Context, volumeName, ns string) (*v1alpha1.Volume, error) {
+	panic("implement me")
+}
+
+func (m *mockDataVolumeControllerPciSlotUpdate) Update(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) (v1alpha1.Volume, error) {
+	panic("implement me")
+}
+
+// Other methods can be no-ops
+func (m *mockDataVolumeControllerPciSlotUpdate) Ensure(ctx context.Context, cr *v1alpha1.StatefulServerSet, replicaIndex, volumeIndex int) error {
+	return nil
+}
+
+func Test_external_Observe_Update_PCISlot(t *testing.T) {
+
+	// Create a StatefulServerSet CR
+	cr := &v1alpha1.StatefulServerSet{}
+	cr.Spec.ForProvider.Template.Metadata.Name = "server"
+	cr.Spec.ForProvider.Replicas = 1
+
+	cr.Spec.ForProvider.Volumes = []v1alpha1.StatefulServerSetVolume{
+		{
+			Metadata: v1alpha1.StatefulServerSetVolumeMetadata{Name: "storage_disk"},
+			Spec:     v1alpha1.StatefulServerSetVolumeSpec{Size: 10},
+		},
+	}
+	volume := v1alpha1.Volume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "storage_disk-0-0",
+			Labels: map[string]string{
+				"server-data-volume-index":   "0",
+				"server-data-volume-version": "0",
+			},
+		},
+		Spec: v1alpha1.VolumeSpec{
+			ForProvider: v1alpha1.VolumeParameters{
+				Name: "storage_disk",
+				Size: 10,
+			},
+		},
+		Status: v1alpha1.VolumeStatus{
+			AtProvider: v1alpha1.VolumeObservation{
+				Name:     "storage_disk",
+				VolumeID: "vol-1",
+				State:    "AVAILABLE",
+				PCISlot:  firstPciSLot,
+			},
+		},
+	}
+	ext := &external{
+		kube:                     fakeKubeClientWithObjs(),
+		dataVolumeController:     &mockDataVolumeControllerPciSlotUpdate{volumes: []v1alpha1.Volume{volume}},
+		LANController:            &fakeKubeLANController{},
+		SSetController:           &fakeKubeServerSetController{},
+		volumeSelectorController: &fakeKubeVolumeSelectorController{},
+		log:                      logging.NewNopLogger(),
+	}
+
+	// Set external name to simulate existing resource
+	meta.SetExternalName(cr, "test")
+
+	_, err := ext.Observe(context.Background(), cr)
+	require.NoError(t, err)
+	// Check PCISlot in DataVolumeStatuses
+	require.Len(t, cr.Status.AtProvider.DataVolumeStatuses, 1)
+	require.Equal(t, firstPciSLot, cr.Status.AtProvider.DataVolumeStatuses[0].AtProvider.PCISlot)
+
+	_, err = ext.Observe(context.Background(), cr)
+	require.NoError(t, err)
+	// Check PCISlot in DataVolumeStatuses
+	require.Len(t, cr.Status.AtProvider.DataVolumeStatuses, 1)
+	require.Equal(t, secondPciSlot, cr.Status.AtProvider.DataVolumeStatuses[0].AtProvider.PCISlot)
 }

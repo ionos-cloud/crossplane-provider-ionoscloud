@@ -108,23 +108,23 @@ func (c *connectorVolume) Connect(ctx context.Context, mg resource.Managed) (man
 		return nil, errors.New(errNotVolume)
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
-	return &externalVolume{
-		service:              &volume.APIClient{IonosServices: svc},
-		log:                  c.log,
+	return &ExternalVolume{
+		Service:              &volume.APIClient{IonosServices: svc},
+		Log:                  c.log,
 		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
-// externalVolume resource to ensure it reflects the managed resource's desired state.
-type externalVolume struct {
-	// A 'client' used to connect to the externalVolume resource API. In practice this
+// ExternalVolume resource to ensure it reflects the managed resource's desired state.
+type ExternalVolume struct {
+	// A 'client' used to connect to the ExternalVolume resource API. In practice this
 	// would be something like an IONOS Cloud SDK client.
-	service              volume.Client
-	log                  logging.Logger
+	Service              volume.Client
+	Log                  logging.Logger
 	isUniqueNamesEnabled bool
 }
 
-func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+func (c *ExternalVolume) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
 	cr, ok := mg.(*v1alpha1.Volume)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotVolume)
@@ -134,7 +134,7 @@ func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (mana
 	if meta.GetExternalName(cr) == "" {
 		return managed.ExternalObservation{}, nil
 	}
-	instance, apiResponse, err := c.service.GetVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, meta.GetExternalName(cr))
+	instance, apiResponse, err := c.Service.GetVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, meta.GetExternalName(cr))
 	if err != nil {
 		retErr := fmt.Errorf("failed to get volume by id. error: %w", err)
 		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
@@ -148,15 +148,14 @@ func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (mana
 		cr.Status.AtProvider.Name = *instance.Properties.Name
 		cr.Status.AtProvider.Size = *instance.Properties.Size
 		if instance.Properties.BootServer != nil {
-
-			name, err := c.service.GetServerNameByID(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instance.Properties.BootServer)
+			name, err := c.Service.GetServerNameByID(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instance.Properties.BootServer)
 			if err != nil {
 				return managed.ExternalObservation{}, err
 			}
 			cr.Status.AtProvider.ServerName = name
 		}
 	}
-	c.log.Debug("Observed Volume: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
+	c.Log.Debug("Observed Volume: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	// Set Ready condition based on State
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 	isUpToDate, diff := volume.IsUpToDateWithDiff(cr, &instance)
@@ -183,7 +182,7 @@ func LateStatusInitializer(in *v1alpha1.VolumeObservation, volume *sdkgo.Volume)
 	}
 }
 
-func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (c *ExternalVolume) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
 	cr, ok := mg.(*v1alpha1.Volume)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotVolume)
@@ -194,7 +193,7 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 	}
 
 	if externalName := meta.GetExternalName(cr); externalName != "" && externalName != cr.Name {
-		isDone, err := compute.IsRequestDone(ctx, c.service.GetAPIClient(), externalName, http.MethodPost)
+		isDone, err := compute.IsRequestDone(ctx, c.Service.GetAPIClient(), externalName, http.MethodPost)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}
@@ -210,13 +209,13 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 		// Volumes should have unique names per datacenter.
 		// Check if there are any existing volumes with the same name.
 		// If there are multiple, an error will be returned.
-		instance, err := c.service.CheckDuplicateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
+		instance, err := c.Service.CheckDuplicateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 			cr.Spec.ForProvider.Name, cr.Spec.ForProvider.Type, cr.Spec.ForProvider.AvailabilityZone,
 			cr.Spec.ForProvider.LicenceType, cr.Spec.ForProvider.Image)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}
-		volumeID, err := c.service.GetVolumeID(instance)
+		volumeID, err := c.Service.GetVolumeID(instance)
 		if err != nil {
 			return managed.ExternalCreation{}, err
 		}
@@ -232,7 +231,7 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	newInstance, apiResponse, err := c.service.CreateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
+	newInstance, apiResponse, err := c.Service.CreateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, *instanceInput)
 	creation := managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}
 	if err != nil {
 		retErr := fmt.Errorf("failed to create volume. error: %w", err)
@@ -243,13 +242,13 @@ func (c *externalVolume) Create(ctx context.Context, mg resource.Managed) (manag
 	cr.Status.AtProvider.VolumeID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
 
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+	if err = compute.WaitForRequest(ctx, c.Service.GetAPIClient(), apiResponse); err != nil {
 		return creation, err
 	}
 	return creation, nil
 }
 
-func (c *externalVolume) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
+func (c *ExternalVolume) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
 	cr, ok := mg.(*v1alpha1.Volume)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotVolume)
@@ -260,7 +259,7 @@ func (c *externalVolume) Update(ctx context.Context, mg resource.Managed) (manag
 
 	volumeID := cr.Status.AtProvider.VolumeID
 	// Get the current Volume
-	instanceObserved, apiResponse, err := c.service.GetVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, volumeID)
+	instanceObserved, apiResponse, err := c.Service.GetVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, volumeID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to get volume by id. error: %w", err)
 		return managed.ExternalUpdate{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
@@ -269,18 +268,18 @@ func (c *externalVolume) Update(ctx context.Context, mg resource.Managed) (manag
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
-	_, apiResponse, err = c.service.UpdateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, volumeID, *instanceInput)
+	_, apiResponse, err = c.Service.UpdateVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, volumeID, *instanceInput)
 	if err != nil {
 		retErr := fmt.Errorf("failed to update volume. error: %w", err)
 		return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
 	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+	if err = compute.WaitForRequest(ctx, c.Service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalUpdate{}, err
 	}
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *externalVolume) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
+func (c *ExternalVolume) Delete(ctx context.Context, mg resource.Managed) (managed.ExternalDelete, error) {
 	cr, ok := mg.(*v1alpha1.Volume)
 	if cr.Status.AtProvider.State == compute.DESTROYING {
 		return managed.ExternalDelete{}, nil
@@ -294,18 +293,18 @@ func (c *externalVolume) Delete(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalDelete{}, nil
 	}
 
-	apiResponse, err := c.service.DeleteVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.VolumeID)
+	apiResponse, err := c.Service.DeleteVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.VolumeID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete volume. error: %w", err)
 		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+	if err = compute.WaitForRequest(ctx, c.Service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalDelete{}, err
 	}
 	return managed.ExternalDelete{}, nil
 }
 
 // Disconnect does nothing because there are no resources to release. Needs to be implemented starting from crossplane-runtime v0.17
-func (c *externalVolume) Disconnect(_ context.Context) error {
+func (c *ExternalVolume) Disconnect(_ context.Context) error {
 	return nil
 }
