@@ -5,7 +5,7 @@ on:
   workflow_dispatch: { }
 
 env:
-  GOLANGCI_VERSION: 'v2.0'
+  GOLANGCI_VERSION: 'v2.6'
   DOCKER_BUILDX_VERSION: 'v0.11.2'
 
 jobs:
@@ -54,7 +54,7 @@ jobs:
       - name: Vendor Dependencies
         run: make vendor vendor.check
       - name: Lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v8
         with:
           version: ${{ env.GOLANGCI_VERSION }}
           skip-cache: true
