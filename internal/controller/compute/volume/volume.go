@@ -141,6 +141,8 @@ func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (mana
 	}
 
 	current := cr.Spec.ForProvider.DeepCopy()
+	// Late initialize the hotplug fields
+	LateInitializer(&cr.Spec.ForProvider, &instance)
 	LateStatusInitializer(&cr.Status.AtProvider, &instance)
 	cr.Status.AtProvider.VolumeID = meta.GetExternalName(cr)
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&instance)
@@ -179,6 +181,34 @@ func LateStatusInitializer(in *v1alpha1.VolumeObservation, volume *sdkgo.Volume)
 	if propertiesOk, ok := volume.GetPropertiesOk(); ok && propertiesOk != nil {
 		if PCISlotOk, ok := propertiesOk.GetPciSlotOk(); ok && PCISlotOk != nil {
 			in.PCISlot = *PCISlotOk
+		}
+	}
+}
+
+// LateInitializer fills the hotplug fields in *v1alpha1.VolumeParameters with
+// the values seen in sdkgo.Volume.
+func LateInitializer(in *v1alpha1.VolumeParameters, volume *sdkgo.Volume) {
+	if volume == nil {
+		return
+	}
+	if propertiesOk, ok := volume.GetPropertiesOk(); ok && propertiesOk != nil {
+		if cpuHotPlugOk, ok := propertiesOk.GetCpuHotPlugOk(); ok && cpuHotPlugOk != nil {
+			in.CPUHotPlug = *cpuHotPlugOk
+		}
+		if ramHotPlugOk, ok := propertiesOk.GetRamHotPlugOk(); ok && ramHotPlugOk != nil {
+			in.RAMHotPlug = *ramHotPlugOk
+		}
+		if nicHotPlugOk, ok := propertiesOk.GetNicHotPlugOk(); ok && nicHotPlugOk != nil {
+			in.NicHotPlug = *nicHotPlugOk
+		}
+		if nicHotUnplugOk, ok := propertiesOk.GetNicHotUnplugOk(); ok && nicHotUnplugOk != nil {
+			in.NicHotUnplug = *nicHotUnplugOk
+		}
+		if discHotPlugOk, ok := propertiesOk.GetDiscVirtioHotPlugOk(); ok && discHotPlugOk != nil {
+			in.DiscVirtioHotPlug = *discHotPlugOk
+		}
+		if discHotUnplugOk, ok := propertiesOk.GetDiscVirtioHotUnplugOk(); ok && discHotUnplugOk != nil {
+			in.DiscVirtioHotUnplug = *discHotUnplugOk
 		}
 	}
 }
