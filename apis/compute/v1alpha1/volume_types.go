@@ -95,7 +95,7 @@ type VolumeParameters struct {
 	//
 	// +kubebuilder:default=false
 	// +kubebuilder:validation:Optional
-	// +immutable
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="setHotPlugFromImage is immutable"
 	SetHotPlugsFromImage bool `json:"setHotPlugFromImage,omitempty"`
 	// Hot-plug capable CPU (no reboot required).
 	CPUHotPlug bool `json:"cpuHotPlug,omitempty"`
