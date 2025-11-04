@@ -141,7 +141,6 @@ func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (mana
 	}
 
 	current := cr.Spec.ForProvider.DeepCopy()
-	// Late initialize the hotplug fields
 	LateInitializer(&cr.Spec.ForProvider, &instance)
 	LateStatusInitializer(&cr.Status.AtProvider, &instance)
 	cr.Status.AtProvider.VolumeID = meta.GetExternalName(cr)
@@ -186,29 +185,34 @@ func LateStatusInitializer(in *v1alpha1.VolumeObservation, volume *sdkgo.Volume)
 }
 
 // LateInitializer fills the hotplug fields in *v1alpha1.VolumeParameters with
-// the values seen in sdkgo.Volume.
+// the values seen in sdkgo.Volume ONLY if SetHotPlugFromImage is true.
 func LateInitializer(in *v1alpha1.VolumeParameters, volume *sdkgo.Volume) {
 	if volume == nil {
 		return
 	}
-	if propertiesOk, ok := volume.GetPropertiesOk(); ok && propertiesOk != nil {
-		if cpuHotPlugOk, ok := propertiesOk.GetCpuHotPlugOk(); ok && cpuHotPlugOk != nil {
-			in.CPUHotPlug = *cpuHotPlugOk
+
+	if !in.SetHotPlugsFromImage {
+		return
+	}
+
+	if volume.Properties != nil {
+		if volume.Properties.CpuHotPlug != nil {
+			in.CPUHotPlug = *volume.Properties.CpuHotPlug
 		}
-		if ramHotPlugOk, ok := propertiesOk.GetRamHotPlugOk(); ok && ramHotPlugOk != nil {
-			in.RAMHotPlug = *ramHotPlugOk
+		if volume.Properties.RamHotPlug != nil {
+			in.RAMHotPlug = *volume.Properties.RamHotPlug
 		}
-		if nicHotPlugOk, ok := propertiesOk.GetNicHotPlugOk(); ok && nicHotPlugOk != nil {
-			in.NicHotPlug = *nicHotPlugOk
+		if volume.Properties.NicHotPlug != nil {
+			in.NicHotPlug = *volume.Properties.NicHotPlug
 		}
-		if nicHotUnplugOk, ok := propertiesOk.GetNicHotUnplugOk(); ok && nicHotUnplugOk != nil {
-			in.NicHotUnplug = *nicHotUnplugOk
+		if volume.Properties.NicHotUnplug != nil {
+			in.NicHotUnplug = *volume.Properties.NicHotUnplug
 		}
-		if discHotPlugOk, ok := propertiesOk.GetDiscVirtioHotPlugOk(); ok && discHotPlugOk != nil {
-			in.DiscVirtioHotPlug = *discHotPlugOk
+		if volume.Properties.DiscVirtioHotPlug != nil {
+			in.DiscVirtioHotPlug = *volume.Properties.DiscVirtioHotPlug
 		}
-		if discHotUnplugOk, ok := propertiesOk.GetDiscVirtioHotUnplugOk(); ok && discHotUnplugOk != nil {
-			in.DiscVirtioHotUnplug = *discHotUnplugOk
+		if volume.Properties.DiscVirtioHotUnplug != nil {
+			in.DiscVirtioHotUnplug = *volume.Properties.DiscVirtioHotUnplug
 		}
 	}
 }
