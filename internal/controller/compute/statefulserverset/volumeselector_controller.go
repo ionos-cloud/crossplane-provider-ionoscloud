@@ -45,7 +45,7 @@ func (k *kubeVolumeSelectorController) Get(ctx context.Context, name, ns string)
 
 // CreateOrUpdate - creates a boot volume if it does not exist, or updates it if replicas changed
 func (k *kubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	if cr.Spec.ForProvider.Volumes == nil || len(cr.Spec.ForProvider.Volumes) == 0 {
+	if len(cr.Spec.ForProvider.Volumes) == 0 {
 		k.log.Info("Skipping VolumeSelector creation as no volumes are defined in the StatefulServerSet", "ssset", cr.Name)
 		return nil
 	}
