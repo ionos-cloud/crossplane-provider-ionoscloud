@@ -96,6 +96,7 @@ type StatefulServerSetVolume struct {
 }
 
 // StatefulServerSetParameters are the configurable fields of a StatefulServerSet.
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.volumes) || has(self.volumes)", message="Data volumes are required once set"
 type StatefulServerSetParameters struct {
 	// The number of servers that will be created. Cannot be decreased once set, only increased. Has a minimum of 1.
 	//
@@ -108,11 +109,13 @@ type StatefulServerSetParameters struct {
 	// on which the server will be created.
 	//
 	// +kubebuilder:validation:Required
-	DatacenterCfg      DatacenterConfig          `json:"datacenterConfig"`
-	Template           ServerSetTemplate         `json:"template"`
-	BootVolumeTemplate BootVolumeTemplate        `json:"bootVolumeTemplate"`
-	Lans               []StatefulServerSetLan    `json:"lans"`
-	Volumes            []StatefulServerSetVolume `json:"volumes"`
+	DatacenterCfg      DatacenterConfig       `json:"datacenterConfig"`
+	Template           ServerSetTemplate      `json:"template"`
+	BootVolumeTemplate BootVolumeTemplate     `json:"bootVolumeTemplate"`
+	Lans               []StatefulServerSetLan `json:"lans"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:XValidation:rule="self.size() >= oldSelf.size()", message="Number of data volumes can only be increased"
+	Volumes []StatefulServerSetVolume `json:"volumes"`
 	// IdentityConfigMap is the configMap from which the identity of the ACTIVE server in the ServerSet is read. The configMap
 	// should be created separately. The stateful serverset only reads the status from it. If it does not find it, it sets
 	// the first server as the ACTIVE.
