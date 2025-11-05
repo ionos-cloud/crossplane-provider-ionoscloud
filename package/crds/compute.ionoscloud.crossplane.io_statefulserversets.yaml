@@ -941,6 +941,9 @@ spec:
                       - spec
                       type: object
                     type: array
+                    x-kubernetes-validations:
+                    - message: Number of data volumes can only be increased
+                      rule: self.size() >= oldSelf.size()
                 required:
                 - bootVolumeTemplate
                 - datacenterConfig
@@ -948,8 +951,10 @@ spec:
                 - lans
                 - replicas
                 - template
-                - volumes
                 type: object
+                x-kubernetes-validations:
+                - message: Data volumes are required once set
+                  rule: '!has(oldSelf.volumes) || has(self.volumes)'
               managementPolicies:
                 default:
                 - '*'
