@@ -29,12 +29,16 @@ ORG_NAME ?= ionos-cloud
 VERSION ?= latest
 PROVIDER_IMAGE=$(REGISTRY)/$(ORG_NAME)/$(PROJECT_NAME)
 PACKAGE_PROVIDER_IMAGE=$(PROVIDER_IMAGE):$(VERSION)
-CONTROLLER_IMAGE=$(REGISTRY)/$(ORG_NAME)/$(PROJECT_NAME)-controller
-PACKAGE_CONTROLLER_IMAGE=$(CONTROLLER_IMAGE):$(VERSION)
 IMAGE_PATH=$(REGISTRY)/$(ORG_NAME)/$(PROVIDER_NAME)
 PKG_PATH=$(REGISTRY)/$(ORG_NAME)/$(PKG_NAME)
-IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-controller
--include build/makelib/image.mk
+IMAGES = $(PROJECT_NAME)
+-include build/makelib/imagelight.mk
+
+# Setup XPKG
+
+XPKG_REG_ORGS ?= $(REGISTRY)/$(ORG_NAME)
+XPKGS = $(PROJECT_NAME)
+-include build/makelib/xpkg.mk
 
 # Setup documentation
 DOCS_OUT?=$(shell pwd)/docs/api
@@ -73,7 +77,7 @@ generate: crds.clean
 e2e.run: test-integration
 
 # Run integration tests.
-test-integration: $(KIND) $(KUBECTL) $(UP) $(HELM3)
+test-integration: $(KIND) $(KUBECTL) $(CROSSPLANE_CLI) $(HELM3)
 	@$(INFO) running integration tests using kind $(KIND_VERSION)
 	@$(ROOT_DIR)/cluster/local/integration_tests.sh VERSION=$(VERSION) || $(FAIL)
 	@$(OK) integration tests passed
@@ -91,6 +95,8 @@ submodules:
 # identify its location in CI so that we cache between builds.
 go.cachedir:
 	@go env GOCACHE
+
+build.init: $(CROSSPLANE_CLI)
 
 # This is for running out-of-cluster locally, and is for convenience. Running
 # this make target will print out the command which was used. For more control,
