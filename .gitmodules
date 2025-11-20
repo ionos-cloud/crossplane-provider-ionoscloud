@@ -1,3 +1,4 @@
 [submodule "build"]
 	path = build
-	url = https://github.com/upbound/build
+	url = https://github.com/crossplane/build
+	branch = main

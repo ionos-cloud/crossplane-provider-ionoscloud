@@ -5,8 +5,6 @@ metadata:
 spec:
   crossplane:
     version: ">=v1.0.0-0"
-  controller:
-    image: ghcr.io/ionos-cloud/crossplane-provider-ionoscloud-controller:VERSION
   annotations:
     meta.crossplane.io/maintainer: Crossplane Maintainers <sdk-tooling@ionos.com>
     meta.crossplane.io/source: github.com/ionos-cloud/crossplane-provider-ionoscloud
