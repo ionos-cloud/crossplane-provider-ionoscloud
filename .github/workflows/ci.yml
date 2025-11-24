@@ -121,7 +121,7 @@ jobs:
       - name: Vendor Dependencies
         run: make vendor vendor.check
       - name: Build Helm Chart
-        run: make build VERSION=latest --debug
+        run: make build --debug
         env:
           # We're using docker buildx, which doesn't actually load the images it
           # builds by default. Specifying --load does so.
@@ -132,7 +132,7 @@ jobs:
       - name: Docker Images List
         run: make docker.list | grep "crossplane-provider-ionoscloud"
       - name: Run E2E Tests
-        run: make e2e VERSION=latest
+        run: make e2e
         env:
           IONOS_TOKEN: ${{ secrets.IONOS_TOKEN }}
           TEST_IMAGE_PASSWORD: ${{ secrets.TEST_IMAGE_PASSWORD }}
@@ -178,7 +178,7 @@ jobs:
       - name: Vendor Dependencies
         run: make vendor vendor.check
       - name: Build Artifacts
-        run: make -j2 build.all VERSION=latest
+        run: make -j2 build.all
         env:
           BUILD_ARGS: "--load"
       - name: Run Trivy vulnerability scan
