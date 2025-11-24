@@ -27,12 +27,16 @@ DOCKER_REGISTRY ?= crossplane
 REGISTRY ?= ghcr.io
 ORG_NAME ?= ionos-cloud
 VERSION ?= latest
-PROVIDER_IMAGE=$(REGISTRY)/$(ORG_NAME)/$(PROJECT_NAME)
-PACKAGE_PROVIDER_IMAGE=$(PROVIDER_IMAGE):$(VERSION)
-IMAGE_PATH=$(REGISTRY)/$(ORG_NAME)/$(PROVIDER_NAME)
-PKG_PATH=$(REGISTRY)/$(ORG_NAME)/$(PKG_NAME)
+PROVIDER_IMAGE = $(REGISTRY)/$(ORG_NAME)/$(PROJECT_NAME)
+PACKAGE_PROVIDER_IMAGE = $(PROVIDER_IMAGE):$(VERSION)
+IMAGE_PATH = $(REGISTRY)/$(ORG_NAME)/$(PROVIDER_NAME)
+PKG_PATH = $(REGISTRY)/$(ORG_NAME)/$(PKG_NAME)
 IMAGES = $(PROJECT_NAME)
+
+CROSSPLANE_NAMESPACE = crossplane-system
+KIND_CLUSTER_NAME = $(PROJECT_NAME)-dev
 -include build/makelib/imagelight.mk
+-include build/makelib/local.xpkg.mk
 
 # Setup XPKG
 
@@ -77,9 +81,9 @@ generate: crds.clean
 e2e.run: test-integration
 
 # Run integration tests.
-test-integration: $(KIND) $(KUBECTL) $(CROSSPLANE_CLI) $(HELM3)
+test-integration: cluster-clean cluster local.xpkg.deploy.provider.$(PROJECT_NAME)
 	@$(INFO) running integration tests using kind $(KIND_VERSION)
-	@$(ROOT_DIR)/cluster/local/integration_tests.sh VERSION=$(VERSION) || $(FAIL)
+	@$(ROOT_DIR)/cluster/local/integration_tests.sh VERSION=$(VERSION) KIND_CLUSTER_NAME=$(KIND_CLUSTER_NAME) CROSSPLANE_NAMESPACE=$(CROSSPLANE_NAMESPACE) || $(FAIL)
 	@$(OK) integration tests passed
 
 # Update the submodules, such as the common build scripts.
@@ -106,22 +110,28 @@ run: go.build
 	@# To see other arguments that can be provided, run the command with --help instead
 	$(GO_OUT_DIR)/provider --debug
 
-dev: $(KIND) $(KUBECTL)
+cluster: $(KIND) $(KUBECTL) $(HELM)
 	@$(INFO) Creating kind cluster
-	@$(KIND) create cluster --name=$(PROJECT_NAME)-dev
-	@$(KUBECTL) cluster-info --context kind-$(PROJECT_NAME)-dev
-	@$(INFO) Installing Crossplane CRDs
-	@$(KUBECTL) create -k https://github.com/crossplane/crossplane//cluster?ref=master
+	@$(KIND) create cluster --name=$(KIND_CLUSTER_NAME)
+	@$(KUBECTL) cluster-info --context kind-$(KIND_CLUSTER_NAME)
+	@$(INFO) Installing Crossplane Chart
+	@$(HELM) repo add crossplane-stable https://charts.crossplane.io/stable
+	@$(HELM) install crossplane --namespace $(CROSSPLANE_NAMESPACE) crossplane-stable/crossplane --create-namespace
+	@$(KUBECTL) config set-context kind-$(KIND_CLUSTER_NAME) --namespace=$(CROSSPLANE_NAMESPACE)
+
+dev: cluster
 	@$(INFO) Installing Provider IONOS Cloud CRDs
 	@$(KUBECTL) apply -R -f package/crds
 	@$(INFO) Starting Provider IONOS Cloud controllers
 	@$(GO) run cmd/provider/main.go --debug
 
-dev-clean: $(KIND) $(KUBECTL)
+cluster-clean: $(KIND) $(KUBECTL)
 	@$(INFO) Deleting kind cluster
-	@$(KIND) delete cluster --name=$(PROJECT_NAME)-dev
+	@$(KIND) delete cluster --name=$(KIND_CLUSTER_NAME)
 
-.PHONY: submodules fallthrough test-integration run crds.clean dev dev-clean
+dev-clean: cluster-clean
+
+.PHONY: submodules fallthrough test-integration run crds.clean cluster dev dev-clean cluster-clean
 
 # ====================================================================================
 # Special Targets

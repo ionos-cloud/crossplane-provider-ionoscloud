@@ -3,47 +3,6 @@
 set -e
 
 function install_provider() {
-  echo_step "installing ${PROJECT_NAME} into \"${CROSSPLANE_NAMESPACE}\" namespace"
-  INSTALL_YAML="$(
-    cat <<EOF
-apiVersion: pkg.crossplane.io/v1beta1
-kind: DeploymentRuntimeConfig
-metadata:
-  name: debug-config
-spec:
-  deploymentTemplate:
-    spec:
-      selector: {}
-      strategy: {}
-      template:
-        spec:
-          containers:
-          - args:
-            - --debug
-            name: package-runtime
-            resources: {}
-          serviceAccountName: crossplane
-  serviceAccountTemplate:
-    metadata:
-      name: crossplane
----
-apiVersion: pkg.crossplane.io/v1
-kind: Provider
-metadata:
-  name: "${PACKAGE_NAME}"
-spec:
-  package: "${PACKAGE_NAME}"
-  runtimeConfigRef:
-    name: debug-config
-  packagePullPolicy: Never
-EOF
-  )"
-  echo "${INSTALL_YAML}" | "${KUBECTL}" apply -f -
-
-  # printing the cache dir contents can be useful for troubleshooting failures
-  echo_step "check kind node cache dir contents"
-  docker exec "${K8S_CLUSTER}-control-plane" ls -la /cache
-
   echo_step "checking provider installation"
   echo_step "checking provider"
   kubectl get provider
@@ -57,8 +16,8 @@ EOF
   kubectl get deployments -n crossplane-system
   sleep 5
 
-  echo_step "waiting for provider.pkg.crossplane.io/${PACKAGE_NAME} to be installed"
-  kubectl wait "provider.pkg.crossplane.io/${PACKAGE_NAME}" --for=condition=healthy --timeout=120s
+  echo_step "waiting for provider.pkg.crossplane.io/${PROJECT_NAME} to be installed"
+  kubectl wait "provider.pkg.crossplane.io/${PROJECT_NAME}" --for=condition=healthy --timeout=120s
 
   echo_step "waiting for all pods in ${CROSSPLANE_NAMESPACE} namespace to be ready"
   kubectl wait --for=condition=ready pods --all -n ${CROSSPLANE_NAMESPACE}
@@ -107,49 +66,4 @@ spec:
 EOF
   )"
   echo "${INSTALL_CRED_YAML}" | "${KUBECTL}" delete -f -
-
-  INSTALL_YAML="$(
-    cat <<EOF
-apiVersion: pkg.crossplane.io/v1beta1
-kind: DeploymentRuntimeConfig
-metadata:
-  name: debug-config
-spec:
-  deploymentTemplate:
-    spec:
-      selector: {}
-      strategy: {}
-      template:
-        spec:
-          containers:
-          - args:
-            - --debug
-            name: package-runtime
-            resources: {}
----
-apiVersion: pkg.crossplane.io/v1
-kind: Provider
-metadata:
-  name: "${PACKAGE_NAME}"
-spec:
-  package: "${PACKAGE_NAME}"
-  runtimeConfigRef:
-    name: debug-config
-  packagePullPolicy: Never
-EOF
-  )"
-  echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -
-
-  # check pods deleted
-  timeout=60
-  current=0
-  step=3
-  while [[ $(kubectl get providerrevision.pkg.crossplane.io -o name | wc -l) != "0" ]]; do
-    echo "waiting for provider to be deleted for another $step seconds"
-    current=$current+$step
-    if ! [[ $timeout > $current ]]; then
-      echo_error "timeout of ${timeout}s has been reached"
-    fi
-    sleep $step
-  done
 }
