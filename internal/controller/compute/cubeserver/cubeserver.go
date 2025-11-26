@@ -155,6 +155,9 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&instance)
 	if instance.Properties != nil {
 		cr.Status.AtProvider.Name = *instance.Properties.Name
+		if instance.Properties.VmState != nil {
+			cr.Status.AtProvider.VmState = *instance.Properties.VmState
+		}
 	}
 	c.log.Debug("Observed cube server: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	// Set Ready condition based on State
@@ -175,6 +178,7 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	}
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == compute.BUSY {
+		c.log.Debug("Create, cube server state is busy, waiting...", "name", cr.Spec.ForProvider.Name)
 		return managed.ExternalCreation{}, nil
 	}
 	// Resolve TemplateID
@@ -224,10 +228,28 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalUpdate{}, errors.New(errNotCubeServer)
 	}
 	if cr.Status.AtProvider.State == compute.BUSY || cr.Status.AtProvider.State == compute.UPDATING {
+		c.log.Debug(fmt.Sprintf("Update, cube server state is %s, waiting...", cr.Status.AtProvider.State), "name", cr.Spec.ForProvider.Name)
 		return managed.ExternalUpdate{}, nil
 	}
 
 	serverID := cr.Status.AtProvider.ServerID
+
+	// Handle RUNNING state before update - you cannot update a cube server in a SUSPENDED state
+	if cr.Spec.ForProvider.VmState != cr.Status.AtProvider.VmState && cr.Spec.ForProvider.VmState == compute.RUNNING {
+		c.log.Debug("Update, resuming CUBE VM before update", "desired", cr.Spec.ForProvider.VmState, "current", cr.Status.AtProvider.VmState, "for server name", cr.Spec.ForProvider.Name)
+		apiResponse, vmErr := c.service.ResumeServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, serverID)
+		if vmErr != nil {
+			retErr := fmt.Errorf("failed to resume cube server. error: %w", vmErr)
+			return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
+		}
+		if vmErr = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); vmErr != nil {
+			return managed.ExternalUpdate{}, vmErr
+		}
+
+		cr.Status.AtProvider.VmState = cr.Spec.ForProvider.VmState
+		c.log.Debug("Update, finished resuming CUBE VM", "for server name", cr.Spec.ForProvider.Name)
+	}
+
 	instanceInput, err := server.GenerateUpdateCubeServerInput(cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
@@ -252,6 +274,21 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	}
 	if err = compute.WaitForRequest(ctx, c.serviceVolume.GetAPIClient(), apiResponse); err != nil {
 		return update, err
+	}
+
+	// Handle SUSPENDED state after update
+	if cr.Spec.ForProvider.VmState != cr.Status.AtProvider.VmState && cr.Spec.ForProvider.VmState == compute.SUSPENDED {
+		c.log.Debug("Update, suspending CUBE VM after update", "desired", cr.Spec.ForProvider.VmState, "current", cr.Status.AtProvider.VmState, "for server name", cr.Spec.ForProvider.Name)
+		apiResponse, vmErr := c.service.SuspendServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, serverID)
+		if vmErr != nil {
+			retErr := fmt.Errorf("failed to suspend cube server. error: %w", vmErr)
+			return update, compute.AddAPIResponseInfo(apiResponse, retErr)
+		}
+		if vmErr = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); vmErr != nil {
+			return update, vmErr
+		}
+		cr.Status.AtProvider.VmState = cr.Spec.ForProvider.VmState
+		c.log.Debug("Update, finished suspending CUBE VM", "for server name", cr.Spec.ForProvider.Name)
 	}
 
 	return update, nil

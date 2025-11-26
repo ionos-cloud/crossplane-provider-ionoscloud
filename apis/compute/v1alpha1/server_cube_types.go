@@ -52,6 +52,13 @@ type CubeServerProperties struct {
 	//
 	// +kubebuilder:validation:Required
 	DasVolumeProperties DasVolumeProperties `json:"volume"`
+	// The desired power state of the CUBE server.
+	// For CUBE servers, valid values are RUNNING and SUSPENDED.
+	// If not specified, the server power state will not be managed.
+	//
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum=RUNNING;SUSPENDED
+	VmState string `json:"vmState,omitempty"`
 }
 
 // DasVolumeProperties are the observable fields of a Cube Server's DAS Volume.
@@ -152,6 +159,7 @@ type CubeServerSpec struct {
 // +kubebuilder:printcolumn:name="DATACENTER ID",type="string",JSONPath=".spec.forProvider.datacenterConfig.datacenterId"
 // +kubebuilder:printcolumn:name="SERVER ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="VOLUME ID",priority=1,type="string",JSONPath=".status.atProvider.volumeId"
+// +kubebuilder:printcolumn:name="VM STATE",type="string",JSONPath=".status.atProvider.vmState"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status

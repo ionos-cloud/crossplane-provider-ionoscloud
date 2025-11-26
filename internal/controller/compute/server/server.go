@@ -147,6 +147,9 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
 	if observed.Properties != nil {
 		cr.Status.AtProvider.Name = *observed.Properties.Name
+		if observed.Properties.VmState != nil {
+			cr.Status.AtProvider.VmState = *observed.Properties.VmState
+		}
 		if observed.Properties.BootVolume != nil && observed.Properties.BootVolume.Id != nil {
 			cr.Status.AtProvider.VolumeID = *observed.Properties.BootVolume.Id
 		}
@@ -170,6 +173,7 @@ func (c *externalServer) Create(ctx context.Context, mg resource.Managed) (manag
 	}
 	cr.SetConditions(xpv1.Creating())
 	if cr.Status.AtProvider.State == compute.BUSY {
+		c.log.Debug("Create, server state is busy, waiting...", "name", cr.Spec.ForProvider.Name)
 		return managed.ExternalCreation{}, nil
 	}
 
@@ -246,11 +250,12 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 	}
 	c.log.Debug("Update, started updating server", "name", cr.Spec.ForProvider.Name)
 	if cr.Status.AtProvider.State == compute.BUSY {
+		c.log.Debug("Update, server state is busy, waiting...", "name", cr.Spec.ForProvider.Name)
 		return managed.ExternalUpdate{}, nil
 	}
 	// Attach or Detach Volume
 	if cr.Spec.ForProvider.VolumeCfg.VolumeID != "" && cr.Spec.ForProvider.VolumeCfg.VolumeID != cr.Status.AtProvider.VolumeID {
-		c.log.Debug("Update, attaching ", "volume id", cr.Spec.ForProvider.VolumeCfg.VolumeID, "volume name", cr.Spec.ForProvider.Name, "for server name", cr.Spec.ForProvider.Name)
+		c.log.Debug("Update, attaching ", "volume id", cr.Spec.ForProvider.VolumeCfg.VolumeID, "for server name", cr.Spec.ForProvider.Name)
 		_, apiResponse, err := c.service.AttachVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID,
 			sdkgo.Volume{Id: &cr.Spec.ForProvider.VolumeCfg.VolumeID})
 		if err != nil {
@@ -262,7 +267,7 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 			cr.SetConditions(UpdateFailedCondition(err, metav1.Now()))
 			return managed.ExternalUpdate{}, err
 		}
-		c.log.Debug("Update, finished attaching Volume", "volume", cr.Spec.ForProvider.VolumeCfg.VolumeID, "volume name", cr.Spec.ForProvider.Name, "for server name", cr.Spec.ForProvider.Name)
+		c.log.Debug("Update, finished attaching Volume", "volume", cr.Spec.ForProvider.VolumeCfg.VolumeID, "for server name", cr.Spec.ForProvider.Name)
 
 	} else if cr.Spec.ForProvider.VolumeCfg.VolumeID == "" && cr.Status.AtProvider.VolumeID != "" {
 		c.log.Debug("Update, detaching ", "volume", cr.Status.AtProvider.VolumeID, "for server name", cr.Spec.ForProvider.Name)
@@ -294,6 +299,39 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalUpdate{}, err
 	}
 	c.log.Debug("Update, finished updating server", "name", cr.Spec.ForProvider.Name)
+
+	// Handle VM Power State
+	if cr.Spec.ForProvider.VmState != "" && cr.Spec.ForProvider.VmState != cr.Status.AtProvider.VmState {
+		c.log.Debug("Update, managing VM power state", "desired", cr.Spec.ForProvider.VmState, "current", cr.Status.AtProvider.VmState, "for server name", cr.Spec.ForProvider.Name)
+		var apiResponse *sdkgo.APIResponse
+		var vmErr error
+		var state string
+		switch cr.Spec.ForProvider.VmState {
+		case compute.RUNNING:
+			state = compute.AVAILABLE
+			apiResponse, vmErr = c.service.StartServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID)
+			if vmErr != nil {
+				retErr := fmt.Errorf("failed to start server. error: %w", vmErr)
+				cr.SetConditions(UpdateFailedCondition(retErr, metav1.Now()))
+				return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
+			}
+		case compute.SHUTOFF:
+			state = compute.INACTIVE
+			apiResponse, vmErr = c.service.StopServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID)
+			if vmErr != nil {
+				retErr := fmt.Errorf("failed to stop server. error: %w", vmErr)
+				cr.SetConditions(UpdateFailedCondition(retErr, metav1.Now()))
+				return managed.ExternalUpdate{}, compute.AddAPIResponseInfo(apiResponse, retErr)
+			}
+		}
+		if vmErr = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); vmErr != nil {
+			cr.SetConditions(UpdateFailedCondition(vmErr, metav1.Now()))
+			return managed.ExternalUpdate{}, vmErr
+		}
+		cr.Status.AtProvider.State = state
+		cr.Status.AtProvider.VmState = cr.Spec.ForProvider.VmState
+		c.log.Debug("Update, finished managing VM power state", "desired", cr.Spec.ForProvider.VmState, "for server name", cr.Spec.ForProvider.Name)
+	}
 
 	// set a successful update condition, so that the update process can be tracked and monitored for success
 	cr.SetConditions(UpdateSucceededCondition(metav1.Now()))
