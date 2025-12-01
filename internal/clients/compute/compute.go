@@ -18,9 +18,9 @@ const (
 	DESTROYING = "DESTROYING"
 
 	// Server Power States
-	RUNNING    = "RUNNING"
-	SUSPENDED  = "SUSPENDED"
-	SHUTOFF    = "SHUTOFF"
+	RUNNING   = "RUNNING"
+	SUSPENDED = "SUSPENDED"
+	SHUTOFF   = "SHUTOFF"
 )
 
 const (
