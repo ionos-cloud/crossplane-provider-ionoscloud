@@ -250,6 +250,11 @@ func (c *externalServer) Update(ctx context.Context, mg resource.Managed) (manag
 		c.log.Debug("Update, finished resuming CUBE VM", "for server name", cr.Spec.ForProvider.Name)
 	}
 
+	if cr.Spec.ForProvider.VmState != compute.RUNNING {
+		retErr := fmt.Errorf("cube server must be in RUNNING state to perform update, current state: %s", cr.Spec.ForProvider.VmState)
+		return managed.ExternalUpdate{}, retErr
+	}
+
 	instanceInput, err := server.GenerateUpdateCubeServerInput(cr)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
