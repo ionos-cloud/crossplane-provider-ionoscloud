@@ -477,6 +477,7 @@ spec:
                       (nodeCount+1 for fixed number of nodes or maxNodeCount+1 when auto-scaling is used).
                       The extra IP is used when the nodes are rebuilt.
                       IPs can be set directly or via reference and indexes.
+                    nullable: true
                     properties:
                       ips:
                         description: |-
