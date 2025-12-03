@@ -77,6 +77,13 @@ type ServerParameters struct {
 	//
 	// +kubebuilder:validation:Optional
 	PlacementGroupID string `json:"placementGroupId,omitempty"`
+	// The desired power state of the server.
+	// For regular servers, valid values are RUNNING and SHUTOFF.
+	// If not specified, the server power state will not be managed.
+	//
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum=RUNNING;SHUTOFF
+	VmState string `json:"vmState,omitempty"`
 }
 
 // ServerConfig is used by resources that need to link servers via id or via reference.
@@ -105,6 +112,7 @@ type ServerObservation struct {
 	ServerID  string `json:"serverId,omitempty"`
 	VolumeID  string `json:"volumeId,omitempty"`
 	State     string `json:"state,omitempty"`
+	VmState   string `json:"vmState,omitempty"`
 	CPUFamily string `json:"cpuFamily,omitempty"`
 	Name      string `json:"name,omitempty"`
 }
@@ -130,6 +138,7 @@ type ServerStatus struct {
 // +kubebuilder:printcolumn:name="SERVER ID",type="string",JSONPath=".metadata.annotations.crossplane\\.io/external-name"
 // +kubebuilder:printcolumn:name="SERVER NAME",priority=1,type="string",JSONPath=".spec.forProvider.name"
 // +kubebuilder:printcolumn:name="BOOT VOLUME ID",priority=1,type="string",JSONPath=".status.atProvider.volumeId"
+// +kubebuilder:printcolumn:name="VM STATE",type="string",JSONPath=".status.atProvider.vmState"
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:subresource:status

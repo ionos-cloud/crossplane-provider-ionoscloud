@@ -35,6 +35,9 @@ spec:
       name: VOLUME ID
       priority: 1
       type: string
+    - jsonPath: .status.atProvider.vmState
+      name: VM STATE
+      type: string
     - jsonPath: .status.atProvider.state
       name: STATE
       type: string
@@ -203,6 +206,15 @@ spec:
                         format: uuid
                         type: string
                     type: object
+                  vmState:
+                    description: |-
+                      The desired power state of the CUBE server.
+                      For CUBE servers, valid values are RUNNING and SUSPENDED.
+                      If not specified, the server power state will not be managed.
+                    enum:
+                    - RUNNING
+                    - SUSPENDED
+                    type: string
                   volume:
                     description: DasVolumeProperties contains properties for the DAS
                       volume attached to the Cube Server.
@@ -557,6 +569,8 @@ spec:
                   serverId:
                     type: string
                   state:
+                    type: string
+                  vmState:
                     type: string
                   volumeId:
                     type: string
