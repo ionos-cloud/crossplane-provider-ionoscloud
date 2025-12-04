@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: volumes.compute.ionoscloud.crossplane.io
 spec:
   group: compute.ionoscloud.crossplane.io
@@ -352,6 +352,9 @@ spec:
                       Whether to pull hot-plug capabilities from the image. If true, the volume will inherit the hot-plug capabilities of the image.
                       If not specified, the default value is false. Is incompatible with other hot plug settings - if set to true, it will ignore any other hot plug settings.
                     type: boolean
+                    x-kubernetes-validations:
+                    - message: setHotPlugFromImage is immutable
+                      rule: self == oldSelf
                   size:
                     description: The size of the volume in GB.
                     type: number

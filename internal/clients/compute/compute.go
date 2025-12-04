@@ -13,8 +13,14 @@ const (
 	AVAILABLE  = "AVAILABLE"
 	BUSY       = "BUSY"
 	ACTIVE     = "ACTIVE"
+	INACTIVE   = "INACTIVE"
 	UPDATING   = "UPDATING"
 	DESTROYING = "DESTROYING"
+
+	// Server Power States
+	RUNNING   = "RUNNING"
+	SUSPENDED = "SUSPENDED"
+	SHUTOFF   = "SHUTOFF"
 )
 
 const (

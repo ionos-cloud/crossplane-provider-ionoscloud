@@ -129,6 +129,7 @@ type NodePoolParameters struct {
 	// IPs can be set directly or via reference and indexes.
 	//
 	// +kubebuilder:validation:Optional
+	// +nullable
 	PublicIPsCfg IPsConfigs `json:"publicIpsConfigs,omitempty"`
 	// The type of server for the Kubernetes node pool can be either
 	// 'DedicatedCore' (nodes with dedicated CPU cores) or 'VCPU' (nodes with shared CPU cores).

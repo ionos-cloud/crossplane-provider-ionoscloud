@@ -152,6 +152,11 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 	  then ramHotPlug will be set to FALSE and can not be set to TRUE unless RAM size not set to less than 240GB.
 	* format: int32
 	* multiple of: 256.000000
+* `vmState` (string)
+	* description: The desired power state of the server.
+	  For regular servers, valid values are RUNNING and SHUTOFF.
+	  If not specified, the server power state will not be managed.
+	* possible values: "RUNNING";"SHUTOFF"
 * `volumeConfig` (object)
 	* description: In order to attach a volume to the server, it is recommended to use VolumeConfig
 	  to set the existing volume (via id or via reference).

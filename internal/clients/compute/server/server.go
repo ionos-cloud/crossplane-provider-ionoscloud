@@ -32,6 +32,10 @@ type Client interface {
 	DetachVolume(ctx context.Context, datacenterID, serverID, volumeID string) (*sdkgo.APIResponse, error)
 	AttachCdrom(ctx context.Context, datacenterID, serverID string, cdrom sdkgo.Image) (sdkgo.Image, *sdkgo.APIResponse, error)
 	DetachCdrom(ctx context.Context, datacenterID, serverID, imageID string) (*sdkgo.APIResponse, error)
+	StartServer(ctx context.Context, datacenterID, serverID string) (*sdkgo.APIResponse, error)
+	StopServer(ctx context.Context, datacenterID, serverID string) (*sdkgo.APIResponse, error)
+	SuspendServer(ctx context.Context, datacenterID, serverID string) (*sdkgo.APIResponse, error)
+	ResumeServer(ctx context.Context, datacenterID, serverID string) (*sdkgo.APIResponse, error)
 	GetAPIClient() *sdkgo.APIClient
 	GetServerID(server *sdkgo.Server) (string, error)
 }
@@ -164,6 +168,26 @@ func (cp *APIClient) DetachCdrom(ctx context.Context, datacenterID, serverID, im
 	return cp.IonosServices.ComputeClient.ServersApi.DatacentersServersCdromsDelete(ctx, datacenterID, serverID, imageID).Execute()
 }
 
+// StartServer starts a server
+func (cp *APIClient) StartServer(ctx context.Context, datacenterID, serverID string) (*sdkgo.APIResponse, error) {
+	return cp.IonosServices.ComputeClient.ServersApi.DatacentersServersStartPost(ctx, datacenterID, serverID).Execute()
+}
+
+// StopServer stops a server
+func (cp *APIClient) StopServer(ctx context.Context, datacenterID, serverID string) (*sdkgo.APIResponse, error) {
+	return cp.IonosServices.ComputeClient.ServersApi.DatacentersServersStopPost(ctx, datacenterID, serverID).Execute()
+}
+
+// SuspendServer suspends a cube server
+func (cp *APIClient) SuspendServer(ctx context.Context, datacenterID, serverID string) (*sdkgo.APIResponse, error) {
+	return cp.IonosServices.ComputeClient.ServersApi.DatacentersServersSuspendPost(ctx, datacenterID, serverID).Execute()
+}
+
+// ResumeServer resumes a cube server
+func (cp *APIClient) ResumeServer(ctx context.Context, datacenterID, serverID string) (*sdkgo.APIResponse, error) {
+	return cp.IonosServices.ComputeClient.ServersApi.DatacentersServersResumePost(ctx, datacenterID, serverID).Execute()
+}
+
 // GetAPIClient gets the APIClient
 func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 	return cp.IonosServices.ComputeClient
@@ -278,6 +302,8 @@ func IsUpToDateWithDiff(cr *v1alpha1.Server, server sdkgo.Server) (bool, string)
 		return false, "Server volume ID does not match the CR volume ID: " + cr.Status.AtProvider.VolumeID + " != " + cr.Spec.ForProvider.VolumeCfg.VolumeID
 	case server.Properties.PlacementGroupId != nil && cr.Spec.ForProvider.PlacementGroupID != *server.Properties.PlacementGroupId:
 		return false, "Server placement group ID does not match the CR placement group ID: " + *server.Properties.PlacementGroupId + " != " + cr.Spec.ForProvider.PlacementGroupID
+	case cr.Spec.ForProvider.VmState != "" && server.Properties.VmState != nil && cr.Spec.ForProvider.VmState != *server.Properties.VmState:
+		return false, "Server vmState does not match the CR vmState: " + *server.Properties.VmState + " != " + cr.Spec.ForProvider.VmState
 	default:
 		return true, "Server is up-to-date"
 	}
@@ -388,15 +414,21 @@ func IsCubeServerUpToDate(cr *v1alpha1.CubeServer, server sdkgo.Server) bool { /
 		return false
 	case cr != nil && server.Properties == nil:
 		return false
-	case server.Metadata.State != nil && *server.Metadata.State == sdkgo.Busy:
+	case server.Metadata != nil && server.Metadata.State != nil && *server.Metadata.State == sdkgo.Busy:
 		return true
 	case server.Properties.Name != nil && *server.Properties.Name != cr.Spec.ForProvider.Name:
 		return false
 	case server.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
 		return false
+	case server.Properties.AvailabilityZone != nil && *server.Properties.AvailabilityZone != cr.Spec.ForProvider.AvailabilityZone:
+		return false
+	case server.Properties.AvailabilityZone == nil && cr.Spec.ForProvider.AvailabilityZone != "":
+		return false
 	case server.Properties.BootVolume != nil && *server.Properties.BootVolume.Id != cr.Status.AtProvider.VolumeID:
 		return false
 	case cr.Status.AtProvider.VolumeID != "" && !server.Properties.HasBootVolume():
+		return false
+	case cr.Spec.ForProvider.VmState != "" && server.Properties.VmState != nil && cr.Spec.ForProvider.VmState != *server.Properties.VmState:
 		return false
 	}
 	if server.HasEntities() && server.Entities.HasVolumes() && server.Entities.Volumes.HasItems() {

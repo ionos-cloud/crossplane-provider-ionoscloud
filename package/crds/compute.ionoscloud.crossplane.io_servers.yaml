@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: servers.compute.ionoscloud.crossplane.io
 spec:
   group: compute.ionoscloud.crossplane.io
@@ -38,6 +38,9 @@ spec:
     - jsonPath: .status.atProvider.volumeId
       name: BOOT VOLUME ID
       priority: 1
+      type: string
+    - jsonPath: .status.atProvider.vmState
+      name: VM STATE
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE
@@ -219,6 +222,15 @@ spec:
                     format: int32
                     multipleOf: 256
                     type: integer
+                  vmState:
+                    description: |-
+                      The desired power state of the server.
+                      For regular servers, valid values are RUNNING and SHUTOFF.
+                      If not specified, the server power state will not be managed.
+                    enum:
+                    - RUNNING
+                    - SHUTOFF
+                    type: string
                   volumeConfig:
                     description: |-
                       In order to attach a volume to the server, it is recommended to use VolumeConfig
@@ -496,6 +508,8 @@ spec:
                   serverId:
                     type: string
                   state:
+                    type: string
+                  vmState:
                     type: string
                   volumeId:
                     type: string

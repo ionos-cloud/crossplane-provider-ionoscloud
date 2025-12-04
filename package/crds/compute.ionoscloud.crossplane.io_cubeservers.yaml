@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: cubeservers.compute.ionoscloud.crossplane.io
 spec:
   group: compute.ionoscloud.crossplane.io
@@ -34,6 +34,9 @@ spec:
     - jsonPath: .status.atProvider.volumeId
       name: VOLUME ID
       priority: 1
+      type: string
+    - jsonPath: .status.atProvider.vmState
+      name: VM STATE
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE
@@ -203,6 +206,15 @@ spec:
                         format: uuid
                         type: string
                     type: object
+                  vmState:
+                    description: |-
+                      The desired power state of the CUBE server.
+                      For CUBE servers, valid values are RUNNING and SUSPENDED.
+                      If not specified, the server power state will not be managed.
+                    enum:
+                    - RUNNING
+                    - SUSPENDED
+                    type: string
                   volume:
                     description: DasVolumeProperties contains properties for the DAS
                       volume attached to the Cube Server.
@@ -557,6 +569,8 @@ spec:
                   serverId:
                     type: string
                   state:
+                    type: string
+                  vmState:
                     type: string
                   volumeId:
                     type: string

@@ -143,6 +143,11 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 		* `templateId` (string)
 			* description: The ID of the Template from IONOS Cloud.
 			* format: uuid
+* `vmState` (string)
+	* description: The desired power state of the CUBE server.
+	  For CUBE servers, valid values are RUNNING and SUSPENDED.
+	  If not specified, the server power state will not be managed.
+	* possible values: "RUNNING";"SUSPENDED"
 * `volume` (object)
 	* description: DasVolumeProperties contains properties for the DAS volume attached to the Cube Server.
 	* properties:
