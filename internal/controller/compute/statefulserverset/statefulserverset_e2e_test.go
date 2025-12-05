@@ -1,3 +1,5 @@
+// //go:build sss_e2e
+
 package statefulserverset
 
 import (
@@ -9,43 +11,38 @@ import (
 	"testing"
 	"time"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	xpcontroller "github.com/crossplane/crossplane-runtime/pkg/controller"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
-	"k8s.io/utils/ptr"
-
-	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	xpcontroller "github.com/crossplane/crossplane-runtime/pkg/controller"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/crossplane/crossplane-runtime/pkg/controller"
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
-
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	apisv1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/datacenter"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/firewallrule"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/lan"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/nic"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/volume"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/serverset"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/volumeselector"
-
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/datacenter"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/lan"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/volume"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
-
-	corev1 "k8s.io/api/core/v1"
 )
 
 var (
@@ -113,7 +110,7 @@ var _ = BeforeSuite(func() {
 	opts := &utils.ConfigurationOptions{
 		CreationGracePeriod: 30 * time.Second,
 		Timeout:             30 * time.Minute,
-		CtrlOpts: controller.Options{
+		CtrlOpts: xpcontroller.Options{
 			PollInterval:            time.Minute,
 			GlobalRateLimiter:       ratelimiter.NewGlobal(reconciles),
 			Logger:                  logging.NewLogrLogger(logger),
@@ -774,15 +771,20 @@ var _ = Describe("StatefulServerSet Update", func() {
 			}, timeout, interval).Should(BeTrue(), "BootVolume should be available")
 			Expect(bootVolume.Spec.ForProvider.Type).To(Equal("HDD"))
 			decodedUserData, err := base64.StdEncoding.DecodeString(bootVolume.Spec.ForProvider.UserData)
+			Expect(err).ShouldNot(HaveOccurred())
 			Expect(string(decodedUserData)).To(ContainSubstring("cloud-init ran successfully"))
 			Expect(bootVolume.Status.AtProvider.Name).To(Equal(bootvolumeName + "-0-1"))
-
+			Expect(string(decodedUserData)).To(ContainSubstring("hostname: server-name-0-1"))
+			secondBootVolume := v1alpha1.Volume{}
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, types.NamespacedName{Name: bootvolumeName + "-1-1"}, &bootVolume)
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: bootvolumeName + "-1-1"}, &secondBootVolume)
 				return err == nil && bootVolume.Status.AtProvider.State == "AVAILABLE"
-			}, timeout, interval).Should(BeTrue(), "BootVolume should be available")
-			Expect(bootVolume.Spec.ForProvider.Type).To(Equal("HDD"))
+			}, timeout, interval).Should(BeTrue(), "second BootVolume should be available")
+			decodedUserData, err = base64.StdEncoding.DecodeString(secondBootVolume.Spec.ForProvider.UserData)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(secondBootVolume.Spec.ForProvider.Type).To(Equal("HDD"))
 			Expect(string(decodedUserData)).To(ContainSubstring("cloud-init ran successfully"))
+			Expect(string(decodedUserData)).To(ContainSubstring("hostname: server-name-1-1"))
 
 			By("cleaning up resources")
 			DeferCleanup(func(ctx context.Context) {
