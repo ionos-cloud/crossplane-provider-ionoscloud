@@ -1,9 +1,8 @@
-//go:build sss_e2e
-
 package statefulserverset
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -61,7 +60,7 @@ var (
 var logger = zap.New(zap.UseDevMode(true))
 
 const (
-	timeout        = time.Minute * 20
+	timeout        = time.Minute * 30
 	cleanupTimeout = 2 * time.Minute
 	interval       = time.Second * 30 // Poll every 30 seconds
 )
@@ -272,7 +271,7 @@ var _ = Describe("StatefulServerSet Successful creation", func() {
 			By("creating ProviderConfig with credentials from environment")
 			err := createProviderConfigWithCredentials(ctx, "example", "default")
 			Expect(err).NotTo(HaveOccurred())
-
+			bootvolumeName := "boot-volume"
 			// 2. Create a Datacenter resource that the StatefulServerSet references
 			datacenter := &v1alpha1.Datacenter{
 				ObjectMeta: metav1.ObjectMeta{
@@ -349,7 +348,7 @@ var _ = Describe("StatefulServerSet Successful creation", func() {
 						},
 						BootVolumeTemplate: v1alpha1.BootVolumeTemplate{
 							Metadata: v1alpha1.ServerSetBootVolumeMetadata{
-								Name: "boot-volume",
+								Name: bootvolumeName,
 							},
 							Spec: v1alpha1.ServerSetBootVolumeSpec{
 								UpdateStrategy: v1alpha1.UpdateStrategy{
@@ -469,7 +468,7 @@ var _ = Describe("StatefulServerSet Successful creation", func() {
 
 			// 8. Verify boot volume configuration
 			Expect(fetchedCR.Spec.ForProvider.BootVolumeTemplate).NotTo(BeNil())
-			Expect(fetchedCR.Spec.ForProvider.BootVolumeTemplate.Metadata.Name).To(Equal("boot-volume"))
+			Expect(fetchedCR.Spec.ForProvider.BootVolumeTemplate.Metadata.Name).To(Equal(bootvolumeName))
 			Expect(fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.Image).To(Equal("c38292f2-eeaa-11ef-8fa7-aee9942a25aa"))
 			Expect(fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.Size).To(Equal(float32(10)))
 			Expect(fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions).To(HaveLen(2))
@@ -556,6 +555,234 @@ var _ = Describe("StatefulServerSet Successful creation", func() {
 				}
 				return len(fetchedCR.Status.Conditions) > 0 && fetchedCR.Status.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())
 			}, timeout, interval).Should(BeTrue(), "StatefulServerSet should be in available state")
+
+			By("cleaning up resources")
+			DeferCleanup(func(ctx context.Context) {
+				By("cleaning up StatefulServerSet")
+				Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, cr))).To(Succeed())
+			}, NodeTimeout(cleanupTimeout))
+			DeferCleanup(func(ctx context.Context) {
+				By("cleaning up Datacenter")
+				Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, datacenter))).To(Succeed())
+			}, NodeTimeout(cleanupTimeout))
+		})
+	})
+})
+
+// This test verifies that updating a StatefulServerSet's boot volume triggers a recreation of the volume.
+// It creates a StatefulServerSet, waits for it to become available, then updates the boot volume's type
+// to HDD and adds user data. It then asserts that the StatefulServerSet becomes available again and that
+// the underlying boot volume has been updated with the new specifications. This ensures the controller
+// correctly handles updates that require resource replacement.
+var _ = Describe("StatefulServerSet Update", func() {
+	Context("When updating a StatefulServerSet", func() {
+		It("should update the StatefulServerSet's boot volume successfully", func() {
+			ctx, cancel = context.WithCancel(context.Background())
+			defer cancel()
+
+			bootvolumeName := "boot-volume"
+
+			By("creating ProviderConfig with credentials from environment")
+			err := createProviderConfigWithCredentials(ctx, "example-update", "default")
+			Expect(err).NotTo(HaveOccurred())
+
+			By("creating a Datacenter resource")
+			datacenter := &v1alpha1.Datacenter{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "example-update",
+				},
+				Spec: v1alpha1.DatacenterSpec{
+					ForProvider: v1alpha1.DatacenterParameters{
+						Name:     "sss-test-datacenter-update",
+						Location: "de/txl",
+					},
+					ResourceSpec: xpv1.ResourceSpec{
+						ProviderConfigReference: &xpv1.Reference{
+							Name: "example-update",
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, datacenter)).Should(Succeed())
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: datacenter.Name}, datacenter)
+				return err == nil && datacenter.Status.AtProvider.State == "AVAILABLE"
+			}, timeout, interval).Should(BeTrue(), "Datacenter should be available")
+
+			crName := "sss-example-update"
+			cr := &v1alpha1.StatefulServerSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: crName,
+				},
+				Spec: v1alpha1.StatefulServerSetSpec{
+					ForProvider: v1alpha1.StatefulServerSetParameters{
+						Replicas:              2,
+						RemovePendingOnReboot: false,
+						DeploymentStrategy: v1alpha1.DeploymentStrategy{
+							Type: "ZONES",
+						},
+						DatacenterCfg: v1alpha1.DatacenterConfig{
+							DatacenterIDRef: &xpv1.Reference{
+								Name: "example-update",
+							},
+						},
+						Template: v1alpha1.ServerSetTemplate{
+							Metadata: v1alpha1.ServerSetMetadata{
+								Name: "server-name",
+							},
+							Spec: v1alpha1.ServerSetTemplateSpec{
+								Cores: 1,
+								RAM:   1024,
+								NICs: []v1alpha1.ServerSetTemplateNIC{
+									{
+										Name:           "nic-customer",
+										DHCP:           false,
+										DHCPv6:         ptr.To(false),
+										LanReference:   "customer",
+										FirewallActive: true,
+										FirewallRules: []v1alpha1.ServerSetTemplateFirewallRuleSpec{
+											{
+												Protocol: "TCP",
+												Name:     "rule-tcp",
+											},
+											{
+												Protocol: "ICMP",
+												Name:     "rule-icmp",
+											},
+										},
+									},
+								},
+							},
+						},
+						IdentityConfigMap: v1alpha1.IdentityConfigMap{
+							Name:      "config-lease",
+							Namespace: "default",
+							KeyName:   "identity",
+						},
+						BootVolumeTemplate: v1alpha1.BootVolumeTemplate{
+							Metadata: v1alpha1.ServerSetBootVolumeMetadata{
+								Name: bootvolumeName,
+							},
+							Spec: v1alpha1.ServerSetBootVolumeSpec{
+								UpdateStrategy: v1alpha1.UpdateStrategy{
+									Stype: "createBeforeDestroyBootVolume",
+								},
+								SetHotPlugsFromImage: false,
+								Image:                "c38292f2-eeaa-11ef-8fa7-aee9942a25aa",
+								Size:                 10,
+								Type:                 "SSD",
+								UserData:             "",
+								ImagePassword:        "thisshouldwork11",
+								Substitutions: []v1alpha1.Substitution{
+									{
+										Options: map[string]string{
+											"cidr": "fd1d:15db:cf64:1337::/64",
+										},
+										Key:    "__ipv6Address",
+										Type:   "ipv6Address",
+										Unique: true,
+									},
+									{
+										Options: map[string]string{
+											"cidr": "192.168.42.0/24",
+										},
+										Key:    "ipv4Address",
+										Type:   "ipv4Address",
+										Unique: true,
+									},
+								},
+							},
+						},
+						Lans: []v1alpha1.StatefulServerSetLan{
+							{
+								Metadata: v1alpha1.StatefulServerSetLanMetadata{
+									Name: "data",
+								},
+								Spec: v1alpha1.StatefulServerSetLanSpec{
+									Public: true,
+								},
+							},
+							{
+								Metadata: v1alpha1.StatefulServerSetLanMetadata{
+									Name: "management",
+								},
+								Spec: v1alpha1.StatefulServerSetLanSpec{
+									Public: false,
+								},
+							},
+							{
+								Metadata: v1alpha1.StatefulServerSetLanMetadata{
+									Name: "customer",
+								},
+								Spec: v1alpha1.StatefulServerSetLanSpec{
+									IPv6cidr: "AUTO",
+									Public:   false,
+								},
+							},
+						},
+						Volumes: []v1alpha1.StatefulServerSetVolume{
+							{
+								Metadata: v1alpha1.StatefulServerSetVolumeMetadata{
+									Name: "storage-disk",
+								},
+								Spec: v1alpha1.StatefulServerSetVolumeSpec{
+									Size: 10,
+									Type: "SSD",
+								},
+							},
+							{
+								Metadata: v1alpha1.StatefulServerSetVolumeMetadata{
+									Name: "second-storage-disk",
+								},
+								Spec: v1alpha1.StatefulServerSetVolumeSpec{
+									Size: 40,
+									Type: "SSD",
+								},
+							},
+						},
+					},
+					ResourceSpec: xpv1.ResourceSpec{
+						ProviderConfigReference: &xpv1.Reference{
+							Name: "example-update",
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cr)).Should(Succeed())
+
+			fetchedCR := &v1alpha1.StatefulServerSet{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: crName}, fetchedCR)
+				return err == nil && fetchedCR.Status.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())
+			}, timeout, interval).Should(BeTrue(), "StatefulServerSet should become available")
+
+			By("updating the StatefulServerSet's boot volume")
+			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.Type = "HDD"
+			// #cloud-config\nruncmd:\n  - echo "cloud-init ran successfully"\n  - [ ls, -l, / ]
+			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.UserData = "I2Nsb3VkLWNvbmZpZwpydW5jbWQ6CiAgLSBlY2hvICJjbG91ZC1pbml0IHJhbiBzdWNjZXNzZnVsbHkiCiAgLSBbIGxzLCAtbCwgLyBd"
+			Expect(k8sClient.Update(ctx, fetchedCR)).Should(Succeed())
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: crName}, fetchedCR)
+				return err == nil && fetchedCR.Status.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())
+			}, timeout, interval).Should(BeTrue(), "StatefulServerSet should become available again after update")
+
+			bootVolume := v1alpha1.Volume{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: bootvolumeName + "-0-1"}, &bootVolume)
+				return err == nil && bootVolume.Status.AtProvider.State == "AVAILABLE"
+			}, timeout, interval).Should(BeTrue(), "BootVolume should be available")
+			Expect(bootVolume.Spec.ForProvider.Type).To(Equal("HDD"))
+			decodedUserData, err := base64.StdEncoding.DecodeString(bootVolume.Spec.ForProvider.UserData)
+			Expect(string(decodedUserData)).To(ContainSubstring("cloud-init ran successfully"))
+			Expect(bootVolume.Status.AtProvider.Name).To(Equal(bootvolumeName + "-0-1"))
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: bootvolumeName + "-1-1"}, &bootVolume)
+				return err == nil && bootVolume.Status.AtProvider.State == "AVAILABLE"
+			}, timeout, interval).Should(BeTrue(), "BootVolume should be available")
+			Expect(bootVolume.Spec.ForProvider.Type).To(Equal("HDD"))
+			Expect(string(decodedUserData)).To(ContainSubstring("cloud-init ran successfully"))
 
 			By("cleaning up resources")
 			DeferCleanup(func(ctx context.Context) {
