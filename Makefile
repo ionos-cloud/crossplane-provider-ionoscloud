@@ -35,12 +35,15 @@ IMAGES = $(PROJECT_NAME)
 
 CROSSPLANE_NAMESPACE = crossplane-system
 KIND_CLUSTER_NAME = $(PROJECT_NAME)-dev
+# use a custom DeploymentRuntimeConfig file for e2e tests and local deployment
+DRC_FILE = $(ROOT_DIR)/cluster/local/debug-config.yaml
 -include build/makelib/imagelight.mk
 -include build/makelib/local.xpkg.mk
 
 # Setup XPKG
 
 XPKG_REG_ORGS ?= $(REGISTRY)/$(ORG_NAME)
+XPKG_REG_ORGS_NO_PROMOTE ?= $(REGISTRY)/$(ORG_NAME)
 XPKGS = $(PROJECT_NAME)
 -include build/makelib/xpkg.mk
 
@@ -81,7 +84,7 @@ generate: crds.clean
 e2e.run: test-integration
 
 # Run integration tests.
-test-integration: cluster-clean cluster local.xpkg.deploy.provider.$(PROJECT_NAME)
+test-integration: $(YQ) cluster-clean cluster local.xpkg.deploy.provider.$(PROJECT_NAME)
 	@$(INFO) running integration tests using kind $(KIND_VERSION)
 	@$(ROOT_DIR)/cluster/local/integration_tests.sh VERSION=$(VERSION) KIND_CLUSTER_NAME=$(KIND_CLUSTER_NAME) CROSSPLANE_NAMESPACE=$(CROSSPLANE_NAMESPACE) || $(FAIL)
 	@$(OK) integration tests passed
