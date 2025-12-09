@@ -1,9 +1,13 @@
 name: CD
 
 on:
-  push:
-    tags:
-      - v*
+  workflow_dispatch:
+    inputs:
+      skip-checks:
+        description: 'Skip all checks (tests and vulnerability scans)'
+        required: false
+        default: false
+        type: boolean
 
 env:
   GOLANGCI_VERSION: 'v2.6'
@@ -12,6 +16,7 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.skip-checks != true }}
     steps:
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
@@ -59,9 +64,89 @@ jobs:
         env:
           IONOS_TOKEN: ${{ secrets.IONOS_TOKEN }}
           TEST_IMAGE_PASSWORD: ${{ secrets.TEST_IMAGE_PASSWORD }}
+
+  trivy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.skip-checks != true }}
+    steps:
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          version: ${{ env.DOCKER_BUILDX_VERSION }}
+          install: true
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Fetch History
+        run: git fetch --prune --unshallow
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Find the Go Build Cache
+        id: go
+        run: echo "::set-output name=cache::$(make go.cachedir)"
+      - name: Cache the Go Build Cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.go.outputs.cache }}
+          key: ${{ runner.os }}-build-e2e-tests-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-trivy-
+      - name: Cache Go Dependencies
+        uses: actions/cache@v4
+        with:
+          path: .work/pkg
+          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-
+      - name: Vendor Dependencies
+        run: make vendor vendor.check
+      - name: Build Artifacts
+        run: make build
+        env:
+          BUILD_ARGS: "--load"
+      - name: Get Provider Image ID
+        run: echo "IMAGE_ID=$(make docker.list | grep "crossplane-provider-ionoscloud" | tr -s ' ' | cut -d' ' -f3)" >> $GITHUB_ENV
+      - name: Run Trivy vulnerability scan
+        id: trivy-scan
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          image-ref: ${{ env.IMAGE_ID }}
+          format: 'sarif'
+          exit-code: 1
+          severity: 'CRITICAL,HIGH'
+          output: 'trivy-results.sarif'
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: ${{ failure() && steps.trivy-scan.conclusion == 'failure' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  govulncheck:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.skip-checks != true }}
+    steps:
+      - name: Run govulncheck vulnerability scan
+        uses: golang/govulncheck-action@v1
+        id: govulncheck-scan
+        with:
+          go-version-file: 'go.mod'
+          go-package: './...'
+          output-format: 'sarif'
+          output-file: 'govulncheck-results.sarif'
+      - name: Upload govulncheck scan results to GitHub Security tab
+        if: ${{ failure() && steps.govulncheck-scan.conclusion == 'failure' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'govulncheck-results.sarif'
+
   release-latest:
     runs-on: ubuntu-latest
-    needs: test
+    needs: [ test, trivy, govulncheck ]
     steps:
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
@@ -115,7 +200,13 @@ jobs:
 
   release-tag:
     runs-on: ubuntu-latest
-#    needs: test
+    needs: [ test, trivy, govulncheck ]
+    if: |
+      always() &&
+      (
+        (github.event.inputs.skip-checks == true && needs.test.result == 'skipped' && needs.trivy.result == 'skipped' && needs.govulncheck.result == 'skipped') ||
+        (needs.test.result == 'success' && needs.trivy.result == 'success' && needs.govulncheck.result == 'success')
+      )
     steps:
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
