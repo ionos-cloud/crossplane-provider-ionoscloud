@@ -184,6 +184,7 @@ jobs:
       - name: Get Provider Image ID
         run: echo "IMAGE_ID=$(make docker.list | grep "crossplane-provider-ionoscloud" | tr -s ' ' | cut -d' ' -f3)" >> $GITHUB_ENV
       - name: Run Trivy vulnerability scan
+        id: trivy-scan
         uses: aquasecurity/trivy-action@0.30.0
         with:
           image-ref: ${{ env.IMAGE_ID }}
@@ -193,6 +194,7 @@ jobs:
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy scan results to GitHub Security tab
+        if: ${{ failure() && steps.trivy-scan.conclusion == 'failure' }}
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
