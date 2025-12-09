@@ -9,6 +9,9 @@ on:
         default: false
         type: boolean
 
+permissions:
+  contents: read
+
 env:
   GOLANGCI_VERSION: 'v2.6'
   DOCKER_BUILDX_VERSION: 'v0.20.1'
@@ -68,6 +71,8 @@ jobs:
   trivy:
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.skip-checks != true }}
+    permissions:
+      security-events: write
     steps:
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
@@ -129,6 +134,8 @@ jobs:
   govulncheck:
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.skip-checks != true }}
+    permissions:
+      security-events: write
     steps:
       - name: Run govulncheck vulnerability scan
         uses: golang/govulncheck-action@v1
@@ -147,6 +154,8 @@ jobs:
   release-latest:
     runs-on: ubuntu-latest
     needs: [ test, trivy, govulncheck ]
+    permissions:
+      packages: write
     steps:
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
@@ -207,6 +216,8 @@ jobs:
         (github.event.inputs.skip-checks == true && needs.test.result == 'skipped' && needs.trivy.result == 'skipped' && needs.govulncheck.result == 'skipped') ||
         (needs.test.result == 'success' && needs.trivy.result == 'success' && needs.govulncheck.result == 'success')
       )
+    permissions:
+      packages: write
     steps:
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3

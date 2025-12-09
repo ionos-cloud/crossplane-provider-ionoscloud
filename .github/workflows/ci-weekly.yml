@@ -7,6 +7,10 @@ on:
     - cron: '0 09 * * WED'
   workflow_dispatch: { }
 
+permissions:
+  contents: read
+  security-events: write
+
 env:
   DOCKER_BUILDX_VERSION: 'v0.20.1'
 

@@ -4,6 +4,9 @@ on:
   pull_request: { }
   workflow_dispatch: { }
 
+permissions:
+  contents: read
+
 env:
   GOLANGCI_VERSION: 'v2.6'
   DOCKER_BUILDX_VERSION: 'v0.20.1'
@@ -135,6 +138,8 @@ jobs:
   trivy:
     runs-on: ubuntu-latest
     if: needs.detect-noop.outputs.noop != 'true'
+    permissions:
+      security-events: write
     steps:
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
@@ -196,6 +201,8 @@ jobs:
   govulncheck:
     runs-on: ubuntu-latest
     if: needs.detect-noop.outputs.noop != 'true'
+    permissions:
+      security-events: write
     steps:
       - name: Run govulncheck vulnerability scan
         uses: golang/govulncheck-action@v1
