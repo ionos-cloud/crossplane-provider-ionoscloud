@@ -6,7 +6,7 @@ on:
 
 env:
   GOLANGCI_VERSION: 'v2.6'
-  DOCKER_BUILDX_VERSION: 'v0.11.2'
+  DOCKER_BUILDX_VERSION: 'v0.20.1'
 
 jobs:
   detect-noop:
@@ -121,7 +121,7 @@ jobs:
       - name: Vendor Dependencies
         run: make vendor vendor.check
       - name: Build Helm Chart
-        run: make -j2 build VERSION=latest --debug
+        run: make build --debug
         env:
           # We're using docker buildx, which doesn't actually load the images it
           # builds by default. Specifying --load does so.
@@ -132,7 +132,7 @@ jobs:
       - name: Docker Images List
         run: make docker.list | grep "crossplane-provider-ionoscloud"
       - name: Run E2E Tests
-        run: make e2e VERSION=latest USE_HELM3=true
+        run: make e2e
         env:
           IONOS_TOKEN: ${{ secrets.IONOS_TOKEN }}
           TEST_IMAGE_PASSWORD: ${{ secrets.TEST_IMAGE_PASSWORD }}
@@ -178,19 +178,23 @@ jobs:
       - name: Vendor Dependencies
         run: make vendor vendor.check
       - name: Build Artifacts
-        run: make -j2 build.all VERSION=latest
+        run: make build
         env:
           BUILD_ARGS: "--load"
+      - name: Get Provider Image ID
+        run: echo "IMAGE_ID=$(make docker.list | grep "crossplane-provider-ionoscloud" | tr -s ' ' | cut -d' ' -f3)" >> $GITHUB_ENV
       - name: Run Trivy vulnerability scan
+        id: trivy-scan
         uses: aquasecurity/trivy-action@0.30.0
         with:
-          image-ref: 'ghcr.io/ionos-cloud/crossplane-provider-ionoscloud-controller:latest'
+          image-ref: ${{ env.IMAGE_ID }}
           format: 'sarif'
-          exit-code: 0
+          exit-code: 1
           severity: 'CRITICAL,HIGH'
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy scan results to GitHub Security tab
+        if: ${{ failure() && steps.trivy-scan.conclusion == 'failure' }}
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
