@@ -20,11 +20,11 @@ jobs:
     if: needs.detect-noop.outputs.noop != 'true'
     steps:
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
         with:
           platforms: all
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
         with:
           version: ${{ env.DOCKER_BUILDX_VERSION }}
           install: true
@@ -63,7 +63,7 @@ jobs:
         run: echo "IMAGE_ID=$(make docker.list | grep "crossplane-provider-ionoscloud" | tr -s ' ' | cut -d' ' -f3)" >> $GITHUB_ENV
       - name: Run Trivy vulnerability scan
         id: trivy-scan
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
         with:
           image-ref: ${{ env.IMAGE_ID }}
           format: 'sarif'
@@ -80,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run govulncheck
-        uses: golang/govulncheck-action@v1
+        uses: golang/govulncheck-action@b625fbe08f3bccbe446d94fbf87fcc875a4f50ee
         id: govulncheck-scan
         with:
           go-version-file: 'go.mod'
