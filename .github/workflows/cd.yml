@@ -19,7 +19,7 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.skip-checks != true }}
+    if: ${{ !inputs.skip-checks }}
     steps:
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
@@ -70,7 +70,7 @@ jobs:
 
   trivy:
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.skip-checks != true }}
+    if: ${{ !inputs.skip-checks }}
     permissions:
       security-events: write
     steps:
@@ -133,7 +133,7 @@ jobs:
 
   govulncheck:
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.skip-checks != true }}
+    if: ${{ !inputs.skip-checks }}
     permissions:
       security-events: write
     steps:
@@ -213,7 +213,7 @@ jobs:
     if: |
       always() &&
       (
-        (github.event.inputs.skip-checks == true && needs.test.result == 'skipped' && needs.trivy.result == 'skipped' && needs.govulncheck.result == 'skipped') ||
+        (inputs.skip-checks && needs.test.result == 'skipped' && needs.trivy.result == 'skipped' && needs.govulncheck.result == 'skipped') ||
         (needs.test.result == 'success' && needs.trivy.result == 'success' && needs.govulncheck.result == 'success')
       )
     permissions:
@@ -268,3 +268,24 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push Images
         run: make publish VERSION=${GITHUB_REF_NAME} BRANCH_NAME=master
+
+  mirror-to-upbound:
+    runs-on: ubuntu-latest
+    needs: release-tag
+    if: ${{ !inputs.skip-checks }}
+    permissions:
+      packages: write
+    steps:
+      - name: Setup crane
+        uses: imjasonh/setup-crane@v0.4
+      - name: Validate crane installation
+        run: crane version
+      - name: Login to Mirror Registry
+        uses: docker/login-action@v1
+        with:
+          registry: xpkg.upbound.io
+          username: ${{ secrets.UP_ACCESS_ID }}
+          password: ${{ secrets.UP_API_KEY }}
+      - name: Mirror to ${{ inputs.mirror-registry }}
+        run: |
+          crane copy ghcr.io/${{ github.repository }}:${{ GITHUB_REF_NAME }} xpkg.upbound.io/${{ github.owner }}/provider-ionoscloud:${{ GITHUB_REF_NAME }} --allow-nondistributable-artifacts
