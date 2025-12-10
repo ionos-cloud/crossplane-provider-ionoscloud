@@ -4,10 +4,13 @@ package statefulserverset
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
+	"regexp"
 	"testing"
 	"time"
 
@@ -188,9 +191,9 @@ func createProviderConfigWithCredentials(ctx context.Context, name, namespace st
 
 	// If no credentials are provided, panic
 	if token == "" {
-		GinkgoWriter.Printf("WARNING: No credentials found in environment variables (IONOS_USERNAME, IONOS_PASSWORD, IONOS_TOKEN)\n")
+		GinkgoWriter.Printf("WARNING: No credentials found in environment variables IONOS_TOKEN)\n")
 		GinkgoWriter.Printf("The controller will not be able to create cloud resources without credentials\n")
-		Panic()
+		return fmt.Errorf("The controller will not be able to create cloud resources without credentials, please define IONOS_TOKEN env variable")
 	}
 
 	// Build the credentials JSON string
@@ -253,6 +256,32 @@ func createProviderConfigWithCredentials(ctx context.Context, name, namespace st
 	}, NodeTimeout(time.Minute))
 
 	return nil
+}
+
+// getSSSPassword returns an alphanumeric password 8–12 chars long.
+// It reads TEST_IMAGE_PASSWORD and validates; if invalid or empty, it generates one.
+func getSSSPassword() string {
+	const minLen = 8
+	const maxLen = 12
+	alnum := regexp.MustCompile(`^[A-Za-z0-9]+$`)
+	if v := os.Getenv("TEST_IMAGE_PASSWORD"); v != "" {
+		if len(v) >= minLen && len(v) <= maxLen && alnum.MatchString(v) {
+			return v
+		}
+	}
+	// fallback: generate a compliant random password of length 12
+	return generateAlphaNum(maxLen)
+}
+
+// generateAlphaNum creates a random alphanumeric string of the given length.
+func generateAlphaNum(n int) string {
+	const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, n)
+	for i := range b {
+		idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+		b[i] = letters[idx.Int64()]
+	}
+	return string(b)
 }
 
 // This test verifies that a StatefulServerSet can be created on the API server
@@ -357,7 +386,7 @@ var _ = Describe("StatefulServerSet Successful creation", func() {
 								Size:                 10,
 								Type:                 "SSD",
 								UserData:             "",
-								ImagePassword:        "thisshouldwork11",
+								ImagePassword:        getSSSPassword(),
 								Substitutions: []v1alpha1.Substitution{
 									{
 										Options: map[string]string{
@@ -670,7 +699,7 @@ var _ = Describe("StatefulServerSet Update", func() {
 								Size:                 10,
 								Type:                 "SSD",
 								UserData:             "",
-								ImagePassword:        "thisshouldwork11",
+								ImagePassword:        getSSSPassword(),
 								Substitutions: []v1alpha1.Substitution{
 									{
 										Options: map[string]string{
@@ -757,7 +786,7 @@ var _ = Describe("StatefulServerSet Update", func() {
 			By("changing the StatefulServerSet's boot volume hdd type")
 			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.Type = "HDD"
 			// #cloud-config\nruncmd:\n  - echo "cloud-init ran successfully"\n  - [ ls, -l, / ]
-			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.UserData = "I2Nsb3VkLWNvbmZpZwpydW5jbWQ6CiAgLSBlY2hvICJjbG91ZC1pbml0IHJhbiBzdWNjZXNzZnVsbHkiCiAgLSBbIGxzLCAtbCwgLyBd"
+			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.UserData = "I2NsbGluLWNvbmZpZwpydW5jbWQ6CiAgLSBlY2hvICJjbG91ZC1pbml0IHJhbiBzdWNjZXNzZnVsbHkiCiAgLSBbIGxzLCAtbCwgLyBd"
 			Expect(k8sClient.Update(ctx, fetchedCR)).Should(Succeed())
 
 			Eventually(func() bool {
@@ -795,7 +824,7 @@ var _ = Describe("StatefulServerSet Update", func() {
 
 			By("changing the StatefulServerSet's boot volume image")
 			fetchedCR2.Spec.ForProvider.BootVolumeTemplate.Spec.Image = "1cd4c597-b48d-11f0-838c-66e1c003c2cb"
-			fetchedCR2.Spec.ForProvider.BootVolumeTemplate.Spec.UserData = "I2Nsb3VkLWNvbmZpZwpydW5jbWQ6CiAgLSBlY2hvICJjbG91ZC1pbml0IHJhbiBzdWNjZXNzZnVsbHkgZm9yIGltYWdlIgogIC0gWyBscywgLWwsIC8gXQ=="
+			fetchedCR2.Spec.ForProvider.BootVolumeTemplate.Spec.UserData = "I2NsbGluLWNvbmZpZwpydW5jbWQ6CiAgLSBlY2hvICJjbG91ZC1pbml0IHJhbiBzdWNjZXNzZnVsbHkgZm9yIGltYWdlIgogIC0gWyBscywgLWwsIC8gXQ=="
 			Expect(k8sClient.Update(ctx, fetchedCR2)).Should(Succeed())
 
 			Eventually(func() bool {

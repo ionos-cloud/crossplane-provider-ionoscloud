@@ -133,6 +133,8 @@ jobs:
         run: make docker.list | grep "crossplane-provider-ionoscloud"
       - name: Run E2E Tests
         run: make e2e VERSION=latest USE_HELM3=true
+      - name: Run StatefulServerset E2E Tests
+        run: make sss_e2e
         env:
           IONOS_TOKEN: ${{ secrets.IONOS_TOKEN }}
           TEST_IMAGE_PASSWORD: ${{ secrets.TEST_IMAGE_PASSWORD }}
