@@ -1,4 +1,4 @@
-// //go:build sss_e2e
+//go:build sss_e2e
 
 package statefulserverset
 
@@ -603,7 +603,7 @@ var _ = Describe("StatefulServerSet Update", func() {
 			Expect(k8sClient.Create(ctx, datacenter)).Should(Succeed())
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: datacenter.Name}, datacenter)
-				return err == nil && datacenter.Status.AtProvider.State == "AVAILABLE"
+				return err == nil && datacenter.Status.AtProvider.State == stateAvailable
 			}, timeout, interval).Should(BeTrue(), "Datacenter should be available")
 
 			crName := "sss-example-update"
@@ -767,7 +767,7 @@ var _ = Describe("StatefulServerSet Update", func() {
 			bootVolume := v1alpha1.Volume{}
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: bootvolumeName + "-0-1"}, &bootVolume)
-				return err == nil && bootVolume.Status.AtProvider.State == "AVAILABLE"
+				return err == nil && bootVolume.Status.AtProvider.State == stateAvailable
 			}, timeout, interval).Should(BeTrue(), "BootVolume should be available")
 			Expect(bootVolume.Spec.ForProvider.Type).To(Equal("HDD"))
 			decodedUserData, err := base64.StdEncoding.DecodeString(bootVolume.Spec.ForProvider.UserData)
@@ -778,7 +778,7 @@ var _ = Describe("StatefulServerSet Update", func() {
 			secondBootVolume := v1alpha1.Volume{}
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: bootvolumeName + "-1-1"}, &secondBootVolume)
-				return err == nil && bootVolume.Status.AtProvider.State == "AVAILABLE"
+				return err == nil && bootVolume.Status.AtProvider.State == stateAvailable
 			}, timeout, interval).Should(BeTrue(), "second BootVolume should be available")
 			decodedUserData, err = base64.StdEncoding.DecodeString(secondBootVolume.Spec.ForProvider.UserData)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -804,7 +804,7 @@ var _ = Describe("StatefulServerSet Update", func() {
 			bootVolume = v1alpha1.Volume{}
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: bootvolumeName + "-0-2"}, &bootVolume)
-				return err == nil && bootVolume.Status.AtProvider.State == "AVAILABLE"
+				return err == nil && bootVolume.Status.AtProvider.State == stateAvailable
 			}, timeout, interval).Should(BeTrue(), "BootVolume should be available")
 			Expect(bootVolume.Spec.ForProvider.Type).To(Equal("HDD"))
 			decodedUserData, err = base64.StdEncoding.DecodeString(bootVolume.Spec.ForProvider.UserData)
@@ -815,7 +815,7 @@ var _ = Describe("StatefulServerSet Update", func() {
 			secondBootVolume = v1alpha1.Volume{}
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: bootvolumeName + "-1-2"}, &secondBootVolume)
-				return err == nil && bootVolume.Status.AtProvider.State == "AVAILABLE"
+				return err == nil && bootVolume.Status.AtProvider.State == stateAvailable
 			}, timeout, interval).Should(BeTrue(), "second BootVolume should be available")
 			decodedUserData, err = base64.StdEncoding.DecodeString(secondBootVolume.Spec.ForProvider.UserData)
 			Expect(err).ShouldNot(HaveOccurred())
