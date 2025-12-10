@@ -1,5 +1,3 @@
-//go:build sss_e2e
-
 package statefulserverset
 
 import (
@@ -79,6 +77,7 @@ var _ = BeforeSuite(func() {
 			filepath.Join("..", "..", "..", "..", "package", "crds"),
 		},
 		ErrorIfCRDPathMissing: true,
+		DownloadBinaryAssets:  true,
 		BinaryAssetsDirectory: filepath.Join(os.TempDir(), "envtest-binaries"),
 	}
 
@@ -573,7 +572,7 @@ var _ = Describe("StatefulServerSet Successful creation", func() {
 // correctly handles updates that require resource replacement.
 var _ = Describe("StatefulServerSet Update", func() {
 	Context("When updating a StatefulServerSet", func() {
-		It("should update the StatefulServerSet's boot volume successfully", func() {
+		It("should update the StatefulServerSet's boot volumes successfully", func() {
 			ctx, cancel = context.WithCancel(context.Background())
 			defer cancel()
 
