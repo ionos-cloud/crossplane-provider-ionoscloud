@@ -1,3 +1,5 @@
+//go:build sss_e2e
+
 package statefulserverset
 
 import (
