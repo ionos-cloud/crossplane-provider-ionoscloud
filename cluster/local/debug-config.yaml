@@ -16,5 +16,4 @@ spec:
             # - --unique-names
             name: package-runtime
             resources: {}
-          # In order to use the server set and the stateful server set features, uncomment the next line:
-          #serviceAccountName: crossplane
+          serviceAccountName: crossplane

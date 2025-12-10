@@ -19,15 +19,6 @@ projectdir="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
 
 # get the build environment variables from the special build.vars target in the main makefile
 eval $(make --no-print-directory -C ${projectdir} build.vars)
-eval $(make --no-print-directory -C ${projectdir} build.vars)
-
-# ------------------------------
-
-REGISTRY=${REGISTRY:-ghcr.io}
-ORG_NAME=${ORG_NAME:-ionos-cloud}
-BUILD_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}"
-PACKAGE_IMAGE="crossplane.io/inttests/${PROJECT_NAME}:${VERSION}"
-CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller"
 
 # ------------------------------
 # You can select which tests to run.
@@ -47,119 +38,26 @@ TEST_BACKUP=${TEST_BACKUP:-false}
 TEST_SERVERSET=${TEST_SERVERSET:-false}
 TEST_STATEFULSERVERSET=${TEST_STATEFULSERVERSET:-false}
 skipcleanup=${skipcleanup:-false}
+KIND_CLUSTER_NAME=${KIND_CLUSTER_NAME:-${PROJECT_NAME}-dev}
+CROSSPLANE_NAMESPACE=${CROSSPLANE_NAMESPACE:-crossplane-system}
 
-version_tag="$(cat ${projectdir}/_output/version)"
-# tag as latest version to load into kind cluster
-PACKAGE_CONTROLLER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}-controller:${VERSION}"
-PACKAGE_PROVIDER_IMAGE="${REGISTRY}/${ORG_NAME}/${PROJECT_NAME}:${VERSION}"
-K8S_CLUSTER="${K8S_CLUSTER:-${BUILD_REGISTRY}-inttests}"
-KIND_NODE_IMAGE_TAG="${KIND_NODE_IMAGE_TAG:-v1.31.1}"
-
-CROSSPLANE_NAMESPACE="crossplane-system"
-PACKAGE_NAME="provider-ionoscloud"
+# ------------------------------
 
 # cleanup on exit
 if [ "$skipcleanup" != true ]; then
   function cleanup() {
     export KUBECONFIG=
-    "${KIND}" delete cluster --name="${K8S_CLUSTER}"
+    "${KIND}" delete cluster --name="${KIND_CLUSTER_NAME}"
   }
 
   trap cleanup EXIT
 fi
 
-# setup package cache
-echo_step "setting up local package cache"
-CACHE_PATH="${projectdir}/.work/inttest-package-cache"
-mkdir -p "${CACHE_PATH}"
-echo "created cache dir at ${CACHE_PATH}"
-docker tag "${BUILD_IMAGE}" "${PACKAGE_IMAGE}"
-"${UP}" xpkg xp-extract --from-daemon "${PACKAGE_IMAGE}" -o "${CACHE_PATH}/${PACKAGE_NAME}.gz" && chmod 644 "${CACHE_PATH}/${PACKAGE_NAME}.gz"
-
-# create kind cluster with extra mounts
-KIND_NODE_IMAGE="kindest/node:${KIND_NODE_IMAGE_TAG}"
-echo_step "creating k8s cluster using kind ${KIND_VERSION} and node image ${KIND_NODE_IMAGE}"
-KIND_CONFIG="$(
-  cat <<EOF
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-- role: control-plane
-  extraMounts:
-  - hostPath: "${CACHE_PATH}/"
-    containerPath: /cache
-EOF
-)"
-echo "${KIND_CONFIG}" | "${KIND}" create cluster --name="${K8S_CLUSTER}" --wait=5m --image="${KIND_NODE_IMAGE}" --config=-
-
-# tag controller images and load them into the kind cluster
-#docker tag "${CONTROLLER_IMAGE}" "${PACKAGE_CONTROLLER_IMAGE}"
-#docker tag "${BUILD_IMAGE}" "${PACKAGE_PROVIDER_IMAGE}"
-sleep 5
-"${KIND}" load docker-image "${PACKAGE_CONTROLLER_IMAGE}" --name="${K8S_CLUSTER}"
-"${KIND}" load docker-image "${PACKAGE_PROVIDER_IMAGE}" --name="${K8S_CLUSTER}"
-
-echo_step "create crossplane-system namespace"
-"${KUBECTL}" create ns crossplane-system
-
-echo_step "create persistent volume and claim for mounting package-cache"
-PV_YAML="$(
-  cat <<EOF
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: package-cache
-  labels:
-    type: local
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 5Mi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: "/cache"
-EOF
-)"
-echo "${PV_YAML}" | "${KUBECTL}" create -f -
-
-PVC_YAML="$(
-  cat <<EOF
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: package-cache
-  namespace: crossplane-system
-spec:
-  accessModes:
-    - ReadWriteOnce
-  volumeName: package-cache
-  storageClassName: manual
-  resources:
-    requests:
-      storage: 1Mi
-EOF
-)"
-echo "${PVC_YAML}" | "${KUBECTL}" create -f -
-
-# install crossplane from stable channel
-echo_step "installing crossplane from stable channel"
-"${HELM3}" version
-"${HELM3}" repo add crossplane-stable https://charts.crossplane.io/stable --force-update
-
-# get latest v1.x.x version
-chart_version="$("${HELM3}" search repo crossplane-stable/crossplane --versions | grep '^crossplane-stable/crossplane' | awk '{print $2}' | grep '^1' | sort -rV | head -n1)"
-echo_info "using crossplane version ${chart_version}"
-echo
-# we replace empty dir with our PVC so that the /cache dir in the kind node
-# container is exposed to the crossplane pod
-"${HELM3}" install crossplane --namespace crossplane-system crossplane-stable/crossplane --version ${chart_version} --wait --set packageCache.pvc=package-cache
-
 # ----------- integration tests
 echo_step "--- INTEGRATION TESTS ---"
 
 # install package
-echo_step "--- install Crossplane Provider IONOSCLOUD ---"
+echo_step "--- install Crossplane Provider IONOSCLOUD config ---"
 install_provider
 
 if [ "$TEST_COMPUTE" = true ]; then
