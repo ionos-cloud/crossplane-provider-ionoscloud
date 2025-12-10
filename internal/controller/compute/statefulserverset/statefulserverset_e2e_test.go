@@ -753,7 +753,7 @@ var _ = Describe("StatefulServerSet Update", func() {
 				return err == nil && fetchedCR.Status.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())
 			}, timeout, interval).Should(BeTrue(), "StatefulServerSet should become available")
 
-			By("updating the StatefulServerSet's boot volume")
+			By("changing the StatefulServerSet's boot volume hdd type")
 			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.Type = "HDD"
 			// #cloud-config\nruncmd:\n  - echo "cloud-init ran successfully"\n  - [ ls, -l, / ]
 			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.UserData = "I2Nsb3VkLWNvbmZpZwpydW5jbWQ6CiAgLSBlY2hvICJjbG91ZC1pbml0IHJhbiBzdWNjZXNzZnVsbHkiCiAgLSBbIGxzLCAtbCwgLyBd"
@@ -785,6 +785,43 @@ var _ = Describe("StatefulServerSet Update", func() {
 			Expect(secondBootVolume.Spec.ForProvider.Type).To(Equal("HDD"))
 			Expect(string(decodedUserData)).To(ContainSubstring("cloud-init ran successfully"))
 			Expect(string(decodedUserData)).To(ContainSubstring("hostname: server-name-1-1"))
+
+			fetchedCR2 := &v1alpha1.StatefulServerSet{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: crName}, fetchedCR2)
+				return err == nil && fetchedCR2.Status.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())
+			}, timeout, interval).Should(BeTrue(), "StatefulServerSet should become available")
+
+			By("changing the StatefulServerSet's boot volume image")
+			fetchedCR2.Spec.ForProvider.BootVolumeTemplate.Spec.Image = "1cd4c597-b48d-11f0-838c-66e1c003c2cb"
+			fetchedCR2.Spec.ForProvider.BootVolumeTemplate.Spec.UserData = "I2Nsb3VkLWNvbmZpZwpydW5jbWQ6CiAgLSBlY2hvICJjbG91ZC1pbml0IHJhbiBzdWNjZXNzZnVsbHkgZm9yIGltYWdlIgogIC0gWyBscywgLWwsIC8gXQ=="
+			Expect(k8sClient.Update(ctx, fetchedCR2)).Should(Succeed())
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: crName}, fetchedCR2)
+				return err == nil && fetchedCR2.Status.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())
+			}, timeout, interval).Should(BeTrue(), "StatefulServerSet should become available again after update")
+			bootVolume = v1alpha1.Volume{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: bootvolumeName + "-0-2"}, &bootVolume)
+				return err == nil && bootVolume.Status.AtProvider.State == "AVAILABLE"
+			}, timeout, interval).Should(BeTrue(), "BootVolume should be available")
+			Expect(bootVolume.Spec.ForProvider.Type).To(Equal("HDD"))
+			decodedUserData, err = base64.StdEncoding.DecodeString(bootVolume.Spec.ForProvider.UserData)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(string(decodedUserData)).To(ContainSubstring("cloud-init ran successfully for image"))
+			Expect(bootVolume.Status.AtProvider.Name).To(Equal(bootvolumeName + "-0-2"))
+			Expect(string(decodedUserData)).To(ContainSubstring("hostname: server-name-0-2"))
+			secondBootVolume = v1alpha1.Volume{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: bootvolumeName + "-1-2"}, &secondBootVolume)
+				return err == nil && bootVolume.Status.AtProvider.State == "AVAILABLE"
+			}, timeout, interval).Should(BeTrue(), "second BootVolume should be available")
+			decodedUserData, err = base64.StdEncoding.DecodeString(secondBootVolume.Spec.ForProvider.UserData)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(secondBootVolume.Spec.ForProvider.Type).To(Equal("HDD"))
+			Expect(string(decodedUserData)).To(ContainSubstring("cloud-init ran successfully for image"))
+			Expect(string(decodedUserData)).To(ContainSubstring("hostname: server-name-1-2"))
 
 			By("cleaning up resources")
 			DeferCleanup(func(ctx context.Context) {
