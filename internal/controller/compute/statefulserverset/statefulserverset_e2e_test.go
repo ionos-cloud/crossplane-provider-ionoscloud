@@ -1,5 +1,3 @@
-//go:build sss_e2e
-
 package statefulserverset
 
 import (
@@ -49,20 +47,16 @@ import (
 )
 
 var (
-	cfg       *rest.Config
 	k8sClient client.Client
-	testEnv   *envtest.Environment
-	ctx       context.Context
 	cancel    context.CancelFunc
-	mgr       ctrl.Manager
+	testEnv   *envtest.Environment
 )
 
 var logger = zap.New(zap.UseDevMode(true))
 
 const (
-	timeout        = time.Hour
-	cleanupTimeout = 2 * time.Minute
-	interval       = time.Second * 30 // Poll every 30 seconds
+	timeout  = time.Hour
+	interval = time.Second * 30 // Poll every 30 seconds
 )
 
 func TestSuccessfulCreation_E2E(t *testing.T) {
@@ -71,7 +65,11 @@ func TestSuccessfulCreation_E2E(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-
+	var (
+		cfg *rest.Config
+		ctx context.Context
+		mgr ctrl.Manager
+	)
 	// Setup logging with debug level, timestamps, and caller information
 	logf.SetLogger(logger)
 	ctx, cancel = context.WithCancel(context.Background())
@@ -271,6 +269,8 @@ func generateAlphaNum(n int) string {
 	return string(b)
 }
 
+// ordered tests to check creation and updating of statefulserverset when the boot volumes are deleted after hdd type or image changes
+// will check if the statefulserverset reconciles and creates new boot volumes with the correct specifications. Especially checks that userdata awa applied correctly.
 var _ = Describe("StatefulServerSet E2E Tests", Ordered, func() {
 	var (
 		testCtx        context.Context
@@ -485,7 +485,7 @@ var _ = Describe("StatefulServerSet E2E Tests", Ordered, func() {
 	})
 
 	Context("When creating a StatefulServerSet", func() {
-		It("should create the StatefulServerSet with correct specifications", func() {
+		It("should check the StatefulServerSet has correct specifications", func() {
 			fetchedCR := &v1alpha1.StatefulServerSet{}
 			err := k8sClient.Get(testCtx, types.NamespacedName{Name: crName}, fetchedCR)
 			Expect(err).NotTo(HaveOccurred())
@@ -528,7 +528,7 @@ var _ = Describe("StatefulServerSet E2E Tests", Ordered, func() {
 	})
 
 	Context("When updating boot volume type and user data", func() {
-		It("should update the boot volume type to HDD and apply user data", func() {
+		It("should check that boot volume type is HDD and hostname and userdata are set correctly", func() {
 			fetchedCR := &v1alpha1.StatefulServerSet{}
 			err := k8sClient.Get(testCtx, types.NamespacedName{Name: crName}, fetchedCR)
 			Expect(err).NotTo(HaveOccurred())
@@ -573,7 +573,7 @@ var _ = Describe("StatefulServerSet E2E Tests", Ordered, func() {
 	})
 
 	Context("When updating boot volume image", func() {
-		It("should update the boot volume image and user data", func() {
+		It("should check that boot volume image, hostname and user data are set correctly", func() {
 			// This test expects the HDD update from the previous test to have already run
 			fetchedCR := &v1alpha1.StatefulServerSet{}
 			err := k8sClient.Get(testCtx, types.NamespacedName{Name: crName}, fetchedCR)
@@ -590,7 +590,7 @@ var _ = Describe("StatefulServerSet E2E Tests", Ordered, func() {
 				return err == nil && fetchedCR.Status.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())
 			}, timeout, interval).Should(BeTrue(), "StatefulServerSet should become available again after image update")
 
-			By("verifying first boot volume has new image")
+			By("verifying first boot volume has new image, hostname is set to new value and cloud-init is updated")
 			bootVolume := v1alpha1.Volume{}
 			Eventually(func() bool {
 				err := k8sClient.Get(testCtx, types.NamespacedName{Name: bootvolumeName + "-0-2"}, &bootVolume)
@@ -603,7 +603,7 @@ var _ = Describe("StatefulServerSet E2E Tests", Ordered, func() {
 			Expect(bootVolume.Status.AtProvider.Name).To(Equal(bootvolumeName + "-0-2"))
 			Expect(string(decodedUserData)).To(ContainSubstring("hostname: server-name-0-2"))
 
-			By("verifying second boot volume has new image")
+			By("verifying second boot volume has new image, hostname is set to new value and cloud-init is updated")
 			secondBootVolume := v1alpha1.Volume{}
 			Eventually(func() bool {
 				err := k8sClient.Get(testCtx, types.NamespacedName{Name: bootvolumeName + "-1-2"}, &secondBootVolume)
