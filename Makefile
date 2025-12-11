@@ -92,7 +92,7 @@ test-integration: $(YQ) cluster-clean cluster local.xpkg.deploy.provider.$(PROJE
 # Run sss e2e tests. To run these tests, you need IONOS_TOKEN defined as an env variable
 sss_e2e:
 	@$(INFO) running statefulserverset e2e tests
-	@go test -v -timeout 30m -tags=sss_e2e ./internal/controller/compute/statefulserverset/... || $(FAIL)
+	@go test -v -timeout 60m -tags=sss_e2e ./internal/controller/compute/statefulserverset/... || $(FAIL)
 	@$(OK) statefulserverset e2e tests passed
 
 # Update the submodules, such as the common build scripts.

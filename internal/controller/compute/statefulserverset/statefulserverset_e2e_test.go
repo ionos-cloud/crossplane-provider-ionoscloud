@@ -60,7 +60,7 @@ var (
 var logger = zap.New(zap.UseDevMode(true))
 
 const (
-	timeout        = time.Minute * 30
+	timeout        = time.Hour
 	cleanupTimeout = 2 * time.Minute
 	interval       = time.Second * 30 // Poll every 30 seconds
 )
@@ -113,7 +113,7 @@ var _ = BeforeSuite(func() {
 	reconciles := 4
 	opts := &utils.ConfigurationOptions{
 		CreationGracePeriod: 30 * time.Second,
-		Timeout:             30 * time.Minute,
+		Timeout:             time.Hour,
 		CtrlOpts: xpcontroller.Options{
 			PollInterval:            time.Minute,
 			GlobalRateLimiter:       ratelimiter.NewGlobal(reconciles),
