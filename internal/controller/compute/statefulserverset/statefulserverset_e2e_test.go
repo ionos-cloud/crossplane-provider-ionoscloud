@@ -271,7 +271,7 @@ func generateAlphaNum(n int) string {
 	return string(b)
 }
 
-var _ = Describe("StatefulServerSet E2E Tests", func() {
+var _ = Describe("StatefulServerSet E2E Tests", Ordered, func() {
 	var (
 		testCtx        context.Context
 		testCancel     context.CancelFunc
@@ -284,7 +284,7 @@ var _ = Describe("StatefulServerSet E2E Tests", func() {
 		bootvolumeName string
 	)
 
-	BeforeEach(func() {
+	BeforeAll(func() {
 		testCtx, testCancel = context.WithCancel(context.Background())
 		configName = fmt.Sprintf("example-config-%d", time.Now().UnixNano())
 		crName = fmt.Sprintf("sss-example-%d", time.Now().UnixNano())
@@ -467,7 +467,7 @@ var _ = Describe("StatefulServerSet E2E Tests", func() {
 		}, timeout, interval).Should(BeTrue(), "StatefulServerSet should become available")
 	})
 
-	AfterEach(func() {
+	AfterAll(func() {
 		By("cleaning up resources")
 		if cr != nil {
 			Expect(client.IgnoreNotFound(k8sClient.Delete(testCtx, cr))).To(Succeed())
@@ -574,20 +574,10 @@ var _ = Describe("StatefulServerSet E2E Tests", func() {
 
 	Context("When updating boot volume image", func() {
 		It("should update the boot volume image and user data", func() {
-			// First perform the HDD update to get to version -1
+			// This test expects the HDD update from the previous test to have already run
 			fetchedCR := &v1alpha1.StatefulServerSet{}
 			err := k8sClient.Get(testCtx, types.NamespacedName{Name: crName}, fetchedCR)
 			Expect(err).NotTo(HaveOccurred())
-
-			By("performing initial update to HDD")
-			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.Type = "HDD"
-			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.UserData = "I2Nsb3VkLWNvbmZpZwpydW5jbWQ6CiAgLSBlY2hvICJjbG91ZC1pbml0IHJhbiBzdWNjZXNzZnVsbHkiCiAgLSBbIGxzLCAtbCwgLyBd"
-			Expect(k8sClient.Update(testCtx, fetchedCR)).Should(Succeed())
-
-			Eventually(func() bool {
-				err := k8sClient.Get(testCtx, types.NamespacedName{Name: crName}, fetchedCR)
-				return err == nil && fetchedCR.Status.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())
-			}, timeout, interval).Should(BeTrue(), "StatefulServerSet should become available")
 
 			By("changing the StatefulServerSet's boot volume image")
 			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.Image = "1cd4c597-b48d-11f0-838c-66e1c003c2cb"
