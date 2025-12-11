@@ -136,6 +136,11 @@ jobs:
         env:
           IONOS_TOKEN: ${{ secrets.IONOS_TOKEN }}
           TEST_IMAGE_PASSWORD: ${{ secrets.TEST_IMAGE_PASSWORD }}
+      - name: Run StatefulServerset E2E Tests
+        run: make sss_e2e
+        env:
+          IONOS_TOKEN: ${{ secrets.IONOS_TOKEN }}
+          TEST_IMAGE_PASSWORD: ${{ secrets.TEST_IMAGE_PASSWORD }}
   publish-artifacts:
     runs-on: ubuntu-latest
     needs: detect-noop
