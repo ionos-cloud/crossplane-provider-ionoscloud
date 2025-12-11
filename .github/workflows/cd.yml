@@ -242,12 +242,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ test, trivy, govulncheck, check-tag ]
     if: |
-      always() &&
+      always() && needs.check-tag.result == 'success' &&
       (
         (inputs.skip-checks && needs.test.result == 'skipped' && needs.trivy.result == 'skipped' && needs.govulncheck.result == 'skipped') ||
         (needs.test.result == 'success' && needs.trivy.result == 'success' && needs.govulncheck.result == 'success')
-      ) &&
-      needs.check-tag.result == 'success'
+      )
     permissions:
       packages: write
     steps:
