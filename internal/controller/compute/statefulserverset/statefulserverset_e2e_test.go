@@ -786,7 +786,7 @@ var _ = Describe("StatefulServerSet Update", func() {
 			By("changing the StatefulServerSet's boot volume hdd type")
 			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.Type = "HDD"
 			// #cloud-config\nruncmd:\n  - echo "cloud-init ran successfully"\n  - [ ls, -l, / ]
-			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.UserData = "I2NsbGluLWNvbmZpZwpydW5jbWQ6CiAgLSBlY2hvICJjbG91ZC1pbml0IHJhbiBzdWNjZXNzZnVsbHkiCiAgLSBbIGxzLCAtbCwgLyBd"
+			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.UserData = "I2Nsb3VkLWNvbmZpZwpydW5jbWQ6CiAgLSBlY2hvICJjbG91ZC1pbml0IHJhbiBzdWNjZXNzZnVsbHkiCiAgLSBbIGxzLCAtbCwgLyBd"
 			Expect(k8sClient.Update(ctx, fetchedCR)).Should(Succeed())
 
 			Eventually(func() bool {
@@ -824,7 +824,7 @@ var _ = Describe("StatefulServerSet Update", func() {
 
 			By("changing the StatefulServerSet's boot volume image")
 			fetchedCR2.Spec.ForProvider.BootVolumeTemplate.Spec.Image = "1cd4c597-b48d-11f0-838c-66e1c003c2cb"
-			fetchedCR2.Spec.ForProvider.BootVolumeTemplate.Spec.UserData = "I2NsbGluLWNvbmZpZwpydW5jbWQ6CiAgLSBlY2hvICJjbG91ZC1pbml0IHJhbiBzdWNjZXNzZnVsbHkgZm9yIGltYWdlIgogIC0gWyBscywgLWwsIC8gXQ=="
+			fetchedCR2.Spec.ForProvider.BootVolumeTemplate.Spec.UserData = "I2Nsb3VkLWNvbmZpZwpydW5jbWQ6CiAgLSBlY2hvICJjbG91ZC1pbml0IHJhbiBzdWNjZXNzZnVsbHkgZm9yIGltYWdlIgogIC0gWyBscywgLWwsIC8gXQ=="
 			Expect(k8sClient.Update(ctx, fetchedCR2)).Should(Succeed())
 
 			Eventually(func() bool {
