@@ -170,6 +170,8 @@ jobs:
         uses: golang/govulncheck-action@b625fbe08f3bccbe446d94fbf87fcc875a4f50ee
         id: govulncheck-scan
         with:
+          # go-version-input is left empty to ensure the action uses the Go version from go.mod
+          go-version-input: ''
           go-version-file: 'go.mod'
           go-package: './...'
           output-format: 'sarif'

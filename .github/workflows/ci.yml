@@ -208,6 +208,8 @@ jobs:
         uses: golang/govulncheck-action@b625fbe08f3bccbe446d94fbf87fcc875a4f50ee
         id: govulncheck-scan
         with:
+          # go-version-input is left empty to ensure the action uses the Go version from go.mod
+          go-version-input: ''
           go-version-file: 'go.mod'
           go-package: './...'
           output-format: 'sarif'
@@ -220,7 +222,7 @@ jobs:
 
   publish-artifacts:
     runs-on: ubuntu-latest
-    needs: [detect-noop, trivy, govulncheck]
+    needs: [ detect-noop, trivy, govulncheck ]
     if: needs.detect-noop.outputs.noop != 'true'
     steps:
       - name: Setup QEMU
