@@ -199,6 +199,11 @@ func (e *external) isServerSetUpToDate(ctx context.Context, cr *v1alpha1.Statefu
 }
 
 func (e *external) isVolumeSelectorUpToDate(ctx context.Context, cr *v1alpha1.StatefulServerSet) (creationVSUpToDate bool, err error) {
+	if len(cr.Spec.ForProvider.Volumes) == 0 {
+		e.log.Info("Skipping VolumeSelector observation as no volumes are defined in the StatefulServerSet", "ssset", cr.Name)
+		return true, nil
+	}
+
 	vsName := fmt.Sprintf(volumeSelectorName, cr.Name)
 	_, err = e.volumeSelectorController.Get(ctx, vsName, cr.Namespace)
 	if err != nil {
