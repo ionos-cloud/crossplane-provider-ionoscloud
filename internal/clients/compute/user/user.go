@@ -12,13 +12,14 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 )
 
 const errRequestWait = "error waiting for request"
 const errRemoveUserGroup = " failed to remove user from group"
 
 // requestWaiter defines a type to wait for requests.
-type requestWaiter func(ctx context.Context, client *ionosdk.APIClient, apiResponse *ionosdk.APIResponse) error
+type requestWaiter func(ctx context.Context, client compute.WaitForRequester, apiResponse *ionosdk.APIResponse) error
 
 // apiClient is a wrapper around IONOS Service.
 type apiClient struct {
