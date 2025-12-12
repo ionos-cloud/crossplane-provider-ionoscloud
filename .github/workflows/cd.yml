@@ -319,4 +319,4 @@ jobs:
           password: ${{ secrets.UP_API_KEY }}
       - name: Mirror to ${{ inputs.mirror-registry }}
         run: |
-          crane copy ghcr.io/${{ github.repository }}:${{ GITHUB_REF_NAME }} xpkg.upbound.io/${{ github.owner }}/provider-ionoscloud:${{ GITHUB_REF_NAME }} --allow-nondistributable-artifacts
+          crane copy ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_REF_NAME} xpkg.upbound.io/ionos-cloud/provider-ionoscloud:${GITHUB_REF_NAME} --allow-nondistributable-artifacts
