@@ -156,11 +156,12 @@ func fromSSSetToVolume(cr *v1alpha1.StatefulServerSet, name string, replicaIndex
 				DeletionPolicy:          cr.GetDeletionPolicy(),
 			},
 			ForProvider: v1alpha1.VolumeParameters{
-				DatacenterCfg:    cr.Spec.ForProvider.DatacenterCfg,
-				Name:             generateNameFrom(cr.Spec.ForProvider.Volumes[volumeIndex].Metadata.Name, replicaIndex, volumeIndex),
-				AvailabilityZone: serverset.GetZoneFromIndex(replicaIndex),
-				Size:             cr.Spec.ForProvider.Volumes[volumeIndex].Spec.Size,
-				Type:             cr.Spec.ForProvider.Volumes[volumeIndex].Spec.Type,
+				DatacenterCfg:     cr.Spec.ForProvider.DatacenterCfg,
+				Name:              generateNameFrom(cr.Spec.ForProvider.Volumes[volumeIndex].Metadata.Name, replicaIndex, volumeIndex),
+				AvailabilityZone:  serverset.GetZoneFromIndex(replicaIndex),
+				Size:              cr.Spec.ForProvider.Volumes[volumeIndex].Spec.Size,
+				Type:              cr.Spec.ForProvider.Volumes[volumeIndex].Spec.Type,
+				DiscVirtioHotPlug: true,
 			},
 		}}
 	if cr.Spec.ForProvider.Volumes[volumeIndex].Spec.Image != "" {
