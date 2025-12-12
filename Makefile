@@ -61,12 +61,10 @@ docker.list:
 .PHONY: docker.tag
 docker.tag:
 	@docker tag $(PROVIDER_IMAGE) $(PROVIDER_IMAGE):$(VERSION)
-	@docker tag $(CONTROLLER_IMAGE) $(CONTROLLER_IMAGE):$(VERSION)
 
 .PHONY: docker.push
 docker.push:
 	@docker push $(PROVIDER_IMAGE):$(VERSION)
-	@docker push $(CONTROLLER_IMAGE):$(VERSION)
 
 fallthrough: submodules
 	@echo Initial setup complete. Running make again . . .

@@ -1,24 +1,59 @@
 name: CD
 
 on:
-  push:
-    tags:
-      - v*
+  workflow_dispatch:
+    inputs:
+      skip-checks:
+        description: 'Skip all checks (tests and vulnerability scans)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
 
 env:
   GOLANGCI_VERSION: 'v2.6'
   DOCKER_BUILDX_VERSION: 'v0.20.1'
 
 jobs:
-  test:
+  check-tag:
     runs-on: ubuntu-latest
     steps:
+      - name: Check if the event is a tag
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" != "tag" ]]; then
+            echo "This workflow should only be run on tags."
+            exit 1
+          fi
+      - name: Check if tag is valid
+        run: |
+          echo "Check if tag has 'v' prefix"
+          if [[ "${GITHUB_REF_NAME:0:1}" != "v" ]]; then
+            echo "Tag must start with 'v' prefix."
+            exit 1
+          fi
+          version="${GITHUB_REF_NAME:1}"
+
+          echo "Use custom regex to validate that version is semver compliant."
+          echo "Credits to https://github.com/semver/semver/pull/998"
+          SEMVER_REGEX="^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?$"
+          if ! [[ $version =~ $SEMVER_REGEX ]]; then
+            echo "Version is not semver compliant."
+            exit 1
+          fi
+
+  test:
+    runs-on: ubuntu-latest
+    needs: check-tag
+    if: ${{ !inputs.skip-checks }}
+    steps:
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
         with:
           platforms: all
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
         with:
           version: ${{ env.DOCKER_BUILDX_VERSION }}
           install: true
@@ -59,16 +94,106 @@ jobs:
         env:
           IONOS_TOKEN: ${{ secrets.IONOS_TOKEN }}
           TEST_IMAGE_PASSWORD: ${{ secrets.TEST_IMAGE_PASSWORD }}
-  release-latest:
+
+  trivy:
     runs-on: ubuntu-latest
-    needs: test
+    needs: check-tag
+    if: ${{ !inputs.skip-checks }}
+    permissions:
+      security-events: write
     steps:
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
         with:
           platforms: all
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
+        with:
+          version: ${{ env.DOCKER_BUILDX_VERSION }}
+          install: true
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Fetch History
+        run: git fetch --prune --unshallow
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Find the Go Build Cache
+        id: go
+        run: echo "::set-output name=cache::$(make go.cachedir)"
+      - name: Cache the Go Build Cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.go.outputs.cache }}
+          key: ${{ runner.os }}-build-e2e-tests-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-trivy-
+      - name: Cache Go Dependencies
+        uses: actions/cache@v4
+        with:
+          path: .work/pkg
+          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-
+      - name: Vendor Dependencies
+        run: make vendor vendor.check
+      - name: Build Artifacts
+        run: make build
+        env:
+          BUILD_ARGS: "--load"
+      - name: Get Provider Image ID
+        run: echo "IMAGE_ID=$(make docker.list | grep "crossplane-provider-ionoscloud" | tr -s ' ' | cut -d' ' -f3)" >> $GITHUB_ENV
+      - name: Run Trivy vulnerability scan
+        id: trivy-scan
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
+        with:
+          image-ref: ${{ env.IMAGE_ID }}
+          format: 'sarif'
+          exit-code: 1
+          severity: 'CRITICAL,HIGH'
+          output: 'trivy-results.sarif'
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: ${{ failure() && steps.trivy-scan.conclusion == 'failure' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  govulncheck:
+    runs-on: ubuntu-latest
+    needs: check-tag
+    if: ${{ !inputs.skip-checks }}
+    permissions:
+      security-events: write
+    steps:
+      - name: Run govulncheck vulnerability scan
+        uses: golang/govulncheck-action@b625fbe08f3bccbe446d94fbf87fcc875a4f50ee
+        id: govulncheck-scan
+        with:
+          # go-version-input is left empty to ensure the action uses the Go version from go.mod
+          go-version-input: ''
+          go-version-file: 'go.mod'
+          go-package: './...'
+          output-format: 'sarif'
+          output-file: 'govulncheck-results.sarif'
+      - name: Upload govulncheck scan results to GitHub Security tab
+        if: ${{ failure() && steps.govulncheck-scan.conclusion == 'failure' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'govulncheck-results.sarif'
+
+  release-latest:
+    runs-on: ubuntu-latest
+    needs: [ test, trivy, govulncheck ]
+    permissions:
+      packages: write
+    steps:
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+        with:
+          platforms: all
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
         with:
           version: ${{ env.DOCKER_BUILDX_VERSION }}
           install: true
@@ -105,7 +230,7 @@ jobs:
         env:
           BUILD_ARGS: "--load"
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
@@ -115,14 +240,22 @@ jobs:
 
   release-tag:
     runs-on: ubuntu-latest
-#    needs: test
+    needs: [ test, trivy, govulncheck, check-tag ]
+    if: |
+      always() && needs.check-tag.result == 'success' &&
+      (
+        (inputs.skip-checks && needs.test.result == 'skipped' && needs.trivy.result == 'skipped' && needs.govulncheck.result == 'skipped') ||
+        (needs.test.result == 'success' && needs.trivy.result == 'success' && needs.govulncheck.result == 'success')
+      )
+    permissions:
+      packages: write
     steps:
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
         with:
           platforms: all
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
         with:
           version: ${{ env.DOCKER_BUILDX_VERSION }}
           install: true
@@ -159,10 +292,31 @@ jobs:
         env:
           BUILD_ARGS: "--load"
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push Images
         run: make publish VERSION=${GITHUB_REF_NAME} BRANCH_NAME=master
+
+  mirror-to-upbound:
+    runs-on: ubuntu-latest
+    needs: release-tag
+    if: ${{ !inputs.skip-checks }}
+    permissions:
+      packages: write
+    steps:
+      - name: Setup crane
+        uses: imjasonh/setup-crane@31b88efe9de28ae0ffa220711af4b60be9435f6e
+      - name: Validate crane installation
+        run: crane version
+      - name: Login to Mirror Registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
+        with:
+          registry: xpkg.upbound.io
+          username: ${{ secrets.UP_ACCESS_ID }}
+          password: ${{ secrets.UP_API_KEY }}
+      - name: Mirror to ${{ inputs.mirror-registry }}
+        run: |
+          crane copy ghcr.io/${{ github.repository }}:${{ GITHUB_REF_NAME }} xpkg.upbound.io/${{ github.owner }}/provider-ionoscloud:${{ GITHUB_REF_NAME }} --allow-nondistributable-artifacts
