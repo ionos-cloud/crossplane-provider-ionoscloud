@@ -38,9 +38,6 @@ type fakeKubeVolumeSelectorController struct {
 }
 
 func (f *fakeKubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	if f.methodCallCount == nil {
-		f.methodCallCount = make(map[string]int)
-	}
 	return f.Err
 }
 

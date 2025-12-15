@@ -272,7 +272,7 @@ func generateAlphaNum(n int) string {
 }
 
 // ordered tests to check creation and updating of statefulserverset when the boot volumes are deleted after hdd type or image changes
-// will check if the statefulserverset reconciles and creates new boot volumes with the correct specifications. Especially checks that userdata awa applied correctly.
+// will check if the statefulserverset reconciles and creates new boot volumes with the correct specifications. Especially checks that userdata was applied correctly.
 var _ = Describe("StatefulServerSet E2E Tests", Ordered, func() {
 	var (
 		testCtx        context.Context
