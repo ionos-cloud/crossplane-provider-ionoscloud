@@ -4,6 +4,9 @@ on:
   pull_request: { }
   workflow_dispatch: { }
 
+permissions:
+  contents: read
+
 env:
   GOLANGCI_VERSION: 'v2.6'
   DOCKER_BUILDX_VERSION: 'v0.20.1'
@@ -84,11 +87,11 @@ jobs:
     if: needs.detect-noop.outputs.noop != 'true'
     steps:
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
         with:
           platforms: all
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
         with:
           version: ${{ env.DOCKER_BUILDX_VERSION }}
           install: true
@@ -126,32 +129,108 @@ jobs:
           # We're using docker buildx, which doesn't actually load the images it
           # builds by default. Specifying --load does so.
           BUILD_ARGS: "--load"
-      #          Use only if the VERSION is not latest
-      #      - name: Docker Images Tag
-      #        run: make docker.tag VERSION=latest
-      - name: Docker Images List
-        run: make docker.list | grep "crossplane-provider-ionoscloud"
       - name: Run E2E Tests
         run: make e2e
         env:
           IONOS_TOKEN: ${{ secrets.IONOS_TOKEN }}
           TEST_IMAGE_PASSWORD: ${{ secrets.TEST_IMAGE_PASSWORD }}
-      - name: Run StatefulServerset E2E Tests
-        run: make sss_e2e
-        env:
-          IONOS_TOKEN: ${{ secrets.IONOS_TOKEN }}
-          TEST_IMAGE_PASSWORD: ${{ secrets.TEST_IMAGE_PASSWORD }}
-  publish-artifacts:
+
+  trivy:
     runs-on: ubuntu-latest
-    needs: detect-noop
     if: needs.detect-noop.outputs.noop != 'true'
+    permissions:
+      security-events: write
     steps:
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
         with:
           platforms: all
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
+        with:
+          version: ${{ env.DOCKER_BUILDX_VERSION }}
+          install: true
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Fetch History
+        run: git fetch --prune --unshallow
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Find the Go Build Cache
+        id: go
+        run: echo "::set-output name=cache::$(make go.cachedir)"
+      - name: Cache the Go Build Cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.go.outputs.cache }}
+          key: ${{ runner.os }}-build-trivy-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-trivy-
+      - name: Cache Go Dependencies
+        uses: actions/cache@v4
+        with:
+          path: .work/pkg
+          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-
+      - name: Vendor Dependencies
+        run: make vendor vendor.check
+      - name: Build Artifacts
+        run: make build
+        env:
+          BUILD_ARGS: "--load"
+      - name: Get Provider Image ID
+        run: echo "IMAGE_ID=$(make docker.list | grep "crossplane-provider-ionoscloud" | tr -s ' ' | cut -d' ' -f3)" >> $GITHUB_ENV
+      - name: Run Trivy vulnerability scan
+        id: trivy-scan
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
+        with:
+          image-ref: ${{ env.IMAGE_ID }}
+          format: 'sarif'
+          exit-code: 1
+          severity: 'CRITICAL,HIGH'
+          output: 'trivy-results.sarif'
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: ${{ failure() && steps.trivy-scan.conclusion == 'failure' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  govulncheck:
+    runs-on: ubuntu-latest
+    if: needs.detect-noop.outputs.noop != 'true'
+    permissions:
+      security-events: write
+    steps:
+      - name: Run govulncheck vulnerability scan
+        uses: golang/govulncheck-action@b625fbe08f3bccbe446d94fbf87fcc875a4f50ee
+        id: govulncheck-scan
+        with:
+          # go-version-input is left empty to ensure the action uses the Go version from go.mod
+          go-version-input: ''
+          go-version-file: 'go.mod'
+          go-package: './...'
+          output-format: 'sarif'
+          output-file: 'govulncheck-results.sarif'
+      - name: Upload govulncheck scan results to GitHub Security tab
+        if: ${{ failure() && steps.govulncheck-scan.conclusion == 'failure' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'govulncheck-results.sarif'
+
+  publish-artifacts:
+    runs-on: ubuntu-latest
+    needs: [ detect-noop, trivy, govulncheck ]
+    if: needs.detect-noop.outputs.noop != 'true'
+    steps:
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+        with:
+          platforms: all
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
         with:
           version: ${{ env.DOCKER_BUILDX_VERSION }}
           install: true
@@ -186,23 +265,6 @@ jobs:
         run: make build
         env:
           BUILD_ARGS: "--load"
-      - name: Get Provider Image ID
-        run: echo "IMAGE_ID=$(make docker.list | grep "crossplane-provider-ionoscloud" | tr -s ' ' | cut -d' ' -f3)" >> $GITHUB_ENV
-      - name: Run Trivy vulnerability scan
-        id: trivy-scan
-        uses: aquasecurity/trivy-action@0.30.0
-        with:
-          image-ref: ${{ env.IMAGE_ID }}
-          format: 'sarif'
-          exit-code: 1
-          severity: 'CRITICAL,HIGH'
-          output: 'trivy-results.sarif'
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        if: ${{ failure() && steps.trivy-scan.conclusion == 'failure' }}
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: 'trivy-results.sarif'
       - name: Publish Artifacts to GitHub
         uses: actions/upload-artifact@v4
         with:
