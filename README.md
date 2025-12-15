@@ -17,6 +17,57 @@
 
 ---
 
+## Important Notice
+
+Starting from version v1.2.0, Crossplane Provider IONOS Cloud has changed from a 2 image release to a single image. From now on, only the `crossplane-provider-ionoscloud` image 
+will be released and maintained. The previous `crossplane-provider-ionoscloud-controller` image is deprecated and will no longer receive updates or support.
+
+For setups that explicitly used the `crossplane-provider-ionoscloud-controller` image, for example where a custom `DeploymentRuntimeConfig`is used:
+
+```yaml
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: debug-config
+spec:
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+            - image: ghcr.io/ionos-cloud/crossplane-provider-ionoscloud-controller:latest
+              args:
+                - --debug
+              # In order to enable name uniqueness support for IONOS Cloud Resources, uncomment the next line:
+              # - --unique-names
+              name: package-runtime
+              resources: {}
+          serviceAccountName: crossplane
+```
+it should be sufficient to simply remove the explicit image declaration and the config will automatically use the correct image:
+
+```yaml
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: debug-config
+spec:
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+            - args:
+                - --debug
+              # In order to enable name uniqueness support for IONOS Cloud Resources, uncomment the next line:
+              # - --unique-names
+              name: package-runtime
+              resources: {}
+          serviceAccountName: crossplane
+```
+
 ## Overview
 
 ⚠️ **_Note: If you are building the provider locally for the first time and you see macro errors in your makefile, run:
