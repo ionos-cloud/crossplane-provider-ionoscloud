@@ -32,8 +32,13 @@ type fakeKubeDataVolumeController struct {
 }
 
 type fakeKubeVolumeSelectorController struct {
-	Volume v1alpha1.Volumeselector
-	Err    error
+	Volume          v1alpha1.Volumeselector
+	Err             error
+	methodCallCount map[string]int
+}
+
+func (f *fakeKubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
+	return f.Err
 }
 
 type fakeKubeServerSetController struct {
@@ -109,10 +114,6 @@ func (f *fakeKubeServerSetController) Update(ctx context.Context, cr *v1alpha1.S
 	f.methodCallCount[update]++
 	return v1alpha1.ServerSet{}, nil
 
-}
-
-func (f fakeKubeVolumeSelectorController) CreateOrUpdate(ctx context.Context, cr *v1alpha1.StatefulServerSet) error {
-	return f.Err
 }
 
 func (f fakeKubeVolumeSelectorController) Get(ctx context.Context, name, ns string) (*v1alpha1.Volumeselector, error) {

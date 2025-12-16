@@ -88,6 +88,12 @@ test-integration: $(YQ) cluster-clean cluster local.xpkg.deploy.provider.$(PROJE
 	@$(ROOT_DIR)/cluster/local/integration_tests.sh VERSION=$(VERSION) KIND_CLUSTER_NAME=$(KIND_CLUSTER_NAME) CROSSPLANE_NAMESPACE=$(CROSSPLANE_NAMESPACE) || $(FAIL)
 	@$(OK) integration tests passed
 
+# Run sss e2e tests. To run these tests, you need IONOS_TOKEN defined as an env variable
+sss_e2e:
+	@$(INFO) running statefulserverset e2e tests
+	@go test -v -timeout 60m -tags=sss_e2e ./internal/controller/compute/statefulserverset/... || $(FAIL)
+	@$(OK) statefulserverset e2e tests passed
+
 # Update the submodules, such as the common build scripts.
 submodules:
 	@git submodule sync
