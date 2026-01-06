@@ -1307,9 +1307,10 @@ func Test_serverSetController_Update(t *testing.T) {
 					},
 				),
 			},
-			wantWrappedErr:  fmt.Errorf("error waiting for server to be updated"),
+			// When state map is missing, pre-reboot validation fails because VM is not ready
+			wantWrappedErr:  fmt.Errorf("software is not yet running"),
 			want:            managed.ExternalUpdate{},
-			wantUpdateCalls: 1,
+			wantUpdateCalls: 0,
 		},
 		{
 			name: "update server with failed failover (RAM non-hotpluggable change) with state map",
@@ -1327,9 +1328,10 @@ func Test_serverSetController_Update(t *testing.T) {
 					},
 				),
 			},
-			wantWrappedErr:  fmt.Errorf("error waiting for server reboot"),
+			// Pre-reboot validation now fails fast when any VM reports VM-ERROR
+			wantWrappedErr:  fmt.Errorf("VM-ERROR runtime state"),
 			want:            managed.ExternalUpdate{},
-			wantUpdateCalls: 1,
+			wantUpdateCalls: 0,
 		},
 	}
 	for _, tt := range tests {
