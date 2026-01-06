@@ -48,6 +48,11 @@ const (
 	errTrackPCUsage     = "cannot track ProviderConfig usage"
 )
 
+var (
+	// providerStartTime tracks when the provider was started to ignore stale state updates
+	providerStartTime = time.Now()
+)
+
 const (
 	// indexLabel is the label used to identify the server set by index
 	indexLabel = "%s-%s-ri"
@@ -516,7 +521,15 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 		update, failover := checkServerDiff(&servers[idx], cr, bootVolume)
 		e.log.Info("Checking server for update", "serverset", cr.Name, "server", servers[idx].Name, "update", update, "failover", failover)
 		if update {
+			if failover && cr.Spec.ForProvider.Template.Spec.StateMap != nil {
+				e.log.Info("Server requires failover with custom state map, verifying all server states before reboot", "serverset", cr.Name, "server", servers[idx].Name)
+				if err := e.areAllVMsReadyForFailover(ctx, servers, cr.Spec.ForProvider.Template.Spec.StateMap.Name, cr.Spec.ForProvider.Template.Spec.StateMap.Namespace); err != nil {
+					return fmt.Errorf("error validating all VMs are ready for failover: %w", err)
+				}
+			}
+
 			requestTimestamp := time.Now()
+			// NOTE: Update triggers the reboot, if needed.
 			if err := e.kube.Update(ctx, &servers[idx]); err != nil {
 				return fmt.Errorf("error updating server %w", err)
 			}
@@ -537,8 +550,9 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 				}
 
 				e.log.Info("Server has been updated and uses custom state map, waiting for reboot to finish", "serverset", cr.Name, "server", servers[idx].Name)
+				// After reboot, wait for server to be in running state again before proceeding to next replica
 				if err := kube.WaitForResource(
-					ctx, kube.ResourceReadyTimeout, func(ctx context.Context, mapName, mapNamespace string) (bool, error) {
+					ctx, kube.VMRebootTimeout, func(ctx context.Context, mapName, mapNamespace string) (bool, error) {
 						return e.isVMSoftwareRunning(ctx, requestTimestamp, servers[idx].Name, mapName, mapNamespace)
 					}, cr.Spec.ForProvider.Template.Spec.StateMap.Name, cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
 				); err != nil {
@@ -588,7 +602,7 @@ func (e *external) updateOrRecreateVolumes(ctx context.Context, cr *v1alpha1.Ser
 				recreateLeader = true
 				continue
 			}
-			err := e.updateByIndex(ctx, idx, cr)
+			err := e.updateWithFailoverOrchestration(ctx, cr, idx)
 			if err != nil {
 				return err
 			}
@@ -603,12 +617,45 @@ func (e *external) updateOrRecreateVolumes(ctx context.Context, cr *v1alpha1.Ser
 	if masterIndex != -1 {
 		e.log.Info("updating leader", "serverset", cr.Name, "index", masterIndex, "template", cr.Spec.ForProvider.BootVolumeTemplate.Spec)
 		if recreateLeader {
-			err := e.updateByIndex(ctx, masterIndex, cr)
+			err := e.updateWithFailoverOrchestration(ctx, cr, masterIndex)
 			if err != nil {
 				return err
 			}
 		}
 	}
+	return nil
+}
+
+// updateWithFailoverOrchestration wraps updateByIndex with additional checks if a custom state map is used
+func (e *external) updateWithFailoverOrchestration(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex int) error {
+	servers, err := GetServersOfSSet(ctx, e.kube, cr.Name)
+	if err != nil {
+		return err
+	}
+
+	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
+		if err := e.areAllVMsReadyForFailover(ctx, servers, cr.Spec.ForProvider.Template.Spec.StateMap.Name, cr.Spec.ForProvider.Template.Spec.StateMap.Namespace); err != nil {
+			return fmt.Errorf("error validating all VMs are ready for boot volume update: %w", err)
+		}
+	}
+
+	requestTimestamp := time.Now()
+	if err := e.updateByIndex(ctx, replicaIndex, cr); err != nil {
+		return err
+	}
+
+	serverObj := servers[replicaIndex]
+
+	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
+		if err := kube.WaitForResource(
+			ctx, kube.VMRebootTimeout, func(ctx context.Context, mapName, mapNamespace string) (bool, error) {
+				return e.isVMSoftwareRunning(ctx, requestTimestamp, serverObj.Name, mapName, mapNamespace)
+			}, cr.Spec.ForProvider.Template.Spec.StateMap.Name, cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
+		); err != nil {
+			return fmt.Errorf("error waiting for VM to be ready after update: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -1015,7 +1062,8 @@ func (e *external) isUpdateFinished(ctx context.Context, requestTimestamp time.T
 	return wasProcessed && wasSuccessful, nil
 }
 
-// isVMSoftwareRunning checks the state ConfigMap to see if the server has rebooted successfully and the software on it is back in a running state.
+// isVMSoftwareRunning checks the state ConfigMap to see if the state was updated after the requestTimestamp
+// and the software on it is back in a running state.
 func (e *external) isVMSoftwareRunning(ctx context.Context, requestTimestamp time.Time, serverName, mapName, mapNamespace string) (bool, error) {
 	stateMap := v1.ConfigMap{}
 	if err := e.kube.Get(
@@ -1030,6 +1078,23 @@ func (e *external) isVMSoftwareRunning(ctx context.Context, requestTimestamp tim
 	}
 
 	return checkRuntimeState(stateMap, serverName, requestTimestamp, e.log)
+}
+
+// areAllVMsReadyForFailover checks the state ConfigMap to see that all servers in the serverset are in a healthy running state
+// before allowing any reboot.
+func (e *external) areAllVMsReadyForFailover(ctx context.Context, servers []v1alpha1.Server, mapName, mapNamespace string) error {
+	for _, server := range servers {
+		ready, err := e.isVMSoftwareRunning(ctx, providerStartTime, server.Name, mapName, mapNamespace)
+		if err != nil {
+			return fmt.Errorf("error validating server %s runtime state: %w", server.Name, err)
+		}
+		if !ready {
+			return fmt.Errorf("server %s software is not yet running: %w", server.Name, err)
+		}
+	}
+
+	e.log.Info("All server software stacks are running")
+	return nil
 }
 
 // checkRuntimeState checks the ConfigMap data for the runtime state of a server. If a requestTimestamp is provided, it also checks if the

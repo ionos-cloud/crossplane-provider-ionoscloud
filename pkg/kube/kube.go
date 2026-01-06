@@ -14,6 +14,9 @@ import (
 // ResourceReadyTimeout time to wait for resource to be ready
 const ResourceReadyTimeout = 50 * time.Minute
 
+// VMRebootTimeout time to wait for a VM to reboot and report as ready after a failover
+const VMRebootTimeout = 120 * time.Minute
+
 // ServerSetReadyTimeout time to wait for serverset to be ready
 const ServerSetReadyTimeout = 3 * time.Hour
 
