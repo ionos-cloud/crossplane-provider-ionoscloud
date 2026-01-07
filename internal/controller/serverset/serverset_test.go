@@ -320,6 +320,23 @@ func Test_serverSetController_Observe(t *testing.T) {
 			wantCreatingCondition: true,
 		},
 		{
+			name: "servers, nics and boot volumes created with state map, zero timestamp bypasses staleness check",
+			fields: fields{
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2, createStateMapZeroTimestamp()),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSetWithStateMap(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  true,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr:                false,
+			wantAvailableCondition: true,
+		},
+		{
 			name: "servers not created",
 			fields: fields{
 				kube: fakeKubeClientObjs(),
@@ -1333,6 +1350,28 @@ func Test_serverSetController_Update(t *testing.T) {
 			want:            managed.ExternalUpdate{},
 			wantUpdateCalls: 0,
 		},
+		{
+			name: "update server with successful failover (RAM non-hotpluggable change) with zero timestamp in state map",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodWithStateMapZeroTimestampSuccessfulFailover(&v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpecWithStateMap(
+					v1alpha1.ServerSetTemplateSpec{
+						CPUFamily: serverSetCPUFamily,
+						Cores:     serverSetCores,
+						RAM:       8192,
+					},
+				),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantUpdateCalls: 2,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1966,6 +2005,28 @@ func fakeKubeClientUpdateMethodWithStateMapFailedFailover(expectedObject client.
 			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
 			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
 			createStateMapOneVMError(),
+		),
+	}
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(
+		func(args mock.Arguments) {
+			arg1 := args.Get(1)
+			if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObject) {
+				panic(fmt.Sprintf("Update called with unexpected type: want=%v, got=%v", reflect.TypeOf(expectedObject), reflect.TypeOf(arg1)))
+			}
+		},
+	).Return(nil)
+
+	return &kubeClient
+}
+
+func fakeKubeClientUpdateMethodWithStateMapZeroTimestampSuccessfulFailover(expectedObject client.Object) client.Client {
+	kubeClient := kubeClientFake{
+		Client: fakeKubeClientObjs(
+			createServerWithUpdateSucceededConditionSet(server1Name), createServerWithUpdateSucceededConditionSet(server2Name),
+			createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-0-0", 0), createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-1-0", 1),
+			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
+			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
+			createStateMapZeroTimestamp(),
 		),
 	}
 	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(
@@ -2954,5 +3015,21 @@ func createStateMapEmpty() *v1.ConfigMap {
 			Namespace: stateMapNamespace,
 		},
 		Data: map[string]string{},
+	}
+}
+
+func createStateMapZeroTimestamp() *v1.ConfigMap {
+	zeroTime := time.Time{}
+	return &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      stateMapName,
+			Namespace: stateMapNamespace,
+		},
+		Data: map[string]string{
+			fmt.Sprintf(stateKeyFormat, server1Name):          statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, server1Name): zeroTime.Format(time.RFC3339),
+			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, server2Name): zeroTime.Format(time.RFC3339),
+		},
 	}
 }
