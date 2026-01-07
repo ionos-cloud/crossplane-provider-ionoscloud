@@ -1089,7 +1089,7 @@ func (e *external) areAllVMsReadyForFailover(ctx context.Context, servers []v1al
 			return fmt.Errorf("error validating server %s runtime state: %w", server.Name, err)
 		}
 		if !ready {
-			return fmt.Errorf("server %s software is not yet running: %w", server.Name, err)
+			return fmt.Errorf("server %s software is not yet running", server.Name)
 		}
 	}
 
