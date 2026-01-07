@@ -1132,9 +1132,11 @@ func checkRuntimeState(stateMap v1.ConfigMap, serverName string, requestTimestam
 	// If a requestTimestamp is provided, we check if the requestTimestamp is after the state timestamp, meaning the state has not been refreshed yet.
 	// However, as a special case, a zero timestamp is always considered "recent".
 	case !requestTimestamp.IsZero() && !timestamp.IsZero() && requestTimestamp.After(timestamp):
+		log.Debug("state not yet refreshed", "server", serverName, "stateTimestamp", timestamp, "requestTimestamp", requestTimestamp)
 		return false, nil
 	case state == statusVMError:
-		return false, fmt.Errorf("server %s is in %s runtime state", serverName, statusVMError)
+		log.Info("server %s is in %s runtime state", serverName, statusVMError)
+		return false, nil
 	case state == statusVMRunning:
 		return true, nil
 	default:
