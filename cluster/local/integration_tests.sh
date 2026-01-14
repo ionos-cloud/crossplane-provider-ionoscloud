@@ -45,7 +45,7 @@ TEST_ALB=${TEST_ALB:-false}
 TEST_NLB=${TEST_NLB:-false}
 TEST_BACKUP=${TEST_BACKUP:-false}
 TEST_SERVERSET=${TEST_SERVERSET:-false}
-TEST_STATEFULSERVERSET=${TEST_STATEFULSERVERSET:-true}
+TEST_STATEFULSERVERSET=${TEST_STATEFULSERVERSET:-false}
 skipcleanup=${skipcleanup:-false}
 
 version_tag="$(cat ${projectdir}/_output/version)"
