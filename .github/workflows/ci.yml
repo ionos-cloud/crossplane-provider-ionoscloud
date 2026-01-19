@@ -134,7 +134,11 @@ jobs:
         env:
           IONOS_TOKEN: ${{ secrets.IONOS_TOKEN }}
           TEST_IMAGE_PASSWORD: ${{ secrets.TEST_IMAGE_PASSWORD }}
-
+      - name: Run StatefulServerset E2E Tests
+        run: make sss_e2e
+        env:
+          IONOS_TOKEN: ${{ secrets.IONOS_TOKEN }}
+          TEST_IMAGE_PASSWORD: ${{ secrets.TEST_IMAGE_PASSWORD }}
   trivy:
     runs-on: ubuntu-latest
     if: needs.detect-noop.outputs.noop != 'true'
