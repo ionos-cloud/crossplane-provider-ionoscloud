@@ -411,7 +411,8 @@ func areServersUpToDate(ctx context.Context, kube client.Client, log logging.Log
 	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return false, false, nil
 	}
-	areServersUpToDate, areServersAvailable, err = serverset.AreServersReady(ctx, kube, log, cr.Spec.ForProvider.Template.Spec, servers)
+
+	areServersUpToDate, areServersAvailable, err = serverset.AreServersReady(ctx, kube, log, &cr.Spec.ForProvider.Template, servers)
 	if err != nil {
 		return areServersUpToDate, false, fmt.Errorf("failed to check if servers are available and up-to-date: %w", err)
 	}
