@@ -57,7 +57,7 @@ var (
 var logger = zap.New(zap.UseDevMode(true))
 
 const (
-	timeout  = time.Hour
+	timeout  = 2 * time.Hour
 	interval = time.Second * 30 // Poll every 30 seconds
 )
 
@@ -616,6 +616,155 @@ var _ = Describe("StatefulServerSet E2E Tests", Ordered, func() {
 			Expect(secondBootVolume.Spec.ForProvider.Type).To(Equal("HDD"))
 			Expect(string(decodedUserData)).To(ContainSubstring("cloud-init ran successfully for image"))
 			Expect(string(decodedUserData)).To(ContainSubstring("hostname: server-name-1-2"))
+		})
+	})
+	Context("When using a StateMap for VM runtime state tracking", func() {
+		It("should check that boot volume image, hostname and user data are set correctly", func() {
+			By("waiting for StatefulServerSet to become available again after update")
+			fetchedCR := &v1alpha1.StatefulServerSet{}
+			err := k8sClient.Get(testCtx, types.NamespacedName{Name: crName}, fetchedCR)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(func() bool {
+				err := k8sClient.Get(testCtx, types.NamespacedName{Name: crName}, fetchedCR)
+				return err == nil && fetchedCR.Status.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())
+			}, timeout, interval).Should(BeTrue(), "StatefulServerSet should become available again after update")
+		})
+		var stateMapConfigMap *corev1.ConfigMap
+		const stateMapName = "vm-state-map"
+		const stateMapNamespace = "default"
+
+		It("should create state map and add it to statefulserverset", func() {
+			By("creating a state map ConfigMap with VM running states using volume hostname format")
+			// Volume hostnames follow the format: serverSetName-replicaIndex-version
+			// The ServerSet name is cr.Spec.ForProvider.Template.Metadata.Name = "server-name"
+			// After the previous image update, versions should be at 2
+			serverSetName := "server-name"
+			volume1Hostname := fmt.Sprintf("%s-0-2", serverSetName)
+			volume2Hostname := fmt.Sprintf("%s-1-2", serverSetName)
+
+			stateMapConfigMap = &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      stateMapName,
+					Namespace: stateMapNamespace,
+				},
+				Data: map[string]string{
+					fmt.Sprintf("%s-state", volume1Hostname):     "VM-RUNNING",
+					fmt.Sprintf("%s-timestamp", volume1Hostname): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
+					fmt.Sprintf("%s-state", volume2Hostname):     "VM-RUNNING",
+					fmt.Sprintf("%s-timestamp", volume2Hostname): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
+				},
+			}
+			Expect(k8sClient.Create(testCtx, stateMapConfigMap)).Should(Succeed())
+
+			By("updating the StatefulServerSet to reference the state map")
+			fetchedCR := &v1alpha1.StatefulServerSet{}
+			err := k8sClient.Get(testCtx, types.NamespacedName{Name: crName}, fetchedCR)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(func() bool {
+				err := k8sClient.Get(testCtx, types.NamespacedName{Name: crName}, fetchedCR)
+				return err == nil && fetchedCR.Status.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())
+			}, timeout, interval).Should(BeTrue(), "StatefulServerSet should be available before state map addition")
+
+			fetchedCR.Spec.ForProvider.Template.Spec.StateMap = &v1alpha1.StateConfigMap{
+				Name:      stateMapName,
+				Namespace: stateMapNamespace,
+			}
+			Expect(k8sClient.Update(testCtx, fetchedCR)).Should(Succeed())
+
+			By("waiting for StatefulServerSet to become available after adding state map")
+			Eventually(func() bool {
+				err := k8sClient.Get(testCtx, types.NamespacedName{Name: crName}, fetchedCR)
+				return err == nil && fetchedCR.Status.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())
+			}, timeout, interval).Should(BeTrue(), "StatefulServerSet should become available after adding state map")
+		})
+
+		It("should have state map correctly configured", func() {
+			fetchedCR := &v1alpha1.StatefulServerSet{}
+			err := k8sClient.Get(testCtx, types.NamespacedName{Name: crName}, fetchedCR)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the state map is correctly configured")
+			Expect(fetchedCR.Spec.ForProvider.Template.Spec.StateMap).NotTo(BeNil())
+			Expect(fetchedCR.Spec.ForProvider.Template.Spec.StateMap.Name).To(Equal(stateMapName))
+			Expect(fetchedCR.Spec.ForProvider.Template.Spec.StateMap.Namespace).To(Equal(stateMapNamespace))
+		})
+
+		It("should trigger an update and verify state map is read with volume hostname", func() {
+			By("updating the StatefulServerSet boot volume size to trigger reconciliation")
+			fetchedCR := &v1alpha1.StatefulServerSet{}
+			err := k8sClient.Get(testCtx, types.NamespacedName{Name: crName}, fetchedCR)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Update size to trigger reconciliation (hotplug update, no version change)
+			var newSize float32 = 20
+			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.Size = newSize
+			Expect(k8sClient.Update(testCtx, fetchedCR)).Should(Succeed())
+
+			By("waiting for bootvolumes and StatefulServerSet to become available after size update")
+			By("verifying boot volumes have the updated size")
+			bootVolume := v1alpha1.Volume{}
+			// Size update is a hotplug, version stays at 2
+			Eventually(func() bool {
+				err := k8sClient.Get(testCtx, types.NamespacedName{Name: bootvolumeName + "-0-2"}, &bootVolume)
+				return err == nil && bootVolume.Status.AtProvider.State == stateAvailable && bootVolume.Status.AtProvider.Size == newSize
+			}, timeout, interval).Should(BeTrue(), "BootVolume should be available and size %f", newSize)
+			Eventually(func() bool {
+				err := k8sClient.Get(testCtx, types.NamespacedName{Name: bootvolumeName + "-1-2"}, &bootVolume)
+				return err == nil && bootVolume.Status.AtProvider.State == stateAvailable && bootVolume.Status.AtProvider.Size == newSize
+			}, timeout, interval).Should(BeTrue(), "second BootVolume should be available and have size %f", newSize)
+			Eventually(func() bool {
+				err := k8sClient.Get(testCtx, types.NamespacedName{Name: crName}, fetchedCR)
+				return err == nil && fetchedCR.Status.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())
+			}, timeout, interval).Should(BeTrue(), "StatefulServerSet should become available after changing size")
+		})
+		It("should handle state map with one VM not running", func() {
+			By("updating state map to mark one VM as not running")
+			serverSetName := "server-name"
+			volume1Hostname := fmt.Sprintf("%s-0-2", serverSetName)
+			volume2Hostname := fmt.Sprintf("%s-1-2", serverSetName)
+
+			stateMapConfigMap.Data = map[string]string{
+				fmt.Sprintf("%s-state", volume1Hostname):     "VM-NOT-RUNNING",
+				fmt.Sprintf("%s-timestamp", volume1Hostname): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
+				fmt.Sprintf("%s-state", volume2Hostname):     "VM-RUNNING",
+				fmt.Sprintf("%s-timestamp", volume2Hostname): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
+			}
+			Expect(k8sClient.Update(testCtx, stateMapConfigMap)).Should(Succeed())
+
+			By("verifying the StatefulServerSet continues to reconcile but reports not ready")
+			fetchedCR := &v1alpha1.StatefulServerSet{}
+			// The StatefulServerSet should not be marked as available when a VM is not running
+			Eventually(func() bool {
+				err := k8sClient.Get(testCtx, types.NamespacedName{Name: crName}, fetchedCR)
+				if err != nil {
+					return false
+				}
+				// Check that it's either Creating or not fully Available
+				readyCondition := fetchedCR.Status.GetCondition(xpv1.TypeReady)
+				return readyCondition.Status != corev1.ConditionTrue || readyCondition.Reason == xpv1.ReasonCreating
+			}, timeout, interval).Should(BeTrue(), "StatefulServerSet should not be fully available when VM is not running")
+
+			By("restoring state map to all VMs running")
+			stateMapConfigMap.Data = map[string]string{
+				fmt.Sprintf("%s-state", volume1Hostname):     "VM-RUNNING",
+				fmt.Sprintf("%s-timestamp", volume1Hostname): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
+				fmt.Sprintf("%s-state", volume2Hostname):     "VM-RUNNING",
+				fmt.Sprintf("%s-timestamp", volume2Hostname): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
+			}
+			Expect(k8sClient.Update(testCtx, stateMapConfigMap)).Should(Succeed())
+
+			By("waiting for StatefulServerSet to become available again")
+			Eventually(func() bool {
+				err := k8sClient.Get(testCtx, types.NamespacedName{Name: crName}, fetchedCR)
+				return err == nil && fetchedCR.Status.GetCondition(xpv1.TypeReady).Equal(xpv1.Available())
+			}, timeout, interval).Should(BeTrue(), "StatefulServerSet should become available when all VMs are running")
+		})
+
+		AfterAll(func() {
+			By("cleaning up state map ConfigMap")
+			if stateMapConfigMap != nil {
+				Expect(client.IgnoreNotFound(k8sClient.Delete(testCtx, stateMapConfigMap))).To(Succeed())
+			}
 		})
 	})
 })

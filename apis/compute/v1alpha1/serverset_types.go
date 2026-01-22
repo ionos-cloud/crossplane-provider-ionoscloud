@@ -100,6 +100,10 @@ type ServerSetTemplateSpec struct {
 	// A missing timestamp or one that does not follow the RFC3339 format will cause the server to be considered not ready
 	// in the observation loop. For an update, if the timestamp is not the appropriate format, it will error out.
 	//
+	// Special case: A zero timestamp (0001-01-01T00:00:00Z) bypasses the timestamp staleness check, allowing the statemap
+	// to be used during VM initialization before the VM can report accurate timestamps. The state value is still validated normally.
+	// Example: Setting state=VM-RUNNING with a zero timestamp allows the serverset to proceed during initial configuration.
+	//
 	// +kubebuilder:validation:Optional
 	StateMap *StateConfigMap `json:"stateMap,omitempty"`
 }

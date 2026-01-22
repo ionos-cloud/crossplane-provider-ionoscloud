@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
@@ -384,6 +385,16 @@ func areDataVolumesUpToDateAndAvailable(cr *v1alpha1.StatefulServerSet, volumes 
 }
 
 func areSSetResourcesReady(ctx context.Context, kube client.Client, log logging.Logger, cr *v1alpha1.StatefulServerSet) (isSsetUpToDate, isSsetAvailable bool, err error) {
+
+	currentSSet := &v1alpha1.ServerSet{}
+	if err := kube.Get(ctx, types.NamespacedName{Name: getSSetName(cr), Namespace: cr.Namespace}, currentSSet); err == nil {
+		desired := cr.Spec.ForProvider.Template.Spec.StateMap
+		actual := currentSSet.Spec.ForProvider.Template.Spec.StateMap
+		if !equalStateMap(desired, actual) {
+			return false, false, nil
+		}
+	}
+
 	serversUpToDate, areServersAvailable, err := areServersUpToDate(ctx, kube, log, cr)
 	if !serversUpToDate {
 		return false, false, err
@@ -402,6 +413,18 @@ func areSSetResourcesReady(ctx context.Context, kube client.Client, log logging.
 	return true, areServersAvailable && areBootVolumesAvailable, nil
 }
 
+// equalStateMap returns true if both pointers are nil or point to StateConfigMaps with the same name and namespace.
+func equalStateMap(a, b *v1alpha1.StateConfigMap) bool {
+	switch {
+	case a == nil && b == nil:
+		return true
+	case a == nil || b == nil:
+		return false
+	default:
+		return a.Name == b.Name && a.Namespace == b.Namespace
+	}
+}
+
 func areServersUpToDate(ctx context.Context, kube client.Client, log logging.Logger, cr *v1alpha1.StatefulServerSet) (areServersUpToDate, areServersAvailable bool, err error) {
 	servers, err := serverset.GetServersOfSSet(ctx, kube, getSSetName(cr))
 	if err != nil {
@@ -411,7 +434,12 @@ func areServersUpToDate(ctx context.Context, kube client.Client, log logging.Log
 	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return false, false, nil
 	}
-	areServersUpToDate, areServersAvailable, err = serverset.AreServersReady(ctx, kube, log, cr.Spec.ForProvider.Template.Spec, servers)
+	serversetObj := &v1alpha1.ServerSet{}
+	if err := kube.Get(ctx, types.NamespacedName{Name: getSSetName(cr), Namespace: cr.Namespace}, serversetObj); err != nil {
+		return false, false, err
+	}
+
+	areServersUpToDate, areServersAvailable, err = serverset.AreServersReady(ctx, kube, log, serversetObj, servers)
 	if err != nil {
 		return areServersUpToDate, false, fmt.Errorf("failed to check if servers are available and up-to-date: %w", err)
 	}
