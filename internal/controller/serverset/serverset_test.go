@@ -160,13 +160,13 @@ func Test_serverSetController_Observe(t *testing.T) {
 		ctx context.Context
 		cr  *v1alpha1.ServerSet
 	}
-
+	serverset := createServerSetWithVNet()
 	server1 := createServer(server1Name)
 	server2 := createServer(server2Name)
 	nic1 := createNic(v1alpha1.NicParameters{Name: server1Name})
 	nic2 := createNic(v1alpha1.NicParameters{Name: server2Name})
-	bootVolume1 := createBootVolumeWithHotPlug(bootVolumeNamePrefix + server1Name)
-	bootVolume2 := createBootVolumeWithHotPlug(bootVolumeNamePrefix + server2Name)
+	bootVolume1 := createBootVolumeWithIndexLabelsWithHotPlug(bootVolumeNamePrefix+server1Name, 0)
+	bootVolume2 := createBootVolumeWithIndexLabelsWithHotPlug(bootVolumeNamePrefix+server2Name, 1)
 
 	tests := []struct {
 		name                   string
@@ -213,7 +213,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 		{
 			name: "servers, nics and boot volumes created, but with server in VM-ERROR state in state map",
 			fields: fields{
-				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2, createStateMapOneVMError()),
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2, createStateMapOneVMError(), serverset),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -369,7 +369,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
-				Diff:              "server[0](serverset-server-0-0): cpuFamily exp=INTEL_SKYLAKE act=INTEL_XEON | server[1](serverset-server-1-0): cpuFamily exp=INTEL_SKYLAKE act=INTEL_XEON",
+				Diff:              "server[0](server-name-0-0): cpuFamily exp=INTEL_SKYLAKE act=INTEL_XEON | server[1](server-name-1-0): cpuFamily exp=INTEL_SKYLAKE act=INTEL_XEON",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -390,7 +390,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
-				Diff:              "server[0](serverset-server-0-0): cores exp=10 act=2 | server[1](serverset-server-1-0): cores exp=10 act=2",
+				Diff:              "server[0](server-name-0-0): cores exp=10 act=2 | server[1](server-name-1-0): cores exp=10 act=2",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -411,7 +411,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
-				Diff:              "server[0](serverset-server-0-0): ram exp=8192 act=4096 | server[1](serverset-server-1-0): ram exp=8192 act=4096",
+				Diff:              "server[0](server-name-0-0): ram exp=8192 act=4096 | server[1](server-name-1-0): ram exp=8192 act=4096",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -432,7 +432,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
-				Diff:              "volume[0](boot-volume-serverset-server-0-0): image exp=newImage act=image | volume[1](boot-volume-serverset-server-1-0): image exp=newImage act=image",
+				Diff:              "volume[0](boot-volume-server-name-0-0): image exp=newImage act=image | volume[1](boot-volume-server-name-1-0): image exp=newImage act=image",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -453,7 +453,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
-				Diff:              "volume[0](boot-volume-serverset-server-0-0): size exp=300 act=100 | volume[1](boot-volume-serverset-server-1-0): size exp=300 act=100",
+				Diff:              "volume[0](boot-volume-server-name-0-0): size exp=300 act=100 | volume[1](boot-volume-server-name-1-0): size exp=300 act=100",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -474,7 +474,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
-				Diff:              "volume[0](boot-volume-serverset-server-0-0): type exp=SSD act=HDD | volume[1](boot-volume-serverset-server-1-0): type exp=SSD act=HDD",
+				Diff:              "volume[0](boot-volume-server-name-0-0): type exp=SSD act=HDD | volume[1](boot-volume-server-name-1-0): type exp=SSD act=HDD",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -1131,8 +1131,9 @@ func Test_serverSetController_Update(t *testing.T) {
 		{
 			name: "server set successfully updated (no changes)",
 			fields: fields{
-				kube: fakeKubeClientUpdateMethod(&v1alpha1.Server{}),
-				log:  logging.NewNopLogger(),
+				kube:                 fakeKubeClientUpdateMethod(&v1alpha1.Server{}),
+				log:                  logging.NewNopLogger(),
+				bootVolumeController: fakeBootVolumeCtrListReturnsWithHotplug(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -1147,8 +1148,9 @@ func Test_serverSetController_Update(t *testing.T) {
 		{
 			name: "server set successfully updated (CPU Family changed)",
 			fields: fields{
-				kube: fakeKubeClientUpdateMethod(&v1alpha1.Server{}),
-				log:  logging.NewNopLogger(),
+				kube:                 fakeKubeClientUpdateMethod(&v1alpha1.Server{}),
+				log:                  logging.NewNopLogger(),
+				bootVolumeController: fakeBootVolumeCtrListReturnsWithHotplug(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -1167,8 +1169,9 @@ func Test_serverSetController_Update(t *testing.T) {
 		{
 			name: "server set successfully updated (Cores changed)",
 			fields: fields{
-				kube: fakeKubeClientUpdateMethod(&v1alpha1.Server{}),
-				log:  logging.NewNopLogger(),
+				kube:                 fakeKubeClientUpdateMethod(&v1alpha1.Server{}),
+				log:                  logging.NewNopLogger(),
+				bootVolumeController: fakeBootVolumeCtrListReturnsWithHotplug(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -1187,8 +1190,9 @@ func Test_serverSetController_Update(t *testing.T) {
 		{
 			name: "server set successfully updated (RAM changed)",
 			fields: fields{
-				kube: fakeKubeClientUpdateMethod(&v1alpha1.Server{}),
-				log:  logging.NewNopLogger(),
+				kube:                 fakeKubeClientUpdateMethod(&v1alpha1.Server{}),
+				log:                  logging.NewNopLogger(),
+				bootVolumeController: fakeBootVolumeCtrListReturnsWithHotplug(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -1207,8 +1211,9 @@ func Test_serverSetController_Update(t *testing.T) {
 		{
 			name: "failure in kube client when updating server",
 			fields: fields{
-				kube: fakeKubeClientUpdateMethodReturnsError(),
-				log:  logging.NewNopLogger(),
+				kube:                 fakeKubeClientUpdateMethodReturnsError(),
+				log:                  logging.NewNopLogger(),
+				bootVolumeController: fakeBootVolumeCtrListReturnsWithHotplug(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -1225,8 +1230,9 @@ func Test_serverSetController_Update(t *testing.T) {
 		{
 			name: "update server with successful failover (CPU non-hotpluggable change) without state map",
 			fields: fields{
-				kube: fakeKubeClientUpdateMethodWithSuccessfulFailover(&v1alpha1.Server{}),
-				log:  logging.NewNopLogger(),
+				kube:                 fakeKubeClientUpdateMethodWithSuccessfulFailover(&v1alpha1.Server{}),
+				log:                  logging.NewNopLogger(),
+				bootVolumeController: fakeBootVolumeCtrListReturnsWithHotplug(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -1247,8 +1253,9 @@ func Test_serverSetController_Update(t *testing.T) {
 		{
 			name: "update server with successful failover (RAM non-hotpluggable change) without state map",
 			fields: fields{
-				kube: fakeKubeClientUpdateMethodWithSuccessfulFailover(&v1alpha1.Server{}),
-				log:  logging.NewNopLogger(),
+				kube:                 fakeKubeClientUpdateMethodWithSuccessfulFailover(&v1alpha1.Server{}),
+				log:                  logging.NewNopLogger(),
+				bootVolumeController: fakeBootVolumeCtrl(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -1269,8 +1276,9 @@ func Test_serverSetController_Update(t *testing.T) {
 		{
 			name: "update server with successful failover (RAM non-hotpluggable change) with state map",
 			fields: fields{
-				kube: fakeKubeClientUpdateMethodWithStateMapSuccessfulFailover(&v1alpha1.Server{}),
-				log:  logging.NewNopLogger(),
+				kube:                 fakeKubeClientUpdateMethodWithStateMapSuccessfulFailover(&v1alpha1.Server{}),
+				log:                  logging.NewNopLogger(),
+				bootVolumeController: fakeBootVolumeCtrl(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -1291,8 +1299,9 @@ func Test_serverSetController_Update(t *testing.T) {
 		{
 			name: "update server with failed failover (CPU non-hotpluggable change) without state map",
 			fields: fields{
-				kube: fakeKubeClientUpdateMethodWithFailedFailover(&v1alpha1.Server{}),
-				log:  logging.NewNopLogger(),
+				kube:                 fakeKubeClientUpdateMethodWithFailedFailover(&v1alpha1.Server{}),
+				log:                  logging.NewNopLogger(),
+				bootVolumeController: fakeBootVolumeCtrl(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -1311,8 +1320,9 @@ func Test_serverSetController_Update(t *testing.T) {
 		{
 			name: "update server with failed failover (RAM non-hotpluggable change) without state map",
 			fields: fields{
-				kube: fakeKubeClientUpdateMethodWithFailedFailover(&v1alpha1.Server{}),
-				log:  logging.NewNopLogger(),
+				kube:                 fakeKubeClientUpdateMethodWithFailedFailover(&v1alpha1.Server{}),
+				log:                  logging.NewNopLogger(),
+				bootVolumeController: fakeBootVolumeCtrl(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -1332,8 +1342,9 @@ func Test_serverSetController_Update(t *testing.T) {
 		{
 			name: "update server with failed failover (RAM non-hotpluggable change) with state map",
 			fields: fields{
-				kube: fakeKubeClientUpdateMethodWithStateMapFailedFailover(&v1alpha1.Server{}),
-				log:  logging.NewNopLogger(),
+				kube:                 fakeKubeClientUpdateMethodWithStateMapFailedFailover(&v1alpha1.Server{}),
+				log:                  logging.NewNopLogger(),
+				bootVolumeController: fakeBootVolumeCtrl(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -1353,8 +1364,9 @@ func Test_serverSetController_Update(t *testing.T) {
 		{
 			name: "update server with successful failover (RAM non-hotpluggable change) with zero timestamp in state map",
 			fields: fields{
-				kube: fakeKubeClientUpdateMethodWithStateMapZeroTimestampSuccessfulFailover(&v1alpha1.Server{}),
-				log:  logging.NewNopLogger(),
+				kube:                 fakeKubeClientUpdateMethodWithStateMapZeroTimestampSuccessfulFailover(&v1alpha1.Server{}),
+				log:                  logging.NewNopLogger(),
+				bootVolumeController: fakeBootVolumeCtrl(),
 			},
 			args: args{
 				ctx: context.Background(),
@@ -1643,7 +1655,9 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 			},
 			wantWrappedErr: fmt.Errorf("error validating all VMs are ready for boot volume update"),
 			want:           managed.ExternalUpdate{},
-			wantCalls:      map[ServiceMethodName]int{},
+			wantCalls: map[ServiceMethodName]int{
+				bootVolumeGet: 2,
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -2171,16 +2185,6 @@ func (f *kubeClientFake) shouldReturnError(obj client.Object) bool {
 	}
 }
 
-func fakeBootVolumeCtrlEnsure() kubeBootVolumeControlManager {
-	bootVolumeCtrl := new(kubeBootVolumeControlManagerFake)
-	bootVolumeCtrl.
-		On(ensureMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).
-		On(getMethod, mock.Anything, mock.Anything, mock.Anything).Return(&v1alpha1.Volume{}, nil)
-
-	return bootVolumeCtrl
-
-}
-
 func fakeBootVolumeCtrlGetEnsure() kubeBootVolumeControlManager {
 	bootVolumeCtrl := new(kubeBootVolumeControlManagerFake)
 	bootVolumeCtrl.
@@ -2200,10 +2204,18 @@ func fakeBootVolumeCtrl() kubeBootVolumeControlManager {
 
 }
 
+// fakeBootVolumeCtrListReturnsWithHotplug so it doesn't failover on update
+func fakeBootVolumeCtrListReturnsWithHotplug() kubeBootVolumeControlManager {
+	bootVolumeCtrl := new(kubeBootVolumeControlManagerFake)
+	bootVolumeCtrl.
+		On(getMethod, mock.Anything, mock.Anything, mock.Anything).Return(createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-0-0", 0), nil)
+	return bootVolumeCtrl
+}
+
 func fakeBootVolumeCtrlGetEnsureMethodReturnsErr() kubeBootVolumeControlManager {
 	bootVolumeCtrl := new(kubeBootVolumeControlManagerFake)
 	bootVolumeCtrl.
-		On(getMethod, mock.Anything, mock.Anything, mock.Anything).Return(&v1alpha1.Volume{}, nil).
+		On(getMethod, mock.Anything, mock.Anything, mock.Anything).Return(createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-0-0", 0), nil).
 		On(ensureMethod, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(errAnErrorWasReceived).
 		Times(1)

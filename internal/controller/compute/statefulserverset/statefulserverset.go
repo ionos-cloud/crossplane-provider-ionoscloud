@@ -434,8 +434,12 @@ func areServersUpToDate(ctx context.Context, kube client.Client, log logging.Log
 	if len(servers) < cr.Spec.ForProvider.Replicas {
 		return false, false, nil
 	}
+	serversetObj := &v1alpha1.ServerSet{}
+	if err := kube.Get(ctx, types.NamespacedName{Name: getSSetName(cr), Namespace: cr.Namespace}, serversetObj); err != nil {
+		return false, false, err
+	}
 
-	areServersUpToDate, areServersAvailable, err = serverset.AreServersReady(ctx, kube, log, &cr.Spec.ForProvider.Template, servers)
+	areServersUpToDate, areServersAvailable, err = serverset.AreServersReady(ctx, kube, log, serversetObj, servers)
 	if err != nil {
 		return areServersUpToDate, false, fmt.Errorf("failed to check if servers are available and up-to-date: %w", err)
 	}
