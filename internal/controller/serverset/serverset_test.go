@@ -62,8 +62,8 @@ const (
 	nic1UUID   = "nic1UUID"
 	nic2UUID   = "nic2UUID"
 
-	server1Name        = "serverset-server-0-0"
-	server2Name        = "serverset-server-1-0"
+	server1Name        = serverName + "-0-0"
+	server2Name        = serverName + "-1-0"
 	serverNotReadyName = "server-not-ready"
 	serverSetCPUFamily = "INTEL_XEON"
 	serverSetCores     = 2
@@ -1449,7 +1449,7 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				serverUpdate:     1,
 				bootVolumeEnsure: 1,
 				bootVolumeDelete: 1,
-				bootVolumeGet:    2,
+				bootVolumeGet:    4,
 			},
 		},
 		{
@@ -1479,7 +1479,7 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				serverUpdate:     1,
 				bootVolumeEnsure: 1,
 				bootVolumeDelete: 1,
-				bootVolumeGet:    2,
+				bootVolumeGet:    4,
 			},
 		},
 		{
@@ -1511,7 +1511,7 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				bootVolumeDelete: 1,
 				nicEnsureNICs:    1,
 				nicDelete:        1,
-				bootVolumeGet:    1,
+				bootVolumeGet:    3,
 				serverGet:        1,
 				serverUpdate:     1,
 			},
@@ -1539,7 +1539,8 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantCalls: map[ServiceMethodName]int{
-				kubeUpdate: 2,
+				kubeUpdate:    2,
+				bootVolumeGet: 2,
 			},
 		},
 		{
@@ -1563,7 +1564,8 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 			wantErr: fmt.Errorf("while updating volumes for serverset serverset %w", fmt.Errorf("error updating volume %w", errAnErrorWasReceived)),
 			want:    managed.ExternalUpdate{},
 			wantCalls: map[ServiceMethodName]int{
-				kubeUpdate: 1,
+				kubeUpdate:    1,
+				bootVolumeGet: 2,
 			},
 		},
 		{
@@ -1588,7 +1590,7 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 			want:    managed.ExternalUpdate{},
 			wantCalls: map[ServiceMethodName]int{
 				bootVolumeEnsure: 1,
-				bootVolumeGet:    1,
+				bootVolumeGet:    3,
 			},
 		},
 		{
@@ -1618,7 +1620,7 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				serverUpdate:     1,
 				bootVolumeEnsure: 1,
 				bootVolumeDelete: 1,
-				bootVolumeGet:    2,
+				bootVolumeGet:    4,
 			},
 		},
 		{
