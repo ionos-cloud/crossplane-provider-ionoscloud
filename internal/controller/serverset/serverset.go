@@ -139,7 +139,7 @@ func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	e.populateReplicasStatuses(ctx, cr, servers)
 
 	areServersCreated := len(servers) == cr.Spec.ForProvider.Replicas
-	areServersUpToDate, areServersAvailable, err := AreServersReady(ctx, e.kube, e.log, &cr.Spec.ForProvider.Template, servers)
+	areServersUpToDate, areServersAvailable, err := AreServersReady(ctx, e.kube, e.log, cr, servers)
 	if err != nil {
 		e.log.Info("failed to check if the servers are available and up-to-date", "name", cr.Name, "error", err)
 		return managed.ExternalObservation{}, fmt.Errorf("failed to check if servers are available and up-to-date: %w", err)
@@ -504,15 +504,16 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 		return err
 	}
 	for idx := range servers {
-		bootVolumeName, err := computeBootvolumeNameFromServerLabelsAndName(ctx, e.log, e.kube, cr.Spec.ForProvider.Template.Metadata.Name, cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, servers[idx])
+		bootVolumeName, err := computeNameFromServerLabelsAndName(ctx, e.log, e.kube, cr.Name, cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, servers[idx])
 		if err != nil {
 			return err
 		}
-		bootVolume := &v1alpha1.Volume{}
-		if err := e.kube.Get(ctx, types.NamespacedName{
-			Name:      bootVolumeName,
-			Namespace: cr.Namespace,
-		}, bootVolume); err != nil {
+		if bootVolumeName == "" {
+			continue
+		}
+
+		bootVolume, err := e.bootVolumeController.Get(ctx, bootVolumeName, cr.Namespace)
+		if err != nil {
 			return fmt.Errorf("error getting boot volume %s to check hotplug settings to server %s: %w", bootVolumeName, servers[idx].Name, err)
 		}
 
@@ -521,7 +522,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 		if update {
 			if failover && cr.Spec.ForProvider.Template.Spec.StateMap != nil {
 				e.log.Info("Server requires failover with custom state map, verifying all server states before reboot", "serverset", cr.Name, "server", servers[idx].Name)
-				if err := e.areAllVMsReadyForFailover(ctx, servers, &cr.Spec.ForProvider.Template); err != nil {
+				if err := e.areAllVMsReadyForFailover(ctx, servers, cr); err != nil {
 					return fmt.Errorf("error validating all VMs are ready for failover: %w", err)
 				}
 			}
@@ -550,7 +551,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 				e.log.Info("Server has been updated and uses custom state map, waiting for reboot to finish", "serverset", cr.Name, "server", servers[idx].Name)
 				// After reboot, wait for server to be in running state again before proceeding to next replica
 				// Get the volume version to construct the volume hostname for state map lookup
-				volumeHostname, err := computeBootvolumeNameFromServerLabelsAndName(ctx, e.log, e.kube, cr.Spec.ForProvider.Template.Metadata.Name, cr.Spec.ForProvider.Template.Metadata.Name, servers[idx])
+				volumeHostname, err := computeNameFromServerLabelsAndName(ctx, e.log, e.kube, cr.Name, cr.Spec.ForProvider.Template.Metadata.Name, servers[idx])
 				if err != nil {
 					return err
 				}
@@ -640,7 +641,7 @@ func (e *external) updateWithFailoverOrchestration(ctx context.Context, cr *v1al
 	}
 
 	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
-		if err := e.areAllVMsReadyForFailover(ctx, servers, &cr.Spec.ForProvider.Template); err != nil {
+		if err := e.areAllVMsReadyForFailover(ctx, servers, cr); err != nil {
 			return fmt.Errorf("error validating all VMs are ready for boot volume update: %w", err)
 		}
 	}
@@ -652,7 +653,7 @@ func (e *external) updateWithFailoverOrchestration(ctx context.Context, cr *v1al
 
 	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
 		// Get the volume version to construct the volume hostname for state map lookup
-		volumeHostname, err := computeBootvolumeNameFromServerLabelsAndName(ctx, e.log, e.kube, cr.Name, cr.Name, servers[replicaIndex])
+		volumeHostname, err := computeNameFromServerLabelsAndName(ctx, e.log, e.kube, cr.Name, cr.Spec.ForProvider.Template.Metadata.Name, servers[replicaIndex])
 		if err != nil {
 			return err
 		}
@@ -735,9 +736,9 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.Ext
 
 // AreServersReady checks if replicas and template params are equal to server obj params
 func AreServersReady(
-	ctx context.Context, kube client.Client, log logging.Logger, cr *v1alpha1.ServerSetTemplate, servers []v1alpha1.Server,
+	ctx context.Context, kube client.Client, log logging.Logger, cr *v1alpha1.ServerSet, servers []v1alpha1.Server,
 ) (areServersUpToDate, areServersAvailable bool, err error) {
-	templateParams := cr.Spec
+	templateParams := cr.Spec.ForProvider.Template.Spec
 	// When a state map is configured in the sset, we need to retrieve it to check the runtime state of the servers
 	// If we fail to retrieve it, we log the error and consider the serverset not ready
 	// This allows the reconciliation to continue in case the ConfigMap is temporarily unavailable
@@ -787,9 +788,9 @@ func AreServersReady(
 			)
 			return true, false, nil
 		}
-		serversetName := cr.Metadata.Name
+		serversetName := cr.GetName()
 		// Get the replica index from the server labels to compute the volume hostname
-		volumeHostname, err := computeBootvolumeNameFromServerLabelsAndName(ctx, log, kube, serversetName, serversetName, serverObj)
+		volumeHostname, err := computeNameFromServerLabelsAndName(ctx, log, kube, serversetName, cr.Spec.ForProvider.Template.Metadata.Name, serverObj)
 		if err != nil {
 			return true, false, err
 		}
@@ -803,8 +804,9 @@ func AreServersReady(
 	return true, true, nil
 }
 
-// computeBootvolumeNameFromServerLabelsAndName computes the bootvolume name from server labels and name
-func computeBootvolumeNameFromServerLabelsAndName(ctx context.Context, log logging.Logger, kube client.Client, indexName, name string, server v1alpha1.Server) (string, error) {
+// computeNameFromServerLabelsAndName computes the bootvolume name from server labels and name
+// indexName is the serverset name, name is the bootvolume base name
+func computeNameFromServerLabelsAndName(ctx context.Context, log logging.Logger, kube client.Client, indexName, name string, server v1alpha1.Server) (string, error) {
 	// Get the replica index from the server labels to compute the volume hostname
 	replicaIdx := ComputeReplicaIdx(log, fmt.Sprintf(indexLabel, indexName, ResourceServer), server.Labels)
 	if replicaIdx < 0 {
@@ -1118,13 +1120,13 @@ func (e *external) isVMSoftwareRunning(ctx context.Context, requestTimestamp tim
 
 // areAllVMsReadyForFailover checks the state ConfigMap to see that all servers in the serverset are in a healthy running state
 // before allowing any reboot.
-func (e *external) areAllVMsReadyForFailover(ctx context.Context, servers []v1alpha1.Server, serverSetTemplate *v1alpha1.ServerSetTemplate) error {
+func (e *external) areAllVMsReadyForFailover(ctx context.Context, servers []v1alpha1.Server, cr *v1alpha1.ServerSet) error {
 	for _, server := range servers {
-		volumeHostname, err := computeBootvolumeNameFromServerLabelsAndName(ctx, e.log, e.kube, serverSetTemplate.Metadata.Name, serverSetTemplate.Metadata.Name, server)
+		volumeHostname, err := computeNameFromServerLabelsAndName(ctx, e.log, e.kube, cr.Name, cr.Spec.ForProvider.Template.Metadata.Name, server)
 		if err != nil {
 			return err
 		}
-		ready, err := e.isVMSoftwareRunning(ctx, providerStartTime, volumeHostname, serverSetTemplate.Spec.StateMap.Name, serverSetTemplate.Spec.StateMap.Namespace)
+		ready, err := e.isVMSoftwareRunning(ctx, providerStartTime, volumeHostname, cr.Spec.ForProvider.Template.Spec.StateMap.Name, cr.Spec.ForProvider.Template.Spec.StateMap.Namespace)
 		if err != nil {
 			return fmt.Errorf("error validating server %s runtime state: %w", server.Name, err)
 		}
