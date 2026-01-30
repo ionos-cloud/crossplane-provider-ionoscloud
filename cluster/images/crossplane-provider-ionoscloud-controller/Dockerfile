@@ -1,5 +1,8 @@
 FROM BASEIMAGE
-RUN apk --no-cache add ca-certificates bash
+
+# yes this works even if --no-cache gives the impression it would not
+RUN apk --no-cache upgrade && \
+    apk --no-cache add ca-certificates bash
 
 ARG ARCH
 ARG TINI_VERSION
