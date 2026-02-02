@@ -320,6 +320,23 @@ func Test_serverSetController_Observe(t *testing.T) {
 			wantCreatingCondition: true,
 		},
 		{
+			name: "servers, nics and boot volumes created with state map, zero timestamp bypasses staleness check",
+			fields: fields{
+				kube: fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2, nic1, nic2, createStateMapZeroTimestamp()),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSetWithStateMap(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  true,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr:                false,
+			wantAvailableCondition: true,
+		},
+		{
 			name: "servers not created",
 			fields: fields{
 				kube: fakeKubeClientObjs(),
@@ -1307,9 +1324,10 @@ func Test_serverSetController_Update(t *testing.T) {
 					},
 				),
 			},
-			wantWrappedErr:  fmt.Errorf("error waiting for server to be updated"),
+			// When state map is missing, pre-reboot validation fails because VM is not ready
+			wantWrappedErr:  fmt.Errorf("software is not yet running"),
 			want:            managed.ExternalUpdate{},
-			wantUpdateCalls: 1,
+			wantUpdateCalls: 0,
 		},
 		{
 			name: "update server with failed failover (RAM non-hotpluggable change) with state map",
@@ -1327,9 +1345,32 @@ func Test_serverSetController_Update(t *testing.T) {
 					},
 				),
 			},
-			wantWrappedErr:  fmt.Errorf("error waiting for server reboot"),
+			// Pre-reboot validation now fails fast when any VM reports VM-ERROR
+			wantWrappedErr:  fmt.Errorf("VM-ERROR runtime state"),
 			want:            managed.ExternalUpdate{},
-			wantUpdateCalls: 1,
+			wantUpdateCalls: 0,
+		},
+		{
+			name: "update server with successful failover (RAM non-hotpluggable change) with zero timestamp in state map",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodWithStateMapZeroTimestampSuccessfulFailover(&v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpecWithStateMap(
+					v1alpha1.ServerSetTemplateSpec{
+						CPUFamily: serverSetCPUFamily,
+						Cores:     serverSetCores,
+						RAM:       8192,
+					},
+				),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantUpdateCalls: 2,
 		},
 	}
 	for _, tt := range tests {
@@ -1373,12 +1414,13 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 		cr  *v1alpha1.ServerSet
 	}
 	tests := []struct {
-		name      string
-		fields    fields
-		args      args
-		wantErr   error
-		want      managed.ExternalUpdate
-		wantCalls map[ServiceMethodName]int
+		name           string
+		fields         fields
+		args           args
+		wantErr        error // exact matching
+		wantWrappedErr error // substring matching
+		want           managed.ExternalUpdate
+		wantCalls      map[ServiceMethodName]int
 	}{
 		{
 			name: "updated using default strategy (image changed)",
@@ -1549,6 +1591,58 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				bootVolumeGet:    1,
 			},
 		},
+		{
+			name: "updated with state map - all VMs ready before boot volume update (image changed)",
+			fields: fields{
+				kube:                   fakeKubeClientUpdateMethodForBootVolumeWithStateMap(),
+				bootVolumeController:   fakeBootVolumeCtrl(),
+				serverController:       fakeServerCtrl(),
+				nicController:          fakeNicCtrl(),
+				firewallRuleController: fakeFirewallRuleCtrl(),
+				log:                    logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedBootVolumeWithStateMap(v1alpha1.ServerSetBootVolumeSpec{
+					Size:  bootVolumeSize,
+					Image: "newImage",
+					Type:  bootVolumeType,
+				}),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantCalls: map[ServiceMethodName]int{
+				serverGet:        1,
+				serverUpdate:     1,
+				bootVolumeEnsure: 1,
+				bootVolumeDelete: 1,
+				bootVolumeGet:    2,
+			},
+		},
+		{
+			name: "failed to update with state map - VM in error state before boot volume update",
+			fields: fields{
+				kube:                   fakeKubeClientUpdateMethodForBootVolumeWithStateMapVMError(),
+				bootVolumeController:   fakeBootVolumeCtrl(),
+				serverController:       fakeServerCtrl(),
+				nicController:          fakeNicCtrl(),
+				firewallRuleController: fakeFirewallRuleCtrl(),
+				log:                    logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedBootVolumeWithStateMap(v1alpha1.ServerSetBootVolumeSpec{
+					Size:  bootVolumeSize,
+					Image: "newImage",
+					Type:  bootVolumeType,
+				}),
+			},
+			wantWrappedErr: fmt.Errorf("error validating all VMs are ready for boot volume update"),
+			want:           managed.ExternalUpdate{},
+			wantCalls:      map[ServiceMethodName]int{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1564,7 +1658,11 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 			got, err := e.Update(tt.args.ctx, tt.args.cr)
 
 			assertions := assert.New(t)
-			assertions.Equalf(tt.wantErr, err, "Wrong error")
+			if tt.wantWrappedErr != nil {
+				assertions.ErrorContains(err, tt.wantWrappedErr.Error()) //nolint:testifylint // prefer to continue test execution
+			} else {
+				assertions.Equalf(tt.wantErr, err, "Wrong error")
+			}
 			assertions.Equalf(tt.want, got, "Wrong response")
 			assertions.Equalf(0, len(tt.args.cr.Status.Conditions), "ServerSet should not have any conditions")
 
@@ -1921,9 +2019,51 @@ func fakeKubeClientUpdateMethodWithStateMapFailedFailover(expectedObject client.
 	return &kubeClient
 }
 
+func fakeKubeClientUpdateMethodWithStateMapZeroTimestampSuccessfulFailover(expectedObject client.Object) client.Client {
+	kubeClient := kubeClientFake{
+		Client: fakeKubeClientObjs(
+			createServerWithUpdateSucceededConditionSet(server1Name), createServerWithUpdateSucceededConditionSet(server2Name),
+			createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-0-0", 0), createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-1-0", 1),
+			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
+			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
+			createStateMapZeroTimestamp(),
+		),
+	}
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(
+		func(args mock.Arguments) {
+			arg1 := args.Get(1)
+			if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObject) {
+				panic(fmt.Sprintf("Update called with unexpected type: want=%v, got=%v", reflect.TypeOf(expectedObject), reflect.TypeOf(arg1)))
+			}
+		},
+	).Return(nil)
+
+	return &kubeClient
+}
+
 func fakeKubeClientUpdateMethodForBootVolume() client.Client {
 	kubeClient := kubeClientFake{
 		Client: kubeClientWithObjsForBootVolume(),
+	}
+
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	return &kubeClient
+}
+
+func fakeKubeClientUpdateMethodForBootVolumeWithStateMap() client.Client {
+	kubeClient := kubeClientFake{
+		Client: kubeClientWithObjsForBootVolumeWithStateMap(),
+	}
+
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	return &kubeClient
+}
+
+func fakeKubeClientUpdateMethodForBootVolumeWithStateMapVMError() client.Client {
+	kubeClient := kubeClientFake{
+		Client: kubeClientWithObjsForBootVolumeWithStateMapVMError(),
 	}
 
 	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -1949,6 +2089,48 @@ func kubeClientWithObjsForBootVolume() client.WithWatch {
 	return fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2,
 		createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
 		createNic(v1alpha1.NicParameters{Name: "nic-server2"}))
+}
+
+func kubeClientWithObjsForBootVolumeWithStateMap() client.WithWatch {
+	zero := "0"
+	one := "1"
+
+	server1 := createServerWithUpdateSucceededConditionSet(server1Name)
+	server1.Labels[computeIndexLabel(ResourceServer)] = zero
+	server1.Labels[computeVersionLabel(ResourceServer)] = zero
+
+	server2 := createServerWithUpdateSucceededConditionSet(server2Name)
+	server2.Labels[computeIndexLabel(ResourceServer)] = one
+	server2.Labels[computeVersionLabel(ResourceServer)] = zero
+
+	bootVolume1 := createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-0-0", 0)
+	bootVolume2 := createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-1-0", 1)
+
+	return fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2,
+		createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
+		createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
+		createStateMapRunning())
+}
+
+func kubeClientWithObjsForBootVolumeWithStateMapVMError() client.WithWatch {
+	zero := "0"
+	one := "1"
+
+	server1 := createServerWithUpdateSucceededConditionSet(server1Name)
+	server1.Labels[computeIndexLabel(ResourceServer)] = zero
+	server1.Labels[computeVersionLabel(ResourceServer)] = zero
+
+	server2 := createServerWithUpdateSucceededConditionSet(server2Name)
+	server2.Labels[computeIndexLabel(ResourceServer)] = one
+	server2.Labels[computeVersionLabel(ResourceServer)] = zero
+
+	bootVolume1 := createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-0-0", 0)
+	bootVolume2 := createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-1-0", 1)
+
+	return fakeKubeClientObjs(server1, server2, bootVolume1, bootVolume2,
+		createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
+		createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
+		createStateMapOneVMError())
 }
 
 func computeIndexLabel(resourceType string) string {
@@ -2631,6 +2813,12 @@ func createServerSetWithUpdatedBootVolumeUsingStrategy(updatedSpec v1alpha1.Serv
 	return sset
 }
 
+func createServerSetWithUpdatedBootVolumeWithStateMap(updatedSpec v1alpha1.ServerSetBootVolumeSpec) *v1alpha1.ServerSet {
+	sset := createBasicServerSetWithStateMap()
+	sset.Spec.ForProvider.BootVolumeTemplate.Spec = updatedSpec
+	return sset
+}
+
 func createServerSetWhichUpdatesFrom1ReplicaTo2(serverName string) *v1alpha1.ServerSet {
 	sset := createBasicServerSet()
 	sset.Status = v1alpha1.ServerSetStatus{
@@ -2827,5 +3015,21 @@ func createStateMapEmpty() *v1.ConfigMap {
 			Namespace: stateMapNamespace,
 		},
 		Data: map[string]string{},
+	}
+}
+
+func createStateMapZeroTimestamp() *v1.ConfigMap {
+	zeroTime := time.Time{}
+	return &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      stateMapName,
+			Namespace: stateMapNamespace,
+		},
+		Data: map[string]string{
+			fmt.Sprintf(stateKeyFormat, server1Name):          statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, server1Name): zeroTime.Format(time.RFC3339),
+			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, server2Name): zeroTime.Format(time.RFC3339),
+		},
 	}
 }
