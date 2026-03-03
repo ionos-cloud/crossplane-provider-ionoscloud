@@ -314,11 +314,11 @@ func TestDatacenterUpdate(t *testing.T) {
 	)
 
 	tests := []struct {
-		scenario        string
-		cr              resource.Managed
-		expectedUpdate  managed.ExternalUpdate
-		mock            func()
-		errContains     string
+		scenario       string
+		cr             resource.Managed
+		expectedUpdate managed.ExternalUpdate
+		mock           func()
+		errContains    string
 	}{
 		{
 			scenario: "State is BUSY, returns early with no error",
