@@ -1,3 +1,138 @@
+## [1.2.2] (February 2026)
+### Chore
+- Set up Dependabot for automated dependency updates.
+- Bump Go to 1.25.7 to address CVEs.
+
+## [1.2.1] (February 2026)
+### Fixes:
+- ICNAS-651: Fix stateMap feature to behave according to expectations.
+### Chore
+- Bump Go to 1.25.6 to fix CVEs.
+### Tests:
+- Add stateful server set (sss) e2e test in Go.
+
+## [1.2.0] (December 2025)
+### Features:
+- Update provider to use a single-image setup, replacing the previous two-image approach.
+- Add Trivy and govulncheck security scanning to CI, ci-weekly, and CD pipelines.
+### Fixes:
+- Fix syntax oversight in `cd.yaml`.
+- Enforce platforms in Makefile.
+### Documentation:
+- Add notice for old two-image setups in README.
+
+## [1.1.19] (December 2025)
+### Features:
+- Add `spec.forProvider.vmState` and `status.atProvider.vmState` fields for `Server` and `CubeServer` resources.
+- Add late initialization for volume hotplug attributes.
+### Fixes:
+- Make `PublicIpCfgs` nullable in nodepool and update CRD accordingly.
+- Bump Go to 1.25.3 to fix vulnerabilities; update controller-tools to latest.
+
+## [1.1.18] (October 2025)
+### Features:
+- Add custom VM state support for serverset (sset) and stateful serverset (ssset).
+### Fixes:
+- Add serverset diff to stateful server set reconciliation.
+- Fix ssset reconciling too often by re-adding event filter.
+- Fix K8s version shown incorrectly after NodePool update.
+- Align multiline descriptions in generated docs.
+- Fix previous workflow refactor issues.
+### Chore
+- Rewrite `issue-creation.yml` workflow.
+
+## [1.1.17] (October 2025)
+### Features:
+- Allow setting hotplugs from image with failover mechanism for server updates.
+- Add NIC multi-queue support.
+### Fixes:
+- Fix small bug introduced by hotplug-from-image change.
+- Fix nodepool `instanceUpdateInput` generation to handle optional `k8sVersion`.
+- Update `pcislot` even if value is not 0.
+- Bump postgresVersion from 13 to 15 in examples and tests.
+### Chore
+- Remove dataplatform resources.
+- Run Trivy security scans in CI.
+### Tests:
+- Add sss e2e test; use token for testing.
+- Use secret for image password in tests.
+- Run tests on de/txl; increase update e2e timeout for volumes and LAN.
+
+## [1.1.16] (July 2025)
+### Fixes:
+- Update Alpine image to fix CVE-2024-12797.
+- Fix configmap and error handling on same bootvolume.
+### Chore
+- Bump Go to 1.24.4.
+
+## [1.1.15] (July 2025)
+### Features:
+- Add `serverType` field to Kubernetes nodepool.
+### Fixes:
+- Remove redundant `cpuFamily` API request when field is empty in k8s nodepool.
+
+## [1.1.14] (June 2025)
+### Features:
+- Attach stateful server set volumes in parallel.
+- Remove creation-pending annotations from ssset on Crossplane reboot.
+### Fixes:
+- Fix firewall assignment to NIC in stateful server set.
+- Improve diff ordering consistency.
+- Add diffs and improve logging messages.
+### Chore
+- Replace deprecated `ControllerConfig` with `DeploymentRuntimeConfig`.
+- Change default max-reconcile-rate to 10.
+- Update kind version for e2e; fix LAN tests.
+
+## [1.1.13] (May 2025)
+### Chore
+- Upgrade Go to 1.24 and crossplane-runtime to 1.20; update build image.
+
+## [1.1.12] (May 2025)
+### Features:
+- Add per-resource `reconcile-rate` configuration.
+- Add parallel creation for NICs, LANs, and data volumes.
+- Expose `ipv4cidr` as a readonly field on LAN; update SDK version; replace mockgen.
+- Set `K8sVersion` returned from API in `status.atProvider` instead of overriding `spec.forProvider`.
+### Fixes:
+- Context timeout recovery: deletion now handled through Kubernetes garbage collector with owner references.
+- Fix deletion of CRD sub-resources only on 422 errors; do not delete stateful server set, update it instead.
+- Fix flaky user assignment.
+- Fix linter errors and import issues.
+
+## [1.1.11] (May 2025)
+### Features:
+- Add metrics to the provider.
+- DB-4567: Allow configuring database user password via Kubernetes secret.
+### Fixes:
+- Add base path for PostgreSQL in case of endpoint override.
+
+## [1.1.10] (April 2025)
+### Features:
+- Clean up orphan resources automatically.
+### Fixes:
+- Fix stateful server set data volume update when multiple volumes are configured with different settings.
+### Chore
+- Update crossplane-runtime to 1.19; apply crypto vulnerability fix.
+
+## [1.1.9] (March 2025)
+### Fixes:
+- Do not trigger update on nodecount when autoscaling is active.
+- Fix kubebuilder default tags that had wrong format.
+
+## [1.1.8] (February 2025)
+### Features:
+- Add private Kubernetes cluster support.
+- SDK-2087: Add firewall rules support for serverset and stateful serverset.
+### Fixes:
+- Fix unpredictable ssset creation and deletion behavior caused by root context expiring.
+- Fix S3 key stuck in creation loop after external resource deletion.
+- Update hostname faster on server resource.
+- Improve ssset logging; add sset and ssset name to log output.
+### Documentation:
+- Allow resource exclusion from documentation generation.
+- Fix k8s documentation.
+
 ## [1.1.7]
 ### Fixes:
 - Write kubeconfig to k8s cluster, only if not in deploying state.
