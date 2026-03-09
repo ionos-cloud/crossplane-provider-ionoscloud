@@ -1,4 +1,5 @@
 ## [1.2.3] (February 2026)
+- Fix trivy vuln checks, update go to 1.26.1 to fix CVEs.
 - Fix lan update when `Pcc`when updating from nil
 - Update trivy to v0.35.0
 - Fix e2e tests by setting crossplane version for chart to 1.20.1
