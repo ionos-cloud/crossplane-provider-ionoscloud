@@ -1,3 +1,8 @@
+## [1.2.3] (February 2026)
+- Fix lan update when `Pcc`when updating from nil
+- Update trivy to v0.35.0
+- Fix e2e tests by setting crossplane version for chart to 1.20.1
+
 ## [1.2.2] (February 2026)
 ### Chore
 - Set up Dependabot for automated dependency updates.
@@ -159,7 +164,7 @@
 
 ## [1.1.1] (July 2024)
 - **Fixes**:
-  - Revert merge for nodepool fix 
+  - Revert merge for nodepool fix
 
 ## [1.1.0] (July 2024)
 - **Features**:
@@ -213,7 +218,7 @@
 
 ## [1.0.10] (March 2024)
 - **Features**:
-  - Allow conversion between schema types and go types 
+  - Allow conversion between schema types and go types
   - Add `group` CRD to support CRUD of compute Groups
   - Update `sdk-go` to v6.1.11
 
@@ -248,7 +253,7 @@
  - add s3key crd
  - add pcc(privatecrossconnect) crd
  - added link between lan and pcc. This is a small breaking change, as before there was only the option of providing the UUID directly
- - 
+ -
 ## [1.0.6] (August 2023)
 - **Features**:
     - Update Crossplane-Runtime to latest version (v0.20.0). CRDs - now require `managementPolicies` to be defined
@@ -265,7 +270,7 @@
 ## [1.0.4] (February 2023)
 
 - **Documentation**:
-  - Add docs on how to enable pinning and debugging using env variables 
+  - Add docs on how to enable pinning and debugging using env variables
 
 ## [1.0.3] (February 2023)
 
