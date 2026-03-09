@@ -168,6 +168,8 @@ func IsUpToDateWithDiff(cr *v1alpha1.Lan, lan sdkgo.Lan) (bool, string) { // nol
 		return false, "Lan Ipv6CidrBlock does not match the CR: " + *lan.Properties.Ipv6CidrBlock + " != " + cr.Spec.ForProvider.Ipv6Cidr
 	case lan.Properties.Pcc != nil && *lan.Properties.Pcc != cr.Spec.ForProvider.Pcc.PrivateCrossConnectID:
 		return false, "Lan Pcc does not match the CR Pcc: " + *lan.Properties.Pcc + " != " + cr.Spec.ForProvider.Pcc.PrivateCrossConnectID
+	case lan.Properties.Pcc == nil && cr.Spec.ForProvider.Pcc.PrivateCrossConnectID != "":
+		return false, "Lan Pcc is not set, expected: " + cr.Spec.ForProvider.Pcc.PrivateCrossConnectID + ", got: nil"
 	default:
 		return true, "Lan is up-to-date"
 	}

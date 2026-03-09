@@ -35,6 +35,7 @@ IMAGES = $(PROJECT_NAME)
 PLATFORMS = linux_amd64
 
 CROSSPLANE_NAMESPACE = crossplane-system
+CROSSPLANE_VERSION ?= 1.20.1
 KIND_CLUSTER_NAME = $(PROJECT_NAME)-dev
 # use a custom DeploymentRuntimeConfig file for e2e tests and local deployment
 DRC_FILE = $(ROOT_DIR)/cluster/local/debug-config.yaml
@@ -124,7 +125,7 @@ cluster: $(KIND) $(KUBECTL) $(HELM)
 	@$(KUBECTL) cluster-info --context kind-$(KIND_CLUSTER_NAME)
 	@$(INFO) Installing Crossplane Chart
 	@$(HELM) repo add crossplane-stable https://charts.crossplane.io/stable
-	@$(HELM) install crossplane --namespace $(CROSSPLANE_NAMESPACE) crossplane-stable/crossplane --create-namespace
+	@$(HELM) install crossplane --namespace $(CROSSPLANE_NAMESPACE) crossplane-stable/crossplane --create-namespace --version $(CROSSPLANE_VERSION)
 	@$(KUBECTL) config set-context kind-$(KIND_CLUSTER_NAME) --namespace=$(CROSSPLANE_NAMESPACE)
 
 dev: cluster

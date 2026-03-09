@@ -86,6 +86,13 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 			wantReason:   "Lan Pcc does not match the CR Pcc: pcc-def != pcc-abc",
 		},
 		{
+			name:         "Pcc not set but expected",
+			cr:           &v1alpha1.Lan{Spec: v1alpha1.LanSpec{ForProvider: v1alpha1.LanParameters{Pcc: v1alpha1.PccConfig{PrivateCrossConnectID: "pcc-123"}}}},
+			lan:          sdkgo.Lan{Properties: &sdkgo.LanProperties{}},
+			wantUpToDate: false,
+			wantReason:   "Lan Pcc is not set, expected: pcc-123, got: nil",
+		},
+		{
 			name: "Up to date",
 			cr: &v1alpha1.Lan{Spec: v1alpha1.LanSpec{ForProvider: v1alpha1.LanParameters{
 				Name:     name,
