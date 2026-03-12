@@ -189,6 +189,10 @@ func createKubernetesConnectionDetails(c *externalCluster, kubeconfig string, mg
 	if err := json.Unmarshal([]byte(kubeconfig), &clientkubeconfig); err != nil {
 		c.log.Info(fmt.Sprintf("failed to unmarshal connection details. error: %v", err))
 	} else {
+		if len(clientkubeconfig.Clusters) == 0 || len(clientkubeconfig.AuthInfos) == 0 {
+			c.log.Info("kubeconfig has empty clusters or authInfos, returning partial connection details")
+			return connectionConfig
+		}
 		connectionConfig["server"] = []byte(clientkubeconfig.Clusters[0].Cluster.Server)
 		connectionConfig["caData"] = clientkubeconfig.Clusters[0].Cluster.CertificateAuthorityData
 		connectionConfig["name"] = []byte(mg.GetName())
