@@ -597,7 +597,7 @@ var _ = Describe("FirewallRule Controller E2E Tests", func() {
 		})
 	})
 
-	Describe("Scenario 7: IsRequestDoneNEW — request still running", Ordered, func() {
+	Describe("Scenario 7: IsRequestDone — request still running", Ordered, func() {
 		var crName string
 		const fwID = "prereq-running-1"
 		BeforeAll(func() { crName = "test-fw-isreqdone-running"; fakeSvc.clearErrors() })
@@ -634,7 +634,7 @@ var _ = Describe("FirewallRule Controller E2E Tests", func() {
 		})
 	})
 
-	Describe("Scenario 8: IsRequestDoneNEW — request failed", Ordered, func() {
+	Describe("Scenario 8: IsRequestDone — request failed", Ordered, func() {
 		var crName string
 		BeforeAll(func() { crName = "test-fw-isreqdone-failed"; fakeSvc.clearErrors() })
 		AfterAll(func() {
@@ -664,7 +664,7 @@ var _ = Describe("FirewallRule Controller E2E Tests", func() {
 		})
 	})
 
-	Describe("Scenario 9: IsRequestDoneNEW — 404 lost request", Ordered, func() {
+	Describe("Scenario 9: IsRequestDone — 404 lost request", Ordered, func() {
 		var crName string
 		BeforeAll(func() { crName = "test-fw-isreqdone-404"; fakeSvc.clearErrors() })
 		AfterAll(func() {

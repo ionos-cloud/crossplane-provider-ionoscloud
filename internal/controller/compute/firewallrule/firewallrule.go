@@ -189,7 +189,7 @@ func (c *externalFirewallRule) Create(ctx context.Context, mg resource.Managed) 
 	}
 
 	if postReqID, ok := annotations[compute.POSTRequestIDAnnotationKey]; ok {
-		isDone, err := compute.IsRequestDoneNEW(ctx, c.service.GetAPIClient(), postReqID)
+		isDone, err := compute.IsRequestDone(ctx, c.service.GetAPIClient(), postReqID)
 		if err != nil {
 			return managed.ExternalCreation{}, fmt.Errorf("failed to check if post request is done: %w", err)
 		}

@@ -867,12 +867,12 @@ var _ = Describe("LAN Controller E2E Tests", func() {
 		})
 	})
 
-	// Scenario 7: IsRequestDoneNEW — request still running
+	// Scenario 7: IsRequestDone — request still running
 	// Simulates: a previous Create set external name + annotation, but the cloud
 	// resource hasn't materialized yet (Observe returns 404 → ResourceExists: false).
-	// Create sees the annotation, calls IsRequestDoneNEW, which returns RUNNING.
+	// Create sees the annotation, calls IsRequestDone, which returns RUNNING.
 	// Once the request is DONE and the resource appears, CR reaches AVAILABLE.
-	Describe("Scenario 7: IsRequestDoneNEW — request still running", Ordered, func() {
+	Describe("Scenario 7: IsRequestDone — request still running", Ordered, func() {
 		var crName string
 		const lanID = "prereq-running-1"
 
@@ -898,7 +898,7 @@ var _ = Describe("LAN Controller E2E Tests", func() {
 			ctx := context.Background()
 
 			// Do NOT store the LAN in the fake — Observe will return 404
-			// Set HTTP server to return RUNNING for IsRequestDoneNEW
+			// Set HTTP server to return RUNNING for IsRequestDone
 			testServer.setMode(statusModeRunning)
 
 			// Create CR with external name + annotation pre-set
@@ -911,7 +911,7 @@ var _ = Describe("LAN Controller E2E Tests", func() {
 			Expect(k8sClient.Create(ctx, cr)).Should(Succeed())
 
 			// Observe → 404 → ResourceExists: false → Create → annotation found →
-			// IsRequestDoneNEW returns false → no-op. CR stays not Available.
+			// IsRequestDone returns false → no-op. CR stays not Available.
 			Consistently(func(g Gomega) {
 				fetched, err := getLanCR(ctx, crName)
 				g.Expect(err).NotTo(HaveOccurred())
@@ -942,10 +942,10 @@ var _ = Describe("LAN Controller E2E Tests", func() {
 		})
 	})
 
-	// Scenario 8: IsRequestDoneNEW — request failed
+	// Scenario 8: IsRequestDone — request failed
 	// Simulates: a previous Create set external name + annotation, resource not yet visible.
-	// Observe returns 404 → Create sees annotation → IsRequestDoneNEW returns FAILED with error.
-	Describe("Scenario 8: IsRequestDoneNEW — request failed", Ordered, func() {
+	// Observe returns 404 → Create sees annotation → IsRequestDone returns FAILED with error.
+	Describe("Scenario 8: IsRequestDone — request failed", Ordered, func() {
 		var crName string
 
 		BeforeAll(func() {
@@ -980,7 +980,7 @@ var _ = Describe("LAN Controller E2E Tests", func() {
 			meta.SetExternalName(cr, "prereq-failed-1")
 			Expect(k8sClient.Create(ctx, cr)).Should(Succeed())
 
-			// Create → annotation found → IsRequestDoneNEW returns error (FAILED)
+			// Create → annotation found → IsRequestDone returns error (FAILED)
 			// Reconciler propagates error → Synced condition should show False
 			Eventually(func(g Gomega) {
 				fetched, err := getLanCR(ctx, crName)
@@ -999,8 +999,8 @@ var _ = Describe("LAN Controller E2E Tests", func() {
 		})
 	})
 
-	// Scenario 9: IsRequestDoneNEW — request returns 404 (lost request)
-	Describe("Scenario 9: IsRequestDoneNEW — 404 lost request", Ordered, func() {
+	// Scenario 9: IsRequestDone — request returns 404 (lost request)
+	Describe("Scenario 9: IsRequestDone — 404 lost request", Ordered, func() {
 		var crName string
 
 		BeforeAll(func() {
@@ -1035,7 +1035,7 @@ var _ = Describe("LAN Controller E2E Tests", func() {
 			Expect(k8sClient.Create(ctx, cr)).Should(Succeed())
 
 			// CR stays stuck — the annotation prevents a fresh CreateLan call
-			// IsRequestDoneNEW returns (false, nil) on 404
+			// IsRequestDone returns (false, nil) on 404
 			Consistently(func(g Gomega) {
 				fetched, err := getLanCR(ctx, crName)
 				g.Expect(err).NotTo(HaveOccurred())

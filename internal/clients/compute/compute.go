@@ -44,7 +44,7 @@ const POSTRequestIDAnnotationKey = "ionos.cloud/post-request-id"
 //
 // It is called after create operations (e.g. CreateLan) to capture the request
 // ID, which is then stored as a POSTRequestIDAnnotationKey annotation on the CR
-// for later polling via IsRequestDoneNEW.
+// for later polling via IsRequestDone.
 //
 // Returns (requestID, nil) on success, or ("", error) if the Location header is
 // missing, malformed, or contains an empty request ID.
@@ -68,7 +68,7 @@ func ExtractRequestID(apiResponse *sdkgo.APIResponse) (string, error) {
 	return requestID, nil
 }
 
-// IsRequestDoneNEW checks whether a previously initiated IONOS
+// IsRequestDone checks whether a previously initiated IONOS
 // Cloud API request has completed by polling its status endpoint.
 //
 // Parameters:
@@ -91,7 +91,7 @@ func ExtractRequestID(apiResponse *sdkgo.APIResponse) (string, error) {
 // This function is called during the Create reconciliation path when a
 // POSTRequestIDAnnotationKey annotation exists on the CR, indicating a previous
 // Create issued a request that has not yet been confirmed as complete.
-func IsRequestDoneNEW(ctx context.Context, client *sdkgo.APIClient, reqID string) (bool, error) {
+func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, reqID string) (bool, error) {
 	reqStatus, apiResponse, err := client.RequestsApi.RequestsStatusGet(ctx, reqID).Execute()
 	if err != nil {
 		if apiResponse.HttpNotFound() {
@@ -122,38 +122,6 @@ func IsRequestDoneNEW(ctx context.Context, client *sdkgo.APIClient, reqID string
 	default:
 		return false, fmt.Errorf("request (%s) status is unknown", reqID)
 	}
-}
-
-// IsRequestDone fetches the latest request that matches both the targetID and the method provided, and checks if it has
-// reached status DONE. In case of request failure (status FAILED), the function will return an error.
-func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, targetID, method string) (bool, error) {
-	reqs, _, err := client.RequestsApi.RequestsGet(ctx).FilterRequestStatus(targetID).FilterMethod(method).Limit(1).Execute()
-	if err != nil {
-		return false, fmt.Errorf("failed to get %s request for resource %s. error: %w", method, targetID, err)
-	}
-
-	if len(*reqs.Items) == 0 {
-		return false, fmt.Errorf("no %s request found for resource %s", method, targetID)
-	}
-
-	// we retrieve only the most recent request that matches the criteria
-	for _, req := range *reqs.Items {
-		status := req.Metadata.RequestStatus.Metadata.Status
-		if *status == sdkgo.RequestStatusDone {
-			return true, nil
-		}
-		if *status == sdkgo.RequestStatusFailed {
-			errMsg := fmt.Sprintf("%s request %s for resource %s failed", method, *req.Id, targetID)
-			msg := req.Metadata.RequestStatus.Metadata.Message
-			if msg != nil {
-				errMsg = fmt.Sprintf("%s (%s)", errMsg, *msg)
-			}
-
-			return false, errors.New(errMsg)
-		}
-	}
-
-	return false, nil
 }
 
 // WaitForRequest waits for the request to be DONE
