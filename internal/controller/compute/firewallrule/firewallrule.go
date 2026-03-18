@@ -19,7 +19,6 @@ package firewallrule
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
@@ -184,10 +183,15 @@ func (c *externalFirewallRule) Create(ctx context.Context, mg resource.Managed) 
 		return managed.ExternalCreation{}, nil
 	}
 
-	if externalName := meta.GetExternalName(cr); externalName != "" && externalName != cr.Name {
-		isDone, err := compute.IsRequestDone(ctx, c.service.GetAPIClient(), externalName, http.MethodPost)
+	annotations := cr.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+
+	if postReqID, ok := annotations[compute.POSTRequestIDAnnotationKey]; ok {
+		isDone, err := compute.IsRequestDoneNEW(ctx, c.service.GetAPIClient(), postReqID)
 		if err != nil {
-			return managed.ExternalCreation{}, err
+			return managed.ExternalCreation{}, fmt.Errorf("failed to check if post request is done: %w", err)
 		}
 
 		if isDone {
@@ -241,6 +245,14 @@ func (c *externalFirewallRule) Create(ctx context.Context, mg resource.Managed) 
 	// Set External Name
 	cr.Status.AtProvider.FirewallRuleID = *newInstance.Id
 	meta.SetExternalName(cr, *newInstance.Id)
+
+	reqID, err := compute.ExtractRequestID(apiResponse)
+	if err != nil {
+		return creation, fmt.Errorf("failed to extract request ID: %w", err)
+	}
+
+	annotations[compute.POSTRequestIDAnnotationKey] = reqID
+	cr.SetAnnotations(annotations)
 
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return creation, err
