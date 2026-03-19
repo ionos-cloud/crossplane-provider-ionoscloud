@@ -35,7 +35,7 @@ func NewTestHTTPServer() *TestHTTPServer {
 		switch mode {
 		case StatusModeDone:
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"id":   "test-request-id",
 				"type": "request-status",
 				"metadata": map[string]interface{}{
@@ -44,7 +44,7 @@ func NewTestHTTPServer() *TestHTTPServer {
 			})
 		case StatusModeRunning:
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"id":   "test-request-id",
 				"type": "request-status",
 				"metadata": map[string]interface{}{
@@ -53,7 +53,7 @@ func NewTestHTTPServer() *TestHTTPServer {
 			})
 		case StatusModeFailed:
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"id":   "test-request-id",
 				"type": "request-status",
 				"metadata": map[string]interface{}{
@@ -63,12 +63,12 @@ func NewTestHTTPServer() *TestHTTPServer {
 			})
 		case StatusModeError:
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"error": "internal server error",
 			})
 		case StatusMode404:
 			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"error": "not found",
 			})
 		}
