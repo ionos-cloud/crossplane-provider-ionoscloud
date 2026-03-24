@@ -244,7 +244,6 @@ func (c *externalLan) Create(ctx context.Context, mg resource.Managed) (managed.
 	cr.SetAnnotations(annotations)
 
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		c.log.Info("timed out waiting for create lan request to complete. error: ", "error", err)
 		return creation, err
 	}
 	if newInstance.Properties != nil {
