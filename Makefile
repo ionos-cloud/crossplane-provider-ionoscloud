@@ -94,6 +94,32 @@ sss_e2e:
 	@go test -v -timeout 60m -tags=sss_e2e ./internal/controller/compute/statefulserverset/... || $(FAIL)
 	@$(OK) statefulserverset e2e tests passed
 
+# Run mock tests sequentially (each suite binds :8080 for metrics)
+mock-tests:
+	@$(INFO) running mock tests
+	@$(INFO) running datacenter mock tests
+	@go test -v -timeout 10m -tags=datacenter_mock ./internal/controller/compute/datacenter/... || $(FAIL)
+	@$(OK) datacenter mock tests passed
+	@$(INFO) running firewallrule mock tests
+	@go test -v -timeout 10m -tags=firewallrule_mock ./internal/controller/compute/firewallrule/... || $(FAIL)
+	@$(OK) firewallrule mock tests passed
+	@$(INFO) running ipblock mock tests
+	@go test -v -timeout 10m -tags=ipblock_mock ./internal/controller/compute/ipblock/... || $(FAIL)
+	@$(OK) ipblock mock tests passed
+	@$(INFO) running lan mock tests
+	@go test -v -timeout 10m -tags=lan_mock ./internal/controller/compute/lan/... || $(FAIL)
+	@$(OK) lan mock tests passed
+	@$(INFO) running nic mock tests
+	@go test -v -timeout 10m -tags=nic_mock ./internal/controller/compute/nic/... || $(FAIL)
+	@$(OK) nic mock tests passed
+	@$(INFO) running server mock tests
+	@go test -v -timeout 10m -tags=server_mock ./internal/controller/compute/server/... || $(FAIL)
+	@$(OK) server mock tests passed
+	@$(INFO) running volume mock tests
+	@go test -v -timeout 10m -tags=volume_mock ./internal/controller/compute/volume/... || $(FAIL)
+	@$(OK) volume mock tests passed
+	@$(OK) all mock tests passed
+
 # Update the submodules, such as the common build scripts.
 submodules:
 	@git submodule sync
@@ -139,7 +165,7 @@ cluster-clean: $(KIND) $(KUBECTL)
 
 dev-clean: cluster-clean
 
-.PHONY: submodules fallthrough test-integration run crds.clean cluster dev dev-clean cluster-clean
+.PHONY: submodules fallthrough test-integration mock-tests run crds.clean cluster dev dev-clean cluster-clean
 
 # ====================================================================================
 # Special Targets

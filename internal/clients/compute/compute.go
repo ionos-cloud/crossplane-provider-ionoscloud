@@ -49,6 +49,9 @@ const POSTRequestIDAnnotationKey = "ionos.cloud/post-request-id"
 // Returns (requestID, nil) on success, or ("", error) if the Location header is
 // missing, malformed, or contains an empty request ID.
 func ExtractRequestID(apiResponse *sdkgo.APIResponse) (string, error) {
+	if apiResponse == nil || apiResponse.Response == nil {
+		return "", errors.New(errAPIResponseNil)
+	}
 	requestStatusURL := apiResponse.Header.Get(requestHeader)
 	if requestStatusURL == "" {
 		return "", fmt.Errorf("request status URL is empty")
@@ -94,7 +97,7 @@ func ExtractRequestID(apiResponse *sdkgo.APIResponse) (string, error) {
 func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, reqID string) (bool, error) {
 	reqStatus, apiResponse, err := client.RequestsApi.RequestsStatusGet(ctx, reqID).Execute()
 	if err != nil {
-		if apiResponse.HttpNotFound() {
+		if apiResponse != nil && apiResponse.HttpNotFound() {
 			return false, nil
 		}
 

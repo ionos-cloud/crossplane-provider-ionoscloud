@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	serverClient "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute/server"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/mocktest"
 )
@@ -318,7 +319,7 @@ var _ = Describe("Server Controller E2E Tests", func() {
 		CreateCRWithAnnotation: func(name, externalName, annotationValue string) client.Object {
 			cr := newServerCR(name)
 			cr.Annotations = map[string]string{
-				"ionos.cloud/post-request-id": annotationValue,
+				compute.POSTRequestIDAnnotationKey: annotationValue,
 			}
 			if externalName != "" {
 				meta.SetExternalName(cr, externalName)
