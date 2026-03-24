@@ -24,8 +24,6 @@ function install_provider() {
   kubectl get pods -n crossplane-system
 
   echo_step "add secret credentials"
-#  BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)
-#  kubectl create secret generic --namespace ${CROSSPLANE_NAMESPACE} example-provider-secret --from-literal=credentials="{\"user\":\"${IONOS_USERNAME}\",\"password\":\"${BASE64_PW}\"}"
   # Use Token
   kubectl create secret generic --namespace ${CROSSPLANE_NAMESPACE} example-provider-secret --from-literal=credentials="{\"token\":\"${IONOS_TOKEN}\"}"
   INSTALL_CRED_YAML="$(
