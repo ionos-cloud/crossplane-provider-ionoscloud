@@ -5,8 +5,8 @@ on:
   workflow_dispatch: { }
 
 env:
-  GOLANGCI_VERSION: 'v2.0'
-  DOCKER_BUILDX_VERSION: 'v0.11.2'
+  GOLANGCI_VERSION: 'v2.11.4'
+  DOCKER_BUILDX_VERSION: 'v0.20.1'
 
 jobs:
   detect-noop:
@@ -54,7 +54,7 @@ jobs:
       - name: Vendor Dependencies
         run: make vendor vendor.check
       - name: Lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:
           version: ${{ env.GOLANGCI_VERSION }}
           skip-cache: true
