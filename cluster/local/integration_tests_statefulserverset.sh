@@ -67,7 +67,7 @@ spec:
       spec:
         updateStrategy:
           type: "createBeforeDestroyBootVolume"
-        image: "c38292f2-eeaa-11ef-8fa7-aee9942a25aa"
+        image: "ed3217ee-1625-11f1-bab9-7eefb1856a73"
         size: 10
         type: HDD
         userData: ""
@@ -170,7 +170,7 @@ spec:
       spec:
         updateStrategy:
           type: "createBeforeDestroyBootVolume"
-        image: "c38292f2-eeaa-11ef-8fa7-aee9942a25aa"
+        image: "ed3217ee-1625-11f1-bab9-7eefb1856a73"
         size: 10
         type: SSD
         userData: ""
@@ -284,7 +284,7 @@ spec:
       spec:
         updateStrategy:
           type: "createBeforeDestroyBootVolume"
-        image: "c38292f2-eeaa-11ef-8fa7-aee9942a25aa"
+        image: "ed3217ee-1625-11f1-bab9-7eefb1856a73"
         size: 10
         type: SSD
         userData: ""

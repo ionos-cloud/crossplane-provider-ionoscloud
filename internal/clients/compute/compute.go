@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 )
@@ -32,36 +33,98 @@ const (
 	requestHeader = "Location"
 )
 
-// IsRequestDone fetches the latest request that matches both the targetID and the method provided, and checks if it has
-// reached status DONE. In case of request failure (status FAILED), the function will return an error.
-func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, targetID, method string) (bool, error) {
-	reqs, _, err := client.RequestsApi.RequestsGet(ctx).FilterRequestStatus(targetID).FilterMethod(method).Limit(1).Execute()
+const POSTRequestIDAnnotationKey = "ionos.cloud/post-request-id"
+
+// ExtractRequestID extracts the IONOS Cloud request ID from the Location header
+// of an API response, which has the following format:
+//
+//	https://api.ionos.com/cloudapi/v6/requests/{requestID}/status
+//
+// This function parses out the {requestID} segment from that URL.
+//
+// It is called after create operations (e.g. CreateLan) to capture the request
+// ID, which is then stored as a POSTRequestIDAnnotationKey annotation on the CR
+// for later polling via IsRequestDone.
+//
+// Returns (requestID, nil) on success, or ("", error) if the Location header is
+// missing, malformed, or contains an empty request ID.
+func ExtractRequestID(apiResponse *sdkgo.APIResponse) (string, error) {
+	if apiResponse == nil || apiResponse.Response == nil {
+		return "", errors.New(errAPIResponseNil)
+	}
+	requestStatusURL := apiResponse.Header.Get(requestHeader)
+	if requestStatusURL == "" {
+		return "", fmt.Errorf("request status URL is empty")
+	}
+
+	var requestID string
+	_, requestID, found := strings.Cut(requestStatusURL, "/requests/")
+	if !found {
+		return "", fmt.Errorf("request status URL is malformed, expected path '/requests/', got: %s", requestStatusURL)
+	}
+	if requestID == "" {
+		return "", fmt.Errorf("request ID is empty in the request status URL: %s", requestStatusURL)
+	}
+
+	requestID = strings.TrimSuffix(requestID, "/status")
+
+	return requestID, nil
+}
+
+// IsRequestDone checks whether a previously initiated IONOS
+// Cloud API request has completed by polling its status endpoint.
+//
+// Parameters:
+//   - ctx: context for cancellation
+//   - client: the IONOS SDK client used to call the Requests API
+//   - reqID: the request ID
+//
+// Return value semantics:
+//   - (true, nil)  — request completed successfully (status DONE).
+//   - (false, nil)  — request is still in progress (QUEUED/RUNNING), or the
+//     request was not found (404). Callers should retry later.
+//   - (false, error) — request failed (status FAILED, with message) or an
+//     unexpected API/metadata error occurred. Callers should surface this error.
+//
+// A 404 response is treated as "not done, no error" to cover the case where the
+// IONOS API has lost track of the request. The caller will keep retrying; manual
+// intervention (removing the POSTRequestIDAnnotationKey annotation from the CR)
+// may be needed to unstick the resource.
+//
+// This function is called during the Create reconciliation path when a
+// POSTRequestIDAnnotationKey annotation exists on the CR, indicating a previous
+// Create issued a request that has not yet been confirmed as complete.
+func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, reqID string) (bool, error) {
+	reqStatus, apiResponse, err := client.RequestsApi.RequestsStatusGet(ctx, reqID).Execute()
 	if err != nil {
-		return false, fmt.Errorf("failed to get %s request for resource %s. error: %w", method, targetID, err)
-	}
-
-	if len(*reqs.Items) == 0 {
-		return false, fmt.Errorf("no %s request found for resource %s", method, targetID)
-	}
-
-	// we retrieve only the most recent request that matches the criteria
-	for _, req := range *reqs.Items {
-		status := req.Metadata.RequestStatus.Metadata.Status
-		if *status == sdkgo.RequestStatusDone {
-			return true, nil
+		if apiResponse != nil && apiResponse.HttpNotFound() {
+			return false, nil
 		}
-		if *status == sdkgo.RequestStatusFailed {
-			errMsg := fmt.Sprintf("%s request %s for resource %s failed", method, *req.Id, targetID)
-			msg := req.Metadata.RequestStatus.Metadata.Message
-			if msg != nil {
-				errMsg = fmt.Sprintf("%s (%s)", errMsg, *msg)
-			}
 
-			return false, errors.New(errMsg)
-		}
+		return false, fmt.Errorf("failed to retrieve request (%s) status: %w", reqID, err)
 	}
 
-	return false, nil
+	if reqStatus.Metadata == nil || reqStatus.Metadata.Status == nil {
+		return false, fmt.Errorf("failed to retrieve request (%s) status from metadata", reqID)
+	}
+
+	status := *reqStatus.Metadata.Status
+	switch status {
+	case sdkgo.RequestStatusDone:
+		return true, nil
+	case sdkgo.RequestStatusFailed:
+		errMsg := fmt.Sprintf("request (%s) status is failed", reqID)
+
+		msg := reqStatus.Metadata.Message
+		if msg != nil {
+			errMsg = fmt.Sprintf("%s (%s)", errMsg, *msg)
+		}
+		return false, errors.New(errMsg)
+	case sdkgo.RequestStatusQueued, sdkgo.RequestStatusRunning:
+		return false, nil
+	default:
+		return false, fmt.Errorf("request (%s) status is unknown", reqID)
+	}
 }
 
 // WaitForRequest waits for the request to be DONE
