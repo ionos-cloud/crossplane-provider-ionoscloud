@@ -724,6 +724,14 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.Ext
 	return managed.ExternalDelete{}, nil
 }
 
+// equalBoolPtr reports whether two *bool fields hold the same value.
+func equalBoolPtr(a, b *bool) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
+}
+
 // AreServersReady checks if replicas and template params are equal to server obj params
 func AreServersReady(
 	ctx context.Context, kube client.Client, log logging.Logger, templateParams v1alpha1.ServerSetTemplateSpec, servers []v1alpha1.Server,
@@ -752,7 +760,7 @@ func AreServersReady(
 		if serverObj.Spec.ForProvider.RAM != templateParams.RAM {
 			return false, false, nil
 		}
-		if serverObj.Spec.ForProvider.NicMultiQueue != templateParams.NicMultiQueue {
+		if !equalBoolPtr(serverObj.Spec.ForProvider.NicMultiQueue, templateParams.NicMultiQueue) {
 			return false, false, nil
 		}
 		if serverObj.Spec.ForProvider.CPUFamily != templateParams.CPUFamily {
@@ -1031,7 +1039,7 @@ func checkServerDiff(old *v1alpha1.Server, cr *v1alpha1.ServerSet, bootVolume *v
 			failover = true
 		}
 	}
-	if old.Spec.ForProvider.NicMultiQueue != cr.Spec.ForProvider.Template.Spec.NicMultiQueue {
+	if !equalBoolPtr(old.Spec.ForProvider.NicMultiQueue, cr.Spec.ForProvider.Template.Spec.NicMultiQueue) {
 		update = true
 		old.Spec.ForProvider.NicMultiQueue = cr.Spec.ForProvider.Template.Spec.NicMultiQueue
 	}

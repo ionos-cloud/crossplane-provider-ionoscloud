@@ -182,61 +182,62 @@ jobs:
         with:
           sarif_file: 'govulncheck-results.sarif'
 
-  release-latest:
-    runs-on: ubuntu-latest
-    needs: [ test, trivy, govulncheck ]
-    permissions:
-      packages: write
-    steps:
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
-        with:
-          platforms: all
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
-        with:
-          version: ${{ env.DOCKER_BUILDX_VERSION }}
-          install: true
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: true
-      - name: Fetch History
-        run: git fetch --prune --unshallow
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version-file: 'go.mod'
-      - name: Find the Go Build Cache
-        id: go
-        run: echo "::set-output name=cache::$(make go.cachedir)"
-      - name: Cache the Go Build Cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.go.outputs.cache }}
-          key: ${{ runner.os }}-build-e2e-tests-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-e2e-tests-
-      - name: Cache Go Dependencies
-        uses: actions/cache@v4
-        with:
-          path: .work/pkg
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-pkg-
-      - name: Vendor Dependencies
-        run: make vendor vendor.check
-      - name: Build Helm Chart
-        run: make build VERSION=latest
-        env:
-          BUILD_ARGS: "--load"
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Push Images
-        run: make publish VERSION=latest BRANCH_NAME=master
+  # release-latest disabled on test branch (test/ICNAS-571)
+  # release-latest:
+  #   runs-on: ubuntu-latest
+  #   needs: [ test, trivy, govulncheck ]
+  #   permissions:
+  #     packages: write
+  #   steps:
+  #     - name: Setup QEMU
+  #       uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+  #       with:
+  #         platforms: all
+  #     - name: Setup Docker Buildx
+  #       uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
+  #       with:
+  #         version: ${{ env.DOCKER_BUILDX_VERSION }}
+  #         install: true
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #       with:
+  #         submodules: true
+  #     - name: Fetch History
+  #       run: git fetch --prune --unshallow
+  #     - name: Set up Go
+  #       uses: actions/setup-go@v3
+  #       with:
+  #         go-version-file: 'go.mod'
+  #     - name: Find the Go Build Cache
+  #       id: go
+  #       run: echo "::set-output name=cache::$(make go.cachedir)"
+  #     - name: Cache the Go Build Cache
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ${{ steps.go.outputs.cache }}
+  #         key: ${{ runner.os }}-build-e2e-tests-${{ hashFiles('**/go.sum') }}
+  #         restore-keys: ${{ runner.os }}-build-e2e-tests-
+  #     - name: Cache Go Dependencies
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: .work/pkg
+  #         key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-pkg-
+  #     - name: Vendor Dependencies
+  #       run: make vendor vendor.check
+  #     - name: Build Helm Chart
+  #       run: make build VERSION=latest
+  #       env:
+  #         BUILD_ARGS: "--load"
+  #     - name: Login to GitHub Container Registry
+  #       uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
+  #       with:
+  #         registry: ghcr.io
+  #         username: ${{ github.repository_owner }}
+  #         password: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Push Images
+  #       run: make publish VERSION=latest BRANCH_NAME=master
 
   release-tag:
     runs-on: ubuntu-latest
@@ -300,23 +301,24 @@ jobs:
       - name: Push Images
         run: make publish VERSION=${GITHUB_REF_NAME} BRANCH_NAME=master
 
-  mirror-to-upbound:
-    runs-on: ubuntu-latest
-    needs: release-tag
-    if: ${{ !inputs.skip-checks }}
-    permissions:
-      packages: write
-    steps:
-      - name: Setup crane
-        uses: imjasonh/setup-crane@31b88efe9de28ae0ffa220711af4b60be9435f6e
-      - name: Validate crane installation
-        run: crane version
-      - name: Login to Mirror Registry
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
-        with:
-          registry: xpkg.upbound.io
-          username: ${{ secrets.UP_ACCESS_ID }}
-          password: ${{ secrets.UP_API_KEY }}
-      - name: Mirror to ${{ inputs.mirror-registry }}
-        run: |
-          crane copy ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_REF_NAME} xpkg.upbound.io/ionos-cloud/provider-ionoscloud:${GITHUB_REF_NAME} --allow-nondistributable-artifacts
+  # mirror-to-upbound disabled on test branch (test/ICNAS-571)
+  # mirror-to-upbound:
+  #   runs-on: ubuntu-latest
+  #   needs: release-tag
+  #   if: ${{ !inputs.skip-checks }}
+  #   permissions:
+  #     packages: write
+  #   steps:
+  #     - name: Setup crane
+  #       uses: imjasonh/setup-crane@31b88efe9de28ae0ffa220711af4b60be9435f6e
+  #     - name: Validate crane installation
+  #       run: crane version
+  #     - name: Login to Mirror Registry
+  #       uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
+  #       with:
+  #         registry: xpkg.upbound.io
+  #         username: ${{ secrets.UP_ACCESS_ID }}
+  #         password: ${{ secrets.UP_API_KEY }}
+  #     - name: Mirror to ${{ inputs.mirror-registry }}
+  #       run: |
+  #         crane copy ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_REF_NAME} xpkg.upbound.io/ionos-cloud/provider-ionoscloud:${GITHUB_REF_NAME} --allow-nondistributable-artifacts

@@ -3033,3 +3033,170 @@ func createStateMapZeroTimestamp() *v1.ConfigMap {
 		},
 	}
 }
+
+func TestEqualBoolPtr(t *testing.T) {
+	trueA := true
+	trueB := true
+	falseA := false
+
+	tests := []struct {
+		name string
+		a    *bool
+		b    *bool
+		want bool
+	}{
+		{name: "both nil", a: nil, b: nil, want: true},
+		{name: "left nil, right set", a: nil, b: &trueA, want: false},
+		{name: "left set, right nil", a: &trueA, b: nil, want: false},
+		{name: "both true via distinct pointers", a: &trueA, b: &trueB, want: true},
+		{name: "both true via same pointer", a: &trueA, b: &trueA, want: true},
+		{name: "true vs false", a: &trueA, b: &falseA, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, equalBoolPtr(tt.a, tt.b))
+		})
+	}
+}
+
+// TestAreServersReady_NicMultiQueueValueSemantics verifies that AreServersReady
+// compares NicMultiQueue by value, not by pointer address. Regression for the
+// case where the SSS template and the Server CR both hold *bool pointers to true
+// but at different addresses, which previously caused the SSS to stay stuck at
+// Ready=False/Creating even after a successful cloud-side update.
+func TestAreServersReady_NicMultiQueueValueSemantics(t *testing.T) {
+	mkBool := func(v bool) *bool { p := v; return &p }
+
+	makeServer := func(nmq *bool) v1alpha1.Server {
+		return v1alpha1.Server{
+			Spec: v1alpha1.ServerSpec{
+				ForProvider: v1alpha1.ServerParameters{
+					Cores:         serverSetCores,
+					RAM:           serverSetRAM,
+					CPUFamily:     serverSetCPUFamily,
+					NicMultiQueue: nmq,
+				},
+			},
+			Status: v1alpha1.ServerStatus{
+				AtProvider: v1alpha1.ServerObservation{
+					State: ionoscloud.Available,
+				},
+			},
+		}
+	}
+
+	tests := []struct {
+		name              string
+		templateNMQ       *bool
+		serverNMQ         *bool
+		wantUpToDate      bool
+		wantAvailable     bool
+	}{
+		{
+			name:          "both true via distinct pointers - regression case",
+			templateNMQ:   mkBool(true),
+			serverNMQ:     mkBool(true),
+			wantUpToDate:  true,
+			wantAvailable: true,
+		},
+		{
+			name:          "both nil",
+			templateNMQ:   nil,
+			serverNMQ:     nil,
+			wantUpToDate:  true,
+			wantAvailable: true,
+		},
+		{
+			name:          "template true, server nil - genuine drift",
+			templateNMQ:   mkBool(true),
+			serverNMQ:     nil,
+			wantUpToDate:  false,
+			wantAvailable: false,
+		},
+		{
+			name:          "template true, server false - genuine drift",
+			templateNMQ:   mkBool(true),
+			serverNMQ:     mkBool(false),
+			wantUpToDate:  false,
+			wantAvailable: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			templateParams := v1alpha1.ServerSetTemplateSpec{
+				Cores:         serverSetCores,
+				RAM:           serverSetRAM,
+				CPUFamily:     serverSetCPUFamily,
+				NicMultiQueue: tt.templateNMQ,
+			}
+			servers := []v1alpha1.Server{makeServer(tt.serverNMQ)}
+
+			upToDate, available, err := AreServersReady(
+				context.Background(), nil, logging.NewNopLogger(), templateParams, servers,
+			)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantUpToDate, upToDate, "areServersUpToDate")
+			assert.Equal(t, tt.wantAvailable, available, "areServersAvailable")
+		})
+	}
+}
+
+// TestCheckServerDiff_NicMultiQueueValueSemantics verifies that checkServerDiff
+// reports update=true only on a real value difference for NicMultiQueue,
+// not on every reconcile due to differing pointer addresses with equal values.
+func TestCheckServerDiff_NicMultiQueueValueSemantics(t *testing.T) {
+	mkBool := func(v bool) *bool { p := v; return &p }
+
+	makeServer := func(nmq *bool) *v1alpha1.Server {
+		return &v1alpha1.Server{
+			Spec: v1alpha1.ServerSpec{
+				ForProvider: v1alpha1.ServerParameters{
+					Cores:         serverSetCores,
+					RAM:           serverSetRAM,
+					CPUFamily:     serverSetCPUFamily,
+					NicMultiQueue: nmq,
+				},
+			},
+		}
+	}
+	makeSSet := func(nmq *bool) *v1alpha1.ServerSet {
+		return &v1alpha1.ServerSet{
+			Spec: v1alpha1.ServerSetSpec{
+				ForProvider: v1alpha1.ServerSetParameters{
+					Template: v1alpha1.ServerSetTemplate{
+						Spec: v1alpha1.ServerSetTemplateSpec{
+							Cores:         serverSetCores,
+							RAM:           serverSetRAM,
+							CPUFamily:     serverSetCPUFamily,
+							NicMultiQueue: nmq,
+						},
+					},
+				},
+			},
+		}
+	}
+	bootVolume := &v1alpha1.Volume{}
+
+	tests := []struct {
+		name        string
+		oldNMQ      *bool
+		crNMQ       *bool
+		wantUpdate  bool
+	}{
+		{name: "both true via distinct pointers - no update", oldNMQ: mkBool(true), crNMQ: mkBool(true), wantUpdate: false},
+		{name: "both nil - no update", oldNMQ: nil, crNMQ: nil, wantUpdate: false},
+		{name: "old nil, cr true - update", oldNMQ: nil, crNMQ: mkBool(true), wantUpdate: true},
+		{name: "old true, cr false - update", oldNMQ: mkBool(true), crNMQ: mkBool(false), wantUpdate: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			old := makeServer(tt.oldNMQ)
+			cr := makeSSet(tt.crNMQ)
+			update, _ := checkServerDiff(old, cr, bootVolume)
+			assert.Equal(t, tt.wantUpdate, update)
+		})
+	}
+}
