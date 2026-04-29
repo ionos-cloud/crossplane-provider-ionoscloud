@@ -24,7 +24,7 @@
 Starting from version v1.2.0, Crossplane Provider IONOS Cloud has changed from a 2 image release to a single image. From now on, only the `crossplane-provider-ionoscloud` image
 will be released and maintained. The previous `crossplane-provider-ionoscloud-controller` image is deprecated and will no longer receive updates or support.
 
-For setups that explicitly used the `crossplane-provider-ionoscloud-controller` image, for example where a custom `DeploymentRuntimeConfig`is used:
+For setups that explicitly used the `crossplane-provider-ionoscloud-controller` image, for example where a custom `DeploymentRuntimeConfig` is used:
 
 ```yaml
 apiVersion: pkg.crossplane.io/v1beta1
