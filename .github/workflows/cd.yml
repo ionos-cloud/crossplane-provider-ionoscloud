@@ -13,7 +13,6 @@ permissions:
   contents: read
 
 env:
-  GOLANGCI_VERSION: 'v2.6'
   DOCKER_BUILDX_VERSION: 'v0.20.1'
 
 jobs:
