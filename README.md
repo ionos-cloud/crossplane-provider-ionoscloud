@@ -17,12 +17,14 @@
 
 ---
 
+**Note:** New features will only be added to our generated provider: [provider-upjet-ionoscloud](https://github.com/ionos-cloud/provider-upjet-ionoscloud).
+
 ## Important Notice
 
-Starting from version v1.2.0, Crossplane Provider IONOS Cloud has changed from a 2 image release to a single image. From now on, only the `crossplane-provider-ionoscloud` image 
+Starting from version v1.2.0, Crossplane Provider IONOS Cloud has changed from a 2 image release to a single image. From now on, only the `crossplane-provider-ionoscloud` image
 will be released and maintained. The previous `crossplane-provider-ionoscloud-controller` image is deprecated and will no longer receive updates or support.
 
-For setups that explicitly used the `crossplane-provider-ionoscloud-controller` image, for example where a custom `DeploymentRuntimeConfig`is used:
+For setups that explicitly used the `crossplane-provider-ionoscloud-controller` image, for example where a custom `DeploymentRuntimeConfig` is used:
 
 ```yaml
 apiVersion: pkg.crossplane.io/v1beta1
@@ -101,8 +103,8 @@ secrets. You can use environments variables when creating the `ProviderConfig` r
 
 | Environment Variable | Description                                                                                |
 |----------------------|--------------------------------------------------------------------------------------------|
-| `IONOS_USERNAME`     | Specify the username used to login, to authenticate against the IONOS Cloud API            | 
-| `IONOS_PASSWORD`     | Specify the password used to login, to authenticate against the IONOS Cloud API            | 
+| `IONOS_USERNAME`     | Specify the username used to login, to authenticate against the IONOS Cloud API            |
+| `IONOS_PASSWORD`     | Specify the password used to login, to authenticate against the IONOS Cloud API            |
 | `IONOS_TOKEN`        | Specify the token used to login, if a token is being used instead of username and password |
 | `IONOS_API_URL`      | Specify the API URL. It will overwrite the API endpoint default value `api.ionos.com`      |                                                                                                                                                                    |
 | `IONOS_LOG_LEVEL`    | Specify the Log Level used to log messages. Possible values: `Off`, `Debug`, `Trace`       |
