@@ -13,7 +13,6 @@ permissions:
   contents: read
 
 env:
-  GOLANGCI_VERSION: 'v2.6'
   DOCKER_BUILDX_VERSION: 'v0.20.1'
 
 jobs:
@@ -64,7 +63,7 @@ jobs:
       - name: Fetch History
         run: git fetch --prune --unshallow
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version-file: 'go.mod'
       - name: Find the Go Build Cache
@@ -118,7 +117,7 @@ jobs:
       - name: Fetch History
         run: git fetch --prune --unshallow
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version-file: 'go.mod'
       - name: Find the Go Build Cache
@@ -205,7 +204,7 @@ jobs:
       - name: Fetch History
         run: git fetch --prune --unshallow
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version-file: 'go.mod'
       - name: Find the Go Build Cache
@@ -267,7 +266,7 @@ jobs:
       - name: Fetch History
         run: git fetch --prune --unshallow
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version-file: 'go.mod'
       - name: Find the Go Build Cache
