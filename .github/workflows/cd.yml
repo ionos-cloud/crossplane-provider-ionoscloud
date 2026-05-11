@@ -181,7 +181,6 @@ jobs:
         with:
           sarif_file: 'govulncheck-results.sarif'
 
-  release-latest disabled on test branch (test/ICNAS-571)
   release-latest:
     runs-on: ubuntu-latest
     needs: [ test, trivy, govulncheck ]
@@ -300,24 +299,23 @@ jobs:
       - name: Push Images
         run: make publish VERSION=${GITHUB_REF_NAME} BRANCH_NAME=master
 
-  # mirror-to-upbound disabled on test branch (test/ICNAS-571)
-  # mirror-to-upbound:
-  #   runs-on: ubuntu-latest
-  #   needs: release-tag
-  #   if: ${{ !inputs.skip-checks }}
-  #   permissions:
-  #     packages: write
-  #   steps:
-  #     - name: Setup crane
-  #       uses: imjasonh/setup-crane@31b88efe9de28ae0ffa220711af4b60be9435f6e
-  #     - name: Validate crane installation
-  #       run: crane version
-  #     - name: Login to Mirror Registry
-  #       uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
-  #       with:
-  #         registry: xpkg.upbound.io
-  #         username: ${{ secrets.UP_ACCESS_ID }}
-  #         password: ${{ secrets.UP_API_KEY }}
-  #     - name: Mirror to ${{ inputs.mirror-registry }}
-  #       run: |
-  #         crane copy ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_REF_NAME} xpkg.upbound.io/ionos-cloud/provider-ionoscloud:${GITHUB_REF_NAME} --allow-nondistributable-artifacts
+  mirror-to-upbound:
+    runs-on: ubuntu-latest
+    needs: release-tag
+    if: ${{ !inputs.skip-checks }}
+    permissions:
+      packages: write
+    steps:
+      - name: Setup crane
+        uses: imjasonh/setup-crane@31b88efe9de28ae0ffa220711af4b60be9435f6e
+      - name: Validate crane installation
+        run: crane version
+      - name: Login to Mirror Registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
+        with:
+          registry: xpkg.upbound.io
+          username: ${{ secrets.UP_ACCESS_ID }}
+          password: ${{ secrets.UP_API_KEY }}
+      - name: Mirror to ${{ inputs.mirror-registry }}
+        run: |
+          crane copy ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_REF_NAME} xpkg.upbound.io/ionos-cloud/provider-ionoscloud:${GITHUB_REF_NAME} --allow-nondistributable-artifacts
