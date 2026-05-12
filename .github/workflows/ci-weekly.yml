@@ -97,7 +97,7 @@ jobs:
 
   notification:
     needs: [trivy, govulncheck]
-    if: ${{ always() && needs.trivy.result == 'failure' || needs.govulncheck.result == 'failure' }}
+    if: ${{ always() && (needs.trivy.result == 'failure' || needs.govulncheck.result == 'failure') }}
     runs-on: ubuntu-latest
     steps:
       - name: URL Encode Code Scanning Query
