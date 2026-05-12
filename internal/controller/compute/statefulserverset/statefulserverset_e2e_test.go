@@ -582,7 +582,7 @@ var _ = Describe("StatefulServerSet E2E Tests", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("changing the StatefulServerSet's boot volume image")
-			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.Image = "1cd4c597-b48d-11f0-838c-66e1c003c2cb"
+			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.Image = "ed3217ee-1625-11f1-bab9-7eefb1856a73"
 			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.UserData = "I2Nsb3VkLWNvbmZpZwpydW5jbWQ6CiAgLSBlY2hvICJjbG91ZC1pbml0IHJhbiBzdWNjZXNzZnVsbHkgZm9yIGltYWdlIgogIC0gWyBscywgLWwsIC8gXQ=="
 			Expect(k8sClient.Update(testCtx, fetchedCR)).Should(Succeed())
 
