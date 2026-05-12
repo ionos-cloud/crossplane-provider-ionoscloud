@@ -124,7 +124,7 @@ jobs:
           payload=$(jq -n \
             --arg title "$NOTIF_TITLE" \
             --arg subtitle "CI Number: #$CI_NUMBER" \
-            --arg repo "$GITHUB_REPO" \
+            --arg repo "${{ github.repository }}" \
             --arg labels "$NOTIF_LABELS" \
             --arg ciurl "$CI_URL" \
             --arg resultsurl "$SCAN_RESULTS_URL" \
