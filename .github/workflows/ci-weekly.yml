@@ -114,6 +114,7 @@ jobs:
           echo "encoded_query=$encoded_query" > $GITHUB_OUTPUT
       - name: Set Notification Details
         run: |
+          echo "CI_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
           echo "NOTIF_TITLE=Weekly CI Scan Failure" >> $GITHUB_ENV
           echo "NOTIF_LABELS=- security, - weekly-scan" >> $GITHUB_ENV
           echo "CI_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_ENV
@@ -122,7 +123,7 @@ jobs:
         run: |
           payload=$(jq -n \
             --arg title "$NOTIF_TITLE" \
-            --arg subtitle "Issue No: #$ISSUE_NUMBER" \
+            --arg subtitle "CI Number: #$CI_NUMBER" \
             --arg repo "$GITHUB_REPO" \
             --arg labels "$NOTIF_LABELS" \
             --arg ciurl "$CI_URL" \
@@ -130,14 +131,13 @@ jobs:
             '{
               "cards": [
                 {
-                  "header": { "title": "New Issue 🔨", "subtitle": $subtitle },
+                  "header": { "title": "Crossplane Weekly CI Failed", "subtitle": $subtitle },
                   "sections": [
                     {
                       "widgets": [
                         { "keyValue": { "topLabel": "Repository", "content": $repo } },
                         { "keyValue": { "topLabel": "Title", "content": $title } },
                         { "keyValue": { "topLabel": "Assigned Labels", "content": $labels } },
-                        { "buttons": [ { "textButton": { "text": "OPEN CI", "onClick": { "openLink": { "url": $ciurl } } } } ] },
                         { "buttons": [ { "textButton": { "text": "OPEN RESULTS", "onClick": { "openLink": { "url": $resultsurl } } } } ] }
                       ]
                     }
