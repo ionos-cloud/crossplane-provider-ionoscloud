@@ -94,3 +94,58 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'govulncheck-results.sarif'
+
+  notification:
+    needs: [trivy, govulncheck]
+    if: ${{ always() && needs.trivy.result == 'failure' || needs.govulncheck.result == 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: URL Encode Code Scanning Query
+        id: encode-query
+        run: |
+          base_query="is:open branch:master"
+          if [ "${{ needs.trivy.result }}" == "failure" ]; then
+            base_query="$base_query tool:trivy"
+          fi
+          if [ "${{ needs.govulncheck.result }}" == "failure" ]; then
+              base_query="$base_query tool:govulncheck"
+          fi
+          encoded_query=$(echo -n "$base_query" | jq -s -R -r @uri)
+          echo "encoded_query=$encoded_query" > $GITHUB_OUTPUT
+      - name: Set Notification Details
+        run: |
+          echo "NOTIF_TITLE=Weekly CI Scan Failure" >> $GITHUB_ENV
+          echo "NOTIF_LABELS=- security, - weekly-scan" >> $GITHUB_ENV
+          echo "CI_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_ENV
+          echo "SCAN_RESULTS_URL=${{ github.server_url }}/${{ github.repository }}/security/code-scanning?query=${{ steps.encode-query.outputs.encoded_query }}" >> $GITHUB_ENV
+      - name: Google Chat Notification
+        run: |
+          payload=$(jq -n \
+            --arg title "$NOTIF_TITLE" \
+            --arg subtitle "Issue No: #$ISSUE_NUMBER" \
+            --arg repo "$GITHUB_REPO" \
+            --arg labels "$NOTIF_LABELS" \
+            --arg ciurl "$CI_URL" \
+            --arg resultsurl "$SCAN_RESULTS_URL" \
+            '{
+              "cards": [
+                {
+                  "header": { "title": "New Issue 🔨", "subtitle": $subtitle },
+                  "sections": [
+                    {
+                      "widgets": [
+                        { "keyValue": { "topLabel": "Repository", "content": $repo } },
+                        { "keyValue": { "topLabel": "Title", "content": $title } },
+                        { "keyValue": { "topLabel": "Assigned Labels", "content": $labels } },
+                        { "buttons": [ { "textButton": { "text": "OPEN CI", "onClick": { "openLink": { "url": $ciurl } } } } ] }
+                        { "buttons": [ { "textButton": { "text": "OPEN RESULTS", "onClick": { "openLink": { "url": $resultsurl } } } } ] }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }')
+          
+          curl --location --request POST '${{ secrets.ISSUE_TRACKER_WEBHOOK }}' \
+          --header 'Content-Type: application/json' \
+          --data-raw "$payload"
