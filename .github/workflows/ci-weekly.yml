@@ -137,7 +137,7 @@ jobs:
                         { "keyValue": { "topLabel": "Repository", "content": $repo } },
                         { "keyValue": { "topLabel": "Title", "content": $title } },
                         { "keyValue": { "topLabel": "Assigned Labels", "content": $labels } },
-                        { "buttons": [ { "textButton": { "text": "OPEN CI", "onClick": { "openLink": { "url": $ciurl } } } } ] }
+                        { "buttons": [ { "textButton": { "text": "OPEN CI", "onClick": { "openLink": { "url": $ciurl } } } } ] },
                         { "buttons": [ { "textButton": { "text": "OPEN RESULTS", "onClick": { "openLink": { "url": $resultsurl } } } } ] }
                       ]
                     }
