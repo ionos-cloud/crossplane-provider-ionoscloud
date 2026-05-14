@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	yaml "gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v3"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 )
@@ -36,7 +36,7 @@ type CloudInitPatcher struct {
 
 // NewCloudInitPatcherWithSubstitutions returns a new CloudInitPatcher instance
 // with a list of substitutions
-func NewCloudInitPatcherWithSubstitutions(rawUserData string, identifier substitution.Identifier, substitutions []substitution.Substitution, globalState *substitution.GlobalState) (*CloudInitPatcher, error) {
+func NewCloudInitPatcherWithSubstitutions(rawUserData string, identifier substitution.Identifier, oldIdentifier substitution.Identifier, substitutions []substitution.Substitution, globalState *substitution.GlobalState) (*CloudInitPatcher, error) {
 	if globalState == nil {
 		globalState = &substitution.GlobalState{}
 	}
@@ -50,11 +50,7 @@ func NewCloudInitPatcherWithSubstitutions(rawUserData string, identifier substit
 	patcher.substitutions = substitutions
 	patcher.globalState = globalState
 
-	if err := populateGlobalState(
-		patcher.identifier,
-		patcher.substitutions,
-		patcher.globalState,
-	); err != nil {
+	if err := populateGlobalState(patcher.identifier, oldIdentifier, patcher.substitutions, patcher.globalState); err != nil {
 		return nil, err
 	}
 

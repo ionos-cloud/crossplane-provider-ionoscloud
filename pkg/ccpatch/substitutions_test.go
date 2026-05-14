@@ -56,11 +56,7 @@ func TestSubstitutionManager(t *testing.T) {
 	// Contents of the cloud-init configuration
 	encoded := base64.StdEncoding.EncodeToString([]byte(substitutionInput))
 
-	cp, err := ccpatch.NewCloudInitPatcherWithSubstitutions(
-		encoded,
-		replica1,
-		substitutions, globalState,
-	)
+	cp, err := ccpatch.NewCloudInitPatcherWithSubstitutions(encoded, replica1, "", substitutions, globalState)
 	require.NoError(t, err)
 	require.Equalf(t, substitutionReplica1Output, cp.String(), "expected equality for replica-1")
 	// cp, err = ccpatch.NewCloudInitPatcherWithSubstitutions(

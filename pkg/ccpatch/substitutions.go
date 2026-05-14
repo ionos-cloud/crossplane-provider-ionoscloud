@@ -5,14 +5,14 @@ import (
 )
 
 // populateGlobalState is a helper function to build the state of the substitutions
-func populateGlobalState(identifier substitution.Identifier, s []substitution.Substitution, gs *substitution.GlobalState) error {
+func populateGlobalState(identifier substitution.Identifier, oldIdentifier substitution.Identifier, s []substitution.Substitution, gs *substitution.GlobalState) error {
 	for _, sub := range s {
 		handler := substitution.GetSubstitution(sub.Type)
 		if handler == nil {
 			continue
 		}
 
-		if err := handler.WriteGlobalState(identifier, gs, sub); err != nil {
+		if err := handler.WriteGlobalState(identifier, oldIdentifier, gs, sub); err != nil {
 			return err
 		}
 	}

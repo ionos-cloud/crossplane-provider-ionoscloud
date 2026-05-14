@@ -19,7 +19,6 @@ func newCreateBeforeDestroyOnlyBootVolume(bootVolumeController kubeBootVolumeCon
 }
 
 func (c *createBeforeDestroyOnlyBootVolume) update(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, volumeVersion, serverVersion int) error {
-	// todo we need the same IP in case of an update that deletes the bootvolume
 	newVolumeVersion := volumeVersion + 1
 
 	existingVolume, err := c.bootVolumeController.Get(ctx, getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion), cr.Namespace)
