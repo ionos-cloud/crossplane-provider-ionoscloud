@@ -29,6 +29,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -752,7 +753,7 @@ func AreServersReady(
 		if serverObj.Spec.ForProvider.RAM != templateParams.RAM {
 			return false, false, nil
 		}
-		if serverObj.Spec.ForProvider.NicMultiQueue != templateParams.NicMultiQueue {
+		if !ptr.Equal(serverObj.Spec.ForProvider.NicMultiQueue, templateParams.NicMultiQueue) {
 			return false, false, nil
 		}
 		if serverObj.Spec.ForProvider.CPUFamily != templateParams.CPUFamily {
@@ -1031,7 +1032,7 @@ func checkServerDiff(old *v1alpha1.Server, cr *v1alpha1.ServerSet, bootVolume *v
 			failover = true
 		}
 	}
-	if old.Spec.ForProvider.NicMultiQueue != cr.Spec.ForProvider.Template.Spec.NicMultiQueue {
+	if !ptr.Equal(old.Spec.ForProvider.NicMultiQueue, cr.Spec.ForProvider.Template.Spec.NicMultiQueue) {
 		update = true
 		old.Spec.ForProvider.NicMultiQueue = cr.Spec.ForProvider.Template.Spec.NicMultiQueue
 	}

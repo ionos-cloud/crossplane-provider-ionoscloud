@@ -36,6 +36,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -1933,6 +1934,25 @@ func fakeKubeClientUpdateMethod(expectedObj client.Object) client.Client {
 	return &kubeClient
 }
 
+func fakeKubeClientUpdateMethodWithNicMultiQueueServers(nmq *bool, expectedObj client.Object) client.Client {
+	kubeClient := kubeClientFake{
+		Client: fakeKubeClientObjs(
+			createServerWithNicMultiQueue("server1", nmq), createServerWithNicMultiQueue("server2", nmq),
+			createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-0-0", 0), createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-1-0", 1),
+			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
+			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
+		),
+	}
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+		arg1 := args.Get(1)
+		if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObj) {
+			panic(fmt.Sprintf("Update called with unexpected type: want=%v, got=%v", reflect.TypeOf(expectedObj), reflect.TypeOf(arg1)))
+		}
+	}).Return(nil)
+
+	return &kubeClient
+}
+
 func fakeKubeClientUpdateMethodWithSuccessfulFailover(expectedObject client.Object) client.Client {
 	kubeClient := kubeClientFake{
 		Client: fakeKubeClientObjs(
@@ -2480,6 +2500,12 @@ func createServer(name string) *v1alpha1.Server {
 	}
 }
 
+func createServerWithNicMultiQueue(name string, nmq *bool) *v1alpha1.Server {
+	server := createServer(name)
+	server.Spec.ForProvider.NicMultiQueue = nmq
+	return server
+}
+
 func createServerWithUpdateSucceededConditionSet(name string) *v1alpha1.Server {
 	return &v1alpha1.Server{
 		ObjectMeta: metav1.ObjectMeta{
@@ -2790,6 +2816,7 @@ func createServerSetWithUpdatedServerSpec(spec v1alpha1.ServerSetTemplateSpec) *
 	sset.Spec.ForProvider.Template.Spec.Cores = spec.Cores
 	sset.Spec.ForProvider.Template.Spec.RAM = spec.RAM
 	sset.Spec.ForProvider.Template.Spec.CPUFamily = spec.CPUFamily
+	sset.Spec.ForProvider.Template.Spec.NicMultiQueue = spec.NicMultiQueue
 	return sset
 }
 
@@ -3031,5 +3058,261 @@ func createStateMapZeroTimestamp() *v1.ConfigMap {
 			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
 			fmt.Sprintf(stateTimestampKeyFormat, server2Name): zeroTime.Format(time.RFC3339),
 		},
+	}
+}
+
+func Test_serverSetController_Observe_NicMultiQueue(t *testing.T) {
+	type fields struct {
+		kube client.Client
+	}
+	type args struct {
+		ctx context.Context
+		cr  *v1alpha1.ServerSet
+	}
+
+	nic1 := createNic(v1alpha1.NicParameters{Name: server1Name})
+	nic2 := createNic(v1alpha1.NicParameters{Name: server2Name})
+	bootVolume1 := createBootVolumeWithHotPlug(bootVolumeNamePrefix + server1Name)
+	bootVolume2 := createBootVolumeWithHotPlug(bootVolumeNamePrefix + server2Name)
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    managed.ExternalObservation
+		wantErr bool
+	}{
+		{
+			name: "NicMultiQueue equal via distinct pointers - up to date",
+			fields: fields{
+				kube: fakeKubeClientObjs(
+					createServerWithNicMultiQueue(server1Name, ptr.To(true)),
+					createServerWithNicMultiQueue(server2Name, ptr.To(true)),
+					bootVolume1, bootVolume2, nic1, nic2,
+				),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily:     serverSetCPUFamily,
+					Cores:         serverSetCores,
+					RAM:           serverSetRAM,
+					NicMultiQueue: ptr.To(true),
+				}),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  true,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "NicMultiQueue both nil - up to date",
+			fields: fields{
+				kube: fakeKubeClientObjs(
+					createServer(server1Name), createServer(server2Name),
+					bootVolume1, bootVolume2, nic1, nic2,
+				),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  true,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "NicMultiQueue template true, server nil - not up to date",
+			fields: fields{
+				kube: fakeKubeClientObjs(
+					createServer(server1Name), createServer(server2Name),
+					bootVolume1, bootVolume2, nic1, nic2,
+				),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily:     serverSetCPUFamily,
+					Cores:         serverSetCores,
+					RAM:           serverSetRAM,
+					NicMultiQueue: ptr.To(true),
+				}),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "NicMultiQueue template true, server false - not up to date",
+			fields: fields{
+				kube: fakeKubeClientObjs(
+					createServerWithNicMultiQueue(server1Name, ptr.To(false)),
+					createServerWithNicMultiQueue(server2Name, ptr.To(false)),
+					bootVolume1, bootVolume2, nic1, nic2,
+				),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily:     serverSetCPUFamily,
+					Cores:         serverSetCores,
+					RAM:           serverSetRAM,
+					NicMultiQueue: ptr.To(true),
+				}),
+			},
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  false,
+				Diff:              "server[0](serverset-server-0-0): nicMultiQueue exp=true act=false | server[1](serverset-server-1-0): nicMultiQueue exp=true act=false",
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &external{
+				kube: tt.fields.kube,
+				log:  logging.NewNopLogger(),
+			}
+
+			got, err := e.Observe(tt.args.ctx, tt.args.cr)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Observe() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equalf(t, tt.want, got, "Observe() mismatch")
+		})
+	}
+}
+
+func Test_serverSetController_Update_NicMultiQueue(t *testing.T) {
+	type fields struct {
+		kube                 client.Client
+		bootVolumeController kubeBootVolumeControlManager
+		nicController        kubeNicControlManager
+		serverController     kubeServerControlManager
+		log                  logging.Logger
+	}
+	type args struct {
+		ctx context.Context
+		cr  *v1alpha1.ServerSet
+	}
+	tests := []struct {
+		name            string
+		fields          fields
+		args            args
+		wantErr         error
+		want            managed.ExternalUpdate
+		wantUpdateCalls int
+	}{
+		{
+			name: "NicMultiQueue both equal (no update)",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodWithNicMultiQueueServers(ptr.To(true), &v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily:     serverSetCPUFamily,
+					Cores:         serverSetCores,
+					RAM:           serverSetRAM,
+					NicMultiQueue: ptr.To(true),
+				}),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantUpdateCalls: 0,
+		},
+		{
+			name: "NicMultiQueue both nil (no update)",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethod(&v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr:  createBasicServerSet(),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantUpdateCalls: 0,
+		},
+		{
+			name: "NicMultiQueue old nil, cr true (update)",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethod(&v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily:     serverSetCPUFamily,
+					Cores:         serverSetCores,
+					RAM:           serverSetRAM,
+					NicMultiQueue: ptr.To(true),
+				}),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantUpdateCalls: 2,
+		},
+		{
+			name: "NicMultiQueue old true, cr false (update)",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodWithNicMultiQueueServers(ptr.To(true), &v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily:     serverSetCPUFamily,
+					Cores:         serverSetCores,
+					RAM:           serverSetRAM,
+					NicMultiQueue: ptr.To(false),
+				}),
+			},
+			wantErr: nil,
+			want: managed.ExternalUpdate{
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantUpdateCalls: 2,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &external{
+				kube:                 tt.fields.kube,
+				bootVolumeController: tt.fields.bootVolumeController,
+				nicController:        tt.fields.nicController,
+				serverController:     tt.fields.serverController,
+				log:                  tt.fields.log,
+			}
+
+			got, err := e.Update(tt.args.ctx, tt.args.cr)
+
+			assertions := require.New(t)
+			assertions.Equalf(tt.wantErr, err, "Wrong error")
+			assertions.Equalf(tt.want, got, "Wrong response")
+			kubeClient := tt.fields.kube.(*kubeClientFake)
+			kubeClient.AssertNumberOfCalls(t, "Update", tt.wantUpdateCalls)
+		})
 	}
 }
