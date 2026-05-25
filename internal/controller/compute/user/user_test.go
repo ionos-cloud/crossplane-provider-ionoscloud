@@ -131,6 +131,7 @@ func TestUserObserve(t *testing.T) {
 					"email":    []byte("xplane-user@ionoscloud.io"),
 					"password": []byte("strongpassword"),
 				},
+				Diff: "firstName exp=user name act=test; lastName exp=test act=user; credentialsVersion changed",
 			},
 		},
 		{
@@ -175,6 +176,7 @@ func TestUserObserve(t *testing.T) {
 					"email":    []byte("xplane-user@ionoscloud.io"),
 					"password": []byte("$3cr3t"),
 				},
+				Diff: "firstName exp=user name act=test; lastName exp=test act=user; active exp=false act=true",
 			},
 		},
 	}

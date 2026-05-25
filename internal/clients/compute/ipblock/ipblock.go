@@ -162,22 +162,3 @@ func LateStatusInitializer(in *v1alpha1.IPBlockObservation, sg *sdkgo.IpBlock) {
 	}
 }
 
-// IsIPBlockUpToDate returns true if the IPBlock is up-to-date or false if it does not
-func IsIPBlockUpToDate(cr *v1alpha1.IPBlock, ipBlock sdkgo.IpBlock) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && ipBlock.Properties == nil:
-		return true
-	case cr == nil && ipBlock.Properties != nil:
-		return false
-	case cr != nil && ipBlock.Properties == nil:
-		return false
-	case ipBlock.Metadata.State != nil && *ipBlock.Metadata.State == "BUSY":
-		return true
-	case ipBlock.Properties.Name != nil && *ipBlock.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	case ipBlock.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false
-	default:
-		return true
-	}
-}

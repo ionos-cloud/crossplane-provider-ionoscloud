@@ -145,11 +145,13 @@ func (c *externalNetworkLoadBalancer) Observe(ctx context.Context, mg resource.M
 	}
 	c.log.Debug("Observed nlb: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
+	isUpToDate, diff := networkloadbalancer.IsUpToDate(cr, observed, listenerLanID, targetLanID, publicIPs)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        networkloadbalancer.IsUpToDate(cr, observed, listenerLanID, targetLanID, publicIPs),
+		ResourceUpToDate:        isUpToDate,
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: isLateInitialized,
+		Diff:                    diff,
 	}, nil
 }
 

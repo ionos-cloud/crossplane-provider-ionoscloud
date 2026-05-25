@@ -2,9 +2,6 @@ package flowlog
 
 import (
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
-
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/compare"
 )
 
 // customResource allows comparison and input generation for flow logs of different custom resources
@@ -43,27 +40,3 @@ func GenerateUpdateInput(cr customResource) sdkgo.FlowLogProperties {
 	}
 }
 
-// IsUpToDate returns true if the FlowLog is up-to-date or false otherwise
-func IsUpToDate(cr customResource, observed sdkgo.FlowLog) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && observed.Properties == nil:
-		return true
-	case cr == nil && observed.Properties != nil:
-		return false
-	case cr != nil && observed.Properties == nil:
-		return false
-	case observed.Metadata != nil && observed.Metadata.State != nil && (*observed.Metadata.State == compute.BUSY || *observed.Metadata.State == compute.UPDATING):
-		return true
-	case !EqualFlowLogProperties(cr, *observed.Properties):
-		return false
-	}
-	return true
-}
-
-// EqualFlowLogProperties compares a target flow log customResource to the observed sdkgo.FlowLogProperties
-func EqualFlowLogProperties(target customResource, observed sdkgo.FlowLogProperties) bool {
-	return compare.EqualString(target.GetFlowLogName(), observed.GetName()) &&
-		compare.EqualString(target.GetAction(), observed.GetAction()) &&
-		compare.EqualString(target.GetDirection(), observed.GetDirection()) &&
-		compare.EqualString(target.GetBucket(), observed.GetBucket())
-}

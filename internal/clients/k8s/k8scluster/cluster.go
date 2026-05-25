@@ -9,8 +9,6 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/compare"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
@@ -223,35 +221,6 @@ func LateStatusInitializer(in *v1alpha1.ClusterObservation, sg *sdkgo.Kubernetes
 	}
 }
 
-// IsK8sClusterUpToDate returns true if the K8sCluster is up-to-date or false if it does not
-func IsK8sClusterUpToDate(cr *v1alpha1.Cluster, cluster sdkgo.KubernetesCluster) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && cluster.Properties == nil:
-		return true
-	case cr == nil && cluster.Properties != nil:
-		return false
-	case cr != nil && cluster.Properties == nil:
-		return false
-	case cluster.Metadata != nil && cluster.Metadata.State != nil && (*cluster.Metadata.State == k8s.BUSY || *cluster.Metadata.State == k8s.DEPLOYING):
-		return true
-	case cluster.Properties.Name != nil && *cluster.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	case cluster.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false
-	case cluster.Properties.K8sVersion != nil && cr.Spec.ForProvider.K8sVersion != "" && *cluster.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
-		return false
-	case cluster.Properties.S3Buckets != nil && !isEqS3Buckets(cr.Spec.ForProvider.S3Buckets, *cluster.Properties.S3Buckets):
-		return false
-	case cluster.Properties.ApiSubnetAllowList != nil && !utils.ContainsStringSlices(*cluster.Properties.ApiSubnetAllowList, cr.Spec.ForProvider.APISubnetAllowList):
-		return false
-	case !compare.EqualKubernetesMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow, cluster.Properties.MaintenanceWindow):
-		return false
-	case cluster.Properties.Public != nil && *cluster.Properties.Public != cr.Spec.ForProvider.Public:
-		return false
-	default:
-		return true
-	}
-}
 
 func clusterMaintenanceWindow(window v1alpha1.MaintenanceWindow) *sdkgo.KubernetesMaintenanceWindow {
 	if window.Time != "" && window.DayOfTheWeek != "" {

@@ -141,10 +141,12 @@ func (c *externalDatacenter) Observe(ctx context.Context, mg resource.Managed) (
 	c.log.Debug("Observed datacenter: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
+	isUpToDate, diff := datacenter.IsDatacenterUpToDate(cr, instance)
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  datacenter.IsDatacenterUpToDate(cr, instance),
+		ResourceUpToDate:  isUpToDate,
 		ConnectionDetails: managed.ConnectionDetails{},
+		Diff:              diff,
 	}, nil
 }
 

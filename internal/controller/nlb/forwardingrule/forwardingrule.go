@@ -162,10 +162,12 @@ func (c *externalForwardingRule) Observe(ctx context.Context, mg resource.Manage
 	}
 	c.log.Debug("Observed nlb fw rule: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
+	isUpToDate, diff := forwardingrule.IsUpToDate(cr, observed, listenerIP, targetsIPs)
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  forwardingrule.IsUpToDate(cr, observed, listenerIP, targetsIPs),
+		ResourceUpToDate:  isUpToDate,
 		ConnectionDetails: managed.ConnectionDetails{},
+		Diff:              diff,
 	}, nil
 }
 

@@ -4,13 +4,10 @@ import (
 	"context"
 	"fmt"
 	"maps"
-	"reflect"
 	"slices"
 	"time"
 
 	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-mongo"
-
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/compare"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/dbaas/mongo/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
@@ -297,43 +294,6 @@ func LateInitializer(in *v1alpha1.ClusterParameters, sg *ionoscloud.ClusterRespo
 	return lateInitialized
 }
 
-// IsClusterUpToDate returns true if the cluster is up-to-date or false if it does not
-func IsClusterUpToDate(cr *v1alpha1.MongoCluster, clusterResponse ionoscloud.ClusterResponse) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && clusterResponse.Properties == nil:
-		return true
-	case cr == nil && clusterResponse.Properties != nil:
-		return false
-	case cr != nil && clusterResponse.Properties == nil:
-		return false
-	case clusterResponse.Metadata.State != nil && *clusterResponse.Metadata.State == ionoscloud.STATE_BUSY:
-		return true
-	case clusterResponse.Properties.DisplayName != nil && *clusterResponse.Properties.DisplayName != cr.Spec.ForProvider.DisplayName:
-		return false
-	case clusterResponse.Properties.DisplayName == nil && cr.Spec.ForProvider.DisplayName != "":
-		return false
-	case clusterResponse.Properties.MongoDBVersion != nil && *clusterResponse.Properties.MongoDBVersion != cr.Spec.ForProvider.MongoDBVersion:
-		return false
-	case clusterResponse.Properties.Instances != nil && *clusterResponse.Properties.Instances != cr.Spec.ForProvider.Instances:
-		return false
-	case clusterResponse.Properties.Cores != nil && *clusterResponse.Properties.Cores != cr.Spec.ForProvider.Cores:
-		return false
-	case clusterResponse.Properties.Ram != nil && *clusterResponse.Properties.Ram != cr.Spec.ForProvider.RAM:
-		return false
-	case clusterResponse.Properties.StorageSize != nil && *clusterResponse.Properties.StorageSize != cr.Spec.ForProvider.StorageSize:
-		return false
-	case clusterResponse.Properties.BiConnector != nil && !reflect.DeepEqual(*clusterResponse.Properties.BiConnector, cr.Spec.ForProvider.BiConnector):
-		return false
-	case clusterResponse.Properties.Edition != nil && *clusterResponse.Properties.Edition != cr.Spec.ForProvider.Edition:
-		return false
-	case !compare.EqualMongoDatabaseMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow, clusterResponse.Properties.MaintenanceWindow):
-		return false
-	case !eqClusterConnections(cr, clusterResponse):
-		return false
-	default:
-		return true
-	}
-}
 
 // convertToIonoscloudUserRoles converts the []v1alpha1.UserRoles to []ionoscloud.UserRoles
 func convertToIonoscloudUserRoles(roles []v1alpha1.UserRoles) []ionoscloud.UserRoles {
@@ -350,23 +310,6 @@ func convertToIonoscloudUserRoles(roles []v1alpha1.UserRoles) []ionoscloud.UserR
 	return userRoles
 }
 
-// IsUserUpToDate returns true if the user is up-to-date or false if it does not
-func IsUserUpToDate(cr *v1alpha1.MongoUser, user ionoscloud.User) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && user.Properties == nil:
-		return true
-	case cr == nil && user.Properties != nil:
-		return false
-	case cr != nil && user.Properties == nil:
-		return false
-	case user.Properties.Username != nil && *user.Properties.Username != cr.Spec.ForProvider.Credentials.Username:
-		return false
-	case !eqUserRoles(cr, user):
-		return false
-	default:
-		return true
-	}
-}
 
 func eqUserRoles(cr *v1alpha1.MongoUser, observed ionoscloud.User) bool {
 	if (observed.Properties.Roles == nil && len(cr.Spec.ForProvider.Roles) != 0) ||

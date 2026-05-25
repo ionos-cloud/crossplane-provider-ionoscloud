@@ -151,11 +151,13 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 	c.log.Debug("Observed psql cluster: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.DisplayName)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
+	isUpToDate, diff := postgrescluster.IsClusterUpToDate(cr, observed)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        postgrescluster.IsClusterUpToDate(cr, observed),
+		ResourceUpToDate:        isUpToDate,
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		Diff:                    diff,
 	}, nil
 }
 

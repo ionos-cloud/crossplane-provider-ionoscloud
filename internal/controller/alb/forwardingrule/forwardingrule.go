@@ -154,11 +154,13 @@ func (c *externalForwardingRule) Observe(ctx context.Context, mg resource.Manage
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
+	isUpToDate, diff := forwardingrule.IsForwardingRuleUpToDate(cr, observed, listenerIP)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        forwardingrule.IsForwardingRuleUpToDate(cr, observed, listenerIP),
+		ResourceUpToDate:        isUpToDate,
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		Diff:                    diff,
 	}, nil
 }
 

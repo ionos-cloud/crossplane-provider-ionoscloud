@@ -159,32 +159,3 @@ func LateInitializer(in *v1alpha1.ApplicationLoadBalancerParameters, alb *sdkgo.
 	}
 }
 
-// IsApplicationLoadBalancerUpToDate returns true if the ApplicationLoadBalancer is up-to-date or false if it does not
-func IsApplicationLoadBalancerUpToDate(cr *v1alpha1.ApplicationLoadBalancer, applicationloadbalancer sdkgo.ApplicationLoadBalancer, listenerLan, targetLan int32, ips []string) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && applicationloadbalancer.Properties == nil:
-		return true
-	case cr == nil && applicationloadbalancer.Properties != nil:
-		return false
-	case cr != nil && applicationloadbalancer.Properties == nil:
-		return false
-	case applicationloadbalancer.Metadata.State != nil && *applicationloadbalancer.Metadata.State == "BUSY" || *applicationloadbalancer.Metadata.State == "DEPLOYING":
-		return true
-	case applicationloadbalancer.Properties.Name != nil && *applicationloadbalancer.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	case applicationloadbalancer.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false
-	case applicationloadbalancer.Properties.ListenerLan != nil && *applicationloadbalancer.Properties.ListenerLan != listenerLan:
-		return false
-	case applicationloadbalancer.Properties.TargetLan != nil && *applicationloadbalancer.Properties.TargetLan != targetLan:
-		return false
-	case applicationloadbalancer.Properties.Ips != nil && !utils.ContainsStringSlices(*applicationloadbalancer.Properties.Ips, cr.Status.AtProvider.PublicIPs):
-		return false
-	case !utils.ContainsStringSlices(ips, cr.Status.AtProvider.PublicIPs):
-		return false
-	case applicationloadbalancer.Properties.LbPrivateIps != nil && !utils.ContainsStringSlices(*applicationloadbalancer.Properties.LbPrivateIps, cr.Spec.ForProvider.LbPrivateIps):
-		return false
-	default:
-		return true
-	}
-}

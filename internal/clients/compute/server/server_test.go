@@ -27,7 +27,7 @@ func TestIsServerUpToDate(t *testing.T) {
 				Server: ionoscloud.Server{},
 			},
 			wantIsUpToDate: true,
-			wantDiff:       "Server is nil",
+			wantDiff:       "",
 		},
 		{
 			name: "cr empty",
@@ -38,7 +38,7 @@ func TestIsServerUpToDate(t *testing.T) {
 				}},
 			},
 			wantIsUpToDate: false,
-			wantDiff:       "Server is nil, but server properties are not nil",
+			wantDiff:       "server properties presence mismatch",
 		},
 		{
 			name: "api response empty",
@@ -53,7 +53,7 @@ func TestIsServerUpToDate(t *testing.T) {
 				Server: ionoscloud.Server{Properties: nil},
 			},
 			wantIsUpToDate: false,
-			wantDiff:       "Server properties are nil, but server is not nil",
+			wantDiff:       "server properties presence mismatch",
 		},
 		{
 			name: "all equal",
@@ -82,7 +82,7 @@ func TestIsServerUpToDate(t *testing.T) {
 				}},
 			},
 			wantIsUpToDate: true,
-			wantDiff:       "Server is up-to-date",
+			wantDiff:       "",
 		},
 		{
 			name: "all different",
@@ -109,7 +109,7 @@ func TestIsServerUpToDate(t *testing.T) {
 				}},
 			},
 			wantIsUpToDate: false,
-			wantDiff:       "Server name does not match the CR name: not empty != different",
+			wantDiff:       "name exp=different act=not empty; cores exp=4 act=8; ram exp=2048 act=4086; cpuFamily exp=super slow act=super fast; availabilityZone exp=1 act=AUTO; placementGroupId exp=testPlacementGroup act=testPlacementGroupUpdated",
 		},
 		{
 			name: "only placementGroup differ",
@@ -132,7 +132,7 @@ func TestIsServerUpToDate(t *testing.T) {
 				}},
 			},
 			wantIsUpToDate: false,
-			wantDiff:       "Server placement group ID does not match the CR placement group ID: testPlacementGroupUpdated != testPlacementGroup",
+			wantDiff:       "placementGroupId exp=testPlacementGroup act=testPlacementGroupUpdated",
 		},
 		{
 			name: "only nicMultiQueue different",
@@ -161,7 +161,7 @@ func TestIsServerUpToDate(t *testing.T) {
 				}},
 			},
 			wantIsUpToDate: false,
-			wantDiff:       "NicMultiQueue do not match the CR NicMultiQueue: false != true",
+			wantDiff:       "nicMultiQueue exp=true act=false",
 		},
 		{
 			name: "vmState matches RUNNING",
@@ -188,7 +188,7 @@ func TestIsServerUpToDate(t *testing.T) {
 				}},
 			},
 			wantIsUpToDate: true,
-			wantDiff:       "Server is up-to-date",
+			wantDiff:       "",
 		},
 		{
 			name: "vmState matches SHUTOFF",
@@ -215,7 +215,7 @@ func TestIsServerUpToDate(t *testing.T) {
 				}},
 			},
 			wantIsUpToDate: true,
-			wantDiff:       "Server is up-to-date",
+			wantDiff:       "",
 		},
 		{
 			name: "vmState differs - desired RUNNING but actual SHUTOFF",
@@ -242,7 +242,7 @@ func TestIsServerUpToDate(t *testing.T) {
 				}},
 			},
 			wantIsUpToDate: false,
-			wantDiff:       "Server vmState does not match the CR vmState: SHUTOFF != RUNNING",
+			wantDiff:       "vmState exp=RUNNING act=SHUTOFF",
 		},
 		{
 			name: "vmState differs - desired SHUTOFF but actual RUNNING",
@@ -269,7 +269,7 @@ func TestIsServerUpToDate(t *testing.T) {
 				}},
 			},
 			wantIsUpToDate: false,
-			wantDiff:       "Server vmState does not match the CR vmState: RUNNING != SHUTOFF",
+			wantDiff:       "vmState exp=SHUTOFF act=RUNNING",
 		},
 		{
 			name: "vmState not specified in CR - should be up to date",
@@ -295,12 +295,12 @@ func TestIsServerUpToDate(t *testing.T) {
 				}},
 			},
 			wantIsUpToDate: true,
-			wantDiff:       "Server is up-to-date",
+			wantDiff:       "",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			isUpToDate, wantDiff := IsUpToDateWithDiff(tt.args.cr, tt.args.Server)
+			isUpToDate, wantDiff := IsUpToDate(tt.args.cr, tt.args.Server)
 			assert.Equal(t, tt.wantIsUpToDate, isUpToDate)
 			assert.Equal(t, tt.wantDiff, wantDiff)
 		})
@@ -611,7 +611,7 @@ func TestIsCubeServerUpToDate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			isUpToDate := IsCubeServerUpToDate(tt.args.cr, tt.args.Server)
+			isUpToDate, _ := IsCubeServerUpToDate(tt.args.cr, tt.args.Server)
 			assert.Equal(t, tt.wantIsUpToDate, isUpToDate)
 		})
 	}

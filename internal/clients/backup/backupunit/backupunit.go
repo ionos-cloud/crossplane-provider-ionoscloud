@@ -152,26 +152,3 @@ func GenerateUpdateBackupUnitInput(cr *v1alpha1.BackupUnit) (*sdkgo.BackupUnitPr
 	return &instanceUpdateInput, nil
 }
 
-// IsBackupUnitUpToDate returns true if the BackupUnit is up-to-date or false if it does not
-func IsBackupUnitUpToDate(cr *v1alpha1.BackupUnit, backupUnit sdkgo.BackupUnit) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && backupUnit.Properties == nil:
-		return true
-	case cr == nil && backupUnit.Properties != nil:
-		return false
-	case cr != nil && backupUnit.Properties == nil:
-		return false
-	case backupUnit.Metadata != nil && backupUnit.Metadata.State != nil && *backupUnit.Metadata.State == "BUSY":
-		return true
-	case backupUnit.Properties.Name != nil && *backupUnit.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	case backupUnit.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false
-	case backupUnit.Properties.Email != nil && *backupUnit.Properties.Email != cr.Spec.ForProvider.Email:
-		return false
-	case cr.Spec.ForProvider.Password != oldPassword:
-		return false
-	default:
-		return true
-	}
-}

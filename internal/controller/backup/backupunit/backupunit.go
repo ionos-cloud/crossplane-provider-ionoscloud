@@ -140,10 +140,12 @@ func (c *externalBackupUnit) Observe(ctx context.Context, mg resource.Managed) (
 	c.log.Debug("Observed backup unit: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
+	isUpToDate, diff := backupunit.IsBackupUnitUpToDate(cr, instance)
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  backupunit.IsBackupUnitUpToDate(cr, instance),
+		ResourceUpToDate:  isUpToDate,
 		ConnectionDetails: managed.ConnectionDetails{},
+		Diff:              diff,
 	}, nil
 }
 

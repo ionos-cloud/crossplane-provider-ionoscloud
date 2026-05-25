@@ -152,6 +152,7 @@ func TestNLBFlowLogObserve(t *testing.T) {
 				ResourceUpToDate:        false,
 				ResourceLateInitialized: false,
 				ConnectionDetails:       managed.ConnectionDetails{},
+				Diff:                    "name exp=fl-name-updated act=fl-name",
 			},
 			wantErr: false,
 			mock: func(ctx context.Context, client *flowlogmock.MockNLBFlowLog) {

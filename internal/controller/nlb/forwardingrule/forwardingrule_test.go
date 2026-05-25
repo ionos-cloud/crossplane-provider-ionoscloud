@@ -278,6 +278,7 @@ func TestNLBForwardingRuleObserve(t *testing.T) {
 				ResourceUpToDate:        false,
 				ResourceLateInitialized: false,
 				ConnectionDetails:       managed.ConnectionDetails{},
+				Diff:                    "targets[1].ip exp=<nil> act=192.100.100.222",
 			},
 			wantErr: false,
 			mock: func(ctx context.Context, fwRuleClient *forwardingrulemock.MockClient, ipBlockClient *ipblock.MockClient) {

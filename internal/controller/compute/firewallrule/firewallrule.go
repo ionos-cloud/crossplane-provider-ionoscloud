@@ -166,10 +166,12 @@ func (c *externalFirewallRule) Observe(ctx context.Context, mg resource.Managed)
 	if err != nil {
 		return managed.ExternalObservation{}, fmt.Errorf("error getting targetIP: %v", targetIP)
 	}
+	isUpToDate, diff := firewallrule.IsFirewallRuleUpToDate(cr, observed, sourceIP, targetIP)
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  firewallrule.IsFirewallRuleUpToDate(cr, observed, sourceIP, targetIP),
+		ResourceUpToDate:  isUpToDate,
 		ConnectionDetails: managed.ConnectionDetails{},
+		Diff:              diff,
 	}, nil
 }
 

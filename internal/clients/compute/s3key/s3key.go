@@ -39,20 +39,6 @@ func (cp *APIClient) GetAPIClient() *sdkgo.APIClient {
 	return cp.IonosServices.ComputeClient
 }
 
-// IsS3KeyUpToDate returns true if the S3Key is up-to-date or false if it does not
-func IsS3KeyUpToDate(cr *v1alpha1.S3Key, s3Key sdkgo.S3Key) bool { // nolint:gocyclo
-	if cr == nil {
-		return false
-	}
-	switch {
-	case s3Key.Properties == nil:
-		return true
-	case s3Key.Properties.Active != nil && cr.Spec.ForProvider.Active != *s3Key.Properties.Active:
-		return false
-	default:
-		return true
-	}
-}
 
 // GenerateUpdateSeKeyInput returns sdkgo.TargetGroupProperties based on the CR spec modifications
 func GenerateUpdateSeKeyInput(cr *v1alpha1.S3Key) (*sdkgo.S3Key, error) {

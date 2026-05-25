@@ -6,13 +6,10 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
-
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/compare"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 )
 
@@ -281,47 +278,6 @@ func LateStatusInitializer(in *v1alpha1.NodePoolObservation, sg *sdkgo.Kubernete
 
 }
 
-// IsK8sNodePoolUpToDate returns true if the NodePool is up-to-date or false if it does not
-func IsK8sNodePoolUpToDate(cr *v1alpha1.NodePool, nodepool sdkgo.KubernetesNodePool, publicIPs []string) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && nodepool.Properties == nil:
-		return true
-	case cr == nil && nodepool.Properties != nil:
-		return false
-	case cr != nil && nodepool.Properties == nil:
-		return false
-	case nodepool.Metadata != nil && nodepool.Metadata.State != nil && (*nodepool.Metadata.State == k8s.BUSY || *nodepool.Metadata.State == k8s.DEPLOYING):
-		return true
-	case nodepool.Properties.Name != nil && *nodepool.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	case nodepool.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false
-	case nodepool.Properties.K8sVersion != nil && cr.Spec.ForProvider.K8sVersion != "" && *nodepool.Properties.K8sVersion != cr.Spec.ForProvider.K8sVersion:
-		return false
-	case nodepool.Properties.ServerType != nil && cr.Spec.ForProvider.ServerType != "" && string(*nodepool.Properties.ServerType) != cr.Spec.ForProvider.ServerType:
-		return false
-	case nodepool.Properties.NodeCount != nil &&
-		*nodepool.Properties.NodeCount != cr.Spec.ForProvider.NodeCount &&
-		utils.IsEmptyValue(reflect.ValueOf(cr.Spec.ForProvider.AutoScaling)):
-		return false
-	case nodepool.Properties.PublicIps != nil && !utils.ContainsStringSlices(*nodepool.Properties.PublicIps, publicIPs):
-		return false
-	case nodepool.Properties.Labels != nil && !utils.IsEqStringMaps(*nodepool.Properties.Labels, cr.Spec.ForProvider.Labels):
-		return false
-	case nodepool.Properties.Annotations != nil && !utils.IsEqStringMaps(*nodepool.Properties.Annotations, cr.Spec.ForProvider.Annotations):
-		return false
-	case nodepool.Properties.AutoScaling != nil && nodepool.Properties.AutoScaling.MinNodeCount != nil && *nodepool.Properties.AutoScaling.MinNodeCount != cr.Spec.ForProvider.AutoScaling.MinNodeCount:
-		return false
-	case nodepool.Properties.AutoScaling != nil && nodepool.Properties.AutoScaling.MaxNodeCount != nil && *nodepool.Properties.AutoScaling.MaxNodeCount != cr.Spec.ForProvider.AutoScaling.MaxNodeCount:
-		return false
-	case !compare.EqualKubernetesMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow, nodepool.Properties.MaintenanceWindow):
-		return false
-	case nodepool.Properties.Lans != nil && !isEqKubernetesNodePoolLans(cr.Spec.ForProvider.Lans, *nodepool.Properties.Lans):
-		return false
-	default:
-		return true
-	}
-}
 
 func nodepoolMaintenanceWindow(window v1alpha1.MaintenanceWindow) *sdkgo.KubernetesMaintenanceWindow {
 	if window.Time != "" && window.DayOfTheWeek != "" {

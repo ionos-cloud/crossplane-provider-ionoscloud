@@ -165,10 +165,12 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 	c.log.Debug("Observed k8s cluster: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
+	isUpToDate, diffStr := k8scluster.IsK8sClusterUpToDate(cr, observed)
 	mo := managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        k8scluster.IsK8sClusterUpToDate(cr, observed),
+		ResourceUpToDate:        isUpToDate,
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		Diff:                    diffStr,
 	}
 	if strings.EqualFold(cr.Status.AtProvider.State, k8s.ACTIVE) {
 		if kubeconfig, _, err = c.service.GetKubeConfig(ctx, cr.Status.AtProvider.ClusterID); err != nil {

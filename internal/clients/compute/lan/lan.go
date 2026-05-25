@@ -147,33 +147,6 @@ func GenerateUpdateLanInput(cr *v1alpha1.Lan) (*sdkgo.LanProperties, error) {
 	return &instanceUpdateInput, nil
 }
 
-// IsUpToDateWithDiff returns true if the Lan is up-to-date or false if it does not
-func IsUpToDateWithDiff(cr *v1alpha1.Lan, lan sdkgo.Lan) (bool, string) { // nolint:gocyclo
-	switch {
-	case cr == nil && lan.Properties == nil:
-		return true, "Lan does not exist, no update needed"
-	case cr == nil && lan.Properties != nil:
-		return false, "Lan exists but not managed by Crossplane, no update needed"
-	case cr != nil && lan.Properties == nil:
-		return false, "Lan properties are nil, but custom resource is not nil"
-	case lan.Metadata != nil && lan.Metadata.State != nil && *lan.Metadata.State == "BUSY":
-		return true, "Lan is busy, cannot update it now"
-	case lan.Properties.Name != nil && *lan.Properties.Name != cr.Spec.ForProvider.Name:
-		return false, "Lan name does not match the CR name: " + fmt.Sprintf("%s != %s", *lan.Properties.Name, cr.Spec.ForProvider.Name)
-	case lan.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false, "Lan name is not set, expected: " + cr.Spec.ForProvider.Name + ", got: nil"
-	case lan.Properties.Public != nil && *lan.Properties.Public != cr.Spec.ForProvider.Public:
-		return false, "Lan public property does not match the CR values: " + fmt.Sprintf("%t != %t", *lan.Properties.Public, cr.Spec.ForProvider.Public)
-	case lan.Properties.Ipv6CidrBlock != nil && *lan.Properties.Ipv6CidrBlock != cr.Spec.ForProvider.Ipv6Cidr:
-		return false, "Lan Ipv6CidrBlock does not match the CR: " + *lan.Properties.Ipv6CidrBlock + " != " + cr.Spec.ForProvider.Ipv6Cidr
-	case lan.Properties.Pcc != nil && *lan.Properties.Pcc != cr.Spec.ForProvider.Pcc.PrivateCrossConnectID:
-		return false, "Lan Pcc does not match the CR Pcc: " + *lan.Properties.Pcc + " != " + cr.Spec.ForProvider.Pcc.PrivateCrossConnectID
-	case lan.Properties.Pcc == nil && cr.Spec.ForProvider.Pcc.PrivateCrossConnectID != "":
-		return false, "Lan Pcc is not set, expected: " + cr.Spec.ForProvider.Pcc.PrivateCrossConnectID + ", got: nil"
-	default:
-		return true, "Lan is up-to-date"
-	}
-}
 
 // GenerateCreateIPFailoverInput returns sdkgo.LanProperties based on ip, nicID and current IPFailovers
 func GenerateCreateIPFailoverInput(ipFailovers []sdkgo.IPFailover, ip, nicID string) (*sdkgo.LanProperties, error) {
@@ -230,21 +203,6 @@ func GenerateRemoveIPFailoverInput(ipFailovers []sdkgo.IPFailover, ip string) (*
 	return &instanceRemoveInput, nil
 }
 
-// IsIPFailoverUpToDate returns true if the IPFailover is up-to-date or false if it does not
-func IsIPFailoverUpToDate(cr *v1alpha1.IPFailover, lanIPFailovers []sdkgo.IPFailover, ipSetByUser string) bool { // nolint:gocyclo
-	switch {
-	case cr == nil:
-		return false
-	case cr.Status.AtProvider.IP != ipSetByUser:
-		return false
-	case cr.Status.AtProvider.State != "AVAILABLE":
-		return false
-	case IsIPFailoverPresent(lanIPFailovers, ipSetByUser, cr.Spec.ForProvider.NicCfg.NicID):
-		return true
-	default:
-		return false
-	}
-}
 
 // IsIPFailoverPresent returns true if the IPFailover exists in the specified Lan
 func IsIPFailoverPresent(ipFailovers []sdkgo.IPFailover, ip, nicID string) bool { // nolint:gocyclo

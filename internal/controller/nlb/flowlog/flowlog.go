@@ -141,10 +141,12 @@ func (c *externalFlowLog) Observe(ctx context.Context, mg resource.Managed) (man
 	cr.Status.AtProvider.FlowLogID = flowLogID
 	c.log.Debug("Observed flowlog: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
+	isUpToDate, diff := flowlog.IsUpToDate(cr, observed)
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  flowlog.IsUpToDate(cr, observed),
+		ResourceUpToDate:  isUpToDate,
 		ConnectionDetails: managed.ConnectionDetails{},
+		Diff:              diff,
 	}, nil
 }
 

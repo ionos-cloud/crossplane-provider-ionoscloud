@@ -9,7 +9,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
-func TestIsUpToDateWithDiff(t *testing.T) {
+func TestIsUpToDate(t *testing.T) {
 	name := "vol"
 	var size float32 = 10.0
 	busy := "BUSY"
@@ -29,21 +29,21 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 			cr:       nil,
 			volume:   &sdkgo.Volume{},
 			want:     true,
-			wantDiff: "Volume is nil and custom resource is nil",
+			wantDiff: "",
 		},
 		{
 			name:     "CRNilVolumeNotNil",
 			cr:       nil,
 			volume:   &sdkgo.Volume{Properties: &sdkgo.VolumeProperties{}},
 			want:     false,
-			wantDiff: "Custom resource is nil, but volume properties are not nil",
+			wantDiff: "volume properties presence mismatch",
 		},
 		{
 			name:     "CRNotNilVolumeNil",
 			cr:       &v1alpha1.Volume{},
 			volume:   &sdkgo.Volume{},
 			want:     false,
-			wantDiff: "Volume properties are nil, but custom resource is not nil",
+			wantDiff: "volume properties presence mismatch",
 		},
 		{
 			name: "VolumeBusy",
@@ -53,7 +53,7 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 				Properties: &sdkgo.VolumeProperties{},
 			},
 			want:     true,
-			wantDiff: "Volume is busy, cannot update it now",
+			wantDiff: "",
 		},
 		{
 			name: "NameMismatch",
@@ -62,7 +62,7 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 				Properties: &sdkgo.VolumeProperties{Name: &name},
 			},
 			want:     false,
-			wantDiff: "Volume name does not match the one in the CR: vol != foo",
+			wantDiff: "name exp=foo act=vol",
 		},
 		{
 			name: "NameNilCRNotEmpty",
@@ -71,7 +71,7 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 				Properties: &sdkgo.VolumeProperties{},
 			},
 			want:     false,
-			wantDiff: "Volume name is nil, but CR name is not empty: foo",
+			wantDiff: "name exp=foo act=<nil>",
 		},
 		{
 			name: "SizeMismatch",
@@ -80,7 +80,7 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 				Properties: &sdkgo.VolumeProperties{Name: &name, Size: &size},
 			},
 			want:     false,
-			wantDiff: "Volume size does not match the one in the CR: 10.00 != 20.00",
+			wantDiff: "size exp=20 act=10",
 		},
 		{
 			name: "CpuHotPlugMismatch",
@@ -89,7 +89,7 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 				Properties: &sdkgo.VolumeProperties{Name: &name, CpuHotPlug: &trueVal},
 			},
 			want:     false,
-			wantDiff: "CpuHotPlug does not match the one in the CR: true != false",
+			wantDiff: "cpuHotPlug exp=false act=true",
 		},
 		{
 			name: "RamHotPlugMismatch",
@@ -98,7 +98,7 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 				Properties: &sdkgo.VolumeProperties{Name: &name, RamHotPlug: &trueVal},
 			},
 			want:     false,
-			wantDiff: "RamHotPlug does not match the one in the CR: true != false",
+			wantDiff: "ramHotPlug exp=false act=true",
 		},
 		{
 			name: "NicHotPlugMismatch",
@@ -107,7 +107,7 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 				Properties: &sdkgo.VolumeProperties{Name: &name, NicHotPlug: &trueVal},
 			},
 			want:     false,
-			wantDiff: "NicHotPlug does not match the one in the CR: true != false",
+			wantDiff: "nicHotPlug exp=false act=true",
 		},
 		{
 			name: "NicHotUnplugMismatch",
@@ -116,7 +116,7 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 				Properties: &sdkgo.VolumeProperties{Name: &name, NicHotUnplug: &trueVal},
 			},
 			want:     false,
-			wantDiff: "NicHotUnplug does not match the one in the CR: true != false",
+			wantDiff: "nicHotUnplug exp=false act=true",
 		},
 		{
 			name: "DiscVirtioHotPlugMismatch",
@@ -125,7 +125,7 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 				Properties: &sdkgo.VolumeProperties{Name: &name, DiscVirtioHotPlug: &trueVal},
 			},
 			want:     false,
-			wantDiff: "DiscVirtioHotPlug does not match the one in the CR: true != false",
+			wantDiff: "discVirtioHotPlug exp=false act=true",
 		},
 		{
 			name: "DiscVirtioHotUnplugMismatch",
@@ -134,7 +134,7 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 				Properties: &sdkgo.VolumeProperties{Name: &name, DiscVirtioHotUnplug: &trueVal},
 			},
 			want:     false,
-			wantDiff: "DiscVirtioHotUnplug does not match the one in the CR: true != false",
+			wantDiff: "discVirtioHotUnplug exp=false act=true",
 		},
 		{
 			name: "BusMismatch",
@@ -143,7 +143,7 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 				Properties: &sdkgo.VolumeProperties{Name: &name, Bus: &bus},
 			},
 			want:     false,
-			wantDiff: "Volume bus does not match the desired bus: VIRTIO != IDE",
+			wantDiff: "bus exp=IDE act=VIRTIO",
 		},
 		{
 			name: "UpToDate",
@@ -152,13 +152,13 @@ func TestIsUpToDateWithDiff(t *testing.T) {
 				Properties: &sdkgo.VolumeProperties{Name: &name, Size: &size},
 			},
 			want:     true,
-			wantDiff: "Volume is up-to-date",
+			wantDiff: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			upToDate, wantDiff := IsUpToDateWithDiff(tt.cr, tt.volume)
+			upToDate, wantDiff := IsUpToDate(tt.cr, tt.volume)
 			assert.Equal(t, tt.want, upToDate)
 			assert.Equal(t, tt.wantDiff, wantDiff)
 		})

@@ -150,11 +150,13 @@ func (c *externalCluster) Observe(ctx context.Context, mg resource.Managed) (man
 	c.log.Debug("Observed Cluster: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.DisplayName)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
+	isUpToDate, diff := mongo.IsClusterUpToDate(cr, observed)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        mongo.IsClusterUpToDate(cr, observed),
+		ResourceUpToDate:        isUpToDate,
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: lateInitialized,
+		Diff:                    diff,
 	}, nil
 }
 

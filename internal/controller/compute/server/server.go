@@ -155,7 +155,7 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	}
 	c.log.Debug("Observed Server: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
-	isUpToDate, diff := server.IsUpToDateWithDiff(cr, observed)
+	isUpToDate, diff := server.IsUpToDate(cr, observed)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
 		ResourceUpToDate:        isUpToDate,

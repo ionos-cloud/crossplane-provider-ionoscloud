@@ -152,37 +152,6 @@ func LateInitializer(in *v1alpha1.ForwardingRuleParameters, forwardingRule *sdkg
 	}
 }
 
-// IsForwardingRuleUpToDate returns true if the ApplicationLoadBalancer is up-to-date or false if it does not
-func IsForwardingRuleUpToDate(cr *v1alpha1.ForwardingRule, forwardingRule sdkgo.ApplicationLoadBalancerForwardingRule, listenerIP string) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && forwardingRule.Properties == nil:
-		return true
-	case cr == nil && forwardingRule.Properties != nil:
-		return false
-	case cr != nil && forwardingRule.Properties == nil:
-		return false
-	case forwardingRule.Metadata.State != nil && *forwardingRule.Metadata.State == "BUSY" || *forwardingRule.Metadata.State == "DEPLOYING":
-		return true
-	case forwardingRule.Properties.Name != nil && *forwardingRule.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	case forwardingRule.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false
-	case forwardingRule.Properties.Protocol != nil && *forwardingRule.Properties.Protocol != cr.Spec.ForProvider.Protocol:
-		return false
-	case forwardingRule.Properties.ListenerIp != nil && *forwardingRule.Properties.ListenerIp != listenerIP:
-		return false
-	case forwardingRule.Properties.ListenerPort != nil && *forwardingRule.Properties.ListenerPort != cr.Spec.ForProvider.ListenerPort:
-		return false
-	case forwardingRule.Properties.ClientTimeout != nil && *forwardingRule.Properties.ClientTimeout != cr.Spec.ForProvider.ClientTimeout:
-		return false
-	case forwardingRule.Properties.ServerCertificates != nil && !utils.ContainsStringSlices(*forwardingRule.Properties.ServerCertificates, cr.Spec.ForProvider.ServerCertificatesIDs):
-		return false
-	case !equalHTTPRules(cr.Spec.ForProvider.HTTPRules, forwardingRule.Properties.HttpRules):
-		return false
-	default:
-		return true
-	}
-}
 
 func getHTTPRules(httpRules []v1alpha1.ApplicationLoadBalancerHTTPRule) []sdkgo.ApplicationLoadBalancerHttpRule {
 	if len(httpRules) == 0 {

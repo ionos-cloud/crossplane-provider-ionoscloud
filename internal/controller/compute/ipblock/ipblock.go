@@ -144,11 +144,13 @@ func (c *externalIPBlock) Observe(ctx context.Context, mg resource.Managed) (man
 	// Set Ready condition based on State
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
+	isUpToDate, diff := ipblock.IsIPBlockUpToDate(cr, observed)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        ipblock.IsIPBlockUpToDate(cr, observed),
+		ResourceUpToDate:        isUpToDate,
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		Diff:                    diff,
 	}, nil
 }
 

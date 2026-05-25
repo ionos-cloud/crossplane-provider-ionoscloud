@@ -156,7 +156,7 @@ func (c *externalNic) Observe(ctx context.Context, mg resource.Managed) (managed
 	if err != nil {
 		return managed.ExternalObservation{}, fmt.Errorf("failed to get ips: %w", err)
 	}
-	isUpToDate, diff := nic.IsUpToDateWithDiff(cr, instance, ips)
+	isUpToDate, diff := nic.IsUpToDate(cr, instance, ips)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
 		ResourceUpToDate:        isUpToDate,

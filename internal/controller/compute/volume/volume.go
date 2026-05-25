@@ -159,7 +159,7 @@ func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (mana
 	c.log.Debug("Observed Volume: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	// Set Ready condition based on State
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
-	isUpToDate, diff := volume.IsUpToDateWithDiff(cr, &instance)
+	isUpToDate, diff := volume.IsUpToDate(cr, &instance)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
 		ResourceUpToDate:        isUpToDate,

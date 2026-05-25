@@ -163,11 +163,13 @@ func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (mana
 	// Set Ready condition based on State
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
+	isUpToDate, diff := server.IsCubeServerUpToDate(cr, instance)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        server.IsCubeServerUpToDate(cr, instance),
+		ResourceUpToDate:        isUpToDate,
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		Diff:                    diff,
 	}, nil
 }
 

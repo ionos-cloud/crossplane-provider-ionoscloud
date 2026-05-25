@@ -158,10 +158,12 @@ func (eg *externalGroup) Observe(ctx context.Context, mg resource.Managed) (mana
 	cr.Status.AtProvider.UserIDs = members
 	cr.Status.AtProvider.ResourceShares = shares
 	cr.SetConditions(xpv1.Available())
+	isUpToDate, diff := group.IsGroupUpToDate(cr, observed)
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  group.IsGroupUpToDate(cr, observed),
+		ResourceUpToDate:  isUpToDate,
 		ConnectionDetails: managed.ConnectionDetails{},
+		Diff:              diff,
 	}, nil
 }
 

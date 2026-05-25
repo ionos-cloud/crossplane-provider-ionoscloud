@@ -273,41 +273,6 @@ func LateInitializer(in *v1alpha1.ServerParameters, sg *sdkgo.Server) {
 	}
 }
 
-// IsUpToDateWithDiff returns true if the Server is up-to-date or false if it does not
-func IsUpToDateWithDiff(cr *v1alpha1.Server, server sdkgo.Server) (bool, string) { // nolint:gocyclo
-	switch {
-	case cr == nil && server.Properties == nil:
-		return true, "Server is nil"
-	case cr == nil && server.Properties != nil:
-		return false, "Server is nil, but server properties are not nil"
-	case cr != nil && server.Properties == nil:
-		return false, "Server properties are nil, but server is not nil"
-	case server.Properties.Name != nil && cr.Spec.ForProvider.Name != *server.Properties.Name:
-		return false, "Server name does not match the CR name: " + *server.Properties.Name + " != " + cr.Spec.ForProvider.Name
-	case server.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false, "Server name is nil, but CR name is not empty: " + cr.Spec.ForProvider.Name
-	case server.Properties.NicMultiQueue != nil && cr.Spec.ForProvider.NicMultiQueue != nil && *cr.Spec.ForProvider.NicMultiQueue != *server.Properties.NicMultiQueue:
-		return false, "NicMultiQueue do not match the CR NicMultiQueue: " + fmt.Sprintf("%t != %t", *server.Properties.NicMultiQueue, *cr.Spec.ForProvider.NicMultiQueue)
-	case server.Properties.Cores != nil && cr.Spec.ForProvider.Cores != *server.Properties.Cores:
-		return false, "Server cores do not match the CR cores: " + fmt.Sprintf("%d != %d", *server.Properties.Cores, cr.Spec.ForProvider.Cores)
-	case server.Properties.Ram != nil && cr.Spec.ForProvider.RAM != *server.Properties.Ram:
-		return false, "Server RAM does not match the CR RAM: " + fmt.Sprintf("%d != %d", *server.Properties.Ram, cr.Spec.ForProvider.RAM)
-	case server.Properties.CpuFamily != nil && cr.Spec.ForProvider.CPUFamily != "" && cr.Spec.ForProvider.CPUFamily != *server.Properties.CpuFamily:
-		return false, "Server CPU family does not match the CR CPU family: " + *server.Properties.CpuFamily + " != " + cr.Spec.ForProvider.CPUFamily
-	case server.Properties.AvailabilityZone != nil && cr.Spec.ForProvider.AvailabilityZone != *server.Properties.AvailabilityZone:
-		return false, "Server availability zone does not match the CR availability zone: " + *server.Properties.AvailabilityZone + " != " + cr.Spec.ForProvider.AvailabilityZone
-	case server.Metadata != nil && server.Metadata.State != nil && *server.Metadata.State == sdkgo.Busy:
-		return true, "Server is busy, cannot update"
-	case cr.Spec.ForProvider.VolumeCfg.VolumeID != cr.Status.AtProvider.VolumeID:
-		return false, "Server volume ID does not match the CR volume ID: " + cr.Status.AtProvider.VolumeID + " != " + cr.Spec.ForProvider.VolumeCfg.VolumeID
-	case server.Properties.PlacementGroupId != nil && cr.Spec.ForProvider.PlacementGroupID != *server.Properties.PlacementGroupId:
-		return false, "Server placement group ID does not match the CR placement group ID: " + *server.Properties.PlacementGroupId + " != " + cr.Spec.ForProvider.PlacementGroupID
-	case cr.Spec.ForProvider.VmState != "" && server.Properties.VmState != nil && cr.Spec.ForProvider.VmState != *server.Properties.VmState:
-		return false, "Server vmState does not match the CR vmState: " + *server.Properties.VmState + " != " + cr.Spec.ForProvider.VmState
-	default:
-		return true, "Server is up-to-date"
-	}
-}
 
 // GenerateCreateCubeServerInput returns CreateServerRequest based on the CR spec
 func GenerateCreateCubeServerInput(cr *v1alpha1.CubeServer, templateID string) (*sdkgo.Server, error) { // nolint:gocyclo
@@ -405,62 +370,3 @@ func LateInitializerCube(in *v1alpha1.CubeServerProperties, sg *sdkgo.Server) {
 	}
 }
 
-// IsCubeServerUpToDate returns true if the Server is up-to-date or false if it does not
-func IsCubeServerUpToDate(cr *v1alpha1.CubeServer, server sdkgo.Server) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && server.Properties == nil:
-		return true
-	case cr == nil && server.Properties != nil:
-		return false
-	case cr != nil && server.Properties == nil:
-		return false
-	case server.Metadata != nil && server.Metadata.State != nil && *server.Metadata.State == sdkgo.Busy:
-		return true
-	case server.Properties.Name != nil && *server.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	case server.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false
-	case server.Properties.AvailabilityZone != nil && *server.Properties.AvailabilityZone != cr.Spec.ForProvider.AvailabilityZone:
-		return false
-	case server.Properties.AvailabilityZone == nil && cr.Spec.ForProvider.AvailabilityZone != "":
-		return false
-	case server.Properties.BootVolume != nil && *server.Properties.BootVolume.Id != cr.Status.AtProvider.VolumeID:
-		return false
-	case cr.Status.AtProvider.VolumeID != "" && !server.Properties.HasBootVolume():
-		return false
-	case cr.Spec.ForProvider.VmState != "" && server.Properties.VmState != nil && cr.Spec.ForProvider.VmState != *server.Properties.VmState:
-		return false
-	}
-	if server.HasEntities() && server.Entities.HasVolumes() && server.Entities.Volumes.HasItems() {
-		items := *server.Entities.Volumes.Items
-		if len(items) > 0 {
-			if propertiesOk, ok := items[0].GetPropertiesOk(); ok && propertiesOk != nil {
-				if nameOk, ok := propertiesOk.GetNameOk(); ok && *nameOk != cr.Spec.ForProvider.DasVolumeProperties.Name {
-					return false
-				}
-				if busOk, ok := propertiesOk.GetBusOk(); ok && *busOk != cr.Spec.ForProvider.DasVolumeProperties.Bus {
-					return false
-				}
-				if cpuHotPlugOk, ok := propertiesOk.GetCpuHotPlugOk(); ok && *cpuHotPlugOk != cr.Spec.ForProvider.DasVolumeProperties.CPUHotPlug {
-					return false
-				}
-				if ramHotPlugOk, ok := propertiesOk.GetRamHotPlugOk(); ok && *ramHotPlugOk != cr.Spec.ForProvider.DasVolumeProperties.RAMHotPlug {
-					return false
-				}
-				if nicHotPlugOk, ok := propertiesOk.GetNicHotPlugOk(); ok && *nicHotPlugOk != cr.Spec.ForProvider.DasVolumeProperties.NicHotPlug {
-					return false
-				}
-				if nicHotUnplugOk, ok := propertiesOk.GetNicHotUnplugOk(); ok && *nicHotUnplugOk != cr.Spec.ForProvider.DasVolumeProperties.NicHotUnplug {
-					return false
-				}
-				if discVirtioHotPlugOk, ok := propertiesOk.GetDiscVirtioHotPlugOk(); ok && *discVirtioHotPlugOk != cr.Spec.ForProvider.DasVolumeProperties.DiscVirtioHotPlug {
-					return false
-				}
-				if discVirtioHotUnplugOk, ok := propertiesOk.GetDiscVirtioHotUnplugOk(); ok && *discVirtioHotUnplugOk != cr.Spec.ForProvider.DasVolumeProperties.DiscVirtioHotUnplug {
-					return false
-				}
-			}
-		}
-	}
-	return true
-}

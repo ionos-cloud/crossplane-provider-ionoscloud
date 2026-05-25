@@ -29,7 +29,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				Nic: ionoscloud.Nic{},
 			},
 			want:     true,
-			wantDiff: "Nic is not created yet, no properties to compare",
+			wantDiff: "",
 		},
 		{
 			name: "CR empty",
@@ -40,7 +40,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				}},
 			},
 			want:     false,
-			wantDiff: "Nic is not created yet, but properties are set in the Nic object",
+			wantDiff: "nic properties presence mismatch",
 		},
 		{
 			name: "api response empty",
@@ -55,7 +55,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				Nic: ionoscloud.Nic{Properties: nil},
 			},
 			want:     false,
-			wantDiff: "Nic properties are not set in the Nic object, but CR is set",
+			wantDiff: "nic properties presence mismatch",
 		},
 		{
 			name: "all equal",
@@ -81,7 +81,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 			},
 			want:     true,
-			wantDiff: "Nic is up-to-date",
+			wantDiff: "",
 		},
 		{
 			name: "all different",
@@ -105,7 +105,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				}},
 			},
 			want:     false,
-			wantDiff: "Nic name does not match the one in the CR not empty != different",
+			wantDiff: "name exp=different act=not empty; firewallActive exp=false act=true; firewallType exp=INGRESS act=EGRESS; vnet exp=1 act=2",
 		},
 		{
 			name: "only vnet differs",
@@ -129,7 +129,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				}},
 			},
 			want:     false,
-			wantDiff: "Nic Vnet does not match the one in the CR 2 != 1",
+			wantDiff: "vnet exp=1 act=2",
 		},
 		{
 			name: "metadata state 'Busy', different name",
@@ -152,7 +152,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 			},
 			want:     true,
-			wantDiff: "Nic is busy, cannot update it now",
+			wantDiff: "",
 		},
 		{
 			name: "IPs different from previous IPs",
@@ -191,7 +191,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 			},
 			want:     false,
-			wantDiff: "Nic IPv4s do not match the ones in the CR [10.11.12.13 192.168.8.14] != [10.10.10.10 10.10.10.11]",
+			wantDiff: "ips exp=[10.10.10.10,10.10.10.11] act=[10.11.12.13,192.168.8.14]; ipv6Ips exp=[2001:0db8:85a3::8a2e:0370:7335] act=[2001:0db8:85a3::8a2e:0370:7334]",
 		},
 		{
 			name: "IPs equal",
@@ -230,7 +230,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 			},
 			want:     true,
-			wantDiff: "Nic is up-to-date",
+			wantDiff: "",
 		},
 		{
 			name: "NIC dhcpv6 is nil",
@@ -249,7 +249,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 			},
 			want:     true,
-			wantDiff: "Nic is up-to-date",
+			wantDiff: "",
 		},
 		{
 			name: "CR dhcpv6 is nil",
@@ -268,7 +268,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 			},
 			want:     true,
-			wantDiff: "Nic is up-to-date",
+			wantDiff: "",
 		},
 		{
 			name: "CR and NIC dhcpv6 are nil",
@@ -287,7 +287,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 			},
 			want:     true,
-			wantDiff: "Nic is up-to-date",
+			wantDiff: "",
 		},
 		{
 			name: "CR and NIC dhcpv6 are equal",
@@ -306,7 +306,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 			},
 			want:     true,
-			wantDiff: "Nic is up-to-date",
+			wantDiff: "",
 		},
 		{
 			name: "CR and NIC dhcpv6 are different",
@@ -325,12 +325,12 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 			},
 			want:     false,
-			wantDiff: "Nic DHCPv6 does not match the one in the CR true != false",
+			wantDiff: "dhcpv6 exp=false act=true",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotDiff := IsUpToDateWithDiff(tt.args.cr, tt.args.Nic, tt.args.ips)
+			got, gotDiff := IsUpToDate(tt.args.cr, tt.args.Nic, tt.args.ips)
 			assert.Equal(t, tt.want, got)
 			assert.Equal(t, tt.wantDiff, gotDiff)
 		})

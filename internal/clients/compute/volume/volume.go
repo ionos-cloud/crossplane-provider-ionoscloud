@@ -208,38 +208,3 @@ func GenerateUpdateVolumeInput(cr *v1alpha1.Volume, properties *sdkgo.VolumeProp
 	return &instanceUpdateInput, nil
 }
 
-// IsUpToDateWithDiff returns true if the Volume is up-to-date or false if it does not
-func IsUpToDateWithDiff(cr *v1alpha1.Volume, volume *sdkgo.Volume) (bool, string) { // nolint:gocyclo
-	switch {
-	case cr == nil && volume.Properties == nil:
-		return true, "Volume is nil and custom resource is nil"
-	case cr == nil && volume.Properties != nil:
-		return false, "Custom resource is nil, but volume properties are not nil"
-	case cr != nil && volume.Properties == nil:
-		return false, "Volume properties are nil, but custom resource is not nil"
-	case volume.Metadata != nil && volume.Metadata.State != nil && *volume.Metadata.State == "BUSY":
-		return true, "Volume is busy, cannot update it now"
-	case volume.Properties.Name != nil && *volume.Properties.Name != cr.Spec.ForProvider.Name:
-		return false, "Volume name does not match the one in the CR: " + *volume.Properties.Name + " != " + cr.Spec.ForProvider.Name
-	case volume.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false, "Volume name is nil, but CR name is not empty: " + cr.Spec.ForProvider.Name
-	case volume.Properties.Size != nil && *volume.Properties.Size != cr.Spec.ForProvider.Size:
-		return false, "Volume size does not match the one in the CR: " + fmt.Sprintf("%.2f != %.2f", *volume.Properties.Size, cr.Spec.ForProvider.Size)
-	case !cr.Spec.ForProvider.SetHotPlugsFromImage && volume.Properties.CpuHotPlug != nil && *volume.Properties.CpuHotPlug != cr.Spec.ForProvider.CPUHotPlug:
-		return false, "CpuHotPlug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.CpuHotPlug, cr.Spec.ForProvider.CPUHotPlug)
-	case !cr.Spec.ForProvider.SetHotPlugsFromImage && volume.Properties.RamHotPlug != nil && *volume.Properties.RamHotPlug != cr.Spec.ForProvider.RAMHotPlug:
-		return false, "RamHotPlug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.RamHotPlug, cr.Spec.ForProvider.RAMHotPlug)
-	case !cr.Spec.ForProvider.SetHotPlugsFromImage && volume.Properties.NicHotPlug != nil && *volume.Properties.NicHotPlug != cr.Spec.ForProvider.NicHotPlug:
-		return false, "NicHotPlug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.NicHotPlug, cr.Spec.ForProvider.NicHotPlug)
-	case !cr.Spec.ForProvider.SetHotPlugsFromImage && volume.Properties.NicHotUnplug != nil && *volume.Properties.NicHotUnplug != cr.Spec.ForProvider.NicHotUnplug:
-		return false, "NicHotUnplug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.NicHotUnplug, cr.Spec.ForProvider.NicHotUnplug)
-	case !cr.Spec.ForProvider.SetHotPlugsFromImage && volume.Properties.DiscVirtioHotPlug != nil && *volume.Properties.DiscVirtioHotPlug != cr.Spec.ForProvider.DiscVirtioHotPlug:
-		return false, "DiscVirtioHotPlug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.DiscVirtioHotPlug, cr.Spec.ForProvider.DiscVirtioHotPlug)
-	case !cr.Spec.ForProvider.SetHotPlugsFromImage && volume.Properties.DiscVirtioHotUnplug != nil && *volume.Properties.DiscVirtioHotUnplug != cr.Spec.ForProvider.DiscVirtioHotUnplug:
-		return false, "DiscVirtioHotUnplug does not match the one in the CR: " + fmt.Sprintf("%t != %t", *volume.Properties.DiscVirtioHotUnplug, cr.Spec.ForProvider.DiscVirtioHotUnplug)
-	case volume.Properties.Bus != nil && *volume.Properties.Bus != cr.Spec.ForProvider.Bus:
-		return false, "Volume bus does not match the desired bus: " + *volume.Properties.Bus + " != " + cr.Spec.ForProvider.Bus
-	default:
-		return true, "Volume is up-to-date"
-	}
-}

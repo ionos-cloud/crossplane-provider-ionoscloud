@@ -294,60 +294,6 @@ func GenerateCreateGroupInput(cr *v1alpha1.Group) (*sdkgo.Group, sets.Set[string
 	return &instanceCreateInput, memberIDsSet(cr), resourceSharesSet(cr)
 }
 
-// IsGroupUpToDate returns true if the Group is up-to-date or false otherwise
-func IsGroupUpToDate(cr *v1alpha1.Group, observed sdkgo.Group) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && observed.Properties == nil:
-		return true
-	case cr == nil && observed.Properties != nil:
-		return false
-	case cr != nil && observed.Properties == nil:
-		return false
-	case observed.Properties.Name != nil && *observed.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	case observed.Properties.AccessActivityLog != nil && *observed.Properties.AccessActivityLog != cr.Spec.ForProvider.AccessActivityLog:
-		return false
-	case observed.Properties.AccessAndManageCertificates != nil && *observed.Properties.AccessAndManageCertificates != cr.Spec.ForProvider.AccessAndManageCertificates:
-		return false
-	case observed.Properties.AccessAndManageDns != nil && *observed.Properties.AccessAndManageDns != cr.Spec.ForProvider.AccessAndManageDNS:
-		return false
-	case observed.Properties.AccessAndManageMonitoring != nil && *observed.Properties.AccessAndManageMonitoring != cr.Spec.ForProvider.AccessAndManageMonitoring:
-		return false
-	case observed.Properties.CreateBackupUnit != nil && *observed.Properties.CreateBackupUnit != cr.Spec.ForProvider.CreateBackupUnit:
-		return false
-	case observed.Properties.CreateDataCenter != nil && *observed.Properties.CreateDataCenter != cr.Spec.ForProvider.CreateDataCenter:
-		return false
-	case observed.Properties.CreateFlowLog != nil && *observed.Properties.CreateFlowLog != cr.Spec.ForProvider.CreateFlowLog:
-		return false
-	case observed.Properties.CreateInternetAccess != nil && *observed.Properties.CreateInternetAccess != cr.Spec.ForProvider.CreateInternetAccess:
-		return false
-	case observed.Properties.CreateK8sCluster != nil && *observed.Properties.CreateK8sCluster != cr.Spec.ForProvider.CreateK8sCluster:
-		return false
-	case observed.Properties.CreatePcc != nil && *observed.Properties.CreatePcc != cr.Spec.ForProvider.CreatePcc:
-		return false
-	case observed.Properties.CreateSnapshot != nil && *observed.Properties.CreateSnapshot != cr.Spec.ForProvider.CreateSnapshot:
-		return false
-	case observed.Properties.ManageDBaaS != nil && *observed.Properties.ManageDBaaS != cr.Spec.ForProvider.ManageDBaaS:
-		return false
-	case observed.Properties.ManageDataplatform != nil && *observed.Properties.ManageDataplatform != cr.Spec.ForProvider.ManageDataPlatform:
-		return false
-	case observed.Properties.ManageRegistry != nil && *observed.Properties.ManageRegistry != cr.Spec.ForProvider.ManageRegistry:
-		return false
-	case observed.Properties.ReserveIp != nil && *observed.Properties.ReserveIp != cr.Spec.ForProvider.ReserveIP:
-		return false
-	case observed.Properties.S3Privilege != nil && *observed.Properties.S3Privilege != cr.Spec.ForProvider.S3Privilege:
-		return false
-	}
-	configuredMemberIDs := memberIDsSet(cr)
-	observedMemberIDs := sets.New[string](cr.Status.AtProvider.UserIDs...)
-	if !observedMemberIDs.Equal(configuredMemberIDs) {
-		return false
-	}
-
-	configuredResourceShares := resourceSharesSet(cr)
-	observedResourceShares := sets.New[v1alpha1.ResourceShare](cr.Status.AtProvider.ResourceShares...)
-	return observedResourceShares.Equal(configuredResourceShares)
-}
 
 func memberIDsSet(cr *v1alpha1.Group) sets.Set[string] {
 	mCount := len(cr.Spec.ForProvider.UserCfg)

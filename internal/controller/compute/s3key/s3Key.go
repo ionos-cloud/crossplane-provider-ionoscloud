@@ -154,11 +154,13 @@ func (c *externalS3Key) Observe(ctx context.Context, mg resource.Managed) (manag
 	cr.Status.AtProvider.S3KeyID = meta.GetExternalName(cr)
 	cr.SetConditions(xpv1.Available())
 
+	isUpToDate, diff := s3key.IsS3KeyUpToDate(cr, observed)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        s3key.IsS3KeyUpToDate(cr, observed),
+		ResourceUpToDate:        isUpToDate,
 		ConnectionDetails:       s3ConnectionDetailsTo(observed),
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		Diff:                    diff,
 	}, nil
 }
 

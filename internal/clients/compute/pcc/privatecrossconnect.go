@@ -112,24 +112,3 @@ func GenerateUpdatePrivateCrossConnectInput(cr *v1alpha1.Pcc) (*sdkgo.PrivateCro
 	return &instanceUpdateInput, nil
 }
 
-// IsPrivateCrossConnectUpToDate returns true if the pcc is up-to-date or false if it does not
-func IsPrivateCrossConnectUpToDate(cr *v1alpha1.Pcc, privateCrossConnect sdkgo.PrivateCrossConnect) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && privateCrossConnect.Properties == nil:
-		return true
-	case cr == nil && privateCrossConnect.Properties != nil:
-		return false
-	case cr != nil && privateCrossConnect.Properties == nil:
-		return false
-	case privateCrossConnect.Metadata.State != nil && *privateCrossConnect.Metadata.State == "BUSY":
-		return true
-	case privateCrossConnect.Properties.Name != nil && *privateCrossConnect.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	case privateCrossConnect.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false
-	case privateCrossConnect.Properties.Description != nil && *privateCrossConnect.Properties.Description != cr.Spec.ForProvider.Description:
-		return false
-	default:
-		return true
-	}
-}

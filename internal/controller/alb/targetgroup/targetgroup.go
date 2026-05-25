@@ -140,11 +140,13 @@ func (c *externalTargetGroup) Observe(ctx context.Context, mg resource.Managed) 
 	cr.Status.AtProvider.State = clients.GetCoreResourceState(&observed)
 	c.log.Debug("Observed target group: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
+	isUpToDate, diff := targetgroup.IsTargetGroupUpToDate(cr, observed)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        targetgroup.IsTargetGroupUpToDate(cr, observed),
+		ResourceUpToDate:        isUpToDate,
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		Diff:                    diff,
 	}, nil
 }
 

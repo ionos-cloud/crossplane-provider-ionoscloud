@@ -181,35 +181,6 @@ func LateInitializer(in *v1alpha1.TargetGroupParameters, targetGroup *sdkgo.Targ
 	}
 }
 
-// IsTargetGroupUpToDate returns true if the TargetGroup is up-to-date or false if it does not
-func IsTargetGroupUpToDate(cr *v1alpha1.TargetGroup, targetGroup sdkgo.TargetGroup) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && targetGroup.Properties == nil:
-		return true
-	case cr == nil && targetGroup.Properties != nil:
-		return false
-	case cr != nil && targetGroup.Properties == nil:
-		return false
-	case targetGroup.Metadata.State != nil && *targetGroup.Metadata.State == "BUSY" || *targetGroup.Metadata.State == "DEPLOYING":
-		return true
-	case targetGroup.Properties.Name != nil && *targetGroup.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	case targetGroup.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false
-	case targetGroup.Properties.Protocol != nil && *targetGroup.Properties.Protocol != cr.Spec.ForProvider.Protocol:
-		return false
-	case targetGroup.Properties.Algorithm != nil && *targetGroup.Properties.Algorithm != cr.Spec.ForProvider.Algorithm:
-		return false
-	case !equalTargetGroupTargets(cr.Spec.ForProvider.Targets, targetGroup.Properties.Targets):
-		return false
-	case !equalTargetGroupHealthCheck(cr.Spec.ForProvider.HealthCheck, targetGroup.Properties.HealthCheck):
-		return false
-	case !equalTargetGroupHTTPHealthCheck(cr.Spec.ForProvider.HTTPHealthCheck, targetGroup.Properties.HttpHealthCheck):
-		return false
-	default:
-		return true
-	}
-}
 
 func getTargets(targetGroupTargets []v1alpha1.TargetGroupTarget) []sdkgo.TargetGroupTarget {
 	if len(targetGroupTargets) == 0 {

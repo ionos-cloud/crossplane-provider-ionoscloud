@@ -380,7 +380,7 @@ func TestIsGroupUpToDate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IsGroupUpToDate(tt.args.cr, tt.args.Group); got != tt.want {
+			if got, _ := IsGroupUpToDate(tt.args.cr, tt.args.Group); got != tt.want {
 				t.Errorf("IsGroupUpToDate() = %v, want %v", got, tt.want)
 			}
 		})

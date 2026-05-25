@@ -141,11 +141,13 @@ func (u *externalUser) Observe(ctx context.Context, mg resource.Managed) (manage
 	lateInitialized := u.lateInitialize(ctx, cr)
 	cr.Status.AtProvider.UserID = meta.GetExternalName(cr)
 	cr.SetConditions(xpv1.Available())
+	isUpToDate, diff := postgrescluster.IsUserUpToDate(cr, observed)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        postgrescluster.IsUserUpToDate(cr, observed) && !lateInitialized,
+		ResourceUpToDate:        isUpToDate && !lateInitialized,
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: lateInitialized,
+		Diff:                    diff,
 	}, nil
 }
 

@@ -349,7 +349,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    false,
 				ResourceUpToDate:  true,
-				Diff:              "servers: expected=2 actual=0 | bootVolumes: expected=2 actual=0 | nics: expected=2 actual=0",
+				Diff:              "servers exp=2 act=0; bootVolumes exp=2 act=0; nics exp=2 act=0",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -370,7 +370,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
-				Diff:              "server[0](serverset-server-0-0): cpuFamily exp=INTEL_SKYLAKE act=INTEL_XEON | server[1](serverset-server-1-0): cpuFamily exp=INTEL_SKYLAKE act=INTEL_XEON",
+				Diff:              "servers[0].cpuFamily exp=INTEL_SKYLAKE act=INTEL_XEON; servers[1].cpuFamily exp=INTEL_SKYLAKE act=INTEL_XEON",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -391,7 +391,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
-				Diff:              "server[0](serverset-server-0-0): cores exp=10 act=2 | server[1](serverset-server-1-0): cores exp=10 act=2",
+				Diff:              "servers[0].cores exp=10 act=2; servers[1].cores exp=10 act=2",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -412,7 +412,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
-				Diff:              "server[0](serverset-server-0-0): ram exp=8192 act=4096 | server[1](serverset-server-1-0): ram exp=8192 act=4096",
+				Diff:              "servers[0].ram exp=8192 act=4096; servers[1].ram exp=8192 act=4096",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -433,7 +433,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
-				Diff:              "volume[0](boot-volume-serverset-server-0-0): image exp=newImage act=image | volume[1](boot-volume-serverset-server-1-0): image exp=newImage act=image",
+				Diff:              "bootVolumes[0].image exp=newImage act=image; bootVolumes[1].image exp=newImage act=image",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -454,7 +454,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
-				Diff:              "volume[0](boot-volume-serverset-server-0-0): size exp=300 act=100 | volume[1](boot-volume-serverset-server-1-0): size exp=300 act=100",
+				Diff:              "bootVolumes[0].size exp=300 act=100; bootVolumes[1].size exp=300 act=100",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -475,7 +475,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
-				Diff:              "volume[0](boot-volume-serverset-server-0-0): type exp=SSD act=HDD | volume[1](boot-volume-serverset-server-1-0): type exp=SSD act=HDD",
+				Diff:              "bootVolumes[0].type exp=SSD act=HDD; bootVolumes[1].type exp=SSD act=HDD",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -492,7 +492,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    false,
 				ResourceUpToDate:  true,
-				Diff:              "servers: expected=2 actual=1 | bootVolumes: expected=2 actual=0 | nics: expected=2 actual=0",
+				Diff:              "servers exp=2 act=1; bootVolumes exp=2 act=0; nics exp=2 act=0",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -509,7 +509,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    false,
 				ResourceUpToDate:  true,
-				Diff:              "nics: expected=2 actual=0",
+				Diff:              "nics exp=2 act=0",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -526,7 +526,7 @@ func Test_serverSetController_Observe(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    false,
 				ResourceUpToDate:  true,
-				Diff:              "nics: expected=4 actual=2",
+				Diff:              "nics exp=4 act=2",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,
@@ -3171,7 +3171,7 @@ func Test_serverSetController_Observe_NicMultiQueue(t *testing.T) {
 			want: managed.ExternalObservation{
 				ResourceExists:    true,
 				ResourceUpToDate:  false,
-				Diff:              "server[0](serverset-server-0-0): nicMultiQueue exp=true act=false | server[1](serverset-server-1-0): nicMultiQueue exp=true act=false",
+				Diff:              "servers[0].nicMultiQueue exp=true act=false; servers[1].nicMultiQueue exp=true act=false",
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantErr: false,

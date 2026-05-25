@@ -8,7 +8,6 @@ import (
 
 	"github.com/ionos-cloud/sdk-go-bundle/shared"
 
-	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/compare"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
 
 	ionoscloud "github.com/ionos-cloud/sdk-go-bundle/products/dbaas/psql/v2"
@@ -295,51 +294,6 @@ func LateInitializer(in *v1alpha1.ClusterParameters, sg *ionoscloud.ClusterRespo
 	}
 }
 
-// IsClusterUpToDate returns true if the cluster is up-to-date or false if it does not
-func IsClusterUpToDate(cr *v1alpha1.PostgresCluster, clusterResponse ionoscloud.ClusterResponse) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && clusterResponse.Properties == nil:
-		return true
-	case cr == nil && clusterResponse.Properties != nil:
-		return false
-	case cr != nil && clusterResponse.Properties == nil:
-		return false
-	case clusterResponse.Metadata.State != nil && *clusterResponse.Metadata.State == ionoscloud.STATE_BUSY:
-		return true
-	case clusterResponse.Properties.DisplayName != nil && *clusterResponse.Properties.DisplayName != cr.Spec.ForProvider.DisplayName:
-		return false
-	case clusterResponse.Properties.DisplayName == nil && cr.Spec.ForProvider.DisplayName != "":
-		return false
-	case clusterResponse.Properties.PostgresVersion != nil && *clusterResponse.Properties.PostgresVersion != cr.Spec.ForProvider.PostgresVersion:
-		return false
-	case clusterResponse.Properties.Instances != nil && *clusterResponse.Properties.Instances != cr.Spec.ForProvider.Instances:
-		return false
-	case clusterResponse.Properties.Cores != nil && *clusterResponse.Properties.Cores != cr.Spec.ForProvider.Cores:
-		return false
-	case clusterResponse.Properties.Ram != nil && *clusterResponse.Properties.Ram != cr.Spec.ForProvider.RAM:
-		return false
-	case clusterResponse.Properties.StorageSize != nil && *clusterResponse.Properties.StorageSize != cr.Spec.ForProvider.StorageSize:
-		return false
-	case clusterResponse.Properties.Connections != nil && !compare.EqualConnections(cr.Spec.ForProvider.Connections, clusterResponse.Properties.Connections):
-		return false
-	case !compare.EqualDatabaseMaintenanceWindow(cr.Spec.ForProvider.MaintenanceWindow, clusterResponse.Properties.MaintenanceWindow):
-		return false
-	case !compare.EqualConnectionPooler(cr.Spec.ForProvider.ConnectionPooler, clusterResponse.Properties.ConnectionPooler):
-		return false
-	default:
-		return true
-	}
-}
-
-// IsUserUpToDate returns true if the user is up-to-date or false if it does not
-func IsUserUpToDate(cr *v1alpha1.PostgresUser, user ionoscloud.UserResource) bool { // nolint:gocyclo
-	switch {
-	case user.Properties.Username != cr.Spec.ForProvider.Credentials.Username:
-		return false
-	default:
-		return true
-	}
-}
 
 func clusterConnections(connections []v1alpha1.Connection) []ionoscloud.Connection {
 	connects := make([]ionoscloud.Connection, 0)

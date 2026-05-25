@@ -140,10 +140,12 @@ func (c *externalPrivateCrossConnect) Observe(ctx context.Context, mg resource.M
 	c.log.Debug("Observed pcc: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
+	isUpToDate, diff := pcc.IsPrivateCrossConnectUpToDate(cr, instance)
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  pcc.IsPrivateCrossConnectUpToDate(cr, instance),
+		ResourceUpToDate:  isUpToDate,
 		ConnectionDetails: managed.ConnectionDetails{},
+		Diff:              diff,
 	}, nil
 }
 

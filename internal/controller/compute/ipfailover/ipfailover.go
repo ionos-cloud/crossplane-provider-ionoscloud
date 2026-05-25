@@ -162,10 +162,12 @@ func (c *externalIPFailover) Observe(ctx context.Context, mg resource.Managed) (
 	// Set Ready condition based on State
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
 
+	isUpToDate, diff := lan.IsIPFailoverUpToDate(cr, instanceIPFailovers, ipSetByUser)
 	return managed.ExternalObservation{
 		ResourceExists:    true,
-		ResourceUpToDate:  lan.IsIPFailoverUpToDate(cr, instanceIPFailovers, ipSetByUser),
+		ResourceUpToDate:  isUpToDate,
 		ConnectionDetails: managed.ConnectionDetails{},
+		Diff:              diff,
 	}, nil
 }
 

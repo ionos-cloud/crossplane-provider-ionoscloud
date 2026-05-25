@@ -148,7 +148,7 @@ func (c *externalLan) Observe(ctx context.Context, mg resource.Managed) (managed
 	c.log.Debug("Observed LAN: ", "state", cr.Status.AtProvider.State, "external name", meta.GetExternalName(cr), "name", cr.Spec.ForProvider.Name)
 	// Set Ready condition based on State
 	clients.UpdateCondition(cr, cr.Status.AtProvider.State)
-	isUpToDate, diff := lan.IsUpToDateWithDiff(cr, instance)
+	isUpToDate, diff := lan.IsUpToDate(cr, instance)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
 		ResourceUpToDate:        isUpToDate,

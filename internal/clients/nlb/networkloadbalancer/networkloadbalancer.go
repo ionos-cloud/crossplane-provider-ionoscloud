@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/nlb/v1alpha1"
@@ -179,59 +177,3 @@ func GenerateUpdateInput(cr *v1alpha1.NetworkLoadBalancer, listenerLanID, target
 	return instanceUpdateInput
 }
 
-// IsUpToDate returns true if the NetworkLoadBalancer is up-to-date or false otherwise
-func IsUpToDate(cr *v1alpha1.NetworkLoadBalancer, observed sdkgo.NetworkLoadBalancer, listenerLan, targetLan int32, ips []string) bool { // nolint:gocyclo
-	switch {
-	case cr == nil && observed.Properties == nil:
-		return true
-	case cr == nil && observed.Properties != nil:
-		return false
-	case cr != nil && observed.Properties == nil:
-		return false
-	case cr.Status.AtProvider.State == compute.BUSY || cr.Status.AtProvider.State == compute.UPDATING:
-		return true
-	case observed.Properties.Name != nil && *observed.Properties.Name != cr.Spec.ForProvider.Name:
-		return false
-	case observed.Properties.Name == nil && cr.Spec.ForProvider.Name != "":
-		return false
-	case observed.Properties.ListenerLan != nil && *observed.Properties.ListenerLan != listenerLan:
-		return false
-	case observed.Properties.TargetLan != nil && *observed.Properties.TargetLan != targetLan:
-		return false
-	case !equalNetworkLoadBalancerIPs(cr, observed, ips):
-		return false
-	}
-
-	return true
-}
-
-func equalNetworkLoadBalancerIPs(cr *v1alpha1.NetworkLoadBalancer, observed sdkgo.NetworkLoadBalancer, configuredIPs []string) bool {
-
-	if observed.Properties.Ips != nil {
-		if len(*observed.Properties.Ips) != len(configuredIPs) {
-			return false
-		}
-		obsIPs := sets.New[string](*observed.Properties.Ips...)
-		cfgIPs := sets.New[string](configuredIPs...)
-		if !obsIPs.Equal(cfgIPs) {
-			return false
-		}
-	} else if len(configuredIPs) != 0 {
-		return false
-	}
-
-	if observed.Properties.LbPrivateIps != nil {
-		if len(*observed.Properties.LbPrivateIps) != len(cr.Spec.ForProvider.LbPrivateIps) {
-			return false
-		}
-		obsIPs := sets.New[string](*observed.Properties.LbPrivateIps...)
-		cfgIPs := sets.New[string](cr.Spec.ForProvider.LbPrivateIps...)
-		if !obsIPs.Equal(cfgIPs) {
-			return false
-		}
-	} else if len(cr.Spec.ForProvider.LbPrivateIps) != 0 {
-		return false
-	}
-
-	return true
-}

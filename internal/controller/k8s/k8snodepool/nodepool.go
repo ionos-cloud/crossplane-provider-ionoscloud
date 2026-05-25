@@ -160,11 +160,13 @@ func (c *externalNodePool) Observe(ctx context.Context, mg resource.Managed) (ma
 	if err != nil {
 		return managed.ExternalObservation{}, fmt.Errorf("failed to get public IPs: %w", err)
 	}
+	isUpToDate, diff := k8snodepool.IsK8sNodePoolUpToDate(cr, observed, publicIps)
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        k8snodepool.IsK8sNodePoolUpToDate(cr, observed, publicIps),
+		ResourceUpToDate:        isUpToDate,
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 		ConnectionDetails:       managed.ConnectionDetails{},
+		Diff:                    diff,
 	}, nil
 }
 

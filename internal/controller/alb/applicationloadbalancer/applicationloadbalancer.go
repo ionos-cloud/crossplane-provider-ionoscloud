@@ -153,12 +153,14 @@ func (c *externalApplicationLoadBalancer) Observe(ctx context.Context, mg resour
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
+	isUpToDate, diff := applicationloadbalancer.IsApplicationLoadBalancerUpToDate(cr, observed, listenerLanID, targetLanID, ips)
 	// Check ExternalObservation
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceUpToDate:        applicationloadbalancer.IsApplicationLoadBalancerUpToDate(cr, observed, listenerLanID, targetLanID, ips),
+		ResourceUpToDate:        isUpToDate,
 		ConnectionDetails:       managed.ConnectionDetails{},
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
+		Diff:                    diff,
 	}, nil
 }
 

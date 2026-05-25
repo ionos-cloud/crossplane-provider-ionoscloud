@@ -280,6 +280,7 @@ func TestNetworkLoadBalancerObserve(t *testing.T) {
 				ResourceUpToDate:        false,
 				ResourceLateInitialized: false,
 				ConnectionDetails:       managed.ConnectionDetails{},
+				Diff:                    "ips exp=[111.100.100.0,111.100.100.1,111.100.100.2,122.100.100.0,133.100.100.0,133.100.100.2,133.100.100.4] act=[111.100.100.0,111.100.100.1,111.100.100.2]",
 			},
 			wantErr: false,
 			mock: func(ctx context.Context, nlbClient *networkloadbalancermock.MockClient, ipBlockClient *ipblock.MockClient) {
@@ -332,6 +333,7 @@ func TestNetworkLoadBalancerObserve(t *testing.T) {
 				ResourceUpToDate:        false,
 				ResourceLateInitialized: true,
 				ConnectionDetails:       managed.ConnectionDetails{},
+				Diff:                    "ips exp=[111.100.100.0,111.100.100.1,111.100.100.2,122.100.100.0,133.100.100.0,133.100.100.2,133.100.100.4] act=[111.100.100.0,111.100.100.1,111.100.100.2]",
 			},
 			wantErr: false,
 			mock: func(ctx context.Context, nlbClient *networkloadbalancermock.MockClient, ipBlockClient *ipblock.MockClient) {

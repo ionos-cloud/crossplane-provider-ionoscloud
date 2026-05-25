@@ -248,7 +248,7 @@ func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (manag
 	linit := cr.Spec.ForProvider.Password != ""
 	conn := connectionDetails(cr, observed)
 
-	isUserUpToDate := userapi.IsUserUpToDate(cr.Spec.ForProvider, observed, groupIDs)
+	isUserUpToDate, diff := userapi.IsUserUpToDate(cr.Spec.ForProvider, observed, groupIDs)
 	if cr.HasCredentialsSecretRef() {
 		secret, err := getPasswordSecret(ctx, eu.client, cr.Spec.ForProvider.PasswordSecretRef)
 		if err != nil {
@@ -256,6 +256,11 @@ func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (manag
 		}
 		if cr.Status.AtProvider.CredentialsVersion != secret.GetResourceVersion() {
 			isUserUpToDate = false
+			if diff == "" {
+				diff = "credentialsVersion changed"
+			} else {
+				diff += "; credentialsVersion changed"
+			}
 			conn[xpv1.ResourceCredentialsSecretPasswordKey] = secret.Data[cr.Spec.ForProvider.PasswordSecretRef.Key]
 			cr.Status.AtProvider.CredentialsVersion = secret.GetResourceVersion()
 		}
@@ -266,6 +271,7 @@ func (eu *externalUser) Observe(ctx context.Context, mg resource.Managed) (manag
 		ResourceUpToDate:        isUserUpToDate,
 		ConnectionDetails:       conn,
 		ResourceLateInitialized: linit,
+		Diff:                    diff,
 	}, nil
 }
 
