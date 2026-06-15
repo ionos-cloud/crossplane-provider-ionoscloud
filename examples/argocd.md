@@ -44,7 +44,7 @@ The example will create 3 argocd `Applications` in the cluster.
 - The second application is crossplane, here the ionoscloud provider is specified as a parameter for the crossplane chart `packages: [ghcr.io/ionos-cloud/crossplane-provider-ionoscloud:v1.0.10]`, therefore it will be added to the cluster together with the crossplane installation. This has the advantage of simplifying the provider installation, but the provider won't have its own independent argocd Application. This means it can't be managed separately from the crossplane Application.
 
 
-- The third application is an example of creating Ionoscloud resources. This Application will contain the created Managed Resources together with their health state and sync status. Changes to `examples/argo-cd/server` that are committed to git will prompt Argocd to perform the necessary changes to sync the Application to the new state. 
+- The third application is an example of creating IONOS CLOUD resources. This Application will contain the created Managed Resources together with their health state and sync status. Changes to `examples/argo-cd/server` that are committed to git will prompt Argocd to perform the necessary changes to sync the Application to the new state. 
 
 The definitions of Argocd applications are placed in the `charts/root-app/templates` directory.
 

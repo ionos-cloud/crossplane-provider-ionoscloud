@@ -171,7 +171,7 @@ func (c *connectorUser) Connect(ctx context.Context, mg resource.Managed) (manag
 // externalUser observes, then either creates, updates, or deletes a
 // user in the cloud api. it ensures it reflects a desired state.
 type externalUser struct {
-	// service is the ionos cloud api client to manage users.
+	// service is the IONOS CLOUD api client to manage users.
 	// see https://api.ionos.com/docs/cloud/v6/#tag/User-management
 	service userapi.Client
 	log     logging.Logger

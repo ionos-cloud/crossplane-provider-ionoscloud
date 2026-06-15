@@ -137,7 +137,7 @@ func ConnectForCRD(ctx context.Context, mg resource.Managed, client kubeclient.C
 	return svc, nil
 }
 
-// CoreResource is an ionos cloud API object with metadata
+// CoreResource is an IONOS CLOUD API object with metadata
 type CoreResource interface {
 	GetMetadataOk() (*sdkgo.DatacenterElementMetadata, bool)
 }
@@ -181,7 +181,7 @@ type ResourceWithState interface {
 }
 
 // UpdateCondition will update the condition of the given ResourceWithState to the given state. This
-// function implements the common mapping of ionos cloud states to crossplane conditions
+// function implements the common mapping of IONOS CLOUD states to crossplane conditions
 func UpdateCondition(cr ResourceWithState, state string) {
 	switch state {
 	case compute.AVAILABLE, compute.ACTIVE:

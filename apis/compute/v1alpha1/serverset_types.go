@@ -374,8 +374,8 @@ const (
 
 // +kubebuilder:object:root=true
 
-// ServerSet represents a stateful set of servers in the Ionos Cloud.
-// The number of replicas controls how many resources it creates in the Ionos Cloud.
+// ServerSet represents a stateful set of servers in the IONOS CLOUD.
+// The number of replicas controls how many resources it creates in the IONOS CLOUD.
 // For 2 replicas defined, it will create for each: 1 server, 1 bootvolume, the nics configured(for each server).
 // Each sub-resource created(server, bootvolume, nic) will have it's own CR that can be observed using kubectl.
 // The SSet reads the active(master) identity from a configMap that needs to be named `config-lease`. If the configMap is not found, the active replica will be the first server created.
