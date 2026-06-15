@@ -155,9 +155,9 @@ cluster: $(KIND) $(KUBECTL) $(HELM)
 	@$(KUBECTL) config set-context kind-$(KIND_CLUSTER_NAME) --namespace=$(CROSSPLANE_NAMESPACE)
 
 dev: cluster
-	@$(INFO) Installing Provider IONOS Cloud CRDs
+	@$(INFO) Installing Provider IONOS CLOUD CRDs
 	@$(KUBECTL) apply -R -f package/crds
-	@$(INFO) Starting Provider IONOS Cloud controllers
+	@$(INFO) Starting Provider IONOS CLOUD controllers
 	@$(GO) run cmd/provider/main.go --debug
 
 cluster-clean: $(KIND) $(KUBECTL)

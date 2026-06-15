@@ -111,7 +111,7 @@ func (c *connectorDatabase) Connect(ctx context.Context, mg resource.Managed) (m
 // externalDatabase resource to ensure it reflects the managed resource's desired state.
 type externalDatabase struct {
 	// A 'client' used to connect to the externalDatabase resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
+	// would be something like an IONOS CLOUD SDK client.
 	service postgrescluster.ClusterClient
 	client  client.Client
 	log     logging.Logger

@@ -12,7 +12,7 @@ spec:
           containers:
           - args:
             - --debug
-            # In order to enable name uniqueness support for IONOS Cloud Resources, uncomment the next line:
+            # In order to enable name uniqueness support for IONOS CLOUD Resources, uncomment the next line:
             # - --unique-names
             name: package-runtime
             resources: {}

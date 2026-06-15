@@ -113,7 +113,7 @@ func (c *connectorPrivateCrossConnect) Connect(ctx context.Context, mg resource.
 // externalPrivateCrossConnect resource to ensure it reflects the managed resource's desired state.
 type externalPrivateCrossConnect struct {
 	// A 'client' used to connect to the externalPrivateCrossConnect resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
+	// would be something like an IONOS CLOUD SDK client.
 	service              pcc.Client
 	log                  logging.Logger
 	isUniqueNamesEnabled bool

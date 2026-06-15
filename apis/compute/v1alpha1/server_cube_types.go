@@ -135,11 +135,11 @@ type DasVolumeProperties struct {
 
 // Template refers to the Template used for Cube Servers.
 type Template struct {
-	// The name of the Template from IONOS Cloud.
+	// The name of the Template from IONOS CLOUD.
 	//
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="Template name is immutable"
 	Name string `json:"name,omitempty"`
-	// The ID of the Template from IONOS Cloud.
+	// The ID of the Template from IONOS CLOUD.
 	//
 	// +kubebuilder:validation:Format=uuid
 	TemplateID string `json:"templateId,omitempty"`

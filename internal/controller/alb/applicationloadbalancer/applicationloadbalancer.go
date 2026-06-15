@@ -110,7 +110,7 @@ func (c *connectorApplicationLoadBalancer) Connect(ctx context.Context, mg resou
 // externalApplicationLoadBalancer resource to ensure it reflects the managed resource's desired state.
 type externalApplicationLoadBalancer struct {
 	// A 'client' used to connect to the externalApplicationLoadBalancer resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
+	// would be something like an IONOS CLOUD SDK client.
 	service              applicationloadbalancer.Client
 	ipBlockService       ipblock.Client
 	log                  logging.Logger

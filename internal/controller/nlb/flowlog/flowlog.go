@@ -112,7 +112,7 @@ func (c *connectorFlowLog) Connect(ctx context.Context, mg resource.Managed) (ma
 // externalFlowLog resource to ensure it reflects the managed resource's desired state.
 type externalFlowLog struct {
 	// A 'client' used to connect to the externalFlowLog resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
+	// would be something like an IONOS CLOUD SDK client.
 	service              flowlog.NLBFlowLog
 	log                  logging.Logger
 	isUniqueNamesEnabled bool

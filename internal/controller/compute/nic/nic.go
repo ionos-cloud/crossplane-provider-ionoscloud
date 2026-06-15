@@ -116,7 +116,7 @@ func (c *connectorNic) Connect(ctx context.Context, mg resource.Managed) (manage
 // externalNic resource to ensure it reflects the managed resource's desired state.
 type externalNic struct {
 	// A 'client' used to connect to the externalNic resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
+	// would be something like an IONOS CLOUD SDK client.
 	service              nic.Client
 	ipBlockService       ipblock.Client
 	log                  logging.Logger
@@ -308,7 +308,7 @@ func (c *externalNic) Delete(ctx context.Context, mg resource.Managed) (managed.
 
 // getIpsSet will return ips set by the user on ips or ipsConfig fields of the spec.
 // If both fields are set, only the ips field will be considered by the Crossplane
-// Provider IONOS Cloud.
+// Provider IONOS CLOUD.
 func (c *externalNic) getIpsSet(ctx context.Context, cr *v1alpha1.Nic) ([]string, error) {
 	if len(cr.Spec.ForProvider.IpsCfg.IPs) == 0 && len(cr.Spec.ForProvider.IpsCfg.IPBlockCfgs) == 0 {
 		return nil, nil

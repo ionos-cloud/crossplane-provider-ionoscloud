@@ -109,7 +109,7 @@ func (c *connectorNetworkLoadBalancer) Connect(ctx context.Context, mg resource.
 // externalNetworkLoadBalancer resource to ensure it reflects the managed resource's desired state.
 type externalNetworkLoadBalancer struct {
 	// A 'client' used to connect to the externalNetworkLoadBalancer resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
+	// would be something like an IONOS CLOUD SDK client.
 	service              networkloadbalancer.Client
 	ipBlockService       ipblock.Client
 	log                  logging.Logger

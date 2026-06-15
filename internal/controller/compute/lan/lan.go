@@ -115,7 +115,7 @@ func (c *connectorLan) Connect(ctx context.Context, mg resource.Managed) (manage
 // externalLan resource to ensure it reflects the managed resource's desired state.
 type externalLan struct {
 	// A 'client' used to connect to the externalLan resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
+	// would be something like an IONOS CLOUD SDK client.
 	service              lan.Client
 	log                  logging.Logger
 	isUniqueNamesEnabled bool

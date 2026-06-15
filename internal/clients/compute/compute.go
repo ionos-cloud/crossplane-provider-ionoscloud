@@ -35,7 +35,7 @@ const (
 
 const POSTRequestIDAnnotationKey = "ionos.cloud/post-request-id"
 
-// ExtractRequestID extracts the IONOS Cloud request ID from the Location header
+// ExtractRequestID extracts the IONOS CLOUD request ID from the Location header
 // of an API response, which has the following format:
 //
 //	https://api.ionos.com/cloudapi/v6/requests/{requestID}/status

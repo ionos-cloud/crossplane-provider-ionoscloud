@@ -47,7 +47,7 @@ EOF
 function uninstall_provider() {
   echo_step "uninstalling ${PROJECT_NAME} from \"${CROSSPLANE_NAMESPACE}\" namespace"
   # after deleting the ProviderConfig, it is safe to
-  # also delete the Provider IONOS Cloud
+  # also delete the Provider IONOS CLOUD
   INSTALL_CRED_YAML="$(
     cat <<EOF
 apiVersion: ionoscloud.crossplane.io/v1alpha1

@@ -297,14 +297,14 @@
 ## [1.0.0] (July 2022)
 
 - **Features**:
-    - Added `--unique-names` option support for name uniqueness for IONOS Cloud resources;
+    - Added `--unique-names` option support for name uniqueness for IONOS CLOUD resources;
     - Added check for `spec.forProvider.name` field on `NodePool` K8s Managed Resource - for reconciliation loops;
-    - Added check for resources to be updated when name from IONOS Cloud is empty and `spec.forProvider.name` is not
+    - Added check for resources to be updated when name from IONOS CLOUD is empty and `spec.forProvider.name` is not
       empty;
 - **Fixes**:
     - Removed read-only field `mac` from `Nic` Compute Managed Resource:
         - New field: `status.atProvider.mac`;
-    - Updated User Agent for Crossplane Provider for IONOS Cloud to contain provider version;
+    - Updated User Agent for Crossplane Provider for IONOS CLOUD to contain provider version;
 - **Documentation**:
     - Updated documentation with the `--unique-names` option support.
 
@@ -367,7 +367,7 @@
 
 ## [1.0.0-beta.1] (May 2022)
 
-**First release of the Crossplane Provider IONOS Cloud!** 🎉
+**First release of the Crossplane Provider IONOS CLOUD!** 🎉
 
 - **Features**:
     - Added Managed Resources:
@@ -392,7 +392,7 @@
       FirewallRule, NodePools;
 - **Documentation**:
     - Added [step-by-step guide](../examples/example.md) for installing a DBaaS Postgres Cluster using Crossplane
-      Provider IONOS Cloud;
+      Provider IONOS CLOUD;
     - Added overview of Managed Resources and Cloud Services Resources supported. See [here](RESOURCES.md);
     - Added examples of configuration files for creating resources. See [examples](../examples);
     - Added example for Compositions and Claims. See [example](RESOURCES.md#compositions-and-claims).

@@ -114,7 +114,7 @@ func (c *connectorFirewallRule) Connect(ctx context.Context, mg resource.Managed
 // externalFirewallRule resource to ensure it reflects the managed resource's desired state.
 type externalFirewallRule struct {
 	// A 'client' used to connect to the externalFirewallRule resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
+	// would be something like an IONOS CLOUD SDK client.
 	service              firewallrule.Client
 	ipBlockService       ipblock.Client
 	log                  logging.Logger
@@ -321,7 +321,7 @@ func (c *externalFirewallRule) Delete(ctx context.Context, mg resource.Managed) 
 // getTargetIPSet will return the TargetIP set by the user on targetIpConfig.ip or
 // targetIpConfig.ipBlockConfig fields of the spec.
 // If both fields are set, only the targetIpConfig.ip field will be considered by
-// the Crossplane Provider IONOS Cloud.
+// the Crossplane Provider IONOS CLOUD.
 func (c *externalFirewallRule) getTargetIPSet(ctx context.Context, cr *v1alpha1.FirewallRule) (string, error) {
 	if cr.Spec.ForProvider.TargetIPCfg.IP != "" {
 		return cr.Spec.ForProvider.TargetIPCfg.IP, nil
@@ -345,7 +345,7 @@ func (c *externalFirewallRule) getTargetIPSet(ctx context.Context, cr *v1alpha1.
 // getSourceIPSet will return the SourceIP set by the user on sourceIpConfig.ip or
 // sourceIpConfig.ipBlockConfig fields of the spec.
 // If both fields are set, only the sourceIpConfig.ip field will be considered by
-// the Crossplane Provider IONOS Cloud.
+// the Crossplane Provider IONOS CLOUD.
 func (c *externalFirewallRule) getSourceIPSet(ctx context.Context, cr *v1alpha1.FirewallRule) (string, error) {
 	if cr.Spec.ForProvider.SourceIPCfg.IP != "" {
 		return cr.Spec.ForProvider.SourceIPCfg.IP, nil
