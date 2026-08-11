@@ -195,6 +195,7 @@ jobs:
           format: 'sarif'
           exit-code: 1
           severity: 'CRITICAL,HIGH'
+          limit-severities-for-sarif: true
           output: 'trivy-results.sarif'
       - name: Upload Trivy scan results to GitHub Security tab
         if: ${{ failure() && steps.trivy-scan.conclusion == 'failure' }}

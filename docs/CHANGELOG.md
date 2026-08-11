@@ -1,6 +1,9 @@
 ## [1.2.5] (August 2026)
 ### Fixes:
 - Omit `nodeCount` from the k8s nodepool update request when autoscaling is enabled, so the autoscaled node count is no longer reset on update.
+### Chore
+- Bump Go to 1.26.5 and update `golang.org/x/crypto`, `golang.org/x/net`, `golang.org/x/text` and `google.golang.org/grpc` to fix CVEs.
+- Make the trivy scans honor their `CRITICAL,HIGH` severity filter via `limit-severities-for-sarif`, so unfixable low-severity advisories no longer fail ci, ci-weekly and cd.
 
 ## [1.2.4] (May 2026)
 ### Fixes:
