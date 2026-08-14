@@ -24,7 +24,7 @@ const (
 	ionoscloudServiceName     = "ionoscloud"
 )
 
-// NOTES - new integrating a new service into Crossplane Provider IONOS CLOUD:
+// NOTES - when integrating a new service into Crossplane Provider IONOS CLOUD:
 // * Check the exceptionsFileNamesExamples collection below in case the example is provided under a different name than <resource-name>.yaml.
 // * Check the servicesAbbrevDirectoriesMap collection below and define the new service's entire name to be used in directory naming (the directory can be created or not).
 // * You can easily generate documentation automatically using `make docs.update` target.
