@@ -594,16 +594,26 @@ func getIdentityFromStatus(statuses []v1alpha1.ServerSetReplicaStatus) int {
 func (e *external) updateOrRecreateVolumes(ctx context.Context, cr *v1alpha1.ServerSet, volumes []v1alpha1.Volume, masterIndex int) error {
 	recreateLeader := false
 	for idx := range volumes {
+		// The volumes slice comes from an unsorted client.List() (GetVolumesOfSSet), so its
+		// list position does not necessarily match the volume's own replica index. Derive the
+		// real replica index from the volume's index label (same pattern as
+		// populateReplicasStatuses) instead of trusting raw loop position.
+		replicaIdx := ComputeReplicaIdx(e.log, fmt.Sprintf(indexLabel, cr.Name, resourceBootVolume), volumes[idx].Labels)
+		if replicaIdx == -1 {
+			e.log.Info("could not determine replica index for volume, skipping", "serverset", cr.Name, "volume", volumes[idx].Name)
+			continue
+		}
+
 		update := false
 		deleteAndCreate := false
 		update, deleteAndCreate = updateOrRecreate(&volumes[idx].Spec.ForProvider, cr.Spec.ForProvider.BootVolumeTemplate.Spec)
 		if deleteAndCreate {
 			// we want to recreate master at the end
-			if masterIndex == idx {
+			if masterIndex == replicaIdx {
 				recreateLeader = true
 				continue
 			}
-			err := e.updateWithFailoverOrchestration(ctx, cr, idx)
+			err := e.updateWithFailoverOrchestration(ctx, cr, replicaIdx)
 			if err != nil {
 				return err
 			}
