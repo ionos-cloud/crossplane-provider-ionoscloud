@@ -12,6 +12,7 @@ import (
 type ConfigurationOptions struct {
 	CreationGracePeriod      time.Duration
 	Timeout                  time.Duration
+	VMRebootTimeout          time.Duration
 	IsUniqueNamesEnabled     bool
 	MaxReconcilesPerResource map[string]int
 	// PollJitterPercentage is the percentage of its poll interval by which a single
@@ -25,11 +26,12 @@ type ConfigurationOptions struct {
 }
 
 // NewConfigurationOptions sets fields for ConfigurationOptions and return a new ConfigurationOptions
-func NewConfigurationOptions(timeout, createGracePeriod time.Duration, uniqueNamesEnable bool, ctrlOpts controller.Options) *ConfigurationOptions {
+func NewConfigurationOptions(timeout, createGracePeriod, vmRebootTimeout time.Duration, uniqueNamesEnable bool, ctrlOpts controller.Options) *ConfigurationOptions {
 	return &ConfigurationOptions{
 		CreationGracePeriod:  createGracePeriod,
 		IsUniqueNamesEnabled: uniqueNamesEnable,
 		Timeout:              timeout,
+		VMRebootTimeout:      vmRebootTimeout,
 		CtrlOpts:             ctrlOpts,
 	}
 }
@@ -72,6 +74,14 @@ func (o *ConfigurationOptions) GetTimeout() time.Duration {
 		return 0
 	}
 	return o.Timeout
+}
+
+// GetVMRebootTimeout returns the value for the VMRebootTimeout option
+func (o *ConfigurationOptions) GetVMRebootTimeout() time.Duration {
+	if o == nil {
+		return 0
+	}
+	return o.VMRebootTimeout
 }
 
 // GetIsUniqueNamesEnabled returns the value for the IsUniqueNamesEnabled option

@@ -60,6 +60,7 @@ func main() {
 		createGracePeriod          = app.Flag("create-grace-period", "Grace period for creation of IONOS Cloud resources.").Default("1m").Duration()
 		maxReconcileRate           = app.Flag("max-reconcile-rate", "The global maximum rate per second at which resources may checked for drift from the desired state.").Default("10").Int()
 		timeout                    = app.Flag("timeout", "Timeout duration cumulatively for all the calls happening in the reconciliation functions.").Default("1h").Duration()
+		vmRebootTimeout            = app.Flag("vm-reboot-timeout", "Timeout to wait for a VM to reboot and report as ready again after a failover, for ServerSets using a custom state map. Must not exceed --timeout, or the wait will be cut short by the overall reconcile deadline.").Default("120m").Duration()
 		pollStateMetricInterval    = app.Flag("poll-state-metric", "State metric recording interval").Default("5s").Duration()
 		pollJitterPercentage       = app.Flag("poll-jitter-percentage", "Percentage of the poll interval by which an individual resource's poll interval may be randomly shifted, in either direction. 0 disables jitter, and it must be less than 100.").Default("0").Uint()
 		pollNotReady               = app.Flag("poll-not-ready", "Poll interval for a resource that is not ready yet, used in place of --poll while it is not ready. 0 leaves resources that are not ready on the --poll interval.").Default("0").Duration()
@@ -135,7 +136,7 @@ func main() {
 
 	kingpin.FatalIfError(utils.ValidatePollJitterPercentage(*pollJitterPercentage), "Invalid --poll-jitter-percentage")
 
-	options := utils.NewConfigurationOptions(*timeout, *createGracePeriod, *uniqueNames, ctrlOpts)
+	options := utils.NewConfigurationOptions(*timeout, *createGracePeriod, *vmRebootTimeout, *uniqueNames, ctrlOpts)
 	options.PollJitterPercentage = *pollJitterPercentage
 	options.NotReadyPollInterval = *pollNotReady
 	if len(*reconcileMap) > 0 {

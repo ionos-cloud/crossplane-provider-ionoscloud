@@ -76,6 +76,9 @@ type connector struct {
 	kubeConfigmapController kubeConfigmapControlManager
 	usage                   resource.Tracker
 	log                     logging.Logger
+	// vmRebootTimeout is how long to wait for a VM to reboot and report as ready again after a
+	// failover, for ServerSets using a custom state map.
+	vmRebootTimeout time.Duration
 }
 
 // Connect typically produces an ExternalClient by:
@@ -101,6 +104,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		serverController:       c.serverController,
 		firewallRuleController: c.firewallRuleController,
 		configMapController:    c.kubeConfigmapController,
+		vmRebootTimeout:        c.vmRebootTimeout,
 	}, err
 }
 
@@ -116,6 +120,9 @@ type external struct {
 	firewallRuleController kubeFirewallRuleControlManager
 	configMapController    kubeConfigmapControlManager
 	log                    logging.Logger
+	// vmRebootTimeout is how long to wait for a VM to reboot and report as ready again after a
+	// failover, for ServerSets using a custom state map.
+	vmRebootTimeout time.Duration
 }
 
 func (e *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint:gocyclo
@@ -561,7 +568,7 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 				e.log.Info("Server has been updated and uses custom state map, waiting for reboot to finish", "serverset", cr.Name, "server", servers[idx].Name)
 				// After reboot, wait for server to be in running state again before proceeding to next replica
 				if err := kube.WaitForResource(
-					ctx, kube.VMRebootTimeout, func(ctx context.Context, mapName, mapNamespace string) (bool, error) {
+					ctx, e.vmRebootTimeout, func(ctx context.Context, mapName, mapNamespace string) (bool, error) {
 						return e.isVMSoftwareRunning(ctx, requestTimestamp, servers[idx].Name, mapName, mapNamespace)
 					}, cr.Spec.ForProvider.Template.Spec.StateMap.Name, cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
 				); err != nil {
@@ -674,7 +681,7 @@ func (e *external) updateWithFailoverOrchestration(ctx context.Context, cr *v1al
 			return fmt.Errorf("could not find server with replica index %d of serverset %s to wait for its reboot", replicaIndex, cr.Name)
 		}
 		if err := kube.WaitForResource(
-			ctx, kube.VMRebootTimeout, func(ctx context.Context, mapName, mapNamespace string) (bool, error) {
+			ctx, e.vmRebootTimeout, func(ctx context.Context, mapName, mapNamespace string) (bool, error) {
 				return e.isVMSoftwareRunning(ctx, requestTimestamp, serverObj.Name, mapName, mapNamespace)
 			}, cr.Spec.ForProvider.Template.Spec.StateMap.Name, cr.Spec.ForProvider.Template.Spec.StateMap.Namespace,
 		); err != nil {

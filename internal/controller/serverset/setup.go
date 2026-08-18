@@ -46,6 +46,7 @@ func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			managed.WithExternalConnecter(&connector{
 				kube:                    mgr.GetClient(),
 				kubeConfigmapController: &mapController,
+				vmRebootTimeout:         opts.GetVMRebootTimeout(),
 				bootVolumeController: &kubeBootVolumeController{
 					kube:          mgr.GetClient(),
 					log:           logger,
