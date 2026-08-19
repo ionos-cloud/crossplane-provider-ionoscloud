@@ -1494,6 +1494,12 @@ spec:
                           format: int64
                           type: integer
                         replicaIndex:
+                          description: |-
+                            ReplicaIndex is the index of the replica this status belongs to. It is the index shared by
+                            all resources of that replica (server, boot volume, NICs) and is the value appended to
+                            their names and stored in their index labels.
+                            The entries of ReplicaStatuses are not ordered by it - the position of an entry in the
+                            array carries no meaning - so always read the replica identity from this field.
                           type: integer
                         role:
                           description: |-

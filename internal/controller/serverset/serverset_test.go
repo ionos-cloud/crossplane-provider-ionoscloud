@@ -1904,6 +1904,146 @@ func Test_serverSetController_updateOrRecreateVolumes_usesReplicaIndexLabelNotLi
 	bootVolumeController.AssertCalled(t, ensureMethod, mock.Anything, cr, 1, 1)
 }
 
+// Test_getIdentityFromStatus_returnsReplicaIndexNotSlicePosition
+// reproduces the second half of the ICNAS-854 index/position mismatch.
+//
+// populateReplicasStatuses() writes cr.Status.AtProvider.ReplicaStatuses[i] at the *list
+// position* i of the unsorted GetServersOfSSet() result and stores the server's real replica
+// index in the ReplicaIndex field. getIdentityFromStatus() currently returns the loop position
+// instead of that field, so masterIndex is a slice position.
+//
+// That value is then used as if it were a replica index: updateOrRecreateVolumes() compares it
+// against the label-derived replica index (serverset.go: `if masterIndex == replicaIdx`) and,
+// when the leader's volume needs recreating, passes it to updateWithFailoverOrchestration().
+// Whenever list order differs from replica-index order (the >=10 replica / mixed volume-version
+// name-sorting case from ICNAS-854), the leader is either recreated inline - losing the
+// "recreate the leader last" ordering - or the deferred recreation is driven for the wrong
+// replica.
+func Test_getIdentityFromStatus_returnsReplicaIndexNotSlicePosition(t *testing.T) {
+	// Deliberate position/index mismatch, exactly as client.List() name-sorting produces it:
+	// "server-name-10-0" sorts before "server-name-2-0", so the leader (replica index 2) ends up
+	// at slice position 1.
+	statuses := []v1alpha1.ServerSetReplicaStatus{
+		{Name: "server-name-10-0", ReplicaIndex: 10, Role: v1alpha1.Passive},
+		{Name: "server-name-2-0", ReplicaIndex: 22, Role: v1alpha1.Active},
+	}
+
+	assert.Equal(t, 22, getIdentityFromStatus(statuses),
+		"the leader must be identified by its replica index, not by its position in the status slice")
+}
+
+// Test_serverSetController_updateWithFailoverOrchestration_usesServerMatchingReplicaIndexNotListPosition
+// reproduces the same index/position mismatch inside updateWithFailoverOrchestration().
+//
+// The function receives a replica index but then picks the server object with
+// `serverObj := servers[replicaIndex]`, indexing the unsorted GetServersOfSSet() slice by
+// replica index. serverObj is what the post-update state-map wait polls, so a mismatch makes it
+// watch the wrong VM - and when the replica index is not a valid position in the slice, the
+// lookup panics with index out of range.
+//
+// The setup below is the ordinary mid-recreation state: replica 1's server has been deleted and
+// not yet recreated, so the serverset temporarily has servers for replica indices 0 and 2 only.
+// Driving a boot-volume recreation for replica 2 then indexes servers[2] on a 2-element slice.
+//
+// The serverset uses a state map, so that the post-update reboot wait - the only consumer of the
+// server object resolved out of the list - is actually exercised.
+//
+// This test asserts the CORRECT (post-fix) behavior: the server has to be looked up by its index
+// label, the way getServerVersion() does.
+func Test_serverSetController_updateWithFailoverOrchestration_usesServerMatchingReplicaIndexNotListPosition(t *testing.T) {
+	ctx := context.Background()
+	cr := createBasicServerSetWithStateMap()
+
+	server0 := createServer("server-name-0-0")
+	server0.Labels[computeIndexLabel(ResourceServer)] = "0"
+	server0.Labels[computeVersionLabel(ResourceServer)] = "0"
+	server2 := createServer("server-name-2-0")
+	server2.Labels[computeIndexLabel(ResourceServer)] = "2"
+	server2.Labels[computeVersionLabel(ResourceServer)] = "0"
+
+	// Both existing replicas report a healthy, freshly refreshed runtime state, so neither the
+	// pre-update areAllVMsReadyForFailover() check nor the post-update reboot wait blocks.
+	stateMap := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      stateMapName,
+			Namespace: stateMapNamespace,
+		},
+		Data: map[string]string{
+			fmt.Sprintf(stateKeyFormat, server0.Name):          statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, server0.Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
+			fmt.Sprintf(stateKeyFormat, server2.Name):          statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, server2.Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
+		},
+	}
+
+	kubeClient := &kubeClientFake{
+		Client: fakeKubeClientObjs(server0, server2, stateMap,
+			createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-0-0", 0),
+			createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-2-0", 2)),
+	}
+	kubeClient.On(updateMethod, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	e := external{
+		kube: kubeClient,
+		bootVolumeController: &kubeBootVolumeCallTracker{
+			lastMethodCall: make(map[ServiceMethodName][]any),
+		},
+		serverController: &kubeServerCallTracker{
+			lastMethodCall: make(map[ServiceMethodName][]any),
+		},
+		log: logging.NewNopLogger(),
+	}
+
+	var err error
+	require.NotPanics(t, func() {
+		err = e.updateWithFailoverOrchestration(ctx, cr, 2)
+	}, "the server must be resolved via its replica-index label, not by indexing the unsorted servers slice")
+	require.NoError(t, err)
+}
+
+// Test_serverSetController_updateServersFromTemplate_usesReplicaIndexLabelNotListPosition
+// reproduces the same index/position mismatch in updateServersFromTemplate().
+//
+// The loop variable `idx` is used both as a list position (servers[idx]) and as a replica index
+// (getVolumeVersion(..., idx) and getNameFrom(..., idx, ...)), so a server is diffed against
+// whatever boot volume happens to share its list position. Because checkServerDiff() reads the
+// CPU/RAM hotplug flags off that boot volume to decide whether a failover-triggering reboot is
+// needed, the wrong volume yields the wrong failover decision - and when no volume carries the
+// list position as its index label, the whole update reconcile aborts.
+//
+// Setup: replica 1 is mid-recreation, so servers and boot volumes exist for replica indices 0
+// and 2 only, and the template bumps Cores (hotplug is enabled, so this is an in-place update
+// with no failover wait). Both remaining replicas must be updated.
+func Test_serverSetController_updateServersFromTemplate_usesReplicaIndexLabelNotListPosition(t *testing.T) {
+	ctx := context.Background()
+	cr := createBasicServerSet()
+	cr.Spec.ForProvider.Template.Spec.Cores = serverSetCores + 1
+
+	server0 := createServer("server-name-0-0")
+	server0.Labels[computeIndexLabel(ResourceServer)] = "0"
+	server0.Labels[computeVersionLabel(ResourceServer)] = "0"
+	server2 := createServer("server-name-2-0")
+	server2.Labels[computeIndexLabel(ResourceServer)] = "2"
+	server2.Labels[computeVersionLabel(ResourceServer)] = "0"
+
+	kubeClient := &kubeClientFake{
+		Client: fakeKubeClientObjs(server0, server2,
+			createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-0-0", 0),
+			createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-2-0", 2)),
+	}
+	kubeClient.On(updateMethod, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	e := external{
+		kube: kubeClient,
+		log:  logging.NewNopLogger(),
+	}
+
+	err := e.updateServersFromTemplate(ctx, cr)
+
+	require.NoError(t, err, "each server must be paired with the boot volume carrying its own replica-index label")
+	kubeClient.AssertNumberOfCalls(t, updateMethod, 2)
+}
+
 // func Test_serverSetController_Delete(t *testing.T) {
 // 	type fields struct {
 // 		kube client.Client
