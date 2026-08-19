@@ -9,6 +9,61 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
 )
 
+func TestGenerateUpdateK8sNodePoolInput_AutoScalingOmitsNodeCount(t *testing.T) {
+	cr := &v1alpha1.NodePool{
+		Spec: v1alpha1.NodePoolSpec{
+			ForProvider: v1alpha1.NodePoolParameters{
+				Name:       "test-pool",
+				ServerType: "VCPU",
+				NodeCount:  3,
+				AutoScaling: v1alpha1.KubernetesAutoScaling{
+					MinNodeCount: 2,
+					MaxNodeCount: 10,
+				},
+			},
+		},
+	}
+
+	result := GenerateUpdateK8sNodePoolInput(cr, nil)
+
+	if result.Properties.NodeCount != nil {
+		t.Errorf("NodeCount should be nil when AutoScaling is set, got %d", *result.Properties.NodeCount)
+	}
+	if result.Properties.AutoScaling == nil {
+		t.Fatal("AutoScaling should be set")
+	}
+	if *result.Properties.AutoScaling.MinNodeCount != 2 {
+		t.Errorf("MinNodeCount = %d, want 2", *result.Properties.AutoScaling.MinNodeCount)
+	}
+	if *result.Properties.AutoScaling.MaxNodeCount != 10 {
+		t.Errorf("MaxNodeCount = %d, want 10", *result.Properties.AutoScaling.MaxNodeCount)
+	}
+}
+
+func TestGenerateUpdateK8sNodePoolInput_NoAutoScalingIncludesNodeCount(t *testing.T) {
+	cr := &v1alpha1.NodePool{
+		Spec: v1alpha1.NodePoolSpec{
+			ForProvider: v1alpha1.NodePoolParameters{
+				Name:       "test-pool",
+				ServerType: "VCPU",
+				NodeCount:  5,
+			},
+		},
+	}
+
+	result := GenerateUpdateK8sNodePoolInput(cr, nil)
+
+	if result.Properties.NodeCount == nil {
+		t.Fatal("NodeCount should be set when AutoScaling is not configured")
+	}
+	if *result.Properties.NodeCount != 5 {
+		t.Errorf("NodeCount = %d, want 5", *result.Properties.NodeCount)
+	}
+	if result.Properties.AutoScaling != nil {
+		t.Errorf("AutoScaling should be nil when not configured")
+	}
+}
+
 func TestIsNodePoolUpToDate(t *testing.T) {
 	type args struct {
 		cr       *v1alpha1.NodePool
