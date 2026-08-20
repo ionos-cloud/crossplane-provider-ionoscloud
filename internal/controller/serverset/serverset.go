@@ -505,12 +505,20 @@ func (e *external) updateServersFromTemplate(ctx context.Context, cr *v1alpha1.S
 		return err
 	}
 	for idx := range servers {
+		// servers comes from an unsorted client.List(), so the list position is not the replica
+		// index. Derive the real replica index from the server's index label, otherwise the
+		// server gets paired with another replica's boot volume below.
+		replicaIdx := ComputeReplicaIdx(e.log, fmt.Sprintf(indexLabel, cr.Name, ResourceServer), servers[idx].Labels)
+		if replicaIdx == -1 {
+			return fmt.Errorf("could not determine replica index for server %s of serverset %s", servers[idx].Name, cr.Name)
+		}
+
 		// Retrieve the boot-volume associated with the server, so we can check hotplug settings for CPU/RAM changes
-		volumeVersion, err := getVolumeVersion(ctx, e.kube, cr.GetName(), idx)
+		volumeVersion, err := getVolumeVersion(ctx, e.kube, cr.GetName(), replicaIdx)
 		if err != nil {
 			return fmt.Errorf("error getting boot volume version for server %s: %w", servers[idx].Name, err)
 		}
-		bootVolumeName := getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, idx, volumeVersion)
+		bootVolumeName := getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIdx, volumeVersion)
 		bootVolume := &v1alpha1.Volume{}
 		if err := e.kube.Get(ctx, types.NamespacedName{
 			Name:      bootVolumeName,
@@ -585,7 +593,10 @@ func (e *external) reconcileVolumesFromTemplate(ctx context.Context, cr *v1alpha
 func getIdentityFromStatus(statuses []v1alpha1.ServerSetReplicaStatus) int {
 	for idx := range statuses {
 		if statuses[idx].Role == v1alpha1.Active {
-			return idx
+			// The statuses are stored in the (unsorted) list position of the servers they were
+			// computed from, so the slice position is not the replica index. Callers treat the
+			// returned value as a replica index, so return the index the status carries.
+			return statuses[idx].ReplicaIndex
 		}
 	}
 	return -1
@@ -594,16 +605,26 @@ func getIdentityFromStatus(statuses []v1alpha1.ServerSetReplicaStatus) int {
 func (e *external) updateOrRecreateVolumes(ctx context.Context, cr *v1alpha1.ServerSet, volumes []v1alpha1.Volume, masterIndex int) error {
 	recreateLeader := false
 	for idx := range volumes {
+		// The volumes slice comes from an unsorted client.List() (GetVolumesOfSSet), so its
+		// list position does not necessarily match the volume's own replica index. Derive the
+		// real replica index from the volume's index label (same pattern as
+		// populateReplicasStatuses) instead of trusting raw loop position.
+		replicaIdx := ComputeReplicaIdx(e.log, fmt.Sprintf(indexLabel, cr.Name, resourceBootVolume), volumes[idx].Labels)
+		if replicaIdx == -1 {
+			e.log.Info("could not determine replica index for volume, skipping", "serverset", cr.Name, "volume", volumes[idx].Name)
+			continue
+		}
+
 		update := false
 		deleteAndCreate := false
 		update, deleteAndCreate = updateOrRecreate(&volumes[idx].Spec.ForProvider, cr.Spec.ForProvider.BootVolumeTemplate.Spec)
 		if deleteAndCreate {
 			// we want to recreate master at the end
-			if masterIndex == idx {
+			if masterIndex == replicaIdx {
 				recreateLeader = true
 				continue
 			}
-			err := e.updateWithFailoverOrchestration(ctx, cr, idx)
+			err := e.updateWithFailoverOrchestration(ctx, cr, replicaIdx)
 			if err != nil {
 				return err
 			}
@@ -645,9 +666,13 @@ func (e *external) updateWithFailoverOrchestration(ctx context.Context, cr *v1al
 		return err
 	}
 
-	serverObj := servers[replicaIndex]
-
 	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
+		// servers comes from an unsorted client.List(), so it cannot be indexed by replica
+		// index - the server of this replica has to be looked up by its index label.
+		serverObj := e.findServerByReplicaIndex(cr, servers, replicaIndex)
+		if serverObj == nil {
+			return fmt.Errorf("could not find server with replica index %d of serverset %s to wait for its reboot", replicaIndex, cr.Name)
+		}
 		if err := kube.WaitForResource(
 			ctx, kube.VMRebootTimeout, func(ctx context.Context, mapName, mapNamespace string) (bool, error) {
 				return e.isVMSoftwareRunning(ctx, requestTimestamp, serverObj.Name, mapName, mapNamespace)
@@ -657,6 +682,19 @@ func (e *external) updateWithFailoverOrchestration(ctx context.Context, cr *v1al
 		}
 	}
 
+	return nil
+}
+
+// findServerByReplicaIndex returns the server of the given replica out of an unsorted server
+// list, matching on the replica index label instead of the list position. Returns nil if no
+// server of the serverset carries that replica index.
+func (e *external) findServerByReplicaIndex(cr *v1alpha1.ServerSet, servers []v1alpha1.Server, replicaIndex int) *v1alpha1.Server {
+	idxLabel := fmt.Sprintf(indexLabel, cr.Name, ResourceServer)
+	for idx := range servers {
+		if ComputeReplicaIdx(e.log, idxLabel, servers[idx].Labels) == replicaIndex {
+			return &servers[idx]
+		}
+	}
 	return nil
 }
 
@@ -812,7 +850,11 @@ func AreBootVolumesReady(templateParams v1alpha1.BootVolumeTemplate, volumes []v
 	return true, true
 }
 
-// GetServersOfSSet - gets servers from a server set based on the serverset label
+// GetServersOfSSet - gets servers from a server set based on the serverset label.
+// The returned slice is in client.List() order, which is NOT replica index order: a server's
+// position in the slice says nothing about which replica it belongs to, and replica indices can
+// be sparse while a replica is being re-created. Never index this slice by replica index - read
+// the replica index off the server's index label with ComputeReplicaIdx instead.
 func GetServersOfSSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Server, error) {
 	serverList := &v1alpha1.ServerList{}
 	if err := kube.List(ctx, serverList, client.MatchingLabels{
@@ -824,7 +866,9 @@ func GetServersOfSSet(ctx context.Context, kube client.Client, name string) ([]v
 	return serverList.Items, nil
 }
 
-// GetVolumesOfSSet - gets volumes from a server set based on the serverset label
+// GetVolumesOfSSet - gets volumes from a server set based on the serverset label.
+// The returned slice is in client.List() order, which is NOT replica index order - see
+// GetServersOfSSet for why the position of a volume must never be used as its replica index.
 func GetVolumesOfSSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Volume, error) {
 	volumeList := &v1alpha1.VolumeList{}
 	if err := kube.List(ctx, volumeList, client.MatchingLabels{
@@ -836,7 +880,9 @@ func GetVolumesOfSSet(ctx context.Context, kube client.Client, name string) ([]v
 	return volumeList.Items, nil
 }
 
-// GetNICsOfSSet - gets all volumes of a server set
+// GetNICsOfSSet - gets all NICs of a server set.
+// The returned slice is in client.List() order, which is NOT replica index order - see
+// GetServersOfSSet for why the position of a NIC must never be used as its replica index.
 func GetNICsOfSSet(ctx context.Context, kube client.Client, name string) ([]v1alpha1.Nic, error) {
 	nicList := &v1alpha1.NicList{}
 	if err := kube.List(ctx, nicList, client.MatchingLabels{
@@ -990,7 +1036,10 @@ func getNameFrom(resourceName string, idx, version int) string {
 	return fmt.Sprintf("%s-%d-%d", resourceName, idx, version)
 }
 
-// ComputeReplicaIdx - extracts the replica index from the labels
+// ComputeReplicaIdx reads the replica index a resource belongs to from its index label, which is
+// the only trustworthy source of that index - see GetServersOfSSet. idxLabel is the label key,
+// built as fmt.Sprintf(indexLabel, serversetName, resourceType). Returns -1 if the label is
+// missing or does not hold a number.
 func ComputeReplicaIdx(log logging.Logger, idxLabel string, labels map[string]string) int {
 	idxLabelValue := labels[idxLabel]
 	replicaIdx, err := strconv.Atoi(idxLabelValue)

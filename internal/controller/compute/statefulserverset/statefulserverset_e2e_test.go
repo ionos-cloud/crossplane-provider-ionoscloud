@@ -379,7 +379,7 @@ var _ = Describe("StatefulServerSet E2E Tests", Ordered, func() {
 								Stype: "createBeforeDestroyBootVolume",
 							},
 							SetHotPlugsFromImage: false,
-							Image: "ed3217ee-1625-11f1-bab9-7eefb1856a73",
+							Image:                "ed3217ee-1625-11f1-bab9-7eefb1856a73",
 							Size:                 10,
 							Type:                 "SSD",
 							UserData:             "",
@@ -582,7 +582,7 @@ var _ = Describe("StatefulServerSet E2E Tests", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("changing the StatefulServerSet's boot volume image")
-			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.Image = "ed3217ee-1625-11f1-bab9-7eefb1856a73"
+			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.Image = "11c289cd-599f-11f1-bdd4-1ec7f3f448d1"
 			fetchedCR.Spec.ForProvider.BootVolumeTemplate.Spec.UserData = "I2Nsb3VkLWNvbmZpZwpydW5jbWQ6CiAgLSBlY2hvICJjbG91ZC1pbml0IHJhbiBzdWNjZXNzZnVsbHkgZm9yIGltYWdlIgogIC0gWyBscywgLWwsIC8gXQ=="
 			Expect(k8sClient.Update(testCtx, fetchedCR)).Should(Succeed())
 
