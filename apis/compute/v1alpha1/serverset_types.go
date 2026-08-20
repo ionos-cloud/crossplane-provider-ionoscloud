@@ -236,9 +236,14 @@ type ServerSetObservation struct {
 type ServerSetReplicaStatus struct {
 	xpv1.ResourceStatus `json:",inline"`
 	// +kubebuilder:validation:Enum=ACTIVE;PASSIVE
-	Role         Role        `json:"role"`
-	Name         string      `json:"name"`
-	Hostname     string      `json:"hostname"`
+	Role     Role   `json:"role"`
+	Name     string `json:"name"`
+	Hostname string `json:"hostname"`
+	// ReplicaIndex is the index of the replica this status belongs to. It is the index shared by
+	// all resources of that replica (server, boot volume, NICs) and is the value appended to
+	// their names and stored in their index labels.
+	// The entries of ReplicaStatuses are not ordered by it - the position of an entry in the
+	// array carries no meaning - so always read the replica identity from this field.
 	ReplicaIndex int         `json:"replicaIndex"`
 	NICStatuses  []NicStatus `json:"nicStatus,omitempty"`
 	// +kubebuilder:validation:Enum=UNKNOWN;READY;ERROR;BUSY
