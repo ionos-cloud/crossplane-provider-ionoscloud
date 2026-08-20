@@ -36,7 +36,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -2212,6 +2211,46 @@ func fakeKubeClientUpdateMethodWithNicMultiQueueServers(nmq *bool, expectedObj c
 	return &kubeClient
 }
 
+func fakeKubeClientUpdateMethodWithNicMultiQueueServersAndSuccessfulFailover(nmq *bool, expectedObj client.Object) client.Client {
+	kubeClient := kubeClientFake{
+		Client: fakeKubeClientObjs(
+			createServerWithNicMultiQueueAndUpdateSucceededCondition("server1", nmq),
+			createServerWithNicMultiQueueAndUpdateSucceededCondition("server2", nmq),
+			createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-0-0", 0), createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-1-0", 1),
+			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
+			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
+		),
+	}
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+		arg1 := args.Get(1)
+		if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObj) {
+			panic(fmt.Sprintf("Update called with unexpected type: want=%v, got=%v", reflect.TypeOf(expectedObj), reflect.TypeOf(arg1)))
+		}
+	}).Return(nil)
+
+	return &kubeClient
+}
+
+func fakeKubeClientUpdateMethodWithNicMultiQueueServersAndFailedFailover(nmq *bool, expectedObj client.Object) client.Client {
+	kubeClient := kubeClientFake{
+		Client: fakeKubeClientObjs(
+			createServerWithNicMultiQueueAndUpdateFailedCondition("server1", nmq),
+			createServerWithNicMultiQueueAndUpdateFailedCondition("server2", nmq),
+			createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-0-0", 0), createBootVolumeWithIndexLabelsWithoutHotPlug("bootvolumename-1-0", 1),
+			createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
+			createNic(v1alpha1.NicParameters{Name: "nic-server2"}),
+		),
+	}
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+		arg1 := args.Get(1)
+		if reflect.TypeOf(arg1) != reflect.TypeOf(expectedObj) {
+			panic(fmt.Sprintf("Update called with unexpected type: want=%v, got=%v", reflect.TypeOf(expectedObj), reflect.TypeOf(arg1)))
+		}
+	}).Return(nil)
+
+	return &kubeClient
+}
+
 func fakeKubeClientUpdateMethodWithSuccessfulFailover(expectedObject client.Object) client.Client {
 	kubeClient := kubeClientFake{
 		Client: fakeKubeClientObjs(
@@ -2761,6 +2800,24 @@ func createServer(name string) *v1alpha1.Server {
 
 func createServerWithNicMultiQueue(name string, nmq *bool) *v1alpha1.Server {
 	server := createServer(name)
+	server.Spec.ForProvider.NicMultiQueue = nmq
+	return server
+}
+
+// createServerWithNicMultiQueueAndUpdateSucceededCondition is for testing a NicMultiQueue
+// change, which now goes through the failover path: it needs the pre-change NicMultiQueue
+// value AND an already-succeeded update condition, or isUpdateFinished polls until timeout.
+func createServerWithNicMultiQueueAndUpdateSucceededCondition(name string, nmq *bool) *v1alpha1.Server {
+	server := createServerWithUpdateSucceededConditionSet(name)
+	server.Spec.ForProvider.NicMultiQueue = nmq
+	return server
+}
+
+// createServerWithNicMultiQueueAndUpdateFailedCondition is the failed-failover counterpart of
+// createServerWithNicMultiQueueAndUpdateSucceededCondition, used to prove that a NicMultiQueue
+// change actually goes through the failover/wait path rather than the non-failover path.
+func createServerWithNicMultiQueueAndUpdateFailedCondition(name string, nmq *bool) *v1alpha1.Server {
+	server := createServerWithUpdateFailedConditionSet(name)
 	server.Spec.ForProvider.NicMultiQueue = nmq
 	return server
 }
@@ -3345,8 +3402,8 @@ func Test_serverSetController_Observe_NicMultiQueue(t *testing.T) {
 			name: "NicMultiQueue equal via distinct pointers - up to date",
 			fields: fields{
 				kube: fakeKubeClientObjs(
-					createServerWithNicMultiQueue(server1Name, ptr.To(true)),
-					createServerWithNicMultiQueue(server2Name, ptr.To(true)),
+					createServerWithNicMultiQueue(server1Name, new(true)),
+					createServerWithNicMultiQueue(server2Name, new(true)),
 					bootVolume1, bootVolume2, nic1, nic2,
 				),
 			},
@@ -3356,7 +3413,7 @@ func Test_serverSetController_Observe_NicMultiQueue(t *testing.T) {
 					CPUFamily:     serverSetCPUFamily,
 					Cores:         serverSetCores,
 					RAM:           serverSetRAM,
-					NicMultiQueue: ptr.To(true),
+					NicMultiQueue: new(true),
 				}),
 			},
 			want: managed.ExternalObservation{
@@ -3399,7 +3456,7 @@ func Test_serverSetController_Observe_NicMultiQueue(t *testing.T) {
 					CPUFamily:     serverSetCPUFamily,
 					Cores:         serverSetCores,
 					RAM:           serverSetRAM,
-					NicMultiQueue: ptr.To(true),
+					NicMultiQueue: new(true),
 				}),
 			},
 			want: managed.ExternalObservation{
@@ -3413,8 +3470,8 @@ func Test_serverSetController_Observe_NicMultiQueue(t *testing.T) {
 			name: "NicMultiQueue template true, server false - not up to date",
 			fields: fields{
 				kube: fakeKubeClientObjs(
-					createServerWithNicMultiQueue(server1Name, ptr.To(false)),
-					createServerWithNicMultiQueue(server2Name, ptr.To(false)),
+					createServerWithNicMultiQueue(server1Name, new(false)),
+					createServerWithNicMultiQueue(server2Name, new(false)),
 					bootVolume1, bootVolume2, nic1, nic2,
 				),
 			},
@@ -3424,7 +3481,7 @@ func Test_serverSetController_Observe_NicMultiQueue(t *testing.T) {
 					CPUFamily:     serverSetCPUFamily,
 					Cores:         serverSetCores,
 					RAM:           serverSetRAM,
-					NicMultiQueue: ptr.To(true),
+					NicMultiQueue: new(true),
 				}),
 			},
 			want: managed.ExternalObservation{
@@ -3472,13 +3529,14 @@ func Test_serverSetController_Update_NicMultiQueue(t *testing.T) {
 		fields          fields
 		args            args
 		wantErr         error
+		wantWrappedErr  error
 		want            managed.ExternalUpdate
 		wantUpdateCalls int
 	}{
 		{
 			name: "NicMultiQueue both equal (no update)",
 			fields: fields{
-				kube: fakeKubeClientUpdateMethodWithNicMultiQueueServers(ptr.To(true), &v1alpha1.Server{}),
+				kube: fakeKubeClientUpdateMethodWithNicMultiQueueServers(new(true), &v1alpha1.Server{}),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
@@ -3487,7 +3545,7 @@ func Test_serverSetController_Update_NicMultiQueue(t *testing.T) {
 					CPUFamily:     serverSetCPUFamily,
 					Cores:         serverSetCores,
 					RAM:           serverSetRAM,
-					NicMultiQueue: ptr.To(true),
+					NicMultiQueue: new(true),
 				}),
 			},
 			wantErr: nil,
@@ -3515,7 +3573,7 @@ func Test_serverSetController_Update_NicMultiQueue(t *testing.T) {
 		{
 			name: "NicMultiQueue old nil, cr true (update)",
 			fields: fields{
-				kube: fakeKubeClientUpdateMethod(&v1alpha1.Server{}),
+				kube: fakeKubeClientUpdateMethodWithNicMultiQueueServersAndSuccessfulFailover(nil, &v1alpha1.Server{}),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
@@ -3524,7 +3582,7 @@ func Test_serverSetController_Update_NicMultiQueue(t *testing.T) {
 					CPUFamily:     serverSetCPUFamily,
 					Cores:         serverSetCores,
 					RAM:           serverSetRAM,
-					NicMultiQueue: ptr.To(true),
+					NicMultiQueue: new(true),
 				}),
 			},
 			wantErr: nil,
@@ -3536,7 +3594,7 @@ func Test_serverSetController_Update_NicMultiQueue(t *testing.T) {
 		{
 			name: "NicMultiQueue old true, cr false (update)",
 			fields: fields{
-				kube: fakeKubeClientUpdateMethodWithNicMultiQueueServers(ptr.To(true), &v1alpha1.Server{}),
+				kube: fakeKubeClientUpdateMethodWithNicMultiQueueServersAndSuccessfulFailover(new(true), &v1alpha1.Server{}),
 				log:  logging.NewNopLogger(),
 			},
 			args: args{
@@ -3545,7 +3603,7 @@ func Test_serverSetController_Update_NicMultiQueue(t *testing.T) {
 					CPUFamily:     serverSetCPUFamily,
 					Cores:         serverSetCores,
 					RAM:           serverSetRAM,
-					NicMultiQueue: ptr.To(false),
+					NicMultiQueue: new(false),
 				}),
 			},
 			wantErr: nil,
@@ -3553,6 +3611,25 @@ func Test_serverSetController_Update_NicMultiQueue(t *testing.T) {
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
 			wantUpdateCalls: 2,
+		},
+		{
+			name: "NicMultiQueue old nil, cr true, failed failover (update returns wait error)",
+			fields: fields{
+				kube: fakeKubeClientUpdateMethodWithNicMultiQueueServersAndFailedFailover(nil, &v1alpha1.Server{}),
+				log:  logging.NewNopLogger(),
+			},
+			args: args{
+				ctx: context.Background(),
+				cr: createServerSetWithUpdatedServerSpec(v1alpha1.ServerSetTemplateSpec{
+					CPUFamily:     serverSetCPUFamily,
+					Cores:         serverSetCores,
+					RAM:           serverSetRAM,
+					NicMultiQueue: new(true),
+				}),
+			},
+			wantWrappedErr:  fmt.Errorf("error waiting for server to be updated"),
+			want:            managed.ExternalUpdate{},
+			wantUpdateCalls: 1,
 		},
 	}
 	for _, tt := range tests {
@@ -3568,7 +3645,11 @@ func Test_serverSetController_Update_NicMultiQueue(t *testing.T) {
 			got, err := e.Update(tt.args.ctx, tt.args.cr)
 
 			assertions := require.New(t)
-			assertions.Equalf(tt.wantErr, err, "Wrong error")
+			if tt.wantWrappedErr != nil {
+				assertions.ErrorContains(err, tt.wantWrappedErr.Error())
+			} else {
+				assertions.Equalf(tt.wantErr, err, "Wrong error")
+			}
 			assertions.Equalf(tt.want, got, "Wrong response")
 			kubeClient := tt.fields.kube.(*kubeClientFake)
 			kubeClient.AssertNumberOfCalls(t, "Update", tt.wantUpdateCalls)

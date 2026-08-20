@@ -1084,6 +1084,9 @@ func checkServerDiff(old *v1alpha1.Server, cr *v1alpha1.ServerSet, bootVolume *v
 	if !ptr.Equal(old.Spec.ForProvider.NicMultiQueue, cr.Spec.ForProvider.Template.Spec.NicMultiQueue) {
 		update = true
 		old.Spec.ForProvider.NicMultiQueue = cr.Spec.ForProvider.Template.Spec.NicMultiQueue
+		// Unlike RAM/Cores/CPUFamily there's no hotplug alternative for this property: the
+		// Cloud API always reboots the VM to apply a NicMultiQueue change.
+		failover = true
 	}
 
 	return update, failover
