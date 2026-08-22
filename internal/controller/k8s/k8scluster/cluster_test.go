@@ -31,6 +31,7 @@ import (
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/k8s/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/k8s"
@@ -988,6 +989,72 @@ func TestExternalControlPlaneClientUpdate(t *testing.T) {
 			}
 			assert.Equal(t, tt.want, got)
 			assert.EqualValues(t, tt.wantCondition.Status, tt.args.GetCondition(xpv1.TypeReady).Status)
+		})
+	}
+}
+
+func TestCreateKubernetesConnectionDetails(t *testing.T) {
+	validKubeconfig := `{"apiVersion":"v1","kind":"Config","clusters":[{"cluster":{"certificate-authority-data":"Y2FkYXRh","server":"https://example.com"},"name":"test"}],"contexts":[],"users":[{"name":"admin","user":{"token":"mytoken"}}]}`
+	emptyClusters := `{"apiVersion":"v1","kind":"Config","clusters":[],"contexts":[],"users":[{"name":"admin","user":{"token":"mytoken"}}]}`
+	emptyAuthInfos := `{"apiVersion":"v1","kind":"Config","clusters":[{"cluster":{"certificate-authority-data":"Y2FkYXRh","server":"https://example.com"},"name":"test"}],"contexts":[],"users":[]}`
+
+	mg := &v1alpha1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-cluster"},
+	}
+
+	tests := []struct {
+		name       string
+		kubeconfig string
+		want       map[string][]byte
+	}{
+		{
+			name:       "Valid kubeconfig returns full connection details",
+			kubeconfig: validKubeconfig,
+			want: map[string][]byte{
+				"kubeconfig": []byte(validKubeconfig),
+				"server":     []byte("https://example.com"),
+				"caData":     []byte("cadata"),
+				"name":       []byte("my-cluster"),
+				"token":      []byte("mytoken"),
+			},
+		},
+		{
+			name:       "Empty clusters array returns partial connection details",
+			kubeconfig: emptyClusters,
+			want: map[string][]byte{
+				"kubeconfig": []byte(emptyClusters),
+			},
+		},
+		{
+			name:       "Empty authInfos array returns partial connection details",
+			kubeconfig: emptyAuthInfos,
+			want: map[string][]byte{
+				"kubeconfig": []byte(emptyAuthInfos),
+			},
+		},
+		{
+			name:       "Invalid JSON returns partial connection details",
+			kubeconfig: "not-json",
+			want: map[string][]byte{
+				"kubeconfig": []byte("not-json"),
+			},
+		},
+		{
+			name:       "Empty kubeconfig returns partial connection details",
+			kubeconfig: "",
+			want: map[string][]byte{
+				"kubeconfig": []byte(""),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &externalCluster{
+				log: utils.NewTestLogger(),
+			}
+			got := createKubernetesConnectionDetails(c, tt.kubeconfig, mg)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

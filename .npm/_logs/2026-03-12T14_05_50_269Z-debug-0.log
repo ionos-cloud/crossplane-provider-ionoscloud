@@ -1,0 +1,16 @@
+0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+1 info using npm@10.8.2
+2 info using node@v20.20.1
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/tmp/agent-workspaces/impl-b8e1351b-73f4-4eaa-bd23-615638ed976c/.npmrc
+5 silly config load:file:/usr/local/etc/npmrc
+6 verbose title npm root
+7 verbose argv "root" "--global"
+8 verbose logfile logs-max:10 dir:/tmp/agent-workspaces/impl-b8e1351b-73f4-4eaa-bd23-615638ed976c/.npm/_logs/2026-03-12T14_05_50_269Z-
+9 verbose logfile /tmp/agent-workspaces/impl-b8e1351b-73f4-4eaa-bd23-615638ed976c/.npm/_logs/2026-03-12T14_05_50_269Z-debug-0.log
+10 verbose cwd /tmp/agent-workspaces/impl-b8e1351b-73f4-4eaa-bd23-615638ed976c
+11 verbose os Linux 6.8.0-60-generic
+12 verbose node v20.20.1
+13 verbose npm  v10.8.2
+14 verbose exit 0
+15 info ok
