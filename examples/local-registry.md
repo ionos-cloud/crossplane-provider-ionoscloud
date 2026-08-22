@@ -101,7 +101,7 @@ helm install crossplane --namespace crossplane-system chartmuseum/crossplane
 
 Verify that crossplane was successfully installed by inspecting the crossplane pods. If the `crossplane` image couldn't be pulled from the registry, a `imagepullBackoff` error will appear.
 
-#### Install the ionos cloud crossplane provider
+#### Install the IONOS CLOUD crossplane provider
 
 ```bash
 export BASE64_PW=$(echo -n "${IONOS_PASSWORD}" | base64)

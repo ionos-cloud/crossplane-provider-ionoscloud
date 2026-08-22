@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # ENV Vars:
-# IONOS_USERNAME - username for IONOS Cloud APIs
-# IONOS_PASSWORD - password for IONOS Cloud APIs
+# IONOS_USERNAME - username for IONOS CLOUD APIs
+# IONOS_PASSWORD - password for IONOS CLOUD APIs
 
 delete_all_args='--all --force'
 

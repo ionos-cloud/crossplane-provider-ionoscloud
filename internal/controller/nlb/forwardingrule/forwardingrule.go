@@ -123,7 +123,7 @@ func (c *connectorForwardingRule) Connect(ctx context.Context, mg resource.Manag
 // externalForwardingRule resource to ensure it reflects the managed resource's desired state.
 type externalForwardingRule struct {
 	// A 'client' used to connect to the externalForwardingRule resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
+	// would be something like an IONOS CLOUD SDK client.
 	eventRecorder        event.Recorder
 	service              forwardingrule.Client
 	ipBlockService       ipblock.Client

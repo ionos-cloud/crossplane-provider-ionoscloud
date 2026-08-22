@@ -51,13 +51,13 @@ import (
 
 func main() {
 	var (
-		app                        = kingpin.New(filepath.Base(os.Args[0]), "IONOS Cloud support for Crossplane.").DefaultEnvars()
+		app                        = kingpin.New(filepath.Base(os.Args[0]), "IONOS CLOUD support for Crossplane.").DefaultEnvars()
 		debug                      = app.Flag("debug", "Run with debug logging.").Short('d').Bool()
-		uniqueNames                = app.Flag("unique-names", "Enable uniqueness name support for IONOS Cloud resources").Short('u').Default("false").Bool()
+		uniqueNames                = app.Flag("unique-names", "Enable uniqueness name support for IONOS CLOUD resources").Short('u').Default("false").Bool()
 		syncInterval               = app.Flag("sync", "Controller manager sync interval such as 300ms, 1.5h, or 2h45m").Short('s').Default("1h").Duration()
 		pollInterval               = app.Flag("poll", "Poll interval controls how often an individual resource should be checked for changes.").Default("1m").Duration()
 		leaderElection             = app.Flag("leader-election", "Use leader election for the controller manager.").Short('l').Default("false").Envar("LEADER_ELECTION").Bool()
-		createGracePeriod          = app.Flag("create-grace-period", "Grace period for creation of IONOS Cloud resources.").Default("1m").Duration()
+		createGracePeriod          = app.Flag("create-grace-period", "Grace period for creation of IONOS CLOUD resources.").Default("1m").Duration()
 		maxReconcileRate           = app.Flag("max-reconcile-rate", "The global maximum rate per second at which resources may checked for drift from the desired state.").Default("10").Int()
 		timeout                    = app.Flag("timeout", "Timeout duration cumulatively for all the calls happening in the reconciliation functions.").Default("1h").Duration()
 		pollStateMetricInterval    = app.Flag("poll-state-metric", "State metric recording interval").Default("5s").Duration()
@@ -94,7 +94,7 @@ func main() {
 		RenewDeadline:    func() *time.Duration { d := 50 * time.Second; return &d }(),
 	})
 	kingpin.FatalIfError(err, "Cannot create controller manager")
-	kingpin.FatalIfError(apis.AddToScheme(mgr.GetScheme()), "Cannot add IONOS Cloud APIs to scheme")
+	kingpin.FatalIfError(apis.AddToScheme(mgr.GetScheme()), "Cannot add IONOS CLOUD APIs to scheme")
 	metricRecorder := managed.NewMRMetricRecorder()
 	stateMetrics := statemetrics.NewMRStateMetrics()
 
@@ -142,6 +142,6 @@ func main() {
 		}
 	}
 
-	kingpin.FatalIfError(controller.Setup(mgr, options), "Cannot setup IONOS Cloud controllers")
+	kingpin.FatalIfError(controller.Setup(mgr, options), "Cannot setup IONOS CLOUD controllers")
 	kingpin.FatalIfError(mgr.Start(ctrl.SetupSignalHandler()), "Cannot start controller manager")
 }

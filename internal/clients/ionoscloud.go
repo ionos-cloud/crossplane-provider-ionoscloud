@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	// UserAgent is the user agent addition that identifies the Crossplane IONOS Cloud Clients
+	// UserAgent is the user agent addition that identifies the Crossplane IONOS CLOUD Clients
 	UserAgent = "crossplane-provider-ionoscloud"
 )
 
@@ -55,7 +55,7 @@ type IonosServices struct {
 	ComputeClient       *sdkgo.APIClient
 }
 
-// credentials specify how to authenticate with the IONOS Cloud API
+// credentials specify how to authenticate with the IONOS CLOUD API
 type credentials struct {
 	// Username to use
 	User string `json:"user"`
@@ -67,7 +67,7 @@ type credentials struct {
 	// Token can be used instead of username and password
 	Token string `json:"token"`
 
-	// HostURL is the baseURL of the IONOS Cloud API.
+	// HostURL is the baseURL of the IONOS CLOUD API.
 	// It can be used for overwriting the default endpoint. Optional.
 	HostURL string `json:"host_url"`
 }
@@ -137,7 +137,7 @@ func ConnectForCRD(ctx context.Context, mg resource.Managed, client kubeclient.C
 	return svc, nil
 }
 
-// CoreResource is an ionos cloud API object with metadata
+// CoreResource is an IONOS CLOUD API object with metadata
 type CoreResource interface {
 	GetMetadataOk() (*sdkgo.DatacenterElementMetadata, bool)
 }
@@ -181,7 +181,7 @@ type ResourceWithState interface {
 }
 
 // UpdateCondition will update the condition of the given ResourceWithState to the given state. This
-// function implements the common mapping of ionos cloud states to crossplane conditions
+// function implements the common mapping of IONOS CLOUD states to crossplane conditions
 func UpdateCondition(cr ResourceWithState, state string) {
 	switch state {
 	case compute.AVAILABLE, compute.ACTIVE:

@@ -24,7 +24,7 @@ const (
 	ionoscloudServiceName     = "ionoscloud"
 )
 
-// NOTES - new integrating a new service into Crossplane Provider IONOS Cloud:
+// NOTES - when integrating a new service into Crossplane Provider IONOS CLOUD:
 // * Check the exceptionsFileNamesExamples collection below in case the example is provided under a different name than <resource-name>.yaml.
 // * Check the servicesAbbrevDirectoriesMap collection below and define the new service's entire name to be used in directory naming (the directory can be created or not).
 // * You can easily generate documentation automatically using `make docs.update` target.
@@ -106,7 +106,7 @@ func writeContent(docsFolder string) error { // nolint: gocyclo
 		}
 		kindName := mustGetCRDs[i].Spec.Names.Kind
 		buf.WriteString("---\n")
-		buf.WriteString("description: Manages " + kindName + " Resource on IONOS Cloud.\n")
+		buf.WriteString("description: Manages " + kindName + " Resource on IONOS CLOUD.\n")
 		buf.WriteString("---\n\n")
 		buf.WriteString("# " + kindName + " Managed Resource\n\n")
 		if err = getOverview(buf, mustGetCRDs[i]); err != nil {
@@ -180,7 +180,7 @@ func writeProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefini
 		return fmt.Errorf("error getting properties, buffer must be different than nil")
 	}
 	buf.WriteString("## Properties\n\n")
-	buf.WriteString("In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:\n\n")
+	buf.WriteString("In order to configure the IONOS CLOUD Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:\n\n")
 	if len(crd.Spec.Versions) == 0 {
 		return fmt.Errorf("error: CRD must have at least one version in spec.Versions")
 	}
@@ -188,7 +188,7 @@ func writeProperties(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefini
 	writeSortedPropertiesWithPrefix(buf, propertiesCollection.Properties, "")
 	buf.WriteString("\n")
 	buf.WriteString("### Required Properties\n\n")
-	buf.WriteString("The user needs to set the following properties in order to configure the IONOS Cloud Resource:\n\n")
+	buf.WriteString("The user needs to set the following properties in order to configure the IONOS CLOUD Resource:\n\n")
 	slices.Sort(propertiesCollection.Required)
 	for _, requiredValue := range propertiesCollection.Required {
 		buf.WriteString("* `" + requiredValue + "`\n")
@@ -325,7 +325,7 @@ func writeUsage(buf *bytes.Buffer, crd apiextensionsv1.CustomResourceDefinition)
 	}
 	if path != "" {
 		buf.WriteString("## Usage\n\n")
-		buf.WriteString("In order to manage resources on IONOS Cloud using Crossplane Provider, you need to have Crossplane Provider for IONOS Cloud installed into a Kubernetes Cluster, as a prerequisite. For a step-by-step guide, check the following [link](" + guideMasterGithubURL + ").\n\n")
+		buf.WriteString("In order to manage resources on IONOS CLOUD using Crossplane Provider, you need to have Crossplane Provider for IONOS CLOUD installed into a Kubernetes Cluster, as a prerequisite. For a step-by-step guide, check the following [link](" + guideMasterGithubURL + ").\n\n")
 		buf.WriteString("It is recommended to clone the repository for easier access to the example files.\n\n")
 		buf.WriteString("### Create\n\n")
 		buf.WriteString("Use the following command to create a resource instance. Before applying the file, check the properties defined in the `spec.forProvider` fields:\n\n")

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 contains the v1alpha1 group K8s resources of the IONOS Cloud provider.
+// Package v1alpha1 contains the v1alpha1 group K8s resources of the IONOS CLOUD provider.
 // +kubebuilder:object:generate=true
 // +groupName=k8s.ionoscloud.crossplane.io
 // +versionName=v1alpha1

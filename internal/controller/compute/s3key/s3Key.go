@@ -126,7 +126,7 @@ func (c *connectorS3Key) Connect(ctx context.Context, mg resource.Managed) (mana
 // externalS3Key resource to ensure it reflects the managed resource's desired state.
 type externalS3Key struct {
 	// A 'client' used to connect to the externalS3Key resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
+	// would be something like an IONOS CLOUD SDK client.
 	service s3key.APIClient
 	log     logging.Logger
 }

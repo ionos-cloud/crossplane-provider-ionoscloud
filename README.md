@@ -13,7 +13,7 @@
 
 ![Alt text](.github/IONOS.CLOUD.BLU.svg?sanitize=true&raw=true "Title")
 
-# Crossplane Provider IONOS Cloud
+# Crossplane Provider IONOS CLOUD
 
 ---
 
@@ -21,7 +21,7 @@
 
 ## Important Notice
 
-Starting from version v1.2.0, Crossplane Provider IONOS Cloud has changed from a 2 image release to a single image. From now on, only the `crossplane-provider-ionoscloud` image
+Starting from version v1.2.0, Crossplane Provider IONOS CLOUD has changed from a 2 image release to a single image. From now on, only the `crossplane-provider-ionoscloud` image
 will be released and maintained. The previous `crossplane-provider-ionoscloud-controller` image is deprecated and will no longer receive updates or support.
 
 For setups that explicitly used the `crossplane-provider-ionoscloud-controller` image, for example where a custom `DeploymentRuntimeConfig` is used:
@@ -41,7 +41,7 @@ spec:
             - image: ghcr.io/ionos-cloud/crossplane-provider-ionoscloud-controller:latest
               args:
                 - --debug
-              # In order to enable name uniqueness support for IONOS Cloud Resources, uncomment the next line:
+              # In order to enable name uniqueness support for IONOS CLOUD Resources, uncomment the next line:
               # - --unique-names
               name: package-runtime
               resources: {}
@@ -63,7 +63,7 @@ spec:
           containers:
             - args:
                 - --debug
-              # In order to enable name uniqueness support for IONOS Cloud Resources, uncomment the next line:
+              # In order to enable name uniqueness support for IONOS CLOUD Resources, uncomment the next line:
               # - --unique-names
               name: package-runtime
               resources: {}
@@ -77,34 +77,34 @@ spec:
 make submodules
 ```
 
-This `crossplane-provider-ionoscloud` repository is the Crossplane infrastructure provider for IONOS Cloud. The provider
+This `crossplane-provider-ionoscloud` repository is the Crossplane infrastructure provider for IONOS CLOUD. The provider
 that is built from the source code from this repository can be installed into a Crossplane control plane and adds the
 following new functionality:
 
-* Custom Resource Definitions (CRDs) that model IONOS Cloud infrastructure and services (e.g. Database As a Service
+* Custom Resource Definitions (CRDs) that model IONOS CLOUD infrastructure and services (e.g. Database As a Service
   Postgres, Compute Engine, Kubernetes, etc.)
-* Controllers to provision these resources in IONOS Cloud based on the users desired state captured in CRDs they create
-* Implementations of Crossplane portable resource abstractions, enabling IONOS Cloud resources to fulfill a user's
+* Controllers to provision these resources in IONOS CLOUD based on the users desired state captured in CRDs they create
+* Implementations of Crossplane portable resource abstractions, enabling IONOS CLOUD resources to fulfill a user's
   general need for cloud services
 
 ## Getting Started and Documentation
 
-For getting started with Crossplane Provider IONOS Cloud, check out this step-by-step [example](examples/example.md).
+For getting started with Crossplane Provider IONOS CLOUD, check out this step-by-step [example](examples/example.md).
 
-## Set up Crossplane Provider IONOS Cloud
+## Set up Crossplane Provider IONOS CLOUD
 
-In order to set up Crossplane Provider IONOS Cloud, see details
+In order to set up Crossplane Provider IONOS CLOUD, see details
 in [here](examples/example.md#set-up-crossplane-provider-ionos-cloud).
 
-## Authentication on IONOS Cloud
+## Authentication on IONOS CLOUD
 
-Crossplane Provider IONOS Cloud uses [ProviderConfig](examples/provider/config.yaml) in order to setup credentials via
+Crossplane Provider IONOS CLOUD uses [ProviderConfig](examples/provider/config.yaml) in order to setup credentials via
 secrets. You can use environments variables when creating the `ProviderConfig` resource.
 
 | Environment Variable | Description                                                                                |
 |----------------------|--------------------------------------------------------------------------------------------|
-| `IONOS_USERNAME`     | Specify the username used to login, to authenticate against the IONOS Cloud API            |
-| `IONOS_PASSWORD`     | Specify the password used to login, to authenticate against the IONOS Cloud API            |
+| `IONOS_USERNAME`     | Specify the username used to login, to authenticate against the IONOS CLOUD API            |
+| `IONOS_PASSWORD`     | Specify the password used to login, to authenticate against the IONOS CLOUD API            |
 | `IONOS_TOKEN`        | Specify the token used to login, if a token is being used instead of username and password |
 | `IONOS_API_URL`      | Specify the API URL. It will overwrite the API endpoint default value `api.ionos.com`      |                                                                                                                                                                    |
 | `IONOS_LOG_LEVEL`    | Specify the Log Level used to log messages. Possible values: `Off`, `Debug`, `Trace`       |
@@ -152,9 +152,9 @@ spec:
 
 More details about ProviderConfig and authentication [here](docs/README.md#authentication-on-ionos-cloud).
 
-## Provision Resources on IONOS Cloud
+## Provision Resources on IONOS CLOUD
 
-Crossplane Provider IONOS Cloud Managed Resources list is available [here](docs/summary.md).
+Crossplane Provider IONOS CLOUD Managed Resources list is available [here](docs/summary.md).
 
 ## Build images
 
@@ -207,7 +207,7 @@ make help
 
 ## Testing
 
-Crossplane Provider IONOS Cloud has end-to-end integration tests for the resources supported.
+Crossplane Provider IONOS CLOUD has end-to-end integration tests for the resources supported.
 
 For running end-to-end integration tests locally, use:
 
@@ -222,7 +222,7 @@ status [here](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/acti
 
 ## Releases
 
-Releases can be made on Crossplane Provider IONOS Cloud via tags or manual action of the CD workflow. The CD workflow
+Releases can be made on Crossplane Provider IONOS CLOUD via tags or manual action of the CD workflow. The CD workflow
 will test and release the images. It will release images for controller and provider, with 2 tags each: `latest` and the
 corresponding release tag.
 

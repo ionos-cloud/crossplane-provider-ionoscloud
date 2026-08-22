@@ -114,7 +114,7 @@ func (c *connectorTargetGroup) Connect(ctx context.Context, mg resource.Managed)
 // externalTargetGroup resource to ensure it reflects the managed resource's desired state.
 type externalTargetGroup struct {
 	// A 'client' used to connect to the externalTargetGroup resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
+	// would be something like an IONOS CLOUD SDK client.
 	service              targetgroup.Client
 	log                  logging.Logger
 	isUniqueNamesEnabled bool

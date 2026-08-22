@@ -96,7 +96,7 @@ var controllers = []controllerSetup{
 	volumeselector.Setup,
 }
 
-// Setup creates all IONOS Cloud controllers with the supplied logger
+// Setup creates all IONOS CLOUD controllers with the supplied logger
 // and adds them to the supplied manager.
 func Setup(mgr ctrl.Manager, options *utils.ConfigurationOptions) error {
 	for _, setup := range controllers {

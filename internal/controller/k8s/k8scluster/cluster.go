@@ -131,7 +131,7 @@ func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (ma
 // externalCluster resource to ensure it reflects the managed resource's desired state.
 type externalCluster struct {
 	// A 'client' used to connect to the externalK8sCluster resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
+	// would be something like an IONOS CLOUD SDK client.
 	service              k8scluster.Client
 	ipBlockService       ipblock.Client
 	log                  logging.Logger
@@ -309,7 +309,7 @@ func (c *externalCluster) Disconnect(_ context.Context) error {
 // getNATGatewayIPSet will return the SourceIP set by the user on sourceIpConfig.ip or
 // sourceIpConfig.ipBlockConfig fields of the spec.
 // If both fields are set, only the sourceIpConfig.ip field will be considered by
-// the Crossplane Provider IONOS Cloud.
+// the Crossplane Provider IONOS CLOUD.
 func (c *externalCluster) getNATGatewayIPSet(ctx context.Context, cr *v1alpha1.Cluster) (string, error) {
 	if cr.Spec.ForProvider.NATGatewayIPCfg.IP != "" {
 		return cr.Spec.ForProvider.NATGatewayIPCfg.IP, nil

@@ -196,13 +196,13 @@ spec:
                       CUBE server.
                     properties:
                       name:
-                        description: The name of the Template from IONOS Cloud.
+                        description: The name of the Template from IONOS CLOUD.
                         type: string
                         x-kubernetes-validations:
                         - message: Template name is immutable
                           rule: self == oldSelf
                       templateId:
-                        description: The ID of the Template from IONOS Cloud.
+                        description: The ID of the Template from IONOS CLOUD.
                         format: uuid
                         type: string
                     type: object

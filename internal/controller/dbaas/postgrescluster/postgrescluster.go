@@ -118,7 +118,7 @@ func (c *connectorCluster) Connect(ctx context.Context, mg resource.Managed) (ma
 // externalCluster resource to ensure it reflects the managed resource's desired state.
 type externalCluster struct {
 	// A 'client' used to connect to the externalCluster resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
+	// would be something like an IONOS CLOUD SDK client.
 	service              postgrescluster.ClusterClient
 	client               client.Client
 	log                  logging.Logger

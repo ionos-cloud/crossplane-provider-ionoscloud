@@ -118,7 +118,7 @@ func (c *connectorServer) Connect(ctx context.Context, mg resource.Managed) (man
 // externalServer resource to ensure it reflects the managed resource's desired state.
 type externalServer struct {
 	// A 'client' used to connect to the externalServer resource API. In practice this
-	// would be something like an IONOS Cloud SDK client.
+	// would be something like an IONOS CLOUD SDK client.
 	service              server.Client
 	serviceVolume        volume.Client
 	serviceTemplate      template.Client

@@ -206,7 +206,7 @@ echo_step "-------------------"
 echo_step "--- CLEANING UP ---"
 echo_step "-------------------"
 
-# uninstalling Crossplane Provider IONOS Cloud
+# uninstalling Crossplane Provider IONOS CLOUD
 echo_step "--- uninstalling ${PROJECT_NAME} ---"
 uninstall_provider
 

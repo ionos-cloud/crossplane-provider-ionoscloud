@@ -1,5 +1,5 @@
 ---
-description: Manages Cluster Resource on IONOS Cloud.
+description: Manages Cluster Resource on IONOS CLOUD.
 ---
 
 # Cluster Managed Resource
@@ -14,7 +14,7 @@ description: Manages Cluster Resource on IONOS Cloud.
 
 ## Usage
 
-In order to manage resources on IONOS Cloud using Crossplane Provider, you need to have Crossplane Provider for IONOS Cloud installed into a Kubernetes Cluster, as a prerequisite. For a step-by-step guide, check the following [link](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples/example.md).
+In order to manage resources on IONOS CLOUD using Crossplane Provider, you need to have Crossplane Provider for IONOS CLOUD installed into a Kubernetes Cluster, as a prerequisite. For a step-by-step guide, check the following [link](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/examples/example.md).
 
 It is recommended to clone the repository for easier access to the example files.
 
@@ -72,7 +72,7 @@ _Note_: The command should be run from the root of the `crossplane-provider-iono
 
 ## Properties
 
-In order to configure the IONOS Cloud Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
+In order to configure the IONOS CLOUD Resource, the user can set the `spec.forProvider` fields into the specification file for the resource instance. The required fields that need to be set can be found [here](#required-properties). Following, there is a list of all the properties:
 
 * `apiSubnetAllowList` (array)
 	* description: Access to the K8s API server is restricted to these CIDRs. Traffic, internal to the cluster, is not affected by this restriction.
@@ -184,7 +184,7 @@ In order to configure the IONOS Cloud Resource, the user can set the `spec.forPr
 
 ### Required Properties
 
-The user needs to set the following properties in order to configure the IONOS Cloud Resource:
+The user needs to set the following properties in order to configure the IONOS CLOUD Resource:
 
 * `name`
 

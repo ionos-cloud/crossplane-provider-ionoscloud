@@ -1,4 +1,4 @@
-# Crossplane Provider IONOS Cloud Usage Example
+# Crossplane Provider IONOS CLOUD Usage Example
 
 ## Overview
 
@@ -6,12 +6,12 @@ Crossplane allows the user to manage infrastructure directly from Kubernetes. Cr
 support orchestrating any infrastructure or managed service. Providers extend Crossplane to enable infrastructure
 resource provisioning of specific APIs.
 
-Crossplane Provider IONOS Cloud contains a Controller and Custom Resource Definitions(CRDs). The CRDs are defined in
+Crossplane Provider IONOS CLOUD contains a Controller and Custom Resource Definitions(CRDs). The CRDs are defined in
 sync with the API and contain the desired state. The Controller has a reconcile loop, and it constantly compares the
 desired state vs the actual state and takes action to reach the desired state. Using the SDK Go, the Controller performs
-CRUD operations and resources are managed in the IONOS Cloud.
+CRUD operations and resources are managed in the IONOS CLOUD.
 
-In this Proof of Concept of the IONOS Cloud Provider, we will create a DBaaS Postgres cluster resource in the IONOS Cloud.
+In this Proof of Concept of the IONOS CLOUD Provider, we will create a DBaaS Postgres cluster resource in the IONOS CLOUD.
 
 ## Prerequisites
 
@@ -21,7 +21,7 @@ Ensure that you have the following:
 * [``Kubectl``](https://kubernetes.io/docs/tasks/tools/#kubectl)
 * [``Helm``](https://helm.sh/docs/intro/install/)
 * Docker
-* Credentials to access IONOS Cloud
+* Credentials to access IONOS CLOUD
 * Clone this repository locally to be able to run examples
 
 ### Check prerequisites
@@ -53,16 +53,16 @@ git clone https://github.com/ionos-cloud/crossplane-provider-ionoscloud.git
 cd crossplane-provider-ionoscloud
 ```
 
-## Set up Crossplane Provider IONOS Cloud
+## Set up Crossplane Provider IONOS CLOUD
 
-To set up Crossplane Provider IONOS Cloud, follow these steps:
+To set up Crossplane Provider IONOS CLOUD, follow these steps:
 
 1. [<mark style="color:blue;">Create a K8s cluster (in case of using kind)</mark>](#create-a-k8s-cluster-in-case-of-using-kind)
 2. [<mark style="color:blue;">Create namespace for the crossplane ecosystem</mark>](#create-namespace-for-the-crossplane-ecosystem)
 3. [<mark style="color:blue;">Install crossplane via ``helm``</mark>](#install-crossplane-via-helm)
 4. [<mark style="color:blue;">Register CRDs into k8s cluster</mark>](#register-crds-into-k8s-cluster)
 5. [<mark style="color:blue;"> Install ProviderConfig for credentials</mark>](#install-providerconfig-for-credentials)
-6. [<mark style="color:blue;">Install Crossplane Provider for IONOS Cloud</mark>](#install-crossplane-provider-for-ionos-cloud)
+6. [<mark style="color:blue;">Install Crossplane Provider for IONOS CLOUD</mark>](#install-crossplane-provider-for-ionos-cloud)
 
 ### Create a K8s cluster (in case of using kind)
 
@@ -121,12 +121,12 @@ OR
   ```
 
 {% hint style="info" %}
-**Note:** You can overwrite the default IONOS Cloud API endpoint, by setting ``host_url`` to: ``--from-literal=credentials="{\"host_url\":\"${IONOS_API_URL}\"}"``.
+**Note:** You can overwrite the default IONOS CLOUD API endpoint, by setting ``host_url`` to: ``--from-literal=credentials="{\"host_url\":\"${IONOS_API_URL}\"}"``.
 {% endhint %}
 
-### Install Crossplane Provider for IONOS Cloud
+### Install Crossplane Provider for IONOS CLOUD
 
-To install Crossplane Provider for IONOS Cloud, run the following command:
+To install Crossplane Provider for IONOS CLOUD, run the following command:
 
 ```bash
 kubectl apply -f examples/provider/install-provider.yaml
@@ -138,9 +138,9 @@ You can install other providers, such as ``Helm`` and ``Kubernetes``, using the 
 kubectl apply --namespace crossplane-system -f examples/providers/other-providers.yaml
 ```
 
-### Check the health of Crossplane Provider IONOS Cloud 
+### Check the health of Crossplane Provider IONOS CLOUD 
 
-To check if the Crossplane Provider IONOS Cloud is installed and healthy, run the following command:
+To check if the Crossplane Provider IONOS CLOUD is installed and healthy, run the following command:
 
 ```bash
 kubectl get providers
@@ -178,11 +178,11 @@ kubectl get crds | grep ionoscloud
 A CRD named ``postgresclusters.dbaas.ionoscloud.crossplane.io`` should be displayed in the output.
 
 After that, you can create a Custom Resource (CR) of type ``postgresclusters.dbaas.ionoscloud.crossplane.io`` to
-provision a DBaaS Postgres cluster in the IONOS Cloud.
+provision a DBaaS Postgres cluster in the IONOS CLOUD.
 
 ### Provision DBaaS Postgres cluster
 
-For the DBaaS Postgres service, there is only cluster resource available into the Crossplane Provider IONOS Cloud.
+For the DBaaS Postgres service, there is only cluster resource available into the Crossplane Provider IONOS CLOUD.
 
 {% hint style="warning" %}
 **Warning:** Before running the next command, make sure to **update** the values in
@@ -220,10 +220,10 @@ To view more details, run the following command:
 kubectl get postgresclusters -o wide
 ```
 
-The ``external-name`` of the CR is the ``Cluster ID`` from IONOS Cloud. The cluster CR will be marked as ``ready`` when the cluster
+The ``external-name`` of the CR is the ``Cluster ID`` from IONOS CLOUD. The cluster CR will be marked as ``ready`` when the cluster
 is in available state.
 
-You can check if the DBaaS Postgres cluster was created in the IONOS Cloud using [<mark style="color:blue;">``ionosctl`` latest versions</mark>](https://github.com/ionos-cloud/ionosctl/releases/tag/v6.1.0). Run the following command:
+You can check if the DBaaS Postgres cluster was created in the IONOS CLOUD using [<mark style="color:blue;">``ionosctl`` latest versions</mark>](https://github.com/ionos-cloud/ionosctl/releases/tag/v6.1.0). Run the following command:
 
 ```bash
 ionosctl dbaas postgres cluster list
@@ -257,7 +257,7 @@ file using the following command:
 kubectl apply -f examples/ionoscloud/dbaas/postgres-cluster.yaml
 ```
 
-The updates applied should be updated in the external resource in IONOS Cloud.
+The updates applied should be updated in the external resource in IONOS CLOUD.
 
 ### Delete a Data Center CR, LAN and Postgres cluster CRs
 
@@ -308,7 +308,7 @@ Refer to the following tables for DBaaS Postgres resources commands:
 | DBaaS Postgres cluster | <pre lang="bash">kubectl get postgresclusters</pre> | <pre lang="bash">kubectl get postgresclusters -o wide</pre> | <pre lang="bash">kubectl get postgresclusters -o json</pre> | 
 
 
-For more information on all Managed Resources of Crossplane Provider IONOS Cloud, see [<mark style="color:blue;">Provision Resources on IONOS Cloud</mark>](../docs/README.md#provision-resources-on-ionos-cloud).
+For more information on all Managed Resources of Crossplane Provider IONOS CLOUD, see [<mark style="color:blue;">Provision Resources on IONOS CLOUD</mark>](../docs/README.md#provision-resources-on-ionos-cloud).
 
 ## Uninstallation
 
@@ -319,7 +319,7 @@ To uninstall, you need to follow these steps:
 
 ### Uninstall the Provider
 
-After deleting all resources, it is safe to uninstall the Crossplane Provider IONOS Cloud. Run the following command:
+After deleting all resources, it is safe to uninstall the Crossplane Provider IONOS CLOUD. Run the following command:
 
 ```bash
 kubectl delete -f examples/provider/config.yaml
@@ -344,5 +344,5 @@ kind delete cluster --name crossplane-example
 ```
 
 {% hint style="success" %}
-**Result:** This way you can create and then delete the DBaaS Postgres cluster resource in the IONOS Cloud. 
+**Result:** This way you can create and then delete the DBaaS Postgres cluster resource in the IONOS CLOUD. 
 {% endhint %}

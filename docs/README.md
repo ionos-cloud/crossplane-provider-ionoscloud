@@ -1,49 +1,49 @@
-# Crossplane Provider IONOS Cloud
+# Crossplane Provider IONOS CLOUD
 
 ## Overview
 
-Crossplane Provider for IONOS Cloud gives the ability to manage IONOS Cloud infrastructure directly from Kubernetes. Crossplane extends a Kubernetes cluster to support orchestrating any infrastructure or managed service. Providers can use Crossplane to enable infrastructure resource provisioning of a specific API.
+Crossplane Provider for IONOS CLOUD gives the ability to manage IONOS CLOUD infrastructure directly from Kubernetes. Crossplane extends a Kubernetes cluster to support orchestrating any infrastructure or managed service. Providers can use Crossplane to enable infrastructure resource provisioning of a specific API.
 
 {% hint style="info" %}
-**Note:** You can access and contribute to the [<mark style="color:blue;">crossplane-provider-ionoscloud</mark>](https://github.com/ionos-cloud/crossplane-provider-ionoscloud) repository for IONOS Cloud.
+**Note:** You can access and contribute to the [<mark style="color:blue;">crossplane-provider-ionoscloud</mark>](https://github.com/ionos-cloud/crossplane-provider-ionoscloud) repository for IONOS CLOUD.
 {% endhint %}
 
  The provider that is built from the source code from the repository can be installed into a Crossplane control plane and adds the following new functionality:
 
-  * Custom Resource Definitions (CRDs) model IONOS Cloud infrastructure and services. For example, Compute Engine, Kubernetes, Database As a Service Postgres, etc.
-  * Controllers provision these resources in IONOS Cloud based on the user's desired state captured in CRDs when created.
-  * Implementations of Crossplane's portable resource abstractions that enable IONOS Cloud resources to fulfill a user's general need for cloud services.
+  * Custom Resource Definitions (CRDs) model IONOS CLOUD infrastructure and services. For example, Compute Engine, Kubernetes, Database As a Service Postgres, etc.
+  * Controllers provision these resources in IONOS CLOUD based on the user's desired state captured in CRDs when created.
+  * Implementations of Crossplane's portable resource abstractions that enable IONOS CLOUD resources to fulfill a user's general need for cloud services.
 
 ## Getting started 
 
 To start with Crossplane usage and concepts, see the official [<mark style="color:blue;">Crossplane Documentation</mark>](https://docs.crossplane.io/v1.15/getting-started/).
 
-To get started with Crossplane Provider for IONOS Cloud, see [<mark style="color:blue;">Crossplane Provider IONOS Cloud Usage Example</mark>](../examples/example.md), which provides details about the provisioning of a **Postgres cluster** in IONOS Cloud.
+To get started with Crossplane Provider for IONOS CLOUD, see [<mark style="color:blue;">Crossplane Provider IONOS CLOUD Usage Example</mark>](../examples/example.md), which provides details about the provisioning of a **Postgres cluster** in IONOS CLOUD.
 
 ## Prerequisites
 
 Ensure that you have the following:
 
-* An IONOS Cloud account that you use for [<mark style="color:blue;">DCD</mark>](https://dcd.ionos.com/latest/) or other Config Management Tools.
+* An IONOS CLOUD account that you use for [<mark style="color:blue;">DCD</mark>](https://dcd.ionos.com/latest/) or other Config Management Tools.
 
 * A Kubernetes cluster and [<mark style="color:blue;">Install Crossplane</mark>](https://docs.crossplane.io/latest/software/install/) into a namespace called `crossplane-system`. 
 
 {% hint style="info" %}
-**Note:**  You can install a Kubernetes Cluster locally by using kind or any other lightweight Kubernetes version and Crossplane. For more information, see [<mark style="color:blue;">Crossplane Provider IONOS Cloud Usage Example</mark>](../examples/example.md). 
+**Note:**  You can install a Kubernetes Cluster locally by using kind or any other lightweight Kubernetes version and Crossplane. For more information, see [<mark style="color:blue;">Crossplane Provider IONOS CLOUD Usage Example</mark>](../examples/example.md). 
 {% endhint %}
 
-## Authentication on IONOS Cloud
+## Authentication on IONOS CLOUD
 
-To authenticate to the IONOS Cloud APIs, you need to provide credentials for Crossplane Provider for IONOS Cloud. This can be done using the ``base64-encoded`` static credentials in a Kubernetes ``Secret``.
+To authenticate to the IONOS CLOUD APIs, you need to provide credentials for Crossplane Provider for IONOS CLOUD. This can be done using the ``base64-encoded`` static credentials in a Kubernetes ``Secret``.
 
 ### Environment variables
 
-Crossplane Provider IONOS Cloud uses a ``ProviderConfig`` to set up credentials via ``Secrets``. You can use environment variables when creating the ``ProviderConfig`` resource.
+Crossplane Provider IONOS CLOUD uses a ``ProviderConfig`` to set up credentials via ``Secrets``. You can use environment variables when creating the ``ProviderConfig`` resource.
 
 | **Environment Variable** | **Description**                                                                                                                                                                                                                     |
 |----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| ``IONOS_USERNAME``     | Provide the username used to login to authenticate against the IONOS Cloud API.                                                                                                                                                | 
-| ``IONOS_PASSWORD``     | Provide the password used to login to authenticate against the IONOS Cloud API.                                                                                                                                                 | 
+| ``IONOS_USERNAME``     | Provide the username used to login to authenticate against the IONOS CLOUD API.                                                                                                                                                | 
+| ``IONOS_PASSWORD``     | Provide the password used to login to authenticate against the IONOS CLOUD API.                                                                                                                                                 | 
 | ``IONOS_TOKEN``        | Provide the token used to login if a token is being used instead of **username** and **password** .                                                                                                                                     |
 | ``IONOS_API_URL``      | Provide the API URL. It will overwrite the API endpoint default value `api.ionos.com`. |
 
@@ -81,7 +81,7 @@ kubectl create secret generic --namespace crossplane-system example-provider-sec
 ```
 {% hint style="info" %}
 **Note:** 
-* You can overwrite the default IONOS Cloud API endpoint, by setting the credentials to: `credentials="{\"host_url\":\"${IONOS_API_URL}\"}"`.
+* You can overwrite the default IONOS CLOUD API endpoint, by setting the credentials to: `credentials="{\"host_url\":\"${IONOS_API_URL}\"}"`.
 * You can also set the `IONOS_API_URL` environment variable in the `DeploymentRuntimeConfig` of the provider globally for
 all resources. The following snippet shows how to set it globally in the DeploymentRuntimeConfig:
 
@@ -111,7 +111,7 @@ all resources. The following snippet shows how to set it globally in the Deploym
 
 ### Configure the Provider
 
-You can create the ``ProviderConfig`` to configure credentials for Crossplane Provider for IONOS Cloud:
+You can create the ``ProviderConfig`` to configure credentials for Crossplane Provider for IONOS CLOUD:
 
 ```bash
 cat <<EOF | kubectl apply -f -
@@ -150,7 +150,7 @@ EOF
 
 ### Check installation
 
-To check if the Crossplane Provider IONOS Cloud is installed and healthy, run the following command:
+To check if the Crossplane Provider IONOS CLOUD is installed and healthy, run the following command:
 
 ```bash
 kubectl get providers
@@ -162,17 +162,17 @@ You will now be able to see the pods. Run the following command to see the pods 
 kubectl get pods -n crossplane-system 
 ```
 
-## Provision resources on IONOS Cloud
+## Provision resources on IONOS CLOUD
 
-Once you have configured the IONOS Cloud Provider, you can provision the resources on the IONOS Cloud directly from your Kubernetes Cluster using Custom Resource Definitions(CRDs). All CRDs are **Cluster Scoped**, that is, not being created only one specific namespace, but on the entire cluster.
+Once you have configured the IONOS CLOUD Provider, you can provision the resources on the IONOS CLOUD directly from your Kubernetes Cluster using Custom Resource Definitions(CRDs). All CRDs are **Cluster Scoped**, that is, not being created only one specific namespace, but on the entire cluster.
 
 ### Compute Engine managed resources
 
-You can see an up-to-date list of the CRDs and corresponding IONOS Cloud resources that Crossplane Provider IONOS Cloud supports as Managed Resources.
+You can see an up-to-date list of the CRDs and corresponding IONOS CLOUD resources that Crossplane Provider IONOS CLOUD supports as Managed Resources.
 `
 #### Compute Engine custom resource definitions
 
-| **Resources in IONOS Cloud** | **Custom Resource Definition**                       |
+| **Resources in IONOS CLOUD** | **Custom Resource Definition**                       |
 |--------------------------|--------------------------------------------------|
 | IPBlocks                 | ``ipblocks.compute.ionoscloud.crossplane.io``      |
 | Data Centers              | ``datacenters.compute.ionoscloud.crossplane.io``   |
@@ -187,11 +187,11 @@ For more information, see [<mark style="color:blue;">Compute Engine API</mark>](
 
 ### Application Load Balancer managed resources
 
-You can see an up-to-date list of Application Load Balancer managed resources that Crossplane Provider IONOS Cloud supports.
+You can see an up-to-date list of Application Load Balancer managed resources that Crossplane Provider IONOS CLOUD supports.
 
 #### Application Load Balancer resources custom resource definitions
 
-| **Resources in IONOS Cloud** | **Custom Resource Definition**                           |
+| **Resources in IONOS CLOUD** | **Custom Resource Definition**                           |
 |--------------------------|--------------------------------------------------------|
 | ApplicationLoadBalancer  | ``applicationloadbalancer.alb.ionoscloud.crossplane.io`` |
 | ForwardingRule           | ``forwardingrule.alb.ionoscloud.crossplane.io``          |
@@ -200,11 +200,11 @@ You can see an up-to-date list of Application Load Balancer managed resources th
 For more information, see [<mark style="color:blue;">Application Load Balancer API</mark>](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/tree/master/apis/alb).
 
 ### Kubernetes managed resources
-You can see an up-to-date list of Managed Kubernetes resources that Crossplane Provider IONOS Cloud supports.
+You can see an up-to-date list of Managed Kubernetes resources that Crossplane Provider IONOS CLOUD supports.
 
 #### Kubernetes resources custom resource definitions
 
-| **Resources in IONOS Cloud** | **Custom Resource Definition**                           |
+| **Resources in IONOS CLOUD** | **Custom Resource Definition**                           |
 |--------------------------|------------------------------------------|
 | K8s Clusters             | ``clusters.k8s.ionoscloud.crossplane.io`` |
 | K8s NodePools            | ``nodepools.k8s.ionoscloud.crossplane.io`` |
@@ -213,22 +213,22 @@ For more information, see [<mark style="color:blue;">Managed Kubernetes API</mar
 
 ### Backup Managed Resources
 
-You can see an up-to-date list of Backup managed resources that Crossplane Provider IONOS Cloud supports.
+You can see an up-to-date list of Backup managed resources that Crossplane Provider IONOS CLOUD supports.
 
 #### Backup resources custom resource definitions
 
-| **Resources in IONOS Cloud** | **Custom Resource Definition**                           |
+| **Resources in IONOS CLOUD** | **Custom Resource Definition**                           |
 |--------------------------|-----------------------------------------------|
 | BackupUnit               | ``backupunits.backup.ionoscloud.crossplane.io`` |
 
 For more information, see [<mark style="color:blue;">Managed Backup API</mark>](api/managed-backup).
 
 ### DBaaS Postgres Managed Resources
-You can see an up-to-date list of DBaaS Postgres managed resources that Crossplane Provider IONOS Cloud supports.
+You can see an up-to-date list of DBaaS Postgres managed resources that Crossplane Provider IONOS CLOUD supports.
 
 #### DBaaS Postgres resources custom resource definitions
 
-| **Resources in IONOS Cloud** | **Custom Resource Definition**                           |
+| **Resources in IONOS CLOUD** | **Custom Resource Definition**                           |
 |--------------------------|---------------------------------------------------|
 | DBaaS Postgres Clusters  | ``postgresclusters.dbaas.ionoscloud.crossplane.io`` |
 
@@ -281,7 +281,7 @@ and which fields those XRs should have. You can do this using the [<mark style="
 
 Once you have defined the Composite Resources, you need to train your Crossplane. Compositions link an XR with
 one or multiple CRs; that is, **IP Blocks**, **Postgres Clusters**, **Node pools**, **clusters**, etc. You can control the CRs for
-IONOS Cloud Resources via XRs: whenever an XR is created, updated, or deleted, according to the Composition configured. Crossplane will create, update, or delete CRs. You can do this using the [<mark style="color:blue;">Composition File</mark>](../examples/composition/composition.yaml).
+IONOS CLOUD Resources via XRs: whenever an XR is created, updated, or deleted, according to the Composition configured. Crossplane will create, update, or delete CRs. You can do this using the [<mark style="color:blue;">Composition File</mark>](../examples/composition/composition.yaml).
 
 #### Claim Composite Resources
 
@@ -292,9 +292,9 @@ Once you have configured Compositions, you need to create Composite Resource Cla
 To create a data center, a Kubernetes Cluster and a Kubernetes Node Pool via Compositions and Claims, follow the [<mark style="color:blue;">Composition Example</mark>](../examples/composition/composite.yaml). For more information, see [<mark style="color:blue;">Composite Resources</mark>](https://docs.crossplane.io/latest/concepts/composite-resources/).
 {% endhint %}
 
-## Name uniqueness support for IONOS Cloud resources
+## Name uniqueness support for IONOS CLOUD resources
 
-To enable name uniqueness support for IONOS Cloud Resources, the Crossplane Provider IONOS Cloud you can use the ``--unique-names`` flag. If the `--unique-names` option is set, the Crossplane Provider for IONOS Cloud will check if a resource with the same name already exists. If multiple resources with the specified name are found, an error is thrown. If a single resource with the specified name is found, Crossplane Provider will perform an extra step and check if the immutable parameters are as expected. If the resource has the specified name but different immutable parameters, an error is thrown. If no resource with the specified name is found, a new resource will be created.
+To enable name uniqueness support for IONOS CLOUD Resources, the Crossplane Provider IONOS CLOUD you can use the ``--unique-names`` flag. If the `--unique-names` option is set, the Crossplane Provider for IONOS CLOUD will check if a resource with the same name already exists. If multiple resources with the specified name are found, an error is thrown. If a single resource with the specified name is found, Crossplane Provider will perform an extra step and check if the immutable parameters are as expected. If the resource has the specified name but different immutable parameters, an error is thrown. If no resource with the specified name is found, a new resource will be created.
 
 {% hint style="info" %}
 **Note:** Resources will have unique names at their level. Example: k8s clusters will have unique name per account and k8s Node
@@ -341,7 +341,7 @@ EOF
 
 ## Debug mode
 
-To debug the Crossplane Provider IONOS Cloud you can use the ```--debug`` flag.
+To debug the Crossplane Provider IONOS CLOUD you can use the ```--debug`` flag.
 
 ### Provider logs
 
@@ -383,7 +383,7 @@ spec:
 EOF
 ```
 
-To see logs of the Crossplane Provider IONOS Cloud controller's pod, use:
+To see logs of the Crossplane Provider IONOS CLOUD controller's pod, use:
 
 ```bash
 kubectl -n crossplane-system logs <name-of-ionoscloud-provider-pod>
@@ -393,20 +393,20 @@ For more information, see [<mark style="color:blue;">Crossplane Logs</mark>](htt
 
 ## Testing
 
-Crossplane Provider IONOS Cloud has end-to-end integration tests for the resources supported. For more information, see [<mark style="color:blue;">CI [Weekly]</mark>](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/actions/workflows/ci-weekly.yml).
+Crossplane Provider IONOS CLOUD has end-to-end integration tests for the resources supported. For more information, see [<mark style="color:blue;">CI [Weekly]</mark>](https://github.com/ionos-cloud/crossplane-provider-ionoscloud/actions/workflows/ci-weekly.yml).
 
 ## Releases
 
-Releases can be made on Crossplane Provider IONOS Cloud via tags or manual action of the CD workflow. The CD workflow
+Releases can be made on Crossplane Provider IONOS CLOUD via tags or manual action of the CD workflow. The CD workflow
 will test and release the images. It will release images for controller and provider, with the following two tags: 
   * ``latest`` 
   * ``corresponding release``
 
 ## Conclusion
 
-The main advantages of the Crossplane Provider IONOS Cloud are as follows:
+The main advantages of the Crossplane Provider IONOS CLOUD are as follows:
 
-* **Provisioning** resources in IONOS Cloud from a Kubernetes Cluster using (Custom Resource Definitions) CRDs.
+* **Provisioning** resources in IONOS CLOUD from a Kubernetes Cluster using (Custom Resource Definitions) CRDs.
 * Maintaining a **healthy** setup using controller and reconciling loops.
 * It can be installed on a **Crossplane Control Plane** and add new functionality for the users along with other Cloud
   Providers.
