@@ -951,6 +951,21 @@ func getVolumeVersion(ctx context.Context, kube client.Client, serversetName str
 		return volumeVersion, err
 	}
 	if len(volumeResources.Items) > 1 {
+		// Exactly two boot volumes for this index, with adjacent version labels, is the
+		// signature of a createBeforeDestroyOnlyBootVolume.update() run that was interrupted
+		// between creating the new volume (bootVolumeController.Ensure) and attaching it to the
+		// server + deleting the old one (see recreate_only_bootvolume.go). Report the
+		// older/still-being-replaced version instead of hard-failing: every step update() takes
+		// (Ensure, server Update, Delete) is already idempotent per (index, version), so
+		// re-running update() with this version resumes and finishes the interrupted swap on
+		// the next reconcile - forward, toward the higher version, regardless of whether the
+		// interruption happened before or after the server was actually attached to the new
+		// volume - instead of leaving the pair stuck forever or creating a third volume.
+		// Anything else (more than 2 volumes, or 2 volumes whose versions are not adjacent) is
+		// an unexpected/corrupt state we don't try to guess our way out of.
+		if version, ok := oldestOfAdjacentVolumePair(serversetName, volumeResources.Items); ok {
+			return version, nil
+		}
 		return volumeVersion, fmt.Errorf("found too many volumes for index %d", replicaIndex)
 	}
 	if len(volumeResources.Items) == 0 {
@@ -958,6 +973,32 @@ func getVolumeVersion(ctx context.Context, kube client.Client, serversetName str
 	}
 	volume := volumeResources.Items[0]
 	return strconv.Atoi(volume.Labels[fmt.Sprintf(versionLabel, serversetName, resourceBootVolume)])
+}
+
+// oldestOfAdjacentVolumePair returns the lower of two boot-volume version labels, and ok = true,
+// when a replica index has exactly two boot volumes whose version labels are adjacent (differ by
+// exactly 1) - the only pairing an interrupted createBeforeDestroyOnlyBootVolume.update() run can
+// leave behind, since it always creates volumeVersion+1 next to the still-live volumeVersion. For
+// any other shape (labels missing/unparseable, or a non-adjacent gap) ok is false so the caller
+// falls back to the original hard error rather than resuming from a guess.
+func oldestOfAdjacentVolumePair(serversetName string, volumes []v1alpha1.Volume) (version int, ok bool) {
+	if len(volumes) != 2 {
+		return 0, false
+	}
+	label := fmt.Sprintf(versionLabel, serversetName, resourceBootVolume)
+	verA, errA := strconv.Atoi(volumes[0].Labels[label])
+	verB, errB := strconv.Atoi(volumes[1].Labels[label])
+	if errA != nil || errB != nil {
+		return 0, false
+	}
+	lower, higher := verA, verB
+	if lower > higher {
+		lower, higher = higher, lower
+	}
+	if higher-lower != 1 {
+		return 0, false
+	}
+	return lower, true
 }
 
 func (e *external) ensureServerAndNicByIndex(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {

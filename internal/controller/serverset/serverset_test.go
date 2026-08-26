@@ -1449,7 +1449,7 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				serverUpdate:     1,
 				bootVolumeEnsure: 1,
 				bootVolumeDelete: 1,
-				bootVolumeGet:    2,
+				bootVolumeGet:    1,
 			},
 		},
 		{
@@ -1479,7 +1479,7 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				serverUpdate:     1,
 				bootVolumeEnsure: 1,
 				bootVolumeDelete: 1,
-				bootVolumeGet:    2,
+				bootVolumeGet:    1,
 			},
 		},
 		{
@@ -1588,7 +1588,7 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 			want:    managed.ExternalUpdate{},
 			wantCalls: map[ServiceMethodName]int{
 				bootVolumeEnsure: 1,
-				bootVolumeGet:    1,
+				bootVolumeGet:    0,
 			},
 		},
 		{
@@ -1618,7 +1618,7 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 				serverUpdate:     1,
 				bootVolumeEnsure: 1,
 				bootVolumeDelete: 1,
-				bootVolumeGet:    2,
+				bootVolumeGet:    1,
 			},
 		},
 		{
@@ -1685,6 +1685,344 @@ func Test_serverSetController_BootVolumeUpdate(t *testing.T) {
 			nicCtrl.AssertNumberOfCalls(t, deleteMethod, tt.wantCalls[nicDelete])
 		})
 	}
+}
+
+// bootVolumeWithIndexAndVersion builds a boot-volume CR (with hotplug settings, like
+// createBootVolumeWithIndexLabelsWithHotPlug) but with an explicit version label, so tests can
+// construct a replica index with more than one boot volume at different versions.
+func bootVolumeWithIndexAndVersion(name string, index, version int) *v1alpha1.Volume {
+	volume := createBootVolumeWithHotPlug(name)
+	volume.Labels[computeIndexLabel(resourceBootVolume)] = strconv.Itoa(index)
+	volume.Labels[computeVersionLabel(resourceBootVolume)] = strconv.Itoa(version)
+	return volume
+}
+
+// volumeWithVersionLabel builds a bare v1alpha1.Volume carrying only a boot-volume version label,
+// for exercising oldestOfAdjacentVolumePair directly without going through a kube client/List.
+func volumeWithVersionLabel(version int) v1alpha1.Volume {
+	return v1alpha1.Volume{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				computeVersionLabel(resourceBootVolume): strconv.Itoa(version),
+			},
+		},
+	}
+}
+
+// volumeWithLabel builds a bare v1alpha1.Volume with an arbitrary label value (e.g. missing or
+// unparseable), for the oldestOfAdjacentVolumePair edge cases below.
+func volumeWithLabel(key, value string) v1alpha1.Volume {
+	return v1alpha1.Volume{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{key: value},
+		},
+	}
+}
+
+// Test_oldestOfAdjacentVolumePair covers the pure decision function ICNAS-866 adds: whether
+// exactly two boot volumes for a replica index have adjacent version labels (the only pairing an
+// interrupted createBeforeDestroyOnlyBootVolume.update() run can leave behind), and if so, which
+// of the two is the older/still-being-replaced one.
+func Test_oldestOfAdjacentVolumePair(t *testing.T) {
+	tests := []struct {
+		name        string
+		volumes     []v1alpha1.Volume
+		wantVersion int
+		wantOk      bool
+	}{
+		{
+			name:        "adjacent versions, lower first: returns the lower version",
+			volumes:     []v1alpha1.Volume{volumeWithVersionLabel(8), volumeWithVersionLabel(9)},
+			wantVersion: 8,
+			wantOk:      true,
+		},
+		{
+			name:        "adjacent versions, higher first: returns the lower version regardless of order",
+			volumes:     []v1alpha1.Volume{volumeWithVersionLabel(9), volumeWithVersionLabel(8)},
+			wantVersion: 8,
+			wantOk:      true,
+		},
+		{
+			name:    "non-adjacent versions: not ok",
+			volumes: []v1alpha1.Volume{volumeWithVersionLabel(7), volumeWithVersionLabel(9)},
+			wantOk:  false,
+		},
+		{
+			name:    "identical versions (diff of 0): not ok",
+			volumes: []v1alpha1.Volume{volumeWithVersionLabel(8), volumeWithVersionLabel(8)},
+			wantOk:  false,
+		},
+		{
+			name: "one version label missing: not ok",
+			volumes: []v1alpha1.Volume{
+				volumeWithVersionLabel(8),
+				volumeWithLabel("unrelated-label", "x"),
+			},
+			wantOk: false,
+		},
+		{
+			name: "one version label unparseable: not ok",
+			volumes: []v1alpha1.Volume{
+				volumeWithVersionLabel(8),
+				volumeWithLabel(computeVersionLabel(resourceBootVolume), "not-a-number"),
+			},
+			wantOk: false,
+		},
+		{
+			name:    "single volume: not ok",
+			volumes: []v1alpha1.Volume{volumeWithVersionLabel(8)},
+			wantOk:  false,
+		},
+		{
+			name: "three volumes: not ok",
+			volumes: []v1alpha1.Volume{
+				volumeWithVersionLabel(8), volumeWithVersionLabel(9), volumeWithVersionLabel(10),
+			},
+			wantOk: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			version, ok := oldestOfAdjacentVolumePair(serverSetName, tt.volumes)
+			assert.Equal(t, tt.wantOk, ok, "ok")
+			if tt.wantOk {
+				assert.Equal(t, tt.wantVersion, version, "version")
+			}
+		})
+	}
+}
+
+// Test_getVolumeVersion covers ICNAS-866: a replica index whose createBeforeDestroyOnlyBootVolume
+// update() run was interrupted between creating the replacement boot volume and attaching it to
+// the server + deleting the old one is left with two boot-volume CRs. Before this fix,
+// getVolumeVersion() hard-errored the instant it saw more than one volume for an index, which
+// permanently deadlocked the ServerSet controller (getVersionsFromVolumeAndServer/
+// updateServersFromTemplate never manage to progress past this call again). It must now resume
+// from the older of the pair when (and only when) the two volumes' version labels are adjacent,
+// and continue to hard-error for every other shape.
+func Test_getVolumeVersion(t *testing.T) {
+	const replicaIndex = 0
+	tests := []struct {
+		name               string
+		volumes            []*v1alpha1.Volume
+		wantVersion        int
+		wantErr            string // exact error message; empty means wantErrIsNoVolumes
+		wantErrIsNoVolumes bool
+	}{
+		{
+			name:        "single volume: unchanged, returns its version",
+			volumes:     []*v1alpha1.Volume{bootVolumeWithIndexAndVersion("bootvolumename-0-5", replicaIndex, 5)},
+			wantVersion: 5,
+		},
+		{
+			name:               "zero volumes: unchanged, errNoVolumesFound",
+			volumes:            nil,
+			wantErrIsNoVolumes: true,
+		},
+		{
+			name: "two volumes, adjacent versions ascending by name: resumes from the lower version",
+			volumes: []*v1alpha1.Volume{
+				bootVolumeWithIndexAndVersion("bootvolumename-0-a-lower", replicaIndex, 8),
+				bootVolumeWithIndexAndVersion("bootvolumename-0-b-higher", replicaIndex, 9),
+			},
+			wantVersion: 8,
+		},
+		{
+			name: "two volumes, adjacent versions descending by name: resumes from the lower version regardless of list order",
+			volumes: []*v1alpha1.Volume{
+				bootVolumeWithIndexAndVersion("bootvolumename-0-a-higher", replicaIndex, 9),
+				bootVolumeWithIndexAndVersion("bootvolumename-0-b-lower", replicaIndex, 8),
+			},
+			wantVersion: 8,
+		},
+		{
+			name: "two volumes, non-adjacent versions: still hard-errors",
+			volumes: []*v1alpha1.Volume{
+				bootVolumeWithIndexAndVersion("bootvolumename-0-7", replicaIndex, 7),
+				bootVolumeWithIndexAndVersion("bootvolumename-0-9", replicaIndex, 9),
+			},
+			wantErr: fmt.Sprintf("found too many volumes for index %d", replicaIndex),
+		},
+		{
+			name: "two volumes, identical versions (diff of 0): still hard-errors",
+			volumes: []*v1alpha1.Volume{
+				bootVolumeWithIndexAndVersion("bootvolumename-0-8-a", replicaIndex, 8),
+				bootVolumeWithIndexAndVersion("bootvolumename-0-8-b", replicaIndex, 8),
+			},
+			wantErr: fmt.Sprintf("found too many volumes for index %d", replicaIndex),
+		},
+		{
+			name: "three volumes: still hard-errors",
+			volumes: []*v1alpha1.Volume{
+				bootVolumeWithIndexAndVersion("bootvolumename-0-0", replicaIndex, 0),
+				bootVolumeWithIndexAndVersion("bootvolumename-0-1", replicaIndex, 1),
+				bootVolumeWithIndexAndVersion("bootvolumename-0-2", replicaIndex, 2),
+			},
+			wantErr: fmt.Sprintf("found too many volumes for index %d", replicaIndex),
+		},
+		{
+			name: "two volumes, one with an unparseable version label: still hard-errors, does not guess",
+			volumes: func() []*v1alpha1.Volume {
+				v := bootVolumeWithIndexAndVersion("bootvolumename-0-bad", replicaIndex, 0)
+				v.Labels[computeVersionLabel(resourceBootVolume)] = "not-a-number"
+				return []*v1alpha1.Volume{
+					bootVolumeWithIndexAndVersion("bootvolumename-0-8", replicaIndex, 8),
+					v,
+				}
+			}(),
+			wantErr: fmt.Sprintf("found too many volumes for index %d", replicaIndex),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			objs := make([]client.Object, 0, len(tt.volumes))
+			for _, v := range tt.volumes {
+				objs = append(objs, v)
+			}
+			kubeClient := fakeKubeClientObjs(objs...)
+
+			version, err := getVolumeVersion(context.Background(), kubeClient, serverSetName, replicaIndex)
+
+			if tt.wantErrIsNoVolumes {
+				require.ErrorIs(t, err, errNoVolumesFound)
+				return
+			}
+			if tt.wantErr != "" {
+				require.EqualError(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantVersion, version)
+		})
+	}
+}
+
+// kubeClientWithObjsForBootVolumeInterruptedSwap mirrors kubeClientWithObjsForBootVolume, except
+// replica index 0 has TWO boot-volume CRs with adjacent version labels (0 and 1) instead of one -
+// the state left behind by a createBeforeDestroyOnlyBootVolume.update() run that was interrupted
+// after creating the replacement volume but before attaching it to the server and deleting the
+// old one.
+func kubeClientWithObjsForBootVolumeInterruptedSwap() client.WithWatch {
+	zero := "0"
+	one := "1"
+
+	server1 := createServer("server1")
+	server1.Labels[computeIndexLabel(ResourceServer)] = zero
+	server1.Labels[computeVersionLabel(ResourceServer)] = zero
+
+	server2 := createServer("server2")
+	server2.Labels[computeIndexLabel(ResourceServer)] = one
+	server2.Labels[computeVersionLabel(ResourceServer)] = zero
+
+	// Replica index 0: the still-live volume (version 0) plus the orphaned replacement an
+	// interrupted update() run already created (version 1).
+	bootVolume0Old := bootVolumeWithIndexAndVersion("bootvolumename-0-0", 0, 0)
+	bootVolume0New := bootVolumeWithIndexAndVersion("bootvolumename-0-1", 0, 1)
+	bootVolume1 := createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-1-0", 1)
+
+	return fakeKubeClientObjs(server1, server2, bootVolume0Old, bootVolume0New, bootVolume1,
+		createNic(v1alpha1.NicParameters{Name: "nic-server1"}),
+		createNic(v1alpha1.NicParameters{Name: "nic-server2"}))
+}
+
+func fakeKubeClientUpdateMethodForBootVolumeInterruptedSwap() client.Client {
+	kubeClient := kubeClientFake{
+		Client: kubeClientWithObjsForBootVolumeInterruptedSwap(),
+	}
+
+	kubeClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	return &kubeClient
+}
+
+// Test_serverSetController_BootVolumeUpdate_resumesInterruptedSwap is the end-to-end companion to
+// Test_getVolumeVersion above: it drives the same interrupted-swap state (two boot-volume CRs for
+// replica index 0, versions 0 and 1) through the real e.Update() path used by
+// Test_serverSetController_BootVolumeUpdate, and asserts the swap resumes and completes forward -
+// attaching the higher version and deleting the lower one - instead of e.Update() returning the
+// pre-fix hard error ("found too many volumes for index 0") and leaving the pair stuck forever.
+func Test_serverSetController_BootVolumeUpdate_resumesInterruptedSwap(t *testing.T) {
+	e := &external{
+		kube:                   fakeKubeClientUpdateMethodForBootVolumeInterruptedSwap(),
+		bootVolumeController:   fakeBootVolumeCtrl(),
+		serverController:       fakeServerCtrl(),
+		nicController:          fakeNicCtrl(),
+		firewallRuleController: fakeFirewallRuleCtrl(),
+		log:                    logging.NewNopLogger(),
+	}
+	cr := createServerSetWithUpdatedBootVolumeUsingDefaultStrategy(v1alpha1.ServerSetBootVolumeSpec{
+		Size:  bootVolumeSize,
+		Image: "newImage",
+		Type:  bootVolumeType,
+	})
+
+	got, err := e.Update(context.Background(), cr)
+
+	require.NoError(t, err, "the interrupted-swap pair must resume, not hard-error")
+	assert.Equal(t, managed.ExternalUpdate{ConnectionDetails: managed.ConnectionDetails{}}, got)
+
+	bootVolumeCtrl := e.bootVolumeController.(*kubeBootVolumeControlManagerFake)
+	// Resumes forward from the lower version (0): creates version 1 (already created by the
+	// interrupted run, but Ensure is idempotent) and deletes version 0 - never a third version.
+	bootVolumeCtrl.AssertCalled(t, ensureMethod, mock.Anything, cr, 0, 1)
+	bootVolumeCtrl.AssertCalled(t, deleteMethod, mock.Anything, "bootvolumename-0-0", mock.Anything)
+	bootVolumeCtrl.AssertNumberOfCalls(t, ensureMethod, 1)
+	bootVolumeCtrl.AssertNumberOfCalls(t, deleteMethod, 1)
+
+	serverController := e.serverController.(*kubeServerControlManagerFake)
+	serverController.AssertNumberOfCalls(t, updateMethod, 1)
+}
+
+// Test_createBeforeDestroyOnlyBootVolume_update_resumesWhenOldVolumeMatchesRevertedSpec covers
+// the deadlock-safety fix to createBeforeDestroyOnlyBootVolume.update() directly: the OLD volume
+// (volumeVersion, still live) already matches cr.Spec.BootVolumeTemplate exactly - as if an
+// operator reverted the ServerSet spec back to the OLD image/type while a swap was stuck between
+// creating the replacement volume (newVolumeVersion) and attaching it to the server + deleting
+// the OLD one. update() used to Get() the OLD volume and return nil immediately the instant it
+// matched cr.Spec's current target, silently no-op'ing forever: the orphaned newVolumeVersion
+// volume was never attached to the server nor deleted, and no error was ever raised. It must
+// instead still finish the swap forward - (re-)Ensuring newVolumeVersion (a no-op, since Ensure
+// only creates when absent), attaching it to the server, and deleting the OLD volume.
+func Test_createBeforeDestroyOnlyBootVolume_update_resumesWhenOldVolumeMatchesRevertedSpec(t *testing.T) {
+	cr := createServerSetWithUpdatedBootVolumeUsingDefaultStrategy(v1alpha1.ServerSetBootVolumeSpec{
+		Size:  bootVolumeSize,
+		Image: bootVolumeImage,
+		Type:  bootVolumeType,
+	})
+
+	// The OLD (still-live) volume matches cr.Spec's target exactly - the reverted-spec scenario.
+	oldVolume := &v1alpha1.Volume{
+		Spec: v1alpha1.VolumeSpec{ForProvider: v1alpha1.VolumeParameters{
+			Image: bootVolumeImage,
+			Type:  bootVolumeType,
+		}},
+	}
+	// The NEW volume an interrupted run already created (with the since-reverted image), still
+	// orphaned: not yet attached to the server, not yet deleted.
+	newVolume := &v1alpha1.Volume{
+		Status: v1alpha1.VolumeStatus{AtProvider: v1alpha1.VolumeObservation{VolumeID: "new-volume-id"}},
+	}
+
+	bootVolumeCtrl := new(kubeBootVolumeControlManagerFake)
+	bootVolumeCtrl.
+		On(getMethod, mock.Anything, "bootvolumename-0-0", mock.Anything).Return(oldVolume, nil).
+		On(getMethod, mock.Anything, "bootvolumename-0-1", mock.Anything).Return(newVolume, nil).
+		On(ensureMethod, mock.Anything, cr, 0, 1).Return(nil).
+		On(deleteMethod, mock.Anything, "bootvolumename-0-0", mock.Anything).Return(nil)
+	serverCtrl := fakeServerCtrlGetEnsure()
+
+	updater := newCreateBeforeDestroyOnlyBootVolume(bootVolumeCtrl, serverCtrl)
+
+	err := updater.update(context.Background(), cr, 0 /* replicaIndex */, 0 /* volumeVersion (OLD) */, 0 /* serverVersion */)
+
+	require.NoError(t, err, "the interrupted-swap pair must still resume and finish, not silently no-op")
+	bootVolumeCtrl.AssertCalled(t, ensureMethod, mock.Anything, cr, 0, 1)
+	bootVolumeCtrl.AssertCalled(t, deleteMethod, mock.Anything, "bootvolumename-0-0", mock.Anything)
+	bootVolumeCtrl.AssertNumberOfCalls(t, ensureMethod, 1)
+	bootVolumeCtrl.AssertNumberOfCalls(t, deleteMethod, 1)
+
+	serverController := serverCtrl.(*kubeServerControlManagerFake)
+	serverController.AssertNumberOfCalls(t, updateMethod, 1)
 }
 
 func Test_serverSetController_updateOrRecreateVolumes_activeReplicaUpdatedLast_defaultUpdateStrategy(t *testing.T) {
