@@ -1,8 +1,20 @@
 package clients
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/pem"
 	"fmt"
+	"math/big"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -39,11 +51,59 @@ func setDbaaSDefaults(cfg *shared.Configuration) {
 
 }
 
+// generateTestCertPEM generates a fresh, self-signed ECDSA certificate/key pair at test-run
+// time, PEM encoded, for use as either a client certificate or a CA certificate in the MTLS
+// tests below. It returns the raw (non-base64) PEM bytes plus the parsed certificate.
+func generateTestCertPEM(t *testing.T, commonName string, isCA bool) (certPEM, keyPEM []byte, cert *x509.Certificate) {
+	t.Helper()
+
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	serial, err := rand.Int(rand.Reader, big.NewInt(1<<62))
+	require.NoError(t, err)
+
+	template := &x509.Certificate{
+		SerialNumber:          serial,
+		Subject:               pkix.Name{CommonName: commonName},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+		BasicConstraintsValid: true,
+		IsCA:                  isCA,
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &priv.PublicKey, priv)
+	require.NoError(t, err)
+
+	cert, err = x509.ParseCertificate(der)
+	require.NoError(t, err)
+
+	certPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+
+	keyDER, err := x509.MarshalECPrivateKey(priv)
+	require.NoError(t, err)
+	keyPEM = pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
+
+	return certPEM, keyPEM, cert
+}
+
+// b64 base64-encodes raw bytes, matching the convention used for the `password` field.
+func b64(in []byte) string {
+	return base64.StdEncoding.EncodeToString(in)
+}
+
 func TestNewIonosClient(t *testing.T) {
 
 	type args struct {
 		data []byte
 	}
+
+	clientCertPEM, clientKeyPEM, clientCert := generateTestCertPEM(t, "provider-client", false)
+	caCertPEM, _, caCert := generateTestCertPEM(t, "test-ca", true)
+	_, unrelatedKeyPEM, _ := generateTestCertPEM(t, "unrelated-key", false)
+
 	tests := []struct {
 		name              string
 		args              args
@@ -51,6 +111,12 @@ func TestNewIonosClient(t *testing.T) {
 		wantComputeConfig *ionos.Configuration
 		wantDbaasConfig   *shared.Configuration
 		wantErr           bool
+		// checkComputeHTTPClient, when set, replaces the plain assert.Equal comparison of
+		// ComputeClient's HTTPClient with targeted assertions on the TLS bits (a real
+		// tls.Config carrying private key/pool material cannot be reliably deep-equal compared).
+		// wantComputeConfig.HTTPClient is still used as the baseline for the rest of the struct
+		// comparison; only the HTTPClient field itself is swapped out before that comparison.
+		checkComputeHTTPClient func(t *testing.T, hc *http.Client)
 	}{
 		{
 			name:              "nil data",
@@ -146,6 +212,179 @@ func TestNewIonosClient(t *testing.T) {
 			wantDbaasConfig:   nil,
 			wantErr:           true,
 		},
+		{
+			name: "mtls client cert and key",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s"}`,
+					b64(clientCertPEM), b64(clientKeyPEM),
+				)),
+			},
+			wantComputeConfig: func() *ionos.Configuration {
+				cfg := ionos.NewConfiguration("username", "password", "", "")
+				setComputeDefaults(cfg)
+				return cfg
+			}(),
+			wantDbaasConfig: func() *shared.Configuration {
+				cfg := shared.NewConfiguration("username", "password", "", "")
+				setDbaaSDefaults(cfg)
+				cfg.Servers = shared.ServerConfigurations{
+					{
+						URL:         "https://api.ionos.com/databases/postgresql",
+						Description: "Production",
+					},
+				}
+				return cfg
+			}(),
+			wantErr: false,
+			checkComputeHTTPClient: func(t *testing.T, hc *http.Client) {
+				require.NotNil(t, hc)
+				tr, ok := hc.Transport.(*http.Transport)
+				require.True(t, ok, "expected an *http.Transport carrying the TLS client cert")
+				require.NotNil(t, tr.TLSClientConfig)
+				require.Len(t, tr.TLSClientConfig.Certificates, 1)
+				assert.Equal(t, clientCert.Raw, tr.TLSClientConfig.Certificates[0].Certificate[0])
+				assert.Nil(t, tr.TLSClientConfig.RootCAs, "no ca_cert was supplied, RootCAs must stay nil")
+			},
+		},
+		{
+			name: "mtls client cert, key and ca",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s", "ca_cert": "%s"}`,
+					b64(clientCertPEM), b64(clientKeyPEM), b64(caCertPEM),
+				)),
+			},
+			wantComputeConfig: func() *ionos.Configuration {
+				cfg := ionos.NewConfiguration("username", "password", "", "")
+				setComputeDefaults(cfg)
+				return cfg
+			}(),
+			wantDbaasConfig: func() *shared.Configuration {
+				cfg := shared.NewConfiguration("username", "password", "", "")
+				setDbaaSDefaults(cfg)
+				cfg.Servers = shared.ServerConfigurations{
+					{
+						URL:         "https://api.ionos.com/databases/postgresql",
+						Description: "Production",
+					},
+				}
+				return cfg
+			}(),
+			wantErr: false,
+			checkComputeHTTPClient: func(t *testing.T, hc *http.Client) {
+				require.NotNil(t, hc)
+				tr, ok := hc.Transport.(*http.Transport)
+				require.True(t, ok, "expected an *http.Transport carrying the TLS client cert")
+				require.NotNil(t, tr.TLSClientConfig)
+				require.Len(t, tr.TLSClientConfig.Certificates, 1)
+				assert.Equal(t, clientCert.Raw, tr.TLSClientConfig.Certificates[0].Certificate[0])
+				require.NotNil(t, tr.TLSClientConfig.RootCAs, "ca_cert was supplied, RootCAs must be set")
+
+				wantPool, err := x509.SystemCertPool()
+				if err != nil || wantPool == nil {
+					wantPool = x509.NewCertPool()
+				}
+				wantPool.AddCert(caCert)
+				assert.True(t, tr.TLSClientConfig.RootCAs.Equal(wantPool), "RootCAs must be the system pool plus the supplied CA")
+			},
+		},
+		{
+			name: "mtls client cert without key",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s"}`,
+					b64(clientCertPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "mtls client key without cert",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_key": "%s"}`,
+					b64(clientKeyPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "mtls ca cert without client cert/key",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "ca_cert": "%s"}`,
+					b64(caCertPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "mtls mismatched client cert and key",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s"}`,
+					b64(clientCertPEM), b64(unrelatedKeyPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "mtls malformed base64 client cert",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "not-valid-base64!", "client_key": "%s"}`,
+					b64(clientKeyPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "mtls invalid PEM client cert",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s"}`,
+					b64([]byte("not a real certificate")), b64(clientKeyPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "mtls malformed base64 ca cert",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s", "ca_cert": "not-valid-base64!"}`,
+					b64(clientCertPEM), b64(clientKeyPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "mtls invalid PEM ca cert",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s", "ca_cert": "%s"}`,
+					b64(clientCertPEM), b64(clientKeyPEM), b64([]byte("not a real ca certificate")),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -174,6 +413,16 @@ func TestNewIonosClient(t *testing.T) {
 				ccfg.Logger = nil
 				tt.wantComputeConfig.Logger = nil
 
+				if tt.checkComputeHTTPClient != nil {
+					tt.checkComputeHTTPClient(t, ccfg.HTTPClient)
+					// The TLS bits were just verified above with targeted assertions since a real
+					// tls.Config (private key material, cert pools) cannot be reliably
+					// deep-equal compared. Swap in the baseline HTTPClient so the rest of the
+					// Configuration struct (UserAgent, etc.) can still be compared with
+					// assert.Equal below.
+					ccfg.HTTPClient = tt.wantComputeConfig.HTTPClient
+				}
+
 				assert.Equal(t, tt.wantComputeConfig, ccfg)
 				assert.Equal(t, tt.wantDbaasConfig, dcfg)
 			} else {
@@ -181,6 +430,83 @@ func TestNewIonosClient(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestNewIonosClient_MTLSWithCertPinning verifies that when both a client certificate (mTLS) and
+// IONOS_PINNED_CERT (certificate pinning) are configured together, the resulting compute HTTP
+// client still presents the client certificate on the wire, and still enforces the pinned
+// fingerprint. sdkgo.NewAPIClient unconditionally overwrites cfg.HTTPClient.Transport with a bare
+// pinning-only *http.Transport whenever IONOS_PINNED_CERT is set, so without the fix in
+// reapplyMTLSAfterPinning this test fails with the server never observing a client certificate.
+func TestNewIonosClient_MTLSWithCertPinning(t *testing.T) {
+	clientCertPEM, clientKeyPEM, _ := generateTestCertPEM(t, "provider-client", false)
+	serverCertPEM, serverKeyPEM, _ := generateTestCertPEM(t, "test-server", false)
+	otherCertPEM, _, _ := generateTestCertPEM(t, "other-server", false)
+
+	serverKeyPair, err := tls.X509KeyPair(serverCertPEM, serverKeyPEM)
+	require.NoError(t, err)
+
+	fingerprintOf := func(certPEM []byte) string {
+		block, _ := pem.Decode(certPEM)
+		require.NotNil(t, block)
+		sum := sha256.Sum256(block.Bytes)
+		return hex.EncodeToString(sum[:])
+	}
+
+	var sawClientCert bool
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sawClientCert = r.TLS != nil && len(r.TLS.PeerCertificates) > 0
+		w.WriteHeader(http.StatusOK)
+	}))
+	srv.TLS = &tls.Config{
+		Certificates: []tls.Certificate{serverKeyPair},
+		ClientAuth:   tls.RequireAnyClientCert,
+	}
+	srv.StartTLS()
+	defer srv.Close()
+
+	creds := []byte(fmt.Sprintf(
+		`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s"}`,
+		b64(clientCertPEM), b64(clientKeyPEM),
+	))
+
+	t.Run("matching pinned fingerprint: client cert still presented", func(t *testing.T) {
+		sawClientCert = false
+		require.NoError(t, os.Setenv(ionos.IonosPinnedCertEnvVar, fingerprintOf(serverCertPEM)))
+		loadEnv()
+		defer func() {
+			require.NoError(t, os.Unsetenv(ionos.IonosPinnedCertEnvVar))
+			loadEnv()
+		}()
+
+		svc, err := NewIonosClients(creds)
+		require.NoError(t, err)
+		hc := svc.ComputeClient.GetConfig().HTTPClient
+		require.NotNil(t, hc)
+
+		resp, err := hc.Get(srv.URL)
+		require.NoError(t, err, "handshake must succeed: fingerprint matches and client cert is presented")
+		defer resp.Body.Close()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.True(t, sawClientCert, "server must have received the client certificate")
+	})
+
+	t.Run("mismatched pinned fingerprint: connection rejected", func(t *testing.T) {
+		require.NoError(t, os.Setenv(ionos.IonosPinnedCertEnvVar, fingerprintOf(otherCertPEM)))
+		loadEnv()
+		defer func() {
+			require.NoError(t, os.Unsetenv(ionos.IonosPinnedCertEnvVar))
+			loadEnv()
+		}()
+
+		svc, err := NewIonosClients(creds)
+		require.NoError(t, err)
+		hc := svc.ComputeClient.GetConfig().HTTPClient
+		require.NotNil(t, hc)
+
+		_, err = hc.Get(srv.URL)
+		assert.Error(t, err, "handshake must fail when the pinned fingerprint does not match the server certificate")
+	})
 }
 
 func TestGetCoreResourceState(t *testing.T) {
