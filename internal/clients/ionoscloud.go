@@ -190,12 +190,12 @@ func buildComputeMTLSHTTPClient(creds credentials) (*http.Client, error) {
 // caller built and handed to sdkgo.NewAPIClient, and that call mutates its Transport field in
 // place, so by the time this function runs the original Transport is already gone from that
 // object too.
-func reapplyMTLSAfterPinning(cfg *sdkgo.Configuration, mtlsTLSConfig *tls.Config) error {
+func reapplyMTLSAfterPinning(cfg *sdkgo.Configuration, mtlsTLSConfig *tls.Config) {
 	pkFingerprint := os.Getenv(sdkgo.IonosPinnedCertEnvVar)
 	if pkFingerprint == "" {
 		// sdkgo.NewAPIClient only touches cfg.HTTPClient.Transport when the pinning env var is
 		// set, so our Transport is still intact - nothing to repair.
-		return nil
+		return
 	}
 
 	tlsConfig := mtlsTLSConfig.Clone()
@@ -206,7 +206,6 @@ func reapplyMTLSAfterPinning(cfg *sdkgo.Configuration, mtlsTLSConfig *tls.Config
 		TLSClientConfig: tlsConfig,
 		DialTLSContext:  pinnedCertDialTLSContext(pkFingerprint, tlsConfig),
 	}
-	return nil
 }
 
 // pinnedCertDialTLSContext returns a TLS dialer equivalent to sdkgo's own certificate-pinning
@@ -225,12 +224,17 @@ func pinnedCertDialTLSContext(fingerprint string, base *tls.Config) func(ctx con
 	tlsConfig := base.Clone()
 	tlsConfig.InsecureSkipVerify = true
 
-	return func(_ context.Context, network, addr string) (net.Conn, error) {
-		conn, err := tls.Dial(network, addr, tlsConfig)
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		conn, err := (&tls.Dialer{Config: tlsConfig}).DialContext(ctx, network, addr)
 		if err != nil {
 			return nil, err
 		}
-		if err := verifyPinnedCertFingerprint(trimmed, conn.ConnectionState().PeerCertificates); err != nil {
+		tlsConn, ok := conn.(*tls.Conn)
+		if !ok {
+			_ = conn.Close()
+			return nil, fmt.Errorf("pinned cert dial: unexpected connection type %T", conn)
+		}
+		if err := verifyPinnedCertFingerprint(trimmed, tlsConn.ConnectionState().PeerCertificates); err != nil {
 			_ = conn.Close()
 			return nil, err
 		}
@@ -307,9 +311,7 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 		// sdkgo.NewAPIClient silently discards the mTLS Transport we just configured whenever
 		// IONOS_PINNED_CERT is also set - see reapplyMTLSAfterPinning for why and how this is
 		// repaired.
-		if err := reapplyMTLSAfterPinning(computeEngineClient.GetConfig(), computeMTLSTLSConfig); err != nil {
-			return nil, fmt.Errorf("failed to configure mtls for compute client: %w", err)
-		}
+		reapplyMTLSAfterPinning(computeEngineClient.GetConfig(), computeMTLSTLSConfig)
 	}
 
 	return &IonosServices{
