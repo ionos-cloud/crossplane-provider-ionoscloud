@@ -133,7 +133,7 @@ func buildComputeMTLSHTTPClient(creds credentials) (*http.Client, error) {
 		if err != nil || pool == nil {
 			pool = x509.NewCertPool()
 		}
-		if ok := pool.AppendCertsFromPEM(caPEM); !ok {
+		if !pool.AppendCertsFromPEM(caPEM) {
 			return nil, fmt.Errorf("mtls setup: failed to parse ca_cert as PEM")
 		}
 		rootCAs = pool
