@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -484,7 +485,9 @@ func TestNewIonosClient_MTLSWithCertPinning(t *testing.T) {
 		hc := svc.ComputeClient.GetConfig().HTTPClient
 		require.NotNil(t, hc)
 
-		resp, err := hc.Get(srv.URL)
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL, nil)
+		require.NoError(t, err)
+		resp, err := hc.Do(req)
 		require.NoError(t, err, "handshake must succeed: fingerprint matches and client cert is presented")
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -504,7 +507,12 @@ func TestNewIonosClient_MTLSWithCertPinning(t *testing.T) {
 		hc := svc.ComputeClient.GetConfig().HTTPClient
 		require.NotNil(t, hc)
 
-		_, err = hc.Get(srv.URL)
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL, nil)
+		require.NoError(t, err)
+		resp, err := hc.Do(req)
+		if resp != nil {
+			defer resp.Body.Close()
+		}
 		assert.Error(t, err, "handshake must fail when the pinned fingerprint does not match the server certificate")
 	})
 }
