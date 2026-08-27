@@ -591,8 +591,9 @@ func TestStripCloudAPIPrefixRoundTripper(t *testing.T) {
 
 			req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://example.invalid"+tc.requestPath, nil)
 			require.NoError(t, err)
-			_, err = rt.RoundTrip(req)
+			resp, err := rt.RoundTrip(req)
 			require.NoError(t, err)
+			defer resp.Body.Close()
 			assert.Equal(t, tc.expectedPath, gotPath)
 			assert.Equal(t, tc.requestPath, req.URL.Path, "original request must not be mutated in place")
 		})
