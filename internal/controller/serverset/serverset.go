@@ -333,11 +333,9 @@ func (e *external) setSubstitutions(ctx context.Context, cr *v1alpha1.ServerSet,
 			if value != "" {
 				cr.Status.AtProvider.ReplicaStatuses[sliceIndex].SubstitutionReplacement[subst.Key] = value
 				identifier := substitution.Identifier(getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, volumeVersion))
-				if _, ok := globalStateMap[cr.Name]; !ok {
-					globalStateMap[cr.Name] = substitution.GlobalState{}
-				}
-				if !globalStateMap[cr.Name].Exists(identifier, subst.Key) {
-					globalStateMap[cr.Name].Set(identifier, subst.Key, value)
+				state := getOrInitGlobalState(cr.Name)
+				if !state.Exists(identifier, subst.Key) {
+					state.Set(identifier, subst.Key, value)
 					e.log.Info("substitution value updated in global state", "serverset name", cr.Name, "for key", subst.Key, "and value", value)
 				}
 			} else {
@@ -753,8 +751,9 @@ func (e *external) Delete(ctx context.Context, mg resource.Managed) (managed.Ext
 	cr.SetConditions(xpv1.Deleting())
 
 	e.log.Info("Deleting the substitution configmap", "name", cr.Name)
-	globalStateMap[cr.Name] = substitution.GlobalState{}
+	globalStateMapMu.Lock()
 	delete(globalStateMap, cr.Name)
+	globalStateMapMu.Unlock()
 	if err := e.configMapController.Delete(ctx, cr.Name); err != nil {
 		return managed.ExternalDelete{}, err
 	}

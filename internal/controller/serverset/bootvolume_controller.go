@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -81,21 +82,38 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	return *kubeVolume, nil
 }
 
-// one global state where to hold used ip addressed for substitutions for each statefulserverset
-var globalStateMap = make(map[string]substitution.GlobalState)
+// one global state where to hold used ip addressed for substitutions for each statefulserverset.
+// globalStateMapMu guards globalStateMap itself: different ServerSets are reconciled
+// concurrently by controller-runtime, and this package-level map is shared across all of them.
+var (
+	globalStateMap   = make(map[string]substitution.GlobalState)
+	globalStateMapMu sync.Mutex
+)
+
+// getOrInitGlobalState returns the substitution.GlobalState for the given ServerSet name,
+// creating it under lock if this is the first time it's requested. The returned GlobalState is
+// itself a map (see pkg/ccpatch/substitution.GlobalState) and is not further synchronized after
+// this call - callers rely on controller-runtime only reconciling one instance of a given
+// ServerSet at a time, so a single name's entry is never touched by two goroutines at once.
+func getOrInitGlobalState(name string) substitution.GlobalState {
+	globalStateMapMu.Lock()
+	defer globalStateMapMu.Unlock()
+	if _, ok := globalStateMap[name]; !ok {
+		globalStateMap[name] = substitution.GlobalState{}
+	}
+	return globalStateMap[name]
+}
 
 func (k *kubeBootVolumeController) setPatcher(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int, name, oldName string, kube client.Client) (*ccpatch.CloudInitPatcher, error) { // nolint:gocyclo
 	var userDataPatcher *ccpatch.CloudInitPatcher
 	var err error
 	userData := cr.Spec.ForProvider.BootVolumeTemplate.Spec.UserData
-	if _, ok := globalStateMap[cr.Name]; !ok {
-		globalStateMap[cr.Name] = substitution.GlobalState{}
-	}
+	state := getOrInitGlobalState(cr.Name)
 	if len(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions) > 0 {
 		identifier := substitution.Identifier(name)
 		oldIdentifier := substitution.Identifier(oldName)
 		substitutions := extractSubstitutions(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions)
-		userDataPatcher, err = ccpatch.NewCloudInitPatcherWithSubstitutions(userData, identifier, oldIdentifier, substitutions, ionoscloud.ToPtr(globalStateMap[cr.Name]))
+		userDataPatcher, err = ccpatch.NewCloudInitPatcherWithSubstitutions(userData, identifier, oldIdentifier, substitutions, ionoscloud.ToPtr(state))
 		if err != nil {
 			return userDataPatcher, fmt.Errorf("while creating cloud init patcher with substitutions for BootVolume %s on serverset %s %w", name, cr.Name, err)
 		}
@@ -105,12 +123,10 @@ func (k *kubeBootVolumeController) setPatcher(ctx context.Context, cr *v1alpha1.
 		}
 		k.mapController.SetSubstitutionConfigMap(cr.Name, namespace)
 		for substIndex, subst := range substitutions {
-			if stateMapVal, exists := globalStateMap[cr.Name]; exists {
-				stateSlice := stateMapVal.GetByIdentifier(identifier)
-				if len(stateSlice) > 0 && substIndex <= len(stateSlice)-1 {
-					val := stateSlice[substIndex].Value
-					k.mapController.SetIdentity(cr.Name, strconv.Itoa(replicaIndex)+"."+strconv.Itoa(version)+"."+subst.Key, val)
-				}
+			stateSlice := state.GetByIdentifier(identifier)
+			if len(stateSlice) > 0 && substIndex <= len(stateSlice)-1 {
+				val := stateSlice[substIndex].Value
+				k.mapController.SetIdentity(cr.Name, strconv.Itoa(replicaIndex)+"."+strconv.Itoa(version)+"."+subst.Key, val)
 			}
 		}
 		err := k.mapController.CreateOrUpdate(ctx, cr)
