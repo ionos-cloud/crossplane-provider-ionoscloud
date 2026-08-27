@@ -14,6 +14,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"math/big"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -93,6 +94,58 @@ func generateTestCertPEM(t *testing.T, commonName string, isCA bool) (certPEM, k
 // b64 base64-encodes raw bytes, matching the convention used for the `password` field.
 func b64(in []byte) string {
 	return base64.StdEncoding.EncodeToString(in)
+}
+
+// generateTestServerCertPEM generates a fresh, self-signed ECDSA certificate/key pair suitable
+// for a *server* certificate used in a real (non-pinned) TLS handshake in tests - unlike
+// generateTestCertPEM above (which only ever backs client certs, or CA certs used purely for
+// chain-of-trust and never handshake-verified against a hostname/IP), this needs both an
+// x509.ExtKeyUsageServerAuth EKU and a 127.0.0.1 IP SAN so it validates against an
+// httptest.Server's address under normal (non-InsecureSkipVerify) verification.
+func generateTestServerCertPEM(t *testing.T) (certPEM, keyPEM []byte) {
+	t.Helper()
+
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	serial, err := rand.Int(rand.Reader, big.NewInt(1<<62))
+	require.NoError(t, err)
+
+	template := &x509.Certificate{
+		SerialNumber:          serial,
+		Subject:               pkix.Name{CommonName: "test-server"},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1")},
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &priv.PublicKey, priv)
+	require.NoError(t, err)
+
+	certPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+
+	keyDER, err := x509.MarshalECPrivateKey(priv)
+	require.NoError(t, err)
+	keyPEM = pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
+
+	return certPEM, keyPEM
+}
+
+// unwrapMTLSTransport recovers the *http.Transport carrying the TLS client cert from a compute
+// client's Transport, unwrapping the stripCloudAPIPrefixRoundTripper that buildComputeMTLSHTTPClient
+// always wraps it in (see that function - the wrapping is real production behavior, not a test
+// artifact, so callers that need to inspect the underlying *http.Transport's TLSClientConfig go
+// through this helper rather than asserting the concrete Transport type directly).
+func unwrapMTLSTransport(t *testing.T, rt http.RoundTripper) *http.Transport {
+	t.Helper()
+	wrapper, ok := rt.(*stripCloudAPIPrefixRoundTripper)
+	require.True(t, ok, "expected a *stripCloudAPIPrefixRoundTripper wrapping the TLS client cert transport")
+	tr, ok := wrapper.next.(*http.Transport)
+	require.True(t, ok, "expected an *http.Transport carrying the TLS client cert")
+	return tr
 }
 
 func TestNewIonosClient(t *testing.T) {
@@ -240,8 +293,7 @@ func TestNewIonosClient(t *testing.T) {
 			wantErr: false,
 			checkComputeHTTPClient: func(t *testing.T, hc *http.Client) {
 				require.NotNil(t, hc)
-				tr, ok := hc.Transport.(*http.Transport)
-				require.True(t, ok, "expected an *http.Transport carrying the TLS client cert")
+				tr := unwrapMTLSTransport(t, hc.Transport)
 				require.NotNil(t, tr.TLSClientConfig)
 				require.Len(t, tr.TLSClientConfig.Certificates, 1)
 				assert.Equal(t, clientCert.Raw, tr.TLSClientConfig.Certificates[0].Certificate[0])
@@ -275,8 +327,7 @@ func TestNewIonosClient(t *testing.T) {
 			wantErr: false,
 			checkComputeHTTPClient: func(t *testing.T, hc *http.Client) {
 				require.NotNil(t, hc)
-				tr, ok := hc.Transport.(*http.Transport)
-				require.True(t, ok, "expected an *http.Transport carrying the TLS client cert")
+				tr := unwrapMTLSTransport(t, hc.Transport)
 				require.NotNil(t, tr.TLSClientConfig)
 				require.Len(t, tr.TLSClientConfig.Certificates, 1)
 				assert.Equal(t, clientCert.Raw, tr.TLSClientConfig.Certificates[0].Certificate[0])
@@ -515,6 +566,86 @@ func TestNewIonosClient_MTLSWithCertPinning(t *testing.T) {
 		}
 		assert.Error(t, err, "handshake must fail when the pinned fingerprint does not match the server certificate")
 	})
+}
+
+func TestStripCloudAPIPrefixRoundTripper(t *testing.T) {
+	cases := []struct {
+		name         string
+		requestPath  string
+		expectedPath string
+	}{
+		{"strips /cloudapi/v6 prefix", "/cloudapi/v6/datacenters", "/v6/datacenters"},
+		{"strips bare /cloudapi", "/cloudapi", ""},
+		{"leaves unrelated path alone", "/v6/datacenters", "/v6/datacenters"},
+		{"does not strip a merely-prefixed segment", "/cloudapifoo/v6", "/cloudapifoo/v6"},
+		{"root path untouched", "/", "/"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var gotPath string
+			next := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+				gotPath = req.URL.Path
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
+			})
+			rt := &stripCloudAPIPrefixRoundTripper{next: next}
+
+			req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://example.invalid"+tc.requestPath, nil)
+			require.NoError(t, err)
+			_, err = rt.RoundTrip(req)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedPath, gotPath)
+			assert.Equal(t, tc.requestPath, req.URL.Path, "original request must not be mutated in place")
+		})
+	}
+}
+
+// roundTripFunc lets a plain function satisfy http.RoundTripper, for tests that only care about
+// observing/stubbing the final request rather than exercising a real network transport.
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
+
+func TestNewIonosClient_MTLSStripsCloudAPIPrefix(t *testing.T) {
+	clientCertPEM, clientKeyPEM, _ := generateTestCertPEM(t, "provider-client", false)
+	// Unlike generateTestCertPEM's client-cert use elsewhere in this file, this server cert is
+	// actually verified by the connecting client (this test does not use cert pinning, which is
+	// the only thing that disables normal server-cert verification in the other MTLS tests here),
+	// so it needs a 127.0.0.1 IP SAN matching httptest's server address or the handshake fails on
+	// server-cert validation before ever reaching the behavior under test.
+	serverCertPEM, serverKeyPEM := generateTestServerCertPEM(t)
+
+	serverKeyPair, err := tls.X509KeyPair(serverCertPEM, serverKeyPEM)
+	require.NoError(t, err)
+
+	var gotPath string
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.WriteHeader(http.StatusOK)
+	}))
+	srv.TLS = &tls.Config{
+		Certificates: []tls.Certificate{serverKeyPair},
+		ClientAuth:   tls.RequireAnyClientCert,
+	}
+	srv.StartTLS()
+	defer srv.Close()
+
+	creds := []byte(fmt.Sprintf(
+		`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s", "ca_cert": "%s"}`,
+		b64(clientCertPEM), b64(clientKeyPEM), b64(serverCertPEM),
+	))
+
+	svc, err := NewIonosClients(creds)
+	require.NoError(t, err)
+	hc := svc.ComputeClient.GetConfig().HTTPClient
+	require.NotNil(t, hc)
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL+"/cloudapi/v6/datacenters", nil)
+	require.NoError(t, err)
+	resp, err := hc.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "/v6/datacenters", gotPath, "the /cloudapi prefix must be stripped before the request reaches the internal mTLS endpoint")
 }
 
 func TestGetCoreResourceState(t *testing.T) {

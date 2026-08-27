@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -98,20 +99,23 @@ type credentials struct {
 }
 
 // buildComputeMTLSHTTPClient builds an *http.Client configured to present a client certificate
-// for mutual TLS (mTLS) when talking to the compute/cloud API. It returns (nil, nil) whenever no
-// MTLS credentials are configured, so callers can leave the SDK's HTTPClient field untouched
-// (nil), which preserves today's default behavior (sdkgo.NewAPIClient falls back to
-// http.DefaultClient).
-func buildComputeMTLSHTTPClient(creds credentials) (*http.Client, error) {
+// for mutual TLS (mTLS) when talking to the compute/cloud API, along with the *tls.Config it used
+// (the caller needs this back directly - see reapplyMTLSAfterPinning - rather than recovering it
+// by type-asserting the returned client's Transport, since that Transport is deliberately wrapped
+// in stripCloudAPIPrefixRoundTripper and is no longer a bare *http.Transport). It returns
+// (nil, nil, nil) whenever no MTLS credentials are configured, so callers can leave the SDK's
+// HTTPClient field untouched (nil), which preserves today's default behavior (sdkgo.NewAPIClient
+// falls back to http.DefaultClient).
+func buildComputeMTLSHTTPClient(creds credentials) (*http.Client, *tls.Config, error) {
 	hasCert := creds.ClientCertificate != ""
 	hasKey := creds.ClientKey != ""
 	hasCA := creds.CACertificate != ""
 
 	if !hasCert && !hasKey && !hasCA {
-		return nil, nil
+		return nil, nil, nil
 	}
 	if hasCert != hasKey {
-		return nil, fmt.Errorf("mtls setup: client_cert and client_key must both be set together")
+		return nil, nil, fmt.Errorf("mtls setup: client_cert and client_key must both be set together")
 	}
 
 	// A CA cert is only meaningful in combination with a client cert/key: this feature exists to
@@ -120,37 +124,37 @@ func buildComputeMTLSHTTPClient(creds credentials) (*http.Client, error) {
 	// than silently ignoring it (which would leave an operator's ca_cert setting inert with no
 	// indication why) we reject it explicitly - it is almost certainly a misconfiguration.
 	if hasCA && !hasCert {
-		return nil, fmt.Errorf("mtls setup: ca_cert has no effect without client_cert/client_key also being set")
+		return nil, nil, fmt.Errorf("mtls setup: ca_cert has no effect without client_cert/client_key also being set")
 	}
 
 	var rootCAs *x509.CertPool
 	if hasCA {
 		caPEM, err := base64.StdEncoding.DecodeString(creds.CACertificate)
 		if err != nil {
-			return nil, fmt.Errorf("mtls setup: failed to decode ca_cert: %w", err)
+			return nil, nil, fmt.Errorf("mtls setup: failed to decode ca_cert: %w", err)
 		}
 		pool, err := x509.SystemCertPool()
 		if err != nil || pool == nil {
 			pool = x509.NewCertPool()
 		}
 		if !pool.AppendCertsFromPEM(caPEM) {
-			return nil, fmt.Errorf("mtls setup: failed to parse ca_cert as PEM")
+			return nil, nil, fmt.Errorf("mtls setup: failed to parse ca_cert as PEM")
 		}
 		rootCAs = pool
 	}
 
 	certPEM, err := base64.StdEncoding.DecodeString(creds.ClientCertificate)
 	if err != nil {
-		return nil, fmt.Errorf("mtls setup: failed to decode client_cert: %w", err)
+		return nil, nil, fmt.Errorf("mtls setup: failed to decode client_cert: %w", err)
 	}
 	keyPEM, err := base64.StdEncoding.DecodeString(creds.ClientKey)
 	if err != nil {
-		return nil, fmt.Errorf("mtls setup: failed to decode client_key: %w", err)
+		return nil, nil, fmt.Errorf("mtls setup: failed to decode client_key: %w", err)
 	}
 
 	cert, err := tls.X509KeyPair(certPEM, keyPEM)
 	if err != nil {
-		return nil, fmt.Errorf("mtls setup: failed to load client certificate/key pair: %w", err)
+		return nil, nil, fmt.Errorf("mtls setup: failed to load client certificate/key pair: %w", err)
 	}
 
 	tlsConfig := &tls.Config{
@@ -161,10 +165,44 @@ func buildComputeMTLSHTTPClient(creds credentials) (*http.Client, error) {
 	}
 
 	return &http.Client{
-		Transport: &http.Transport{
+		Transport: &stripCloudAPIPrefixRoundTripper{next: &http.Transport{
 			TLSClientConfig: tlsConfig,
-		},
-	}, nil
+		}},
+	}, tlsConfig, nil
+}
+
+// cloudAPIPathPrefix is the path segment sdk-go/v6 always appends to a configured host_url (see
+// getServerUrl in sdk-go/v6@v6.3.4/configuration.go), matching the public
+// api.ionos.com/cloudapi/v6 surface.
+const cloudAPIPathPrefix = "/cloudapi"
+
+// stripCloudAPIPrefixRoundTripper strips a leading "/cloudapi" path segment from every outgoing
+// request before delegating to the wrapped RoundTripper.
+//
+// The internal mTLS-enforcing compute API endpoint this provider talks to when a client
+// certificate is configured (e.g. an internal paas-tunnel host) serves the same API directly at
+// /v6/... with no "/cloudapi" segment, unlike the public api.ionos.com/cloudapi/v6 surface the SDK
+// otherwise always targets. Previously an nginx sidecar (cloudapi-tunnel-proxy) rewrote the path
+// on the provider's behalf before forwarding upstream. Now that the provider presents its own
+// client certificate directly to that endpoint instead of going through that sidecar, nothing
+// rewrites the path anymore unless this RoundTripper does it - so it is wired in automatically
+// wherever an mTLS transport is built (buildComputeMTLSHTTPClient, reapplyMTLSAfterPinning), tied
+// to "mTLS is configured" rather than a separate opt-in flag, since that is the only case this
+// path mismatch applies to today.
+type stripCloudAPIPrefixRoundTripper struct {
+	next http.RoundTripper
+}
+
+func (t *stripCloudAPIPrefixRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	p := req.URL.Path
+	if p == cloudAPIPathPrefix || strings.HasPrefix(p, cloudAPIPathPrefix+"/") {
+		req = req.Clone(req.Context())
+		req.URL.Path = strings.TrimPrefix(p, cloudAPIPathPrefix)
+		if req.URL.RawPath != "" {
+			req.URL.RawPath = strings.TrimPrefix(req.URL.RawPath, cloudAPIPathPrefix)
+		}
+	}
+	return t.next.RoundTrip(req)
 }
 
 // reapplyMTLSAfterPinning repairs the compute client's Transport after sdkgo.NewAPIClient has run.
@@ -202,10 +240,10 @@ func reapplyMTLSAfterPinning(cfg *sdkgo.Configuration, mtlsTLSConfig *tls.Config
 	if cfg.HTTPClient == nil {
 		cfg.HTTPClient = &http.Client{}
 	}
-	cfg.HTTPClient.Transport = &http.Transport{
+	cfg.HTTPClient.Transport = &stripCloudAPIPrefixRoundTripper{next: &http.Transport{
 		TLSClientConfig: tlsConfig,
 		DialTLSContext:  pinnedCertDialTLSContext(pkFingerprint, tlsConfig),
-	}
+	}}
 }
 
 // pinnedCertDialTLSContext returns a TLS dialer equivalent to sdkgo's own certificate-pinning
@@ -279,17 +317,13 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 
 	// Optional mTLS client certificate for the compute/cloud API endpoint. Only ComputeClient
 	// uses this - DBaaS Postgres/Mongo live on different domains/products and are out of scope.
-	computeHTTPClient, err := buildComputeMTLSHTTPClient(creds)
+	// computeMTLSTLSConfig is captured directly from the builder (rather than read back off
+	// computeHTTPClient.Transport, which is not a bare *http.Transport - see
+	// stripCloudAPIPrefixRoundTripper) because reapplyMTLSAfterPinning needs it, and cannot
+	// recover it from computeHTTPClient after sdkgo.NewAPIClient runs below.
+	computeHTTPClient, computeMTLSTLSConfig, err := buildComputeMTLSHTTPClient(creds)
 	if err != nil {
 		return nil, fmt.Errorf("failed to configure mtls for compute client: %w", err)
-	}
-	// Captured now, before sdkgo.NewAPIClient runs: see reapplyMTLSAfterPinning for why this
-	// cannot be read back off computeHTTPClient after that call.
-	var computeMTLSTLSConfig *tls.Config
-	if computeHTTPClient != nil {
-		if tr, ok := computeHTTPClient.Transport.(*http.Transport); ok {
-			computeMTLSTLSConfig = tr.TLSClientConfig
-		}
 	}
 
 	// DBaaS Mongo Client
