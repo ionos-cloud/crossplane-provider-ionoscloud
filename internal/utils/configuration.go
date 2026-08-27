@@ -10,11 +10,12 @@ import (
 // ConfigurationOptions are options used in setting the provider
 // and the controllers of the provider.
 type ConfigurationOptions struct {
-	CreationGracePeriod      time.Duration
-	Timeout                  time.Duration
-	VMRebootTimeout          time.Duration
-	IsUniqueNamesEnabled     bool
-	MaxReconcilesPerResource map[string]int
+	CreationGracePeriod               time.Duration
+	Timeout                           time.Duration
+	VMRebootTimeout                   time.Duration
+	ExtendServerSetTimeoutForVMReboot bool
+	IsUniqueNamesEnabled              bool
+	MaxReconcilesPerResource          map[string]int
 	// PollJitterPercentage is the percentage of its poll interval by which a single
 	// resource's poll interval is randomly shifted, in either direction.
 	PollJitterPercentage uint
@@ -26,13 +27,14 @@ type ConfigurationOptions struct {
 }
 
 // NewConfigurationOptions sets fields for ConfigurationOptions and return a new ConfigurationOptions
-func NewConfigurationOptions(timeout, createGracePeriod, vmRebootTimeout time.Duration, uniqueNamesEnable bool, ctrlOpts controller.Options) *ConfigurationOptions {
+func NewConfigurationOptions(timeout, createGracePeriod, vmRebootTimeout time.Duration, extendServerSetTimeoutForVMReboot, uniqueNamesEnable bool, ctrlOpts controller.Options) *ConfigurationOptions {
 	return &ConfigurationOptions{
-		CreationGracePeriod:  createGracePeriod,
-		IsUniqueNamesEnabled: uniqueNamesEnable,
-		Timeout:              timeout,
-		VMRebootTimeout:      vmRebootTimeout,
-		CtrlOpts:             ctrlOpts,
+		CreationGracePeriod:               createGracePeriod,
+		IsUniqueNamesEnabled:              uniqueNamesEnable,
+		Timeout:                           timeout,
+		VMRebootTimeout:                   vmRebootTimeout,
+		ExtendServerSetTimeoutForVMReboot: extendServerSetTimeoutForVMReboot,
+		CtrlOpts:                          ctrlOpts,
 	}
 }
 
@@ -82,6 +84,14 @@ func (o *ConfigurationOptions) GetVMRebootTimeout() time.Duration {
 		return 0
 	}
 	return o.VMRebootTimeout
+}
+
+// GetExtendServerSetTimeoutForVMReboot returns the value for the ExtendServerSetTimeoutForVMReboot option
+func (o *ConfigurationOptions) GetExtendServerSetTimeoutForVMReboot() bool {
+	if o == nil {
+		return false
+	}
+	return o.ExtendServerSetTimeoutForVMReboot
 }
 
 // GetIsUniqueNamesEnabled returns the value for the IsUniqueNamesEnabled option
