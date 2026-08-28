@@ -33,8 +33,8 @@ func WaitForResource(ctx context.Context, timeoutInMinutes time.Duration, fn IsR
 		return fmt.Errorf("name is empty")
 	}
 	pollInterval := 2 * time.Second
-	return wait.PollUntilContextTimeout(ctx, pollInterval, timeoutInMinutes, true, func(context.Context) (bool, error) {
-		return fn(ctx, name, namespace)
+	return wait.PollUntilContextTimeout(ctx, pollInterval, timeoutInMinutes, true, func(pollCtx context.Context) (bool, error) {
+		return fn(pollCtx, name, namespace)
 	})
 }
 
