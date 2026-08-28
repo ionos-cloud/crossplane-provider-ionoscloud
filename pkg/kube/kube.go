@@ -14,7 +14,9 @@ import (
 // ResourceReadyTimeout time to wait for resource to be ready
 const ResourceReadyTimeout = 50 * time.Minute
 
-// ServerSetReadyTimeout time to wait for serverset to be ready
+// ServerSetReadyTimeout time to wait for serverset to be ready. Only used on initial creation of the
+// child ServerSet CR (StatefulServerSet's Ensure); subsequent updates (e.g. image-update reboots) go
+// through Update, which does not block on readiness, so this timeout is never in play for those.
 const ServerSetReadyTimeout = 3 * time.Hour
 
 // ErrExternalCreateFailed error when external create fails, so we know to delete kube object
