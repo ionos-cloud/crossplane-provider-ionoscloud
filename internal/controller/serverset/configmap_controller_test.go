@@ -95,7 +95,7 @@ func Test_kubeConfigmapController_FetchSubstitutionFromMap(t *testing.T) {
 		k.substConfigMap["sset1"].name = "does-not-exist"
 
 		got := k.FetchSubstitutionFromMap(context.Background(), "sset1", "key", 0, 0)
-		assert.Equal(t, "", got)
+		assert.Empty(t, got)
 	})
 }
 
