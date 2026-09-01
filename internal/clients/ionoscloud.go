@@ -160,10 +160,15 @@ func buildComputeMTLSHTTPClient(creds credentials) (*http.Client, error) {
 		tlsConfig.RootCAs = rootCAs
 	}
 
+	// Clone http.DefaultTransport rather than starting from a zero-valued *http.Transport, so we
+	// keep its defaults (ProxyFromEnvironment, idle/TLS-handshake timeouts, HTTP/2 settings, ...)
+	// and only override TLSClientConfig - a bare &http.Transport{} would silently drop all of
+	// those, e.g. breaking outbound proxy support for anyone running the provider behind one.
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = tlsConfig
+
 	return &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsConfig,
-		},
+		Transport: transport,
 	}, nil
 }
 
@@ -202,10 +207,12 @@ func reapplyMTLSAfterPinning(cfg *sdkgo.Configuration, mtlsTLSConfig *tls.Config
 	if cfg.HTTPClient == nil {
 		cfg.HTTPClient = &http.Client{}
 	}
-	cfg.HTTPClient.Transport = &http.Transport{
-		TLSClientConfig: tlsConfig,
-		DialTLSContext:  pinnedCertDialTLSContext(pkFingerprint, tlsConfig),
-	}
+	// Same reasoning as buildComputeMTLSHTTPClient: clone http.DefaultTransport instead of
+	// starting from a zero-valued *http.Transport, to keep its non-TLS defaults intact.
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = tlsConfig
+	transport.DialTLSContext = pinnedCertDialTLSContext(pkFingerprint, tlsConfig)
+	cfg.HTTPClient.Transport = transport
 }
 
 // pinnedCertDialTLSContext returns a TLS dialer equivalent to sdkgo's own certificate-pinning

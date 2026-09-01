@@ -102,9 +102,9 @@ is also set, the client certificate is still presented and the pinned fingerprin
 enforced - both features work together.
 
 ```bash
-export BASE64_CLIENT_CERT=$(base64 -w0 client.pem)
-export BASE64_CLIENT_KEY=$(base64 -w0 client-key.pem)
-export BASE64_CA_CERT=$(base64 -w0 ca.pem)
+export BASE64_CLIENT_CERT=$(base64 < client.pem | tr -d '\n')
+export BASE64_CLIENT_KEY=$(base64 < client-key.pem | tr -d '\n')
+export BASE64_CA_CERT=$(base64 < ca.pem | tr -d '\n')
 kubectl create secret generic --namespace crossplane-system example-provider-secret --from-literal=credentials="{\"token\":\"${IONOS_TOKEN}\",\"client_cert\":\"${BASE64_CLIENT_CERT}\",\"client_key\":\"${BASE64_CLIENT_KEY}\",\"ca_cert\":\"${BASE64_CA_CERT}\"}"
 ```
 
