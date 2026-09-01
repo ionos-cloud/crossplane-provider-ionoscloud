@@ -89,33 +89,23 @@ type credentials struct {
 	// ClientCertificate to also be set. Must be base64 encoded, like Password.
 	ClientKey string `json:"client_key"`
 
-	// CACertificate is an optional PEM encoded CA certificate to trust in addition to the
-	// system root pool when validating the compute/cloud API's server certificate. Useful when
-	// the mTLS endpoint's server certificate is not publicly trusted. Optional. Must be base64
-	// encoded, like Password. Only meaningful together with ClientCertificate/ClientKey - it is
-	// rejected as an error if set without them, since it would otherwise have no effect. See
-	// buildComputeMTLSHTTPClient.
+	// CACertificate is an optional PEM encoded CA certificate to trust in addition to the system
+	// root pool, base64 encoded like Password. Only valid together with
+	// ClientCertificate/ClientKey - rejected as an error if set alone, since it would otherwise
+	// have no effect.
 	CACertificate string `json:"ca_cert"`
 
-	// StripCloudAPIPrefix, when true, strips a leading "/cloudapi" path segment from every
-	// outgoing compute-API request. Optional; ignored unless ClientCertificate/ClientKey are also
-	// set. The IONOS Cloud SDK always targets .../cloudapi/v6 (see cloudAPIPathPrefix), which
-	// matches the public api.ionos.com surface and most mTLS-enforcing endpoints too - but some
-	// internal endpoints serve the same API directly at /v6/... with no
-	// "/cloudapi" segment. This is opt-in, not automatic whenever mTLS is configured: a generic
-	// mTLS-enforcing endpoint that retains the standard /cloudapi/v6 layout (including the default
-	// api.ionos.com endpoint itself) must not have its paths rewritten.
+	// StripCloudAPIPrefix, when true, strips a leading "/cloudapi" segment from outgoing
+	// compute-API requests, for endpoints that serve the API at /v6/... instead of
+	// /cloudapi/v6/.... Opt-in only: ignored unless ClientCertificate/ClientKey are set, since a
+	// generic endpoint using the standard /cloudapi/v6 layout must not have its paths rewritten.
 	StripCloudAPIPrefix bool `json:"strip_cloudapi_prefix"`
 }
 
-// buildComputeMTLSHTTPClient builds an *http.Client configured to present a client certificate
-// for mutual TLS (mTLS) when talking to the compute/cloud API, along with the *tls.Config it used
-// (the caller needs this back directly - see reapplyMTLSAfterPinning - rather than recovering it
-// by type-asserting the returned client's Transport, since that Transport may be wrapped in
-// stripCloudAPIPrefixRoundTripper and so is not always a bare *http.Transport). It returns
-// (nil, nil, nil) whenever no MTLS credentials are configured, so callers can leave the SDK's
-// HTTPClient field untouched (nil), which preserves today's default behavior (sdkgo.NewAPIClient
-// falls back to http.DefaultClient).
+// buildComputeMTLSHTTPClient builds an *http.Client presenting a client certificate for mutual
+// TLS, plus the *tls.Config it used (reapplyMTLSAfterPinning needs it directly, since the
+// Transport may be wrapped and no longer type-assertable). Returns (nil, nil, nil) when no mTLS
+// credentials are configured, leaving the SDK's default HTTPClient behavior untouched.
 func buildComputeMTLSHTTPClient(creds credentials) (*http.Client, *tls.Config, error) {
 	hasCert := creds.ClientCertificate != ""
 	hasKey := creds.ClientKey != ""
@@ -128,11 +118,8 @@ func buildComputeMTLSHTTPClient(creds credentials) (*http.Client, *tls.Config, e
 		return nil, nil, fmt.Errorf("mtls setup: client_cert and client_key must both be set together")
 	}
 
-	// A CA cert is only meaningful in combination with a client cert/key: this feature exists to
-	// let the provider present a client certificate, and ca_cert only adjusts the trust pool used
-	// while doing so. A CA-only config (no client_cert/client_key) can't have any effect, so rather
-	// than silently ignoring it (which would leave an operator's ca_cert setting inert with no
-	// indication why) we reject it explicitly - it is almost certainly a misconfiguration.
+	// ca_cert only adjusts the trust pool used when presenting a client cert, so it has no effect
+	// without client_cert/client_key - reject it explicitly rather than silently ignoring it.
 	if hasCA && !hasCert {
 		return nil, nil, fmt.Errorf("mtls setup: ca_cert has no effect without client_cert/client_key also being set")
 	}
@@ -174,10 +161,9 @@ func buildComputeMTLSHTTPClient(creds credentials) (*http.Client, *tls.Config, e
 		tlsConfig.RootCAs = rootCAs
 	}
 
-	// Clone http.DefaultTransport rather than starting from a zero-valued *http.Transport, so we
-	// keep its defaults (ProxyFromEnvironment, idle/TLS-handshake timeouts, HTTP/2 settings, ...)
-	// and only override TLSClientConfig - a bare &http.Transport{} would silently drop all of
-	// those, e.g. breaking outbound proxy support for anyone running the provider behind one.
+	// Clone http.DefaultTransport instead of a zero-valued one, to keep its defaults
+	// (ProxyFromEnvironment, timeouts, HTTP/2) - a bare &http.Transport{} would silently drop
+	// all of those, e.g. breaking proxy support.
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = tlsConfig
 
@@ -196,19 +182,10 @@ func buildComputeMTLSHTTPClient(creds credentials) (*http.Client, *tls.Config, e
 // api.ionos.com/cloudapi/v6 surface.
 const cloudAPIPathPrefix = "/cloudapi"
 
-// stripCloudAPIPrefixRoundTripper strips a leading "/cloudapi" path segment from every outgoing
-// request before delegating to the wrapped RoundTripper.
-//
-// Some internal mTLS-enforcing compute API endpoints serve the same API directly at /v6/... with
-// no "/cloudapi" segment, unlike the public api.ionos.com/cloudapi/v6 surface the SDK otherwise
-// always targets. Previously a proxy sidecar rewrote the path on the provider's behalf before
-// forwarding upstream. Now that the provider can present its own client certificate directly to
-// such an endpoint instead of going through that sidecar, nothing rewrites the path anymore
-// unless this RoundTripper does it - so it is wired in by
-// buildComputeMTLSHTTPClient/reapplyMTLSAfterPinning whenever credentials.StripCloudAPIPrefix is
-// explicitly set. This is opt-in rather than tied to "mTLS is configured": a generic
-// mTLS-enforcing endpoint that retains the standard /cloudapi/v6 layout (including the default
-// api.ionos.com endpoint) must not have its paths rewritten.
+// stripCloudAPIPrefixRoundTripper strips a leading "/cloudapi" segment from outgoing requests.
+// Some internal endpoints serve the API at /v6/... instead of the public /cloudapi/v6/... layout
+// the SDK always targets. Wired in only when credentials.StripCloudAPIPrefix is set - never
+// automatically - since a standard-layout endpoint must not have its paths rewritten.
 type stripCloudAPIPrefixRoundTripper struct {
 	next http.RoundTripper
 }
@@ -225,29 +202,10 @@ func (t *stripCloudAPIPrefixRoundTripper) RoundTrip(req *http.Request) (*http.Re
 	return t.next.RoundTrip(req)
 }
 
-// reapplyMTLSAfterPinning repairs the compute client's Transport after sdkgo.NewAPIClient has run.
-//
-// sdkgo.NewAPIClient (github.com/ionos-cloud/sdk-go/v6@v6.3.4/client.go) unconditionally does
-// `cfg.HTTPClient.Transport = httpTransport` - replacing the whole Transport with a bare
-// *http.Transport carrying only a pinning DialTLSContext - whenever the IONOS_PINNED_CERT env var
-// is set, regardless of whether cfg.HTTPClient was already customized. That silently discards the
-// TLSClientConfig (client certificate, custom RootCAs) buildComputeMTLSHTTPClient configured
-// above, so the provider stops presenting the client certificate the moment cert pinning is also
-// enabled.
-//
-// It is not enough to reassign our original Transport back onto the config afterward: the SDK's
-// own pinning dialer (sdkgo.AddPinnedCert/addPinnedCertVerification) does its TLS handshake with a
-// hardcoded fresh *tls.Config that never carries client certificates, so simply layering the SDK's
-// helper on top of our Transport would still drop the client cert. Instead, when both features are
-// configured together, this builds a single DialTLSContext that dials with our own tls.Config
-// (Certificates and RootCAs intact) and then performs the same manual fingerprint verification the
-// SDK's pinning feature does, so mTLS and certificate pinning both take effect at once.
-//
-// mtlsTLSConfig must be captured by the caller *before* calling sdkgo.NewAPIClient, not read back
-// off cfg.HTTPClient afterward: cfg.HTTPClient here is the very same *http.Client pointer the
-// caller built and handed to sdkgo.NewAPIClient, and that call mutates its Transport field in
-// place, so by the time this function runs the original Transport is already gone from that
-// object too.
+// reapplyMTLSAfterPinning restores the mTLS Transport after sdkgo.NewAPIClient overwrites it when
+// IONOS_PINNED_CERT is set, rebuilding a Transport that both presents the client certificate and
+// enforces the pinned fingerprint. mtlsTLSConfig must be captured by the caller before calling
+// sdkgo.NewAPIClient - cfg.HTTPClient's original Transport is gone by the time this runs.
 func reapplyMTLSAfterPinning(cfg *sdkgo.Configuration, mtlsTLSConfig *tls.Config, stripCloudAPIPrefix bool) {
 	pkFingerprint := os.Getenv(sdkgo.IonosPinnedCertEnvVar)
 	if pkFingerprint == "" {
@@ -273,13 +231,10 @@ func reapplyMTLSAfterPinning(cfg *sdkgo.Configuration, mtlsTLSConfig *tls.Config
 	cfg.HTTPClient.Transport = rt
 }
 
-// pinnedCertDialTLSContext returns a TLS dialer equivalent to sdkgo's own certificate-pinning
-// dialer (addPinnedCertVerification in sdk-go/v6's client.go), except that it dials using the
-// given base tls.Config - so any client certificate/RootCAs it carries are still presented/used -
-// rather than a hardcoded empty one. Like the SDK's version, normal chain verification is disabled
-// in favor of the manual fingerprint check below, since that is the trust mechanism cert pinning
-// implements; the client certificate is still presented during the handshake regardless of
-// InsecureSkipVerify, which only disables verification of the *server's* certificate.
+// pinnedCertDialTLSContext mirrors sdk-go's own pinning dialer, but dials using the given
+// tls.Config so any client certificate/RootCAs it carries are still presented, instead of a
+// hardcoded empty config. InsecureSkipVerify only disables the *server* cert check, in favor of
+// the manual fingerprint check below - the client cert is still presented regardless.
 func pinnedCertDialTLSContext(fingerprint string, base *tls.Config) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	// Fingerprints can be supplied with ':' or ' ' separators, matching sdk-go/v6's own handling.
 	trimmed := []byte(fingerprint)
@@ -342,12 +297,9 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 		apiHostURL = ionosAPIEndpoint
 	}
 
-	// Optional mTLS client certificate for the compute/cloud API endpoint. Only ComputeClient
-	// uses this - DBaaS Postgres/Mongo live on different domains/products and are out of scope.
-	// computeMTLSTLSConfig is captured directly from the builder (rather than read back off
-	// computeHTTPClient.Transport, which may not be a bare *http.Transport - see
-	// stripCloudAPIPrefixRoundTripper) because reapplyMTLSAfterPinning needs it, and cannot
-	// recover it from computeHTTPClient after sdkgo.NewAPIClient runs below.
+	// Optional mTLS client certificate; only ComputeClient uses this. computeMTLSTLSConfig is
+	// captured directly from the builder, since computeHTTPClient.Transport may be wrapped and
+	// reapplyMTLSAfterPinning can't recover it after sdkgo.NewAPIClient runs below.
 	computeHTTPClient, computeMTLSTLSConfig, err := buildComputeMTLSHTTPClient(creds)
 	if err != nil {
 		return nil, fmt.Errorf("failed to configure mtls for compute client: %w", err)

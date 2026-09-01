@@ -8,11 +8,9 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 )
 
-// Test_kubeConfigmapController_ConcurrentAccess is a regression test for a production crash
-// ("fatal error: concurrent map read and map write" in SetSubstitutionConfigMap) caused by
-// controller-runtime reconciling many different ServerSets concurrently against the single
-// kubeConfigmapController instance shared across all of them. Run with `go test -race` to catch
-// a regression of the underlying data race, not just the fatal error itself.
+// Test_kubeConfigmapController_ConcurrentAccess guards against concurrent map read/write on the
+// substConfigMap shared across all ServerSets. Run with `go test -race` to catch the data race,
+// not just an occasional fatal error.
 func Test_kubeConfigmapController_ConcurrentAccess(t *testing.T) {
 	k := &kubeConfigmapController{log: logging.NewNopLogger()}
 

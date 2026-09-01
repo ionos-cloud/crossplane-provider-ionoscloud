@@ -96,12 +96,9 @@ func b64(in []byte) string {
 	return base64.StdEncoding.EncodeToString(in)
 }
 
-// generateTestServerCertPEM generates a fresh, self-signed ECDSA certificate/key pair suitable
-// for a *server* certificate used in a real (non-pinned) TLS handshake in tests - unlike
-// generateTestCertPEM above (which only ever backs client certs, or CA certs used purely for
-// chain-of-trust and never handshake-verified against a hostname/IP), this needs both an
-// x509.ExtKeyUsageServerAuth EKU and a 127.0.0.1 IP SAN so it validates against an
-// httptest.Server's address under normal (non-InsecureSkipVerify) verification.
+// generateTestServerCertPEM generates a self-signed ECDSA server certificate/key pair for a real
+// (non-pinned) TLS handshake in tests - unlike generateTestCertPEM, it needs a ServerAuth EKU and
+// a 127.0.0.1 IP SAN to validate under normal (non-InsecureSkipVerify) verification.
 func generateTestServerCertPEM(t *testing.T) (certPEM, keyPEM []byte) {
 	t.Helper()
 
@@ -134,11 +131,9 @@ func generateTestServerCertPEM(t *testing.T) (certPEM, keyPEM []byte) {
 	return certPEM, keyPEM
 }
 
-// unwrapMTLSTransport recovers the *http.Transport carrying the TLS client cert from a compute
-// client's Transport. buildComputeMTLSHTTPClient only wraps it in a stripCloudAPIPrefixRoundTripper
-// when credentials.StripCloudAPIPrefix is explicitly set (see that function), so callers that need
-// to inspect the underlying *http.Transport's TLSClientConfig go through this helper - which
-// handles both the wrapped and bare cases - rather than asserting one concrete Transport type.
+// unwrapMTLSTransport recovers the *http.Transport carrying the TLS client cert, handling both
+// the bare case and the case where buildComputeMTLSHTTPClient wrapped it in
+// stripCloudAPIPrefixRoundTripper (only when StripCloudAPIPrefix is set).
 func unwrapMTLSTransport(t *testing.T, rt http.RoundTripper) *http.Transport {
 	t.Helper()
 	if wrapper, ok := rt.(*stripCloudAPIPrefixRoundTripper); ok {
@@ -167,10 +162,8 @@ func TestNewIonosClient(t *testing.T) {
 		wantDbaasConfig   *shared.Configuration
 		wantErr           bool
 		// checkComputeHTTPClient, when set, replaces the plain assert.Equal comparison of
-		// ComputeClient's HTTPClient with targeted assertions on the TLS bits (a real
-		// tls.Config carrying private key/pool material cannot be reliably deep-equal compared).
-		// wantComputeConfig.HTTPClient is still used as the baseline for the rest of the struct
-		// comparison; only the HTTPClient field itself is swapped out before that comparison.
+		// ComputeClient's HTTPClient with targeted TLS assertions (a real tls.Config with key/pool
+		// material can't be reliably deep-equal compared).
 		checkComputeHTTPClient func(t *testing.T, hc *http.Client)
 	}{
 		{
@@ -470,11 +463,8 @@ func TestNewIonosClient(t *testing.T) {
 
 				if tt.checkComputeHTTPClient != nil {
 					tt.checkComputeHTTPClient(t, ccfg.HTTPClient)
-					// The TLS bits were just verified above with targeted assertions since a real
-					// tls.Config (private key material, cert pools) cannot be reliably
-					// deep-equal compared. Swap in the baseline HTTPClient so the rest of the
-					// Configuration struct (UserAgent, etc.) can still be compared with
-					// assert.Equal below.
+					// TLS bits were just checked above; swap in the baseline HTTPClient so the
+					// rest of the Configuration struct can still be compared with assert.Equal.
 					ccfg.HTTPClient = tt.wantComputeConfig.HTTPClient
 				}
 
@@ -487,12 +477,9 @@ func TestNewIonosClient(t *testing.T) {
 	}
 }
 
-// TestNewIonosClient_MTLSWithCertPinning verifies that when both a client certificate (mTLS) and
-// IONOS_PINNED_CERT (certificate pinning) are configured together, the resulting compute HTTP
-// client still presents the client certificate on the wire, and still enforces the pinned
-// fingerprint. sdkgo.NewAPIClient unconditionally overwrites cfg.HTTPClient.Transport with a bare
-// pinning-only *http.Transport whenever IONOS_PINNED_CERT is set, so without the fix in
-// reapplyMTLSAfterPinning this test fails with the server never observing a client certificate.
+// TestNewIonosClient_MTLSWithCertPinning verifies a client cert and IONOS_PINNED_CERT configured
+// together both take effect: the client cert is still presented and the pinned fingerprint is
+// still enforced (see reapplyMTLSAfterPinning).
 func TestNewIonosClient_MTLSWithCertPinning(t *testing.T) {
 	clientCertPEM, clientKeyPEM, _ := generateTestCertPEM(t, "provider-client", false)
 	serverCertPEM, serverKeyPEM, _ := generateTestCertPEM(t, "test-server", false)
@@ -611,11 +598,8 @@ func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) { re
 
 func TestNewIonosClient_MTLSStripsCloudAPIPrefix(t *testing.T) {
 	clientCertPEM, clientKeyPEM, _ := generateTestCertPEM(t, "provider-client", false)
-	// Unlike generateTestCertPEM's client-cert use elsewhere in this file, this server cert is
-	// actually verified by the connecting client (this test does not use cert pinning, which is
-	// the only thing that disables normal server-cert verification in the other MTLS tests here),
-	// so it needs a 127.0.0.1 IP SAN matching httptest's server address or the handshake fails on
-	// server-cert validation before ever reaching the behavior under test.
+	// This test doesn't use cert pinning, so (unlike the other mTLS tests here) the server cert
+	// is actually verified - it needs a 127.0.0.1 IP SAN matching httptest's address.
 	serverCertPEM, serverKeyPEM := generateTestServerCertPEM(t)
 
 	serverKeyPair, err := tls.X509KeyPair(serverCertPEM, serverKeyPEM)

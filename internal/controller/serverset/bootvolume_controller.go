@@ -90,11 +90,9 @@ var (
 	globalStateMapMu sync.Mutex
 )
 
-// getOrInitGlobalState returns the substitution.GlobalState for the given ServerSet name,
-// creating it under lock if this is the first time it's requested. The returned GlobalState is
-// itself a map (see pkg/ccpatch/substitution.GlobalState) and is not further synchronized after
-// this call - callers rely on controller-runtime only reconciling one instance of a given
-// ServerSet at a time, so a single name's entry is never touched by two goroutines at once.
+// getOrInitGlobalState returns the substitution.GlobalState for the given ServerSet, creating it
+// under lock on first use. The returned map itself is not further synchronized: only one
+// reconcile per ServerSet runs at a time, so its entry is never touched concurrently.
 func getOrInitGlobalState(name string) substitution.GlobalState {
 	globalStateMapMu.Lock()
 	defer globalStateMapMu.Unlock()
