@@ -339,6 +339,43 @@ spec:
 EOF
 ```
 
+## Poll interval tuning
+
+Every managed resource is re-checked for drift once per poll interval (``--poll``), so resources
+reconciled together keep bursting against the IONOS Cloud API at the same moment. Two flags,
+both ``0`` by default, tune this:
+
+| Flag | Effect |
+|---|---|
+| ``--poll-jitter-percentage`` | Shifts each resource's poll interval randomly in either direction by up to this percentage of it, spreading the load out. Must be less than ``100``, since a resource shifted by a full interval could be left with a poll interval of zero and stop being polled. |
+| ``--poll-not-ready`` | Poll interval used in place of ``--poll`` while a resource is not ready yet, typically shorter, to reduce the time to readiness. Jitter applies to it too. |
+
+You can create a ``DeploymentRuntimeConfig`` file using:
+
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: provider-config
+spec:
+  deploymentTemplate:
+    spec:
+      selector: {}
+      strategy: {}
+      template:
+        spec:
+          containers:
+          - args:
+            - --poll-jitter-percentage=10
+            - --poll-not-ready=30s
+            name: package-runtime
+            resources: {}
+EOF
+```
+
+And reference it from the ``Provider`` as shown above.
+
 ## Debug mode
 
 To debug the Crossplane Provider IONOS Cloud you can use the ```--debug`` flag.

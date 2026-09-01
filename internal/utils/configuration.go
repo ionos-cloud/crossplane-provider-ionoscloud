@@ -14,6 +14,12 @@ type ConfigurationOptions struct {
 	Timeout                  time.Duration
 	IsUniqueNamesEnabled     bool
 	MaxReconcilesPerResource map[string]int
+	// PollJitterPercentage is the percentage of its poll interval by which a single
+	// resource's poll interval is randomly shifted, in either direction.
+	PollJitterPercentage uint
+	// NotReadyPollInterval is the poll interval used for a resource that is not ready
+	// yet. Zero leaves unready resources on the configured poll interval.
+	NotReadyPollInterval time.Duration
 	// CtrlOpts are crossplane-specific controller options
 	CtrlOpts controller.Options
 }
@@ -34,6 +40,22 @@ func (o *ConfigurationOptions) GetPollInterval() time.Duration {
 		return 0
 	}
 	return o.CtrlOpts.PollInterval
+}
+
+// GetPollJitterPercentage returns the value for the PollJitterPercentage option
+func (o *ConfigurationOptions) GetPollJitterPercentage() uint {
+	if o == nil {
+		return 0
+	}
+	return o.PollJitterPercentage
+}
+
+// GetNotReadyPollInterval returns the value for the NotReadyPollInterval option
+func (o *ConfigurationOptions) GetNotReadyPollInterval() time.Duration {
+	if o == nil {
+		return 0
+	}
+	return o.NotReadyPollInterval
 }
 
 // GetCreationGracePeriod returns the value for the CreationGracePeriod option
