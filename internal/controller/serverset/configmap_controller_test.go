@@ -1,11 +1,19 @@
 package serverset
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"testing"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
 
 // Test_kubeConfigmapController_ConcurrentAccess guards against concurrent map read/write on the
@@ -57,4 +65,114 @@ func Test_getOrInitGlobalState_ConcurrentAccess(t *testing.T) {
 			t.Errorf("globalStateMap missing entry for %q", name)
 		}
 	}
+}
+
+func newTestConfigmapController(objs ...client.Object) *kubeConfigmapController {
+	return &kubeConfigmapController{
+		kube: fakeKubeClientObjs(objs...),
+		log:  logging.NewNopLogger(),
+	}
+}
+
+func Test_kubeConfigmapController_FetchSubstitutionFromMap(t *testing.T) {
+	cm := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "subst-cm", Namespace: "default"},
+		Data:       map[string]string{"0.0.key": "value"},
+	}
+
+	t.Run("configmap exists: returns the value", func(t *testing.T) {
+		k := newTestConfigmapController(cm)
+		k.SetSubstitutionConfigMap("sset1", "default")
+		k.substConfigMap["sset1"].name = "subst-cm"
+
+		got := k.FetchSubstitutionFromMap(context.Background(), "sset1", "key", 0, 0)
+		assert.Equal(t, "value", got)
+	})
+
+	t.Run("configmap missing: returns empty string", func(t *testing.T) {
+		k := newTestConfigmapController()
+		k.SetSubstitutionConfigMap("sset1", "default")
+		k.substConfigMap["sset1"].name = "does-not-exist"
+
+		got := k.FetchSubstitutionFromMap(context.Background(), "sset1", "key", 0, 0)
+		assert.Equal(t, "", got)
+	})
+}
+
+func Test_kubeConfigmapController_CreateOrUpdate(t *testing.T) {
+	cr := &v1alpha1.ServerSet{ObjectMeta: metav1.ObjectMeta{Name: "sset1"}}
+
+	t.Run("configmap doesn't exist: creates it", func(t *testing.T) {
+		k := newTestConfigmapController()
+		k.SetSubstitutionConfigMap("sset1", "default")
+		k.SetIdentity("sset1", "0.0.key", "value")
+
+		require.NoError(t, k.CreateOrUpdate(context.Background(), cr))
+
+		got, err := k.Get(context.Background(), "sset1", "default")
+		require.NoError(t, err)
+		assert.Equal(t, "value", got.Data["0.0.key"])
+	})
+
+	t.Run("configmap exists with different data: updates it", func(t *testing.T) {
+		existing := &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "sset1", Namespace: "default"},
+			Data:       map[string]string{"0.0.key": "old"},
+		}
+		k := newTestConfigmapController(existing)
+		k.SetSubstitutionConfigMap("sset1", "default")
+		k.SetIdentity("sset1", "0.0.key", "new")
+
+		require.NoError(t, k.CreateOrUpdate(context.Background(), cr))
+
+		got, err := k.Get(context.Background(), "sset1", "default")
+		require.NoError(t, err)
+		assert.Equal(t, "new", got.Data["0.0.key"])
+	})
+
+	t.Run("configmap exists with same data: no-op", func(t *testing.T) {
+		existing := &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "sset1", Namespace: "default"},
+			Data:       map[string]string{"0.0.key": "value"},
+		}
+		k := newTestConfigmapController(existing)
+		k.SetSubstitutionConfigMap("sset1", "default")
+		k.SetIdentity("sset1", "0.0.key", "value")
+
+		assert.NoError(t, k.CreateOrUpdate(context.Background(), cr))
+	})
+}
+
+func Test_kubeConfigmapController_Delete(t *testing.T) {
+	cm := &v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "sset1", Namespace: "default"}}
+	k := newTestConfigmapController(cm)
+	k.SetSubstitutionConfigMap("sset1", "default")
+
+	require.NoError(t, k.Delete(context.Background(), "sset1"))
+
+	_, err := k.Get(context.Background(), "sset1", "default")
+	assert.Error(t, err, "configmap must be gone after Delete")
+}
+
+func Test_kubeConfigmapController_isDeleted(t *testing.T) {
+	t.Run("not found: clears the map entry and reports deleted", func(t *testing.T) {
+		k := newTestConfigmapController()
+		k.SetSubstitutionConfigMap("sset1", "default")
+
+		// No ConfigMap named "sset1" exists in the fake client, so Get returns NotFound and
+		// isDeleted must clear the map entry keyed by that same name.
+		deleted, err := k.isDeleted(context.Background(), "sset1", "default")
+		require.NoError(t, err)
+		assert.True(t, deleted)
+		assert.Nil(t, k.substConfigMap["sset1"])
+	})
+
+	t.Run("still present: reports not deleted", func(t *testing.T) {
+		cm := &v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "sset1", Namespace: "default"}}
+		k := newTestConfigmapController(cm)
+
+		deleted, err := k.isDeleted(context.Background(), "sset1", "default")
+		require.NoError(t, err)
+		assert.False(t, deleted)
+	})
 }
