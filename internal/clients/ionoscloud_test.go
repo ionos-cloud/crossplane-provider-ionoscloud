@@ -398,6 +398,18 @@ func TestNewIonosClient(t *testing.T) {
 			wantErr:           true,
 		},
 		{
+			name: "mtls malformed base64 client key",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "not-valid-base64!"}`,
+					b64(clientCertPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
 			name: "mtls invalid PEM client cert",
 			args: args{
 				data: []byte(fmt.Sprintf(
@@ -558,6 +570,38 @@ func TestNewIonosClient_MTLSWithCertPinning(t *testing.T) {
 	})
 }
 
+func Test_reapplyMTLSAfterPinning(t *testing.T) {
+	require.NoError(t, os.Setenv(ionos.IonosPinnedCertEnvVar, "deadbeef"))
+	loadEnv()
+	defer func() {
+		require.NoError(t, os.Unsetenv(ionos.IonosPinnedCertEnvVar))
+		loadEnv()
+	}()
+
+	t.Run("nil HTTPClient: one is created", func(t *testing.T) {
+		cfg := &ionos.Configuration{}
+		reapplyMTLSAfterPinning(cfg, &tls.Config{}, false)
+		require.NotNil(t, cfg.HTTPClient)
+		_, wrapped := cfg.HTTPClient.Transport.(*stripCloudAPIPrefixRoundTripper)
+		assert.False(t, wrapped)
+	})
+
+	t.Run("stripCloudAPIPrefix true: Transport is wrapped", func(t *testing.T) {
+		cfg := &ionos.Configuration{HTTPClient: &http.Client{}}
+		reapplyMTLSAfterPinning(cfg, &tls.Config{}, true)
+		_, wrapped := cfg.HTTPClient.Transport.(*stripCloudAPIPrefixRoundTripper)
+		assert.True(t, wrapped)
+	})
+}
+
+// Test_pinnedCertDialTLSContext_DialFailure covers the dial-error path (a plain connection
+// failure, not a fingerprint mismatch) by pointing at a port nothing is listening on.
+func Test_pinnedCertDialTLSContext_DialFailure(t *testing.T) {
+	dial := pinnedCertDialTLSContext("deadbeef", &tls.Config{})
+	_, err := dial(context.Background(), "tcp", "127.0.0.1:1")
+	assert.Error(t, err)
+}
+
 func TestStripCloudAPIPrefixRoundTripper(t *testing.T) {
 	cases := []struct {
 		name         string
@@ -588,6 +632,29 @@ func TestStripCloudAPIPrefixRoundTripper(t *testing.T) {
 			assert.Equal(t, tc.requestPath, req.URL.Path, "original request must not be mutated in place")
 		})
 	}
+}
+
+// TestStripCloudAPIPrefixRoundTripper_RawPath covers a path containing a percent-encoded
+// character, where url.URL populates RawPath separately from the decoded Path.
+func TestStripCloudAPIPrefixRoundTripper_RawPath(t *testing.T) {
+	var gotPath, gotRawPath string
+	next := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		gotPath = req.URL.Path
+		gotRawPath = req.URL.RawPath
+		return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
+	})
+	rt := &stripCloudAPIPrefixRoundTripper{next: next}
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://example.invalid/cloudapi/v6/foo%2Fbar", nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, req.URL.RawPath, "test setup: path must need percent-encoding to exercise RawPath stripping")
+
+	resp, err := rt.RoundTrip(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, "/v6/foo/bar", gotPath)
+	assert.Equal(t, "/v6/foo%2Fbar", gotRawPath)
 }
 
 // roundTripFunc lets a plain function satisfy http.RoundTripper, for tests that only care about
