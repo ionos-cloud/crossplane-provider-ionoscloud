@@ -92,6 +92,7 @@ adding the following fields to the credentials JSON, in addition to `user`/`pass
 | `client_cert` | PEM encoded client certificate, base64 encoded (like `password`). Requires `client_key` to also be set.                              |
 | `client_key`  | PEM encoded private key matching `client_cert`, base64 encoded (like `password`). Requires `client_cert` to also be set.              |
 | `ca_cert`     | Optional PEM encoded CA certificate to trust in addition to the system root pool, base64 encoded. Requires `client_cert`/`client_key` to also be set - setting `ca_cert` on its own is rejected as an error. |
+| `strip_cloudapi_prefix` | Optional boolean, defaults to `false`. When `true`, strips a leading `/cloudapi` path segment from every outgoing compute-API request. The SDK always targets `.../cloudapi/v6`, matching the public `api.ionos.com` surface and most mTLS-enforcing endpoints too - but some internal endpoints serve the same API directly at `/v6/...` with no `/cloudapi` segment. Only set this if you know your endpoint needs it: it is **not** inferred automatically from `client_cert`/`client_key` being set, since a generic mTLS-enforcing endpoint that retains the standard `/cloudapi/v6` layout must not have its paths rewritten. |
 
 This only affects the compute/cloud API client - it has no effect on DBaaS Postgres/Mongo, and it
 does not change the default endpoint (`api.ionos.com`) or any existing behavior when these fields
@@ -102,9 +103,9 @@ is also set, the client certificate is still presented and the pinned fingerprin
 enforced - both features work together.
 
 ```bash
-export BASE64_CLIENT_CERT=$(base64 -w0 client.pem)
-export BASE64_CLIENT_KEY=$(base64 -w0 client-key.pem)
-export BASE64_CA_CERT=$(base64 -w0 ca.pem)
+export BASE64_CLIENT_CERT=$(base64 < client.pem | tr -d '\n')
+export BASE64_CLIENT_KEY=$(base64 < client-key.pem | tr -d '\n')
+export BASE64_CA_CERT=$(base64 < ca.pem | tr -d '\n')
 kubectl create secret generic --namespace crossplane-system example-provider-secret --from-literal=credentials="{\"token\":\"${IONOS_TOKEN}\",\"client_cert\":\"${BASE64_CLIENT_CERT}\",\"client_key\":\"${BASE64_CLIENT_KEY}\",\"ca_cert\":\"${BASE64_CA_CERT}\"}"
 ```
 

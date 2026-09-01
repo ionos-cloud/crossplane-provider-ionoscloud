@@ -135,16 +135,17 @@ func generateTestServerCertPEM(t *testing.T) (certPEM, keyPEM []byte) {
 }
 
 // unwrapMTLSTransport recovers the *http.Transport carrying the TLS client cert from a compute
-// client's Transport, unwrapping the stripCloudAPIPrefixRoundTripper that buildComputeMTLSHTTPClient
-// always wraps it in (see that function - the wrapping is real production behavior, not a test
-// artifact, so callers that need to inspect the underlying *http.Transport's TLSClientConfig go
-// through this helper rather than asserting the concrete Transport type directly).
+// client's Transport. buildComputeMTLSHTTPClient only wraps it in a stripCloudAPIPrefixRoundTripper
+// when credentials.StripCloudAPIPrefix is explicitly set (see that function), so callers that need
+// to inspect the underlying *http.Transport's TLSClientConfig go through this helper - which
+// handles both the wrapped and bare cases - rather than asserting one concrete Transport type.
 func unwrapMTLSTransport(t *testing.T, rt http.RoundTripper) *http.Transport {
 	t.Helper()
-	wrapper, ok := rt.(*stripCloudAPIPrefixRoundTripper)
-	require.True(t, ok, "expected a *stripCloudAPIPrefixRoundTripper wrapping the TLS client cert transport")
-	tr, ok := wrapper.next.(*http.Transport)
-	require.True(t, ok, "expected an *http.Transport carrying the TLS client cert")
+	if wrapper, ok := rt.(*stripCloudAPIPrefixRoundTripper); ok {
+		rt = wrapper.next
+	}
+	tr, ok := rt.(*http.Transport)
+	require.True(t, ok, "expected an *http.Transport (optionally wrapped in stripCloudAPIPrefixRoundTripper) carrying the TLS client cert")
 	return tr
 }
 
@@ -293,6 +294,8 @@ func TestNewIonosClient(t *testing.T) {
 			wantErr: false,
 			checkComputeHTTPClient: func(t *testing.T, hc *http.Client) {
 				require.NotNil(t, hc)
+				_, wrapped := hc.Transport.(*stripCloudAPIPrefixRoundTripper)
+				assert.False(t, wrapped, "strip_cloudapi_prefix was not set, Transport must not be wrapped")
 				tr := unwrapMTLSTransport(t, hc.Transport)
 				require.NotNil(t, tr.TLSClientConfig)
 				require.Len(t, tr.TLSClientConfig.Certificates, 1)
@@ -631,7 +634,7 @@ func TestNewIonosClient_MTLSStripsCloudAPIPrefix(t *testing.T) {
 	defer srv.Close()
 
 	creds := []byte(fmt.Sprintf(
-		`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s", "ca_cert": "%s"}`,
+		`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s", "ca_cert": "%s", "strip_cloudapi_prefix": true}`,
 		b64(clientCertPEM), b64(clientKeyPEM), b64(serverCertPEM),
 	))
 
@@ -647,6 +650,50 @@ func TestNewIonosClient_MTLSStripsCloudAPIPrefix(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "/v6/datacenters", gotPath, "the /cloudapi prefix must be stripped before the request reaches the internal mTLS endpoint")
+}
+
+// TestNewIonosClient_MTLSDoesNotStripCloudAPIPrefixByDefault verifies that stripping is strictly
+// opt-in via strip_cloudapi_prefix: a generic mTLS-enforcing endpoint that retains the standard
+// /cloudapi/v6 layout (e.g. the default api.ionos.com surface itself) must not have its paths
+// rewritten just because a client certificate is configured.
+func TestNewIonosClient_MTLSDoesNotStripCloudAPIPrefixByDefault(t *testing.T) {
+	clientCertPEM, clientKeyPEM, _ := generateTestCertPEM(t, "provider-client", false)
+	serverCertPEM, serverKeyPEM := generateTestServerCertPEM(t)
+
+	serverKeyPair, err := tls.X509KeyPair(serverCertPEM, serverKeyPEM)
+	require.NoError(t, err)
+
+	var gotPath string
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.WriteHeader(http.StatusOK)
+	}))
+	srv.TLS = &tls.Config{
+		Certificates: []tls.Certificate{serverKeyPair},
+		ClientAuth:   tls.RequireAnyClientCert,
+	}
+	srv.StartTLS()
+	defer srv.Close()
+
+	creds := []byte(fmt.Sprintf(
+		`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s", "ca_cert": "%s"}`,
+		b64(clientCertPEM), b64(clientKeyPEM), b64(serverCertPEM),
+	))
+
+	svc, err := NewIonosClients(creds)
+	require.NoError(t, err)
+	hc := svc.ComputeClient.GetConfig().HTTPClient
+	require.NotNil(t, hc)
+	_, wrapped := hc.Transport.(*stripCloudAPIPrefixRoundTripper)
+	assert.False(t, wrapped, "strip_cloudapi_prefix was not set, Transport must not be wrapped")
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL+"/cloudapi/v6/datacenters", nil)
+	require.NoError(t, err)
+	resp, err := hc.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "/cloudapi/v6/datacenters", gotPath, "without strip_cloudapi_prefix, the path must reach the endpoint unmodified")
 }
 
 func TestGetCoreResourceState(t *testing.T) {

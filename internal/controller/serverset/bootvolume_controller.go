@@ -82,7 +82,7 @@ func (k *kubeBootVolumeController) Create(ctx context.Context, cr *v1alpha1.Serv
 	return *kubeVolume, nil
 }
 
-// one global state where to hold used ip addressed for substitutions for each statefulserverset.
+// one global state where to hold used ip addresses for substitutions for each statefulserverset.
 // globalStateMapMu guards globalStateMap itself: different ServerSets are reconciled
 // concurrently by controller-runtime, and this package-level map is shared across all of them.
 var (
