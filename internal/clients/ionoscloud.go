@@ -101,7 +101,7 @@ type credentials struct {
 	// outgoing compute-API request. Optional; ignored unless ClientCertificate/ClientKey are also
 	// set. The IONOS Cloud SDK always targets .../cloudapi/v6 (see cloudAPIPathPrefix), which
 	// matches the public api.ionos.com surface and most mTLS-enforcing endpoints too - but some
-	// internal endpoints (e.g. a paas-tunnel host) serve the same API directly at /v6/... with no
+	// internal endpoints serve the same API directly at /v6/... with no
 	// "/cloudapi" segment. This is opt-in, not automatic whenever mTLS is configured: a generic
 	// mTLS-enforcing endpoint that retains the standard /cloudapi/v6 layout (including the default
 	// api.ionos.com endpoint itself) must not have its paths rewritten.
@@ -199,14 +199,14 @@ const cloudAPIPathPrefix = "/cloudapi"
 // stripCloudAPIPrefixRoundTripper strips a leading "/cloudapi" path segment from every outgoing
 // request before delegating to the wrapped RoundTripper.
 //
-// Some internal mTLS-enforcing compute API endpoints (e.g. a paas-tunnel host) serve the same API
-// directly at /v6/... with no "/cloudapi" segment, unlike the public api.ionos.com/cloudapi/v6
-// surface the SDK otherwise always targets. Previously an nginx sidecar (cloudapi-tunnel-proxy)
-// rewrote the path on the provider's behalf before forwarding upstream. Now that the provider can
-// present its own client certificate directly to such an endpoint instead of going through that
-// sidecar, nothing rewrites the path anymore unless this RoundTripper does it - so it is wired in
-// by buildComputeMTLSHTTPClient/reapplyMTLSAfterPinning whenever credentials.StripCloudAPIPrefix
-// is explicitly set. This is opt-in rather than tied to "mTLS is configured": a generic
+// Some internal mTLS-enforcing compute API endpoints serve the same API directly at /v6/... with
+// no "/cloudapi" segment, unlike the public api.ionos.com/cloudapi/v6 surface the SDK otherwise
+// always targets. Previously a proxy sidecar rewrote the path on the provider's behalf before
+// forwarding upstream. Now that the provider can present its own client certificate directly to
+// such an endpoint instead of going through that sidecar, nothing rewrites the path anymore
+// unless this RoundTripper does it - so it is wired in by
+// buildComputeMTLSHTTPClient/reapplyMTLSAfterPinning whenever credentials.StripCloudAPIPrefix is
+// explicitly set. This is opt-in rather than tied to "mTLS is configured": a generic
 // mTLS-enforcing endpoint that retains the standard /cloudapi/v6 layout (including the default
 // api.ionos.com endpoint) must not have its paths rewritten.
 type stripCloudAPIPrefixRoundTripper struct {
