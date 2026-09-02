@@ -152,9 +152,11 @@ func main() {
 
 	kingpin.FatalIfError(utils.ValidatePollJitterPercentage(*pollJitterPercentage), "Invalid --poll-jitter-percentage")
 
-	options := utils.NewConfigurationOptions(*timeout, *createGracePeriod, *vmRebootTimeout, *extendServerSetTimeoutForVMReboot, *uniqueNames, ctrlOpts)
+	options := utils.NewConfigurationOptions(*timeout, *createGracePeriod, *uniqueNames, ctrlOpts)
 	options.PollJitterPercentage = *pollJitterPercentage
 	options.NotReadyPollInterval = *pollNotReady
+	options.VMRebootTimeout = *vmRebootTimeout
+	options.ExtendServerSetTimeoutForVMReboot = *extendServerSetTimeoutForVMReboot
 	if len(*reconcileMap) > 0 {
 		options.MaxReconcilesPerResource = make(map[string]int, len(*reconcileMap))
 		// convert to lowercase and convert string to int

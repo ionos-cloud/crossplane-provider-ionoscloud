@@ -27,14 +27,12 @@ type ConfigurationOptions struct {
 }
 
 // NewConfigurationOptions sets fields for ConfigurationOptions and return a new ConfigurationOptions
-func NewConfigurationOptions(timeout, createGracePeriod, vmRebootTimeout time.Duration, extendServerSetTimeoutForVMReboot, uniqueNamesEnable bool, ctrlOpts controller.Options) *ConfigurationOptions {
+func NewConfigurationOptions(timeout, createGracePeriod time.Duration, uniqueNamesEnable bool, ctrlOpts controller.Options) *ConfigurationOptions {
 	return &ConfigurationOptions{
-		CreationGracePeriod:               createGracePeriod,
-		IsUniqueNamesEnabled:              uniqueNamesEnable,
-		Timeout:                           timeout,
-		VMRebootTimeout:                   vmRebootTimeout,
-		ExtendServerSetTimeoutForVMReboot: extendServerSetTimeoutForVMReboot,
-		CtrlOpts:                          ctrlOpts,
+		CreationGracePeriod:  createGracePeriod,
+		IsUniqueNamesEnabled: uniqueNamesEnable,
+		Timeout:              timeout,
+		CtrlOpts:             ctrlOpts,
 	}
 }
 
