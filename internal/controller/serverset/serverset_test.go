@@ -43,6 +43,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	serverctrl "github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller/compute/server"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 )
 
 const (
@@ -2041,6 +2042,59 @@ func Test_serverSetController_updateServersFromTemplate_usesReplicaIndexLabelNot
 
 	require.NoError(t, err, "each server must be paired with the boot volume carrying its own replica-index label")
 	kubeClient.AssertNumberOfCalls(t, updateMethod, 2)
+}
+
+// Test_external_setSubstitutions_setsGlobalState verifies a substitution value fetched from the
+// configmap gets written into both the status and the global state, when it isn't already there.
+func Test_external_setSubstitutions_setsGlobalState(t *testing.T) {
+	cr := createBasicServerSet()
+	cr.Name = "sset-setsubstitutions-test"
+	cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions = []v1alpha1.Substitution{
+		{Type: "unregistered-test-type", Key: "MY_KEY"},
+	}
+	cr.Status.AtProvider.ReplicaStatuses = []v1alpha1.ServerSetReplicaStatus{
+		{SubstitutionReplacement: map[string]string{}},
+	}
+
+	substCM := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: cr.Name, Namespace: "default"},
+		Data:       map[string]string{"0.0.MY_KEY": "10.0.0.9"},
+	}
+
+	e := &external{
+		kube:                fakeKubeClientObjs(),
+		configMapController: newTestConfigmapController(substCM),
+		log:                 logging.NewNopLogger(),
+	}
+
+	e.setSubstitutions(context.Background(), cr, 0, 0)
+
+	assert.Equal(t, "10.0.0.9", cr.Status.AtProvider.ReplicaStatuses[0].SubstitutionReplacement["MY_KEY"])
+	identifier := substitution.Identifier(getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, 0, 0))
+	assert.True(t, getOrInitGlobalState(cr.Name).Exists(identifier, "MY_KEY"))
+}
+
+// Test_external_Delete_removesGlobalState verifies Delete clears the ServerSet's entry out of
+// the package-level globalStateMap, not just its substitution configmap.
+func Test_external_Delete_removesGlobalState(t *testing.T) {
+	cr := createBasicServerSet()
+	cr.Name = "sset-delete-test"
+	getOrInitGlobalState(cr.Name).Set("some-identifier", "key", "value")
+
+	configMapController := newTestConfigmapController()
+	configMapController.SetSubstitutionConfigMap(cr.Name, "default")
+
+	e := &external{
+		log:                 logging.NewNopLogger(),
+		configMapController: configMapController,
+	}
+
+	_, _ = e.Delete(context.Background(), cr)
+
+	globalStateMapMu.Lock()
+	_, ok := globalStateMap[cr.Name]
+	globalStateMapMu.Unlock()
+	assert.False(t, ok, "globalStateMap must no longer have an entry for the deleted ServerSet")
 }
 
 // func Test_serverSetController_Delete(t *testing.T) {

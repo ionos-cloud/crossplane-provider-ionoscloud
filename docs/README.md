@@ -58,6 +58,7 @@ To create the Provider secret, you can use either of the following methods:
 
 * [<mark style="color:blue;">Using username and password</mark>](#using-username-and-password)
 * [<mark style="color:blue;">Using token</mark>](#using-token)
+* [<mark style="color:blue;">Using mTLS for the compute/cloud API endpoint</mark>](#using-mtls-for-the-computecloud-api-endpoint)
 
 {% hint style="info" %}
 **Note:** We recommend **using token** to create the Provider secret.
@@ -79,6 +80,35 @@ Run the following command:
 ```bash
 kubectl create secret generic --namespace crossplane-system example-provider-secret --from-literal=credentials="{\"token\":\"${IONOS_TOKEN}\"}"
 ```
+
+#### Using mTLS for the compute/cloud API endpoint
+
+If the compute/cloud API endpoint you point the provider at enforces mutual TLS (mTLS) client
+certificate verification, you can optionally have the provider present a client certificate by
+adding the following fields to the credentials JSON, in addition to `user`/`password` or `token`:
+
+| **Field**     | **Description**                                                                                                                     |
+|---------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| `client_cert` | PEM encoded client certificate, base64 encoded (like `password`). Requires `client_key` to also be set.                              |
+| `client_key`  | PEM encoded private key matching `client_cert`, base64 encoded (like `password`). Requires `client_cert` to also be set.              |
+| `ca_cert`     | Optional PEM encoded CA certificate to trust in addition to the system root pool, base64 encoded. Requires `client_cert`/`client_key` to also be set - setting `ca_cert` on its own is rejected as an error. |
+| `strip_cloudapi_prefix` | Optional boolean, defaults to `false`. When `true`, strips a leading `/cloudapi` path segment from every outgoing compute-API request. The SDK always targets `.../cloudapi/v6`, matching the public `api.ionos.com` surface and most mTLS-enforcing endpoints too - but some internal endpoints serve the same API directly at `/v6/...` with no `/cloudapi` segment. Only set this if you know your endpoint needs it: it is **not** inferred automatically from `client_cert`/`client_key` being set, since a generic mTLS-enforcing endpoint that retains the standard `/cloudapi/v6` layout must not have its paths rewritten. |
+
+This only affects the compute/cloud API client - it has no effect on DBaaS Postgres/Mongo, and it
+does not change the default endpoint (`api.ionos.com`) or any existing behavior when these fields
+are not set.
+
+If `IONOS_PINNED_CERT` (see [Authentication on IONOS Cloud](../README.md#authentication-on-ionos-cloud))
+is also set, the client certificate is still presented and the pinned fingerprint is still
+enforced - both features work together.
+
+```bash
+export BASE64_CLIENT_CERT=$(base64 < client.pem | tr -d '\n')
+export BASE64_CLIENT_KEY=$(base64 < client-key.pem | tr -d '\n')
+export BASE64_CA_CERT=$(base64 < ca.pem | tr -d '\n')
+kubectl create secret generic --namespace crossplane-system example-provider-secret --from-literal=credentials="{\"token\":\"${IONOS_TOKEN}\",\"client_cert\":\"${BASE64_CLIENT_CERT}\",\"client_key\":\"${BASE64_CLIENT_KEY}\",\"ca_cert\":\"${BASE64_CA_CERT}\"}"
+```
+
 {% hint style="info" %}
 **Note:** 
 * You can overwrite the default IONOS Cloud API endpoint, by setting the credentials to: `credentials="{\"host_url\":\"${IONOS_API_URL}\"}"`.
