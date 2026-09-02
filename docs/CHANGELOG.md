@@ -1,3 +1,12 @@
+## [Unreleased]
+### Features:
+- Make the VM-reboot wait after a ServerSet failover configurable (`--vm-reboot-timeout`, default `120m`, same as the previous hardcoded value), with an opt-in `--extend-serverset-timeout-for-vm-reboot` flag to widen the ServerSet controller's own reconcile timeout to accommodate it when needed.
+
+## [1.2.6] (August 2026)
+### Fixes:
+- Derive replica index from its label instead of list position in `updateOrRecreateVolumes`, since `ReplicaStatuses` entries aren't ordered by index.
+- Treat a `NicMultiQueue` change as requiring a failover (VM reboot), since the Cloud API always reboots the VM to apply it.
+
 ## [1.2.5] (August 2026)
 ### Fixes:
 - Omit `nodeCount` from the k8s nodepool update request when autoscaling is enabled, so the autoscaled node count is no longer reset on update.

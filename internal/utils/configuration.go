@@ -10,10 +10,12 @@ import (
 // ConfigurationOptions are options used in setting the provider
 // and the controllers of the provider.
 type ConfigurationOptions struct {
-	CreationGracePeriod      time.Duration
-	Timeout                  time.Duration
-	IsUniqueNamesEnabled     bool
-	MaxReconcilesPerResource map[string]int
+	CreationGracePeriod               time.Duration
+	Timeout                           time.Duration
+	VMRebootTimeout                   time.Duration
+	ExtendServerSetTimeoutForVMReboot bool
+	IsUniqueNamesEnabled              bool
+	MaxReconcilesPerResource          map[string]int
 	// PollJitterPercentage is the percentage of its poll interval by which a single
 	// resource's poll interval is randomly shifted, in either direction.
 	PollJitterPercentage uint
@@ -72,6 +74,22 @@ func (o *ConfigurationOptions) GetTimeout() time.Duration {
 		return 0
 	}
 	return o.Timeout
+}
+
+// GetVMRebootTimeout returns the value for the VMRebootTimeout option
+func (o *ConfigurationOptions) GetVMRebootTimeout() time.Duration {
+	if o == nil {
+		return 0
+	}
+	return o.VMRebootTimeout
+}
+
+// GetExtendServerSetTimeoutForVMReboot returns the value for the ExtendServerSetTimeoutForVMReboot option
+func (o *ConfigurationOptions) GetExtendServerSetTimeoutForVMReboot() bool {
+	if o == nil {
+		return false
+	}
+	return o.ExtendServerSetTimeoutForVMReboot
 }
 
 // GetIsUniqueNamesEnabled returns the value for the IsUniqueNamesEnabled option
