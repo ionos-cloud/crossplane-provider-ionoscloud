@@ -2,6 +2,7 @@ package utils
 
 import (
 	"testing"
+	"time"
 
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	"github.com/stretchr/testify/assert"
@@ -64,4 +65,15 @@ func TestGetMaxConcurrentReconcileRateHandlesVariousScenarios(t *testing.T) {
 			assert.Equal(t, tt.expectedReconcileRate, result)
 		})
 	}
+}
+
+func TestGetPollJitterPercentage(t *testing.T) {
+	assert.Equal(t, uint(10), (&ConfigurationOptions{PollJitterPercentage: 10}).GetPollJitterPercentage())
+	assert.Zero(t, (*ConfigurationOptions)(nil).GetPollJitterPercentage())
+}
+
+func TestGetNotReadyPollInterval(t *testing.T) {
+	opts := &ConfigurationOptions{NotReadyPollInterval: 30 * time.Second}
+	assert.Equal(t, 30*time.Second, opts.GetNotReadyPollInterval())
+	assert.Zero(t, (*ConfigurationOptions)(nil).GetNotReadyPollInterval())
 }

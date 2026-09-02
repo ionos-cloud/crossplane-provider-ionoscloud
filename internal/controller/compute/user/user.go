@@ -98,6 +98,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 				managed.WithTimeout(opts.GetTimeout()),
 				managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 				managed.WithLogger(logger.WithValues("controller", name)),
+				managed.WithPollIntervalHook(opts.PollIntervalHook()),
 				managed.WithRecorder(eventRecorder),
 				managed.WithConnectionPublishers(cps...),
 			),
