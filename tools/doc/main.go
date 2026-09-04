@@ -86,7 +86,7 @@ func writeContent(docsFolder string) error { // nolint: gocyclo
 
 	buf := new(bytes.Buffer)
 	mustGetCRDs := crds.MustGetCRDs()
-	for i := 0; i < len(mustGetCRDs); i++ {
+	for i := range mustGetCRDs {
 		serviceName, err := getSvcShortNameFromGroup(mustGetCRDs[i])
 		if err != nil {
 			return err

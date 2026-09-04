@@ -60,8 +60,8 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 			args: args{
 				ctx: ctxWithTimeout,
 				cr: &v1alpha1.StatefulServerSet{
-					TypeMeta:   metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{Name: statefulServerSetName},
+					TypeMeta: metav1.TypeMeta{},
+					Name:     statefulServerSetName,
 					Spec: v1alpha1.StatefulServerSetSpec{
 						ResourceSpec: xpv1.ResourceSpec{},
 						ForProvider: v1alpha1.StatefulServerSetParameters{
@@ -85,7 +85,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: statefulServerSetName}},
+				cr:  &v1alpha1.StatefulServerSet{Name: statefulServerSetName},
 			},
 			wantErr: ErrSomethingWentWrong,
 		},
@@ -97,7 +97,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: statefulServerSetName}},
+				cr:  &v1alpha1.StatefulServerSet{Name: statefulServerSetName},
 			},
 			wantErr: ErrSomethingWentWrong,
 		},
@@ -109,7 +109,7 @@ func Test_kubeServerSetController_Ensure(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				cr:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: statefulServerSetName}},
+				cr:  &v1alpha1.StatefulServerSet{Name: statefulServerSetName},
 			},
 			wantErr: nil,
 		},
@@ -151,7 +151,7 @@ func Test_kubeServerSetController_Create(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				cr: &v1alpha1.StatefulServerSet{
-					ObjectMeta: metav1.ObjectMeta{Name: statefulServerSetName},
+					Name: statefulServerSetName,
 					Spec: v1alpha1.StatefulServerSetSpec{
 						ResourceSpec: xpv1.ResourceSpec{
 							ManagementPolicies:      []xpv1.ManagementAction{"*"},

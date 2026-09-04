@@ -151,12 +151,10 @@ func (k *kubeServerSetController) Get(ctx context.Context, ssetName, ns string) 
 
 func extractSSetFromSSSet(sSSet *v1alpha1.StatefulServerSet) *v1alpha1.ServerSet {
 	return &v1alpha1.ServerSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      getSSetName(sSSet),
-			Namespace: sSSet.Namespace,
-			Labels: map[string]string{
-				statefulServerSetLabel: sSSet.Name,
-			},
+		Name:      getSSetName(sSSet),
+		Namespace: sSSet.Namespace,
+		Labels: map[string]string{
+			statefulServerSetLabel: sSSet.Name,
 		},
 		Spec: v1alpha1.ServerSetSpec{
 			ResourceSpec: xpv1.ResourceSpec{

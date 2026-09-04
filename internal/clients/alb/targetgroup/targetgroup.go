@@ -218,11 +218,11 @@ func getTargets(targetGroupTargets []v1alpha1.TargetGroupTarget) []sdkgo.TargetG
 	targets := make([]sdkgo.TargetGroupTarget, len(targetGroupTargets))
 	for i, targetGroupTarget := range targetGroupTargets {
 		targets[i] = sdkgo.TargetGroupTarget{
-			Ip:                 sdkgo.PtrString(targetGroupTarget.IP),
-			Port:               sdkgo.PtrInt32(targetGroupTarget.Port),
-			Weight:             sdkgo.PtrInt32(targetGroupTarget.Weight),
-			HealthCheckEnabled: sdkgo.PtrBool(targetGroupTarget.HealthCheckEnabled),
-			MaintenanceEnabled: sdkgo.PtrBool(targetGroupTarget.MaintenanceEnabled),
+			Ip:                 new(targetGroupTarget.IP),
+			Port:               new(targetGroupTarget.Port),
+			Weight:             new(targetGroupTarget.Weight),
+			HealthCheckEnabled: new(targetGroupTarget.HealthCheckEnabled),
+			MaintenanceEnabled: new(targetGroupTarget.MaintenanceEnabled),
 		}
 	}
 	return targets
@@ -293,7 +293,7 @@ func equalTargetGroupHealthCheck(healthCheck v1alpha1.TargetGroupHealthCheck, ta
 
 func getHTTPHealthCheck(httpHealthCheck v1alpha1.TargetGroupHTTPHealthCheck) sdkgo.TargetGroupHttpHealthCheck {
 	targetGroupHTTPHealthCheck := sdkgo.TargetGroupHttpHealthCheck{
-		Negate: sdkgo.PtrBool(httpHealthCheck.Negate),
+		Negate: new(httpHealthCheck.Negate),
 	}
 	if !utils.IsEmptyValue(reflect.ValueOf(httpHealthCheck.Path)) {
 		targetGroupHTTPHealthCheck.SetPath(httpHealthCheck.Path)

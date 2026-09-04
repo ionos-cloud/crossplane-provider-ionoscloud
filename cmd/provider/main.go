@@ -35,7 +35,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	"gopkg.in/alecthomas/kingpin.v2"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/config"
@@ -139,9 +138,7 @@ func main() {
 		log.Info("Alpha feature enabled", "flag", features.EnableAlphaExternalSecretStores)
 
 		kingpin.FatalIfError(resource.Ignore(kerrors.IsAlreadyExists, mgr.GetClient().Create(context.Background(), &v1alpha1.StoreConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "default",
-			},
+			Name: "default",
 			Spec: v1alpha1.StoreConfigSpec{
 				SecretStoreConfig: xpv1.SecretStoreConfig{
 					DefaultScope: *namespace,

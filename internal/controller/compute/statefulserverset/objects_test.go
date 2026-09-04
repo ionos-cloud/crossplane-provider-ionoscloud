@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	"github.com/ionos-cloud/sdk-go-bundle/shared"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -110,11 +109,9 @@ func getCustomerLanIdx(ssset *v1alpha1.StatefulServerSet) int {
 func createSSSet() *v1alpha1.StatefulServerSet {
 	return &v1alpha1.StatefulServerSet{
 		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: statefulServerSetName,
-			Annotations: map[string]string{
-				"crossplane.io/external-name": statefulServerSetExternalName,
-			},
+		Name:     statefulServerSetName,
+		Annotations: map[string]string{
+			"crossplane.io/external-name": statefulServerSetExternalName,
 		},
 		Spec: v1alpha1.StatefulServerSetSpec{
 			ForProvider: v1alpha1.StatefulServerSetParameters{
@@ -176,21 +173,19 @@ func createSSSet() *v1alpha1.StatefulServerSet {
 
 func createSSet() *v1alpha1.ServerSet {
 	return &v1alpha1.ServerSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            computeSSSetOwnerLabel(),
-			ResourceVersion: "1",
-			Labels: map[string]string{
-				statefulServerSetLabel: statefulServerSetName,
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         "",
-					Kind:               "",
-					Name:               statefulServerSetName,
-					UID:                "",
-					Controller:         shared.ToPtr(true),
-					BlockOwnerDeletion: shared.ToPtr(false),
-				},
+		Name:            computeSSSetOwnerLabel(),
+		ResourceVersion: "1",
+		Labels: map[string]string{
+			statefulServerSetLabel: statefulServerSetName,
+		},
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				APIVersion:         "",
+				Kind:               "",
+				Name:               statefulServerSetName,
+				UID:                "",
+				Controller:         new(true),
+				BlockOwnerDeletion: new(false),
 			},
 		},
 		Spec: v1alpha1.ServerSetSpec{
@@ -277,11 +272,9 @@ func createCustomerLAN() *v1alpha1.Lan {
 
 func createLAN(parameters v1alpha1.LanParameters) *v1alpha1.Lan {
 	return &v1alpha1.Lan{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            parameters.Name,
-			ResourceVersion: strconv.Itoa(lanResourceVersion),
-		},
-		Spec: v1alpha1.LanSpec{ForProvider: parameters},
+		Name:            parameters.Name,
+		ResourceVersion: strconv.Itoa(lanResourceVersion),
+		Spec:            v1alpha1.LanSpec{ForProvider: parameters},
 		Status: v1alpha1.LanStatus{
 			AtProvider: v1alpha1.LanObservation{
 				LanID: "lan-id",
@@ -465,9 +458,7 @@ func createVolume(replicaIdx int, parameters v1alpha1.VolumeParameters) v1alpha1
 	withNameUpdated.Name = nameWithIdx(replicaIdx, parameters.Name)
 
 	return v1alpha1.Volume{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: withNameUpdated.Name,
-		},
+		Name: withNameUpdated.Name,
 
 		Spec: v1alpha1.VolumeSpec{ForProvider: withNameUpdated},
 	}
@@ -501,11 +492,9 @@ func createServerNotUpToDate(replicaIdx int, b ServeFieldsUpToDate) *v1alpha1.Se
 
 func createServer(replicaIdx int, parameters v1alpha1.ServerParameters) *v1alpha1.Server {
 	return &v1alpha1.Server{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: nameWithIdx(replicaIdx, parameters.Name),
-			Labels: map[string]string{
-				serverSetLabel: computeSSSetOwnerLabel(),
-			},
+		Name: nameWithIdx(replicaIdx, parameters.Name),
+		Labels: map[string]string{
+			serverSetLabel: computeSSSetOwnerLabel(),
 		},
 		Spec: v1alpha1.ServerSpec{ForProvider: parameters},
 	}
@@ -521,11 +510,9 @@ func createNIC2() *v1alpha1.Nic {
 
 func createNIC(replicaIdx int, parameters v1alpha1.NicParameters) *v1alpha1.Nic {
 	return &v1alpha1.Nic{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: nameWithIdx(replicaIdx, parameters.Name),
-			Labels: map[string]string{
-				serverSetLabel: computeSSSetOwnerLabel(),
-			},
+		Name: nameWithIdx(replicaIdx, parameters.Name),
+		Labels: map[string]string{
+			serverSetLabel: computeSSSetOwnerLabel(),
 		},
 		Spec: v1alpha1.NicSpec{},
 	}

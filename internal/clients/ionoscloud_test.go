@@ -207,12 +207,12 @@ func TestGetCoreResourceState(t *testing.T) {
 		},
 		{
 			name: "found metadata with state",
-			args: &testCoreResource{metadata: &ionos.DatacenterElementMetadata{State: ionos.PtrString("foo")}, found: true},
+			args: &testCoreResource{metadata: &ionos.DatacenterElementMetadata{State: new("foo")}, found: true},
 			want: "foo",
 		},
 		{
 			name: "found metadata no metadata, but it's present",
-			args: &testCoreResource{metadata: &ionos.DatacenterElementMetadata{State: ionos.PtrString("foo")}, found: false},
+			args: &testCoreResource{metadata: &ionos.DatacenterElementMetadata{State: new("foo")}, found: false},
 			want: "",
 		},
 	}

@@ -21,7 +21,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/providerconfig"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -44,7 +43,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.GetMaxConcurrentReconcileRate(v1alpha1.ProviderConfigKind),
 			RateLimiter:             ratelimiter.NewController(),
-			RecoverPanic:            ptr.To(true),
+			RecoverPanic:            new(true),
 		}).
 		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.ProviderConfig{}).

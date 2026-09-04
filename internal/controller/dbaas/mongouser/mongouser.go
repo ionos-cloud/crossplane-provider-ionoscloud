@@ -29,10 +29,8 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
-	ionoscloud "github.com/ionos-cloud/sdk-go-dbaas-mongo"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -64,7 +62,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.GetMaxConcurrentReconcileRate(v1alpha1.MongoUserKind),
 			RateLimiter:             ratelimiter.NewController(),
-			RecoverPanic:            ptr.To(true),
+			RecoverPanic:            new(true),
 		}).
 		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.MongoUser{}).
@@ -206,7 +204,7 @@ func (u *externalUser) Update(ctx context.Context, mg resource.Managed) (managed
 		if err != nil {
 			return managed.ExternalUpdate{}, err
 		}
-		instanceInput.Properties.Password = ionoscloud.PtrString(creds.Password)
+		instanceInput.Properties.Password = new(creds.Password)
 	}
 
 	_, apiResponse, err := u.service.UpdateUser(ctx, clusterID, userName, *instanceInput)

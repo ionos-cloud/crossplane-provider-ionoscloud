@@ -1,6 +1,9 @@
 ## [Unreleased]
 ### Features:
 - Make the VM-reboot wait after a ServerSet failover configurable (`--vm-reboot-timeout`, default `120m`, same as the previous hardcoded value), with an opt-in `--extend-serverset-timeout-for-vm-reboot` flag to widen the ServerSet controller's own reconcile timeout to accommodate it when needed.
+### Chores:
+- Update go version, crossplane-runtime and crypto dependencies to fix CVEs.
+- Run go fix on the codebase to run modernize on the codebase.
 
 ## [1.2.6] (August 2026)
 ### Fixes:

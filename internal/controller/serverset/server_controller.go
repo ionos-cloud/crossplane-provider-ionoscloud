@@ -130,14 +130,12 @@ func (k *kubeServerController) isServerDeleted(ctx context.Context, name, namesp
 // attaches a bootvolume to the server based on replicaIndex
 func fromServerSetToServer(cr *v1alpha1.ServerSet, replicaIndex, version int) v1alpha1.Server {
 	return v1alpha1.Server{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, version),
-			Namespace: cr.Namespace,
-			Labels: map[string]string{
-				serverSetLabel: cr.Name,
-				fmt.Sprintf(indexLabel, cr.GetName(), ResourceServer):   fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(versionLabel, cr.GetName(), ResourceServer): fmt.Sprintf("%d", version),
-			},
+		Name:      getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, version),
+		Namespace: cr.Namespace,
+		Labels: map[string]string{
+			serverSetLabel: cr.Name,
+			fmt.Sprintf(indexLabel, cr.GetName(), ResourceServer):   fmt.Sprintf("%d", replicaIndex),
+			fmt.Sprintf(versionLabel, cr.GetName(), ResourceServer): fmt.Sprintf("%d", version),
 		},
 		Spec: v1alpha1.ServerSpec{
 			ResourceSpec: xpv1.ResourceSpec{

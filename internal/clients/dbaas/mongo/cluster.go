@@ -251,7 +251,7 @@ func GenerateUpdateUserInput(cr *v1alpha1.MongoUser) *ionoscloud.PatchUserReques
 	instanceUpdateInput := ionoscloud.PatchUserRequest{
 		Properties: &ionoscloud.PatchUserProperties{
 			// We don't want to store the secret provided password in the spec
-			Password: ionoscloud.PtrString(cr.Spec.ForProvider.Credentials.Password),
+			Password: new(cr.Spec.ForProvider.Credentials.Password),
 		},
 	}
 	roles := convertToIonoscloudUserRoles(cr.Spec.ForProvider.Roles)
@@ -340,7 +340,6 @@ func convertToIonoscloudUserRoles(roles []v1alpha1.UserRoles) []ionoscloud.UserR
 	userRoles := make([]ionoscloud.UserRoles, 0)
 	if len(roles) > 0 {
 		for _, role := range roles {
-			role := role
 			userRoles = append(userRoles, ionoscloud.UserRoles{
 				Role:     &role.Role,
 				Database: &role.Database,

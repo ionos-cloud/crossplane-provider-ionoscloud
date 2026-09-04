@@ -257,7 +257,7 @@ type PostgresClusterList struct {
 
 // Cluster type metadata.
 var (
-	PostgresClusterKind             = reflect.TypeOf(PostgresCluster{}).Name()
+	PostgresClusterKind             = reflect.TypeFor[PostgresCluster]().Name()
 	PostgresClusterGroupKind        = schema.GroupKind{Group: Group, Kind: PostgresClusterKind}.String()
 	PostgresClusterKindAPIVersion   = PostgresClusterKind + "." + SchemeGroupVersion.String()
 	PostgresClusterGroupVersionKind = SchemeGroupVersion.WithKind(PostgresClusterKind)

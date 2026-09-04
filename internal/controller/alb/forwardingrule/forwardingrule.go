@@ -22,7 +22,6 @@ import (
 
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"github.com/google/go-cmp/cmp"
@@ -69,7 +68,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.GetMaxConcurrentReconcileRate(v1alpha1.ForwardingRuleKind),
 			RateLimiter:             ratelimiter.NewController(),
-			RecoverPanic:            ptr.To(true),
+			RecoverPanic:            new(true),
 		}).
 		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.ForwardingRule{}).

@@ -24,7 +24,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
@@ -68,7 +67,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.GetMaxConcurrentReconcileRate(v1alpha1.VolumeKind),
 			RateLimiter:             ratelimiter.NewController(),
-			RecoverPanic:            ptr.To(true),
+			RecoverPanic:            new(true),
 		}).
 		For(&v1alpha1.Volume{}).
 		Complete(managed.NewReconciler(mgr,

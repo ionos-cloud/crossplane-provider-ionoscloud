@@ -1963,10 +1963,8 @@ func Test_serverSetController_updateWithFailoverOrchestration_usesServerMatching
 	// Both existing replicas report a healthy, freshly refreshed runtime state, so neither the
 	// pre-update areAllVMsReadyForFailover() check nor the post-update reboot wait blocks.
 	stateMap := &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      stateMapName,
-			Namespace: stateMapNamespace,
-		},
+		Name:      stateMapName,
+		Namespace: stateMapNamespace,
 		Data: map[string]string{
 			fmt.Sprintf(stateKeyFormat, server0.Name):          statusVMRunning,
 			fmt.Sprintf(stateTimestampKeyFormat, server0.Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
@@ -2775,12 +2773,10 @@ func createServerNotReadyYet() *v1alpha1.Server {
 
 func createServer(name string) *v1alpha1.Server {
 	return &v1alpha1.Server{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			Labels: map[string]string{
-				serverSetLabel: serverSetName,
-				fmt.Sprintf(indexLabel, serverSetName, ResourceServer): "0",
-			},
+		Name: name,
+		Labels: map[string]string{
+			serverSetLabel: serverSetName,
+			fmt.Sprintf(indexLabel, serverSetName, ResourceServer): "0",
 		},
 		Status: v1alpha1.ServerStatus{
 			AtProvider: v1alpha1.ServerObservation{
@@ -2824,12 +2820,10 @@ func createServerWithNicMultiQueueAndUpdateFailedCondition(name string, nmq *boo
 
 func createServerWithUpdateSucceededConditionSet(name string) *v1alpha1.Server {
 	return &v1alpha1.Server{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			Labels: map[string]string{
-				serverSetLabel: serverSetName,
-				fmt.Sprintf(indexLabel, serverSetName, ResourceServer): "0",
-			},
+		Name: name,
+		Labels: map[string]string{
+			serverSetLabel: serverSetName,
+			fmt.Sprintf(indexLabel, serverSetName, ResourceServer): "0",
 		},
 		Status: v1alpha1.ServerStatus{
 			AtProvider: v1alpha1.ServerObservation{
@@ -2855,12 +2849,10 @@ func createServerWithUpdateSucceededConditionSet(name string) *v1alpha1.Server {
 
 func createServerWithUpdateFailedConditionSet(name string) *v1alpha1.Server {
 	return &v1alpha1.Server{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			Labels: map[string]string{
-				serverSetLabel: serverSetName,
-				fmt.Sprintf(indexLabel, serverSetName, ResourceServer): "0",
-			},
+		Name: name,
+		Labels: map[string]string{
+			serverSetLabel: serverSetName,
+			fmt.Sprintf(indexLabel, serverSetName, ResourceServer): "0",
 		},
 		Status: v1alpha1.ServerStatus{
 			AtProvider: v1alpha1.ServerObservation{
@@ -2924,14 +2916,12 @@ func createNic(params v1alpha1.NicParameters) *v1alpha1.Nic {
 
 func createBasicNic() *v1alpha1.Nic {
 	return &v1alpha1.Nic{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-nic",
-			Labels: map[string]string{
-				serverSetLabel:            serverSetName,
-				serverSetNicIndexLabel:    "0",
-				serverSetNicVersionLabel:  "0",
-				serverSetNicNicIndexLabel: "0",
-			},
+		Name: "test-nic",
+		Labels: map[string]string{
+			serverSetLabel:            serverSetName,
+			serverSetNicIndexLabel:    "0",
+			serverSetNicVersionLabel:  "0",
+			serverSetNicNicIndexLabel: "0",
 		},
 		Spec: v1alpha1.NicSpec{
 			ForProvider: v1alpha1.NicParameters{
@@ -2952,11 +2942,9 @@ func createBasicNic() *v1alpha1.Nic {
 
 func createBootVolumeWithHotPlug(name string) *v1alpha1.Volume {
 	return &v1alpha1.Volume{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			Labels: map[string]string{
-				serverSetLabel: serverSetName,
-			},
+		Name: name,
+		Labels: map[string]string{
+			serverSetLabel: serverSetName,
 		},
 		Spec: v1alpha1.VolumeSpec{
 			ForProvider: v1alpha1.VolumeParameters{
@@ -2977,11 +2965,9 @@ func createBootVolumeWithHotPlug(name string) *v1alpha1.Volume {
 
 func createBootVolumeWithoutHotPlug(name string) *v1alpha1.Volume {
 	return &v1alpha1.Volume{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			Labels: map[string]string{
-				serverSetLabel: serverSetName,
-			},
+		Name: name,
+		Labels: map[string]string{
+			serverSetLabel: serverSetName,
 		},
 		Spec: v1alpha1.VolumeSpec{
 			ForProvider: v1alpha1.VolumeParameters{
@@ -3037,11 +3023,9 @@ func fakeKubeClientObjs(objs ...client.Object) client.WithWatch {
 
 func createBasicServerSet() *v1alpha1.ServerSet {
 	return &v1alpha1.ServerSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: serverSetName,
-			Annotations: map[string]string{
-				"crossplane.io/external-name": serverSetName,
-			},
+		Name: serverSetName,
+		Annotations: map[string]string{
+			"crossplane.io/external-name": serverSetName,
 		},
 		Spec: v1alpha1.ServerSetSpec{
 			ForProvider: v1alpha1.ServerSetParameters{
@@ -3081,11 +3065,9 @@ func createBasicServerSet() *v1alpha1.ServerSet {
 
 func createBasicServerSetWithStateMap() *v1alpha1.ServerSet {
 	return &v1alpha1.ServerSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: serverSetName,
-			Annotations: map[string]string{
-				"crossplane.io/external-name": serverSetName,
-			},
+		Name: serverSetName,
+		Annotations: map[string]string{
+			"crossplane.io/external-name": serverSetName,
 		},
 		Spec: v1alpha1.ServerSetSpec{
 			ForProvider: v1alpha1.ServerSetParameters{
@@ -3235,10 +3217,8 @@ func createConfigLeaseMapDoesNotContainAnyReplica() *v1.ConfigMap {
 
 func createConfigLeaseMap() *v1.ConfigMap {
 	return &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "config-lease",
-			Namespace: "default",
-		},
+		Name:      "config-lease",
+		Namespace: "default",
 		Data: map[string]string{
 			"identity": "serverset-server-0-0",
 		},
@@ -3266,10 +3246,8 @@ func createServerWithIndex(name string, index int) *v1alpha1.Server {
 
 func createStateMapRunning() *v1.ConfigMap {
 	return &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      stateMapName,
-			Namespace: stateMapNamespace,
-		},
+		Name:      stateMapName,
+		Namespace: stateMapNamespace,
 		Data: map[string]string{
 			fmt.Sprintf(stateKeyFormat, server1Name):          statusVMRunning,
 			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
@@ -3281,10 +3259,8 @@ func createStateMapRunning() *v1.ConfigMap {
 
 func createStateMapOneVMError() *v1.ConfigMap {
 	return &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      stateMapName,
-			Namespace: stateMapNamespace,
-		},
+		Name:      stateMapName,
+		Namespace: stateMapNamespace,
 		Data: map[string]string{
 			fmt.Sprintf(stateKeyFormat, server1Name):          statusVMError,
 			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
@@ -3296,10 +3272,8 @@ func createStateMapOneVMError() *v1.ConfigMap {
 
 func createStateMapOneVMNotRunning() *v1.ConfigMap {
 	return &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      stateMapName,
-			Namespace: stateMapNamespace,
-		},
+		Name:      stateMapName,
+		Namespace: stateMapNamespace,
 		Data: map[string]string{
 			fmt.Sprintf(stateKeyFormat, server1Name):          vmNotRunningState,
 			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
@@ -3311,10 +3285,8 @@ func createStateMapOneVMNotRunning() *v1.ConfigMap {
 
 func createStateMapOneVMWrongTimestampFormat() *v1.ConfigMap {
 	return &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      stateMapName,
-			Namespace: stateMapNamespace,
-		},
+		Name:      stateMapName,
+		Namespace: stateMapNamespace,
 		Data: map[string]string{
 			fmt.Sprintf(stateKeyFormat, server1Name):          vmNotRunningState,
 			fmt.Sprintf(stateTimestampKeyFormat, server1Name): time.Now().Add(5 * time.Hour).Format(time.RFC822),
@@ -3326,10 +3298,8 @@ func createStateMapOneVMWrongTimestampFormat() *v1.ConfigMap {
 
 func createStateMapOneVMMissingState() *v1.ConfigMap {
 	return &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      stateMapName,
-			Namespace: stateMapNamespace,
-		},
+		Name:      stateMapName,
+		Namespace: stateMapNamespace,
 		Data: map[string]string{
 			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
 			fmt.Sprintf(stateTimestampKeyFormat, server2Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
@@ -3339,10 +3309,8 @@ func createStateMapOneVMMissingState() *v1.ConfigMap {
 
 func createStateMapOneVMMissingStateTimestamp() *v1.ConfigMap {
 	return &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      stateMapName,
-			Namespace: stateMapNamespace,
-		},
+		Name:      stateMapName,
+		Namespace: stateMapNamespace,
 		Data: map[string]string{
 			fmt.Sprintf(stateKeyFormat, server1Name):          vmNotRunningState,
 			fmt.Sprintf(stateKeyFormat, server2Name):          statusVMRunning,
@@ -3353,21 +3321,17 @@ func createStateMapOneVMMissingStateTimestamp() *v1.ConfigMap {
 
 func createStateMapEmpty() *v1.ConfigMap {
 	return &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      stateMapName,
-			Namespace: stateMapNamespace,
-		},
-		Data: map[string]string{},
+		Name:      stateMapName,
+		Namespace: stateMapNamespace,
+		Data:      map[string]string{},
 	}
 }
 
 func createStateMapZeroTimestamp() *v1.ConfigMap {
 	zeroTime := time.Time{}
 	return &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      stateMapName,
-			Namespace: stateMapNamespace,
-		},
+		Name:      stateMapName,
+		Namespace: stateMapNamespace,
 		Data: map[string]string{
 			fmt.Sprintf(stateKeyFormat, server1Name):          statusVMRunning,
 			fmt.Sprintf(stateTimestampKeyFormat, server1Name): zeroTime.Format(time.RFC3339),

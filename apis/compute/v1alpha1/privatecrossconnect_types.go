@@ -103,7 +103,7 @@ type PccList struct {
 
 // Pcc type metadata.
 var (
-	PrivateCrossConnectKind             = reflect.TypeOf(Pcc{}).Name()
+	PrivateCrossConnectKind             = reflect.TypeFor[Pcc]().Name()
 	PrivateCrossConnectGroupKind        = schema.GroupKind{Group: APIGroup, Kind: PrivateCrossConnectKind}.String()
 	PrivateCrossConnectKindAPIVersion   = PrivateCrossConnectKind + "." + SchemeGroupVersion.String()
 	PrivateCrossConnectGroupVersionKind = SchemeGroupVersion.WithKind(PrivateCrossConnectKind)

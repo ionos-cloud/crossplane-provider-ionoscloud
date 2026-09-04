@@ -72,7 +72,7 @@ type ProviderConfigList struct {
 
 // ProviderConfig type metadata.
 var (
-	ProviderConfigKind             = reflect.TypeOf(ProviderConfig{}).Name()
+	ProviderConfigKind             = reflect.TypeFor[ProviderConfig]().Name()
 	ProviderConfigGroupKind        = schema.GroupKind{Group: Group, Kind: ProviderConfigKind}.String()
 	ProviderConfigKindAPIVersion   = ProviderConfigKind + "." + SchemeGroupVersion.String()
 	ProviderConfigGroupVersionKind = SchemeGroupVersion.WithKind(ProviderConfigKind)

@@ -115,7 +115,7 @@ type DatacenterList struct {
 
 // Datacenter type metadata.
 var (
-	DatacenterKind             = reflect.TypeOf(Datacenter{}).Name()
+	DatacenterKind             = reflect.TypeFor[Datacenter]().Name()
 	DatacenterGroupKind        = schema.GroupKind{Group: APIGroup, Kind: DatacenterKind}.String()
 	DatacenterKindAPIVersion   = DatacenterKind + "." + SchemeGroupVersion.String()
 	DatacenterGroupVersionKind = SchemeGroupVersion.WithKind(DatacenterKind)

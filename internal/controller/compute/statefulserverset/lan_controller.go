@@ -180,13 +180,11 @@ func (k *kubeLANController) isLANDeleted(ctx context.Context, name, namespace st
 
 func fromStatefulServerSetToLAN(cr *v1alpha1.StatefulServerSet, name string, lanIndex int) v1alpha1.Lan {
 	lan := v1alpha1.Lan{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: cr.Namespace,
-			Labels: map[string]string{
-				statefulServerSetLabel: cr.Name,
-				fmt.Sprintf(volumeselector.IndexLabel, getSSetName(cr), resourceLAN): strconv.Itoa(lanIndex),
-			},
+		Name:      name,
+		Namespace: cr.Namespace,
+		Labels: map[string]string{
+			statefulServerSetLabel: cr.Name,
+			fmt.Sprintf(volumeselector.IndexLabel, getSSetName(cr), resourceLAN): strconv.Itoa(lanIndex),
 		},
 		Spec: v1alpha1.LanSpec{
 			ResourceSpec: xpv1.ResourceSpec{
