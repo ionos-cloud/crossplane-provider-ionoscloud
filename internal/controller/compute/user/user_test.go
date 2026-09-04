@@ -26,6 +26,7 @@ import (
 
 const userIDInTest = "a8ba2f37-6207-47f8-ab52-fe82021d3259"
 const groupIDInTest = "5458a703-6450-4ddd-b133-59349c83f832"
+const userCreds = "my-user-creds"
 
 func TestUserObserve(t *testing.T) {
 	var (
@@ -37,7 +38,7 @@ func TestUserObserve(t *testing.T) {
 			service: client,
 			log:     logging.NewNopLogger(),
 			client: fake.NewFakeClient([]runtime.Object{&v1.Secret{
-				Namespace: "system", Name: "my-user-creds",
+				Namespace: "system", Name: userCreds,
 				Data: map[string][]byte{
 					"password": []byte("strongpassword"),
 				}}}...),
@@ -110,7 +111,7 @@ func TestUserObserve(t *testing.T) {
 					ForProvider: userParams(func(p *v1alpha1.UserParameters) {
 						p.Password = ""
 						p.PasswordSecretRef = xpv1.SecretKeySelector{
-							Name:      "my-user-creds",
+							Name:      userCreds,
 							Namespace: "system",
 							Key:       "password",
 						}
@@ -205,7 +206,7 @@ func TestUserCreate(t *testing.T) {
 			service: client,
 			log:     logging.NewNopLogger(),
 			client: fake.NewFakeClient([]runtime.Object{&v1.Secret{
-				Namespace: "system", Name: "my-user-creds",
+				Namespace: "system", Name: userCreds,
 				Data: map[string][]byte{
 					"password": []byte("strongpassword"),
 				}}}...),
@@ -252,7 +253,7 @@ func TestUserCreate(t *testing.T) {
 					ForProvider: userParams(func(p *v1alpha1.UserParameters) {
 						p.Password = ""
 						p.PasswordSecretRef = xpv1.SecretKeySelector{
-							Name:      "my-user-creds",
+							Name:      userCreds,
 							Namespace: "system",
 							Key:       "password",
 						}
@@ -342,7 +343,7 @@ func TestUserUpdate(t *testing.T) {
 			service: client,
 			log:     logging.NewNopLogger(),
 			client: fake.NewFakeClient([]runtime.Object{&v1.Secret{
-				Namespace: "system", Name: "my-user-creds",
+				Namespace: "system", Name: userCreds,
 				Data: map[string][]byte{
 					"password": []byte("strongpassword"),
 				}}}...),
@@ -388,7 +389,7 @@ func TestUserUpdate(t *testing.T) {
 					ForProvider: userParams(func(p *v1alpha1.UserParameters) {
 						p.Password = ""
 						p.PasswordSecretRef = xpv1.SecretKeySelector{
-							Name:      "my-user-creds",
+							Name:      userCreds,
 							Namespace: "system",
 							Key:       "password",
 						}
