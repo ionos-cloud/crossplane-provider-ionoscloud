@@ -139,15 +139,13 @@ func (k *kubeDataVolumeController) isDataVolumeDeleted(ctx context.Context, name
 
 func fromSSSetToVolume(cr *v1alpha1.StatefulServerSet, name string, replicaIndex, volumeIndex int) v1alpha1.Volume {
 	vol := v1alpha1.Volume{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: cr.Namespace,
-			Labels: map[string]string{
-				statefulServerSetLabel: cr.Name,
-				// todo replace with function
-				fmt.Sprintf(volumeselector.IndexLabel, getSSetName(cr), volumeselector.ResourceDataVolume):       fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(volumeselector.VolumeIndexLabel, getSSetName(cr), volumeselector.ResourceDataVolume): fmt.Sprintf("%d", volumeIndex),
-			},
+		Name:      name,
+		Namespace: cr.Namespace,
+		Labels: map[string]string{
+			statefulServerSetLabel: cr.Name,
+			// todo replace with function
+			fmt.Sprintf(volumeselector.IndexLabel, getSSetName(cr), volumeselector.ResourceDataVolume):       fmt.Sprintf("%d", replicaIndex),
+			fmt.Sprintf(volumeselector.VolumeIndexLabel, getSSetName(cr), volumeselector.ResourceDataVolume): fmt.Sprintf("%d", volumeIndex),
 		},
 		Spec: v1alpha1.VolumeSpec{
 			ResourceSpec: xpv1.ResourceSpec{

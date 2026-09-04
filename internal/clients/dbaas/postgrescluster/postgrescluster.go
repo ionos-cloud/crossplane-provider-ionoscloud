@@ -222,7 +222,7 @@ func GenerateCreateUserInput(cr *v1alpha1.PostgresUser) *ionoscloud.User {
 		Properties: ionoscloud.UserProperties{
 			Username: cr.Spec.ForProvider.Credentials.Username,
 			// We don't want to store the secret provided password in the spec
-			Password: shared.ToPtr(cr.Spec.ForProvider.Credentials.Password),
+			Password: new(cr.Spec.ForProvider.Credentials.Password),
 		},
 	}
 	return &instanceCreateInput
@@ -265,7 +265,7 @@ func GenerateUpdateUserInput(cr *v1alpha1.PostgresUser) *ionoscloud.UsersPatchRe
 	instanceUpdateInput := ionoscloud.UsersPatchRequest{
 		Properties: ionoscloud.PatchUserProperties{
 			// We don't want to store the secret provided password in the spec
-			Password: shared.ToPtr(cr.Spec.ForProvider.Credentials.Password),
+			Password: new(cr.Spec.ForProvider.Credentials.Password),
 		},
 	}
 

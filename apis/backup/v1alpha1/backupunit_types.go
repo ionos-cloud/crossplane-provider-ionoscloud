@@ -95,7 +95,7 @@ type BackupUnitList struct {
 
 // BackupUnit type metadata.
 var (
-	BackupUnitKind             = reflect.TypeOf(BackupUnit{}).Name()
+	BackupUnitKind             = reflect.TypeFor[BackupUnit]().Name()
 	BackupUnitGroupKind        = schema.GroupKind{Group: Group, Kind: BackupUnitKind}.String()
 	BackupUnitKindAPIVersion   = BackupUnitKind + "." + SchemeGroupVersion.String()
 	BackupUnitGroupVersionKind = SchemeGroupVersion.WithKind(BackupUnitKind)

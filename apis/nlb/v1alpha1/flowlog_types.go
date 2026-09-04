@@ -126,7 +126,7 @@ type FlowLogList struct {
 
 // NetworkLoadBalancer type metadata.
 var (
-	FlowLogKind             = reflect.TypeOf(FlowLog{}).Name()
+	FlowLogKind             = reflect.TypeFor[FlowLog]().Name()
 	FlowLogGroupKind        = schema.GroupKind{Group: Group, Kind: FlowLogKind}.String()
 	FlowLogKindAPIVersion   = FlowLogKind + "." + SchemeGroupVersion.String()
 	FlowLogGroupVersionKind = SchemeGroupVersion.WithKind(FlowLogKind)

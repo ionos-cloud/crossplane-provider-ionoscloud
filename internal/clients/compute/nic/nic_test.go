@@ -36,7 +36,7 @@ func TestIsNicUpToDate(t *testing.T) {
 			args: args{
 				cr: nil,
 				Nic: ionoscloud.Nic{Properties: &ionoscloud.NicProperties{
-					Name: shared.ToPtr("foo"),
+					Name: new("foo"),
 				}},
 			},
 			want:     false,
@@ -73,10 +73,10 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Name:           shared.ToPtr("not empty"),
-						FirewallActive: shared.ToPtr(false),
-						FirewallType:   shared.ToPtr("INGRESS"),
-						Vnet:           shared.ToPtr("1"),
+						Name:           new("not empty"),
+						FirewallActive: new(false),
+						FirewallType:   new("INGRESS"),
+						Vnet:           new("1"),
 					},
 				},
 			},
@@ -98,10 +98,10 @@ func TestIsNicUpToDate(t *testing.T) {
 					},
 				},
 				Nic: ionoscloud.Nic{Properties: &ionoscloud.NicProperties{
-					Name:           shared.ToPtr("not empty"),
-					FirewallActive: shared.ToPtr(true),
-					FirewallType:   shared.ToPtr("EGRESS"),
-					Vnet:           shared.ToPtr("2"),
+					Name:           new("not empty"),
+					FirewallActive: new(true),
+					FirewallType:   new("EGRESS"),
+					Vnet:           new("2"),
 				}},
 			},
 			want:     false,
@@ -122,10 +122,10 @@ func TestIsNicUpToDate(t *testing.T) {
 					},
 				},
 				Nic: ionoscloud.Nic{Properties: &ionoscloud.NicProperties{
-					Name:           shared.ToPtr("not empty"),
-					FirewallActive: shared.ToPtr(false),
-					FirewallType:   shared.ToPtr("INGRESS"),
-					Vnet:           shared.ToPtr("2"),
+					Name:           new("not empty"),
+					FirewallActive: new(false),
+					FirewallType:   new("INGRESS"),
+					Vnet:           new("2"),
 				}},
 			},
 			want:     false,
@@ -147,7 +147,7 @@ func TestIsNicUpToDate(t *testing.T) {
 						State: shared.ToPtr(ionoscloud.Busy),
 					},
 					Properties: &ionoscloud.NicProperties{
-						Name: shared.ToPtr("empty"),
+						Name: new("empty"),
 					},
 				},
 			},
@@ -179,7 +179,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Name: shared.ToPtr("empty"),
+						Name: new("empty"),
 						Ips: &[]string{
 							"10.11.12.13",
 							"192.168.8.14",
@@ -218,7 +218,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Name: shared.ToPtr("empty"),
+						Name: new("empty"),
 						Ips: &[]string{
 							"10.10.10.10",
 							"10.10.10.11",
@@ -238,7 +238,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				cr: &v1alpha1.Nic{
 					Spec: v1alpha1.NicSpec{
 						ForProvider: v1alpha1.NicParameters{
-							DhcpV6: ionoscloud.ToPtr(true),
+							DhcpV6: new(true),
 						},
 					},
 				},
@@ -263,7 +263,7 @@ func TestIsNicUpToDate(t *testing.T) {
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Dhcpv6: ionoscloud.ToPtr(true),
+						Dhcpv6: new(true),
 					},
 				},
 			},
@@ -295,13 +295,13 @@ func TestIsNicUpToDate(t *testing.T) {
 				cr: &v1alpha1.Nic{
 					Spec: v1alpha1.NicSpec{
 						ForProvider: v1alpha1.NicParameters{
-							DhcpV6: ionoscloud.ToPtr(true),
+							DhcpV6: new(true),
 						},
 					},
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Dhcpv6: ionoscloud.ToPtr(true),
+						Dhcpv6: new(true),
 					},
 				},
 			},
@@ -314,13 +314,13 @@ func TestIsNicUpToDate(t *testing.T) {
 				cr: &v1alpha1.Nic{
 					Spec: v1alpha1.NicSpec{
 						ForProvider: v1alpha1.NicParameters{
-							DhcpV6: ionoscloud.ToPtr(false),
+							DhcpV6: new(false),
 						},
 					},
 				},
 				Nic: ionoscloud.Nic{
 					Properties: &ionoscloud.NicProperties{
-						Dhcpv6: ionoscloud.ToPtr(true),
+						Dhcpv6: new(true),
 					},
 				},
 			},

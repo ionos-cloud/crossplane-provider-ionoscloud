@@ -9,9 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
@@ -39,7 +37,7 @@ func TestUserObserve(t *testing.T) {
 			service: client,
 			log:     logging.NewNopLogger(),
 			client: fake.NewFakeClient([]runtime.Object{&v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Namespace: "system", Name: "my-user-creds"},
+				Namespace: "system", Name: "my-user-creds",
 				Data: map[string][]byte{
 					"password": []byte("strongpassword"),
 				}}}...),
@@ -67,10 +65,10 @@ func TestUserObserve(t *testing.T) {
 				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusNotFound})
 				client.EXPECT().GetUser(ctx, gomock.Any()).Return(ionoscloud.User{}, apires, nil)
 			},
-			cr: &v1alpha1.User{ObjectMeta: metav1.ObjectMeta{
+			cr: &v1alpha1.User{
 				Annotations: map[string]string{
 					meta.AnnotationKeyExternalName: userIDInTest,
-				}},
+				},
 			},
 			expectedObservation: managed.ExternalObservation{
 				ResourceExists: false,
@@ -82,10 +80,10 @@ func TestUserObserve(t *testing.T) {
 				err := errors.New("internal error")
 				client.EXPECT().GetUser(ctx, gomock.Any()).Return(ionoscloud.User{}, nil, err)
 			},
-			cr: &v1alpha1.User{ObjectMeta: metav1.ObjectMeta{
+			cr: &v1alpha1.User{
 				Annotations: map[string]string{
 					meta.AnnotationKeyExternalName: userIDInTest,
-				}},
+				},
 			},
 			errContains: "failed to get user by id",
 		},
@@ -94,29 +92,27 @@ func TestUserObserve(t *testing.T) {
 			mock: func() {
 				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusOK})
 				user := ionoscloud.User{
-					Id: ptr.To(userIDInTest),
+					Id: new(userIDInTest),
 					Properties: &ionoscloud.UserProperties{
-						Email:     ptr.To("xplane-user@ionoscloud.io"),
-						Firstname: ptr.To("test"),
-						Lastname:  ptr.To("user"),
+						Email:     new("xplane-user@ionoscloud.io"),
+						Firstname: new("test"),
+						Lastname:  new("user"),
 					},
 				}
 				client.EXPECT().GetUser(ctx, gomock.Any()).Return(user, apires, nil)
 				client.EXPECT().GetUserGroups(ctx, gomock.Any()).Return([]string{groupIDInTest}, nil)
 			},
-			cr: &v1alpha1.User{ObjectMeta: metav1.ObjectMeta{
+			cr: &v1alpha1.User{
 				Annotations: map[string]string{
 					meta.AnnotationKeyExternalName: userIDInTest,
-				}},
+				},
 				Spec: v1alpha1.UserSpec{
 					ForProvider: userParams(func(p *v1alpha1.UserParameters) {
 						p.Password = ""
 						p.PasswordSecretRef = xpv1.SecretKeySelector{
-							SecretReference: xpv1.SecretReference{
-								Name:      "my-user-creds",
-								Namespace: "system",
-							},
-							Key: "password",
+							Name:      "my-user-creds",
+							Namespace: "system",
+							Key:       "password",
 						}
 					}),
 				},
@@ -138,24 +134,24 @@ func TestUserObserve(t *testing.T) {
 			mock: func() {
 				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusOK})
 				user := ionoscloud.User{
-					Id: ptr.To(userIDInTest),
+					Id: new(userIDInTest),
 					Properties: &ionoscloud.UserProperties{
-						Email:             ptr.To("xplane-user@ionoscloud.io"),
-						S3CanonicalUserId: ptr.To("400c7ccfed0d"),
-						Active:            ptr.To(true),
-						SecAuthActive:     ptr.To(true),
-						Firstname:         ptr.To("test"),
-						Lastname:          ptr.To("user"),
-						Administrator:     ptr.To(false),
+						Email:             new("xplane-user@ionoscloud.io"),
+						S3CanonicalUserId: new("400c7ccfed0d"),
+						Active:            new(true),
+						SecAuthActive:     new(true),
+						Firstname:         new("test"),
+						Lastname:          new("user"),
+						Administrator:     new(false),
 					},
 				}
 				client.EXPECT().GetUser(ctx, gomock.Any()).Return(user, apires, nil)
 				client.EXPECT().GetUserGroups(ctx, gomock.Any()).Return([]string{groupIDInTest}, nil)
 			},
-			cr: &v1alpha1.User{ObjectMeta: metav1.ObjectMeta{
+			cr: &v1alpha1.User{
 				Annotations: map[string]string{
 					meta.AnnotationKeyExternalName: userIDInTest,
-				}},
+				},
 				Spec: v1alpha1.UserSpec{
 					ForProvider: userParams(defaultParams),
 				},
@@ -209,7 +205,7 @@ func TestUserCreate(t *testing.T) {
 			service: client,
 			log:     logging.NewNopLogger(),
 			client: fake.NewFakeClient([]runtime.Object{&v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Namespace: "system", Name: "my-user-creds"},
+				Namespace: "system", Name: "my-user-creds",
 				Data: map[string][]byte{
 					"password": []byte("strongpassword"),
 				}}}...),
@@ -238,29 +234,27 @@ func TestUserCreate(t *testing.T) {
 			mock: func() {
 				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusOK})
 				user := ionoscloud.User{
-					Id: ptr.To(userIDInTest),
+					Id: new(userIDInTest),
 					Properties: &ionoscloud.UserProperties{
-						Email:     ptr.To("xplane-user@ionoscloud.io"),
-						Firstname: ptr.To("test"),
-						Lastname:  ptr.To("user"),
+						Email:     new("xplane-user@ionoscloud.io"),
+						Firstname: new("test"),
+						Lastname:  new("user"),
 					},
 				}
 				client.EXPECT().CreateUser(ctx, gomock.Any(), "strongpassword").Return(user, apires, nil)
 				client.EXPECT().UpdateUserGroups(ctx, userIDInTest, nil, &[]string{groupIDInTest}).Return(nil)
 			},
-			cr: &v1alpha1.User{ObjectMeta: metav1.ObjectMeta{
+			cr: &v1alpha1.User{
 				Annotations: map[string]string{
 					meta.AnnotationKeyExternalName: userIDInTest,
-				}},
+				},
 				Spec: v1alpha1.UserSpec{
 					ForProvider: userParams(func(p *v1alpha1.UserParameters) {
 						p.Password = ""
 						p.PasswordSecretRef = xpv1.SecretKeySelector{
-							SecretReference: xpv1.SecretReference{
-								Name:      "my-user-creds",
-								Namespace: "system",
-							},
-							Key: "password",
+							Name:      "my-user-creds",
+							Namespace: "system",
+							Key:       "password",
 						}
 					}),
 				},
@@ -281,16 +275,16 @@ func TestUserCreate(t *testing.T) {
 			mock: func() {
 				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusAccepted})
 				user := ionoscloud.User{
-					Id: ptr.To(userIDInTest),
+					Id: new(userIDInTest),
 					Properties: &ionoscloud.UserProperties{
-						Email:             ptr.To("xplane-user@ionoscloud.io"),
-						Firstname:         ptr.To("user name"),
-						Lastname:          ptr.To("test"),
-						S3CanonicalUserId: ptr.To("400c7ccfed0d"),
-						Administrator:     ptr.To(false),
-						ForceSecAuth:      ptr.To(false),
-						SecAuthActive:     ptr.To(false),
-						Active:            ptr.To(true),
+						Email:             new("xplane-user@ionoscloud.io"),
+						Firstname:         new("user name"),
+						Lastname:          new("test"),
+						S3CanonicalUserId: new("400c7ccfed0d"),
+						Administrator:     new(false),
+						ForceSecAuth:      new(false),
+						SecAuthActive:     new(false),
+						Active:            new(true),
 					},
 				}
 				client.EXPECT().CreateUser(ctx, gomock.Any(), "$3cr3t").Return(user, apires, nil)
@@ -348,7 +342,7 @@ func TestUserUpdate(t *testing.T) {
 			service: client,
 			log:     logging.NewNopLogger(),
 			client: fake.NewFakeClient([]runtime.Object{&v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Namespace: "system", Name: "my-user-creds"},
+				Namespace: "system", Name: "my-user-creds",
 				Data: map[string][]byte{
 					"password": []byte("strongpassword"),
 				}}}...),
@@ -380,7 +374,7 @@ func TestUserUpdate(t *testing.T) {
 			scenario: "User update with password from a secret",
 			mock: func() {
 				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusAccepted})
-				user := ionoscloud.User{Id: ptr.To(userIDInTest), Properties: &ionoscloud.UserProperties{}}
+				user := ionoscloud.User{Id: new(userIDInTest), Properties: &ionoscloud.UserProperties{}}
 				var p v1alpha1.UserParameters
 				client.EXPECT().UpdateUser(ctx, userIDInTest, gomock.AssignableToTypeOf(p), "strongpassword").
 					DoAndReturn(func(_ context.Context, _ string, p v1alpha1.UserParameters, _ string) (ionoscloud.User, *ionoscloud.APIResponse, error) {
@@ -394,11 +388,9 @@ func TestUserUpdate(t *testing.T) {
 					ForProvider: userParams(func(p *v1alpha1.UserParameters) {
 						p.Password = ""
 						p.PasswordSecretRef = xpv1.SecretKeySelector{
-							SecretReference: xpv1.SecretReference{
-								Name:      "my-user-creds",
-								Namespace: "system",
-							},
-							Key: "password",
+							Name:      "my-user-creds",
+							Namespace: "system",
+							Key:       "password",
 						}
 					}),
 				},
@@ -424,16 +416,16 @@ func TestUserUpdate(t *testing.T) {
 			mock: func() {
 				apires := ionoscloud.NewAPIResponse(&http.Response{StatusCode: http.StatusAccepted})
 				user := ionoscloud.User{
-					Id: ptr.To(userIDInTest),
+					Id: new(userIDInTest),
 					Properties: &ionoscloud.UserProperties{
-						Email:             ptr.To("xplane-user@ionoscloud.io"),
-						Firstname:         ptr.To("user name"),
-						Lastname:          ptr.To("test"),
-						S3CanonicalUserId: ptr.To("400c7ccfed0d"),
-						Administrator:     ptr.To(false),
-						ForceSecAuth:      ptr.To(false),
-						SecAuthActive:     ptr.To(false),
-						Active:            ptr.To(true),
+						Email:             new("xplane-user@ionoscloud.io"),
+						Firstname:         new("user name"),
+						Lastname:          new("test"),
+						S3CanonicalUserId: new("400c7ccfed0d"),
+						Administrator:     new(false),
+						ForceSecAuth:      new(false),
+						SecAuthActive:     new(false),
+						Active:            new(true),
 					},
 				}
 				var p v1alpha1.UserParameters

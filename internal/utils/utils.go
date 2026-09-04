@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -40,7 +41,7 @@ func IsEmptyValue(v reflect.Value) bool {
 		return v.Uint() == 0
 	case reflect.Float32, reflect.Float64:
 		return v.Float() == 0
-	case reflect.Interface, reflect.Ptr:
+	case reflect.Interface, reflect.Pointer:
 		return v.IsNil()
 	case reflect.Struct:
 		return v.IsZero()
@@ -77,12 +78,7 @@ func IsEqStringMaps(first, second map[string]string) bool {
 
 // IsStringInSlice will return true if the slice contains the specific string
 func IsStringInSlice(input []string, specific string) bool {
-	for _, element := range input {
-		if element == specific {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(input, specific)
 }
 
 // ContainsStringSlices will return true if the slices

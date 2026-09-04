@@ -177,7 +177,7 @@ type ClusterList struct {
 
 // Cluster type metadata.
 var (
-	ClusterKind             = reflect.TypeOf(Cluster{}).Name()
+	ClusterKind             = reflect.TypeFor[Cluster]().Name()
 	ClusterGroupKind        = schema.GroupKind{Group: Group, Kind: ClusterKind}.String()
 	ClusterKindAPIVersion   = ClusterKind + "." + SchemeGroupVersion.String()
 	ClusterGroupVersionKind = SchemeGroupVersion.WithKind(ClusterKind)

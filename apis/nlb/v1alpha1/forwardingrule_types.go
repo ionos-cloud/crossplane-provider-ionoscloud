@@ -228,7 +228,7 @@ type ForwardingRuleList struct {
 
 // NetworkLoadBalancer type metadata.
 var (
-	ForwardingRuleKind             = reflect.TypeOf(ForwardingRule{}).Name()
+	ForwardingRuleKind             = reflect.TypeFor[ForwardingRule]().Name()
 	ForwardingRuleGroupKind        = schema.GroupKind{Group: Group, Kind: ForwardingRuleKind}.String()
 	ForwardingRuleKindAPIVersion   = ForwardingRuleKind + "." + SchemeGroupVersion.String()
 	ForwardingRuleGroupVersionKind = SchemeGroupVersion.WithKind(ForwardingRuleKind)

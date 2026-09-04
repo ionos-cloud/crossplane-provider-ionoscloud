@@ -214,12 +214,10 @@ func fwRule(
 	nic *v1alpha1.Nic, cr *v1alpha1.ServerSet, fwr v1alpha1.ServerSetTemplateFirewallRuleSpec, serverID, fwrName string,
 ) v1alpha1.FirewallRule {
 	return v1alpha1.FirewallRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fwrName,
-			Namespace: cr.Namespace,
-			Labels: map[string]string{
-				serverSetLabel: cr.Name,
-			},
+		Name:      fwrName,
+		Namespace: cr.Namespace,
+		Labels: map[string]string{
+			serverSetLabel: cr.Name,
 		},
 		Spec: v1alpha1.FirewallRuleSpec{
 			ResourceSpec: xpv1.ResourceSpec{

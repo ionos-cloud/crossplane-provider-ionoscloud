@@ -7,7 +7,6 @@ import (
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/google/go-cmp/cmp"
-	"github.com/ionos-cloud/sdk-go-bundle/shared"
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -154,7 +153,7 @@ func Test_fromServerSetToNic(t *testing.T) {
 				Name:      nicName,
 				ServerCfg: v1alpha1.ServerConfig{ServerID: serverID},
 				LanCfg:    v1alpha1.LanConfig{LanID: lanID},
-				DhcpV6:    ionoscloud.ToPtr(false),
+				DhcpV6:    new(false),
 			}),
 		},
 		{
@@ -172,7 +171,7 @@ func Test_fromServerSetToNic(t *testing.T) {
 				Name:      nicName,
 				ServerCfg: v1alpha1.ServerConfig{ServerID: serverID},
 				LanCfg:    v1alpha1.LanConfig{LanID: lanID},
-				DhcpV6:    ionoscloud.ToPtr(true),
+				DhcpV6:    new(true),
 			}),
 		},
 		{
@@ -190,7 +189,7 @@ func Test_fromServerSetToNic(t *testing.T) {
 				Name:      nicName,
 				ServerCfg: v1alpha1.ServerConfig{ServerID: serverID},
 				LanCfg:    v1alpha1.LanConfig{LanID: lanID},
-				DhcpV6:    ionoscloud.ToPtr(true),
+				DhcpV6:    new(true),
 			}),
 		},
 	}
@@ -230,7 +229,7 @@ func createServerSetWithoutVNetAndIPV4() *v1alpha1.ServerSet {
 func createServerSetWithDhcpV6() *v1alpha1.ServerSet {
 	s := createBasicServerSet()
 	for nicIndex := range s.Spec.ForProvider.Template.Spec.NICs {
-		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].DHCPv6 = ionoscloud.ToPtr(true)
+		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].DHCPv6 = new(true)
 		s.Spec.ForProvider.Template.Spec.NICs[nicIndex].LanReference = dataLAN
 	}
 	return s
@@ -250,8 +249,8 @@ func populateBasicNicMetadataAndSpec(nic *v1alpha1.Nic, nicName string) {
 			Kind:               "",
 			Name:               serverSetName,
 			UID:                "",
-			Controller:         shared.ToPtr(true),
-			BlockOwnerDeletion: shared.ToPtr(false),
+			Controller:         new(true),
+			BlockOwnerDeletion: new(false),
 		},
 	}
 	nic.Spec.ForProvider.Name = nicName
