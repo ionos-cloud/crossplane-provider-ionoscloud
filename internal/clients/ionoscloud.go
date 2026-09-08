@@ -97,8 +97,11 @@ type credentials struct {
 
 	// StripCloudAPIPrefix, when true, strips a leading "/cloudapi" segment from outgoing
 	// compute-API requests, for endpoints that serve the API at /v6/... instead of
-	// /cloudapi/v6/.... Opt-in only: ignored unless ClientCertificate/ClientKey are set, since a
-	// generic endpoint using the standard /cloudapi/v6 layout must not have its paths rewritten.
+	// /cloudapi/v6/.... Deliberately coupled to ClientCertificate/ClientKey rather than usable on
+	// its own: it exists to work around an internal mTLS proxy quirk, and a generic (non-mTLS)
+	// endpoint using the standard /cloudapi/v6 layout must never have its paths rewritten. Set
+	// without ClientCertificate/ClientKey, it is rejected as an error - see
+	// buildComputeMTLSHTTPClient - rather than silently having no effect.
 	StripCloudAPIPrefix bool `json:"strip_cloudapi_prefix"`
 }
 
@@ -112,6 +115,11 @@ func buildComputeMTLSHTTPClient(creds credentials) (*http.Client, *tls.Config, e
 	hasCA := creds.CACertificate != ""
 
 	if !hasCert && !hasKey && !hasCA {
+		// strip_cloudapi_prefix only makes sense paired with the mTLS transport it's meant to
+		// patch - reject it explicitly, same as ca_cert below, rather than silently no-op'ing.
+		if creds.StripCloudAPIPrefix {
+			return nil, nil, fmt.Errorf("mtls setup: strip_cloudapi_prefix has no effect without client_cert/client_key also being set")
+		}
 		return nil, nil, nil
 	}
 	if hasCert != hasKey {

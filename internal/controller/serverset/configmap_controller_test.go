@@ -17,8 +17,11 @@ import (
 )
 
 // Test_kubeConfigmapController_ConcurrentAccess guards against concurrent map read/write on the
-// substConfigMap shared across all ServerSets. Run with `go test -race` to catch the data race,
-// not just an occasional fatal error.
+// substConfigMap shared across all ServerSets. This repo's CI (make test, via the vendored
+// build/makelib/golang.mk) runs with CGO_ENABLED=0 and no -race, so this test relies on Go's
+// runtime detecting concurrent map writes unconditionally (not just under -race) - which is what
+// actually crashed in production. For richer diagnostics on a local run, `-race` needs
+// CGO_ENABLED=1 explicitly, e.g. `CGO_ENABLED=1 go test -race ./internal/controller/serverset/...`.
 func Test_kubeConfigmapController_ConcurrentAccess(t *testing.T) {
 	k := &kubeConfigmapController{log: logging.NewNopLogger()}
 
@@ -42,7 +45,8 @@ func Test_kubeConfigmapController_ConcurrentAccess(t *testing.T) {
 
 // Test_getOrInitGlobalState_ConcurrentAccess is a regression test covering the sibling data race
 // on the package-level globalStateMap (same "shared across concurrently-reconciled ServerSets"
-// pattern as kubeConfigmapController.substConfigMap above). Run with `go test -race`.
+// pattern as kubeConfigmapController.substConfigMap above). See the -race caveat on
+// Test_kubeConfigmapController_ConcurrentAccess above - this repo's CI can't run with -race.
 func Test_getOrInitGlobalState_ConcurrentAccess(t *testing.T) {
 	const goroutines = 50
 	var wg sync.WaitGroup

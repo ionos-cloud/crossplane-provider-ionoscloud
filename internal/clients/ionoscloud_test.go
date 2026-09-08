@@ -374,6 +374,15 @@ func TestNewIonosClient(t *testing.T) {
 			wantErr:           true,
 		},
 		{
+			name: "strip_cloudapi_prefix without client cert/key",
+			args: args{
+				data: []byte(`{"user": "username","password": "cGFzc3dvcmQ=", "strip_cloudapi_prefix": true}`),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
 			name: "mtls mismatched client cert and key",
 			args: args{
 				data: []byte(fmt.Sprintf(
