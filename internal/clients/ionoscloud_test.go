@@ -13,10 +13,12 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -577,6 +579,124 @@ func TestNewIonosClient_MTLSWithCertPinning(t *testing.T) {
 		}
 		assert.Error(t, err, "handshake must fail when the pinned fingerprint does not match the server certificate")
 	})
+
+	// The two subtests below are the regression coverage for the proxy-bypass fix: net/http.Transport
+	// only consults DialTLSContext for the initial network connection, not for the second TLS
+	// handshake it performs itself after an HTTP CONNECT tunnel - so pinning done via a custom
+	// DialTLSContext (the previous implementation) silently stopped applying the moment a proxy was
+	// in play, falling back to ordinary chain trust. Routing through newCONNECTProxy and repeating
+	// both the matching and mismatched cases proves pinning now holds either way.
+	proxy := newCONNECTProxy(t)
+
+	t.Run("matching pinned fingerprint via HTTP CONNECT proxy: still enforced", func(t *testing.T) {
+		sawClientCert = false
+		require.NoError(t, os.Setenv(ionos.IonosPinnedCertEnvVar, fingerprintOf(serverCertPEM)))
+		loadEnv()
+		defer func() {
+			require.NoError(t, os.Unsetenv(ionos.IonosPinnedCertEnvVar))
+			loadEnv()
+		}()
+
+		svc, err := NewIonosClients(creds)
+		require.NoError(t, err)
+		hc := svc.ComputeClient.GetConfig().HTTPClient
+		require.NotNil(t, hc)
+		setHTTPProxy(t, hc, proxy.URL)
+
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL, nil)
+		require.NoError(t, err)
+		resp, err := hc.Do(req)
+		require.NoError(t, err, "handshake through the proxy must succeed: fingerprint matches")
+		defer resp.Body.Close()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.True(t, sawClientCert, "server must have received the client certificate through the proxy")
+	})
+
+	t.Run("mismatched pinned fingerprint via HTTP CONNECT proxy: still rejected", func(t *testing.T) {
+		require.NoError(t, os.Setenv(ionos.IonosPinnedCertEnvVar, fingerprintOf(otherCertPEM)))
+		loadEnv()
+		defer func() {
+			require.NoError(t, os.Unsetenv(ionos.IonosPinnedCertEnvVar))
+			loadEnv()
+		}()
+
+		svc, err := NewIonosClients(creds)
+		require.NoError(t, err)
+		hc := svc.ComputeClient.GetConfig().HTTPClient
+		require.NotNil(t, hc)
+		setHTTPProxy(t, hc, proxy.URL)
+
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL, nil)
+		require.NoError(t, err)
+		resp, err := hc.Do(req)
+		if resp != nil {
+			defer resp.Body.Close()
+		}
+		assert.Error(t, err, "handshake through the proxy must fail when the pinned fingerprint does not match - "+
+			"pre-fix, this silently succeeded via ordinary chain trust instead of the pinned check")
+	})
+}
+
+// newCONNECTProxy starts a minimal HTTP CONNECT proxy that tunnels raw bytes to whatever target
+// the client requests, for testing that TLS verification still applies to requests routed through
+// a proxy (see the comment on the two proxy subtests above).
+func newCONNECTProxy(t *testing.T) *httptest.Server {
+	t.Helper()
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodConnect {
+			http.Error(w, "only CONNECT supported", http.StatusMethodNotAllowed)
+			return
+		}
+		targetConn, err := (&net.Dialer{}).DialContext(r.Context(), "tcp", r.Host)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		defer targetConn.Close()
+
+		// require/assert aren't safe to call from a handler goroutine (testify flags this via
+		// go-require): a failed require.FailNow here would call runtime.Goexit on this goroutine,
+		// not the test's - so these errors are just reported via t.Errorf and the handler bails
+		// out instead.
+		hijacker, ok := w.(http.Hijacker)
+		if !ok {
+			t.Errorf("newCONNECTProxy: ResponseWriter does not support hijacking")
+			return
+		}
+		clientConn, _, err := hijacker.Hijack()
+		if err != nil {
+			t.Errorf("newCONNECTProxy: hijack failed: %v", err)
+			return
+		}
+		defer clientConn.Close()
+
+		if _, err := clientConn.Write([]byte("HTTP/1.1 200 Connection Established\r\n\r\n")); err != nil {
+			t.Errorf("newCONNECTProxy: writing CONNECT response failed: %v", err)
+			return
+		}
+
+		done := make(chan struct{}, 2)
+		go func() { _, _ = io.Copy(targetConn, clientConn); done <- struct{}{} }()
+		go func() { _, _ = io.Copy(clientConn, targetConn); done <- struct{}{} }()
+		<-done
+	}))
+	t.Cleanup(proxy.Close)
+	return proxy
+}
+
+// setHTTPProxy points hc's underlying *http.Transport at proxyURL for every request, regardless of
+// scheme - unlike http.ProxyURL wired through http.Transport.Proxy (which only some construction
+// paths honor), this reaches into the concrete Transport reapplyMTLSAfterPinning/
+// buildComputeMTLSHTTPClient built, mirroring how HTTPS_PROXY would apply in production via
+// http.ProxyFromEnvironment on the cloned http.DefaultTransport.
+func setHTTPProxy(t *testing.T, hc *http.Client, proxyURL string) {
+	t.Helper()
+	u, err := url.Parse(proxyURL)
+	require.NoError(t, err)
+
+	transport, ok := hc.Transport.(*http.Transport)
+	require.True(t, ok, "expected *http.Transport, got %T", hc.Transport)
+	transport.Proxy = http.ProxyURL(u)
 }
 
 func Test_reapplyMTLSAfterPinning(t *testing.T) {
@@ -603,12 +723,52 @@ func Test_reapplyMTLSAfterPinning(t *testing.T) {
 	})
 }
 
-// Test_pinnedCertDialTLSContext_DialFailure covers the dial-error path (a plain connection
-// failure, not a fingerprint mismatch) by pointing at a port nothing is listening on.
-func Test_pinnedCertDialTLSContext_DialFailure(t *testing.T) {
-	dial := pinnedCertDialTLSContext("deadbeef", &tls.Config{})
-	_, err := dial(context.Background(), "tcp", "127.0.0.1:1")
-	assert.Error(t, err)
+// Test_pinnedCertTLSConfig covers pinnedCertTLSConfig's VerifyPeerCertificate callback directly -
+// the unit-level counterpart to TestNewIonosClient_MTLSWithCertPinning's end-to-end (including
+// proxied) coverage above.
+func Test_pinnedCertTLSConfig(t *testing.T) {
+	_, _, matchingCert := generateTestCertPEM(t, "test-server", false)
+	_, _, otherCert := generateTestCertPEM(t, "other-server", false)
+	fingerprintOf := func(cert *x509.Certificate) string {
+		sum := sha256.Sum256(cert.Raw)
+		return hex.EncodeToString(sum[:])
+	}
+
+	t.Run("preserves InsecureSkipVerify and any client cert/RootCAs on base", func(t *testing.T) {
+		clientCert, _, _ := generateTestCertPEM(t, "client", false)
+		base := &tls.Config{Certificates: []tls.Certificate{{Certificate: [][]byte{clientCert}}}}
+
+		got := pinnedCertTLSConfig(fingerprintOf(matchingCert), base)
+
+		assert.True(t, got.InsecureSkipVerify)
+		assert.Equal(t, base.Certificates, got.Certificates)
+		assert.NotNil(t, got.VerifyConnection, "must use VerifyConnection, not VerifyPeerCertificate - "+
+			"VerifyPeerCertificate alone is not guaranteed to run on resumed TLS sessions (gosec G123), "+
+			"letting a resumption bypass the pin; VerifyConnection runs for resumptions too")
+	})
+
+	t.Run("matching fingerprint: accepted", func(t *testing.T) {
+		cfg := pinnedCertTLSConfig(fingerprintOf(matchingCert), &tls.Config{})
+		assert.NoError(t, cfg.VerifyConnection(tls.ConnectionState{PeerCertificates: []*x509.Certificate{matchingCert}}))
+	})
+
+	t.Run("mismatched fingerprint: rejected", func(t *testing.T) {
+		cfg := pinnedCertTLSConfig(fingerprintOf(otherCert), &tls.Config{})
+		assert.Error(t, cfg.VerifyConnection(tls.ConnectionState{PeerCertificates: []*x509.Certificate{matchingCert}}))
+	})
+
+	t.Run("fingerprint with ':' separators, matching sdk-go's own format: accepted", func(t *testing.T) {
+		raw := fingerprintOf(matchingCert)
+		var colonSeparated string
+		for i := 0; i < len(raw); i += 2 {
+			if i > 0 {
+				colonSeparated += ":"
+			}
+			colonSeparated += raw[i : i+2]
+		}
+		cfg := pinnedCertTLSConfig(colonSeparated, &tls.Config{})
+		assert.NoError(t, cfg.VerifyConnection(tls.ConnectionState{PeerCertificates: []*x509.Certificate{matchingCert}}))
+	})
 }
 
 func TestStripCloudAPIPrefixRoundTripper(t *testing.T) {

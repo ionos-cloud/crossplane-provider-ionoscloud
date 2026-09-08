@@ -10,7 +10,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -222,15 +221,13 @@ func reapplyMTLSAfterPinning(cfg *sdkgo.Configuration, mtlsTLSConfig *tls.Config
 		return
 	}
 
-	tlsConfig := mtlsTLSConfig.Clone()
 	if cfg.HTTPClient == nil {
 		cfg.HTTPClient = &http.Client{}
 	}
 	// Same reasoning as buildComputeMTLSHTTPClient: clone http.DefaultTransport instead of
 	// starting from a zero-valued *http.Transport, to keep its non-TLS defaults intact.
 	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.TLSClientConfig = tlsConfig
-	transport.DialTLSContext = pinnedCertDialTLSContext(pkFingerprint, tlsConfig)
+	transport.TLSClientConfig = pinnedCertTLSConfig(pkFingerprint, mtlsTLSConfig)
 
 	var rt http.RoundTripper = transport
 	if stripCloudAPIPrefix {
@@ -239,35 +236,30 @@ func reapplyMTLSAfterPinning(cfg *sdkgo.Configuration, mtlsTLSConfig *tls.Config
 	cfg.HTTPClient.Transport = rt
 }
 
-// pinnedCertDialTLSContext mirrors sdk-go's own pinning dialer, but dials using the given
-// tls.Config so any client certificate/RootCAs it carries are still presented, instead of a
-// hardcoded empty config. InsecureSkipVerify only disables the *server* cert check, in favor of
-// the manual fingerprint check below - the client cert is still presented regardless.
-func pinnedCertDialTLSContext(fingerprint string, base *tls.Config) func(ctx context.Context, network, addr string) (net.Conn, error) {
+// pinnedCertTLSConfig returns a clone of base with normal certificate-chain verification replaced
+// by a pinned-fingerprint check, via VerifyConnection rather than a custom DialTLSContext.
+// DialTLSContext is only consulted for the initial network connection; net/http.Transport skips it
+// entirely for the second TLS handshake performed after an HTTP CONNECT tunnel to a proxy, so a
+// dialer-based check (this function's previous implementation) silently stopped enforcing the
+// pinned fingerprint - falling back to ordinary chain trust - the moment HTTPS_PROXY was set.
+// VerifyConnection is invoked by crypto/tls itself as part of any handshake using this *tls.Config
+// - proxied or not, and (unlike VerifyPeerCertificate alone) including resumed sessions, so a
+// resumption can't skip the pin check either. Any client certificate/RootCAs on base are still
+// presented/trusted as before - only the verification step changes.
+func pinnedCertTLSConfig(fingerprint string, base *tls.Config) *tls.Config {
 	// Fingerprints can be supplied with ':' or ' ' separators, matching sdk-go/v6's own handling.
 	trimmed := []byte(fingerprint)
 	trimmed = bytes.ReplaceAll(trimmed, []byte(":"), nil)
 	trimmed = bytes.ReplaceAll(trimmed, []byte(" "), nil)
 
 	tlsConfig := base.Clone()
+	// InsecureSkipVerify disables Go's default chain-based verification, in favor of the pinned
+	// fingerprint check below - VerifyConnection is still called either way (see its doc).
 	tlsConfig.InsecureSkipVerify = true
-
-	return func(ctx context.Context, network, addr string) (net.Conn, error) {
-		conn, err := (&tls.Dialer{Config: tlsConfig}).DialContext(ctx, network, addr)
-		if err != nil {
-			return nil, err
-		}
-		tlsConn, ok := conn.(*tls.Conn)
-		if !ok {
-			_ = conn.Close()
-			return nil, fmt.Errorf("pinned cert dial: unexpected connection type %T", conn)
-		}
-		if err := verifyPinnedCertFingerprint(trimmed, tlsConn.ConnectionState().PeerCertificates); err != nil {
-			_ = conn.Close()
-			return nil, err
-		}
-		return conn, nil
+	tlsConfig.VerifyConnection = func(cs tls.ConnectionState) error {
+		return verifyPinnedCertFingerprint(trimmed, cs.PeerCertificates)
 	}
+	return tlsConfig
 }
 
 // verifyPinnedCertFingerprint mirrors sdk-go/v6's unexported verifyPinnedCert: it accepts the
