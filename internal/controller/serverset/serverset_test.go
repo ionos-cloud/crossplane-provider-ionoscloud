@@ -2055,7 +2055,7 @@ func Test_external_setSubstitutions_setsGlobalState(t *testing.T) {
 	}
 
 	substCM := &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{Name: cr.Name, Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: cr.Name, Namespace: stateMapNamespace},
 		Data:       map[string]string{"0.0.MY_KEY": "10.0.0.9"},
 	}
 
