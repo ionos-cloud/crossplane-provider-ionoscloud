@@ -52,6 +52,10 @@ const (
 var (
 	// providerStartTime tracks when the provider was started to ignore stale state updates
 	providerStartTime = time.Now()
+
+	// ErrVMErrorState is returned by checkRuntimeState wrapped when a VM reports VM-ERROR,
+	// so callers can distinguish it from actual reconciler failures.
+	ErrVMErrorState = errors.New("VM in error runtime state")
 )
 
 const (
@@ -822,8 +826,11 @@ func AreServersReady(
 		}
 
 		runtimeState, err := checkRuntimeState(*stateMap, serverObj.Name, time.Time{}, log)
-		if err != nil || !runtimeState {
+		if err != nil && !errors.Is(err, ErrVMErrorState) {
 			return true, runtimeState, err
+		}
+		if !runtimeState {
+			return true, false, nil
 		}
 	}
 
@@ -1192,7 +1199,7 @@ func checkRuntimeState(stateMap v1.ConfigMap, serverName string, requestTimestam
 		log.Debug("state not yet refreshed", "server", serverName, "stateTimestamp", timestamp, "requestTimestamp", requestTimestamp)
 		return false, nil
 	case state == statusVMError:
-		return false, fmt.Errorf("server %s is in %s runtime state", serverName, statusVMError)
+		return false, fmt.Errorf("server %s is in %s runtime state: %w", serverName, statusVMError, ErrVMErrorState)
 	case state == statusVMRunning:
 		return true, nil
 	default:
