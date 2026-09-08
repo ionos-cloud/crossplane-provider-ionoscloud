@@ -39,7 +39,7 @@ func TestPatchUserdata(t *testing.T) {
 	decoded, err := base64.StdEncoding.DecodeString(encoded)
 	require.NoError(t, err)
 
-	data := make(map[string]interface{})
+	data := make(map[string]any)
 	err = yaml.Unmarshal(decoded, &data)
 	require.NoError(t, err)
 
@@ -64,7 +64,7 @@ func TestPatchUserdataEmpty(t *testing.T) {
 	decoded, err := base64.StdEncoding.DecodeString(encoded)
 	require.NoError(t, err)
 
-	data := make(map[string]interface{})
+	data := make(map[string]any)
 	err = yaml.Unmarshal(decoded, &data)
 	require.NoError(t, err)
 
@@ -111,9 +111,9 @@ func TestPatchSetEnv(t *testing.T) {
 	decoded, err := base64.StdEncoding.DecodeString(encoded)
 	require.NoError(t, err)
 
-	data := make(map[string]interface{})
+	data := make(map[string]any)
 	err = yaml.Unmarshal(decoded, &data)
 	require.NoError(t, err)
 
-	require.Equal(t, "value", data["environment"].(map[string]interface{})["key"])
+	require.Equal(t, "value", data["environment"].(map[string]any)["key"])
 }

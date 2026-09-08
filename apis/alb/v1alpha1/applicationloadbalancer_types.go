@@ -147,7 +147,7 @@ type ApplicationLoadBalancerList struct {
 
 // ApplicationLoadBalancer type metadata.
 var (
-	ApplicationLoadBalancerKind             = reflect.TypeOf(ApplicationLoadBalancer{}).Name()
+	ApplicationLoadBalancerKind             = reflect.TypeFor[ApplicationLoadBalancer]().Name()
 	ApplicationLoadBalancerGroupKind        = schema.GroupKind{Group: Group, Kind: ApplicationLoadBalancerKind}.String()
 	ApplicationLoadBalancerKindAPIVersion   = ApplicationLoadBalancerKind + "." + SchemeGroupVersion.String()
 	ApplicationLoadBalancerGroupVersionKind = SchemeGroupVersion.WithKind(ApplicationLoadBalancerKind)

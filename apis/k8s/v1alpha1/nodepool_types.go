@@ -361,7 +361,7 @@ type NodePoolList struct {
 
 // NodePool type metadata.
 var (
-	NodePoolKind             = reflect.TypeOf(NodePool{}).Name()
+	NodePoolKind             = reflect.TypeFor[NodePool]().Name()
 	NodePoolGroupKind        = schema.GroupKind{Group: Group, Kind: NodePoolKind}.String()
 	NodePoolKindAPIVersion   = NodePoolKind + "." + SchemeGroupVersion.String()
 	NodePoolGroupVersionKind = SchemeGroupVersion.WithKind(NodePoolKind)

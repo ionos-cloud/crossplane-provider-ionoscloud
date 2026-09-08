@@ -3,7 +3,6 @@ package group
 import (
 	"testing"
 
-	"github.com/ionos-cloud/sdk-go-bundle/shared"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
@@ -194,7 +193,7 @@ func TestIsGroupUpToDate(t *testing.T) {
 			name: "cr empty",
 			args: args{
 				cr:    nil,
-				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{Name: shared.ToPtr("meow")}},
+				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{Name: new("meow")}},
 			},
 			want: false,
 		},
@@ -227,11 +226,11 @@ func TestIsGroupUpToDate(t *testing.T) {
 					},
 				},
 				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{
-					Name:                 shared.ToPtr("foo"),
-					CreateDataCenter:     shared.ToPtr(true),
-					CreateInternetAccess: shared.ToPtr(true),
-					ReserveIp:            shared.ToPtr(true),
-					CreateK8sCluster:     shared.ToPtr(true),
+					Name:                 new("foo"),
+					CreateDataCenter:     new(true),
+					CreateInternetAccess: new(true),
+					ReserveIp:            new(true),
+					CreateK8sCluster:     new(true),
 				},
 				},
 			},
@@ -252,11 +251,11 @@ func TestIsGroupUpToDate(t *testing.T) {
 					},
 				},
 				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{
-					Name:                 shared.ToPtr("foo"),
-					CreateDataCenter:     shared.ToPtr(true),
-					CreateInternetAccess: shared.ToPtr(true),
-					ReserveIp:            shared.ToPtr(true),
-					CreateK8sCluster:     shared.ToPtr(false),
+					Name:                 new("foo"),
+					CreateDataCenter:     new(true),
+					CreateInternetAccess: new(true),
+					ReserveIp:            new(true),
+					CreateK8sCluster:     new(false),
 				},
 				},
 			},
@@ -280,11 +279,11 @@ func TestIsGroupUpToDate(t *testing.T) {
 							},
 							ResourceShareCfg: []v1alpha1.ResourceShareConfig{
 								{
-									ResourceShare: v1alpha1.ResourceShare{ResourceID: "eb55a2d5-bb57-464f-b44f-f843dd059895", EditPrivilege: true, SharePrivilege: true},
+									ResourceID: "eb55a2d5-bb57-464f-b44f-f843dd059895", EditPrivilege: true, SharePrivilege: true,
 								}, {
-									ResourceShare: v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+									ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true,
 								}, {
-									ResourceShare: v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: true, SharePrivilege: false},
+									ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: true, SharePrivilege: false,
 								},
 							},
 						},
@@ -305,11 +304,11 @@ func TestIsGroupUpToDate(t *testing.T) {
 					},
 				},
 				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{
-					Name:                 shared.ToPtr("foo"),
-					CreateDataCenter:     shared.ToPtr(true),
-					CreateInternetAccess: shared.ToPtr(true),
-					ReserveIp:            shared.ToPtr(true),
-					CreateK8sCluster:     shared.ToPtr(true),
+					Name:                 new("foo"),
+					CreateDataCenter:     new(true),
+					CreateInternetAccess: new(true),
+					ReserveIp:            new(true),
+					CreateK8sCluster:     new(true),
 				},
 				},
 			},
@@ -340,7 +339,7 @@ func TestIsGroupUpToDate(t *testing.T) {
 					},
 				},
 				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{
-					Name: shared.ToPtr("meow")},
+					Name: new("meow")},
 				},
 			},
 			want: false,
@@ -354,9 +353,9 @@ func TestIsGroupUpToDate(t *testing.T) {
 							Name: "meow",
 							ResourceShareCfg: []v1alpha1.ResourceShareConfig{
 								{
-									ResourceShare: v1alpha1.ResourceShare{ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: true, SharePrivilege: false},
+									ResourceID: "f3fdf8fc-e736-4b7d-9c70-f69cf50882a9", EditPrivilege: true, SharePrivilege: false,
 								}, {}, {
-									ResourceShare: v1alpha1.ResourceShare{ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true},
+									ResourceID: "5ad718b2-18c4-4923-974b-70a1df39f64c", EditPrivilege: false, SharePrivilege: true,
 								},
 							},
 						},
@@ -371,7 +370,7 @@ func TestIsGroupUpToDate(t *testing.T) {
 					},
 				},
 				Group: ionoscloud.Group{Properties: &ionoscloud.GroupProperties{
-					Name: shared.ToPtr("meow")},
+					Name: new("meow")},
 				},
 			},
 			want: false,

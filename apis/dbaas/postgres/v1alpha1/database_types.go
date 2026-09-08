@@ -109,7 +109,7 @@ type UserConfig struct {
 
 // Cluster type metadata.
 var (
-	PostgresDatabaseKind             = reflect.TypeOf(PostgresDatabase{}).Name()
+	PostgresDatabaseKind             = reflect.TypeFor[PostgresDatabase]().Name()
 	PostgresDatabaseGroupKind        = schema.GroupKind{Group: Group, Kind: PostgresDatabaseKind}.String()
 	PostgresDatabaseKindAPIVersion   = PostgresDatabaseKind + "." + SchemeGroupVersion.String()
 	PostgresDatabaseGroupVersionKind = SchemeGroupVersion.WithKind(PostgresDatabaseKind)

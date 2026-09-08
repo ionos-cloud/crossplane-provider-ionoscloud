@@ -123,7 +123,7 @@ func TestNextIPv4(t *testing.T) {
 		t.Errorf("Expected: next = 192.168.100.1, Got: next = %s", newNext.String())
 	}
 
-	for i := 0; i < 254; i++ {
+	for range 254 {
 		gen.Next()
 	}
 
@@ -158,7 +158,7 @@ func TestNextIPv6(t *testing.T) {
 		t.Errorf("Expected: next = fe80::1, Got: next = %s", newNext.String())
 	}
 
-	for i := 0; i < 65534; i++ {
+	for range 65534 {
 		gen.Next()
 	}
 

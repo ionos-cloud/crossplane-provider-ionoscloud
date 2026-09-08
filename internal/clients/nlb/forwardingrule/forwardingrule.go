@@ -219,7 +219,6 @@ func equalTargets(configured map[string]v1alpha1.ForwardingRuleTarget, observed 
 	}
 
 	for _, obsTarget := range *observed {
-		obsTarget := obsTarget
 		if obsTarget.Ip == nil {
 			continue
 		}
@@ -279,8 +278,6 @@ func ruleHealthCheckInput(cr v1alpha1.ForwardingRuleHealthCheck) *sdkgo.NetworkL
 func ruleTargetsInput(targetsIPs map[string]v1alpha1.ForwardingRuleTarget) *[]sdkgo.NetworkLoadBalancerForwardingRuleTarget {
 	targetsInput := make([]sdkgo.NetworkLoadBalancerForwardingRuleTarget, 0, len(targetsIPs))
 	for k, v := range targetsIPs {
-		k := k
-		v := v
 		target := sdkgo.NetworkLoadBalancerForwardingRuleTarget{
 			Ip:            &k,
 			Port:          &v.Port,

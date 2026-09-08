@@ -11,7 +11,6 @@ import (
 	ionoscloud "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
@@ -55,7 +54,7 @@ func Test_statefulServerSetController_Create(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				mg:  &v1alpha1.StatefulServerSet{ObjectMeta: metav1.ObjectMeta{Name: "test"}},
+				mg:  &v1alpha1.StatefulServerSet{Name: "test"},
 			},
 			want:    managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}},
 			wantErr: false,
@@ -594,13 +593,11 @@ func Test_computeLanStatuses(t *testing.T) {
 			},
 			want: []v1alpha1.StatefulServerSetLanStatus{
 				{
-					LanStatus: v1alpha1.LanStatus{
-						AtProvider: v1alpha1.LanObservation{
-							IPFailovers: nil,
-							LanID:       "1",
-							State:       "AVAILABLE",
-							Name:        "management",
-						},
+					AtProvider: v1alpha1.LanObservation{
+						IPFailovers: nil,
+						LanID:       "1",
+						State:       "AVAILABLE",
+						Name:        "management",
 					},
 					IPv6CIDRBlock: "",
 				},
@@ -628,13 +625,11 @@ func Test_computeLanStatuses(t *testing.T) {
 			},
 			want: []v1alpha1.StatefulServerSetLanStatus{
 				{
-					LanStatus: v1alpha1.LanStatus{
-						AtProvider: v1alpha1.LanObservation{
-							IPFailovers: nil,
-							LanID:       "1",
-							State:       "AVAILABLE",
-							Name:        "management",
-						},
+					AtProvider: v1alpha1.LanObservation{
+						IPFailovers: nil,
+						LanID:       "1",
+						State:       "AVAILABLE",
+						Name:        "management",
 					},
 					IPv6CIDRBlock: "2607:b500:201:cb01::/64",
 				},
@@ -672,13 +667,11 @@ func Test_computeVolumeStatuses(t *testing.T) {
 			},
 			want: []v1alpha1.StatefulServerSetVolumeStatus{
 				{
-					VolumeStatus: v1alpha1.VolumeStatus{
-						AtProvider: v1alpha1.VolumeObservation{
-							Name:     "storage_disk",
-							VolumeID: volumeID1,
-							State:    stateAvailable,
-							PCISlot:  1,
-						},
+					AtProvider: v1alpha1.VolumeObservation{
+						Name:     "storage_disk",
+						VolumeID: volumeID1,
+						State:    stateAvailable,
+						PCISlot:  1,
 					},
 					ReplicaIndex: 0,
 				},
@@ -693,13 +686,11 @@ func Test_computeVolumeStatuses(t *testing.T) {
 			},
 			want: []v1alpha1.StatefulServerSetVolumeStatus{
 				{
-					VolumeStatus: v1alpha1.VolumeStatus{
-						AtProvider: v1alpha1.VolumeObservation{
-							Name:     "storage_disk",
-							VolumeID: volumeID1,
-							State:    stateAvailable,
-							PCISlot:  1,
-						},
+					AtProvider: v1alpha1.VolumeObservation{
+						Name:     "storage_disk",
+						VolumeID: volumeID1,
+						State:    stateAvailable,
+						PCISlot:  1,
 					},
 					ReplicaIndex: -1,
 				},
@@ -710,24 +701,20 @@ func Test_computeVolumeStatuses(t *testing.T) {
 			args: args{volumes: create2VolumesWithStatuses()},
 			want: []v1alpha1.StatefulServerSetVolumeStatus{
 				{
-					VolumeStatus: v1alpha1.VolumeStatus{
-						AtProvider: v1alpha1.VolumeObservation{
-							Name:     "storage_disk",
-							VolumeID: volumeID1,
-							State:    stateAvailable,
-							PCISlot:  1,
-						},
+					AtProvider: v1alpha1.VolumeObservation{
+						Name:     "storage_disk",
+						VolumeID: volumeID1,
+						State:    stateAvailable,
+						PCISlot:  1,
 					},
 					ReplicaIndex: 0,
 				},
 				{
-					VolumeStatus: v1alpha1.VolumeStatus{
-						AtProvider: v1alpha1.VolumeObservation{
-							Name:     "storage_disk_extend_1",
-							VolumeID: volumeID2,
-							State:    stateBusy,
-							PCISlot:  2,
-						},
+					AtProvider: v1alpha1.VolumeObservation{
+						Name:     "storage_disk_extend_1",
+						VolumeID: volumeID2,
+						State:    stateBusy,
+						PCISlot:  2,
 					},
 					ReplicaIndex: 0,
 				},

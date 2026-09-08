@@ -159,7 +159,7 @@ type NetworkLoadBalancerList struct {
 
 // NetworkLoadBalancer type metadata
 var (
-	NetworkLoadBalancerKind             = reflect.TypeOf(NetworkLoadBalancer{}).Name()
+	NetworkLoadBalancerKind             = reflect.TypeFor[NetworkLoadBalancer]().Name()
 	NetworkLoadBalancerGroupKind        = schema.GroupKind{Group: Group, Kind: NetworkLoadBalancerKind}.String()
 	NetworkLoadBalancerKindAPIVersion   = NetworkLoadBalancerKind + "." + SchemeGroupVersion.String()
 	NetworkLoadBalancerGroupVersionKind = SchemeGroupVersion.WithKind(NetworkLoadBalancerKind)

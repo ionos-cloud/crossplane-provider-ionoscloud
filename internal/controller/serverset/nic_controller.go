@@ -141,16 +141,14 @@ func (k *kubeNicController) Delete(ctx context.Context, name, namespace string) 
 func (k *kubeNicController) fromServerSetToNic(cr *v1alpha1.ServerSet, name, serverID string, lan v1alpha1.Lan, replicaIndex, nicIndex, version int) v1alpha1.Nic {
 	serverSetNic := cr.Spec.ForProvider.Template.Spec.NICs[nicIndex]
 	nic := v1alpha1.Nic{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: cr.GetNamespace(),
-			Labels: map[string]string{
-				serverSetLabel: cr.Name,
-				// TODO: This label should be nicIndex instead of replicaIndex later
-				fmt.Sprintf(indexLabel, cr.GetName(), resourceNIC):    fmt.Sprintf("%d", replicaIndex),
-				fmt.Sprintf(nicIndexLabel, cr.GetName(), resourceNIC): fmt.Sprintf("%d", nicIndex),
-				fmt.Sprintf(versionLabel, cr.GetName(), resourceNIC):  fmt.Sprintf("%d", version),
-			},
+		Name:      name,
+		Namespace: cr.GetNamespace(),
+		Labels: map[string]string{
+			serverSetLabel: cr.Name,
+			// TODO: This label should be nicIndex instead of replicaIndex later
+			fmt.Sprintf(indexLabel, cr.GetName(), resourceNIC):    fmt.Sprintf("%d", replicaIndex),
+			fmt.Sprintf(nicIndexLabel, cr.GetName(), resourceNIC): fmt.Sprintf("%d", nicIndex),
+			fmt.Sprintf(versionLabel, cr.GetName(), resourceNIC):  fmt.Sprintf("%d", version),
 		},
 		Spec: v1alpha1.NicSpec{
 			ResourceSpec: xpv1.ResourceSpec{

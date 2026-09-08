@@ -30,7 +30,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -63,7 +62,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.GetMaxConcurrentReconcileRate(v1alpha1.TargetGroupKind),
 			RateLimiter:             ratelimiter.NewController(),
-			RecoverPanic:            ptr.To(true),
+			RecoverPanic:            new(true),
 		}).
 		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.TargetGroup{}).
@@ -80,6 +79,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			managed.WithPollInterval(opts.GetPollInterval()),
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithLogger(logger.WithValues("controller", name)),
+			managed.WithPollIntervalHook(opts.PollIntervalHook()),
 			managed.WithMetricRecorder(opts.CtrlOpts.MetricOptions.MRMetrics),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }

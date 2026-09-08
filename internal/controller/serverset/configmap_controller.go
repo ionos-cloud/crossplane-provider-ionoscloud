@@ -60,10 +60,20 @@ func (k *kubeConfigmapController) SetSubstitutionConfigMap(name, namespace strin
 	}
 }
 
-func (k *kubeConfigmapController) FetchSubstitutionFromMap(ctx context.Context, crName, key string, replicaIndex, version int) string {
+// nameAndNamespace returns the name/namespace substConfigMap holds for crName, under lock. A
+// dedicated method (rather than inlining "k.mu.Lock(); ...; k.mu.Unlock()" at each call site) lets
+// callers still use defer for panic-safety - e.g. if crName has no entry yet, the nil-pointer
+// dereference below would otherwise leave mu permanently locked - while the lock itself is only
+// held for this lookup, not across the k8s API calls callers make afterwards.
+func (k *kubeConfigmapController) nameAndNamespace(crName string) (name, namespace string) {
 	k.mu.Lock()
-	name, namespace := k.substConfigMap[crName].name, k.substConfigMap[crName].namespace
-	k.mu.Unlock()
+	defer k.mu.Unlock()
+	entry := k.substConfigMap[crName]
+	return entry.name, entry.namespace
+}
+
+func (k *kubeConfigmapController) FetchSubstitutionFromMap(ctx context.Context, crName, key string, replicaIndex, version int) string {
+	name, namespace := k.nameAndNamespace(crName)
 
 	substMap := &v1.ConfigMap{}
 	err := k.kube.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, substMap)
@@ -77,23 +87,17 @@ func (k *kubeConfigmapController) FetchSubstitutionFromMap(ctx context.Context, 
 // CreateOrUpdate - creates a config map if it doesn't exist
 func (k *kubeConfigmapController) CreateOrUpdate(ctx context.Context, cr *v1alpha1.ServerSet) error {
 	crName := cr.Name
-
-	k.mu.Lock()
-	name, namespace := k.substConfigMap[crName].name, k.substConfigMap[crName].namespace
-	identities := maps.Clone(k.substConfigMap[crName].identities)
-	k.mu.Unlock()
+	name, namespace, identities := k.snapshot(crName)
 
 	cfgMap := &v1.ConfigMap{}
 	err := k.kube.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, cfgMap)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			cfgMap = &v1.ConfigMap{
-				TypeMeta: metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: namespace,
-				},
-				Data: identities,
+				TypeMeta:  metav1.TypeMeta{},
+				Name:      name,
+				Namespace: namespace,
+				Data:      identities,
 			}
 
 			cfgMap.SetOwnerReferences([]metav1.OwnerReference{
@@ -113,6 +117,17 @@ func (k *kubeConfigmapController) CreateOrUpdate(ctx context.Context, cr *v1alph
 	return nil
 }
 
+// snapshot returns a copy of substConfigMap's name/namespace/identities for crName, under lock.
+// See nameAndNamespace for why this is a dedicated locked method rather than inlined per call
+// site. identities is cloned (not just referenced) so callers can read/mutate it after the lock
+// is released without racing SetIdentity, which writes into the live map.
+func (k *kubeConfigmapController) snapshot(crName string) (name, namespace string, identities map[string]string) {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	entry := k.substConfigMap[crName]
+	return entry.name, entry.namespace, maps.Clone(entry.identities)
+}
+
 func (k *kubeConfigmapController) Get(ctx context.Context, name, ns string) (*v1.ConfigMap, error) {
 	cfgMap := &v1.ConfigMap{}
 	err := k.kube.Get(ctx, client.ObjectKey{Namespace: ns, Name: name}, cfgMap)
@@ -120,9 +135,7 @@ func (k *kubeConfigmapController) Get(ctx context.Context, name, ns string) (*v1
 }
 
 func (k *kubeConfigmapController) Delete(ctx context.Context, crName string) error {
-	k.mu.Lock()
-	name, namespace := k.substConfigMap[crName].name, k.substConfigMap[crName].namespace
-	k.mu.Unlock()
+	name, namespace := k.nameAndNamespace(crName)
 
 	cfgMap := &v1.ConfigMap{}
 	err := k.kube.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, cfgMap)
@@ -140,17 +153,22 @@ func (k *kubeConfigmapController) isDeleted(ctx context.Context, name, namespace
 	_, err := k.Get(ctx, name, namespace)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
-			k.mu.Lock()
-			if k.substConfigMap[name] != nil {
-				maps2.Clear(k.substConfigMap[name].identities)
-				k.substConfigMap[name] = nil
-				delete(k.substConfigMap, name)
-			}
-			k.mu.Unlock()
+			k.clearEntry(name)
 			k.log.Info("ConfigMap has been deleted", "name", name, "namespace", namespace)
 			return true, nil
 		}
 		return false, err
 	}
 	return false, nil
+}
+
+// clearEntry removes substConfigMap's entry for name, under lock (see nameAndNamespace).
+func (k *kubeConfigmapController) clearEntry(name string) {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	if k.substConfigMap[name] != nil {
+		maps2.Clear(k.substConfigMap[name].identities)
+		k.substConfigMap[name] = nil
+		delete(k.substConfigMap, name)
+	}
 }

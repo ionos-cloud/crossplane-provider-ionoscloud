@@ -265,7 +265,7 @@ type MongoClusterList struct {
 
 // Cluster type metadata.
 var (
-	MongoClusterKind             = reflect.TypeOf(MongoCluster{}).Name()
+	MongoClusterKind             = reflect.TypeFor[MongoCluster]().Name()
 	MongoClusterGroupKind        = schema.GroupKind{Group: Group, Kind: MongoClusterKind}.String()
 	MongoClusterKindAPIVersion   = MongoClusterKind + "." + SchemeGroupVersion.String()
 	MongoClusterGroupVersionKind = SchemeGroupVersion.WithKind(MongoClusterKind)

@@ -16,7 +16,6 @@ import (
 	. "github.com/onsi/gomega"    //nolint:staticcheck
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -106,7 +105,7 @@ func SetupEnvTest(setup ControllerSetup) *EnvTestHarness {
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 1,
 			RateLimiter:             ratelimiter.NewController(),
-			RecoverPanic:            ptr.To(true),
+			RecoverPanic:            new(true),
 		}).
 		For(setup.ManagedResource).
 		Complete(managed.NewReconciler(mgr,

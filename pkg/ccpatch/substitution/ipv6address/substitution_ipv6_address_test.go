@@ -20,7 +20,7 @@ func TestIPv6AddressSuccess(t *testing.T) {
 	total := 10
 
 	state := &substitution.GlobalState{}
-	for i := 0; i < total; i++ {
+	for i := range total {
 		err := handler.WriteGlobalState(substitution.Identifier(fmt.Sprintf("machine-%v", i)), "", state, substitution.Substitution{
 			Type:   "ipv6Address",
 			Key:    "$ipv6Address",

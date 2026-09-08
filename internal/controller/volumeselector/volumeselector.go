@@ -20,7 +20,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	sigsobj "sigs.k8s.io/controller-runtime/pkg/client"
@@ -65,7 +64,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.GetMaxConcurrentReconcileRate(v1alpha1.VolumeselectorKind),
 			RateLimiter:             ratelimiter.NewController(),
-			RecoverPanic:            ptr.To(true),
+			RecoverPanic:            new(true),
 		}).
 		For(&v1alpha1.Volumeselector{}).
 		Complete(managed.NewReconciler(mgr,
@@ -80,6 +79,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			managed.WithTimeout(opts.GetTimeout()),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(logger.WithValues("controller", name)),
+			managed.WithPollIntervalHook(opts.PollIntervalHook()),
 			managed.WithMetricRecorder(opts.CtrlOpts.MetricOptions.MRMetrics),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }

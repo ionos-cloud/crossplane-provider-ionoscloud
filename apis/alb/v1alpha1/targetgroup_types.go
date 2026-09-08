@@ -211,7 +211,7 @@ type TargetGroupList struct {
 
 // TargetGroup type metadata.
 var (
-	TargetGroupKind             = reflect.TypeOf(TargetGroup{}).Name()
+	TargetGroupKind             = reflect.TypeFor[TargetGroup]().Name()
 	TargetGroupGroupKind        = schema.GroupKind{Group: Group, Kind: TargetGroupKind}.String()
 	TargetGroupKindAPIVersion   = TargetGroupKind + "." + SchemeGroupVersion.String()
 	TargetGroupGroupVersionKind = SchemeGroupVersion.WithKind(TargetGroupKind)

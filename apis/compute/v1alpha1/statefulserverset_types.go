@@ -195,7 +195,7 @@ type StatefulServerSetList struct {
 
 // StatefulServerSet type metadata.
 var (
-	StatefulServerSetKind             = reflect.TypeOf(StatefulServerSet{}).Name()
+	StatefulServerSetKind             = reflect.TypeFor[StatefulServerSet]().Name()
 	StatefulServerSetGroupKind        = schema.GroupKind{Group: APIGroup, Kind: StatefulServerSetKind}.String()
 	StatefulServerSetKindAPIVersion   = StatefulServerSetKind + "." + SchemeGroupVersion.String()
 	StatefulServerSetGroupVersionKind = SchemeGroupVersion.WithKind(StatefulServerSetKind)

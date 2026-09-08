@@ -99,15 +99,13 @@ func (k *kubeVolumeSelectorController) IsAvailable(ctx context.Context, name, na
 
 func fromStatefulServerSetToVolumeSelector(cr *v1alpha1.StatefulServerSet) v1alpha1.Volumeselector {
 	return v1alpha1.Volumeselector{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf(volumeSelectorName, cr.GetName()),
-			Namespace: cr.GetNamespace(),
-			CreationTimestamp: metav1.Time{
-				Time: time.Now(),
-			},
-			Labels: map[string]string{
-				statefulServerSetLabel: cr.GetName(),
-			},
+		Name:      fmt.Sprintf(volumeSelectorName, cr.GetName()),
+		Namespace: cr.GetNamespace(),
+		CreationTimestamp: metav1.Time{
+			Time: time.Now(),
+		},
+		Labels: map[string]string{
+			statefulServerSetLabel: cr.GetName(),
 		},
 		Spec: v1alpha1.VolumeselectorSpec{
 			ResourceSpec: xpv1.ResourceSpec{

@@ -7,7 +7,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/crossplane/crossplane-runtime/pkg/statemetrics"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -32,13 +31,17 @@ func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 		kube: mgr.GetClient(),
 		log:  logger,
 	}
+	reconcileTimeout := opts.GetTimeout()
+	if opts.GetExtendServerSetTimeoutForVMReboot() {
+		reconcileTimeout = max(reconcileTimeout, opts.GetVMRebootTimeout())
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithEventFilter(utils.DesiredStateChanged()).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.GetMaxConcurrentReconcileRate(v1alpha1.ServerSetKind),
 			RateLimiter:             ratelimiter.NewController(),
-			RecoverPanic:            ptr.To(true),
+			RecoverPanic:            new(true),
 		}).
 		For(&v1alpha1.ServerSet{}).
 		Complete(managed.NewReconciler(mgr,
@@ -46,6 +49,7 @@ func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			managed.WithExternalConnecter(&connector{
 				kube:                    mgr.GetClient(),
 				kubeConfigmapController: &mapController,
+				vmRebootTimeout:         opts.GetVMRebootTimeout(),
 				bootVolumeController: &kubeBootVolumeController{
 					kube:          mgr.GetClient(),
 					log:           logger,
@@ -70,9 +74,10 @@ func SetupServerSet(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 			managed.WithReferenceResolver(managed.NewAPISimpleReferenceResolver(mgr.GetClient())),
 			managed.WithInitializers(),
 			managed.WithPollInterval(opts.GetPollInterval()),
-			managed.WithTimeout(opts.GetTimeout()),
+			managed.WithTimeout(reconcileTimeout),
 			managed.WithCreationGracePeriod(opts.GetCreationGracePeriod()),
 			managed.WithLogger(logger.WithValues("controller", name)),
+			managed.WithPollIntervalHook(opts.PollIntervalHook()),
 			managed.WithMetricRecorder(opts.CtrlOpts.MetricOptions.MRMetrics),
 			managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 }

@@ -107,7 +107,7 @@ type IPFailoverList struct {
 
 // IPFailover type metadata.
 var (
-	IPFailoverKind             = reflect.TypeOf(IPFailover{}).Name()
+	IPFailoverKind             = reflect.TypeFor[IPFailover]().Name()
 	IPFailoverGroupKind        = schema.GroupKind{Group: APIGroup, Kind: IPFailoverKind}.String()
 	IPFailoverKindAPIVersion   = IPFailoverKind + "." + SchemeGroupVersion.String()
 	IPFailoverGroupVersionKind = SchemeGroupVersion.WithKind(IPFailoverKind)
