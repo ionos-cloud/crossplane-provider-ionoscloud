@@ -666,6 +666,10 @@ func (e *external) updateWithFailoverOrchestration(ctx context.Context, cr *v1al
 		return err
 	}
 
+	// ICNAS-867: publish new Hostname before the wait so the operator can deliver the daemon config it depends on.
+	e.populateReplicasStatuses(ctx, cr, servers)
+	_ = e.kube.Status().Update(ctx, cr)
+
 	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
 		// servers comes from an unsorted client.List(), so it cannot be indexed by replica
 		// index - the server of this replica has to be looked up by its index label.
