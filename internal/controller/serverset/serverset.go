@@ -670,13 +670,13 @@ func (e *external) updateWithFailoverOrchestration(ctx context.Context, cr *v1al
 		return err
 	}
 
-	// Publish the refreshed replicaStatus so downstream consumers see the new Hostname before the reboot wait completes.
-	e.populateReplicasStatuses(ctx, cr, servers)
-	if err := e.kube.Status().Update(ctx, cr); err != nil {
-		e.log.Info("failed to persist replicaStatus after bootvolume update", "serverset", cr.Name, "error", err)
-	}
-
 	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
+		// Publish the refreshed replicaStatus so downstream consumers see the new Hostname before the reboot wait completes.
+		e.populateReplicasStatuses(ctx, cr, servers)
+		if err := e.kube.Status().Update(ctx, cr); err != nil {
+			e.log.Info("failed to persist replicaStatus after bootvolume update", "serverset", cr.Name, "error", err)
+		}
+
 		// servers comes from an unsorted client.List(), so it cannot be indexed by replica
 		// index - the server of this replica has to be looked up by its index label.
 		serverObj := e.findServerByReplicaIndex(cr, servers, replicaIndex)
