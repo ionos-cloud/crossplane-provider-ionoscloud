@@ -108,7 +108,7 @@ type PostgresUserList struct {
 
 // Cluster type metadata.
 var (
-	PostgresUserKind             = reflect.TypeOf(PostgresUser{}).Name()
+	PostgresUserKind             = reflect.TypeFor[PostgresUser]().Name()
 	PostgresUserGroupKind        = schema.GroupKind{Group: Group, Kind: PostgresUserKind}.String()
 	PostgresUserKindAPIVersion   = PostgresUserKind + "." + SchemeGroupVersion.String()
 	PostgresUserGroupVersionKind = SchemeGroupVersion.WithKind(PostgresUserKind)

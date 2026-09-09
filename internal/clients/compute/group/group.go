@@ -352,7 +352,7 @@ func IsGroupUpToDate(cr *v1alpha1.Group, observed sdkgo.Group) bool { // nolint:
 func memberIDsSet(cr *v1alpha1.Group) sets.Set[string] {
 	mCount := len(cr.Spec.ForProvider.UserCfg)
 	memberIDs := sets.Set[string]{}
-	for i := 0; i < mCount; i++ {
+	for i := range mCount {
 		memberIDs.Insert(cr.Spec.ForProvider.UserCfg[i].UserID)
 	}
 	return memberIDs
@@ -362,7 +362,7 @@ func resourceSharesSet(cr *v1alpha1.Group) sets.Set[v1alpha1.ResourceShare] {
 	rsCount := len(cr.Spec.ForProvider.ResourceShareCfg)
 	resourceShares := sets.Set[v1alpha1.ResourceShare]{}
 	ids := sets.Set[string]{}
-	for i := 0; i < rsCount; i++ {
+	for i := range rsCount {
 		resourceShareID := cr.Spec.ForProvider.ResourceShareCfg[i].ResourceID
 		if resourceShareID != "" && !ids.Has(resourceShareID) {
 			share := v1alpha1.ResourceShare{

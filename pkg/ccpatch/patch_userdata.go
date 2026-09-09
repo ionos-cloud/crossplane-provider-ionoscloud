@@ -91,7 +91,7 @@ func newCloudInitPatcher(rawUserData string) (*CloudInitPatcher, error) {
 		return nil, ErrNoCloudConfig
 	}
 
-	data := make(map[string]interface{})
+	data := make(map[string]any)
 	if err := yaml.Unmarshal(byt, &data); err != nil {
 		return nil, fmt.Errorf("%w (%w)", ErrMalformedData, err)
 	}
@@ -123,7 +123,7 @@ func (c *CloudInitPatcher) GetEnv(key string) string {
 		return ""
 	}
 
-	return c.data["environment"].(map[string]interface{})[key].(string)
+	return c.data["environment"].(map[string]any)[key].(string)
 }
 
 // Get returns the value of a key in the cloud-init data
@@ -154,7 +154,7 @@ func (c *CloudInitPatcher) Encode() string {
 func IsCloudConfig(userdata string) bool {
 	userdata = strings.TrimLeftFunc(userdata, unicode.IsSpace)
 
-	header := strings.SplitN(userdata, "\n", 2)[0]
+	header, _, _ := strings.Cut(userdata, "\n")
 
 	// Trim trailing whitespaces
 	header = strings.TrimRightFunc(header, unicode.IsSpace)

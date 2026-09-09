@@ -95,7 +95,7 @@ func (k *kubeBootVolumeController) setPatcher(ctx context.Context, cr *v1alpha1.
 		identifier := substitution.Identifier(name)
 		oldIdentifier := substitution.Identifier(oldName)
 		substitutions := extractSubstitutions(cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions)
-		userDataPatcher, err = ccpatch.NewCloudInitPatcherWithSubstitutions(userData, identifier, oldIdentifier, substitutions, ionoscloud.ToPtr(globalStateMap[cr.Name]))
+		userDataPatcher, err = ccpatch.NewCloudInitPatcherWithSubstitutions(userData, identifier, oldIdentifier, substitutions, new(globalStateMap[cr.Name]))
 		if err != nil {
 			return userDataPatcher, fmt.Errorf("while creating cloud init patcher with substitutions for BootVolume %s on serverset %s %w", name, cr.Name, err)
 		}
@@ -217,14 +217,12 @@ func (k *kubeBootVolumeController) isBootVolumeDeleted(ctx context.Context, name
 
 func fromServerSetToVolume(cr *v1alpha1.ServerSet, name string, replicaIndex, version int) v1alpha1.Volume {
 	vol := v1alpha1.Volume{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: cr.Namespace,
-			Labels: map[string]string{
-				serverSetLabel: cr.Name,
-				fmt.Sprintf(indexLabel, cr.GetName(), resourceBootVolume):   strconv.Itoa(replicaIndex),
-				fmt.Sprintf(versionLabel, cr.GetName(), resourceBootVolume): strconv.Itoa(version),
-			},
+		Name:      name,
+		Namespace: cr.Namespace,
+		Labels: map[string]string{
+			serverSetLabel: cr.Name,
+			fmt.Sprintf(indexLabel, cr.GetName(), resourceBootVolume):   strconv.Itoa(replicaIndex),
+			fmt.Sprintf(versionLabel, cr.GetName(), resourceBootVolume): strconv.Itoa(version),
 		},
 		Spec: v1alpha1.VolumeSpec{
 			ResourceSpec: xpv1.ResourceSpec{

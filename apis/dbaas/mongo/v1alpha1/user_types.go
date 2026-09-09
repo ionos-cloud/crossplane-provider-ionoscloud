@@ -123,7 +123,7 @@ type MongoUserList struct {
 
 // Cluster type metadata.
 var (
-	MongoUserKind             = reflect.TypeOf(MongoUser{}).Name()
+	MongoUserKind             = reflect.TypeFor[MongoUser]().Name()
 	MongoUserGroupKind        = schema.GroupKind{Group: Group, Kind: MongoUserKind}.String()
 	MongoUserKindAPIVersion   = MongoUserKind + "." + SchemeGroupVersion.String()
 	MongoUserGroupVersionKind = SchemeGroupVersion.WithKind(MongoUserKind)

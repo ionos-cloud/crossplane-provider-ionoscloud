@@ -68,12 +68,10 @@ func (k *kubeConfigmapController) CreateOrUpdate(ctx context.Context, cr *v1alph
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
 			cfgMap = &v1.ConfigMap{
-				TypeMeta: metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      k.substConfigMap[crName].name,
-					Namespace: k.substConfigMap[crName].namespace,
-				},
-				Data: k.substConfigMap[crName].identities,
+				TypeMeta:  metav1.TypeMeta{},
+				Name:      k.substConfigMap[crName].name,
+				Namespace: k.substConfigMap[crName].namespace,
+				Data:      k.substConfigMap[crName].identities,
 			}
 
 			cfgMap.SetOwnerReferences([]metav1.OwnerReference{

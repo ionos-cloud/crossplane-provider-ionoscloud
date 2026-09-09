@@ -152,7 +152,7 @@ type UserList struct {
 
 // User type metadata.
 var (
-	UserKind             = reflect.TypeOf(User{}).Name()
+	UserKind             = reflect.TypeFor[User]().Name()
 	UserGroupKind        = schema.GroupKind{Group: APIGroup, Kind: UserKind}.String()
 	UserKindAPIVersion   = UserKind + "." + SchemeGroupVersion.String()
 	UserGroupVersionKind = SchemeGroupVersion.WithKind(UserKind)

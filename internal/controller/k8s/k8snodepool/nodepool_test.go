@@ -82,18 +82,16 @@ func TestExternalNodePoolObserve(t *testing.T) {
 		},
 		{
 			name: "Fail to observe, if can't find IPBlocks",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().
-						GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
-						Return(ionoscloud.KubernetesNodePool{
-							Properties: &ionoscloud.KubernetesNodePoolProperties{
-								Name: ionoscloud.PtrString(testNodePoolName),
-							},
-						}, nil, nil)
-				},
-				setupIPBlockService: networkErrorIPBlockService,
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().
+					GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
+					Return(ionoscloud.KubernetesNodePool{
+						Properties: &ionoscloud.KubernetesNodePoolProperties{
+							Name: new(testNodePoolName),
+						},
+					}, nil, nil)
 			},
+			setupIPBlockService: networkErrorIPBlockService,
 			args: func() *v1alpha1.NodePool {
 				np := basicObserveNodePool.DeepCopy()
 				np.Spec.ForProvider.PublicIPsCfg.IPBlockCfgs = []v1alpha1.IPsBlockConfig{{IPBlockID: testIPBlockID}}
@@ -103,16 +101,14 @@ func TestExternalNodePoolObserve(t *testing.T) {
 		},
 		{
 			name: "Internal Client Error",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().
-						GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
-						Return(
-							ionoscloud.KubernetesNodePool{},
-							&ionoscloud.APIResponse{Response: nil},
-							errors.New("some error in the client, no response"),
-						)
-				},
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().
+					GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
+					Return(
+						ionoscloud.KubernetesNodePool{},
+						&ionoscloud.APIResponse{Response: nil},
+						errors.New("some error in the client, no response"),
+					)
 			},
 			args: basicObserveNodePool.DeepCopy(),
 			want: managed.ExternalObservation{
@@ -126,16 +122,14 @@ func TestExternalNodePoolObserve(t *testing.T) {
 		},
 		{
 			name: "Nodepool does not exist",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().
-						GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
-						Return(ionoscloud.KubernetesNodePool{}, &ionoscloud.APIResponse{
-							Response: &http.Response{
-								StatusCode: http.StatusNotFound,
-							},
-						}, errors.New("resource not found"))
-				},
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().
+					GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
+					Return(ionoscloud.KubernetesNodePool{}, &ionoscloud.APIResponse{
+						Response: &http.Response{
+							StatusCode: http.StatusNotFound,
+						},
+					}, errors.New("resource not found"))
 			},
 			args: basicObserveNodePool.DeepCopy(),
 			want: managed.ExternalObservation{
@@ -149,16 +143,14 @@ func TestExternalNodePoolObserve(t *testing.T) {
 		},
 		{
 			name: "Nodepool up to date",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().
-						GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
-						Return(ionoscloud.KubernetesNodePool{
-							Properties: &ionoscloud.KubernetesNodePoolProperties{
-								Name: ionoscloud.PtrString(testNodePoolName),
-							},
-						}, nil, nil)
-				},
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().
+					GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
+					Return(ionoscloud.KubernetesNodePool{
+						Properties: &ionoscloud.KubernetesNodePoolProperties{
+							Name: new(testNodePoolName),
+						},
+					}, nil, nil)
 			},
 			args: basicObserveNodePool.DeepCopy(),
 			want: managed.ExternalObservation{
@@ -172,17 +164,15 @@ func TestExternalNodePoolObserve(t *testing.T) {
 		},
 		{
 			name: "Nodepool must be updated (NodeCount differs)",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().
-						GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
-						Return(ionoscloud.KubernetesNodePool{
-							Properties: &ionoscloud.KubernetesNodePoolProperties{
-								Name:      ionoscloud.PtrString(testNodePoolName),
-								NodeCount: ionoscloud.PtrInt32(2),
-							},
-						}, nil, nil)
-				},
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().
+					GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
+					Return(ionoscloud.KubernetesNodePool{
+						Properties: &ionoscloud.KubernetesNodePoolProperties{
+							Name:      new(testNodePoolName),
+							NodeCount: ionoscloud.PtrInt32(2),
+						},
+					}, nil, nil)
 			},
 			args: basicObserveNodePool.DeepCopy(),
 			want: managed.ExternalObservation{
@@ -196,19 +186,17 @@ func TestExternalNodePoolObserve(t *testing.T) {
 		},
 		{
 			name: "Nodepool must be updated (Labels differ)",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().
-						GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
-						Return(ionoscloud.KubernetesNodePool{
-							Properties: &ionoscloud.KubernetesNodePoolProperties{
-								Name: ionoscloud.PtrString(testNodePoolName),
-								Labels: &map[string]string{
-									"some": "old-label",
-								},
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().
+					GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
+					Return(ionoscloud.KubernetesNodePool{
+						Properties: &ionoscloud.KubernetesNodePoolProperties{
+							Name: new(testNodePoolName),
+							Labels: &map[string]string{
+								"some": "old-label",
 							},
-						}, nil, nil)
-				},
+						},
+					}, nil, nil)
 			},
 			args: func() *v1alpha1.NodePool {
 				np := basicObserveNodePool.DeepCopy()
@@ -228,19 +216,17 @@ func TestExternalNodePoolObserve(t *testing.T) {
 		},
 		{
 			name: "Nodepool must be updated (Annotations differ)",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().
-						GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
-						Return(ionoscloud.KubernetesNodePool{
-							Properties: &ionoscloud.KubernetesNodePoolProperties{
-								Name: ionoscloud.PtrString(testNodePoolName),
-								Annotations: &map[string]string{
-									"some": "old-annotation",
-								},
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().
+					GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
+					Return(ionoscloud.KubernetesNodePool{
+						Properties: &ionoscloud.KubernetesNodePoolProperties{
+							Name: new(testNodePoolName),
+							Annotations: &map[string]string{
+								"some": "old-annotation",
 							},
-						}, nil, nil)
-				},
+						},
+					}, nil, nil)
 			},
 			args: func() *v1alpha1.NodePool {
 				np := basicObserveNodePool.DeepCopy()
@@ -260,14 +246,12 @@ func TestExternalNodePoolObserve(t *testing.T) {
 		},
 		{
 			name: "API response is inconsistent",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().
-						GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
-						Return(ionoscloud.KubernetesNodePool{
-							Properties: nil,
-						}, nil, nil)
-				},
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().
+					GetK8sNodePool(context.Background(), testClusterID, testNodePoolID).
+					Return(ionoscloud.KubernetesNodePool{
+						Properties: nil,
+					}, nil, nil)
 			},
 			args: basicObserveNodePool.DeepCopy(),
 			want: managed.ExternalObservation{
@@ -324,71 +308,59 @@ func TestExternalNodePoolDelete(t *testing.T) {
 			wantErr:        true,
 		},
 		{
-			name: "Don't delete if cluster state is unknown due to network error",
-			nodepoolMocker: nodepoolMocker{
-				setupClusterService: networkErrorClusterService,
-			},
-			args:    basicDeleteNodepool.DeepCopy(),
-			wantErr: true,
+			name:                "Don't delete if cluster state is unknown due to network error",
+			setupClusterService: networkErrorClusterService,
+			args:                basicDeleteNodepool.DeepCopy(),
+			wantErr:             true,
 		},
 		{
-			name: "Don't delete if cluster doesn't exist",
-			nodepoolMocker: nodepoolMocker{
-				setupClusterService: clusterNotFoundService,
-			},
-			args:    basicDeleteNodepool.DeepCopy(),
-			wantErr: true,
+			name:                "Don't delete if cluster doesn't exist",
+			setupClusterService: clusterNotFoundService,
+			args:                basicDeleteNodepool.DeepCopy(),
+			wantErr:             true,
 		},
 		{
-			name: "Dont' delete if Cluster is not active",
-			nodepoolMocker: nodepoolMocker{
-				setupClusterService: clusterNotActiveService,
-			},
-			args:    basicDeleteNodepool.DeepCopy(),
-			wantErr: true,
+			name:                "Dont' delete if Cluster is not active",
+			setupClusterService: clusterNotActiveService,
+			args:                basicDeleteNodepool.DeepCopy(),
+			wantErr:             true,
 		},
 		{
 			name: "Nodepool does not exist",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().
-						DeleteK8sNodePool(context.Background(), testClusterID, testNodePoolID).
-						Return(&ionoscloud.APIResponse{
-							Response: &http.Response{
-								StatusCode: http.StatusNotFound,
-							},
-						}, errors.New("not found"))
-				},
-				setupClusterService: clusterActiveService,
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().
+					DeleteK8sNodePool(context.Background(), testClusterID, testNodePoolID).
+					Return(&ionoscloud.APIResponse{
+						Response: &http.Response{
+							StatusCode: http.StatusNotFound,
+						},
+					}, errors.New("not found"))
 			},
-			args:    basicDeleteNodepool,
-			wantErr: false,
+			setupClusterService: clusterActiveService,
+			args:                basicDeleteNodepool,
+			wantErr:             false,
 		},
 		{
 			name: "Nodepool delete",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().
-						DeleteK8sNodePool(context.Background(), testClusterID, testNodePoolID).
-						Return(nil, nil)
-				},
-				setupClusterService: clusterActiveService,
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().
+					DeleteK8sNodePool(context.Background(), testClusterID, testNodePoolID).
+					Return(nil, nil)
 			},
-			args:    basicDeleteNodepool,
-			wantErr: false,
+			setupClusterService: clusterActiveService,
+			args:                basicDeleteNodepool,
+			wantErr:             false,
 		},
 		{
 			name: "ionos API error",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().
-						DeleteK8sNodePool(context.Background(), testClusterID, testNodePoolID).
-						Return(nil, errors.New("API error"))
-				},
-				setupClusterService: clusterActiveService,
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().
+					DeleteK8sNodePool(context.Background(), testClusterID, testNodePoolID).
+					Return(nil, errors.New("API error"))
 			},
-			args:    basicDeleteNodepool,
-			wantErr: true,
+			setupClusterService: clusterActiveService,
+			args:                basicDeleteNodepool,
+			wantErr:             true,
 		},
 		{
 			name:           "externalControlPlaneClient name not yet known",
@@ -433,14 +405,12 @@ func TestExternalNodePoolDelete(t *testing.T) {
 		},
 		{
 			name: "Nodepool in FAILED state",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().
-						DeleteK8sNodePool(context.Background(), testClusterID, testNodePoolID).
-						Return(nil, nil)
-				},
-				setupClusterService: clusterActiveService,
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().
+					DeleteK8sNodePool(context.Background(), testClusterID, testNodePoolID).
+					Return(nil, nil)
 			},
+			setupClusterService: clusterActiveService,
 			args: func() *v1alpha1.NodePool {
 				np := basicDeleteNodepool.DeepCopy()
 				np.Status.AtProvider.State = k8s.FAILED
@@ -450,14 +420,12 @@ func TestExternalNodePoolDelete(t *testing.T) {
 		},
 		{
 			name: "Nodepool in FAILED_TERMINATED state",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().
-						DeleteK8sNodePool(context.Background(), testClusterID, testNodePoolID).
-						Return(nil, nil)
-				},
-				setupClusterService: clusterActiveService,
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().
+					DeleteK8sNodePool(context.Background(), testClusterID, testNodePoolID).
+					Return(nil, nil)
 			},
+			setupClusterService: clusterActiveService,
 			args: func() *v1alpha1.NodePool {
 				np := basicDeleteNodepool.DeepCopy()
 				np.Status.AtProvider.State = k8s.FAILEDDESTROYING
@@ -514,58 +482,48 @@ func TestExternalNodePoolCreate(t *testing.T) {
 		wantCondition    xpv1.Condition
 	}{
 		{
-			name: "Wrong Type, don't expect any calls",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {},
-			},
-			args:    &v1alpha1.Cluster{},
-			wantErr: true,
+			name:                 "Wrong Type, don't expect any calls",
+			setupNodePoolService: func(service *k8snodepool.MockClient) {},
+			args:                 &v1alpha1.Cluster{},
+			wantErr:              true,
 			wantCondition: xpv1.Condition{
 				Type:   "Ready",
 				Status: "Unknown",
 			},
 		},
 		{
-			name: "Dont' create if Cluster is not active",
-			nodepoolMocker: nodepoolMocker{
-				setupClusterService: clusterNotActiveService,
-			},
-			args:    basicCreateNodepool.DeepCopy(),
-			wantErr: true,
+			name:                "Dont' create if Cluster is not active",
+			setupClusterService: clusterNotActiveService,
+			args:                basicCreateNodepool.DeepCopy(),
+			wantErr:             true,
 			wantCondition: xpv1.Condition{
 				Type:   "Ready",
 				Status: "Unknown",
 			},
 		},
 		{
-			name: "Don't create if cluster state is unknown due to network error",
-			nodepoolMocker: nodepoolMocker{
-				setupClusterService: networkErrorClusterService,
-			},
-			args:    basicCreateNodepool.DeepCopy(),
-			wantErr: true,
+			name:                "Don't create if cluster state is unknown due to network error",
+			setupClusterService: networkErrorClusterService,
+			args:                basicCreateNodepool.DeepCopy(),
+			wantErr:             true,
 			wantCondition: xpv1.Condition{
 				Type:   "Ready",
 				Status: "Unknown",
 			},
 		},
 		{
-			name: "Don't create if cluster doesn't exist",
-			nodepoolMocker: nodepoolMocker{
-				setupClusterService: clusterNotFoundService,
-			},
-			args:    basicCreateNodepool.DeepCopy(),
-			wantErr: true,
+			name:                "Don't create if cluster doesn't exist",
+			setupClusterService: clusterNotFoundService,
+			args:                basicCreateNodepool.DeepCopy(),
+			wantErr:             true,
 			wantCondition: xpv1.Condition{
 				Type:   "Ready",
 				Status: "Unknown",
 			},
 		},
 		{
-			name: "Don't create if nodepool is deploying",
-			nodepoolMocker: nodepoolMocker{
-				setupClusterService: clusterActiveService,
-			},
+			name:                "Don't create if nodepool is deploying",
+			setupClusterService: clusterActiveService,
 			args: func() *v1alpha1.NodePool {
 				np := basicCreateNodepool.DeepCopy()
 				np.Status.AtProvider.State = k8s.DEPLOYING
@@ -578,11 +536,9 @@ func TestExternalNodePoolCreate(t *testing.T) {
 			},
 		},
 		{
-			name: "Don't create if can't find IPBlocks",
-			nodepoolMocker: nodepoolMocker{
-				setupClusterService: clusterActiveService,
-				setupIPBlockService: networkErrorIPBlockService,
-			},
+			name:                "Don't create if can't find IPBlocks",
+			setupClusterService: clusterActiveService,
+			setupIPBlockService: networkErrorIPBlockService,
 			args: func() *v1alpha1.NodePool {
 				np := basicCreateNodepool.DeepCopy()
 				np.Spec.ForProvider.PublicIPsCfg.IPBlockCfgs = []v1alpha1.IPsBlockConfig{{IPBlockID: testIPBlockID}}
@@ -596,53 +552,51 @@ func TestExternalNodePoolCreate(t *testing.T) {
 		},
 		{
 			name: "Nodepool does not exist",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					expectedNodePool := ionoscloud.KubernetesNodePool{
-						Properties: &ionoscloud.KubernetesNodePoolProperties{
-							Name:             ionoscloud.PtrString("testNodePool"),
-							DatacenterId:     ionoscloud.PtrString("12345"),
-							NodeCount:        ionoscloud.PtrInt32(2),
-							CpuFamily:        ionoscloud.PtrString("SUPER_FAST"),
-							CoresCount:       ionoscloud.PtrInt32(4),
-							RamSize:          ionoscloud.PtrInt32(5),
-							AvailabilityZone: ionoscloud.PtrString("AUTO"),
-							StorageType:      ionoscloud.PtrString("SSD"),
-							StorageSize:      ionoscloud.PtrInt32(15),
-							K8sVersion:       ionoscloud.PtrString("v1.22.33"),
-							ServerType:       ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("VCPU"))},
-					}
-					expectedNodePoolForPost := ionoscloud.KubernetesNodePoolForPost{
-						Properties: &ionoscloud.KubernetesNodePoolPropertiesForPost{
-							AvailabilityZone: ionoscloud.PtrString("AUTO"),
-							Annotations:      nil,
-							CoresCount:       ionoscloud.PtrInt32(4),
-							CpuFamily:        ionoscloud.PtrString("SUPER_FAST"),
-							DatacenterId:     ionoscloud.PtrString("12345"),
-							K8sVersion:       ionoscloud.PtrString("v1.22.33"),
-							ServerType:       ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("VCPU")),
-							Lans:             &[]ionoscloud.KubernetesNodePoolLan{},
-							Name:             ionoscloud.PtrString("testNodePool"),
-							NodeCount:        ionoscloud.PtrInt32(2),
-							RamSize:          ionoscloud.PtrInt32(5),
-							StorageSize:      ionoscloud.PtrInt32(15),
-							StorageType:      ionoscloud.PtrString("SSD"),
-						},
-					}
-					returnedNodePool := expectedNodePool
-					returnedNodePool.Id = ionoscloud.PtrString("1234")
-					service.EXPECT().
-						CreateK8sNodePool(
-							context.Background(),
-							testClusterID,
-							gomock.GotFormatterAdapter(nodePoolGotFormatter{},
-								matchesNodePoolPost(expectedNodePoolForPost)),
-						).
-						Return(returnedNodePool, nil, nil)
-				},
-				setupClusterService: clusterActiveService,
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				expectedNodePool := ionoscloud.KubernetesNodePool{
+					Properties: &ionoscloud.KubernetesNodePoolProperties{
+						Name:             new("testNodePool"),
+						DatacenterId:     new("12345"),
+						NodeCount:        ionoscloud.PtrInt32(2),
+						CpuFamily:        new("SUPER_FAST"),
+						CoresCount:       ionoscloud.PtrInt32(4),
+						RamSize:          ionoscloud.PtrInt32(5),
+						AvailabilityZone: new("AUTO"),
+						StorageType:      new("SSD"),
+						StorageSize:      ionoscloud.PtrInt32(15),
+						K8sVersion:       new("v1.22.33"),
+						ServerType:       ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("VCPU"))},
+				}
+				expectedNodePoolForPost := ionoscloud.KubernetesNodePoolForPost{
+					Properties: &ionoscloud.KubernetesNodePoolPropertiesForPost{
+						AvailabilityZone: new("AUTO"),
+						Annotations:      nil,
+						CoresCount:       ionoscloud.PtrInt32(4),
+						CpuFamily:        new("SUPER_FAST"),
+						DatacenterId:     new("12345"),
+						K8sVersion:       new("v1.22.33"),
+						ServerType:       ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("VCPU")),
+						Lans:             &[]ionoscloud.KubernetesNodePoolLan{},
+						Name:             new("testNodePool"),
+						NodeCount:        ionoscloud.PtrInt32(2),
+						RamSize:          ionoscloud.PtrInt32(5),
+						StorageSize:      ionoscloud.PtrInt32(15),
+						StorageType:      new("SSD"),
+					},
+				}
+				returnedNodePool := expectedNodePool
+				returnedNodePool.Id = new("1234")
+				service.EXPECT().
+					CreateK8sNodePool(
+						context.Background(),
+						testClusterID,
+						gomock.GotFormatterAdapter(nodePoolGotFormatter{},
+							matchesNodePoolPost(expectedNodePoolForPost)),
+					).
+					Return(returnedNodePool, nil, nil)
 			},
-			args: basicCreateNodepool.DeepCopy(),
+			setupClusterService: clusterActiveService,
+			args:                basicCreateNodepool.DeepCopy(),
 			want: managed.ExternalCreation{
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
@@ -652,18 +606,16 @@ func TestExternalNodePoolCreate(t *testing.T) {
 		},
 		{
 			name: "API errors",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().
-						CreateK8sNodePool(context.Background(),
-							testClusterID,
-							gomock.AssignableToTypeOf(ionoscloud.KubernetesNodePoolForPost{}),
-						).
-						Return(ionoscloud.KubernetesNodePool{}, nil, errors.New("failed to execute"))
-				},
-				setupClusterService: clusterActiveService,
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().
+					CreateK8sNodePool(context.Background(),
+						testClusterID,
+						gomock.AssignableToTypeOf(ionoscloud.KubernetesNodePoolForPost{}),
+					).
+					Return(ionoscloud.KubernetesNodePool{}, nil, errors.New("failed to execute"))
 			},
-			args: basicCreateNodepool.DeepCopy(),
+			setupClusterService: clusterActiveService,
+			args:                basicCreateNodepool.DeepCopy(),
 			want: managed.ExternalCreation{
 				ConnectionDetails: managed.ConnectionDetails{},
 			},
@@ -675,48 +627,46 @@ func TestExternalNodePoolCreate(t *testing.T) {
 		},
 		{
 			name: "Nodepool with empty CPUFamily",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					expectedNodePool := ionoscloud.KubernetesNodePool{
-						Properties: &ionoscloud.KubernetesNodePoolProperties{
-							Name:             ionoscloud.PtrString("testNodePool"),
-							DatacenterId:     ionoscloud.PtrString("12345"),
-							NodeCount:        ionoscloud.PtrInt32(2),
-							CoresCount:       ionoscloud.PtrInt32(4),
-							RamSize:          ionoscloud.PtrInt32(5),
-							AvailabilityZone: ionoscloud.PtrString("AUTO"),
-							StorageType:      ionoscloud.PtrString("SSD"),
-							StorageSize:      ionoscloud.PtrInt32(15),
-							K8sVersion:       ionoscloud.PtrString("v1.22.33")},
-					}
-					expectedNodePoolForPost := ionoscloud.KubernetesNodePoolForPost{
-						Properties: &ionoscloud.KubernetesNodePoolPropertiesForPost{
-							Name:             ionoscloud.PtrString("testNodePool"),
-							DatacenterId:     ionoscloud.PtrString("12345"),
-							Lans:             &[]ionoscloud.KubernetesNodePoolLan{},
-							NodeCount:        ionoscloud.PtrInt32(2),
-							CoresCount:       ionoscloud.PtrInt32(4),
-							RamSize:          ionoscloud.PtrInt32(5),
-							AvailabilityZone: ionoscloud.PtrString("AUTO"),
-							StorageType:      ionoscloud.PtrString("SSD"),
-							StorageSize:      ionoscloud.PtrInt32(15),
-							K8sVersion:       ionoscloud.PtrString("v1.22.33"),
-							ServerType:       ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("VCPU"))},
-					}
-					returnedNodePool := expectedNodePool
-					returnedNodePool.Id = ionoscloud.PtrString("1234")
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				expectedNodePool := ionoscloud.KubernetesNodePool{
+					Properties: &ionoscloud.KubernetesNodePoolProperties{
+						Name:             new("testNodePool"),
+						DatacenterId:     new("12345"),
+						NodeCount:        ionoscloud.PtrInt32(2),
+						CoresCount:       ionoscloud.PtrInt32(4),
+						RamSize:          ionoscloud.PtrInt32(5),
+						AvailabilityZone: new("AUTO"),
+						StorageType:      new("SSD"),
+						StorageSize:      ionoscloud.PtrInt32(15),
+						K8sVersion:       new("v1.22.33")},
+				}
+				expectedNodePoolForPost := ionoscloud.KubernetesNodePoolForPost{
+					Properties: &ionoscloud.KubernetesNodePoolPropertiesForPost{
+						Name:             new("testNodePool"),
+						DatacenterId:     new("12345"),
+						Lans:             &[]ionoscloud.KubernetesNodePoolLan{},
+						NodeCount:        ionoscloud.PtrInt32(2),
+						CoresCount:       ionoscloud.PtrInt32(4),
+						RamSize:          ionoscloud.PtrInt32(5),
+						AvailabilityZone: new("AUTO"),
+						StorageType:      new("SSD"),
+						StorageSize:      ionoscloud.PtrInt32(15),
+						K8sVersion:       new("v1.22.33"),
+						ServerType:       ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("VCPU"))},
+				}
+				returnedNodePool := expectedNodePool
+				returnedNodePool.Id = new("1234")
 
-					service.EXPECT().
-						CreateK8sNodePool(
-							context.Background(),
-							testClusterID,
-							gomock.GotFormatterAdapter(nodePoolGotFormatter{},
-								matchesNodePoolPost(expectedNodePoolForPost)),
-						).
-						Return(returnedNodePool, nil, nil)
-				},
-				setupClusterService: clusterActiveService,
+				service.EXPECT().
+					CreateK8sNodePool(
+						context.Background(),
+						testClusterID,
+						gomock.GotFormatterAdapter(nodePoolGotFormatter{},
+							matchesNodePoolPost(expectedNodePoolForPost)),
+					).
+					Return(returnedNodePool, nil, nil)
 			},
+			setupClusterService: clusterActiveService,
 			args: func() *v1alpha1.NodePool {
 				np := basicCreateNodepool.DeepCopy()
 				np.Spec.ForProvider.CPUFamily = ""
@@ -731,47 +681,45 @@ func TestExternalNodePoolCreate(t *testing.T) {
 		},
 		{
 			name: "IONOS API returns empty list of CPU families",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					expectedNodePool := ionoscloud.KubernetesNodePool{
-						Properties: &ionoscloud.KubernetesNodePoolProperties{
-							Name:             ionoscloud.PtrString("testNodePool"),
-							DatacenterId:     ionoscloud.PtrString("12345"),
-							NodeCount:        ionoscloud.PtrInt32(2),
-							CoresCount:       ionoscloud.PtrInt32(4),
-							RamSize:          ionoscloud.PtrInt32(5),
-							AvailabilityZone: ionoscloud.PtrString("AUTO"),
-							StorageType:      ionoscloud.PtrString("SSD"),
-							StorageSize:      ionoscloud.PtrInt32(15),
-							K8sVersion:       ionoscloud.PtrString("v1.22.33")},
-					}
-					expectedNodePoolForPost := ionoscloud.KubernetesNodePoolForPost{
-						Properties: &ionoscloud.KubernetesNodePoolPropertiesForPost{
-							Name:             ionoscloud.PtrString("testNodePool"),
-							DatacenterId:     ionoscloud.PtrString("12345"),
-							Lans:             &[]ionoscloud.KubernetesNodePoolLan{},
-							NodeCount:        ionoscloud.PtrInt32(2),
-							CoresCount:       ionoscloud.PtrInt32(4),
-							RamSize:          ionoscloud.PtrInt32(5),
-							AvailabilityZone: ionoscloud.PtrString("AUTO"),
-							StorageType:      ionoscloud.PtrString("SSD"),
-							StorageSize:      ionoscloud.PtrInt32(15),
-							K8sVersion:       ionoscloud.PtrString("v1.22.33")},
-					}
-					returnedNodePool := expectedNodePool
-					returnedNodePool.Id = ionoscloud.PtrString("1234")
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				expectedNodePool := ionoscloud.KubernetesNodePool{
+					Properties: &ionoscloud.KubernetesNodePoolProperties{
+						Name:             new("testNodePool"),
+						DatacenterId:     new("12345"),
+						NodeCount:        ionoscloud.PtrInt32(2),
+						CoresCount:       ionoscloud.PtrInt32(4),
+						RamSize:          ionoscloud.PtrInt32(5),
+						AvailabilityZone: new("AUTO"),
+						StorageType:      new("SSD"),
+						StorageSize:      ionoscloud.PtrInt32(15),
+						K8sVersion:       new("v1.22.33")},
+				}
+				expectedNodePoolForPost := ionoscloud.KubernetesNodePoolForPost{
+					Properties: &ionoscloud.KubernetesNodePoolPropertiesForPost{
+						Name:             new("testNodePool"),
+						DatacenterId:     new("12345"),
+						Lans:             &[]ionoscloud.KubernetesNodePoolLan{},
+						NodeCount:        ionoscloud.PtrInt32(2),
+						CoresCount:       ionoscloud.PtrInt32(4),
+						RamSize:          ionoscloud.PtrInt32(5),
+						AvailabilityZone: new("AUTO"),
+						StorageType:      new("SSD"),
+						StorageSize:      ionoscloud.PtrInt32(15),
+						K8sVersion:       new("v1.22.33")},
+				}
+				returnedNodePool := expectedNodePool
+				returnedNodePool.Id = new("1234")
 
-					service.EXPECT().
-						CreateK8sNodePool(
-							context.Background(),
-							testClusterID,
-							gomock.GotFormatterAdapter(nodePoolGotFormatter{},
-								matchesNodePoolPost(expectedNodePoolForPost)),
-						).
-						Return(returnedNodePool, nil, nil)
-				},
-				setupClusterService: clusterActiveService,
+				service.EXPECT().
+					CreateK8sNodePool(
+						context.Background(),
+						testClusterID,
+						gomock.GotFormatterAdapter(nodePoolGotFormatter{},
+							matchesNodePoolPost(expectedNodePoolForPost)),
+					).
+					Return(returnedNodePool, nil, nil)
 			},
+			setupClusterService: clusterActiveService,
 			args: func() *v1alpha1.NodePool {
 				np := &v1alpha1.NodePool{
 					Spec: v1alpha1.NodePoolSpec{
@@ -848,58 +796,48 @@ func TestExternalNodePoolUpdate(t *testing.T) {
 		wantCondition xpv1.Condition
 	}{
 		{
-			name: "Wrong Type, don't expect any calls",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {},
-			},
-			args:    &v1alpha1.Cluster{},
-			wantErr: true,
+			name:                 "Wrong Type, don't expect any calls",
+			setupNodePoolService: func(service *k8snodepool.MockClient) {},
+			args:                 &v1alpha1.Cluster{},
+			wantErr:              true,
 			wantCondition: xpv1.Condition{
 				Type:   "Ready",
 				Status: "Unknown",
 			},
 		},
 		{
-			name: "Cluster not found",
-			nodepoolMocker: nodepoolMocker{
-				setupClusterService: clusterNotFoundService,
-			},
-			args:    basicUpdateNodePool.DeepCopy(),
-			wantErr: true,
+			name:                "Cluster not found",
+			setupClusterService: clusterNotFoundService,
+			args:                basicUpdateNodePool.DeepCopy(),
+			wantErr:             true,
 			wantCondition: xpv1.Condition{
 				Type:   "Ready",
 				Status: "Unknown",
 			},
 		},
 		{
-			name: "Get cluster fails",
-			nodepoolMocker: nodepoolMocker{
-				setupClusterService: networkErrorClusterService,
-			},
-			args:    basicUpdateNodePool.DeepCopy(),
-			wantErr: true,
+			name:                "Get cluster fails",
+			setupClusterService: networkErrorClusterService,
+			args:                basicUpdateNodePool.DeepCopy(),
+			wantErr:             true,
 			wantCondition: xpv1.Condition{
 				Type:   "Ready",
 				Status: "Unknown",
 			},
 		},
 		{
-			name: "Cluster not active",
-			nodepoolMocker: nodepoolMocker{
-				setupClusterService: clusterNotActiveService,
-			},
-			args:    basicUpdateNodePool.DeepCopy(),
-			wantErr: true,
+			name:                "Cluster not active",
+			setupClusterService: clusterNotActiveService,
+			args:                basicUpdateNodePool.DeepCopy(),
+			wantErr:             true,
 			wantCondition: xpv1.Condition{
 				Type:   "Ready",
 				Status: "Unknown",
 			},
 		},
 		{
-			name: "Already Updating",
-			nodepoolMocker: nodepoolMocker{
-				setupClusterService: clusterActiveService,
-			},
+			name:                "Already Updating",
+			setupClusterService: clusterActiveService,
 			args: func() *v1alpha1.NodePool {
 				np := basicUpdateNodePool.DeepCopy()
 				np.Status.AtProvider.State = k8s.UPDATING
@@ -912,11 +850,9 @@ func TestExternalNodePoolUpdate(t *testing.T) {
 			},
 		},
 		{
-			name: "Can't find IPBlocks",
-			nodepoolMocker: nodepoolMocker{
-				setupClusterService: clusterActiveService,
-				setupIPBlockService: networkErrorIPBlockService,
-			},
+			name:                "Can't find IPBlocks",
+			setupClusterService: clusterActiveService,
+			setupIPBlockService: networkErrorIPBlockService,
 			args: func() *v1alpha1.NodePool {
 				np := basicUpdateNodePool.DeepCopy()
 				np.Spec.ForProvider.PublicIPsCfg.IPBlockCfgs = []v1alpha1.IPsBlockConfig{{IPBlockID: testIPBlockID}}
@@ -930,20 +866,18 @@ func TestExternalNodePoolUpdate(t *testing.T) {
 		},
 		{
 			name: "Put NodePool Fails",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().
-						UpdateK8sNodePool(context.Background(),
-							testClusterID,
-							testNodePoolID,
-							gomock.AssignableToTypeOf(ionoscloud.KubernetesNodePoolForPut{}),
-						).
-						Return(ionoscloud.KubernetesNodePool{}, nil, errors.New("put failed"))
-				},
-				setupClusterService: clusterActiveService,
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().
+					UpdateK8sNodePool(context.Background(),
+						testClusterID,
+						testNodePoolID,
+						gomock.AssignableToTypeOf(ionoscloud.KubernetesNodePoolForPut{}),
+					).
+					Return(ionoscloud.KubernetesNodePool{}, nil, errors.New("put failed"))
 			},
-			args:    basicUpdateNodePool.DeepCopy(),
-			wantErr: true,
+			setupClusterService: clusterActiveService,
+			args:                basicUpdateNodePool.DeepCopy(),
+			wantErr:             true,
 			wantCondition: xpv1.Condition{
 				Type:   "Ready",
 				Status: "Unknown",
@@ -951,30 +885,28 @@ func TestExternalNodePoolUpdate(t *testing.T) {
 		},
 		{
 			name: "API success",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().UpdateK8sNodePool(context.Background(), testClusterID, testNodePoolID,
-						gomock.GotFormatterAdapter(nodePoolGotFormatter{}, matchesNodePoolPut(ionoscloud.KubernetesNodePoolForPut{
-							Properties: &ionoscloud.KubernetesNodePoolPropertiesForPut{
-								NodeCount:  ionoscloud.PtrInt32(0),
-								K8sVersion: ionoscloud.PtrString("1.27.0"),
-								MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
-									DayOfTheWeek: ionoscloud.PtrString("Mon"),
-									Time:         ionoscloud.PtrString("15:24:30Z"),
-								},
-								AutoScaling: nil,
-								Lans:        &[]ionoscloud.KubernetesNodePoolLan{},
-								Labels:      &map[string]string{},
-								Annotations: &map[string]string{},
-								PublicIps:   &[]string{},
-								ServerType:  ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("DedicatedCore")),
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().UpdateK8sNodePool(context.Background(), testClusterID, testNodePoolID,
+					gomock.GotFormatterAdapter(nodePoolGotFormatter{}, matchesNodePoolPut(ionoscloud.KubernetesNodePoolForPut{
+						Properties: &ionoscloud.KubernetesNodePoolPropertiesForPut{
+							NodeCount:  ionoscloud.PtrInt32(0),
+							K8sVersion: new("1.27.0"),
+							MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
+								DayOfTheWeek: new("Mon"),
+								Time:         new("15:24:30Z"),
 							},
-						})),
-					).
-						Return(ionoscloud.KubernetesNodePool{}, nil, nil)
-				},
-				setupClusterService: clusterActiveService,
+							AutoScaling: nil,
+							Lans:        &[]ionoscloud.KubernetesNodePoolLan{},
+							Labels:      &map[string]string{},
+							Annotations: &map[string]string{},
+							PublicIps:   &[]string{},
+							ServerType:  ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("DedicatedCore")),
+						},
+					})),
+				).
+					Return(ionoscloud.KubernetesNodePool{}, nil, nil)
 			},
+			setupClusterService: clusterActiveService,
 			args: func() *v1alpha1.NodePool {
 				np := &v1alpha1.NodePool{
 					Spec: v1alpha1.NodePoolSpec{
@@ -1005,29 +937,27 @@ func TestExternalNodePoolUpdate(t *testing.T) {
 		},
 		{
 			name: "API success with empty k8sVersion should not set k8sVersion in PUT request",
-			nodepoolMocker: nodepoolMocker{
-				setupNodePoolService: func(service *k8snodepool.MockClient) {
-					service.EXPECT().UpdateK8sNodePool(context.Background(), testClusterID, testNodePoolID,
-						gomock.GotFormatterAdapter(nodePoolGotFormatter{}, matchesNodePoolPut(ionoscloud.KubernetesNodePoolForPut{
-							Properties: &ionoscloud.KubernetesNodePoolPropertiesForPut{
-								NodeCount: ionoscloud.PtrInt32(2),
-								MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
-									DayOfTheWeek: ionoscloud.PtrString("Tue"),
-									Time:         ionoscloud.PtrString("16:30:00Z"),
-								},
-								AutoScaling: nil,
-								Lans:        &[]ionoscloud.KubernetesNodePoolLan{},
-								Labels:      &map[string]string{},
-								Annotations: &map[string]string{},
-								PublicIps:   &[]string{},
-								ServerType:  ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("DedicatedCore")),
+			setupNodePoolService: func(service *k8snodepool.MockClient) {
+				service.EXPECT().UpdateK8sNodePool(context.Background(), testClusterID, testNodePoolID,
+					gomock.GotFormatterAdapter(nodePoolGotFormatter{}, matchesNodePoolPut(ionoscloud.KubernetesNodePoolForPut{
+						Properties: &ionoscloud.KubernetesNodePoolPropertiesForPut{
+							NodeCount: ionoscloud.PtrInt32(2),
+							MaintenanceWindow: &ionoscloud.KubernetesMaintenanceWindow{
+								DayOfTheWeek: new("Tue"),
+								Time:         new("16:30:00Z"),
 							},
-						})),
-					).
-						Return(ionoscloud.KubernetesNodePool{}, nil, nil)
-				},
-				setupClusterService: clusterActiveService,
+							AutoScaling: nil,
+							Lans:        &[]ionoscloud.KubernetesNodePoolLan{},
+							Labels:      &map[string]string{},
+							Annotations: &map[string]string{},
+							PublicIps:   &[]string{},
+							ServerType:  ionoscloud.ToPtr(ionoscloud.KubernetesNodePoolServerType("DedicatedCore")),
+						},
+					})),
+				).
+					Return(ionoscloud.KubernetesNodePool{}, nil, nil)
 			},
+			setupClusterService: clusterActiveService,
 			args: func() *v1alpha1.NodePool {
 				np := &v1alpha1.NodePool{
 					Spec: v1alpha1.NodePoolSpec{
@@ -1078,7 +1008,7 @@ func TestExternalNodePoolUpdate(t *testing.T) {
 type nodePoolGotFormatter struct {
 }
 
-func (n nodePoolGotFormatter) Got(got interface{}) string {
+func (n nodePoolGotFormatter) Got(got any) string {
 	return mustMarshal(got)
 }
 
@@ -1092,7 +1022,7 @@ func matchesNodePoolPost(expected ionoscloud.KubernetesNodePoolForPost) nodePool
 	}
 }
 
-func (n nodePoolPostMatcher) Matches(x interface{}) bool {
+func (n nodePoolPostMatcher) Matches(x any) bool {
 	np, ok := x.(ionoscloud.KubernetesNodePoolForPost)
 	if !ok {
 		return false
@@ -1124,7 +1054,7 @@ func matchesNodePoolPut(expected ionoscloud.KubernetesNodePoolForPut) nodePoolPu
 	}
 }
 
-func (n nodePoolPutMatcher) Matches(x interface{}) bool {
+func (n nodePoolPutMatcher) Matches(x any) bool {
 	np, ok := x.(ionoscloud.KubernetesNodePoolForPut)
 	if !ok {
 		return false
@@ -1146,7 +1076,7 @@ func (n nodePoolPutMatcher) String() string {
 	return mustMarshal(n.expected)
 }
 
-func mustMarshal(data interface{}) string {
+func mustMarshal(data any) string {
 	bytes, err := json.Marshal(data)
 	if err != nil {
 		panic(err)

@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 env:
-  GOLANGCI_VERSION: 'v2.11.4'
+  GOLANGCI_VERSION: 'v2.13.2'
   DOCKER_BUILDX_VERSION: 'v0.20.1'
 
 jobs:
