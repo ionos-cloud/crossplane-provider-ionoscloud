@@ -219,8 +219,13 @@ func Test_serverSetController_Observe(t *testing.T) {
 				ctx: context.Background(),
 				cr:  createBasicServerSetWithStateMap(),
 			},
-			want:    managed.ExternalObservation{},
-			wantErr: true,
+			want: managed.ExternalObservation{
+				ResourceExists:    true,
+				ResourceUpToDate:  true,
+				ConnectionDetails: managed.ConnectionDetails{},
+			},
+			wantErr:               false,
+			wantCreatingCondition: true,
 		},
 		{
 			name: "servers, nics and boot volumes created, but with server in VM-NOT-RUNNING state in state map",
