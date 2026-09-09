@@ -14,6 +14,7 @@ import (
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 	computev1alpha1 "github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/pkg/ccpatch/substitution"
 )
 
 func fakeKubeClientFuncs(functions interceptor.Funcs) client.WithWatch {
@@ -100,5 +101,35 @@ func Test_kubeBootVolumeController_Create(t *testing.T) {
 				t.Errorf("Create() got = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// Test_kubeBootVolumeController_setPatcher_withSubstitutions exercises the loop that reads a
+// pre-existing substitution value out of the global state and writes it into the substitution
+// configmap - the path used when a value was already computed on an earlier reconcile.
+func Test_kubeBootVolumeController_setPatcher_withSubstitutions(t *testing.T) {
+	cr := createBasicServerSet()
+	cr.Name = "sset-setpatcher-test"
+	cr.Spec.ForProvider.BootVolumeTemplate.Spec.Substitutions = []v1alpha1.Substitution{
+		{Type: "unregistered-test-type", Key: "MY_KEY"},
+	}
+
+	identifier := substitution.Identifier("boot-1-1")
+	state := getOrInitGlobalState(cr.Name)
+	state.Set(identifier, "MY_KEY", "10.0.0.5")
+
+	k := &kubeBootVolumeController{
+		log:           logging.NewNopLogger(),
+		mapController: newTestConfigmapController(),
+	}
+
+	_, _ = k.setPatcher(context.Background(), cr, 1, 1, "boot-1-1", "boot-1-0", fakeKubeClientObjs())
+
+	cfgMap, err := k.mapController.Get(context.Background(), "sset-setpatcher-test", "default")
+	if err != nil {
+		t.Fatalf("expected substitution configmap to have been created, got error: %v", err)
+	}
+	if got := cfgMap.Data["1.1.MY_KEY"]; got != "10.0.0.5" {
+		t.Errorf("substitution configmap has %q for key 1.1.MY_KEY, want %q", got, "10.0.0.5")
 	}
 }

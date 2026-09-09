@@ -1,8 +1,24 @@
 package clients
 
 import (
+	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/pem"
 	"fmt"
+	"io"
+	"math/big"
+	"net"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -39,11 +55,107 @@ func setDbaaSDefaults(cfg *shared.Configuration) {
 
 }
 
+// generateTestCertPEM generates a fresh, self-signed ECDSA certificate/key pair at test-run
+// time, PEM encoded, for use as either a client certificate or a CA certificate in the MTLS
+// tests below. It returns the raw (non-base64) PEM bytes plus the parsed certificate.
+func generateTestCertPEM(t *testing.T, commonName string, isCA bool) (certPEM, keyPEM []byte, cert *x509.Certificate) {
+	t.Helper()
+
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	serial, err := rand.Int(rand.Reader, big.NewInt(1<<62))
+	require.NoError(t, err)
+
+	template := &x509.Certificate{
+		SerialNumber:          serial,
+		Subject:               pkix.Name{CommonName: commonName},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+		BasicConstraintsValid: true,
+		IsCA:                  isCA,
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &priv.PublicKey, priv)
+	require.NoError(t, err)
+
+	cert, err = x509.ParseCertificate(der)
+	require.NoError(t, err)
+
+	certPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+
+	keyDER, err := x509.MarshalECPrivateKey(priv)
+	require.NoError(t, err)
+	keyPEM = pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
+
+	return certPEM, keyPEM, cert
+}
+
+// b64 base64-encodes raw bytes, matching the convention used for the `password` field.
+func b64(in []byte) string {
+	return base64.StdEncoding.EncodeToString(in)
+}
+
+// generateTestServerCertPEM generates a self-signed ECDSA server certificate/key pair for a real
+// (non-pinned) TLS handshake in tests - unlike generateTestCertPEM, it needs a ServerAuth EKU and
+// a 127.0.0.1 IP SAN to validate under normal (non-InsecureSkipVerify) verification.
+func generateTestServerCertPEM(t *testing.T) (certPEM, keyPEM []byte) {
+	t.Helper()
+
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	serial, err := rand.Int(rand.Reader, big.NewInt(1<<62))
+	require.NoError(t, err)
+
+	template := &x509.Certificate{
+		SerialNumber:          serial,
+		Subject:               pkix.Name{CommonName: "test-server"},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1")},
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &priv.PublicKey, priv)
+	require.NoError(t, err)
+
+	certPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+
+	keyDER, err := x509.MarshalECPrivateKey(priv)
+	require.NoError(t, err)
+	keyPEM = pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
+
+	return certPEM, keyPEM
+}
+
+// unwrapMTLSTransport recovers the *http.Transport carrying the TLS client cert, handling both
+// the bare case and the case where buildComputeMTLSHTTPClient wrapped it in
+// stripCloudAPIPrefixRoundTripper (only when StripCloudAPIPrefix is set).
+func unwrapMTLSTransport(t *testing.T, rt http.RoundTripper) *http.Transport {
+	t.Helper()
+	if wrapper, ok := rt.(*stripCloudAPIPrefixRoundTripper); ok {
+		rt = wrapper.next
+	}
+	tr, ok := rt.(*http.Transport)
+	require.True(t, ok, "expected an *http.Transport (optionally wrapped in stripCloudAPIPrefixRoundTripper) carrying the TLS client cert")
+	return tr
+}
+
 func TestNewIonosClient(t *testing.T) {
 
 	type args struct {
 		data []byte
 	}
+
+	clientCertPEM, clientKeyPEM, clientCert := generateTestCertPEM(t, "provider-client", false)
+	caCertPEM, _, caCert := generateTestCertPEM(t, "test-ca", true)
+	_, unrelatedKeyPEM, _ := generateTestCertPEM(t, "unrelated-key", false)
+
 	tests := []struct {
 		name              string
 		args              args
@@ -51,6 +163,10 @@ func TestNewIonosClient(t *testing.T) {
 		wantComputeConfig *ionos.Configuration
 		wantDbaasConfig   *shared.Configuration
 		wantErr           bool
+		// checkComputeHTTPClient, when set, replaces the plain assert.Equal comparison of
+		// ComputeClient's HTTPClient with targeted TLS assertions (a real tls.Config with key/pool
+		// material can't be reliably deep-equal compared).
+		checkComputeHTTPClient func(t *testing.T, hc *http.Client)
 	}{
 		{
 			name:              "nil data",
@@ -146,6 +262,200 @@ func TestNewIonosClient(t *testing.T) {
 			wantDbaasConfig:   nil,
 			wantErr:           true,
 		},
+		{
+			name: "mtls client cert and key",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s"}`,
+					b64(clientCertPEM), b64(clientKeyPEM),
+				)),
+			},
+			wantComputeConfig: func() *ionos.Configuration {
+				cfg := ionos.NewConfiguration("username", "password", "", "")
+				setComputeDefaults(cfg)
+				return cfg
+			}(),
+			wantDbaasConfig: func() *shared.Configuration {
+				cfg := shared.NewConfiguration("username", "password", "", "")
+				setDbaaSDefaults(cfg)
+				cfg.Servers = shared.ServerConfigurations{
+					{
+						URL:         "https://api.ionos.com/databases/postgresql",
+						Description: "Production",
+					},
+				}
+				return cfg
+			}(),
+			wantErr: false,
+			checkComputeHTTPClient: func(t *testing.T, hc *http.Client) {
+				require.NotNil(t, hc)
+				_, wrapped := hc.Transport.(*stripCloudAPIPrefixRoundTripper)
+				assert.False(t, wrapped, "strip_cloudapi_prefix was not set, Transport must not be wrapped")
+				tr := unwrapMTLSTransport(t, hc.Transport)
+				require.NotNil(t, tr.TLSClientConfig)
+				require.Len(t, tr.TLSClientConfig.Certificates, 1)
+				assert.Equal(t, clientCert.Raw, tr.TLSClientConfig.Certificates[0].Certificate[0])
+				assert.Nil(t, tr.TLSClientConfig.RootCAs, "no ca_cert was supplied, RootCAs must stay nil")
+			},
+		},
+		{
+			name: "mtls client cert, key and ca",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s", "ca_cert": "%s"}`,
+					b64(clientCertPEM), b64(clientKeyPEM), b64(caCertPEM),
+				)),
+			},
+			wantComputeConfig: func() *ionos.Configuration {
+				cfg := ionos.NewConfiguration("username", "password", "", "")
+				setComputeDefaults(cfg)
+				return cfg
+			}(),
+			wantDbaasConfig: func() *shared.Configuration {
+				cfg := shared.NewConfiguration("username", "password", "", "")
+				setDbaaSDefaults(cfg)
+				cfg.Servers = shared.ServerConfigurations{
+					{
+						URL:         "https://api.ionos.com/databases/postgresql",
+						Description: "Production",
+					},
+				}
+				return cfg
+			}(),
+			wantErr: false,
+			checkComputeHTTPClient: func(t *testing.T, hc *http.Client) {
+				require.NotNil(t, hc)
+				tr := unwrapMTLSTransport(t, hc.Transport)
+				require.NotNil(t, tr.TLSClientConfig)
+				require.Len(t, tr.TLSClientConfig.Certificates, 1)
+				assert.Equal(t, clientCert.Raw, tr.TLSClientConfig.Certificates[0].Certificate[0])
+				require.NotNil(t, tr.TLSClientConfig.RootCAs, "ca_cert was supplied, RootCAs must be set")
+
+				wantPool, err := x509.SystemCertPool()
+				if err != nil || wantPool == nil {
+					wantPool = x509.NewCertPool()
+				}
+				wantPool.AddCert(caCert)
+				assert.True(t, tr.TLSClientConfig.RootCAs.Equal(wantPool), "RootCAs must be the system pool plus the supplied CA")
+			},
+		},
+		{
+			name: "mtls client cert without key",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s"}`,
+					b64(clientCertPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "mtls client key without cert",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_key": "%s"}`,
+					b64(clientKeyPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "mtls ca cert without client cert/key",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "ca_cert": "%s"}`,
+					b64(caCertPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "strip_cloudapi_prefix without client cert/key",
+			args: args{
+				data: []byte(`{"user": "username","password": "cGFzc3dvcmQ=", "strip_cloudapi_prefix": true}`),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "mtls mismatched client cert and key",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s"}`,
+					b64(clientCertPEM), b64(unrelatedKeyPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "mtls malformed base64 client cert",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "not-valid-base64!", "client_key": "%s"}`,
+					b64(clientKeyPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "mtls malformed base64 client key",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "not-valid-base64!"}`,
+					b64(clientCertPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "mtls invalid PEM client cert",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s"}`,
+					b64([]byte("not a real certificate")), b64(clientKeyPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "mtls malformed base64 ca cert",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s", "ca_cert": "not-valid-base64!"}`,
+					b64(clientCertPEM), b64(clientKeyPEM),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
+		{
+			name: "mtls invalid PEM ca cert",
+			args: args{
+				data: []byte(fmt.Sprintf(
+					`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s", "ca_cert": "%s"}`,
+					b64(clientCertPEM), b64(clientKeyPEM), b64([]byte("not a real ca certificate")),
+				)),
+			},
+			wantComputeConfig: nil,
+			wantDbaasConfig:   nil,
+			wantErr:           true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -174,6 +484,13 @@ func TestNewIonosClient(t *testing.T) {
 				ccfg.Logger = nil
 				tt.wantComputeConfig.Logger = nil
 
+				if tt.checkComputeHTTPClient != nil {
+					tt.checkComputeHTTPClient(t, ccfg.HTTPClient)
+					// TLS bits were just checked above; swap in the baseline HTTPClient so the
+					// rest of the Configuration struct can still be compared with assert.Equal.
+					ccfg.HTTPClient = tt.wantComputeConfig.HTTPClient
+				}
+
 				assert.Equal(t, tt.wantComputeConfig, ccfg)
 				assert.Equal(t, tt.wantDbaasConfig, dcfg)
 			} else {
@@ -181,6 +498,422 @@ func TestNewIonosClient(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestNewIonosClient_MTLSWithCertPinning verifies a client cert and IONOS_PINNED_CERT configured
+// together both take effect: the client cert is still presented and the pinned fingerprint is
+// still enforced (see reapplyMTLSAfterPinning).
+func TestNewIonosClient_MTLSWithCertPinning(t *testing.T) {
+	clientCertPEM, clientKeyPEM, _ := generateTestCertPEM(t, "provider-client", false)
+	serverCertPEM, serverKeyPEM, _ := generateTestCertPEM(t, "test-server", false)
+	otherCertPEM, _, _ := generateTestCertPEM(t, "other-server", false)
+
+	serverKeyPair, err := tls.X509KeyPair(serverCertPEM, serverKeyPEM)
+	require.NoError(t, err)
+
+	fingerprintOf := func(certPEM []byte) string {
+		block, _ := pem.Decode(certPEM)
+		require.NotNil(t, block)
+		sum := sha256.Sum256(block.Bytes)
+		return hex.EncodeToString(sum[:])
+	}
+
+	var sawClientCert bool
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sawClientCert = r.TLS != nil && len(r.TLS.PeerCertificates) > 0
+		w.WriteHeader(http.StatusOK)
+	}))
+	srv.TLS = &tls.Config{
+		Certificates: []tls.Certificate{serverKeyPair},
+		ClientAuth:   tls.RequireAnyClientCert,
+	}
+	srv.StartTLS()
+	defer srv.Close()
+
+	creds := []byte(fmt.Sprintf(
+		`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s"}`,
+		b64(clientCertPEM), b64(clientKeyPEM),
+	))
+
+	t.Run("matching pinned fingerprint: client cert still presented", func(t *testing.T) {
+		sawClientCert = false
+		require.NoError(t, os.Setenv(ionos.IonosPinnedCertEnvVar, fingerprintOf(serverCertPEM)))
+		loadEnv()
+		defer func() {
+			require.NoError(t, os.Unsetenv(ionos.IonosPinnedCertEnvVar))
+			loadEnv()
+		}()
+
+		svc, err := NewIonosClients(creds)
+		require.NoError(t, err)
+		hc := svc.ComputeClient.GetConfig().HTTPClient
+		require.NotNil(t, hc)
+
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL, nil)
+		require.NoError(t, err)
+		resp, err := hc.Do(req)
+		require.NoError(t, err, "handshake must succeed: fingerprint matches and client cert is presented")
+		defer resp.Body.Close()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.True(t, sawClientCert, "server must have received the client certificate")
+	})
+
+	t.Run("mismatched pinned fingerprint: connection rejected", func(t *testing.T) {
+		require.NoError(t, os.Setenv(ionos.IonosPinnedCertEnvVar, fingerprintOf(otherCertPEM)))
+		loadEnv()
+		defer func() {
+			require.NoError(t, os.Unsetenv(ionos.IonosPinnedCertEnvVar))
+			loadEnv()
+		}()
+
+		svc, err := NewIonosClients(creds)
+		require.NoError(t, err)
+		hc := svc.ComputeClient.GetConfig().HTTPClient
+		require.NotNil(t, hc)
+
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL, nil)
+		require.NoError(t, err)
+		resp, err := hc.Do(req)
+		if resp != nil {
+			defer resp.Body.Close()
+		}
+		assert.Error(t, err, "handshake must fail when the pinned fingerprint does not match the server certificate")
+	})
+
+	// The two subtests below are the regression coverage for the proxy-bypass fix: net/http.Transport
+	// only consults DialTLSContext for the initial network connection, not for the second TLS
+	// handshake it performs itself after an HTTP CONNECT tunnel - so pinning done via a custom
+	// DialTLSContext (the previous implementation) silently stopped applying the moment a proxy was
+	// in play, falling back to ordinary chain trust. Routing through newCONNECTProxy and repeating
+	// both the matching and mismatched cases proves pinning now holds either way.
+	proxy := newCONNECTProxy(t)
+
+	t.Run("matching pinned fingerprint via HTTP CONNECT proxy: still enforced", func(t *testing.T) {
+		sawClientCert = false
+		require.NoError(t, os.Setenv(ionos.IonosPinnedCertEnvVar, fingerprintOf(serverCertPEM)))
+		loadEnv()
+		defer func() {
+			require.NoError(t, os.Unsetenv(ionos.IonosPinnedCertEnvVar))
+			loadEnv()
+		}()
+
+		svc, err := NewIonosClients(creds)
+		require.NoError(t, err)
+		hc := svc.ComputeClient.GetConfig().HTTPClient
+		require.NotNil(t, hc)
+		setHTTPProxy(t, hc, proxy.URL)
+
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL, nil)
+		require.NoError(t, err)
+		resp, err := hc.Do(req)
+		require.NoError(t, err, "handshake through the proxy must succeed: fingerprint matches")
+		defer resp.Body.Close()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.True(t, sawClientCert, "server must have received the client certificate through the proxy")
+	})
+
+	t.Run("mismatched pinned fingerprint via HTTP CONNECT proxy: still rejected", func(t *testing.T) {
+		require.NoError(t, os.Setenv(ionos.IonosPinnedCertEnvVar, fingerprintOf(otherCertPEM)))
+		loadEnv()
+		defer func() {
+			require.NoError(t, os.Unsetenv(ionos.IonosPinnedCertEnvVar))
+			loadEnv()
+		}()
+
+		svc, err := NewIonosClients(creds)
+		require.NoError(t, err)
+		hc := svc.ComputeClient.GetConfig().HTTPClient
+		require.NotNil(t, hc)
+		setHTTPProxy(t, hc, proxy.URL)
+
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL, nil)
+		require.NoError(t, err)
+		resp, err := hc.Do(req)
+		if resp != nil {
+			defer resp.Body.Close()
+		}
+		assert.Error(t, err, "handshake through the proxy must fail when the pinned fingerprint does not match - "+
+			"pre-fix, this silently succeeded via ordinary chain trust instead of the pinned check")
+	})
+}
+
+// newCONNECTProxy starts a minimal HTTP CONNECT proxy that tunnels raw bytes to whatever target
+// the client requests, for testing that TLS verification still applies to requests routed through
+// a proxy (see the comment on the two proxy subtests above).
+func newCONNECTProxy(t *testing.T) *httptest.Server {
+	t.Helper()
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodConnect {
+			http.Error(w, "only CONNECT supported", http.StatusMethodNotAllowed)
+			return
+		}
+		targetConn, err := (&net.Dialer{}).DialContext(r.Context(), "tcp", r.Host)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		defer targetConn.Close()
+
+		// require/assert aren't safe to call from a handler goroutine (testify flags this via
+		// go-require): a failed require.FailNow here would call runtime.Goexit on this goroutine,
+		// not the test's - so these errors are just reported via t.Errorf and the handler bails
+		// out instead.
+		hijacker, ok := w.(http.Hijacker)
+		if !ok {
+			t.Errorf("newCONNECTProxy: ResponseWriter does not support hijacking")
+			return
+		}
+		clientConn, _, err := hijacker.Hijack()
+		if err != nil {
+			t.Errorf("newCONNECTProxy: hijack failed: %v", err)
+			return
+		}
+		defer clientConn.Close()
+
+		if _, err := clientConn.Write([]byte("HTTP/1.1 200 Connection Established\r\n\r\n")); err != nil {
+			t.Errorf("newCONNECTProxy: writing CONNECT response failed: %v", err)
+			return
+		}
+
+		done := make(chan struct{}, 2)
+		go func() { _, _ = io.Copy(targetConn, clientConn); done <- struct{}{} }()
+		go func() { _, _ = io.Copy(clientConn, targetConn); done <- struct{}{} }()
+		<-done
+	}))
+	t.Cleanup(proxy.Close)
+	return proxy
+}
+
+// setHTTPProxy points hc's underlying *http.Transport at proxyURL for every request, regardless of
+// scheme - unlike http.ProxyURL wired through http.Transport.Proxy (which only some construction
+// paths honor), this reaches into the concrete Transport reapplyMTLSAfterPinning/
+// buildComputeMTLSHTTPClient built, mirroring how HTTPS_PROXY would apply in production via
+// http.ProxyFromEnvironment on the cloned http.DefaultTransport.
+func setHTTPProxy(t *testing.T, hc *http.Client, proxyURL string) {
+	t.Helper()
+	u, err := url.Parse(proxyURL)
+	require.NoError(t, err)
+
+	transport, ok := hc.Transport.(*http.Transport)
+	require.True(t, ok, "expected *http.Transport, got %T", hc.Transport)
+	transport.Proxy = http.ProxyURL(u)
+}
+
+func Test_reapplyMTLSAfterPinning(t *testing.T) {
+	require.NoError(t, os.Setenv(ionos.IonosPinnedCertEnvVar, "deadbeef"))
+	loadEnv()
+	defer func() {
+		require.NoError(t, os.Unsetenv(ionos.IonosPinnedCertEnvVar))
+		loadEnv()
+	}()
+
+	t.Run("nil HTTPClient: one is created", func(t *testing.T) {
+		cfg := &ionos.Configuration{}
+		reapplyMTLSAfterPinning(cfg, &tls.Config{}, false)
+		require.NotNil(t, cfg.HTTPClient)
+		_, wrapped := cfg.HTTPClient.Transport.(*stripCloudAPIPrefixRoundTripper)
+		assert.False(t, wrapped)
+	})
+
+	t.Run("stripCloudAPIPrefix true: Transport is wrapped", func(t *testing.T) {
+		cfg := &ionos.Configuration{HTTPClient: &http.Client{}}
+		reapplyMTLSAfterPinning(cfg, &tls.Config{}, true)
+		_, wrapped := cfg.HTTPClient.Transport.(*stripCloudAPIPrefixRoundTripper)
+		assert.True(t, wrapped)
+	})
+}
+
+// Test_pinnedCertTLSConfig covers pinnedCertTLSConfig's VerifyPeerCertificate callback directly -
+// the unit-level counterpart to TestNewIonosClient_MTLSWithCertPinning's end-to-end (including
+// proxied) coverage above.
+func Test_pinnedCertTLSConfig(t *testing.T) {
+	_, _, matchingCert := generateTestCertPEM(t, "test-server", false)
+	_, _, otherCert := generateTestCertPEM(t, "other-server", false)
+	fingerprintOf := func(cert *x509.Certificate) string {
+		sum := sha256.Sum256(cert.Raw)
+		return hex.EncodeToString(sum[:])
+	}
+
+	t.Run("preserves InsecureSkipVerify and any client cert/RootCAs on base", func(t *testing.T) {
+		clientCert, _, _ := generateTestCertPEM(t, "client", false)
+		base := &tls.Config{Certificates: []tls.Certificate{{Certificate: [][]byte{clientCert}}}}
+
+		got := pinnedCertTLSConfig(fingerprintOf(matchingCert), base)
+
+		assert.True(t, got.InsecureSkipVerify)
+		assert.Equal(t, base.Certificates, got.Certificates)
+		assert.NotNil(t, got.VerifyConnection, "must use VerifyConnection, not VerifyPeerCertificate - "+
+			"VerifyPeerCertificate alone is not guaranteed to run on resumed TLS sessions (gosec G123), "+
+			"letting a resumption bypass the pin; VerifyConnection runs for resumptions too")
+	})
+
+	t.Run("matching fingerprint: accepted", func(t *testing.T) {
+		cfg := pinnedCertTLSConfig(fingerprintOf(matchingCert), &tls.Config{})
+		assert.NoError(t, cfg.VerifyConnection(tls.ConnectionState{PeerCertificates: []*x509.Certificate{matchingCert}}))
+	})
+
+	t.Run("mismatched fingerprint: rejected", func(t *testing.T) {
+		cfg := pinnedCertTLSConfig(fingerprintOf(otherCert), &tls.Config{})
+		assert.Error(t, cfg.VerifyConnection(tls.ConnectionState{PeerCertificates: []*x509.Certificate{matchingCert}}))
+	})
+
+	t.Run("fingerprint with ':' separators, matching sdk-go's own format: accepted", func(t *testing.T) {
+		raw := fingerprintOf(matchingCert)
+		var colonSeparated string
+		for i := 0; i < len(raw); i += 2 {
+			if i > 0 {
+				colonSeparated += ":"
+			}
+			colonSeparated += raw[i : i+2]
+		}
+		cfg := pinnedCertTLSConfig(colonSeparated, &tls.Config{})
+		assert.NoError(t, cfg.VerifyConnection(tls.ConnectionState{PeerCertificates: []*x509.Certificate{matchingCert}}))
+	})
+}
+
+func TestStripCloudAPIPrefixRoundTripper(t *testing.T) {
+	cases := []struct {
+		name         string
+		requestPath  string
+		expectedPath string
+	}{
+		{"strips /cloudapi/v6 prefix", "/cloudapi/v6/datacenters", "/v6/datacenters"},
+		{"strips bare /cloudapi", "/cloudapi", ""},
+		{"leaves unrelated path alone", "/v6/datacenters", "/v6/datacenters"},
+		{"does not strip a merely-prefixed segment", "/cloudapifoo/v6", "/cloudapifoo/v6"},
+		{"root path untouched", "/", "/"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var gotPath string
+			next := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+				gotPath = req.URL.Path
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
+			})
+			rt := &stripCloudAPIPrefixRoundTripper{next: next}
+
+			req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://example.invalid"+tc.requestPath, nil)
+			require.NoError(t, err)
+			resp, err := rt.RoundTrip(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			assert.Equal(t, tc.expectedPath, gotPath)
+			assert.Equal(t, tc.requestPath, req.URL.Path, "original request must not be mutated in place")
+		})
+	}
+}
+
+// TestStripCloudAPIPrefixRoundTripper_RawPath covers a path containing a percent-encoded
+// character, where url.URL populates RawPath separately from the decoded Path.
+func TestStripCloudAPIPrefixRoundTripper_RawPath(t *testing.T) {
+	var gotPath, gotRawPath string
+	next := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		gotPath = req.URL.Path
+		gotRawPath = req.URL.RawPath
+		return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
+	})
+	rt := &stripCloudAPIPrefixRoundTripper{next: next}
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://example.invalid/cloudapi/v6/foo%2Fbar", nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, req.URL.RawPath, "test setup: path must need percent-encoding to exercise RawPath stripping")
+
+	resp, err := rt.RoundTrip(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, "/v6/foo/bar", gotPath)
+	assert.Equal(t, "/v6/foo%2Fbar", gotRawPath)
+}
+
+// roundTripFunc lets a plain function satisfy http.RoundTripper, for tests that only care about
+// observing/stubbing the final request rather than exercising a real network transport.
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
+
+func TestNewIonosClient_MTLSStripsCloudAPIPrefix(t *testing.T) {
+	clientCertPEM, clientKeyPEM, _ := generateTestCertPEM(t, "provider-client", false)
+	// This test doesn't use cert pinning, so (unlike the other mTLS tests here) the server cert
+	// is actually verified - it needs a 127.0.0.1 IP SAN matching httptest's address.
+	serverCertPEM, serverKeyPEM := generateTestServerCertPEM(t)
+
+	serverKeyPair, err := tls.X509KeyPair(serverCertPEM, serverKeyPEM)
+	require.NoError(t, err)
+
+	var gotPath string
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.WriteHeader(http.StatusOK)
+	}))
+	srv.TLS = &tls.Config{
+		Certificates: []tls.Certificate{serverKeyPair},
+		ClientAuth:   tls.RequireAnyClientCert,
+	}
+	srv.StartTLS()
+	defer srv.Close()
+
+	creds := []byte(fmt.Sprintf(
+		`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s", "ca_cert": "%s", "strip_cloudapi_prefix": true}`,
+		b64(clientCertPEM), b64(clientKeyPEM), b64(serverCertPEM),
+	))
+
+	svc, err := NewIonosClients(creds)
+	require.NoError(t, err)
+	hc := svc.ComputeClient.GetConfig().HTTPClient
+	require.NotNil(t, hc)
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL+"/cloudapi/v6/datacenters", nil)
+	require.NoError(t, err)
+	resp, err := hc.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "/v6/datacenters", gotPath, "the /cloudapi prefix must be stripped before the request reaches the internal mTLS endpoint")
+}
+
+// TestNewIonosClient_MTLSDoesNotStripCloudAPIPrefixByDefault verifies that stripping is strictly
+// opt-in via strip_cloudapi_prefix: a generic mTLS-enforcing endpoint that retains the standard
+// /cloudapi/v6 layout (e.g. the default api.ionos.com surface itself) must not have its paths
+// rewritten just because a client certificate is configured.
+func TestNewIonosClient_MTLSDoesNotStripCloudAPIPrefixByDefault(t *testing.T) {
+	clientCertPEM, clientKeyPEM, _ := generateTestCertPEM(t, "provider-client", false)
+	serverCertPEM, serverKeyPEM := generateTestServerCertPEM(t)
+
+	serverKeyPair, err := tls.X509KeyPair(serverCertPEM, serverKeyPEM)
+	require.NoError(t, err)
+
+	var gotPath string
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.WriteHeader(http.StatusOK)
+	}))
+	srv.TLS = &tls.Config{
+		Certificates: []tls.Certificate{serverKeyPair},
+		ClientAuth:   tls.RequireAnyClientCert,
+	}
+	srv.StartTLS()
+	defer srv.Close()
+
+	creds := []byte(fmt.Sprintf(
+		`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s", "ca_cert": "%s"}`,
+		b64(clientCertPEM), b64(clientKeyPEM), b64(serverCertPEM),
+	))
+
+	svc, err := NewIonosClients(creds)
+	require.NoError(t, err)
+	hc := svc.ComputeClient.GetConfig().HTTPClient
+	require.NotNil(t, hc)
+	_, wrapped := hc.Transport.(*stripCloudAPIPrefixRoundTripper)
+	assert.False(t, wrapped, "strip_cloudapi_prefix was not set, Transport must not be wrapped")
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL+"/cloudapi/v6/datacenters", nil)
+	require.NoError(t, err)
+	resp, err := hc.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "/cloudapi/v6/datacenters", gotPath, "without strip_cloudapi_prefix, the path must reach the endpoint unmodified")
 }
 
 func TestGetCoreResourceState(t *testing.T) {
