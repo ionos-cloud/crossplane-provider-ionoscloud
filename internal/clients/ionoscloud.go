@@ -267,9 +267,11 @@ func pinnedCertTLSConfig(fingerprint string, base *tls.Config) *tls.Config {
 }
 
 // verifyPinnedCertFingerprint mirrors sdk-go/v6's unexported verifyPinnedCert: it accepts the
-// connection if any non-CA peer certificate's SHA-256 fingerprint matches.
+// connection if the non-CA leaf certificate's SHA-256 fingerprint matches. Only the leaf is
+// checked, not the whole chain.
 func verifyPinnedCertFingerprint(fingerprint []byte, peerCerts []*x509.Certificate) error {
-	for _, cert := range peerCerts {
+	if len(peerCerts) > 0 {
+		cert := peerCerts[0]
 		sum := sha256.Sum256(cert.Raw)
 		hexSum := make([]byte, hex.EncodedLen(len(sum)))
 		hex.Encode(hexSum, sum[:])
