@@ -168,20 +168,26 @@ func buildComputeMTLSHTTPClient(creds credentials) (*http.Client, *tls.Config, e
 		tlsConfig.RootCAs = rootCAs
 	}
 
-	// Clone http.DefaultTransport instead of a zero-valued one, to keep its defaults
-	// (ProxyFromEnvironment, timeouts, HTTP/2) - a bare &http.Transport{} would silently drop
-	// all of those, e.g. breaking proxy support.
+	return &http.Client{
+		Transport: newComputeRoundTripper(tlsConfig, creds.StripCloudAPIPrefix),
+	}, tlsConfig, nil
+}
+
+// newComputeRoundTripper builds the RoundTripper both mTLS construction paths need: a clone of
+// http.DefaultTransport using tlsConfig, optionally wrapped in the /cloudapi prefix stripper.
+// Cloning (rather than starting from a zero-valued &http.Transport{}) keeps the defaults -
+// ProxyFromEnvironment, timeouts, HTTP/2 - that a bare Transport would silently drop, e.g.
+// breaking proxy support. Shared by buildComputeMTLSHTTPClient and reapplyMTLSAfterPinning so the
+// two cannot drift: the original "pinning drops the client certificate" bug was exactly that kind
+// of divergence between two copies of this logic.
+func newComputeRoundTripper(tlsConfig *tls.Config, stripCloudAPIPrefix bool) http.RoundTripper {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = tlsConfig
 
-	var rt http.RoundTripper = transport
-	if creds.StripCloudAPIPrefix {
-		rt = &stripCloudAPIPrefixRoundTripper{next: transport}
+	if stripCloudAPIPrefix {
+		return &stripCloudAPIPrefixRoundTripper{next: transport}
 	}
-
-	return &http.Client{
-		Transport: rt,
-	}, tlsConfig, nil
+	return transport
 }
 
 // cloudAPIPathPrefix is the path segment sdk-go/v6 always appends to a configured host_url (see
@@ -224,16 +230,8 @@ func reapplyMTLSAfterPinning(cfg *sdkgo.Configuration, mtlsTLSConfig *tls.Config
 	if cfg.HTTPClient == nil {
 		cfg.HTTPClient = &http.Client{}
 	}
-	// Same reasoning as buildComputeMTLSHTTPClient: clone http.DefaultTransport instead of
-	// starting from a zero-valued *http.Transport, to keep its non-TLS defaults intact.
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.TLSClientConfig = pinnedCertTLSConfig(pkFingerprint, mtlsTLSConfig)
-
-	var rt http.RoundTripper = transport
-	if stripCloudAPIPrefix {
-		rt = &stripCloudAPIPrefixRoundTripper{next: transport}
-	}
-	cfg.HTTPClient.Transport = rt
+	cfg.HTTPClient.Transport = newComputeRoundTripper(
+		pinnedCertTLSConfig(pkFingerprint, mtlsTLSConfig), stripCloudAPIPrefix)
 }
 
 // pinnedCertTLSConfig returns a clone of base with normal certificate-chain verification replaced
