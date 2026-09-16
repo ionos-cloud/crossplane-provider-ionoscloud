@@ -2,6 +2,7 @@ package serverset
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -10,8 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/compute/v1alpha1"
 )
@@ -135,6 +138,28 @@ func Test_kubeConfigmapController_CreateOrUpdate(t *testing.T) {
 		got, err := k.Get(context.Background(), testSubstServerSetName, stateMapNamespace)
 		require.NoError(t, err)
 		assert.Equal(t, "new", got.Data["0.0.key"])
+	})
+
+	// Regression coverage: before, only nil and IsNotFound were handled, so an RBAC denial,
+	// apiserver 5xx or timeout fell through both branches to a bare "return nil" - the ConfigMap
+	// was never created or updated, nothing was logged, and the reconciler recorded success and
+	// never retried.
+	t.Run("get fails with a non-NotFound error: returns the error", func(t *testing.T) {
+		k := &kubeConfigmapController{
+			kube: fakeKubeClientFuncs(interceptor.Funcs{
+				Get: func(_ context.Context, _ client.WithWatch, _ client.ObjectKey, _ client.Object, _ ...client.GetOption) error {
+					return apiErrors.NewInternalError(errors.New("apiserver unavailable"))
+				},
+			}),
+			log: logging.NewNopLogger(),
+		}
+		k.SetSubstitutionConfigMap(testSubstServerSetName, stateMapNamespace)
+		k.SetIdentity(testSubstServerSetName, "0.0.key", "value")
+
+		err := k.CreateOrUpdate(context.Background(), cr)
+
+		require.Error(t, err, "a Get failure that is not NotFound must not be reported as success")
+		assert.True(t, apiErrors.IsInternalError(err), "the cause must stay inspectable through the %w wrap")
 	})
 
 	t.Run("configmap exists with same data: no-op", func(t *testing.T) {

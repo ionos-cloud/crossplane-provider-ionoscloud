@@ -2,6 +2,7 @@ package serverset
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"strconv"
 	"sync"
@@ -106,6 +107,10 @@ func (k *kubeConfigmapController) CreateOrUpdate(ctx context.Context, cr *v1alph
 			k.log.Info("Creating ConfigMap", "name", name, "namespace", namespace, "identities", identities)
 			return k.kube.Create(ctx, cfgMap)
 		}
+		// Anything other than NotFound (RBAC denial, apiserver 5xx, timeout) must surface as an
+		// error: falling through would skip both the create and the update, and report success to
+		// the caller although no identity was persisted.
+		return fmt.Errorf("failed to get ConfigMap %s/%s: %w", namespace, name, err)
 	} else {
 		if len(identities) > 0 && !maps.Equal(identities, cfgMap.Data) {
 			maps.Copy(cfgMap.Data, identities)
