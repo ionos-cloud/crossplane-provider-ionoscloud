@@ -3,6 +3,8 @@ package clients
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
@@ -13,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -173,13 +176,8 @@ func buildComputeMTLSHTTPClient(creds credentials) (*http.Client, *tls.Config, e
 	}, tlsConfig, nil
 }
 
-// newComputeRoundTripper builds the RoundTripper both mTLS construction paths need: a clone of
-// http.DefaultTransport using tlsConfig, optionally wrapped in the /cloudapi prefix stripper.
-// Cloning (rather than starting from a zero-valued &http.Transport{}) keeps the defaults -
-// ProxyFromEnvironment, timeouts, HTTP/2 - that a bare Transport would silently drop, e.g.
-// breaking proxy support. Shared by buildComputeMTLSHTTPClient and reapplyMTLSAfterPinning so the
-// two cannot drift: the original "pinning drops the client certificate" bug was exactly that kind
-// of divergence between two copies of this logic.
+// newComputeRoundTripper clones http.DefaultTransport (a bare one drops the proxy/timeout/HTTP2
+// defaults), applies tlsConfig, and optionally wraps it in the /cloudapi prefix.
 func newComputeRoundTripper(tlsConfig *tls.Config, stripCloudAPIPrefix bool) http.RoundTripper {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = tlsConfig
@@ -280,9 +278,52 @@ func verifyPinnedCertFingerprint(fingerprint []byte, peerCerts []*x509.Certifica
 	return fmt.Errorf("remote server presented a certificate which does not match the provided fingerprint")
 }
 
+// ionosClientCache keeps connection pools alive across reconciles.
+var ionosClientCache sync.Map
+
+// cacheKeySalt keys the HMAC below. Generated once per process.
+var cacheKeySalt = func() []byte {
+	salt := make([]byte, sha256.Size)
+	if _, err := rand.Read(salt); err != nil {
+		panic(fmt.Sprintf("cannot seed the client cache key: %v", err))
+	}
+	return salt
+}()
+
+// ionosClientCacheKey derives a key from the inputs that distinguish one set of clients from
+// another, NUL-separated so the fields cannot run together.
+func ionosClientCacheKey(data []byte) [sha256.Size]byte {
+	h := hmac.New(sha256.New, cacheKeySalt)
+	h.Write(data)
+	h.Write([]byte{0})
+	h.Write([]byte(os.Getenv(sdkgo.IonosPinnedCertEnvVar)))
+	h.Write([]byte{0})
+	h.Write([]byte(ionosAPIEndpoint))
+	return [sha256.Size]byte(h.Sum(nil))
+}
+
 // NewIonosClients creates a IonosService from the given data. The data must be a json struct with the fields `User`,
 // `Password`, `Token`. Both fields must be a string value. The password string must be base64 encoded.
+//
+// Identical credentials return the same *IonosServices, so callers must treat it as read-only.
 func NewIonosClients(data []byte) (*IonosServices, error) {
+	key := ionosClientCacheKey(data)
+	if svc, ok := ionosClientCache.Load(key); ok {
+		return svc.(*IonosServices), nil
+	}
+
+	svc, err := newIonosClients(data)
+	if err != nil {
+		// Not cached: credentials may be mid-rotation.
+		return nil, err
+	}
+
+	// A startup burst misses the same key concurrently; LoadOrStore makes them share one client.
+	actual, _ := ionosClientCache.LoadOrStore(key, svc)
+	return actual.(*IonosServices), nil
+}
+
+func newIonosClients(data []byte) (*IonosServices, error) {
 	creds := credentials{}
 	if err := json.Unmarshal(data, &creds); err != nil {
 		return nil, fmt.Errorf("failed to decode credentials: %w", err)

@@ -470,6 +470,7 @@ func TestNewIonosClient(t *testing.T) {
 				loadEnv()
 			}()
 
+			freshIonosClientCache(t)
 			got, err := NewIonosClients(tt.args.data)
 			if tt.wantErr {
 				assert.NotNil(t, err)
@@ -544,6 +545,7 @@ func TestNewIonosClient_MTLSWithCertPinning(t *testing.T) {
 			loadEnv()
 		}()
 
+		freshIonosClientCache(t)
 		svc, err := NewIonosClients(creds)
 		require.NoError(t, err)
 		hc := svc.ComputeClient.GetConfig().HTTPClient
@@ -566,6 +568,7 @@ func TestNewIonosClient_MTLSWithCertPinning(t *testing.T) {
 			loadEnv()
 		}()
 
+		freshIonosClientCache(t)
 		svc, err := NewIonosClients(creds)
 		require.NoError(t, err)
 		hc := svc.ComputeClient.GetConfig().HTTPClient
@@ -597,6 +600,7 @@ func TestNewIonosClient_MTLSWithCertPinning(t *testing.T) {
 			loadEnv()
 		}()
 
+		freshIonosClientCache(t)
 		svc, err := NewIonosClients(creds)
 		require.NoError(t, err)
 		hc := svc.ComputeClient.GetConfig().HTTPClient
@@ -620,6 +624,7 @@ func TestNewIonosClient_MTLSWithCertPinning(t *testing.T) {
 			loadEnv()
 		}()
 
+		freshIonosClientCache(t)
 		svc, err := NewIonosClients(creds)
 		require.NoError(t, err)
 		hc := svc.ComputeClient.GetConfig().HTTPClient
@@ -682,6 +687,13 @@ func newCONNECTProxy(t *testing.T) *httptest.Server {
 	}))
 	t.Cleanup(proxy.Close)
 	return proxy
+}
+
+// freshIonosClientCache isolates a test: subtests sharing credentials share one Transport.
+func freshIonosClientCache(t *testing.T) {
+	t.Helper()
+	ionosClientCache.Clear()
+	t.Cleanup(ionosClientCache.Clear)
 }
 
 // setHTTPProxy points hc's underlying *http.Transport at proxyURL for every request, regardless of
@@ -858,6 +870,7 @@ func TestNewIonosClient_MTLSStripsCloudAPIPrefix(t *testing.T) {
 		b64(clientCertPEM), b64(clientKeyPEM), b64(serverCertPEM),
 	))
 
+	freshIonosClientCache(t)
 	svc, err := NewIonosClients(creds)
 	require.NoError(t, err)
 	hc := svc.ComputeClient.GetConfig().HTTPClient
@@ -900,6 +913,7 @@ func TestNewIonosClient_MTLSDoesNotStripCloudAPIPrefixByDefault(t *testing.T) {
 		b64(clientCertPEM), b64(clientKeyPEM), b64(serverCertPEM),
 	))
 
+	freshIonosClientCache(t)
 	svc, err := NewIonosClients(creds)
 	require.NoError(t, err)
 	hc := svc.ComputeClient.GetConfig().HTTPClient
@@ -1075,4 +1089,75 @@ func TestUpdateCondition(t *testing.T) {
 
 		})
 	}
+}
+
+// Test_ionosClientCache covers the memoization: identical credentials reuse one instance so its
+// connection pool survives; anything else must not share a client.
+func Test_ionosClientCache(t *testing.T) {
+	credsA := []byte(`{"user":"a","password":"cGFzc3dvcmQ=","token":"ta"}`)
+	credsB := []byte(`{"user":"b","password":"cGFzc3dvcmQ=","token":"tb"}`)
+
+	t.Run("identical credentials: cached instance reused", func(t *testing.T) {
+		freshIonosClientCache(t)
+
+		first, err := NewIonosClients(credsA)
+		require.NoError(t, err)
+		second, err := NewIonosClients(credsA)
+		require.NoError(t, err)
+
+		assert.Same(t, first, second, "identical credentials must reuse the cached clients and their connection pools")
+	})
+
+	t.Run("different credentials: separate instances", func(t *testing.T) {
+		freshIonosClientCache(t)
+
+		a, err := NewIonosClients(credsA)
+		require.NoError(t, err)
+		b, err := NewIonosClients(credsB)
+		require.NoError(t, err)
+
+		assert.NotSame(t, a, b, "different credentials must never share a client")
+	})
+
+	t.Run("rotated credentials: new instance", func(t *testing.T) {
+		freshIonosClientCache(t)
+
+		before, err := NewIonosClients(credsA)
+		require.NoError(t, err)
+		after, err := NewIonosClients([]byte(`{"user":"a","password":"cm90YXRlZA==","token":"ta"}`))
+		require.NoError(t, err)
+
+		assert.NotSame(t, before, after, "a credential rotation must not keep serving the stale client")
+	})
+
+	t.Run("same credentials, different IONOS_PINNED_CERT: separate instances", func(t *testing.T) {
+		freshIonosClientCache(t)
+		t.Cleanup(func() {
+			require.NoError(t, os.Unsetenv(ionos.IonosPinnedCertEnvVar))
+			loadEnv()
+		})
+
+		require.NoError(t, os.Setenv(ionos.IonosPinnedCertEnvVar, "aa"))
+		loadEnv()
+		first, err := NewIonosClients(credsA)
+		require.NoError(t, err)
+
+		require.NoError(t, os.Setenv(ionos.IonosPinnedCertEnvVar, "bb"))
+		loadEnv()
+		second, err := NewIonosClients(credsA)
+		require.NoError(t, err)
+
+		assert.NotSame(t, first, second, "the pinned certificate must be part of the cache key")
+	})
+
+	t.Run("failed build is not cached", func(t *testing.T) {
+		freshIonosClientCache(t)
+
+		bad := []byte(`{"user":"u","password":"not-base64!!"}`)
+		_, err := NewIonosClients(bad)
+		require.Error(t, err)
+
+		_, cached := ionosClientCache.Load(ionosClientCacheKey(bad))
+		assert.False(t, cached, "a failure must not be cached: credentials may be mid-rotation")
+	})
 }
