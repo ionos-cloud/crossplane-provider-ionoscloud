@@ -124,6 +124,14 @@ OR
 **Note:** You can overwrite the default IONOS Cloud API endpoint, by setting ``host_url`` to: ``--from-literal=credentials="{\"host_url\":\"${IONOS_API_URL}\"}"``.
 {% endhint %}
 
+{% hint style="info" %}
+**Note:** If the compute/cloud API endpoint enforces mutual TLS (mTLS), you can optionally have
+the provider present a client certificate by adding ``client_cert``/``client_key`` (and
+optionally ``ca_cert``) to the credentials JSON, all base64 encoded like ``password``. See
+[<mark style="color:blue;">Crossplane Provider IONOS Cloud</mark>](../docs/README.md#using-mtls-for-the-computecloud-api-endpoint)
+for the full field reference and an example.
+{% endhint %}
+
 ### Install Crossplane Provider for IONOS Cloud
 
 To install Crossplane Provider for IONOS Cloud, run the following command:
