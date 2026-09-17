@@ -254,7 +254,7 @@ func pinnedCertTLSConfig(fingerprint string, base *tls.Config) *tls.Config {
 	// not a bypass: IONOS_PINNED_CERT is only consulted at all when the operator has explicitly
 	// opted into fingerprint pinning (see reapplyMTLSAfterPinning), and VerifyConnection enforces
 	// an equivalent-or-stronger check (an exact certificate match) in place of chain trust.
-	// codeql[go/insecure-skip-verify] -- paired with VerifyConnection below, not a bare skip.
+	// codeql[go/disabled-certificate-check] -- paired with VerifyConnection below, not a bare skip.
 	tlsConfig.InsecureSkipVerify = true
 	tlsConfig.VerifyConnection = func(cs tls.ConnectionState) error {
 		return verifyPinnedCertFingerprint(trimmed, cs.PeerCertificates)
