@@ -678,7 +678,13 @@ func (e *external) updateWithFailoverOrchestration(ctx context.Context, cr *v1al
 	}
 
 	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
-		// Publish the refreshed replicaStatus so downstream consumers see the new Hostname before the reboot wait completes.
+		servers, err = GetServersOfSSet(ctx, e.kube, cr.Name)
+		if err != nil {
+			return err
+		}
+
+		// The replicaStatus has to be published before the WaitForResource call below, because its
+		// consumers need the refreshed status while that wait is still running.
 		e.populateReplicasStatuses(ctx, cr, servers)
 		if err := e.kube.Status().Update(ctx, cr); err != nil {
 			e.log.Info("failed to persist replicaStatus after bootvolume update", "serverset", cr.Name, "error", err)

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
@@ -116,6 +117,14 @@ type kubeBootVolumeCallTracker struct {
 	lastMethodCall map[ServiceMethodName][]any
 }
 
+// kubeBootVolumeVersionBumpFake persists the boot volume of the new version and removes the one of
+// the old version, the way the real controller does, so that the volume version - and with it the
+// hostname computed from it - actually changes during an update.
+type kubeBootVolumeVersionBumpFake struct {
+	kubeBootVolumeCallTracker
+	kube client.Client
+}
+
 type kubeServerControlManagerFake struct {
 	kubeServerControlManager
 	mock.Mock
@@ -124,6 +133,13 @@ type kubeServerControlManagerFake struct {
 type kubeServerCallTracker struct {
 	kubeServerControlManager
 	lastMethodCall map[ServiceMethodName][]any
+}
+
+// kubeServerVersionBumpFake persists the server of the new version and removes the one of the old
+// version, the way the real controller does for the createAllBeforeDestroy strategy.
+type kubeServerVersionBumpFake struct {
+	kubeServerCallTracker
+	kube client.Client
 }
 
 type kubeNicControlManagerFake struct {
@@ -149,7 +165,8 @@ type kubeFirewallRuleCallTracker struct {
 type kubeClientFake struct {
 	client.Client
 	mock.Mock
-	crShouldReturnErr map[crType]bool
+	crShouldReturnErr                 map[crType]bool
+	replicaStatusesAtLastStateMapRead []v1alpha1.ServerSetReplicaStatus
 }
 
 func Test_serverSetController_Observe(t *testing.T) {
@@ -1958,11 +1975,68 @@ func Test_serverSetController_updateWithFailoverOrchestration_usesServerMatching
 	ctx := context.Background()
 	cr := createBasicServerSetWithStateMap()
 
-	server0 := createServer("server-name-0-0")
-	server0.Labels[computeIndexLabel(ResourceServer)] = "0"
+	kubeClient, e := fakeFailoverOrchestrationExternal(ctx, t, cr)
+	kubeClient.On(updateMethod, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	var err error
+	require.NotPanics(t, func() {
+		err = e.updateWithFailoverOrchestration(ctx, cr, 2)
+	}, "the server must be resolved via its replica-index label, not by indexing the unsorted servers slice")
+	require.NoError(t, err)
+}
+
+// Test_serverSetController_updateWithFailoverOrchestration_publishesNewHostnameBeforeRebootWait
+// checks that updateWithFailoverOrchestration() publishes the refreshed replicaStatus, carrying
+// the hostname of the boot volume version it just created, before it blocks in the reboot wait.
+func Test_serverSetController_updateWithFailoverOrchestration_publishesNewHostnameBeforeRebootWait(t *testing.T) {
+	ctx := context.Background()
+	cr := createBasicServerSetWithStateMap()
+
+	kubeClient, e := fakeFailoverOrchestrationExternal(ctx, t, cr)
+
+	require.NoError(t, e.updateWithFailoverOrchestration(ctx, cr, 2))
+
+	published := replicaStatusOfIndex(t, kubeClient.replicaStatusesAtLastStateMapRead, 2)
+	assert.Equal(t, getNameFrom(serverName, 2, 1), published.Hostname,
+		"the hostname of the boot volume version created by the update must be persisted before the reboot wait polls the state map")
+}
+
+func Test_serverSetController_updateWithFailoverOrchestration_publishesRecreatedServerAfterUpdate(t *testing.T) {
+	ctx := context.Background()
+	cr := createBasicServerSetWithStateMap()
+	cr.Spec.ForProvider.BootVolumeTemplate.Spec.UpdateStrategy.Stype = v1alpha1.CreateAllBeforeDestroy
+
+	kubeClient, e := fakeFailoverOrchestrationExternal(ctx, t, cr)
+
+	require.NoError(t, e.updateWithFailoverOrchestration(ctx, cr, 2))
+
+	published := replicaStatusOfIndex(t, kubeClient.replicaStatusesAtLastStateMapRead, 2)
+	assert.Equal(t, getNameFrom(serverName, 2, 1), published.Name,
+		"the published status must name the server created by the update, not the deleted one")
+}
+
+// replicaStatusOfIndex returns the status of the replica carrying replicaIndex, failing the test
+// if the replica is not part of the published status at all.
+func replicaStatusOfIndex(t *testing.T, statuses []v1alpha1.ServerSetReplicaStatus, replicaIndex int) v1alpha1.ServerSetReplicaStatus {
+	t.Helper()
+
+	idx := slices.IndexFunc(statuses, func(status v1alpha1.ServerSetReplicaStatus) bool {
+		return status.ReplicaIndex == replicaIndex
+	})
+	require.NotEqual(t, -1, idx, "replica %d must be part of the published status", replicaIndex)
+	return statuses[idx]
+}
+
+// fakeFailoverOrchestrationExternal wires an external for the tests above: a serverset with
+// two healthy replicas (indices 0 and 2, replica 1 is mid-recreation) whose boot volumes are at
+// version 0, and a kube client recording state-map reads and status writes. The serverset itself
+// is part of the fake client, because the published replicaStatus is written back to it.
+func fakeFailoverOrchestrationExternal(ctx context.Context, t *testing.T, cr *v1alpha1.ServerSet) (*kubeClientFake, external) {
+	t.Helper()
+
+	server0 := createServerWithIndex("server-name-0-0", 0)
 	server0.Labels[computeVersionLabel(ResourceServer)] = "0"
-	server2 := createServer("server-name-2-0")
-	server2.Labels[computeIndexLabel(ResourceServer)] = "2"
+	server2 := createServerWithIndex("server-name-2-0", 2)
 	server2.Labels[computeVersionLabel(ResourceServer)] = "0"
 
 	// Both existing replicas report a healthy, freshly refreshed runtime state, so neither the
@@ -1971,36 +2045,46 @@ func Test_serverSetController_updateWithFailoverOrchestration_usesServerMatching
 		Name:      stateMapName,
 		Namespace: stateMapNamespace,
 		Data: map[string]string{
-			fmt.Sprintf(stateKeyFormat, server0.Name):          statusVMRunning,
-			fmt.Sprintf(stateTimestampKeyFormat, server0.Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
-			fmt.Sprintf(stateKeyFormat, server2.Name):          statusVMRunning,
-			fmt.Sprintf(stateTimestampKeyFormat, server2.Name): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
+			fmt.Sprintf(stateKeyFormat, server0.Name):               statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, server0.Name):      time.Now().Add(5 * time.Hour).Format(time.RFC3339),
+			fmt.Sprintf(stateKeyFormat, server2.Name):               statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, server2.Name):      time.Now().Add(5 * time.Hour).Format(time.RFC3339),
+			fmt.Sprintf(stateKeyFormat, "server-name-2-1"):          statusVMRunning,
+			fmt.Sprintf(stateTimestampKeyFormat, "server-name-2-1"): time.Now().Add(5 * time.Hour).Format(time.RFC3339),
 		},
 	}
 
 	kubeClient := &kubeClientFake{
-		Client: fakeKubeClientObjs(server0, server2, stateMap,
+		Client: fakeKubeClientObjsWithServerSetStatus(cr, server0, server2, stateMap,
 			createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-0-0", 0),
 			createBootVolumeWithIndexLabelsWithHotPlug("bootvolumename-2-0", 2)),
 	}
-	kubeClient.On(updateMethod, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	// picks up the resource version the fake client assigned, so that the status write succeeds
+	require.NoError(t, kubeClient.Get(ctx, client.ObjectKeyFromObject(cr), cr))
 
-	e := external{
+	return kubeClient, external{
 		kube: kubeClient,
-		bootVolumeController: &kubeBootVolumeCallTracker{
+		bootVolumeController: &kubeBootVolumeVersionBumpFake{
+			kubeBootVolumeCallTracker: kubeBootVolumeCallTracker{
+				lastMethodCall: make(map[ServiceMethodName][]any),
+			},
+			kube: kubeClient,
+		},
+		serverController: &kubeServerVersionBumpFake{
+			kubeServerCallTracker: kubeServerCallTracker{
+				lastMethodCall: make(map[ServiceMethodName][]any),
+			},
+			kube: kubeClient,
+		},
+		nicController: &kubeNicCallTracker{
 			lastMethodCall: make(map[ServiceMethodName][]any),
 		},
-		serverController: &kubeServerCallTracker{
+		firewallRuleController: &kubeFirewallRuleCallTracker{
 			lastMethodCall: make(map[ServiceMethodName][]any),
 		},
-		log: logging.NewNopLogger(),
+		log:             logging.NewNopLogger(),
+		vmRebootTimeout: time.Minute,
 	}
-
-	var err error
-	require.NotPanics(t, func() {
-		err = e.updateWithFailoverOrchestration(ctx, cr, 2)
-	}, "the server must be resolved via its replica-index label, not by indexing the unsorted servers slice")
-	require.NoError(t, err)
 }
 
 // Test_serverSetController_updateServersFromTemplate_usesReplicaIndexLabelNotListPosition
@@ -2475,6 +2559,16 @@ func (f *kubeClientFake) DeleteAllOf(ctx context.Context, obj client.Object, opt
 	return args.Error(0)
 }
 
+func (f *kubeClientFake) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	if _, ok := obj.(*v1.ConfigMap); ok && key.Name == stateMapName {
+		sset := &v1alpha1.ServerSet{}
+		if err := f.Client.Get(ctx, client.ObjectKey{Name: serverSetName}, sset); err == nil {
+			f.replicaStatusesAtLastStateMapRead = slices.Clone(sset.Status.AtProvider.ReplicaStatuses)
+		}
+	}
+	return f.Client.Get(ctx, key, obj, opts...)
+}
+
 func (f *kubeClientFake) shouldReturnError(obj client.Object) bool {
 	switch obj.(type) {
 	case *v1alpha1.Server:
@@ -2682,6 +2776,27 @@ func (f *kubeBootVolumeCallTracker) Delete(ctx context.Context, name, ns string)
 	return nil
 }
 
+func (f *kubeBootVolumeVersionBumpFake) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version int) error {
+	if err := f.kubeBootVolumeCallTracker.Ensure(ctx, cr, replicaIndex, version); err != nil {
+		return err
+	}
+	name := getNameFrom(cr.Spec.ForProvider.BootVolumeTemplate.Metadata.Name, replicaIndex, version)
+	volume := createBootVolumeWithIndexLabelsWithHotPlug(name, replicaIndex)
+	volume.Labels[computeVersionLabel(resourceBootVolume)] = strconv.Itoa(version)
+	return f.kube.Create(ctx, volume)
+}
+
+func (f *kubeBootVolumeVersionBumpFake) Delete(ctx context.Context, name, ns string) error {
+	if err := f.kubeBootVolumeCallTracker.Delete(ctx, name, ns); err != nil {
+		return err
+	}
+	volume := &v1alpha1.Volume{
+		Name:      name,
+		Namespace: ns,
+	}
+	return client.IgnoreNotFound(f.kube.Delete(ctx, volume))
+}
+
 func (f *kubeServerControlManagerFake) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
 	args := f.Called(ctx, cr, replicaIndex, version, volumeVersion)
 	return args.Error(0)
@@ -2720,6 +2835,38 @@ func (f *kubeServerCallTracker) Update(ctx context.Context, cr *v1alpha1.Server)
 func (f *kubeServerCallTracker) Delete(ctx context.Context, name, ns string) error {
 	f.lastMethodCall[deleteMethod] = []any{ctx, name, ns}
 	return nil
+}
+
+func (f *kubeServerVersionBumpFake) Ensure(ctx context.Context, cr *v1alpha1.ServerSet, replicaIndex, version, volumeVersion int) error {
+	if err := f.kubeServerCallTracker.Ensure(ctx, cr, replicaIndex, version, volumeVersion); err != nil {
+		return err
+	}
+	name := getNameFrom(cr.Spec.ForProvider.Template.Metadata.Name, replicaIndex, version)
+	server := createServerWithIndex(name, replicaIndex)
+	server.Labels[computeVersionLabel(ResourceServer)] = strconv.Itoa(version)
+	return f.kube.Create(ctx, server)
+}
+
+func (f *kubeServerVersionBumpFake) Get(ctx context.Context, name, ns string) (*v1alpha1.Server, error) {
+	if _, err := f.kubeServerCallTracker.Get(ctx, name, ns); err != nil {
+		return nil, err
+	}
+	server := &v1alpha1.Server{}
+	if err := f.kube.Get(ctx, client.ObjectKey{Name: name, Namespace: ns}, server); err != nil {
+		return nil, err
+	}
+	return server, nil
+}
+
+func (f *kubeServerVersionBumpFake) Delete(ctx context.Context, name, ns string) error {
+	if err := f.kubeServerCallTracker.Delete(ctx, name, ns); err != nil {
+		return err
+	}
+	server := &v1alpha1.Server{
+		Name:      name,
+		Namespace: ns,
+	}
+	return client.IgnoreNotFound(f.kube.Delete(ctx, server))
 }
 
 func (f *kubeNicControlManagerFake) EnsureNICs(
@@ -3020,10 +3167,18 @@ func createBootVolumeWithIndexWithoutHotPlug(name string, index int) *v1alpha1.V
 }
 
 func fakeKubeClientObjs(objs ...client.Object) client.WithWatch {
+	return fakeKubeClientBuilder(objs...).Build()
+}
+
+func fakeKubeClientObjsWithServerSetStatus(objs ...client.Object) client.WithWatch {
+	return fakeKubeClientBuilder(objs...).WithStatusSubresource(&v1alpha1.ServerSet{}).Build()
+}
+
+func fakeKubeClientBuilder(objs ...client.Object) *fake.ClientBuilder {
 	scheme := runtime.NewScheme()
 	v1.AddToScheme(scheme)       // Add the core k8s types to the Scheme
 	v1alpha1.AddToScheme(scheme) // Add our custom types from v1alpha to the Scheme
-	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
+	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...)
 }
 
 func createBasicServerSet() *v1alpha1.ServerSet {
