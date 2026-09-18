@@ -52,6 +52,10 @@ const (
 var (
 	// providerStartTime tracks when the provider was started to ignore stale state updates
 	providerStartTime = time.Now()
+
+	// ErrVMErrorState is returned by checkRuntimeState wrapped when a VM reports VM-ERROR,
+	// so callers can distinguish it from actual reconciler failures.
+	ErrVMErrorState = errors.New("VM in error runtime state")
 )
 
 const (
@@ -674,6 +678,18 @@ func (e *external) updateWithFailoverOrchestration(ctx context.Context, cr *v1al
 	}
 
 	if cr.Spec.ForProvider.Template.Spec.StateMap != nil {
+		servers, err = GetServersOfSSet(ctx, e.kube, cr.Name)
+		if err != nil {
+			return err
+		}
+
+		// The replicaStatus has to be published before the WaitForResource call below, because its
+		// consumers need the refreshed status while that wait is still running.
+		e.populateReplicasStatuses(ctx, cr, servers)
+		if err := e.kube.Status().Update(ctx, cr); err != nil {
+			e.log.Info("failed to persist replicaStatus after bootvolume update", "serverset", cr.Name, "error", err)
+		}
+
 		// servers comes from an unsorted client.List(), so it cannot be indexed by replica
 		// index - the server of this replica has to be looked up by its index label.
 		serverObj := e.findServerByReplicaIndex(cr, servers, replicaIndex)
@@ -825,8 +841,11 @@ func AreServersReady(
 		}
 
 		runtimeState, err := checkRuntimeState(*stateMap, serverObj.Name, time.Time{}, log)
-		if err != nil || !runtimeState {
+		if err != nil && !errors.Is(err, ErrVMErrorState) {
 			return true, runtimeState, err
+		}
+		if !runtimeState {
+			return true, false, nil
 		}
 	}
 
@@ -1195,7 +1214,7 @@ func checkRuntimeState(stateMap v1.ConfigMap, serverName string, requestTimestam
 		log.Debug("state not yet refreshed", "server", serverName, "stateTimestamp", timestamp, "requestTimestamp", requestTimestamp)
 		return false, nil
 	case state == statusVMError:
-		return false, fmt.Errorf("server %s is in %s runtime state", serverName, statusVMError)
+		return false, fmt.Errorf("server %s is in %s runtime state: %w", serverName, statusVMError, ErrVMErrorState)
 	case state == statusVMRunning:
 		return true, nil
 	default:
