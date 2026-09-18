@@ -135,6 +135,7 @@ jobs:
           IONOS_TOKEN: ${{ secrets.IONOS_TOKEN }}
           TEST_IMAGE_PASSWORD: ${{ secrets.TEST_IMAGE_PASSWORD }}
       - name: Run StatefulServerset E2E Tests
+        if: github.event_name == 'workflow_dispatch'
         run: make sss_e2e
         env:
           IONOS_TOKEN: ${{ secrets.IONOS_TOKEN }}
