@@ -113,6 +113,9 @@ func (k *kubeConfigmapController) CreateOrUpdate(ctx context.Context, cr *v1alph
 		return fmt.Errorf("failed to get ConfigMap %s/%s: %w", namespace, name, err)
 	} else {
 		if len(identities) > 0 && !maps.Equal(identities, cfgMap.Data) {
+			if cfgMap.Data == nil {
+				cfgMap.Data = make(map[string]string, len(identities))
+			}
 			maps.Copy(cfgMap.Data, identities)
 
 			k.log.Info("Updating ConfigMap", "name", name, "namespace", namespace, "identities", identities)

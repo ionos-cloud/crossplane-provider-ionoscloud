@@ -162,6 +162,27 @@ func Test_kubeConfigmapController_CreateOrUpdate(t *testing.T) {
 		assert.True(t, apiErrors.IsInternalError(err), "the cause must stay inspectable through the %w wrap")
 	})
 
+	// Regression coverage: an existing ConfigMap with no data has a nil Data map. maps.Copy writes
+	// into its destination, so it panicked instead of populating it.
+	t.Run("configmap exists with nil data: populates it", func(t *testing.T) {
+		existing := &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: testSubstServerSetName, Namespace: stateMapNamespace},
+		}
+		require.Nil(t, existing.Data, "test setup: the ConfigMap must start with a nil Data map")
+
+		k := newTestConfigmapController(existing)
+		k.SetSubstitutionConfigMap(testSubstServerSetName, stateMapNamespace)
+		k.SetIdentity(testSubstServerSetName, "0.0.key", "value")
+
+		require.NotPanics(t, func() {
+			require.NoError(t, k.CreateOrUpdate(context.Background(), cr))
+		})
+
+		got, err := k.Get(context.Background(), testSubstServerSetName, stateMapNamespace)
+		require.NoError(t, err)
+		assert.Equal(t, "value", got.Data["0.0.key"])
+	})
+
 	t.Run("configmap exists with same data: no-op", func(t *testing.T) {
 		existing := &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: testSubstServerSetName, Namespace: stateMapNamespace},
