@@ -1,11 +1,22 @@
 package clients
 
 import (
+	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
+	"strings"
+	"sync"
+	"time"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -70,11 +81,359 @@ type credentials struct {
 	// HostURL is the baseURL of the IONOS Cloud API.
 	// It can be used for overwriting the default endpoint. Optional.
 	HostURL string `json:"host_url"`
+
+	// ClientCertificate is a PEM encoded client (leaf) certificate presented for mutual TLS
+	// (mTLS) authentication against the compute/cloud API endpoint, e.g. an internal endpoint
+	// that enforces client certificate verification. Optional; requires ClientKey to also be
+	// set. Like Password, it must be base64 encoded to survive JSON string escaping.
+	ClientCertificate string `json:"client_cert"`
+
+	// ClientKey is the PEM encoded private key matching ClientCertificate. Optional; requires
+	// ClientCertificate to also be set. Must be base64 encoded, like Password.
+	ClientKey string `json:"client_key"`
+
+	// CACertificate is an optional PEM encoded CA certificate to trust in addition to the system
+	// root pool, base64 encoded like Password. Only valid together with
+	// ClientCertificate/ClientKey - rejected as an error if set alone, since it would otherwise
+	// have no effect.
+	CACertificate string `json:"ca_cert"`
+
+	// StripCloudAPIPrefix, when true, strips a leading "/cloudapi" segment from outgoing
+	// compute-API requests, for endpoints that serve the API at /v6/... instead of
+	// /cloudapi/v6/.... Deliberately coupled to ClientCertificate/ClientKey rather than usable on
+	// its own: it exists to work around an internal mTLS proxy quirk, and a generic (non-mTLS)
+	// endpoint using the standard /cloudapi/v6 layout must never have its paths rewritten. Set
+	// without ClientCertificate/ClientKey, it is rejected as an error - see
+	// buildComputeMTLSHTTPClient - rather than silently having no effect.
+	StripCloudAPIPrefix bool `json:"strip_cloudapi_prefix"`
+}
+
+// buildComputeMTLSHTTPClient builds an *http.Client presenting a client certificate for mutual
+// TLS, plus the *tls.Config it used (reapplyMTLSAfterPinning needs it directly, since the
+// Transport may be wrapped and no longer type-assertable). Returns (nil, nil, nil) when no mTLS
+// credentials are configured, leaving the SDK's default HTTPClient behavior untouched.
+func buildComputeMTLSHTTPClient(creds credentials) (*http.Client, *tls.Config, error) {
+	hasCert := creds.ClientCertificate != ""
+	hasKey := creds.ClientKey != ""
+	hasCA := creds.CACertificate != ""
+
+	if !hasCert && !hasKey && !hasCA {
+		// strip_cloudapi_prefix only makes sense paired with the mTLS transport it's meant to
+		// patch - reject it explicitly, same as ca_cert below, rather than silently no-op'ing.
+		if creds.StripCloudAPIPrefix {
+			return nil, nil, fmt.Errorf("mtls setup: strip_cloudapi_prefix has no effect without client_cert/client_key also being set")
+		}
+		return nil, nil, nil
+	}
+	if hasCert != hasKey {
+		return nil, nil, fmt.Errorf("mtls setup: client_cert and client_key must both be set together")
+	}
+
+	// ca_cert only adjusts the trust pool used when presenting a client cert, so it has no effect
+	// without client_cert/client_key - reject it explicitly rather than silently ignoring it.
+	if hasCA && !hasCert {
+		return nil, nil, fmt.Errorf("mtls setup: ca_cert has no effect without client_cert/client_key also being set")
+	}
+
+	var rootCAs *x509.CertPool
+	if hasCA {
+		caPEM, err := base64.StdEncoding.DecodeString(creds.CACertificate)
+		if err != nil {
+			return nil, nil, fmt.Errorf("mtls setup: failed to decode ca_cert: %w", err)
+		}
+		pool, err := x509.SystemCertPool()
+		if err != nil || pool == nil {
+			pool = x509.NewCertPool()
+		}
+		if !pool.AppendCertsFromPEM(caPEM) {
+			return nil, nil, fmt.Errorf("mtls setup: failed to parse ca_cert as PEM")
+		}
+		rootCAs = pool
+	}
+
+	certPEM, err := base64.StdEncoding.DecodeString(creds.ClientCertificate)
+	if err != nil {
+		return nil, nil, fmt.Errorf("mtls setup: failed to decode client_cert: %w", err)
+	}
+	keyPEM, err := base64.StdEncoding.DecodeString(creds.ClientKey)
+	if err != nil {
+		return nil, nil, fmt.Errorf("mtls setup: failed to decode client_key: %w", err)
+	}
+
+	cert, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		return nil, nil, fmt.Errorf("mtls setup: failed to load client certificate/key pair: %w", err)
+	}
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+	}
+	if rootCAs != nil {
+		tlsConfig.RootCAs = rootCAs
+	}
+
+	return &http.Client{
+		Transport: newComputeRoundTripper(tlsConfig, creds.StripCloudAPIPrefix),
+	}, tlsConfig, nil
+}
+
+// newComputeRoundTripper clones http.DefaultTransport (a bare one drops the proxy/timeout/HTTP2
+// defaults), applies tlsConfig, and optionally wraps it in the /cloudapi prefix.
+func newComputeRoundTripper(tlsConfig *tls.Config, stripCloudAPIPrefix bool) http.RoundTripper {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = tlsConfig
+
+	if stripCloudAPIPrefix {
+		return &stripCloudAPIPrefixRoundTripper{next: transport}
+	}
+	return transport
+}
+
+// cloudAPIPathPrefix is the path segment sdk-go/v6 always appends to a configured host_url (see
+// getServerUrl in sdk-go/v6@v6.3.4/configuration.go), matching the public
+// api.ionos.com/cloudapi/v6 surface.
+const cloudAPIPathPrefix = "/cloudapi"
+
+// stripCloudAPIPrefixRoundTripper strips a leading "/cloudapi" segment from outgoing requests.
+// Some internal endpoints serve the API at /v6/... instead of the public /cloudapi/v6/... layout
+// the SDK always targets. Wired in only when credentials.StripCloudAPIPrefix is set - never
+// automatically - since a standard-layout endpoint must not have its paths rewritten.
+type stripCloudAPIPrefixRoundTripper struct {
+	next http.RoundTripper
+}
+
+func (t *stripCloudAPIPrefixRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	p := req.URL.Path
+	if p == cloudAPIPathPrefix || strings.HasPrefix(p, cloudAPIPathPrefix+"/") {
+		req = req.Clone(req.Context())
+		req.URL.Path = strings.TrimPrefix(p, cloudAPIPathPrefix)
+		if req.URL.RawPath != "" {
+			req.URL.RawPath = strings.TrimPrefix(req.URL.RawPath, cloudAPIPathPrefix)
+		}
+	}
+	return t.next.RoundTrip(req)
+}
+
+// CloseIdleConnections forwards to the wrapped transport. http.Client.CloseIdleConnections
+// type-asserts for this method, so without it the wrapper swallows the call.
+func (t *stripCloudAPIPrefixRoundTripper) CloseIdleConnections() {
+	if next, ok := t.next.(interface{ CloseIdleConnections() }); ok {
+		next.CloseIdleConnections()
+	}
+}
+
+// reapplyMTLSAfterPinning restores the mTLS Transport after sdkgo.NewAPIClient overwrites it when
+// IONOS_PINNED_CERT is set, rebuilding a Transport that both presents the client certificate and
+// enforces the pinned fingerprint. mtlsTLSConfig must be captured by the caller before calling
+// sdkgo.NewAPIClient - cfg.HTTPClient's original Transport is gone by the time this runs.
+func reapplyMTLSAfterPinning(cfg *sdkgo.Configuration, mtlsTLSConfig *tls.Config, stripCloudAPIPrefix bool) {
+	pkFingerprint := os.Getenv(sdkgo.IonosPinnedCertEnvVar)
+	if pkFingerprint == "" {
+		// sdkgo.NewAPIClient only touches cfg.HTTPClient.Transport when the pinning env var is
+		// set, so our Transport is still intact - nothing to repair.
+		return
+	}
+
+	if cfg.HTTPClient == nil {
+		cfg.HTTPClient = &http.Client{}
+	}
+	cfg.HTTPClient.Transport = newComputeRoundTripper(
+		pinnedCertTLSConfig(pkFingerprint, mtlsTLSConfig), stripCloudAPIPrefix)
+}
+
+// pinnedCertTLSConfig returns a clone of base with normal certificate-chain verification replaced
+// by a pinned-fingerprint check, via VerifyConnection rather than a custom DialTLSContext.
+// DialTLSContext is only consulted for the initial network connection; net/http.Transport skips it
+// entirely for the second TLS handshake performed after an HTTP CONNECT tunnel to a proxy, so a
+// dialer-based check (this function's previous implementation) silently stopped enforcing the
+// pinned fingerprint - falling back to ordinary chain trust - the moment HTTPS_PROXY was set.
+// VerifyConnection is invoked by crypto/tls itself as part of any handshake using this *tls.Config
+// - proxied or not, and (unlike VerifyPeerCertificate alone) including resumed sessions, so a
+// resumption can't skip the pin check either. Any client certificate/RootCAs on base are still
+// presented/trusted as before - only the verification step changes.
+func pinnedCertTLSConfig(fingerprint string, base *tls.Config) *tls.Config {
+	// Fingerprints can be supplied with ':' or ' ' separators, matching sdk-go/v6's own handling.
+	trimmed := []byte(fingerprint)
+	trimmed = bytes.ReplaceAll(trimmed, []byte(":"), nil)
+	trimmed = bytes.ReplaceAll(trimmed, []byte(" "), nil)
+
+	tlsConfig := base.Clone()
+	// InsecureSkipVerify disables Go's default chain-based verification, in favor of the pinned
+	// fingerprint check below - VerifyConnection is still called either way (see its doc). This is
+	// not a bypass: IONOS_PINNED_CERT is only consulted at all when the operator has explicitly
+	// opted into fingerprint pinning (see reapplyMTLSAfterPinning), and VerifyConnection enforces
+	// an equivalent-or-stronger check (an exact certificate match) in place of chain trust.
+	// codeql[go/disabled-certificate-check] -- paired with VerifyConnection below, not a bare skip.
+	tlsConfig.InsecureSkipVerify = true
+	tlsConfig.VerifyConnection = func(cs tls.ConnectionState) error {
+		return verifyPinnedCertFingerprint(trimmed, cs.PeerCertificates)
+	}
+	return tlsConfig
+}
+
+// verifyPinnedCertFingerprint mirrors sdk-go/v6's unexported verifyPinnedCert: it accepts the
+// connection if the non-CA leaf certificate's SHA-256 fingerprint matches. Only the leaf is
+// checked, not the whole chain.
+func verifyPinnedCertFingerprint(fingerprint []byte, peerCerts []*x509.Certificate) error {
+	if len(peerCerts) > 0 {
+		cert := peerCerts[0]
+		sum := sha256.Sum256(cert.Raw)
+		hexSum := make([]byte, hex.EncodedLen(len(sum)))
+		hex.Encode(hexSum, sum[:])
+		if !cert.IsCA && bytes.EqualFold(hexSum, fingerprint) {
+			return nil
+		}
+	}
+	return fmt.Errorf("remote server presented a certificate which does not match the provided fingerprint")
+}
+
+const (
+	// ionosClientCacheMaxEntries bounds the cache against unbounded growth.
+	ionosClientCacheMaxEntries = 32
+	// ionosClientCacheIdleTTL drops an entry nothing has used for this long. With a handful of
+	// ProviderConfigs the bound never fires, so this is what releases rotated credentials.
+	ionosClientCacheIdleTTL = 30 * time.Minute
+)
+
+type ionosClientCacheEntry struct {
+	svc *IonosServices
+	// lastUsed is read and written only under ionosClientCacheMu.
+	lastUsed time.Time
+}
+
+// ionosClientCache keeps connection pools alive across reconciles.
+var (
+	ionosClientCacheMu sync.Mutex
+	ionosClientCache   = make(map[[sha256.Size]byte]*ionosClientCacheEntry, ionosClientCacheMaxEntries)
+)
+
+// ionosClientCacheNow is time.Now, indirected so expiry can be exercised without sleeping.
+var ionosClientCacheNow = time.Now
+
+// ionosClientCacheEvictLocked drops entries idle past the TTL, then the oldest ones until the cache
+// is back within its bound, returning them so their sockets close outside the lock.
+func ionosClientCacheEvictLocked(now time.Time) []*IonosServices {
+	var evicted []*IonosServices
+
+	for key, entry := range ionosClientCache {
+		if now.Sub(entry.lastUsed) >= ionosClientCacheIdleTTL {
+			evicted = append(evicted, entry.svc)
+			delete(ionosClientCache, key)
+		}
+	}
+
+	for len(ionosClientCache) > ionosClientCacheMaxEntries {
+		var oldestKey [sha256.Size]byte
+		var oldest *ionosClientCacheEntry
+		for key, entry := range ionosClientCache {
+			if oldest == nil || entry.lastUsed.Before(oldest.lastUsed) {
+				oldestKey, oldest = key, entry
+			}
+		}
+		evicted = append(evicted, oldest.svc)
+		delete(ionosClientCache, oldestKey)
+	}
+
+	return evicted
+}
+
+// ionosClientCacheAccess looks up key, caching store on a miss. All map access goes through here.
+func ionosClientCacheAccess(key [sha256.Size]byte, store *IonosServices) (*IonosServices, bool) {
+	now := ionosClientCacheNow()
+
+	ionosClientCacheMu.Lock()
+	entry, found := ionosClientCache[key]
+	switch {
+	case found:
+		entry.lastUsed = now
+	case store != nil:
+		entry = &ionosClientCacheEntry{svc: store, lastUsed: now}
+		ionosClientCache[key] = entry
+		found = true
+	}
+	var svc *IonosServices
+	if found {
+		svc = entry.svc
+	}
+	// Evicting after the lookup keeps the bound true on exit, and the entry just stamped is newest.
+	evicted := ionosClientCacheEvictLocked(now)
+	ionosClientCacheMu.Unlock()
+
+	for _, e := range evicted {
+		e.closeIdleConnections()
+	}
+	return svc, found
+}
+
+// closeIdleConnections releases the pooled sockets of evicted clients; in-flight ones are unaffected.
+// http.DefaultClient is skipped: the SDKs share it, so closing it would hit every other client.
+func (svc *IonosServices) closeIdleConnections() {
+	if svc == nil {
+		return
+	}
+
+	httpClients := make([]*http.Client, 0, 3)
+	if svc.ComputeClient != nil {
+		httpClients = append(httpClients, svc.ComputeClient.GetConfig().HTTPClient)
+	}
+	if svc.DBaaSMongoClient != nil {
+		httpClients = append(httpClients, svc.DBaaSMongoClient.GetConfig().HTTPClient)
+	}
+	if svc.DBaaSPostgresClient != nil {
+		httpClients = append(httpClients, svc.DBaaSPostgresClient.GetConfig().HTTPClient)
+	}
+
+	for _, hc := range httpClients {
+		if hc == nil || hc == http.DefaultClient {
+			continue
+		}
+		hc.CloseIdleConnections()
+	}
+}
+
+// cacheKeySalt keys the HMAC below. Generated once per process.
+var cacheKeySalt = func() []byte {
+	salt := make([]byte, sha256.Size)
+	if _, err := rand.Read(salt); err != nil {
+		panic(fmt.Sprintf("cannot seed the client cache key: %v", err))
+	}
+	return salt
+}()
+
+// ionosClientCacheKey derives a key from the inputs that distinguish one set of clients from
+// another, NUL-separated so the fields cannot run together.
+func ionosClientCacheKey(data []byte) [sha256.Size]byte {
+	h := hmac.New(sha256.New, cacheKeySalt)
+	h.Write(data)
+	h.Write([]byte{0})
+	h.Write([]byte(os.Getenv(sdkgo.IonosPinnedCertEnvVar)))
+	h.Write([]byte{0})
+	h.Write([]byte(ionosAPIEndpoint))
+	return [sha256.Size]byte(h.Sum(nil))
 }
 
 // NewIonosClients creates a IonosService from the given data. The data must be a json struct with the fields `User`,
 // `Password`, `Token`. Both fields must be a string value. The password string must be base64 encoded.
+//
+// Identical credentials return the same *IonosServices, so callers must treat it as read-only.
 func NewIonosClients(data []byte) (*IonosServices, error) {
+	key := ionosClientCacheKey(data)
+	if svc, ok := ionosClientCacheAccess(key, nil); ok {
+		return svc, nil
+	}
+
+	svc, err := newIonosClients(data)
+	if err != nil {
+		// Not cached: credentials may be mid-rotation.
+		return nil, err
+	}
+
+	// A startup burst misses the same key concurrently; the first store wins and the rest share it.
+	cached, _ := ionosClientCacheAccess(key, svc)
+	return cached, nil
+}
+
+func newIonosClients(data []byte) (*IonosServices, error) {
 	creds := credentials{}
 	if err := json.Unmarshal(data, &creds); err != nil {
 		return nil, fmt.Errorf("failed to decode credentials: %w", err)
@@ -92,6 +451,15 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 	if apiHostURL == "" && ionosAPIEndpoint != "" {
 		apiHostURL = ionosAPIEndpoint
 	}
+
+	// Optional mTLS client certificate; only ComputeClient uses this. computeMTLSTLSConfig is
+	// captured directly from the builder, since computeHTTPClient.Transport may be wrapped and
+	// reapplyMTLSAfterPinning can't recover it after sdkgo.NewAPIClient runs below.
+	computeHTTPClient, computeMTLSTLSConfig, err := buildComputeMTLSHTTPClient(creds)
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure mtls for compute client: %w", err)
+	}
+
 	// DBaaS Mongo Client
 	dbaasMongoConfig := mongo.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
 	dbaasMongoConfig.UserAgent = fmt.Sprintf("%v/%v_%v", UserAgent, version.Version, dbaasMongoConfig.UserAgent)
@@ -103,7 +471,16 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 	// Compute Engine Client
 	computeEngineConfig := sdkgo.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
 	computeEngineConfig.UserAgent = fmt.Sprintf("%v/%v_%v", UserAgent, version.Version, computeEngineConfig.UserAgent)
+	if computeHTTPClient != nil {
+		computeEngineConfig.HTTPClient = computeHTTPClient
+	}
 	computeEngineClient := sdkgo.NewAPIClient(computeEngineConfig)
+	if computeMTLSTLSConfig != nil {
+		// sdkgo.NewAPIClient silently discards the mTLS Transport we just configured whenever
+		// IONOS_PINNED_CERT is also set - see reapplyMTLSAfterPinning for why and how this is
+		// repaired.
+		reapplyMTLSAfterPinning(computeEngineClient.GetConfig(), computeMTLSTLSConfig, creds.StripCloudAPIPrefix)
+	}
 
 	return &IonosServices{
 		DBaaSMongoClient:    dbaasMongoClient,
