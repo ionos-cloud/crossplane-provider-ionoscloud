@@ -20,6 +20,8 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -692,8 +694,16 @@ func newCONNECTProxy(t *testing.T) *httptest.Server {
 // freshIonosClientCache isolates a test: subtests sharing credentials share one Transport.
 func freshIonosClientCache(t *testing.T) {
 	t.Helper()
-	ionosClientCache.Clear()
-	t.Cleanup(ionosClientCache.Clear)
+	resetIonosClientCache()
+	t.Cleanup(resetIonosClientCache)
+}
+
+// resetIonosClientCache empties the cache and restores the real clock between tests.
+func resetIonosClientCache() {
+	ionosClientCacheMu.Lock()
+	defer ionosClientCacheMu.Unlock()
+	clear(ionosClientCache)
+	ionosClientCacheNow = time.Now
 }
 
 // setHTTPProxy points hc's underlying *http.Transport at proxyURL for every request, regardless of
@@ -1157,7 +1167,239 @@ func Test_ionosClientCache(t *testing.T) {
 		_, err := NewIonosClients(bad)
 		require.Error(t, err)
 
-		_, cached := ionosClientCache.Load(ionosClientCacheKey(bad))
+		ionosClientCacheMu.Lock()
+		_, cached := ionosClientCache[ionosClientCacheKey(bad)]
+		ionosClientCacheMu.Unlock()
 		assert.False(t, cached, "a failure must not be cached: credentials may be mid-rotation")
 	})
+}
+
+// credsFor builds a distinct credential payload, so each index maps to its own cache entry.
+func credsFor(i int) []byte {
+	return []byte(fmt.Sprintf(`{"user":"u%d","password":"cGFzc3dvcmQ=","token":"t%d"}`, i, i))
+}
+
+// cachedEntryCount reports how many entries the cache currently holds.
+func cachedEntryCount() int {
+	ionosClientCacheMu.Lock()
+	defer ionosClientCacheMu.Unlock()
+	return len(ionosClientCache)
+}
+
+// isCached reports whether data still has an entry, without stamping it as used.
+func isCached(data []byte) bool {
+	ionosClientCacheMu.Lock()
+	defer ionosClientCacheMu.Unlock()
+	_, ok := ionosClientCache[ionosClientCacheKey(data)]
+	return ok
+}
+
+// Test_ionosClientCacheEviction covers both eviction rules with an injected clock, so nothing sleeps.
+func Test_ionosClientCacheEviction(t *testing.T) {
+	t.Run("size bound holds while distinct credentials churn", func(t *testing.T) {
+		freshIonosClientCache(t)
+
+		for i := 0; i < 4*ionosClientCacheMaxEntries; i++ {
+			_, err := NewIonosClients(credsFor(i))
+			require.NoError(t, err)
+			require.LessOrEqual(t, cachedEntryCount(), ionosClientCacheMaxEntries,
+				"the cache must never exceed its bound, not even transiently")
+		}
+	})
+
+	t.Run("size bound evicts the least recently used, sparing a hot entry", func(t *testing.T) {
+		freshIonosClientCache(t)
+
+		now := time.Now()
+		ionosClientCacheNow = func() time.Time { now = now.Add(time.Second); return now }
+
+		for i := 0; i < ionosClientCacheMaxEntries; i++ {
+			_, err := NewIonosClients(credsFor(i))
+			require.NoError(t, err)
+		}
+		// Touch entry 0 so entry 1 becomes the oldest, then overflow the bound by one.
+		_, err := NewIonosClients(credsFor(0))
+		require.NoError(t, err)
+		_, err = NewIonosClients(credsFor(ionosClientCacheMaxEntries))
+		require.NoError(t, err)
+
+		assert.True(t, isCached(credsFor(0)), "the most recently used entry must survive eviction")
+		assert.False(t, isCached(credsFor(1)), "the least recently used entry must be the one evicted")
+	})
+
+	t.Run("idle entry expires once past the TTL", func(t *testing.T) {
+		freshIonosClientCache(t)
+
+		now := time.Now()
+		ionosClientCacheNow = func() time.Time { return now }
+
+		_, err := NewIonosClients(credsFor(0))
+		require.NoError(t, err)
+
+		now = now.Add(ionosClientCacheIdleTTL - time.Second)
+		_, err = NewIonosClients(credsFor(1))
+		require.NoError(t, err)
+		assert.True(t, isCached(credsFor(0)), "an entry just short of the TTL must be kept")
+
+		now = now.Add(2 * time.Second)
+		_, err = NewIonosClients(credsFor(1))
+		require.NoError(t, err)
+		assert.False(t, isCached(credsFor(0)), "an entry idle past the TTL must be released")
+	})
+
+	t.Run("entry in continuous use never expires", func(t *testing.T) {
+		freshIonosClientCache(t)
+
+		now := time.Now()
+		ionosClientCacheNow = func() time.Time { return now }
+
+		// The default --poll of 1m touches an entry far more often; this is the worst case.
+		for i := 0; i < 10; i++ {
+			_, err := NewIonosClients(credsFor(0))
+			require.NoError(t, err)
+			now = now.Add(ionosClientCacheIdleTTL - time.Minute)
+		}
+
+		assert.True(t, isCached(credsFor(0)), "an entry used every poll must never be evicted")
+	})
+
+	t.Run("concurrent hits and churn", func(t *testing.T) {
+		freshIonosClientCache(t)
+
+		const goroutines = 64
+		var wg sync.WaitGroup
+		wg.Add(goroutines)
+		for i := 0; i < goroutines; i++ {
+			go func(i int) {
+				defer wg.Done()
+				// Half hammer one key, half churn distinct ones.
+				data := credsFor(0)
+				if i%2 == 1 {
+					data = credsFor(i)
+				}
+				for j := 0; j < 20; j++ {
+					if _, err := NewIonosClients(data); err != nil {
+						t.Errorf("NewIonosClients: %v", err)
+						return
+					}
+				}
+			}(i)
+		}
+		wg.Wait()
+
+		assert.LessOrEqual(t, cachedEntryCount(), ionosClientCacheMaxEntries)
+	})
+}
+
+// Test_ionosClientCacheConnectionReuse checks the pooled connection survives reconciles until eviction.
+func Test_ionosClientCacheConnectionReuse(t *testing.T) {
+	freshIonosClientCache(t)
+
+	clientCertPEM, clientKeyPEM, _ := generateTestCertPEM(t, "provider-client", false)
+	serverCertPEM, serverKeyPEM := generateTestServerCertPEM(t)
+	serverKeyPair, err := tls.X509KeyPair(serverCertPEM, serverKeyPEM)
+	require.NoError(t, err)
+
+	var connections atomic.Int64
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	srv.TLS = &tls.Config{
+		Certificates: []tls.Certificate{serverKeyPair},
+		ClientAuth:   tls.RequireAnyClientCert,
+	}
+	// ConnState must be installed before Start, or the running server races on it.
+	srv.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+		if state == http.StateNew {
+			connections.Add(1)
+		}
+	}
+	srv.StartTLS()
+	defer srv.Close()
+
+	creds := []byte(fmt.Sprintf(
+		`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s", "ca_cert": "%s"}`,
+		b64(clientCertPEM), b64(clientKeyPEM), b64(serverCertPEM),
+	))
+
+	reconcile := func() {
+		svc, err := NewIonosClients(creds)
+		require.NoError(t, err)
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL, nil)
+		require.NoError(t, err)
+		resp, err := svc.ComputeClient.GetConfig().HTTPClient.Do(req)
+		require.NoError(t, err)
+		require.NoError(t, resp.Body.Close())
+	}
+
+	const reconciles = 25
+	for i := 0; i < reconciles; i++ {
+		reconcile()
+	}
+	assert.Equal(t, int64(1), connections.Load(),
+		"%d reconciles with the same credentials must share one connection, not handshake each time", reconciles)
+
+	// Churn distinct credentials to evict the hot entry, then confirm the next reconcile must dial.
+	for i := 0; i < ionosClientCacheMaxEntries+1; i++ {
+		_, err := NewIonosClients(credsFor(i))
+		require.NoError(t, err)
+	}
+	require.False(t, isCached(creds), "test setup: the churn must have evicted the entry under test")
+
+	reconcile()
+	assert.Equal(t, int64(2), connections.Load(), "a rebuilt client must open exactly one new connection")
+}
+
+// Test_closeIdleConnectionsThroughStripRoundTripper covers the strip_cloudapi_prefix path, where the
+// Transport is wrapped: a wrapper that does not forward CloseIdleConnections swallows the close.
+func Test_closeIdleConnectionsThroughStripRoundTripper(t *testing.T) {
+	freshIonosClientCache(t)
+
+	clientCertPEM, clientKeyPEM, _ := generateTestCertPEM(t, "provider-client", false)
+	serverCertPEM, serverKeyPEM := generateTestServerCertPEM(t)
+	serverKeyPair, err := tls.X509KeyPair(serverCertPEM, serverKeyPEM)
+	require.NoError(t, err)
+
+	var connections atomic.Int64
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	srv.TLS = &tls.Config{
+		Certificates: []tls.Certificate{serverKeyPair},
+		ClientAuth:   tls.RequireAnyClientCert,
+	}
+	srv.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+		if state == http.StateNew {
+			connections.Add(1)
+		}
+	}
+	srv.StartTLS()
+	defer srv.Close()
+
+	creds := []byte(fmt.Sprintf(
+		`{"user": "username","password": "cGFzc3dvcmQ=", "client_cert": "%s", "client_key": "%s", "ca_cert": "%s", "strip_cloudapi_prefix": true}`,
+		b64(clientCertPEM), b64(clientKeyPEM), b64(serverCertPEM),
+	))
+
+	svc, err := NewIonosClients(creds)
+	require.NoError(t, err)
+	_, isWrapped := svc.ComputeClient.GetConfig().HTTPClient.Transport.(*stripCloudAPIPrefixRoundTripper)
+	require.True(t, isWrapped, "test setup: strip_cloudapi_prefix must wrap the Transport")
+
+	request := func() {
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL, nil)
+		require.NoError(t, err)
+		resp, err := svc.ComputeClient.GetConfig().HTTPClient.Do(req)
+		require.NoError(t, err)
+		require.NoError(t, resp.Body.Close())
+	}
+
+	request()
+	require.Equal(t, int64(1), connections.Load(), "test setup: the first request must open one connection")
+
+	svc.closeIdleConnections()
+
+	request()
+	assert.Equal(t, int64(2), connections.Load(),
+		"the close must reach the wrapped Transport, so the pooled connection is gone and the next request dials")
 }

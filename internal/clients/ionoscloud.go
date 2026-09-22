@@ -16,6 +16,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -213,6 +214,14 @@ func (t *stripCloudAPIPrefixRoundTripper) RoundTrip(req *http.Request) (*http.Re
 	return t.next.RoundTrip(req)
 }
 
+// CloseIdleConnections forwards to the wrapped transport. http.Client.CloseIdleConnections
+// type-asserts for this method, so without it the wrapper swallows the call.
+func (t *stripCloudAPIPrefixRoundTripper) CloseIdleConnections() {
+	if next, ok := t.next.(interface{ CloseIdleConnections() }); ok {
+		next.CloseIdleConnections()
+	}
+}
+
 // reapplyMTLSAfterPinning restores the mTLS Transport after sdkgo.NewAPIClient overwrites it when
 // IONOS_PINNED_CERT is set, rebuilding a Transport that both presents the client certificate and
 // enforces the pinned fingerprint. mtlsTLSConfig must be captured by the caller before calling
@@ -278,8 +287,109 @@ func verifyPinnedCertFingerprint(fingerprint []byte, peerCerts []*x509.Certifica
 	return fmt.Errorf("remote server presented a certificate which does not match the provided fingerprint")
 }
 
+const (
+	// ionosClientCacheMaxEntries bounds the cache against unbounded growth.
+	ionosClientCacheMaxEntries = 32
+	// ionosClientCacheIdleTTL drops an entry nothing has used for this long. With a handful of
+	// ProviderConfigs the bound never fires, so this is what releases rotated credentials.
+	ionosClientCacheIdleTTL = 30 * time.Minute
+)
+
+type ionosClientCacheEntry struct {
+	svc *IonosServices
+	// lastUsed is read and written only under ionosClientCacheMu.
+	lastUsed time.Time
+}
+
 // ionosClientCache keeps connection pools alive across reconciles.
-var ionosClientCache sync.Map
+var (
+	ionosClientCacheMu sync.Mutex
+	ionosClientCache   = make(map[[sha256.Size]byte]*ionosClientCacheEntry, ionosClientCacheMaxEntries)
+)
+
+// ionosClientCacheNow is time.Now, indirected so expiry can be exercised without sleeping.
+var ionosClientCacheNow = time.Now
+
+// ionosClientCacheEvictLocked drops entries idle past the TTL, then the oldest ones until the cache
+// is back within its bound, returning them so their sockets close outside the lock.
+func ionosClientCacheEvictLocked(now time.Time) []*IonosServices {
+	var evicted []*IonosServices
+
+	for key, entry := range ionosClientCache {
+		if now.Sub(entry.lastUsed) >= ionosClientCacheIdleTTL {
+			evicted = append(evicted, entry.svc)
+			delete(ionosClientCache, key)
+		}
+	}
+
+	for len(ionosClientCache) > ionosClientCacheMaxEntries {
+		var oldestKey [sha256.Size]byte
+		var oldest *ionosClientCacheEntry
+		for key, entry := range ionosClientCache {
+			if oldest == nil || entry.lastUsed.Before(oldest.lastUsed) {
+				oldestKey, oldest = key, entry
+			}
+		}
+		evicted = append(evicted, oldest.svc)
+		delete(ionosClientCache, oldestKey)
+	}
+
+	return evicted
+}
+
+// ionosClientCacheAccess looks up key, caching store on a miss. All map access goes through here.
+func ionosClientCacheAccess(key [sha256.Size]byte, store *IonosServices) (*IonosServices, bool) {
+	now := ionosClientCacheNow()
+
+	ionosClientCacheMu.Lock()
+	entry, found := ionosClientCache[key]
+	switch {
+	case found:
+		entry.lastUsed = now
+	case store != nil:
+		entry = &ionosClientCacheEntry{svc: store, lastUsed: now}
+		ionosClientCache[key] = entry
+		found = true
+	}
+	var svc *IonosServices
+	if found {
+		svc = entry.svc
+	}
+	// Evicting after the lookup keeps the bound true on exit, and the entry just stamped is newest.
+	evicted := ionosClientCacheEvictLocked(now)
+	ionosClientCacheMu.Unlock()
+
+	for _, e := range evicted {
+		e.closeIdleConnections()
+	}
+	return svc, found
+}
+
+// closeIdleConnections releases the pooled sockets of evicted clients; in-flight ones are unaffected.
+// http.DefaultClient is skipped: the SDKs share it, so closing it would hit every other client.
+func (svc *IonosServices) closeIdleConnections() {
+	if svc == nil {
+		return
+	}
+
+	httpClients := make([]*http.Client, 0, 3)
+	if svc.ComputeClient != nil {
+		httpClients = append(httpClients, svc.ComputeClient.GetConfig().HTTPClient)
+	}
+	if svc.DBaaSMongoClient != nil {
+		httpClients = append(httpClients, svc.DBaaSMongoClient.GetConfig().HTTPClient)
+	}
+	if svc.DBaaSPostgresClient != nil {
+		httpClients = append(httpClients, svc.DBaaSPostgresClient.GetConfig().HTTPClient)
+	}
+
+	for _, hc := range httpClients {
+		if hc == nil || hc == http.DefaultClient {
+			continue
+		}
+		hc.CloseIdleConnections()
+	}
+}
 
 // cacheKeySalt keys the HMAC below. Generated once per process.
 var cacheKeySalt = func() []byte {
@@ -308,8 +418,8 @@ func ionosClientCacheKey(data []byte) [sha256.Size]byte {
 // Identical credentials return the same *IonosServices, so callers must treat it as read-only.
 func NewIonosClients(data []byte) (*IonosServices, error) {
 	key := ionosClientCacheKey(data)
-	if svc, ok := ionosClientCache.Load(key); ok {
-		return svc.(*IonosServices), nil
+	if svc, ok := ionosClientCacheAccess(key, nil); ok {
+		return svc, nil
 	}
 
 	svc, err := newIonosClients(data)
@@ -318,9 +428,9 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 		return nil, err
 	}
 
-	// A startup burst misses the same key concurrently; LoadOrStore makes them share one client.
-	actual, _ := ionosClientCache.LoadOrStore(key, svc)
-	return actual.(*IonosServices), nil
+	// A startup burst misses the same key concurrently; the first store wins and the rest share it.
+	cached, _ := ionosClientCacheAccess(key, svc)
+	return cached, nil
 }
 
 func newIonosClients(data []byte) (*IonosServices, error) {
