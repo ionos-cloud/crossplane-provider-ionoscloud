@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -148,10 +149,16 @@ func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, reqID string) (
 // (1s, 2s, 4s, 8s, 16s, 30s, 30s, ... with the default PollInterval).
 // Long-running requests therefore no longer cause one status GET per second.
 //
-// The result is the same as with the SDK loop:
+// Results:
 //   - DONE: nil
 //   - FAILED: error with the request message
-//   - status GET fails or does not return 200: error
+//   - status GET answered 429, 502, 503 or 504, or got no HTTP response
+//     because of a network error: keep polling. The SDK client makes a
+//     single attempt per call, so the retry happens here, with the backoff
+//     above, instead of failing the wait and sending the request again on
+//     the next reconcile.
+//   - status GET fails in any other way (404, 500, ...) or returns another
+//     non-200 code: error
 //   - QUEUED, RUNNING or no status yet: keep polling
 //   - ctx cancelled or past its deadline: error
 func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *sdkgo.APIResponse) error {
@@ -189,10 +196,15 @@ func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *s
 
 // pollRequest gets the status of a request once. It returns true if the
 // request is DONE, an error if the request FAILED or its status could not be
-// read, and false otherwise.
+// read, and false otherwise. A transient failure of the status GET (see
+// isTransientPollError) is not an error: it returns false, so the caller polls
+// again.
 func pollRequest(ctx context.Context, client *sdkgo.APIClient, reqID string) (bool, error) {
 	reqStatus, apiResponse, err := client.RequestsApi.RequestsStatusGet(ctx, reqID).Execute()
 	if err != nil {
+		if isTransientPollError(apiResponse, err) {
+			return false, nil
+		}
 		return false, fmt.Errorf("failed to retrieve request (%s) status: %w", reqID, err)
 	}
 	if apiResponse == nil || apiResponse.Response == nil {
@@ -219,6 +231,35 @@ func pollRequest(ctx context.Context, client *sdkgo.APIClient, reqID string) (bo
 		return false, fmt.Errorf("request %s failed: %s", id, message)
 	default:
 		return false, nil
+	}
+}
+
+// isTransientPollError reports whether a failed request status GET is worth
+// another poll. If the API answered, that depends on the status code only (see
+// isTransientPollStatus). If there is no HTTP response, it is true for network
+// errors (connection reset, timeout, ...): the SDK returns the *url.Error of
+// the HTTP client, which is a net.Error. If ctx is done, the caller's wait
+// loop returns ctx.Err() right away.
+func isTransientPollError(apiResponse *sdkgo.APIResponse, err error) bool {
+	if apiResponse != nil && apiResponse.Response != nil {
+		return isTransientPollStatus(apiResponse.StatusCode)
+	}
+	var netErr net.Error
+	return errors.As(err, &netErr)
+}
+
+// isTransientPollStatus reports whether a request status GET that returned
+// code should be retried: rate limited (429) or a gateway / availability
+// error (502, 503, 504). These are the codes the SDK itself retries.
+func isTransientPollStatus(code int) bool {
+	switch code {
+	case http.StatusTooManyRequests,
+		http.StatusBadGateway,
+		http.StatusServiceUnavailable,
+		http.StatusGatewayTimeout:
+		return true
+	default:
+		return false
 	}
 }
 

@@ -21,7 +21,8 @@ const (
 )
 
 // statusResponse is one answer of the fake request status endpoint. An empty
-// status means the response has no metadata.
+// status means the response has no metadata. Code 0 means the server closes
+// the connection without an answer (a network error for the client).
 type statusResponse struct {
 	code    int
 	status  string
@@ -54,6 +55,23 @@ func (s *requestStatusServer) handle(w http.ResponseWriter, r *http.Request) {
 	s.calls = append(s.calls, time.Now())
 	s.paths = append(s.paths, r.URL.Path)
 	s.mu.Unlock()
+
+	if resp.code == 0 {
+		hj, ok := w.(http.Hijacker)
+		if !ok {
+			s.t.Errorf("response writer does not support hijacking")
+			return
+		}
+		conn, _, err := hj.Hijack()
+		if err != nil {
+			s.t.Errorf("hijack connection: %v", err)
+			return
+		}
+		if err := conn.Close(); err != nil {
+			s.t.Errorf("close connection: %v", err)
+		}
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.code)
@@ -94,6 +112,8 @@ func (s *requestStatusServer) callPaths() []string {
 func newTestClient(serverURL string) *sdkgo.APIClient {
 	cfg := sdkgo.NewConfiguration("", "", "test-token", serverURL)
 	cfg.PollInterval = testPollInterval
+	// Like the provider's compute client: one attempt per call, no SDK retries.
+	cfg.MaxRetries = 1
 	return sdkgo.NewAPIClient(cfg)
 }
 
@@ -152,6 +172,63 @@ func TestWaitForRequestStatusGetError(t *testing.T) {
 			require.ErrorContains(t, err, "failed to retrieve request ("+testRequestID+") status")
 			assert.Len(t, s.callTimes(), 1)
 		})
+	}
+}
+
+func TestWaitForRequestTransientStatusGetError(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		first statusResponse
+	}{
+		{name: "TooManyRequests", first: statusResponse{code: http.StatusTooManyRequests}},
+		{name: "BadGateway", first: statusResponse{code: http.StatusBadGateway}},
+		{name: "ServiceUnavailable", first: statusResponse{code: http.StatusServiceUnavailable}},
+		{name: "GatewayTimeout", first: statusResponse{code: http.StatusGatewayTimeout}},
+		{name: "ConnectionClosed", first: statusResponse{}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s := newRequestStatusServer(t,
+				tc.first,
+				statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusRunning},
+				statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusDone},
+			)
+
+			err := WaitForRequest(context.Background(), newTestClient(s.URL), acceptedResponse(s.URL+testRequestStatusPath))
+			require.NoError(t, err)
+			assert.Len(t, s.callTimes(), 3)
+		})
+	}
+}
+
+func TestWaitForRequestTransientThenDone(t *testing.T) {
+	s := newRequestStatusServer(t,
+		statusResponse{code: http.StatusServiceUnavailable},
+		statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusDone},
+	)
+
+	err := WaitForRequest(context.Background(), newTestClient(s.URL), acceptedResponse(s.URL+testRequestStatusPath))
+	require.NoError(t, err)
+	assert.Len(t, s.callTimes(), 2)
+}
+
+func TestWaitForRequestTransientUntilDeadline(t *testing.T) {
+	s := newRequestStatusServer(t, statusResponse{code: http.StatusTooManyRequests})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	err := WaitForRequest(ctx, newTestClient(s.URL), acceptedResponse(s.URL+testRequestStatusPath))
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.Less(t, time.Since(start), 5*time.Second)
+	assert.GreaterOrEqual(t, len(s.callTimes()), 2)
+}
+
+func TestIsTransientPollStatus(t *testing.T) {
+	for _, code := range []int{http.StatusTooManyRequests, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout} {
+		assert.True(t, isTransientPollStatus(code), code)
+	}
+	for _, code := range []int{http.StatusOK, http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound, http.StatusInternalServerError} {
+		assert.False(t, isTransientPollStatus(code), code)
 	}
 }
 
