@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
+	"time"
 
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 )
@@ -34,6 +36,15 @@ const (
 )
 
 const POSTRequestIDAnnotationKey = "ionos.cloud/post-request-id"
+
+const (
+	// maxRequestPollInterval caps the backoff between two request status polls
+	// in WaitForRequest.
+	maxRequestPollInterval = 30 * time.Second
+	// defaultRequestPollInterval is the first wait in WaitForRequest when the
+	// client has no positive PollInterval configured (same as the SDK default).
+	defaultRequestPollInterval = time.Second
+)
 
 // ExtractRequestID extracts the IONOS Cloud request ID from the Location header
 // of an API response, which has the following format:
@@ -127,18 +138,98 @@ func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, reqID string) (
 	}
 }
 
-// WaitForRequest waits for the request to be DONE
+// WaitForRequest waits for the request referenced by the Location header of
+// apiResponse to be DONE.
+//
+// It replaces the SDK's APIClient.WaitForRequest, which polls the request
+// status at a fixed PollInterval (1s by default). Here the first poll is
+// immediate, then the wait between polls starts at the client's PollInterval
+// and doubles after each poll, capped at maxRequestPollInterval
+// (1s, 2s, 4s, 8s, 16s, 30s, 30s, ... with the default PollInterval).
+// Long-running requests therefore no longer cause one status GET per second.
+//
+// The result is the same as with the SDK loop:
+//   - DONE: nil
+//   - FAILED: error with the request message
+//   - status GET fails or does not return 200: error
+//   - QUEUED, RUNNING or no status yet: keep polling
+//   - ctx cancelled or past its deadline: error
 func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *sdkgo.APIResponse) error {
-	if client != nil {
-		if apiResponse != nil && apiResponse.Response != nil {
-			if _, err := client.WaitForRequest(ctx, apiResponse.Response.Header.Get(requestHeader)); err != nil {
-				return err
-			}
-			return nil
-		}
+	if client == nil {
+		return errors.New(errAPIClientNil)
+	}
+	if apiResponse == nil || apiResponse.Response == nil {
 		return errors.New(errAPIResponseNil)
 	}
-	return errors.New(errAPIClientNil)
+	reqID, err := ExtractRequestID(apiResponse)
+	if err != nil {
+		return err
+	}
+
+	interval := client.GetConfig().PollInterval
+	if interval <= 0 {
+		interval = defaultRequestPollInterval
+	}
+	for {
+		done, err := pollRequest(ctx, client, reqID)
+		if err != nil || done {
+			return err
+		}
+
+		timer := time.NewTimer(interval)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-timer.C:
+		}
+		interval = nextPollInterval(interval)
+	}
+}
+
+// pollRequest gets the status of a request once. It returns true if the
+// request is DONE, an error if the request FAILED or its status could not be
+// read, and false otherwise.
+func pollRequest(ctx context.Context, client *sdkgo.APIClient, reqID string) (bool, error) {
+	reqStatus, apiResponse, err := client.RequestsApi.RequestsStatusGet(ctx, reqID).Execute()
+	if err != nil {
+		return false, fmt.Errorf("failed to retrieve request (%s) status: %w", reqID, err)
+	}
+	if apiResponse == nil || apiResponse.Response == nil {
+		return false, errors.New(errAPIResponseNil)
+	}
+	if apiResponse.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("failed to retrieve request (%s) status: received status code %d from API", reqID, apiResponse.StatusCode)
+	}
+	if reqStatus.Metadata == nil || reqStatus.Metadata.Status == nil {
+		return false, nil
+	}
+
+	switch *reqStatus.Metadata.Status {
+	case sdkgo.RequestStatusDone:
+		return true, nil
+	case sdkgo.RequestStatusFailed:
+		id, message := reqID, "<none>"
+		if reqStatus.Id != nil {
+			id = *reqStatus.Id
+		}
+		if reqStatus.Metadata.Message != nil {
+			message = *reqStatus.Metadata.Message
+		}
+		return false, fmt.Errorf("request %s failed: %s", id, message)
+	default:
+		return false, nil
+	}
+}
+
+// nextPollInterval doubles the wait between two request status polls, up to
+// maxRequestPollInterval. A wait that is already above the cap (a large
+// configured PollInterval) is kept as is.
+func nextPollInterval(interval time.Duration) time.Duration {
+	if interval >= maxRequestPollInterval {
+		return interval
+	}
+	return min(2*interval, maxRequestPollInterval)
 }
 
 // ErrorUnlessNotFound returns an error with status code info, unless the status code is 404

@@ -380,6 +380,11 @@ both ``0`` by default, tune this:
 | ``--poll-jitter-percentage`` | Shifts each resource's poll interval randomly in either direction by up to this percentage of it, spreading the load out. Must be less than ``100``, since a resource shifted by a full interval could be left with a poll interval of zero and stop being polled. |
 | ``--poll-not-ready`` | Poll interval used in place of ``--poll`` while a resource is not ready yet, typically shorter, to reduce the time to readiness. Jitter applies to it too. |
 
+Separately, after a Cloud API (v6) create/update/delete call the provider waits for the IONOS Cloud request
+to finish by polling its status. The first check is immediate; after that the wait between checks
+starts at 1 s and doubles each time, up to 30 s (1 s, 2 s, 4 s, 8 s, 16 s, 30 s, 30 s, ...), so
+long-running requests do not cause one status call per second.
+
 You can create a ``DeploymentRuntimeConfig`` file using:
 
 ```bash
