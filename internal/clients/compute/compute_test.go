@@ -33,6 +33,7 @@ type statusResponse struct {
 type requestStatusServer struct {
 	*httptest.Server
 
+	t         *testing.T
 	mu        sync.Mutex
 	responses []statusResponse
 	calls     []time.Time
@@ -41,7 +42,7 @@ type requestStatusServer struct {
 
 func newRequestStatusServer(t *testing.T, responses ...statusResponse) *requestStatusServer {
 	t.Helper()
-	s := &requestStatusServer{responses: responses}
+	s := &requestStatusServer{t: t, responses: responses}
 	s.Server = httptest.NewServer(http.HandlerFunc(s.handle))
 	t.Cleanup(s.Close)
 	return s
@@ -57,10 +58,12 @@ func (s *requestStatusServer) handle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.code)
 	if resp.code != http.StatusOK {
-		_ = json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"httpStatus": resp.code,
 			"messages":   []map[string]any{{"errorCode": "000", "message": "simulated error"}},
-		})
+		}); err != nil {
+			s.t.Errorf("encode error response: %v", err)
+		}
 		return
 	}
 	body := map[string]any{"id": testRequestID}
@@ -71,7 +74,9 @@ func (s *requestStatusServer) handle(w http.ResponseWriter, r *http.Request) {
 		}
 		body["metadata"] = metadata
 	}
-	_ = json.NewEncoder(w).Encode(body)
+	if err := json.NewEncoder(w).Encode(body); err != nil {
+		s.t.Errorf("encode status response: %v", err)
+	}
 }
 
 func (s *requestStatusServer) callTimes() []time.Time {
