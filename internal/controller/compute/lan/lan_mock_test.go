@@ -294,6 +294,35 @@ func getLanCR(ctx context.Context, name string) (*v1alpha1.Lan, error) {
 	return cr, err
 }
 
+// lanEntitiesWithNics returns LAN entities listing the given NIC IDs as
+// references, the way the Cloud API returns them for GET lan with depth=1.
+func lanEntitiesWithNics(nicIDs ...string) *sdkgo.LanEntities {
+	items := make([]sdkgo.Nic, 0, len(nicIDs))
+	for _, id := range nicIDs {
+		items = append(items, sdkgo.Nic{Id: ptr.To(id)})
+	}
+	return &sdkgo.LanEntities{Nics: &sdkgo.LanNics{Items: &items}}
+}
+
+// observeThenDeleteLan stores l in a fresh fake service and runs Observe then
+// Delete on one externalLan, like a single reconcile of a deleted CR does.
+func observeThenDeleteLan(l sdkgo.Lan) (*fakeLanService, error) {
+	ctx := context.Background()
+	svc := newFakeLanService(testServer.URL())
+	svc.storeLan(mocktest.TestDatacenterID, *l.Id, l)
+
+	cr := newLanCR("lan-delete-nics")
+	meta.SetExternalName(cr, *l.Id)
+	ext := &externalLan{service: svc, log: logging.NewNopLogger()}
+
+	obs, err := ext.Observe(ctx, cr)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(obs.ResourceExists).To(BeTrue())
+
+	_, err = ext.Delete(ctx, cr)
+	return svc, err
+}
+
 // ---------------------------------------------------------------------------
 // Test scenarios
 // ---------------------------------------------------------------------------
@@ -397,6 +426,119 @@ var _ = Describe("LAN Controller E2E Tests", func() {
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(fetched.Spec.ForProvider.Ipv6Cidr).To(Equal(assignedCidr))
 			}, mocktest.Timeout, mocktest.Interval).Should(Succeed())
+		})
+	})
+
+	// Scenario 12: the LAN is deleted only after its NICs are gone (LAN-specific)
+	Describe("Scenario 12: Delete waits for attached NICs", func() {
+		const lanID = "nic-check-lan"
+
+		newLan := func(state string, entities *sdkgo.LanEntities) sdkgo.Lan {
+			return sdkgo.Lan{
+				Id: ptr.To(lanID),
+				Properties: &sdkgo.LanProperties{
+					Name:   ptr.To("lan-delete-nics"),
+					Public: ptr.To(true),
+				},
+				Metadata: &sdkgo.DatacenterElementMetadata{State: ptr.To(state)},
+				Entities: entities,
+			}
+		}
+
+		BeforeEach(func() {
+			testServer.SetMode(mocktest.StatusModeDone)
+		})
+
+		It("should not delete a LAN that still has NICs", func() {
+			svc, err := observeThenDeleteLan(newLan(compute.AVAILABLE, lanEntitiesWithNics("nic-1", "nic-2")))
+			Expect(err).To(MatchError(ContainSubstring("still has 2 NIC(s) attached")))
+			Expect(svc.GetDeleteCalls()).To(BeEmpty())
+		})
+
+		It("should delete a LAN whose NIC list is empty", func() {
+			svc, err := observeThenDeleteLan(newLan(compute.AVAILABLE, lanEntitiesWithNics()))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(svc.GetDeleteCalls()).To(ConsistOf(lanID))
+		})
+
+		It("should delete the LAN if the response has no entities", func() {
+			svc, err := observeThenDeleteLan(newLan(compute.AVAILABLE, nil))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(svc.GetDeleteCalls()).To(ConsistOf(lanID))
+		})
+
+		It("should delete the LAN if the NIC collection has no items", func() {
+			svc, err := observeThenDeleteLan(newLan(compute.AVAILABLE, &sdkgo.LanEntities{Nics: &sdkgo.LanNics{}}))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(svc.GetDeleteCalls()).To(ConsistOf(lanID))
+		})
+
+		It("should not send a delete for a LAN that is already DESTROYING", func() {
+			svc, err := observeThenDeleteLan(newLan(compute.DESTROYING, lanEntitiesWithNics("nic-1")))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(svc.GetDeleteCalls()).To(BeEmpty())
+		})
+	})
+
+	// Scenario 13: full reconcile of a LAN CR deletion that waits for NICs (LAN-specific)
+	Describe("Scenario 13: CR deletion waits for attached NICs", Ordered, func() {
+		var crName string
+
+		BeforeAll(func() {
+			testServer.SetMode(mocktest.StatusModeDone)
+			fakeSvc.ClearErrors()
+			crName = "test-lan-delete-nics"
+		})
+
+		AfterAll(func() {
+			cr, err := getLanCR(context.Background(), crName)
+			if err == nil {
+				_ = k8sClient.Delete(context.Background(), cr)
+			}
+		})
+
+		It("should keep the LAN until its NICs are gone, then delete it", func() {
+			ctx := context.Background()
+			Expect(k8sClient.Create(ctx, newLanCR(crName))).Should(Succeed())
+
+			var lanID string
+			Eventually(func(g Gomega) {
+				fetched, err := getLanCR(ctx, crName)
+				g.Expect(err).NotTo(HaveOccurred())
+				lanID = meta.GetExternalName(fetched)
+				g.Expect(lanID).NotTo(BeEmpty())
+				g.Expect(fetched.Status.AtProvider.State).To(Equal("AVAILABLE"))
+			}, mocktest.Timeout, mocktest.Interval).Should(Succeed())
+
+			By("attaching two NICs to the LAN")
+			l, ok := fakeSvc.getLan(mocktest.TestDatacenterID, lanID)
+			Expect(ok).To(BeTrue())
+			l.Entities = lanEntitiesWithNics("nic-1", "nic-2")
+			fakeSvc.storeLan(mocktest.TestDatacenterID, lanID, l)
+
+			By("deleting the LAN CR")
+			fetched, err := getLanCR(ctx, crName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Delete(ctx, fetched)).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				cr, err := getLanCR(ctx, crName)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(cr.GetCondition(xpv1.TypeSynced).Message).To(ContainSubstring("still has 2 NIC(s) attached"))
+			}, mocktest.Timeout, mocktest.Interval).Should(Succeed())
+			Expect(fakeSvc.GetDeleteCalls()).NotTo(ContainElement(lanID))
+
+			By("detaching the NICs")
+			l, ok = fakeSvc.getLan(mocktest.TestDatacenterID, lanID)
+			Expect(ok).To(BeTrue())
+			l.Entities = lanEntitiesWithNics()
+			fakeSvc.storeLan(mocktest.TestDatacenterID, lanID, l)
+
+			Eventually(func() bool {
+				_, err := getLanCR(ctx, crName)
+				return err != nil
+			}, mocktest.Timeout, mocktest.Interval).Should(BeTrue())
+			Expect(fakeSvc.GetDeleteCalls()).To(ContainElement(lanID))
 		})
 	})
 })
