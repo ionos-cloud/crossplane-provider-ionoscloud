@@ -119,6 +119,12 @@ type externalLan struct {
 	service              lan.Client
 	log                  logging.Logger
 	isUniqueNamesEnabled bool
+	// nicCount is the number of NICs attached to the LAN, as seen by the last
+	// Observe. It is only valid if nicsKnown is true. A new externalLan is
+	// created on every reconcile and Delete runs right after Observe on the
+	// same object, so Delete can rely on it.
+	nicCount  int
+	nicsKnown bool
 }
 
 func (c *externalLan) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -126,6 +132,7 @@ func (c *externalLan) Observe(ctx context.Context, mg resource.Managed) (managed
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotLan)
 	}
+	c.nicCount, c.nicsKnown = 0, false
 
 	// External Name of the CR is the Lan ID
 	if meta.GetExternalName(cr) == "" {
@@ -136,6 +143,7 @@ func (c *externalLan) Observe(ctx context.Context, mg resource.Managed) (managed
 		retErr := fmt.Errorf("failed to get lan by id. error: %w", err)
 		return managed.ExternalObservation{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
+	c.nicCount, c.nicsKnown = attachedNicCount(&instance)
 	current := cr.Spec.ForProvider.DeepCopy()
 	lateInitializer(&cr.Spec.ForProvider, &instance)
 	cr.Status.AtProvider.IPFailovers = lan.GetIPFailoverIPs(instance)
@@ -156,6 +164,16 @@ func (c *externalLan) Observe(ctx context.Context, mg resource.Managed) (managed
 		ResourceLateInitialized: !cmp.Equal(current, &cr.Spec.ForProvider),
 		Diff:                    diff,
 	}, nil
+}
+
+// attachedNicCount returns the number of NICs listed in the LAN's entities.
+// known is false if the response has no NIC list (e.g. it was fetched with
+// depth=0), so the caller cannot tell whether NICs are attached.
+func attachedNicCount(instance *sdkgo.Lan) (count int, known bool) {
+	if instance == nil || instance.Entities == nil || instance.Entities.Nics == nil || instance.Entities.Nics.Items == nil {
+		return 0, false
+	}
+	return len(*instance.Entities.Nics.Items), true
 }
 
 // LateInitializer fills the empty fields that are set in the backend
@@ -286,6 +304,13 @@ func (c *externalLan) Delete(ctx context.Context, mg resource.Managed) (managed.
 	cr.SetConditions(xpv1.Deleting())
 	if cr.Status.AtProvider.State == compute.DESTROYING {
 		return managed.ExternalDelete{}, nil
+	}
+	// The Cloud API rejects deleting a LAN that still has NICs (422). Do not
+	// send the request until they are gone; the error makes the reconciler
+	// retry with backoff and shows the reason in the Synced condition.
+	if c.nicsKnown && c.nicCount > 0 {
+		return managed.ExternalDelete{}, fmt.Errorf("lan %s still has %d NIC(s) attached, waiting for them to be deleted before deleting the lan",
+			cr.Status.AtProvider.LanID, c.nicCount)
 	}
 
 	apiResponse, err := c.service.DeleteLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.LanID)
