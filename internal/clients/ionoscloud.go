@@ -433,6 +433,12 @@ func NewIonosClients(data []byte) (*IonosServices, error) {
 	return cached, nil
 }
 
+// computeMaxRetries makes the compute (Cloud API v6) SDK send each request only once. sdk-go v6
+// counts attempts here, so 1 means no retry. By default it tries 3 times, 100 ms apart, on
+// 429 (and on 502/503/504 for non-POST). Against a rate-limited API those quick retries only add
+// load (ICNAS-928). The error goes back to crossplane-runtime instead, which requeues with backoff.
+const computeMaxRetries = 1
+
 func newIonosClients(data []byte) (*IonosServices, error) {
 	creds := credentials{}
 	if err := json.Unmarshal(data, &creds); err != nil {
@@ -471,6 +477,7 @@ func newIonosClients(data []byte) (*IonosServices, error) {
 	// Compute Engine Client
 	computeEngineConfig := sdkgo.NewConfiguration(creds.User, string(decodedPW), creds.Token, apiHostURL)
 	computeEngineConfig.UserAgent = fmt.Sprintf("%v/%v_%v", UserAgent, version.Version, computeEngineConfig.UserAgent)
+	computeEngineConfig.MaxRetries = computeMaxRetries
 	if computeHTTPClient != nil {
 		computeEngineConfig.HTTPClient = computeHTTPClient
 	}
