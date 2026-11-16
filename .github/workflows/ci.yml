@@ -8,7 +8,8 @@ permissions:
   contents: read
 
 env:
-  GOLANGCI_VERSION: 'v2.13.2'
+  # v2.14.0+ ships golang.org/x/tools >= v0.50.0, which can read the export data (version 5) of Go 1.27.3.
+  GOLANGCI_VERSION: 'v2.15.0'
   DOCKER_BUILDX_VERSION: 'v0.20.1'
 
 jobs:
