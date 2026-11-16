@@ -1,9 +1,19 @@
 ## [Unreleased]
 ### Features:
 - Make the VM-reboot wait after a ServerSet failover configurable (`--vm-reboot-timeout`, default `120m`, same as the previous hardcoded value), with an opt-in `--extend-serverset-timeout-for-vm-reboot` flag to widen the ServerSet controller's own reconcile timeout to accommodate it when needed.
+- Add opt-in `--delete-request-wait` (default `0`, off) to limit how long the Delete of a Server, Nic, Volume, FirewallRule or Lan waits for its DELETE request; a later reconcile checks the stored request.
+- Add opt-in `--api-throttle-wait` (default `0`, off) and `--api-throttle-max-wait` (default `10m`): after a Cloud API `429` the provider holds back writes to that datacenter, and after a `422` on a DELETE it holds back that DELETE, honouring `Retry-After`.
+### Fixes:
+- Request status polling backs off from the SDK poll interval up to `30s`, and keeps polling on `429`/`502`/`503`/`504` and short network errors.
+- Server, Nic, Volume, FirewallRule and Lan store the DELETE request ID in the `ionos.cloud/delete-request-id` annotation and wait on that request instead of sending a new DELETE.
+- Send each compute API call once (SDK `MaxRetries=1`), with no quick SDK retries on `429`/`5xx`.
+- Lan Delete waits until no NICs are attached to the LAN.
 ### Chores:
 - Update go version, crossplane-runtime and crypto dependencies to fix CVEs.
 - Run go fix on the codebase to run modernize on the codebase.
+- Bump Go to 1.27.3 and `golang.org/x/net` to v0.62.0 to fix CVEs.
+- Bump golangci-lint to v2.15.0.
+- Fix the Trivy image ID lookup on Docker 29 runners.
 
 ## [1.2.6] (August 2026)
 ### Fixes:
