@@ -488,6 +488,12 @@ func newIonosClients(data []byte) (*IonosServices, error) {
 		// repaired.
 		reapplyMTLSAfterPinning(computeEngineClient.GetConfig(), computeMTLSTLSConfig, creds.StripCloudAPIPrefix)
 	}
+	if computeThrottle.enabled() {
+		// ICNAS-928: hold back writes to a datacenter the Cloud API is rate limiting. Done last, so
+		// the Transport set above is the one wrapped. A new http.Client is assigned, so
+		// http.DefaultClient is never changed.
+		computeEngineClient.GetConfig().HTTPClient = withComputeThrottle(computeEngineClient.GetConfig().HTTPClient, computeThrottle)
+	}
 
 	return &IonosServices{
 		DBaaSMongoClient:    dbaasMongoClient,
