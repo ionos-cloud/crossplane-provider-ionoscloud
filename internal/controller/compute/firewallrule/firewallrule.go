@@ -326,8 +326,8 @@ func (c *externalFirewallRule) Delete(ctx context.Context, mg resource.Managed) 
 		retErr := fmt.Errorf("failed to delete firewallRule. error: %w", err)
 		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
-	compute.StoreDeleteRequestID(ctx, c.kube, cr, apiResponse, c.log)
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+	stored := compute.StoreDeleteRequestID(ctx, c.kube, cr, apiResponse, c.log)
+	if err = compute.WaitForDeleteRequest(ctx, c.service.GetAPIClient(), apiResponse, stored); err != nil {
 		return managed.ExternalDelete{}, err
 	}
 	return managed.ExternalDelete{}, nil

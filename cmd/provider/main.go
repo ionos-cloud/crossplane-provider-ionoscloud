@@ -44,6 +44,7 @@ import (
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/apis/v1alpha1"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients"
+	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/clients/compute"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/controller"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/features"
 	"github.com/ionos-cloud/crossplane-provider-ionoscloud/internal/utils"
@@ -68,6 +69,7 @@ func main() {
 		pollNotReady                      = app.Flag("poll-not-ready", "Poll interval for a resource that is not ready yet, used in place of --poll while it is not ready. 0 leaves resources that are not ready on the --poll interval.").Default("0").Duration()
 		apiThrottleWait                   = app.Flag("api-throttle-wait", "After the Cloud API answers 429 for a datacenter (or 422 for a DELETE, PUT or PATCH of a resource), the provider stops sending writes (POST, PUT, PATCH, DELETE) to that datacenter (or that request) and answers them locally with 429 for this long, if the response has no usable Retry-After header. 0 disables this.").Default("0").Duration()
 		apiThrottleMaxWait                = app.Flag("api-throttle-max-wait", "Upper limit for the wait after a Cloud API 429 or 422, also for a Retry-After sent by the API. Only used when --api-throttle-wait is above 0, and then must not be less than it.").Default("10m").Duration()
+		deleteRequestWait                 = app.Flag("delete-request-wait", "How long the Delete of a Server, Nic, Volume, FirewallRule or Lan waits for its Cloud API DELETE request to finish. After that, the reconcile ends and a later reconcile checks the stored request instead of sending a new DELETE. 0 disables this: the wait lasts until --timeout.").Default("0").Duration()
 		namespace                         = app.Flag("namespace", "Namespace used to set as default scope in default secret store config.").Default("crossplane-system").Envar("POD_NAMESPACE").String()
 		enableExternalSecretStores        = app.Flag("enable-external-secret-stores", "Enable support for ExternalSecretStores.").Default("false").Envar("ENABLE_EXTERNAL_SECRET_STORES").Bool()
 		reconcileMap                      = app.Flag("max-reconcile-rate-per-resource", "Overrides the max-reconcile-rate on a per resource basis. Use the Kind of the resource as the key.").PlaceHolder("nic:2").StringMap()
@@ -85,7 +87,7 @@ func main() {
 		ctrl.SetLogger(zap.New(zap.WriteTo(io.Discard)))
 	}
 
-	log.Debug("Starting", "sync-period", syncInterval.String(), "poll-interval", pollInterval.String(), "poll-jitter-percentage", *pollJitterPercentage, "poll-not-ready", pollNotReady.String(), "api-throttle-wait", apiThrottleWait.String(), "api-throttle-max-wait", apiThrottleMaxWait.String(), "max-reconcile-rate", *maxReconcileRate, "debug", *debug)
+	log.Debug("Starting", "sync-period", syncInterval.String(), "poll-interval", pollInterval.String(), "poll-jitter-percentage", *pollJitterPercentage, "poll-not-ready", pollNotReady.String(), "api-throttle-wait", apiThrottleWait.String(), "api-throttle-max-wait", apiThrottleMaxWait.String(), "delete-request-wait", deleteRequestWait.String(), "max-reconcile-rate", *maxReconcileRate, "debug", *debug)
 
 	// vmRebootTimeout's default (120m) is intentionally larger than timeout's default (1h) to
 	// preserve the pre-existing hardcoded behavior, so only validate when the user actually
@@ -155,6 +157,8 @@ func main() {
 	kingpin.FatalIfError(clients.ValidateComputeThrottleOptions(throttleOptions), "Invalid --api-throttle-wait or --api-throttle-max-wait")
 	// Must run before controller.Setup: the compute clients read it without a lock.
 	clients.ConfigureComputeThrottle(throttleOptions)
+	// Must run before controller.Setup: WaitForDeleteRequest reads it without a lock.
+	kingpin.FatalIfError(compute.ConfigureDeleteRequestWait(*deleteRequestWait), "Invalid --delete-request-wait")
 
 	options := utils.NewConfigurationOptions(*timeout, *createGracePeriod, *uniqueNames, ctrlOpts)
 	options.PollJitterPercentage = *pollJitterPercentage

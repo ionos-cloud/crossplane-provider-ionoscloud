@@ -348,7 +348,7 @@ func TestStoreDeleteRequestID(t *testing.T) {
 	cr := &corev1.ConfigMap{}
 	require.NoError(t, kube.Get(ctx, key, cr))
 
-	StoreDeleteRequestID(ctx, kube, cr, acceptedResponse("https://api.ionos.com/cloudapi/v6/requests/"+testRequestID+"/status"), logging.NewNopLogger())
+	assert.True(t, StoreDeleteRequestID(ctx, kube, cr, acceptedResponse("https://api.ionos.com/cloudapi/v6/requests/"+testRequestID+"/status"), logging.NewNopLogger()))
 	assert.Equal(t, testRequestID, cr.GetAnnotations()[DELETERequestIDAnnotationKey])
 
 	stored := &corev1.ConfigMap{}
@@ -366,13 +366,103 @@ func TestStoreDeleteRequestIDSkipped(t *testing.T) {
 	// No request ID in the response: nothing is stored.
 	cr := &corev1.ConfigMap{}
 	require.NoError(t, kube.Get(ctx, key, cr))
-	StoreDeleteRequestID(ctx, kube, cr, acceptedResponse(""), logging.NewNopLogger())
+	assert.False(t, StoreDeleteRequestID(ctx, kube, cr, acceptedResponse(""), logging.NewNopLogger()))
 	stored := &corev1.ConfigMap{}
 	require.NoError(t, kube.Get(ctx, key, stored))
 	assert.NotContains(t, stored.GetAnnotations(), DELETERequestIDAnnotationKey)
 
 	// No kube client: nothing is set, and no panic.
 	cr = &corev1.ConfigMap{}
-	StoreDeleteRequestID(ctx, nil, cr, acceptedResponse("https://api.ionos.com/cloudapi/v6/requests/"+testRequestID+"/status"), logging.NewNopLogger())
+	assert.False(t, StoreDeleteRequestID(ctx, nil, cr, acceptedResponse("https://api.ionos.com/cloudapi/v6/requests/"+testRequestID+"/status"), logging.NewNopLogger()))
 	assert.NotContains(t, cr.GetAnnotations(), DELETERequestIDAnnotationKey)
+}
+
+func TestStoreDeleteRequestIDUpdateFails(t *testing.T) {
+	ctx := context.Background()
+	// The object is not in the fake API server, so the update fails.
+	kube := fake.NewClientBuilder().Build()
+	cr := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "cr"}}
+
+	assert.False(t, StoreDeleteRequestID(ctx, kube, cr, acceptedResponse("https://api.ionos.com/cloudapi/v6/requests/"+testRequestID+"/status"), logging.NewNopLogger()))
+}
+
+// setDeleteRequestWait sets the package wide delete request wait for one test.
+func setDeleteRequestWait(t *testing.T, wait time.Duration) {
+	t.Helper()
+	old := deleteRequestWait
+	require.NoError(t, ConfigureDeleteRequestWait(wait))
+	t.Cleanup(func() { deleteRequestWait = old })
+}
+
+func TestConfigureDeleteRequestWait(t *testing.T) {
+	setDeleteRequestWait(t, 0)
+	require.Error(t, ConfigureDeleteRequestWait(-time.Second))
+	assert.Zero(t, deleteRequestWait)
+	require.NoError(t, ConfigureDeleteRequestWait(time.Minute))
+	assert.Equal(t, time.Minute, deleteRequestWait)
+}
+
+func TestWaitForDeleteRequestStopsAfterWait(t *testing.T) {
+	setDeleteRequestWait(t, 100*time.Millisecond)
+	s := newRequestStatusServer(t, statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusRunning})
+
+	start := time.Now()
+	err := WaitForDeleteRequest(context.Background(), newTestClient(s.URL), acceptedResponse(s.URL+testRequestStatusPath), true)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, time.Since(start), 100*time.Millisecond)
+	assert.Less(t, time.Since(start), 5*time.Second)
+	assert.GreaterOrEqual(t, len(s.callTimes()), 2)
+}
+
+func TestWaitForDeleteRequestParentDeadline(t *testing.T) {
+	setDeleteRequestWait(t, time.Minute)
+	s := newRequestStatusServer(t, statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusRunning})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	err := WaitForDeleteRequest(ctx, newTestClient(s.URL), acceptedResponse(s.URL+testRequestStatusPath), true)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.Less(t, time.Since(start), 5*time.Second)
+}
+
+func TestWaitForDeleteRequestNoShortWait(t *testing.T) {
+	for name, tc := range map[string]struct {
+		wait   time.Duration
+		stored bool
+	}{
+		"wait 0":     {wait: 0, stored: true},
+		"not stored": {wait: 10 * time.Millisecond, stored: false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			setDeleteRequestWait(t, tc.wait)
+			s := newRequestStatusServer(t, statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusRunning})
+
+			// Like WaitForRequest: the wait lasts until the deadline of ctx.
+			ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+			defer cancel()
+			err := WaitForDeleteRequest(ctx, newTestClient(s.URL), acceptedResponse(s.URL+testRequestStatusPath), tc.stored)
+			require.ErrorIs(t, err, context.DeadlineExceeded)
+		})
+	}
+}
+
+func TestWaitForDeleteRequestResult(t *testing.T) {
+	for _, wait := range []time.Duration{0, time.Minute} {
+		t.Run("wait "+wait.String(), func(t *testing.T) {
+			setDeleteRequestWait(t, wait)
+
+			done := newRequestStatusServer(t,
+				statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusRunning},
+				statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusDone},
+			)
+			require.NoError(t, WaitForDeleteRequest(context.Background(), newTestClient(done.URL), acceptedResponse(done.URL+testRequestStatusPath), true))
+
+			failed := newRequestStatusServer(t,
+				statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusFailed, message: "simulated failure"},
+			)
+			err := WaitForDeleteRequest(context.Background(), newTestClient(failed.URL), acceptedResponse(failed.URL+testRequestStatusPath), true)
+			require.ErrorContains(t, err, "request "+testRequestID+" failed: simulated failure")
+		})
+	}
 }

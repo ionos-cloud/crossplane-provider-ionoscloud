@@ -358,20 +358,73 @@ func IsDeleteRequestPending(ctx context.Context, client *sdkgo.APIClient, obj me
 // Errors are logged, not returned: without the annotation, the next reconcile
 // sends a new DELETE, as it did before. With a nil kube (unit tests) nothing
 // is stored.
-func StoreDeleteRequestID(ctx context.Context, kube client.Client, cr client.Object, apiResponse *sdkgo.APIResponse, log logging.Logger) {
+//
+// It returns true only if the annotation was persisted. The annotation stays
+// on cr in memory even if the update failed, so callers must use this result,
+// not the annotation, to know whether the request ID is stored (see
+// WaitForDeleteRequest).
+func StoreDeleteRequestID(ctx context.Context, kube client.Client, cr client.Object, apiResponse *sdkgo.APIResponse, log logging.Logger) bool {
 	reqID, err := ExtractRequestID(apiResponse)
 	if err != nil {
 		log.Info("Cannot store the DELETE request ID", "name", cr.GetName(), "error", err)
-		return
+		return false
 	}
 	if kube == nil {
 		log.Debug("No kube client, not storing the DELETE request ID", "name", cr.GetName(), "request-id", reqID)
-		return
+		return false
 	}
 	meta.AddAnnotations(cr, map[string]string{DELETERequestIDAnnotationKey: reqID})
 	if err := managed.NewRetryingCriticalAnnotationUpdater(kube).UpdateCriticalAnnotations(ctx, cr); err != nil {
 		log.Info("Cannot store the DELETE request ID", "name", cr.GetName(), "request-id", reqID, "error", err)
+		return false
 	}
+	return true
+}
+
+// deleteRequestWait is set once by ConfigureDeleteRequestWait and read by
+// WaitForDeleteRequest. 0 means no limit of its own.
+var deleteRequestWait time.Duration
+
+// ConfigureDeleteRequestWait sets how long WaitForDeleteRequest waits for a
+// stored DELETE request (--delete-request-wait). 0 turns the limit off. Call
+// it once from main, before controller.Setup: it is read without a lock.
+func ConfigureDeleteRequestWait(wait time.Duration) error {
+	if wait < 0 {
+		return fmt.Errorf("delete request wait %s must not be negative", wait)
+	}
+	deleteRequestWait = wait
+	return nil
+}
+
+// WaitForDeleteRequest is WaitForRequest for the DELETE request of a Delete,
+// with a limit of its own (see ConfigureDeleteRequestWait), so that a request
+// that stays QUEUED or RUNNING does not hold a reconcile worker until the
+// reconcile timeout.
+//
+// stored is the result of StoreDeleteRequestID for this request. The limit is
+// only used when stored is true and the limit is above 0; otherwise it is the
+// same as WaitForRequest.
+//
+// When the limit is hit while ctx is still alive, it returns nil: the Cloud
+// API accepted the DELETE and its ID is in the DELETERequestIDAnnotationKey
+// annotation, so the reconcile after the requeue checks that request with
+// IsDeleteRequestPending instead of sending a new DELETE. Cancellation or the
+// deadline of ctx itself (the reconcile timeout), FAILED and every other
+// error are returned as by WaitForRequest.
+//
+// Use it only after a DELETE: an Update has no stored request ID, so ending
+// its wait early would make the next reconcile send the PUT or PATCH again.
+func WaitForDeleteRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *sdkgo.APIResponse, stored bool) error {
+	if !stored || deleteRequestWait <= 0 {
+		return WaitForRequest(ctx, client, apiResponse)
+	}
+	waitCtx, cancel := context.WithTimeout(ctx, deleteRequestWait)
+	defer cancel()
+	err := WaitForRequest(waitCtx, client, apiResponse)
+	if errors.Is(err, context.DeadlineExceeded) && ctx.Err() == nil {
+		return nil
+	}
+	return err
 }
 
 // ErrorUnlessNotFound returns an error with status code info, unless the status code is 404

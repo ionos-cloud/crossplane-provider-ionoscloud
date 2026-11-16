@@ -394,6 +394,14 @@ off by default:
 | ``--api-throttle-wait`` | Default ``0`` (off). After a Cloud API (v6) ``429`` for a request to ``/datacenters/{id}/...``, writes (``POST``, ``PUT``, ``PATCH``, ``DELETE``) to that datacenter are not sent; the provider answers them itself with ``429`` and the header ``X-Ionos-Provider-Throttled: true``. After a ``422`` for a ``DELETE``, ``PUT`` or ``PATCH`` of a resource, the same method and path is held back the same way. A ``422`` for a ``POST`` does not hold anything back (it is about that one request body, and the path is a collection shared by all creates of that kind). Reads are never held back. The wait is the ``Retry-After`` of the Cloud API response (seconds or HTTP date), or this value when there is no usable ``Retry-After``. The state is shared by all ProviderConfigs and is lost on restart. |
 | ``--api-throttle-max-wait`` | Default ``10m``. Upper limit for the wait, also for ``Retry-After``. Must not be less than ``--api-throttle-wait`` when that is set. |
 
+A DELETE request that stays queued or running keeps a reconcile worker busy until ``--timeout``.
+This flag sets a shorter limit for the Delete of ``Server``, ``Nic``, ``Volume``, ``FirewallRule``
+and ``Lan``. This is off by default:
+
+| Flag | Effect |
+|---|---|
+| ``--delete-request-wait`` | Default ``0`` (off: wait until ``--timeout``). How long Delete waits for its DELETE request to finish. The request ID is stored in the ``ionos.cloud/delete-request-id`` annotation first; only when that worked, the wait stops after this time and the reconcile ends without an error. Later reconciles check that request and do not send a new DELETE while it is queued or running. A failed request, or the end of ``--timeout``, is still an error. Create and Update are not affected. Must not be negative. |
+
 You can create a ``DeploymentRuntimeConfig`` file using:
 
 ```bash
