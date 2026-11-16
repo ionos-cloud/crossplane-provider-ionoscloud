@@ -3,9 +3,15 @@ package compute
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -235,6 +241,44 @@ func TestIsTransientPollStatus(t *testing.T) {
 	for _, code := range []int{http.StatusOK, http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound, http.StatusInternalServerError} {
 		assert.False(t, isTransientPollStatus(code), code)
 	}
+}
+
+func TestIsTransientPollError(t *testing.T) {
+	urlErr := func(err error) error { return &url.Error{Op: "Get", URL: "https://api.example.com", Err: err} }
+	for _, tc := range []struct {
+		name      string
+		err       error
+		transient bool
+	}{
+		{name: "PlainError", err: errors.New("simulated error")},
+		{name: "UnsupportedScheme", err: urlErr(errors.New(`unsupported protocol scheme ""`))},
+		{name: "Timeout", err: urlErr(context.DeadlineExceeded), transient: true},
+		{name: "ConnectionReset", err: fmt.Errorf("read: %w", syscall.ECONNRESET), transient: true},
+		{name: "ConnectionRefused", err: urlErr(&net.OpError{Op: "dial", Net: "tcp", Err: syscall.ECONNREFUSED}), transient: true},
+		{name: "EOF", err: urlErr(io.EOF), transient: true},
+		{name: "UnexpectedEOF", err: urlErr(io.ErrUnexpectedEOF), transient: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.transient, isTransientPollError(&sdkgo.APIResponse{}, tc.err))
+		})
+	}
+}
+
+func TestRequestStatusTLSErrorIsNotTransient(t *testing.T) {
+	// The SDK's default HTTP client does not trust the test server's
+	// certificate, so every status GET fails in the TLS handshake.
+	s := httptest.NewTLSServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		t.Error("unexpected request: the TLS handshake must fail")
+	}))
+	t.Cleanup(s.Close)
+	client := newTestClient(s.URL)
+
+	err := WaitForRequest(context.Background(), client, acceptedResponse(s.URL+testRequestStatusPath))
+	require.ErrorContains(t, err, "failed to retrieve request ("+testRequestID+") status")
+
+	pending, err := IsDeleteRequestPending(context.Background(), client, deleteRequestObject(testRequestID))
+	require.ErrorContains(t, err, "failed to retrieve delete request ("+testRequestID+") status")
+	assert.False(t, pending)
 }
 
 func TestWaitForRequestContextDeadline(t *testing.T) {

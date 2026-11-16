@@ -217,6 +217,28 @@ func TestComputeThrottle_422OnPostDoesNotBlock(t *testing.T) {
 	assert.Equal(t, hits+1, api.hitCount(), "the next POST reaches the API")
 }
 
+func TestComputeThrottle_422OnPutOrPatchDoesNotBlock(t *testing.T) {
+	for _, method := range []string{http.MethodPut, http.MethodPatch} {
+		t.Run(method, func(t *testing.T) {
+			freshComputeThrottle(t)
+			api, srv := newThrottleTestAPI(t)
+			hc := withComputeThrottle(&http.Client{}, throttleTestOptions)
+			serverURL := srv.URL + throttleTestDCPath + "/servers/server-1"
+
+			api.respond(http.StatusUnprocessableEntity, nil)
+			throttleTestDo(t, hc, method, serverURL)
+			assert.Equal(t, 0, throttleBlockCount())
+			api.respond(http.StatusOK, nil)
+
+			hits := api.hitCount()
+			got := throttleTestDo(t, hc, method, serverURL)
+			assert.Equal(t, http.StatusOK, got.status, "the corrected request gets the real answer")
+			assert.False(t, got.throttled())
+			assert.Equal(t, hits+1, api.hitCount(), "the corrected request reaches the API")
+		})
+	}
+}
+
 func TestComputeThrottle_422OnReadDoesNotBlock(t *testing.T) {
 	freshComputeThrottle(t)
 	api, srv := newThrottleTestAPI(t)

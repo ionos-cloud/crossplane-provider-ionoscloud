@@ -31,7 +31,7 @@ const (
 )
 
 // ComputeThrottleOptions configures how long writes to the compute (Cloud API v6) API are held
-// back after the API answered 429, or 422 for a DELETE, PUT or PATCH.
+// back after the API answered 429, or 422 for a DELETE.
 type ComputeThrottleOptions struct {
 	// Wait is used when the response has no usable Retry-After header. 0 disables the throttle.
 	Wait time.Duration
@@ -84,19 +84,21 @@ var (
 	throttleMu sync.Mutex
 	// throttleDatacenterBlocks is keyed by datacenter ID (after a 429).
 	throttleDatacenterBlocks = map[string]throttleBlock{}
-	// throttleRequestBlocks is keyed by "METHOD path" (after a 422 on a DELETE, PUT or PATCH).
-	// POST keys are never stored, see computeThrottleRoundTripper.
+	// throttleRequestBlocks is keyed by "METHOD path" (after a 422 on a DELETE). Only DELETE keys
+	// are stored, see computeThrottleRoundTripper.
 	throttleRequestBlocks = map[string]throttleBlock{}
 )
 
 // computeThrottleRoundTripper holds back writes to the Cloud API:
 //   - after a 429 on any request to /datacenters/{id}/..., all writes to that datacenter;
-//   - after a 422 on a DELETE, PUT or PATCH of a resource, the same method and path.
+//   - after a 422 on a DELETE of a resource, DELETEs of the same path.
 //
-// A 422 on POST does not block: POST goes to a collection (e.g. /datacenters/{id}/volumes), so
-// its 422 is about that one request body, and blocking the path would hold back every create of
-// that kind in the datacenter. Callers that react to a 422 on POST (e.g. the ServerSet boot
-// volume controller) still get the real response every time.
+// A DELETE has no body, so its 422 is about the state of the resource (in use, still has
+// children, locked, ...), which only time fixes. A 422 on POST, PUT or PATCH does not block: it
+// is about that one request body, and a corrected request must not be held back. For POST,
+// which goes to a collection (e.g. /datacenters/{id}/volumes), blocking the path would also hold
+// back every create of that kind in the datacenter. Callers that react to a 422 on POST (e.g. the
+// ServerSet boot volume controller) still get the real response every time.
 //
 // While blocked, it answers with a synthetic 429 instead of calling the API. Reads always pass.
 // Blocks expire by time only; a successful write does not clear them.
@@ -149,7 +151,7 @@ func (t *computeThrottleRoundTripper) RoundTrip(req *http.Request) (*http.Respon
 	case resp.StatusCode == http.StatusTooManyRequests && datacenterID != "":
 		addThrottleBlock(throttleDatacenterBlocks, datacenterID, t.untilFor(resp),
 			fmt.Sprintf("Cloud API %d for datacenter %s", resp.StatusCode, datacenterID))
-	case resp.StatusCode == http.StatusUnprocessableEntity && isResourceWriteMethod(req.Method):
+	case resp.StatusCode == http.StatusUnprocessableEntity && req.Method == http.MethodDelete:
 		addThrottleBlock(throttleRequestBlocks, requestKey, t.untilFor(resp),
 			fmt.Sprintf("Cloud API %d for %s", resp.StatusCode, requestKey))
 	}
@@ -221,17 +223,6 @@ func datacenterIDFromPath(p string) string {
 func isWriteMethod(method string) bool {
 	switch method {
 	case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
-		return true
-	default:
-		return false
-	}
-}
-
-// isResourceWriteMethod reports whether method writes a specific resource path, so that a 422
-// for it can block the same method and path. POST is excluded, see computeThrottleRoundTripper.
-func isResourceWriteMethod(method string) bool {
-	switch method {
-	case http.MethodPut, http.MethodPatch, http.MethodDelete:
 		return true
 	default:
 		return false

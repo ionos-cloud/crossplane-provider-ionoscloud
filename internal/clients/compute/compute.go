@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
@@ -165,12 +167,13 @@ func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, reqID string) (
 //   - DONE: nil
 //   - FAILED: error with the request message
 //   - status GET answered 429, 502, 503 or 504, or got no HTTP response
-//     because of a network error: keep polling. The SDK client makes a
-//     single attempt per call, so the retry happens here, with the backoff
-//     above, instead of failing the wait and sending the request again on
-//     the next reconcile.
-//   - status GET fails in any other way (404, 500, ...) or returns another
-//     non-200 code: error
+//     because of a short network error (timeout, connection reset, refused
+//     or closed, see isTransientPollError): keep polling. The SDK client
+//     makes a single attempt per call, so the retry happens here, with the
+//     backoff above, instead of failing the wait and sending the request
+//     again on the next reconcile.
+//   - status GET fails in any other way (404, 500, TLS/x509 error, ...) or
+//     returns another non-200 code: error
 //   - QUEUED, RUNNING or no status yet: keep polling
 //   - ctx cancelled or past its deadline: error
 func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *sdkgo.APIResponse) error {
@@ -248,16 +251,23 @@ func pollRequest(ctx context.Context, client *sdkgo.APIClient, reqID string) (bo
 
 // isTransientPollError reports whether a failed request status GET is worth
 // another poll. If the API answered, that depends on the status code only (see
-// isTransientPollStatus). If there is no HTTP response, it is true for network
-// errors (connection reset, timeout, ...): the SDK returns the *url.Error of
-// the HTTP client, which is a net.Error. If ctx is done, the caller's wait
-// loop returns ctx.Err() right away.
+// isTransientPollStatus). If there is no HTTP response, it is true only for
+// short network failures that a later poll can fix: a timeout (including a ctx
+// deadline during the call), a connection reset or refused, or the server
+// closing the connection (EOF). Other transport errors (TLS/x509, proxy auth,
+// bad URL, DNS, ...) are not transient: every *url.Error is a net.Error, so
+// checking for net.Error alone would match them too. If ctx is done, the
+// caller's wait loop returns ctx.Err() right away.
 func isTransientPollError(apiResponse *sdkgo.APIResponse, err error) bool {
 	if apiResponse != nil && apiResponse.Response != nil {
 		return isTransientPollStatus(apiResponse.StatusCode)
 	}
 	var netErr net.Error
-	return errors.As(err, &netErr)
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	return errors.Is(err, syscall.ECONNRESET) || errors.Is(err, syscall.ECONNREFUSED) ||
+		errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF)
 }
 
 // isTransientPollStatus reports whether a request status GET that returned
@@ -296,17 +306,17 @@ func nextPollInterval(interval time.Duration) time.Duration {
 //   - no annotation: false, no GET
 //   - QUEUED, RUNNING, another unfinished status or no status yet: true
 //   - status GET answered 429, 502, 503 or 504, or got no HTTP response
-//     because of a network error (see isTransientPollError): true, the status
-//     is checked again on the next reconcile
+//     because of a short network error (see isTransientPollError): true, the
+//     status is checked again on the next reconcile
 //   - DONE or FAILED: false, the caller sends a new DELETE. After DONE the
 //     resource is gone, so that DELETE gets a 404, which ErrorUnlessNotFound
 //     treats as success.
 //   - status GET answered 404 (the Cloud API does not know the request): false
-//   - status GET failed in any other way (401, 403, 500, ...) or returned
-//     another non-200 code: error. The state of the request is unknown, so no
-//     new DELETE is sent; the error shows in the Synced condition and the
-//     reconcile is retried with backoff. Removing the annotation makes the
-//     next reconcile send a new DELETE.
+//   - status GET failed in any other way (401, 403, 500, TLS/x509 error, ...)
+//     or returned another non-200 code: error. The state of the request is
+//     unknown, so no new DELETE is sent; the error shows in the Synced
+//     condition and the reconcile is retried with backoff. Removing the
+//     annotation makes the next reconcile send a new DELETE.
 func IsDeleteRequestPending(ctx context.Context, client *sdkgo.APIClient, obj metav1.Object) (bool, error) {
 	reqID := obj.GetAnnotations()[DELETERequestIDAnnotationKey]
 	if reqID == "" {
