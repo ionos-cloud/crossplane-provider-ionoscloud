@@ -106,6 +106,7 @@ func (c *connectorNic) Connect(ctx context.Context, mg resource.Managed) (manage
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalNic{
+		kube:                 c.kube,
 		service:              &nic.APIClient{IonosServices: svc},
 		ipBlockService:       &ipblock.APIClient{IonosServices: svc},
 		log:                  c.log,
@@ -121,6 +122,9 @@ type externalNic struct {
 	ipBlockService       ipblock.Client
 	log                  logging.Logger
 	isUniqueNamesEnabled bool
+	// kube persists the DELETE request ID annotation, see
+	// compute.StoreDeleteRequestID.
+	kube client.Client
 }
 
 func (c *externalNic) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) { // nolint: gocyclo
@@ -294,12 +298,23 @@ func (c *externalNic) Delete(ctx context.Context, mg resource.Managed) (managed.
 		return managed.ExternalDelete{}, nil
 	}
 
+	pending, err := compute.IsDeleteRequestPending(ctx, c.service.GetAPIClient(), cr)
+	if err != nil {
+		return managed.ExternalDelete{}, err
+	}
+	if pending {
+		c.log.Debug("DELETE request is still pending, not sending a new one",
+			"name", cr.Name, "request-id", cr.GetAnnotations()[compute.DELETERequestIDAnnotationKey])
+		return managed.ExternalDelete{}, nil
+	}
+
 	apiResponse, err := c.service.DeleteNic(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID,
 		cr.Spec.ForProvider.ServerCfg.ServerID, cr.Status.AtProvider.NicID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete nic. error: %w", err)
 		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
+	compute.StoreDeleteRequestID(ctx, c.kube, cr, apiResponse, c.log)
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalDelete{}, err
 	}

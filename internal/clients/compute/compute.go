@@ -9,7 +9,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
+	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // States of Compute Resources
@@ -37,6 +42,13 @@ const (
 )
 
 const POSTRequestIDAnnotationKey = "ionos.cloud/post-request-id"
+
+// DELETERequestIDAnnotationKey is the annotation that stores the ID of the last
+// DELETE request sent for a resource. It is the Delete counterpart of
+// POSTRequestIDAnnotationKey: while that request is still QUEUED or RUNNING,
+// Delete waits for it instead of sending a new DELETE (see
+// IsDeleteRequestPending and StoreDeleteRequestID).
+const DELETERequestIDAnnotationKey = "ionos.cloud/delete-request-id"
 
 const (
 	// maxRequestPollInterval caps the backoff between two request status polls
@@ -271,6 +283,95 @@ func nextPollInterval(interval time.Duration) time.Duration {
 		return interval
 	}
 	return min(2*interval, maxRequestPollInterval)
+}
+
+// IsDeleteRequestPending reports whether the DELETE request stored in the
+// DELETERequestIDAnnotationKey annotation of obj is still being processed by
+// the Cloud API. Delete calls it before sending a DELETE, so that a reconcile
+// that runs while an earlier DELETE is QUEUED or RUNNING (for example because
+// WaitForRequest ran out of time) waits for that request instead of sending a
+// new one.
+//
+// It makes at most one request status GET. Results:
+//   - no annotation: false, no GET
+//   - QUEUED, RUNNING, another unfinished status or no status yet: true
+//   - status GET answered 429, 502, 503 or 504, or got no HTTP response
+//     because of a network error (see isTransientPollError): true, the status
+//     is checked again on the next reconcile
+//   - DONE or FAILED: false, the caller sends a new DELETE. After DONE the
+//     resource is gone, so that DELETE gets a 404, which ErrorUnlessNotFound
+//     treats as success.
+//   - status GET answered 404 (the Cloud API does not know the request): false
+//   - status GET failed in any other way (401, 403, 500, ...) or returned
+//     another non-200 code: error. The state of the request is unknown, so no
+//     new DELETE is sent; the error shows in the Synced condition and the
+//     reconcile is retried with backoff. Removing the annotation makes the
+//     next reconcile send a new DELETE.
+func IsDeleteRequestPending(ctx context.Context, client *sdkgo.APIClient, obj metav1.Object) (bool, error) {
+	reqID := obj.GetAnnotations()[DELETERequestIDAnnotationKey]
+	if reqID == "" {
+		return false, nil
+	}
+	if client == nil {
+		return false, errors.New(errAPIClientNil)
+	}
+
+	reqStatus, apiResponse, err := client.RequestsApi.RequestsStatusGet(ctx, reqID).Execute()
+	if err != nil {
+		switch {
+		case isTransientPollError(apiResponse, err):
+			return true, nil
+		case apiResponse.HttpNotFound():
+			return false, nil
+		default:
+			return false, fmt.Errorf("failed to retrieve delete request (%s) status: %w", reqID, err)
+		}
+	}
+	if apiResponse == nil || apiResponse.Response == nil {
+		return false, errors.New(errAPIResponseNil)
+	}
+	if apiResponse.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("failed to retrieve delete request (%s) status: received status code %d from API", reqID, apiResponse.StatusCode)
+	}
+	if reqStatus.Metadata == nil || reqStatus.Metadata.Status == nil {
+		return true, nil
+	}
+
+	switch *reqStatus.Metadata.Status {
+	case sdkgo.RequestStatusDone, sdkgo.RequestStatusFailed:
+		return false, nil
+	default:
+		return true, nil
+	}
+}
+
+// StoreDeleteRequestID sets the ID of the DELETE request answered by
+// apiResponse as the DELETERequestIDAnnotationKey annotation of cr and
+// persists it right away with kube, before the caller waits for the request.
+// The next reconcile then finds the request even if the wait times out (see
+// IsDeleteRequestPending).
+//
+// It uses the managed reconciler's RetryingCriticalAnnotationUpdater, which
+// retries on API server errors. The update reloads cr from the API server, so
+// unsaved changes to its status are replaced by the stored status.
+//
+// Errors are logged, not returned: without the annotation, the next reconcile
+// sends a new DELETE, as it did before. With a nil kube (unit tests) nothing
+// is stored.
+func StoreDeleteRequestID(ctx context.Context, kube client.Client, cr client.Object, apiResponse *sdkgo.APIResponse, log logging.Logger) {
+	reqID, err := ExtractRequestID(apiResponse)
+	if err != nil {
+		log.Info("Cannot store the DELETE request ID", "name", cr.GetName(), "error", err)
+		return
+	}
+	if kube == nil {
+		log.Debug("No kube client, not storing the DELETE request ID", "name", cr.GetName(), "request-id", reqID)
+		return
+	}
+	meta.AddAnnotations(cr, map[string]string{DELETERequestIDAnnotationKey: reqID})
+	if err := managed.NewRetryingCriticalAnnotationUpdater(kube).UpdateCriticalAnnotations(ctx, cr); err != nil {
+		log.Info("Cannot store the DELETE request ID", "name", cr.GetName(), "request-id", reqID, "error", err)
+	}
 }
 
 // ErrorUnlessNotFound returns an error with status code info, unless the status code is 404

@@ -323,6 +323,30 @@ func observeThenDeleteLan(l sdkgo.Lan) (*fakeLanService, error) {
 	return svc, err
 }
 
+// observeThenDeleteLanWithDeleteRequest is like observeThenDeleteLan, but the
+// CR has a stored DELETE request ID and its own request status server, which
+// answers every status GET with mode.
+func observeThenDeleteLanWithDeleteRequest(l sdkgo.Lan, mode mocktest.RequestStatusMode) (*fakeLanService, error) {
+	ctx := context.Background()
+	ts := mocktest.NewTestHTTPServer()
+	defer ts.Stop()
+	ts.SetMode(mode)
+	svc := newFakeLanService(ts.URL())
+	svc.storeLan(mocktest.TestDatacenterID, *l.Id, l)
+
+	cr := newLanCR("lan-delete-pending")
+	meta.SetExternalName(cr, *l.Id)
+	meta.AddAnnotations(cr, map[string]string{compute.DELETERequestIDAnnotationKey: "delete-req-" + *l.Id})
+	ext := &externalLan{service: svc, log: logging.NewNopLogger()}
+
+	obs, err := ext.Observe(ctx, cr)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(obs.ResourceExists).To(BeTrue())
+
+	_, err = ext.Delete(ctx, cr)
+	return svc, err
+}
+
 // ---------------------------------------------------------------------------
 // Test scenarios
 // ---------------------------------------------------------------------------
@@ -539,6 +563,38 @@ var _ = Describe("LAN Controller E2E Tests", func() {
 				return err != nil
 			}, mocktest.Timeout, mocktest.Interval).Should(BeTrue())
 			Expect(fakeSvc.GetDeleteCalls()).To(ContainElement(lanID))
+		})
+	})
+
+	// Scenario 14: Delete waits for a pending DELETE request (LAN-specific)
+	Describe("Scenario 14: Delete waits for a pending DELETE request", func() {
+		const lanID = "delete-pending-lan"
+
+		pendingLan := sdkgo.Lan{
+			Id: ptr.To(lanID),
+			Properties: &sdkgo.LanProperties{
+				Name:   ptr.To("lan-delete-pending"),
+				Public: ptr.To(true),
+			},
+			Metadata: &sdkgo.DatacenterElementMetadata{State: ptr.To(compute.AVAILABLE)},
+		}
+
+		It("should not send a new DELETE while the stored one is RUNNING", func() {
+			svc, err := observeThenDeleteLanWithDeleteRequest(pendingLan, mocktest.StatusModeRunning)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(svc.GetDeleteCalls()).To(BeEmpty())
+		})
+
+		It("should send a new DELETE once the stored one is DONE", func() {
+			svc, err := observeThenDeleteLanWithDeleteRequest(pendingLan, mocktest.StatusModeDone)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(svc.GetDeleteCalls()).To(ConsistOf(lanID))
+		})
+
+		It("should not send a new DELETE if the status of the stored one cannot be read", func() {
+			svc, err := observeThenDeleteLanWithDeleteRequest(pendingLan, mocktest.StatusModeError)
+			Expect(err).To(MatchError(ContainSubstring("failed to retrieve delete request")))
+			Expect(svc.GetDeleteCalls()).To(BeEmpty())
 		})
 	})
 })

@@ -9,9 +9,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const (
@@ -269,4 +274,105 @@ func TestNextPollInterval(t *testing.T) {
 
 	// A configured interval above the cap is kept.
 	assert.Equal(t, time.Minute, nextPollInterval(time.Minute))
+}
+
+// deleteRequestObject returns object metadata with reqID as the stored DELETE
+// request ID.
+func deleteRequestObject(reqID string) *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{Annotations: map[string]string{DELETERequestIDAnnotationKey: reqID}}
+}
+
+func TestIsDeleteRequestPending(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		resp    statusResponse
+		pending bool
+		wantErr bool
+	}{
+		{name: "Queued", resp: statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusQueued}, pending: true},
+		{name: "Running", resp: statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusRunning}, pending: true},
+		{name: "NoStatus", resp: statusResponse{code: http.StatusOK}, pending: true},
+		{name: "Done", resp: statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusDone}},
+		{name: "Failed", resp: statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusFailed, message: "simulated failure"}},
+		{name: "NotFound", resp: statusResponse{code: http.StatusNotFound}},
+		{name: "TooManyRequests", resp: statusResponse{code: http.StatusTooManyRequests}, pending: true},
+		{name: "ServiceUnavailable", resp: statusResponse{code: http.StatusServiceUnavailable}, pending: true},
+		{name: "ConnectionClosed", resp: statusResponse{}, pending: true},
+		{name: "Unauthorized", resp: statusResponse{code: http.StatusUnauthorized}, wantErr: true},
+		{name: "InternalServerError", resp: statusResponse{code: http.StatusInternalServerError}, wantErr: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s := newRequestStatusServer(t, tc.resp)
+
+			pending, err := IsDeleteRequestPending(context.Background(), newTestClient(s.URL), deleteRequestObject(testRequestID))
+			if tc.wantErr {
+				require.ErrorContains(t, err, "failed to retrieve delete request ("+testRequestID+") status")
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equal(t, tc.pending, pending)
+			assert.Equal(t, []string{testRequestStatusPath}, s.callPaths())
+		})
+	}
+}
+
+func TestIsDeleteRequestPendingWithoutAnnotation(t *testing.T) {
+	s := newRequestStatusServer(t, statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusRunning})
+	apiClient := newTestClient(s.URL)
+
+	for _, obj := range []*metav1.ObjectMeta{
+		{},
+		{Annotations: map[string]string{POSTRequestIDAnnotationKey: testRequestID}},
+		deleteRequestObject(""),
+	} {
+		pending, err := IsDeleteRequestPending(context.Background(), apiClient, obj)
+		require.NoError(t, err)
+		assert.False(t, pending)
+	}
+	assert.Empty(t, s.callTimes())
+
+	// Without a client, only a stored request ID is an error.
+	pending, err := IsDeleteRequestPending(context.Background(), nil, &metav1.ObjectMeta{})
+	require.NoError(t, err)
+	assert.False(t, pending)
+	_, err = IsDeleteRequestPending(context.Background(), nil, deleteRequestObject(testRequestID))
+	require.EqualError(t, err, errAPIClientNil)
+}
+
+func TestStoreDeleteRequestID(t *testing.T) {
+	ctx := context.Background()
+	key := client.ObjectKey{Namespace: "default", Name: "cr"}
+	kube := fake.NewClientBuilder().
+		WithObjects(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: key.Namespace, Name: key.Name}}).
+		Build()
+	cr := &corev1.ConfigMap{}
+	require.NoError(t, kube.Get(ctx, key, cr))
+
+	StoreDeleteRequestID(ctx, kube, cr, acceptedResponse("https://api.ionos.com/cloudapi/v6/requests/"+testRequestID+"/status"), logging.NewNopLogger())
+	assert.Equal(t, testRequestID, cr.GetAnnotations()[DELETERequestIDAnnotationKey])
+
+	stored := &corev1.ConfigMap{}
+	require.NoError(t, kube.Get(ctx, key, stored))
+	assert.Equal(t, testRequestID, stored.GetAnnotations()[DELETERequestIDAnnotationKey])
+}
+
+func TestStoreDeleteRequestIDSkipped(t *testing.T) {
+	ctx := context.Background()
+	key := client.ObjectKey{Namespace: "default", Name: "cr"}
+	kube := fake.NewClientBuilder().
+		WithObjects(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: key.Namespace, Name: key.Name}}).
+		Build()
+
+	// No request ID in the response: nothing is stored.
+	cr := &corev1.ConfigMap{}
+	require.NoError(t, kube.Get(ctx, key, cr))
+	StoreDeleteRequestID(ctx, kube, cr, acceptedResponse(""), logging.NewNopLogger())
+	stored := &corev1.ConfigMap{}
+	require.NoError(t, kube.Get(ctx, key, stored))
+	assert.NotContains(t, stored.GetAnnotations(), DELETERequestIDAnnotationKey)
+
+	// No kube client: nothing is set, and no panic.
+	cr = &corev1.ConfigMap{}
+	StoreDeleteRequestID(ctx, nil, cr, acceptedResponse("https://api.ionos.com/cloudapi/v6/requests/"+testRequestID+"/status"), logging.NewNopLogger())
+	assert.NotContains(t, cr.GetAnnotations(), DELETERequestIDAnnotationKey)
 }

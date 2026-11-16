@@ -106,6 +106,7 @@ func (c *connectorLan) Connect(ctx context.Context, mg resource.Managed) (manage
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalLan{
+		kube:                 c.kube,
 		service:              &lan.APIClient{IonosServices: svc},
 		log:                  c.log,
 		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
@@ -125,6 +126,9 @@ type externalLan struct {
 	// same object, so Delete can rely on it.
 	nicCount  int
 	nicsKnown bool
+	// kube persists the DELETE request ID annotation, see
+	// compute.StoreDeleteRequestID.
+	kube client.Client
 }
 
 func (c *externalLan) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -313,11 +317,22 @@ func (c *externalLan) Delete(ctx context.Context, mg resource.Managed) (managed.
 			cr.Status.AtProvider.LanID, c.nicCount)
 	}
 
+	pending, err := compute.IsDeleteRequestPending(ctx, c.service.GetAPIClient(), cr)
+	if err != nil {
+		return managed.ExternalDelete{}, err
+	}
+	if pending {
+		c.log.Debug("DELETE request is still pending, not sending a new one",
+			"name", cr.Name, "request-id", cr.GetAnnotations()[compute.DELETERequestIDAnnotationKey])
+		return managed.ExternalDelete{}, nil
+	}
+
 	apiResponse, err := c.service.DeleteLan(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.LanID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete lan. error: %w", err)
 		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
+	compute.StoreDeleteRequestID(ctx, c.kube, cr, apiResponse, c.log)
 	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
 		return managed.ExternalDelete{}, err
 	}
