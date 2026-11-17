@@ -73,6 +73,7 @@ func main() {
 		namespace                         = app.Flag("namespace", "Namespace used to set as default scope in default secret store config.").Default("crossplane-system").Envar("POD_NAMESPACE").String()
 		enableExternalSecretStores        = app.Flag("enable-external-secret-stores", "Enable support for ExternalSecretStores.").Default("false").Envar("ENABLE_EXTERNAL_SECRET_STORES").Bool()
 		reconcileMap                      = app.Flag("max-reconcile-rate-per-resource", "Overrides the max-reconcile-rate on a per resource basis. Use the Kind of the resource as the key.").PlaceHolder("nic:2").StringMap()
+		testCloudAPIFaults                = app.Flag("test-cloudapi-fault", "TEST ONLY, never in production. Fakes Cloud API faults for one datacenter in the compute client. Repeatable. Value: dc=<datacenterID>,mode=<mode>,until=<RFC3339>[,from=<RFC3339>][,retryAfter=<seconds>]. Modes: delete-stuck, status-503, status-conn (a DELETE gets 202 with a fake request whose status answers RUNNING, 503 or a connection reset; POST, PUT and PATCH get a connection reset), write-429 (every write gets 429; retryAfter only here), delete-422 (a DELETE gets 422; POST, PUT and PATCH get a connection reset). Reads always reach the Cloud API. A value whose until is past is ignored.").PlaceHolder("dc=ID,mode=MODE,until=RFC3339").Strings()
 	)
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 	zl := zap.New(zap.UseDevMode(*debug))
@@ -157,6 +158,10 @@ func main() {
 	kingpin.FatalIfError(clients.ValidateComputeThrottleOptions(throttleOptions), "Invalid --api-throttle-wait or --api-throttle-max-wait")
 	// Must run before controller.Setup: the compute clients read it without a lock.
 	clients.ConfigureComputeThrottle(throttleOptions)
+	// TEST ONLY. Must run before controller.Setup: the compute clients read it without a lock.
+	cloudAPIFaults, err := clients.ParseCloudAPIFaults(*testCloudAPIFaults, time.Now(), log)
+	kingpin.FatalIfError(err, "Invalid --test-cloudapi-fault")
+	clients.ConfigureCloudAPIFaults(cloudAPIFaults, log)
 	// Must run before controller.Setup: WaitForDeleteRequest reads it without a lock.
 	kingpin.FatalIfError(compute.ConfigureDeleteRequestWait(*deleteRequestWait), "Invalid --delete-request-wait")
 

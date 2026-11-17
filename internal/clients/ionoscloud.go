@@ -488,6 +488,10 @@ func newIonosClients(data []byte) (*IonosServices, error) {
 		// repaired.
 		reapplyMTLSAfterPinning(computeEngineClient.GetConfig(), computeMTLSTLSConfig, creds.StripCloudAPIPrefix)
 	}
+	if cloudAPIFaultConfig != nil {
+		// TEST ONLY (--test-cloudapi-fault). Before the throttle, so it sees fake 429 and 422 like real ones.
+		computeEngineClient.GetConfig().HTTPClient = withCloudAPIFaults(computeEngineClient.GetConfig().HTTPClient, cloudAPIFaultConfig, cloudAPIFaultLog)
+	}
 	if computeThrottle.enabled() {
 		// ICNAS-928: hold back writes to a datacenter the Cloud API is rate limiting. Done last, so
 		// the Transport set above is the one wrapped. A new http.Client is assigned, so
