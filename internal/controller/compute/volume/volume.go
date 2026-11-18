@@ -108,6 +108,7 @@ func (c *connectorVolume) Connect(ctx context.Context, mg resource.Managed) (man
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalVolume{
+		kube:                 c.kube,
 		service:              &volume.APIClient{IonosServices: svc},
 		log:                  c.log,
 		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
@@ -121,6 +122,9 @@ type externalVolume struct {
 	service              volume.Client
 	log                  logging.Logger
 	isUniqueNamesEnabled bool
+	// kube persists the DELETE request ID annotation, see
+	// compute.StoreDeleteRequestID.
+	kube client.Client
 }
 
 func (c *externalVolume) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -334,12 +338,23 @@ func (c *externalVolume) Delete(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalDelete{}, nil
 	}
 
+	pending, err := compute.IsDeleteRequestPending(ctx, c.service.GetAPIClient(), cr)
+	if err != nil {
+		return managed.ExternalDelete{}, err
+	}
+	if pending {
+		c.log.Debug("DELETE request is still pending, not sending a new one",
+			"name", cr.Name, "request-id", cr.GetAnnotations()[compute.DELETERequestIDAnnotationKey])
+		return managed.ExternalDelete{}, nil
+	}
+
 	apiResponse, err := c.service.DeleteVolume(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.VolumeID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete volume. error: %w", err)
 		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
 	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
+	stored := compute.StoreDeleteRequestID(ctx, c.kube, cr, apiResponse, c.log)
+	if err = compute.WaitForDeleteRequest(ctx, c.service.GetAPIClient(), apiResponse, stored); err != nil {
 		return managed.ExternalDelete{}, err
 	}
 	return managed.ExternalDelete{}, nil

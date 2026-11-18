@@ -4,9 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net"
+	"net/http"
 	"strings"
+	"syscall"
+	"time"
 
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
+	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // States of Compute Resources
@@ -34,6 +44,22 @@ const (
 )
 
 const POSTRequestIDAnnotationKey = "ionos.cloud/post-request-id"
+
+// DELETERequestIDAnnotationKey is the annotation that stores the ID of the last
+// DELETE request sent for a resource. It is the Delete counterpart of
+// POSTRequestIDAnnotationKey: while that request is still QUEUED or RUNNING,
+// Delete waits for it instead of sending a new DELETE (see
+// IsDeleteRequestPending and StoreDeleteRequestID).
+const DELETERequestIDAnnotationKey = "ionos.cloud/delete-request-id"
+
+const (
+	// maxRequestPollInterval caps the backoff between two request status polls
+	// in WaitForRequest.
+	maxRequestPollInterval = 30 * time.Second
+	// defaultRequestPollInterval is the first wait in WaitForRequest when the
+	// client has no positive PollInterval configured (same as the SDK default).
+	defaultRequestPollInterval = time.Second
+)
 
 // ExtractRequestID extracts the IONOS Cloud request ID from the Location header
 // of an API response, which has the following format:
@@ -127,18 +153,288 @@ func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, reqID string) (
 	}
 }
 
-// WaitForRequest waits for the request to be DONE
+// WaitForRequest waits for the request referenced by the Location header of
+// apiResponse to be DONE.
+//
+// It replaces the SDK's APIClient.WaitForRequest, which polls the request
+// status at a fixed PollInterval (1s by default). Here the first poll is
+// immediate, then the wait between polls starts at the client's PollInterval
+// and doubles after each poll, capped at maxRequestPollInterval
+// (1s, 2s, 4s, 8s, 16s, 30s, 30s, ... with the default PollInterval).
+// Long-running requests therefore no longer cause one status GET per second.
+//
+// Results:
+//   - DONE: nil
+//   - FAILED: error with the request message
+//   - status GET answered 429, 502, 503 or 504, or got no HTTP response
+//     because of a short network error (timeout, connection reset, refused
+//     or closed, see isTransientPollError): keep polling. The SDK client
+//     makes a single attempt per call, so the retry happens here, with the
+//     backoff above, instead of failing the wait and sending the request
+//     again on the next reconcile.
+//   - status GET fails in any other way (404, 500, TLS/x509 error, ...) or
+//     returns another non-200 code: error
+//   - QUEUED, RUNNING or no status yet: keep polling
+//   - ctx cancelled or past its deadline: error
 func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *sdkgo.APIResponse) error {
-	if client != nil {
-		if apiResponse != nil && apiResponse.Response != nil {
-			if _, err := client.WaitForRequest(ctx, apiResponse.Response.Header.Get(requestHeader)); err != nil {
-				return err
-			}
-			return nil
-		}
+	if client == nil {
+		return errors.New(errAPIClientNil)
+	}
+	if apiResponse == nil || apiResponse.Response == nil {
 		return errors.New(errAPIResponseNil)
 	}
-	return errors.New(errAPIClientNil)
+	reqID, err := ExtractRequestID(apiResponse)
+	if err != nil {
+		return err
+	}
+
+	interval := client.GetConfig().PollInterval
+	if interval <= 0 {
+		interval = defaultRequestPollInterval
+	}
+	for {
+		done, err := pollRequest(ctx, client, reqID)
+		if err != nil || done {
+			return err
+		}
+
+		timer := time.NewTimer(interval)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-timer.C:
+		}
+		interval = nextPollInterval(interval)
+	}
+}
+
+// pollRequest gets the status of a request once. It returns true if the
+// request is DONE, an error if the request FAILED or its status could not be
+// read, and false otherwise. A transient failure of the status GET (see
+// isTransientPollError) is not an error: it returns false, so the caller polls
+// again.
+func pollRequest(ctx context.Context, client *sdkgo.APIClient, reqID string) (bool, error) {
+	reqStatus, apiResponse, err := client.RequestsApi.RequestsStatusGet(ctx, reqID).Execute()
+	if err != nil {
+		if isTransientPollError(apiResponse, err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to retrieve request (%s) status: %w", reqID, err)
+	}
+	if apiResponse == nil || apiResponse.Response == nil {
+		return false, errors.New(errAPIResponseNil)
+	}
+	if apiResponse.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("failed to retrieve request (%s) status: received status code %d from API", reqID, apiResponse.StatusCode)
+	}
+	if reqStatus.Metadata == nil || reqStatus.Metadata.Status == nil {
+		return false, nil
+	}
+
+	switch *reqStatus.Metadata.Status {
+	case sdkgo.RequestStatusDone:
+		return true, nil
+	case sdkgo.RequestStatusFailed:
+		id, message := reqID, "<none>"
+		if reqStatus.Id != nil {
+			id = *reqStatus.Id
+		}
+		if reqStatus.Metadata.Message != nil {
+			message = *reqStatus.Metadata.Message
+		}
+		return false, fmt.Errorf("request %s failed: %s", id, message)
+	default:
+		return false, nil
+	}
+}
+
+// isTransientPollError reports whether a failed request status GET is worth
+// another poll. If the API answered, that depends on the status code only (see
+// isTransientPollStatus). If there is no HTTP response, it is true only for
+// short network failures that a later poll can fix: a timeout (including a ctx
+// deadline during the call), a connection reset or refused, or the server
+// closing the connection (EOF). Other transport errors (TLS/x509, proxy auth,
+// bad URL, DNS, ...) are not transient: every *url.Error is a net.Error, so
+// checking for net.Error alone would match them too. If ctx is done, the
+// caller's wait loop returns ctx.Err() right away.
+func isTransientPollError(apiResponse *sdkgo.APIResponse, err error) bool {
+	if apiResponse != nil && apiResponse.Response != nil {
+		return isTransientPollStatus(apiResponse.StatusCode)
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	return errors.Is(err, syscall.ECONNRESET) || errors.Is(err, syscall.ECONNREFUSED) ||
+		errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF)
+}
+
+// isTransientPollStatus reports whether a request status GET that returned
+// code should be retried: rate limited (429) or a gateway / availability
+// error (502, 503, 504). These are the codes the SDK itself retries.
+func isTransientPollStatus(code int) bool {
+	switch code {
+	case http.StatusTooManyRequests,
+		http.StatusBadGateway,
+		http.StatusServiceUnavailable,
+		http.StatusGatewayTimeout:
+		return true
+	default:
+		return false
+	}
+}
+
+// nextPollInterval doubles the wait between two request status polls, up to
+// maxRequestPollInterval. A wait that is already above the cap (a large
+// configured PollInterval) is kept as is.
+func nextPollInterval(interval time.Duration) time.Duration {
+	if interval >= maxRequestPollInterval {
+		return interval
+	}
+	return min(2*interval, maxRequestPollInterval)
+}
+
+// IsDeleteRequestPending reports whether the DELETE request stored in the
+// DELETERequestIDAnnotationKey annotation of obj is still being processed by
+// the Cloud API. Delete calls it before sending a DELETE, so that a reconcile
+// that runs while an earlier DELETE is QUEUED or RUNNING (for example because
+// WaitForRequest ran out of time) waits for that request instead of sending a
+// new one.
+//
+// It makes at most one request status GET. Results:
+//   - no annotation: false, no GET
+//   - QUEUED, RUNNING, another unfinished status or no status yet: true
+//   - status GET answered 429, 502, 503 or 504, or got no HTTP response
+//     because of a short network error (see isTransientPollError): true, the
+//     status is checked again on the next reconcile
+//   - DONE or FAILED: false, the caller sends a new DELETE. After DONE the
+//     resource is gone, so that DELETE gets a 404, which ErrorUnlessNotFound
+//     treats as success.
+//   - status GET answered 404 (the Cloud API does not know the request): false
+//   - status GET failed in any other way (401, 403, 500, TLS/x509 error, ...)
+//     or returned another non-200 code: error. The state of the request is
+//     unknown, so no new DELETE is sent; the error shows in the Synced
+//     condition and the reconcile is retried with backoff. Removing the
+//     annotation makes the next reconcile send a new DELETE.
+func IsDeleteRequestPending(ctx context.Context, client *sdkgo.APIClient, obj metav1.Object) (bool, error) {
+	reqID := obj.GetAnnotations()[DELETERequestIDAnnotationKey]
+	if reqID == "" {
+		return false, nil
+	}
+	if client == nil {
+		return false, errors.New(errAPIClientNil)
+	}
+
+	reqStatus, apiResponse, err := client.RequestsApi.RequestsStatusGet(ctx, reqID).Execute()
+	if err != nil {
+		switch {
+		case isTransientPollError(apiResponse, err):
+			return true, nil
+		case apiResponse.HttpNotFound():
+			return false, nil
+		default:
+			return false, fmt.Errorf("failed to retrieve delete request (%s) status: %w", reqID, err)
+		}
+	}
+	if apiResponse == nil || apiResponse.Response == nil {
+		return false, errors.New(errAPIResponseNil)
+	}
+	if apiResponse.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("failed to retrieve delete request (%s) status: received status code %d from API", reqID, apiResponse.StatusCode)
+	}
+	if reqStatus.Metadata == nil || reqStatus.Metadata.Status == nil {
+		return true, nil
+	}
+
+	switch *reqStatus.Metadata.Status {
+	case sdkgo.RequestStatusDone, sdkgo.RequestStatusFailed:
+		return false, nil
+	default:
+		return true, nil
+	}
+}
+
+// StoreDeleteRequestID sets the ID of the DELETE request answered by
+// apiResponse as the DELETERequestIDAnnotationKey annotation of cr and
+// persists it right away with kube, before the caller waits for the request.
+// The next reconcile then finds the request even if the wait times out (see
+// IsDeleteRequestPending).
+//
+// It uses the managed reconciler's RetryingCriticalAnnotationUpdater, which
+// retries on API server errors. The update reloads cr from the API server, so
+// unsaved changes to its status are replaced by the stored status.
+//
+// Errors are logged, not returned: without the annotation, the next reconcile
+// sends a new DELETE, as it did before. With a nil kube (unit tests) nothing
+// is stored.
+//
+// It returns true only if the annotation was persisted. The annotation stays
+// on cr in memory even if the update failed, so callers must use this result,
+// not the annotation, to know whether the request ID is stored (see
+// WaitForDeleteRequest).
+func StoreDeleteRequestID(ctx context.Context, kube client.Client, cr client.Object, apiResponse *sdkgo.APIResponse, log logging.Logger) bool {
+	reqID, err := ExtractRequestID(apiResponse)
+	if err != nil {
+		log.Info("Cannot store the DELETE request ID", "name", cr.GetName(), "error", err)
+		return false
+	}
+	if kube == nil {
+		log.Debug("No kube client, not storing the DELETE request ID", "name", cr.GetName(), "request-id", reqID)
+		return false
+	}
+	meta.AddAnnotations(cr, map[string]string{DELETERequestIDAnnotationKey: reqID})
+	if err := managed.NewRetryingCriticalAnnotationUpdater(kube).UpdateCriticalAnnotations(ctx, cr); err != nil {
+		log.Info("Cannot store the DELETE request ID", "name", cr.GetName(), "request-id", reqID, "error", err)
+		return false
+	}
+	return true
+}
+
+// deleteRequestWait is set once by ConfigureDeleteRequestWait and read by
+// WaitForDeleteRequest. 0 means no limit of its own.
+var deleteRequestWait time.Duration
+
+// ConfigureDeleteRequestWait sets how long WaitForDeleteRequest waits for a
+// stored DELETE request (--delete-request-wait). 0 turns the limit off. Call
+// it once from main, before controller.Setup: it is read without a lock.
+func ConfigureDeleteRequestWait(wait time.Duration) error {
+	if wait < 0 {
+		return fmt.Errorf("delete request wait %s must not be negative", wait)
+	}
+	deleteRequestWait = wait
+	return nil
+}
+
+// WaitForDeleteRequest is WaitForRequest for the DELETE request of a Delete,
+// with a limit of its own (see ConfigureDeleteRequestWait), so that a request
+// that stays QUEUED or RUNNING does not hold a reconcile worker until the
+// reconcile timeout.
+//
+// stored is the result of StoreDeleteRequestID for this request. The limit is
+// only used when stored is true and the limit is above 0; otherwise it is the
+// same as WaitForRequest.
+//
+// When the limit is hit while ctx is still alive, it returns nil: the Cloud
+// API accepted the DELETE and its ID is in the DELETERequestIDAnnotationKey
+// annotation, so the reconcile after the requeue checks that request with
+// IsDeleteRequestPending instead of sending a new DELETE. Cancellation or the
+// deadline of ctx itself (the reconcile timeout), FAILED and every other
+// error are returned as by WaitForRequest.
+//
+// Use it only after a DELETE: an Update has no stored request ID, so ending
+// its wait early would make the next reconcile send the PUT or PATCH again.
+func WaitForDeleteRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *sdkgo.APIResponse, stored bool) error {
+	if !stored || deleteRequestWait <= 0 {
+		return WaitForRequest(ctx, client, apiResponse)
+	}
+	waitCtx, cancel := context.WithTimeout(ctx, deleteRequestWait)
+	defer cancel()
+	err := WaitForRequest(waitCtx, client, apiResponse)
+	if errors.Is(err, context.DeadlineExceeded) && ctx.Err() == nil {
+		return nil
+	}
+	return err
 }
 
 // ErrorUnlessNotFound returns an error with status code info, unless the status code is 404
