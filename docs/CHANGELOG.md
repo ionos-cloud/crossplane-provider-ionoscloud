@@ -4,7 +4,7 @@
 - Add opt-in `--delete-request-wait` (default `0`, off) to limit how long the Delete of a Server, Nic, Volume, FirewallRule or Lan waits for its DELETE request; a later reconcile checks the stored request.
 - Add opt-in `--api-throttle-wait` (default `0`, off) and `--api-throttle-max-wait` (default `10m`): after a Cloud API `429` the provider holds back writes to that datacenter, and after a `422` on a DELETE it holds back that DELETE, honouring `Retry-After`.
 ### Fixes:
-- Request status polling backs off from the SDK poll interval up to `30s`, and keeps polling on `429`/`502`/`503`/`504` and short network errors.
+- Request status polling: first check after `1s`, every `1s` for the first `60s`, then `2s`, `4s`, `8s` and at most `10s`; it keeps polling on `429`/`502`/`503`/`504` and short network errors.
 - Server, Nic, Volume, FirewallRule and Lan store the DELETE request ID in the `ionos.cloud/delete-request-id` annotation and wait on that request instead of sending a new DELETE.
 - Send each compute API call once (SDK `MaxRetries=1`), with no quick SDK retries on `429`/`5xx`.
 - Lan Delete waits until no NICs are attached to the LAN.

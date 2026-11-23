@@ -139,28 +139,61 @@ func acceptedResponse(location string) *sdkgo.APIResponse {
 }
 
 func TestWaitForRequestBacksOffUntilDone(t *testing.T) {
-	s := newRequestStatusServer(t,
-		statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusQueued},
-		statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusRunning},
-		statusResponse{code: http.StatusOK},
-		statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusRunning},
-		statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusDone},
-	)
+	responses := []statusResponse{
+		{code: http.StatusOK, status: sdkgo.RequestStatusQueued},
+		{code: http.StatusOK},
+	}
+	for len(responses) < fastPollWindowFactor+4 {
+		responses = append(responses, statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusRunning})
+	}
+	responses = append(responses, statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusDone})
+	s := newRequestStatusServer(t, responses...)
 
 	err := WaitForRequest(context.Background(), newTestClient(s.URL), acceptedResponse(s.URL+testRequestStatusPath))
 	require.NoError(t, err)
 
 	calls := s.callTimes()
-	require.Len(t, calls, 5)
+	require.Len(t, calls, len(responses))
 	for _, p := range s.callPaths() {
 		assert.Equal(t, testRequestStatusPath, p)
 	}
-	// The wait between polls doubles: 10ms, 20ms, 40ms, 80ms.
-	want := testPollInterval
 	for i := 1; i < len(calls); i++ {
-		assert.GreaterOrEqual(t, calls[i].Sub(calls[i-1]), want, "wait before poll %d", i+1)
-		want *= 2
+		assert.GreaterOrEqual(t, calls[i].Sub(calls[i-1]), testPollInterval, "wait before poll %d", i+1)
 	}
+	// The window ends by poll fastPollWindowFactor; then the waits double up to the cap.
+	want := []time.Duration{2 * testPollInterval, 4 * testPollInterval, 8 * testPollInterval, maxPollIntervalFactor * testPollInterval}
+	for i, w := range want {
+		n := fastPollWindowFactor + i
+		assert.GreaterOrEqual(t, calls[n].Sub(calls[n-1]), w, "wait before poll %d", n+1)
+	}
+}
+
+func TestWaitForRequestNoImmediatePoll(t *testing.T) {
+	s := newRequestStatusServer(t, statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusDone})
+
+	start := time.Now()
+	err := WaitForRequest(context.Background(), newTestClient(s.URL), acceptedResponse(s.URL+testRequestStatusPath))
+	require.NoError(t, err)
+
+	calls := s.callTimes()
+	require.Len(t, calls, 1)
+	assert.GreaterOrEqual(t, calls[0].Sub(start), testPollInterval)
+}
+
+func TestWaitForRequestFastWindow(t *testing.T) {
+	responses := make([]statusResponse, 0, 11)
+	for range 10 {
+		responses = append(responses, statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusRunning})
+	}
+	responses = append(responses, statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusDone})
+	s := newRequestStatusServer(t, responses...)
+
+	start := time.Now()
+	err := WaitForRequest(context.Background(), newTestClient(s.URL), acceptedResponse(s.URL+testRequestStatusPath))
+	require.NoError(t, err)
+
+	require.Len(t, s.callTimes(), len(responses))
+	assert.Less(t, time.Since(start), fastPollWindowFactor*testPollInterval)
 }
 
 func TestWaitForRequestFailed(t *testing.T) {
@@ -304,20 +337,20 @@ func TestWaitForRequestInvalidInput(t *testing.T) {
 }
 
 func TestNextPollInterval(t *testing.T) {
-	got := make([]time.Duration, 0, 8)
+	got := make([]time.Duration, 0, 7)
 	interval := time.Second
-	for range 8 {
+	for range 7 {
 		got = append(got, interval)
-		interval = nextPollInterval(interval)
+		interval = nextPollInterval(interval, maxPollIntervalFactor*time.Second)
 	}
 	want := []time.Duration{
 		1 * time.Second, 2 * time.Second, 4 * time.Second, 8 * time.Second,
-		16 * time.Second, 30 * time.Second, 30 * time.Second, 30 * time.Second,
+		10 * time.Second, 10 * time.Second, 10 * time.Second,
 	}
 	assert.Equal(t, want, got)
 
-	// A configured interval above the cap is kept.
-	assert.Equal(t, time.Minute, nextPollInterval(time.Minute))
+	// An interval above the cap is kept.
+	assert.Equal(t, time.Minute, nextPollInterval(time.Minute, 10*time.Second))
 }
 
 // deleteRequestObject returns object metadata with reqID as the stored DELETE

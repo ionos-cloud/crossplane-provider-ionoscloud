@@ -53,10 +53,12 @@ const POSTRequestIDAnnotationKey = "ionos.cloud/post-request-id"
 const DELETERequestIDAnnotationKey = "ionos.cloud/delete-request-id"
 
 const (
-	// maxRequestPollInterval caps the backoff between two request status polls
-	// in WaitForRequest.
-	maxRequestPollInterval = 30 * time.Second
-	// defaultRequestPollInterval is the first wait in WaitForRequest when the
+	// fastPollWindowFactor and maxPollIntervalFactor are multiples of the base
+	// poll interval: WaitForRequest polls at the base interval for the first
+	// fastPollWindowFactor intervals, then backs off up to maxPollIntervalFactor.
+	fastPollWindowFactor  = 60
+	maxPollIntervalFactor = 10
+	// defaultRequestPollInterval is the base interval in WaitForRequest when the
 	// client has no positive PollInterval configured (same as the SDK default).
 	defaultRequestPollInterval = time.Second
 )
@@ -157,10 +159,11 @@ func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, reqID string) (
 // apiResponse to be DONE.
 //
 // It replaces the SDK's APIClient.WaitForRequest, which polls the request
-// status at a fixed PollInterval (1s by default). Here the first poll is
-// immediate, then the wait between polls starts at the client's PollInterval
-// and doubles after each poll, capped at maxRequestPollInterval
-// (1s, 2s, 4s, 8s, 16s, 30s, 30s, ... with the default PollInterval).
+// status at a fixed PollInterval (1s by default). Here the first poll comes
+// after one base interval (the client's PollInterval). Polls then stay at the
+// base interval for the first 60 intervals of the wait; after that the wait
+// between polls doubles, capped at 10 intervals (with the default
+// PollInterval: every 1s for 60s, then 2s, 4s, 8s, 10s, 10s, ...).
 // Long-running requests therefore no longer cause one status GET per second.
 //
 // Results:
@@ -188,16 +191,13 @@ func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *s
 		return err
 	}
 
-	interval := client.GetConfig().PollInterval
-	if interval <= 0 {
-		interval = defaultRequestPollInterval
+	base := client.GetConfig().PollInterval
+	if base <= 0 {
+		base = defaultRequestPollInterval
 	}
+	start := time.Now()
+	interval := base
 	for {
-		done, err := pollRequest(ctx, client, reqID)
-		if err != nil || done {
-			return err
-		}
-
 		timer := time.NewTimer(interval)
 		select {
 		case <-ctx.Done():
@@ -205,7 +205,14 @@ func WaitForRequest(ctx context.Context, client *sdkgo.APIClient, apiResponse *s
 			return ctx.Err()
 		case <-timer.C:
 		}
-		interval = nextPollInterval(interval)
+
+		done, err := pollRequest(ctx, client, reqID)
+		if err != nil || done {
+			return err
+		}
+		if time.Since(start) >= fastPollWindowFactor*base {
+			interval = nextPollInterval(interval, maxPollIntervalFactor*base)
+		}
 	}
 }
 
@@ -286,13 +293,12 @@ func isTransientPollStatus(code int) bool {
 }
 
 // nextPollInterval doubles the wait between two request status polls, up to
-// maxRequestPollInterval. A wait that is already above the cap (a large
-// configured PollInterval) is kept as is.
-func nextPollInterval(interval time.Duration) time.Duration {
-	if interval >= maxRequestPollInterval {
+// maxInterval. A wait that is already above the cap is kept as is.
+func nextPollInterval(interval, maxInterval time.Duration) time.Duration {
+	if interval >= maxInterval {
 		return interval
 	}
-	return min(2*interval, maxRequestPollInterval)
+	return min(2*interval, maxInterval)
 }
 
 // IsDeleteRequestPending reports whether the DELETE request stored in the

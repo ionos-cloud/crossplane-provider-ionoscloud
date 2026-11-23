@@ -381,8 +381,8 @@ both ``0`` by default, tune this:
 | ``--poll-not-ready`` | Poll interval used in place of ``--poll`` while a resource is not ready yet, typically shorter, to reduce the time to readiness. Jitter applies to it too. |
 
 Separately, after a Cloud API (v6) create/update/delete call the provider waits for the IONOS Cloud request
-to finish by polling its status. The first check is immediate; after that the wait between checks
-starts at 1 s and doubles each time, up to 30 s (1 s, 2 s, 4 s, 8 s, 16 s, 30 s, 30 s, ...), so
+to finish by polling its status. The first check is after 1 s, then every 1 s for the first 60 s;
+after that the wait between checks is 2 s, 4 s, 8 s and at most 10 s (10 s, 10 s, ...), so
 long-running requests do not cause one status call per second.
 
 When the Cloud API rate-limits a datacenter, more writes to it only add load and fail again
