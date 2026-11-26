@@ -485,12 +485,8 @@ func WaitForDeleteRequest(ctx context.Context, client *sdkgo.APIClient, apiRespo
 
 // CheckDeleteHold returns an error while obj waits after a failed DELETE; missing or invalid annotations mean no wait.
 func CheckDeleteHold(obj metav1.Object, now time.Time) error {
-	n, err := strconv.Atoi(obj.GetAnnotations()[DeleteFailuresAnnotationKey])
-	if err != nil || n < 1 {
-		return nil
-	}
-	failedAt, err := time.Parse(time.RFC3339, obj.GetAnnotations()[DeleteFailedAtAnnotationKey])
-	if err != nil {
+	n, failedAt, ok := deleteFailureState(obj)
+	if !ok {
 		return nil
 	}
 	next := failedAt.Add(deleteHold(obj.GetUID(), n))
@@ -499,6 +495,13 @@ func CheckDeleteHold(obj metav1.Object, now time.Time) error {
 	}
 	return fmt.Errorf("%d DELETE request(s) failed, last at %s; next DELETE not before %s",
 		n, failedAt.UTC().Format(time.RFC3339), next.UTC().Format(time.RFC3339))
+}
+
+// deleteFailureState reads the failed DELETE annotations of obj; ok is false if they are missing or invalid.
+func deleteFailureState(obj metav1.Object) (n int, failedAt time.Time, ok bool) {
+	n, nErr := strconv.Atoi(obj.GetAnnotations()[DeleteFailuresAnnotationKey])
+	failedAt, tErr := time.Parse(time.RFC3339, obj.GetAnnotations()[DeleteFailedAtAnnotationKey])
+	return n, failedAt, nErr == nil && n >= 1 && tErr == nil
 }
 
 // HandleDeleteError returns err; if err is a failed DELETE, it first records the failure on cr and adds when the next DELETE may be sent.

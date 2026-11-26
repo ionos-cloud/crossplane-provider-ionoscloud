@@ -31,6 +31,7 @@ const (
 	testRequestID         = "req-1"
 	testRequestStatusPath = "/cloudapi/v6/requests/" + testRequestID + "/status"
 	testPollInterval      = 10 * time.Millisecond
+	simulatedFailure      = "simulated failure"
 )
 
 // statusResponse is one answer of the fake request status endpoint. An empty
@@ -201,11 +202,11 @@ func TestWaitForRequestFastWindow(t *testing.T) {
 func TestWaitForRequestFailed(t *testing.T) {
 	s := newRequestStatusServer(t,
 		statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusRunning},
-		statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusFailed, message: "simulated failure"},
+		statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusFailed, message: simulatedFailure},
 	)
 
 	err := WaitForRequest(context.Background(), newTestClient(s.URL), acceptedResponse(s.URL+testRequestStatusPath))
-	require.EqualError(t, err, "request "+testRequestID+" failed: simulated failure")
+	require.EqualError(t, err, "request "+testRequestID+" failed: "+simulatedFailure)
 	var failed *RequestFailedError
 	require.ErrorAs(t, err, &failed)
 	assert.Len(t, s.callTimes(), 2)
@@ -374,8 +375,8 @@ func TestIsDeleteRequestPending(t *testing.T) {
 		{name: "Running", resp: statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusRunning}, pending: true},
 		{name: "NoStatus", resp: statusResponse{code: http.StatusOK}, pending: true},
 		{name: "Done", resp: statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusDone}},
-		{name: "Failed", resp: statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusFailed, message: "simulated failure"},
-			wantErr: "request " + testRequestID + " failed: simulated failure"},
+		{name: "Failed", resp: statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusFailed, message: simulatedFailure},
+			wantErr: "request " + testRequestID + " failed: " + simulatedFailure},
 		{name: "NotFound", resp: statusResponse{code: http.StatusNotFound}},
 		{name: "TooManyRequests", resp: statusResponse{code: http.StatusTooManyRequests}, pending: true},
 		{name: "ServiceUnavailable", resp: statusResponse{code: http.StatusServiceUnavailable}, pending: true},
@@ -545,10 +546,10 @@ func TestWaitForDeleteRequestResult(t *testing.T) {
 			require.NoError(t, WaitForDeleteRequest(context.Background(), newTestClient(done.URL), acceptedResponse(done.URL+testRequestStatusPath), true))
 
 			failed := newRequestStatusServer(t,
-				statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusFailed, message: "simulated failure"},
+				statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusFailed, message: simulatedFailure},
 			)
 			err := WaitForDeleteRequest(context.Background(), newTestClient(failed.URL), acceptedResponse(failed.URL+testRequestStatusPath), true)
-			require.ErrorContains(t, err, "request "+testRequestID+" failed: simulated failure")
+			require.ErrorContains(t, err, "request "+testRequestID+" failed: "+simulatedFailure)
 		})
 	}
 }
@@ -611,7 +612,7 @@ func TestCheckDeleteHold(t *testing.T) {
 }
 
 func TestIsDeleteFailure(t *testing.T) {
-	failed := fmt.Errorf("wrapped: %w", &RequestFailedError{ID: testRequestID, Message: "simulated failure"})
+	failed := fmt.Errorf("wrapped: %w", &RequestFailedError{ID: testRequestID, Message: simulatedFailure})
 	for _, tc := range []struct {
 		name string
 		code int
@@ -647,7 +648,7 @@ func TestIsDeleteFailure(t *testing.T) {
 func TestHandleDeleteError(t *testing.T) {
 	ctx := context.Background()
 	key := client.ObjectKey{Namespace: "default", Name: "cr"}
-	failed := &RequestFailedError{ID: testRequestID, Message: "simulated failure"}
+	failed := &RequestFailedError{ID: testRequestID, Message: simulatedFailure}
 
 	t.Run("NotAFailure", func(t *testing.T) {
 		cr := &corev1.ConfigMap{}
@@ -671,7 +672,7 @@ func TestHandleDeleteError(t *testing.T) {
 		before := time.Now().UTC().Truncate(time.Second)
 		err := HandleDeleteError(ctx, kube, cr, nil, failed, logging.NewNopLogger())
 		require.ErrorIs(t, err, failed)
-		assert.Contains(t, err.Error(), "request "+testRequestID+" failed: simulated failure; next DELETE not before ")
+		assert.Contains(t, err.Error(), "request "+testRequestID+" failed: "+simulatedFailure+"; next DELETE not before ")
 
 		stored := &corev1.ConfigMap{}
 		require.NoError(t, kube.Get(ctx, key, stored))
