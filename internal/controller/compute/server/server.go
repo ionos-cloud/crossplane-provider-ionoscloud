@@ -19,6 +19,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"time"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
@@ -61,7 +62,7 @@ func Setup(mgr ctrl.Manager, opts *utils.ConfigurationOptions) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithEventFilter(utils.DesiredStateChanged()).
+		WithEventFilter(utils.DesiredStateChanged(compute.DeleteAnnotationKeys()...)).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.GetMaxConcurrentReconcileRate(v1alpha1.ServerKind),
 			RateLimiter:             ratelimiter.NewController(),
@@ -107,6 +108,7 @@ func (c *connectorServer) Connect(ctx context.Context, mg resource.Managed) (man
 	}
 	svc, err := clients.ConnectForCRD(ctx, mg, c.kube, c.usage)
 	return &externalServer{
+		kube:                 c.kube,
 		service:              &server.APIClient{IonosServices: svc},
 		log:                  c.log,
 		isUniqueNamesEnabled: c.isUniqueNamesEnabled}, err
@@ -120,6 +122,9 @@ type externalServer struct {
 	service              server.Client
 	log                  logging.Logger
 	isUniqueNamesEnabled bool
+	// kube persists the DELETE request ID annotation, see
+	// compute.StoreDeleteRequestID.
+	kube client.Client
 }
 
 func (c *externalServer) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -361,13 +366,27 @@ func (c *externalServer) Delete(ctx context.Context, mg resource.Managed) (manag
 		return managed.ExternalDelete{}, nil
 	}
 
+	if err := compute.CheckDeleteHold(cr, time.Now()); err != nil {
+		return managed.ExternalDelete{}, err
+	}
+	pending, err := compute.IsDeleteRequestPending(ctx, c.service.GetAPIClient(), cr)
+	if err != nil {
+		return managed.ExternalDelete{}, compute.HandleDeleteError(ctx, c.kube, cr, nil, err, c.log)
+	}
+	if pending {
+		c.log.Debug("DELETE request is still pending, not sending a new one",
+			"name", cr.Name, "request-id", cr.GetAnnotations()[compute.DELETERequestIDAnnotationKey])
+		return managed.ExternalDelete{}, nil
+	}
+
 	apiResponse, err := c.service.DeleteServer(ctx, cr.Spec.ForProvider.DatacenterCfg.DatacenterID, cr.Status.AtProvider.ServerID)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete server. error: %w", err)
-		return managed.ExternalDelete{}, compute.ErrorUnlessNotFound(apiResponse, retErr)
+		return managed.ExternalDelete{}, compute.HandleDeleteError(ctx, c.kube, cr, apiResponse, compute.ErrorUnlessNotFound(apiResponse, retErr), c.log)
 	}
-	if err = compute.WaitForRequest(ctx, c.service.GetAPIClient(), apiResponse); err != nil {
-		return managed.ExternalDelete{}, err
+	stored := compute.StoreDeleteRequestID(ctx, c.kube, cr, apiResponse, c.log)
+	if err = compute.WaitForDeleteRequest(ctx, c.service.GetAPIClient(), apiResponse, stored); err != nil {
+		return managed.ExternalDelete{}, compute.HandleDeleteError(ctx, c.kube, cr, nil, err, c.log)
 	}
 	return managed.ExternalDelete{}, nil
 }

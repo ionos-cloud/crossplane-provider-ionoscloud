@@ -60,7 +60,8 @@ jobs:
         env:
           BUILD_ARGS: "--load"
       - name: Get Provider Image ID
-        run: echo "IMAGE_ID=$(make docker.list | grep "crossplane-provider-ionoscloud" | tr -s ' ' | cut -d' ' -f3)" >> $GITHUB_ENV
+        # Docker 29 (ubuntu-26.04 runners) changed the default `docker image list` layout, so ask for the ID explicitly.
+        run: echo "IMAGE_ID=$(docker image ls --format '{{.Repository}} {{.ID}}' | grep crossplane-provider-ionoscloud | head -1 | cut -d' ' -f2)" >> $GITHUB_ENV
       - name: Run Trivy vulnerability scan
         id: trivy-scan
         uses: aquasecurity/trivy-action@0.35.0

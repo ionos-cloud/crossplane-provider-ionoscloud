@@ -47,6 +47,8 @@ const (
 func setComputeDefaults(cfg *ionos.Configuration) {
 	cfg.HTTPClient = http.DefaultClient
 	cfg.UserAgent = fmt.Sprintf("%v/%v_ionos-cloud-sdk-go/v%v", UserAgent, version.Version, ionos.Version)
+	// ICNAS-928: one attempt per request, no SDK quick retries. Literal on purpose, not computeMaxRetries.
+	cfg.MaxRetries = 1
 }
 
 func setDbaaSDefaults(cfg *shared.Configuration) {

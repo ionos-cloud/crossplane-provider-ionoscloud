@@ -1,9 +1,21 @@
 ## [Unreleased]
 ### Features:
 - Make the VM-reboot wait after a ServerSet failover configurable (`--vm-reboot-timeout`, default `120m`, same as the previous hardcoded value), with an opt-in `--extend-serverset-timeout-for-vm-reboot` flag to widen the ServerSet controller's own reconcile timeout to accommodate it when needed.
+- Add opt-in `--delete-request-wait` (default `0`, off) to limit how long the Delete of a Server, Nic, Volume, FirewallRule or Lan waits for its DELETE request; a later reconcile checks the stored request.
+- Add opt-in `--api-throttle-wait` (default `0`, off) and `--api-throttle-max-wait` (default `10m`): after a Cloud API `429` the provider holds back writes to that datacenter, and after a `422` on a DELETE it holds back that DELETE, honouring `Retry-After`.
+### Fixes:
+- Request status polling: first check after `1s`, every `1s` for the first `60s`, then `2s`, `4s`, `8s` and at most `10s`; it keeps polling on `429`/`502`/`503`/`504` and short network errors.
+- Server, Nic, Volume, FirewallRule and Lan store the DELETE request ID in the `ionos.cloud/delete-request-id` annotation and wait on that request instead of sending a new DELETE.
+- Send each compute API call once (SDK `MaxRetries=1`), with no quick SDK retries on `429`/`5xx`.
+- Lan Delete waits until no NICs are attached to the LAN.
+- After a failed DELETE, Server, Nic, Volume, FirewallRule and Lan wait 30s, 1m, 2m, 4m, then at most 5m before the next DELETE (`ionos.cloud/delete-failures` and `ionos.cloud/delete-failed-at` annotations; remove both to retry now).
+- Changes to the provider's `ionos.cloud/delete-*` annotations no longer trigger a reconcile of these resources.
 ### Chores:
 - Update go version, crossplane-runtime and crypto dependencies to fix CVEs.
 - Run go fix on the codebase to run modernize on the codebase.
+- Bump Go to 1.27.3 and `golang.org/x/net` to v0.62.0 to fix CVEs.
+- Bump golangci-lint to v2.15.0.
+- Fix the Trivy image ID lookup on Docker 29 runners.
 
 ## [1.2.6] (August 2026)
 ### Fixes:
