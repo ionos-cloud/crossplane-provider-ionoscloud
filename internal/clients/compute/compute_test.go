@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"sync"
 	"syscall"
 	"testing"
@@ -21,6 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -203,7 +205,9 @@ func TestWaitForRequestFailed(t *testing.T) {
 	)
 
 	err := WaitForRequest(context.Background(), newTestClient(s.URL), acceptedResponse(s.URL+testRequestStatusPath))
-	require.ErrorContains(t, err, "request "+testRequestID+" failed: simulated failure")
+	require.EqualError(t, err, "request "+testRequestID+" failed: simulated failure")
+	var failed *RequestFailedError
+	require.ErrorAs(t, err, &failed)
 	assert.Len(t, s.callTimes(), 2)
 }
 
@@ -364,29 +368,34 @@ func TestIsDeleteRequestPending(t *testing.T) {
 		name    string
 		resp    statusResponse
 		pending bool
-		wantErr bool
+		wantErr string
 	}{
 		{name: "Queued", resp: statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusQueued}, pending: true},
 		{name: "Running", resp: statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusRunning}, pending: true},
 		{name: "NoStatus", resp: statusResponse{code: http.StatusOK}, pending: true},
 		{name: "Done", resp: statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusDone}},
-		{name: "Failed", resp: statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusFailed, message: "simulated failure"}},
+		{name: "Failed", resp: statusResponse{code: http.StatusOK, status: sdkgo.RequestStatusFailed, message: "simulated failure"},
+			wantErr: "request " + testRequestID + " failed: simulated failure"},
 		{name: "NotFound", resp: statusResponse{code: http.StatusNotFound}},
 		{name: "TooManyRequests", resp: statusResponse{code: http.StatusTooManyRequests}, pending: true},
 		{name: "ServiceUnavailable", resp: statusResponse{code: http.StatusServiceUnavailable}, pending: true},
 		{name: "ConnectionClosed", resp: statusResponse{}, pending: true},
-		{name: "Unauthorized", resp: statusResponse{code: http.StatusUnauthorized}, wantErr: true},
-		{name: "InternalServerError", resp: statusResponse{code: http.StatusInternalServerError}, wantErr: true},
+		{name: "Unauthorized", resp: statusResponse{code: http.StatusUnauthorized},
+			wantErr: "failed to retrieve delete request (" + testRequestID + ") status"},
+		{name: "InternalServerError", resp: statusResponse{code: http.StatusInternalServerError},
+			wantErr: "failed to retrieve delete request (" + testRequestID + ") status"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s := newRequestStatusServer(t, tc.resp)
 
 			pending, err := IsDeleteRequestPending(context.Background(), newTestClient(s.URL), deleteRequestObject(testRequestID))
-			if tc.wantErr {
-				require.ErrorContains(t, err, "failed to retrieve delete request ("+testRequestID+") status")
+			if tc.wantErr != "" {
+				require.ErrorContains(t, err, tc.wantErr)
 			} else {
 				require.NoError(t, err)
 			}
+			var failed *RequestFailedError
+			assert.Equal(t, tc.resp.status == sdkgo.RequestStatusFailed, errors.As(err, &failed))
 			assert.Equal(t, tc.pending, pending)
 			assert.Equal(t, []string{testRequestStatusPath}, s.callPaths())
 		})
@@ -542,4 +551,155 @@ func TestWaitForDeleteRequestResult(t *testing.T) {
 			require.ErrorContains(t, err, "request "+testRequestID+" failed: simulated failure")
 		})
 	}
+}
+
+// deleteFailedObject returns object metadata with the given failure annotations.
+func deleteFailedObject(uid, failures, failedAt string) *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{UID: types.UID(uid), Annotations: map[string]string{
+		DeleteFailuresAnnotationKey: failures,
+		DeleteFailedAtAnnotationKey: failedAt,
+	}}
+}
+
+func TestDeleteHold(t *testing.T) {
+	for n, want := range map[int]time.Duration{
+		1: 30 * time.Second, 2: time.Minute, 3: 2 * time.Minute, 4: 4 * time.Minute,
+		5: 5 * time.Minute, 6: 5 * time.Minute, 100: 5 * time.Minute,
+	} {
+		t.Run(strconv.Itoa(n), func(t *testing.T) {
+			seen := map[time.Duration]bool{}
+			for i := range 20 {
+				uid := types.UID(fmt.Sprintf("uid-%d", i))
+				got := deleteHold(uid, n)
+				assert.GreaterOrEqual(t, got, want*9/10)
+				assert.LessOrEqual(t, got, want*11/10)
+				assert.Equal(t, got, deleteHold(uid, n), "same uid and n give the same hold")
+				seen[got] = true
+			}
+			assert.Greater(t, len(seen), 1, "holds differ between objects")
+		})
+	}
+}
+
+func TestCheckDeleteHold(t *testing.T) {
+	now := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	failedAt := now.Format(time.RFC3339)
+	for _, tc := range []struct {
+		name    string
+		obj     *metav1.ObjectMeta
+		at      time.Time
+		wantErr string
+	}{
+		{name: "NoAnnotations", obj: &metav1.ObjectMeta{}, at: now},
+		{name: "GarbageCount", obj: deleteFailedObject("uid-1", "x", failedAt), at: now},
+		{name: "ZeroCount", obj: deleteFailedObject("uid-1", "0", failedAt), at: now},
+		{name: "GarbageTime", obj: deleteFailedObject("uid-1", "1", "yesterday"), at: now},
+		{name: "Active", obj: deleteFailedObject("uid-1", "2", failedAt), at: now.Add(50 * time.Second),
+			wantErr: "2 DELETE request(s) failed, last at 2026-01-02T03:04:05Z; next DELETE not before 2026-01-02T03:0"},
+		{name: "Expired", obj: deleteFailedObject("uid-1", "2", failedAt), at: now.Add(70 * time.Second)},
+		{name: "ExpiredAtMax", obj: deleteFailedObject("uid-1", "9", failedAt), at: now.Add(6 * time.Minute)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := CheckDeleteHold(tc.obj, tc.at)
+			if tc.wantErr == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorContains(t, err, tc.wantErr)
+		})
+	}
+}
+
+func TestIsDeleteFailure(t *testing.T) {
+	failed := fmt.Errorf("wrapped: %w", &RequestFailedError{ID: testRequestID, Message: "simulated failure"})
+	for _, tc := range []struct {
+		name string
+		code int
+		err  error
+		want bool
+	}{
+		{name: "RequestFailed", err: failed, want: true},
+		{name: "UnprocessableEntity", code: http.StatusUnprocessableEntity, want: true},
+		{name: "Conflict", code: http.StatusConflict, want: true},
+		{name: "BadRequest", code: http.StatusBadRequest, want: true},
+		{name: "NotFound", code: http.StatusNotFound},
+		{name: "RequestTimeout", code: http.StatusRequestTimeout},
+		{name: "TooManyRequests", code: http.StatusTooManyRequests},
+		{name: "InternalServerError", code: http.StatusInternalServerError},
+		{name: "ServiceUnavailable", code: http.StatusServiceUnavailable},
+		{name: "ContextDeadline", err: context.DeadlineExceeded},
+		{name: "NetworkError", err: syscall.ECONNRESET},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var apiResponse *sdkgo.APIResponse
+			if tc.code != 0 {
+				apiResponse = &sdkgo.APIResponse{Response: &http.Response{StatusCode: tc.code}}
+			}
+			err := tc.err
+			if err == nil {
+				err = errors.New("simulated error")
+			}
+			assert.Equal(t, tc.want, isDeleteFailure(apiResponse, err))
+		})
+	}
+}
+
+func TestHandleDeleteError(t *testing.T) {
+	ctx := context.Background()
+	key := client.ObjectKey{Namespace: "default", Name: "cr"}
+	failed := &RequestFailedError{ID: testRequestID, Message: "simulated failure"}
+
+	t.Run("NotAFailure", func(t *testing.T) {
+		cr := &corev1.ConfigMap{}
+		serverErr := errors.New("simulated error")
+		require.NoError(t, HandleDeleteError(ctx, nil, cr, nil, nil, logging.NewNopLogger()))
+		resp := &sdkgo.APIResponse{Response: &http.Response{StatusCode: http.StatusInternalServerError}}
+		assert.Same(t, serverErr, HandleDeleteError(ctx, nil, cr, resp, serverErr, logging.NewNopLogger()))
+		assert.Empty(t, cr.GetAnnotations())
+	})
+
+	t.Run("Recorded", func(t *testing.T) {
+		kube := fake.NewClientBuilder().
+			WithObjects(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: key.Namespace, Name: key.Name, Annotations: map[string]string{
+				DELETERequestIDAnnotationKey: testRequestID,
+				DeleteFailuresAnnotationKey:  "2",
+			}}}).
+			Build()
+		cr := &corev1.ConfigMap{}
+		require.NoError(t, kube.Get(ctx, key, cr))
+
+		before := time.Now().UTC().Truncate(time.Second)
+		err := HandleDeleteError(ctx, kube, cr, nil, failed, logging.NewNopLogger())
+		require.ErrorIs(t, err, failed)
+		assert.Contains(t, err.Error(), "request "+testRequestID+" failed: simulated failure; next DELETE not before ")
+
+		stored := &corev1.ConfigMap{}
+		require.NoError(t, kube.Get(ctx, key, stored))
+		assert.Equal(t, "3", stored.GetAnnotations()[DeleteFailuresAnnotationKey])
+		assert.Contains(t, stored.GetAnnotations(), DELETERequestIDAnnotationKey)
+		assert.Empty(t, stored.GetAnnotations()[DELETERequestIDAnnotationKey])
+		at, perr := time.Parse(time.RFC3339, stored.GetAnnotations()[DeleteFailedAtAnnotationKey])
+		require.NoError(t, perr)
+		assert.False(t, at.Before(before))
+		assert.False(t, at.After(time.Now()))
+		require.Error(t, CheckDeleteHold(stored, time.Now()))
+	})
+
+	t.Run("FirstFailureWithoutRequestID", func(t *testing.T) {
+		cr := &corev1.ConfigMap{}
+		resp := &sdkgo.APIResponse{Response: &http.Response{StatusCode: http.StatusUnprocessableEntity}}
+		err := HandleDeleteError(ctx, nil, cr, resp, errors.New("simulated 422"), logging.NewNopLogger())
+		require.ErrorContains(t, err, "simulated 422; next DELETE not before ")
+		assert.Equal(t, "1", cr.GetAnnotations()[DeleteFailuresAnnotationKey])
+		assert.NotContains(t, cr.GetAnnotations(), DELETERequestIDAnnotationKey)
+	})
+
+	t.Run("UpdateFails", func(t *testing.T) {
+		// The object is not in the fake API server, so the update fails.
+		kube := fake.NewClientBuilder().Build()
+		cr := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: key.Namespace, Name: key.Name}}
+		err := HandleDeleteError(ctx, kube, cr, nil, failed, logging.NewNopLogger())
+		require.ErrorIs(t, err, failed)
+		assert.Contains(t, err.Error(), "; next DELETE not before ")
+	})
 }

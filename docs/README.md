@@ -428,6 +428,30 @@ EOF
 
 And reference it from the ``Provider`` as shown above.
 
+### Failed DELETE requests
+
+When the DELETE of a ``Server``, ``Nic``, ``Volume``, ``FirewallRule`` or ``Lan`` fails (the
+request ends ``FAILED``, or the Cloud API answers it with a ``4xx`` other than ``404``, ``408`` or
+``429``), the provider waits before it sends the next DELETE: 30 s after the first failure, then
+1 min, 2 min, 4 min and at most 5 min, each shifted by up to 10 %. The DELETE is sent by the first
+reconcile after that (reconciles of a failing resource back off up to 60 s). ``5xx``, ``429`` and
+network errors do not count. The provider keeps track in two annotations:
+
+| Annotation | Value |
+|---|---|
+| ``ionos.cloud/delete-failures`` | Number of failed DELETE requests in a row. |
+| ``ionos.cloud/delete-failed-at`` | Time of the last failure (RFC 3339, UTC). |
+
+While the provider waits, the ``Synced`` condition says ``next DELETE not before <time>``. To send
+the next DELETE now, remove both annotations:
+
+```bash
+kubectl annotate <kind> <name> ionos.cloud/delete-failures- ionos.cloud/delete-failed-at-
+```
+
+Changes the provider makes to its ``ionos.cloud/delete-*`` annotations do not trigger a reconcile;
+removing one of them does.
+
 ## Debug mode
 
 To debug the Crossplane Provider IONOS Cloud you can use the ```--debug`` flag.

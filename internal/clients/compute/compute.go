@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -16,6 +18,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	sdkgo "github.com/ionos-cloud/sdk-go/v6"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -51,6 +54,36 @@ const POSTRequestIDAnnotationKey = "ionos.cloud/post-request-id"
 // Delete waits for it instead of sending a new DELETE (see
 // IsDeleteRequestPending and StoreDeleteRequestID).
 const DELETERequestIDAnnotationKey = "ionos.cloud/delete-request-id"
+
+const (
+	// DeleteFailuresAnnotationKey stores the number of consecutive failed DELETE requests.
+	DeleteFailuresAnnotationKey = "ionos.cloud/delete-failures"
+	// DeleteFailedAtAnnotationKey stores the time (RFC3339, UTC) of the last failed DELETE request.
+	DeleteFailedAtAnnotationKey = "ionos.cloud/delete-failed-at"
+)
+
+// DeleteHoldBase and DeleteHoldMax are the hold after the first failed DELETE and the longest hold.
+var (
+	DeleteHoldBase = 30 * time.Second
+	DeleteHoldMax  = 5 * time.Minute
+)
+
+const deleteHoldJitter = 0.1
+
+// DeleteAnnotationKeys returns the annotation keys the provider writes while deleting a resource.
+func DeleteAnnotationKeys() []string {
+	return []string{DELETERequestIDAnnotationKey, DeleteFailuresAnnotationKey, DeleteFailedAtAnnotationKey}
+}
+
+// RequestFailedError is returned when a Cloud API request ends with status FAILED.
+type RequestFailedError struct {
+	ID      string
+	Message string
+}
+
+func (e *RequestFailedError) Error() string {
+	return fmt.Sprintf("request %s failed: %s", e.ID, e.Message)
+}
 
 const (
 	// fastPollWindowFactor and maxPollIntervalFactor are multiples of the base
@@ -168,7 +201,7 @@ func IsRequestDone(ctx context.Context, client *sdkgo.APIClient, reqID string) (
 //
 // Results:
 //   - DONE: nil
-//   - FAILED: error with the request message
+//   - FAILED: a *RequestFailedError with the request message
 //   - status GET answered 429, 502, 503 or 504, or got no HTTP response
 //     because of a short network error (timeout, connection reset, refused
 //     or closed, see isTransientPollError): keep polling. The SDK client
@@ -243,17 +276,21 @@ func pollRequest(ctx context.Context, client *sdkgo.APIClient, reqID string) (bo
 	case sdkgo.RequestStatusDone:
 		return true, nil
 	case sdkgo.RequestStatusFailed:
-		id, message := reqID, "<none>"
-		if reqStatus.Id != nil {
-			id = *reqStatus.Id
-		}
-		if reqStatus.Metadata.Message != nil {
-			message = *reqStatus.Metadata.Message
-		}
-		return false, fmt.Errorf("request %s failed: %s", id, message)
+		return false, newRequestFailedError(reqID, reqStatus)
 	default:
 		return false, nil
 	}
+}
+
+func newRequestFailedError(reqID string, reqStatus sdkgo.RequestStatus) *RequestFailedError {
+	e := &RequestFailedError{ID: reqID, Message: "<none>"}
+	if reqStatus.Id != nil {
+		e.ID = *reqStatus.Id
+	}
+	if reqStatus.Metadata != nil && reqStatus.Metadata.Message != nil {
+		e.Message = *reqStatus.Metadata.Message
+	}
+	return e
 }
 
 // isTransientPollError reports whether a failed request status GET is worth
@@ -314,9 +351,10 @@ func nextPollInterval(interval, maxInterval time.Duration) time.Duration {
 //   - status GET answered 429, 502, 503 or 504, or got no HTTP response
 //     because of a short network error (see isTransientPollError): true, the
 //     status is checked again on the next reconcile
-//   - DONE or FAILED: false, the caller sends a new DELETE. After DONE the
-//     resource is gone, so that DELETE gets a 404, which ErrorUnlessNotFound
-//     treats as success.
+//   - DONE: false, the caller sends a new DELETE. The resource is gone, so
+//     that DELETE gets a 404, which ErrorUnlessNotFound treats as success.
+//   - FAILED: false and a *RequestFailedError, which HandleDeleteError
+//     records as a failed DELETE.
 //   - status GET answered 404 (the Cloud API does not know the request): false
 //   - status GET failed in any other way (401, 403, 500, TLS/x509 error, ...)
 //     or returned another non-200 code: error. The state of the request is
@@ -354,8 +392,10 @@ func IsDeleteRequestPending(ctx context.Context, client *sdkgo.APIClient, obj me
 	}
 
 	switch *reqStatus.Metadata.Status {
-	case sdkgo.RequestStatusDone, sdkgo.RequestStatusFailed:
+	case sdkgo.RequestStatusDone:
 		return false, nil
+	case sdkgo.RequestStatusFailed:
+		return false, newRequestFailedError(reqID, reqStatus)
 	default:
 		return true, nil
 	}
@@ -441,6 +481,83 @@ func WaitForDeleteRequest(ctx context.Context, client *sdkgo.APIClient, apiRespo
 		return nil
 	}
 	return err
+}
+
+// CheckDeleteHold returns an error while obj waits after a failed DELETE; missing or invalid annotations mean no wait.
+func CheckDeleteHold(obj metav1.Object, now time.Time) error {
+	n, err := strconv.Atoi(obj.GetAnnotations()[DeleteFailuresAnnotationKey])
+	if err != nil || n < 1 {
+		return nil
+	}
+	failedAt, err := time.Parse(time.RFC3339, obj.GetAnnotations()[DeleteFailedAtAnnotationKey])
+	if err != nil {
+		return nil
+	}
+	next := failedAt.Add(deleteHold(obj.GetUID(), n))
+	if !now.Before(next) {
+		return nil
+	}
+	return fmt.Errorf("%d DELETE request(s) failed, last at %s; next DELETE not before %s",
+		n, failedAt.UTC().Format(time.RFC3339), next.UTC().Format(time.RFC3339))
+}
+
+// HandleDeleteError returns err; if err is a failed DELETE, it first records the failure on cr and adds when the next DELETE may be sent.
+func HandleDeleteError(ctx context.Context, kube client.Client, cr client.Object, apiResponse *sdkgo.APIResponse, err error, log logging.Logger) error {
+	if err == nil || !isDeleteFailure(apiResponse, err) {
+		return err
+	}
+	n, convErr := strconv.Atoi(cr.GetAnnotations()[DeleteFailuresAnnotationKey])
+	if convErr != nil || n < 0 {
+		n = 0
+	}
+	n++
+	failedAt := time.Now().UTC().Truncate(time.Second)
+	annotations := map[string]string{
+		DeleteFailuresAnnotationKey: strconv.Itoa(n),
+		DeleteFailedAtAnnotationKey: failedAt.Format(time.RFC3339),
+	}
+	// The annotation updater cannot remove an annotation, so the request ID is emptied.
+	if _, ok := cr.GetAnnotations()[DELETERequestIDAnnotationKey]; ok {
+		annotations[DELETERequestIDAnnotationKey] = ""
+	}
+	meta.AddAnnotations(cr, annotations)
+	if kube != nil {
+		if uErr := managed.NewRetryingCriticalAnnotationUpdater(kube).UpdateCriticalAnnotations(ctx, cr); uErr != nil {
+			log.Info("Cannot store the failed DELETE request", "name", cr.GetName(), "failures", n, "error", uErr)
+		}
+	}
+	next := failedAt.Add(deleteHold(cr.GetUID(), n))
+	return fmt.Errorf("%w; next DELETE not before %s", err, next.Format(time.RFC3339))
+}
+
+// isDeleteFailure is true for a FAILED request and for a 4xx answer other than 404, 408 and 429.
+func isDeleteFailure(apiResponse *sdkgo.APIResponse, err error) bool {
+	var failed *RequestFailedError
+	if errors.As(err, &failed) {
+		return true
+	}
+	if apiResponse == nil || apiResponse.Response == nil {
+		return false
+	}
+	switch code := apiResponse.StatusCode; code {
+	case http.StatusNotFound, http.StatusRequestTimeout, http.StatusTooManyRequests:
+		return false
+	default:
+		return code >= 400 && code < 500
+	}
+}
+
+// deleteHold doubles DeleteHoldBase per failure up to DeleteHoldMax, with a jitter fixed per uid and n.
+func deleteHold(uid types.UID, n int) time.Duration {
+	d := DeleteHoldBase
+	for i := 1; i < n && d < DeleteHoldMax; i++ {
+		d *= 2
+	}
+	d = min(d, DeleteHoldMax)
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(string(uid) + "/" + strconv.Itoa(n)))
+	f := float64(h.Sum32()) / float64(^uint32(0))
+	return time.Duration(float64(d) * (1 - deleteHoldJitter + 2*deleteHoldJitter*f))
 }
 
 // ErrorUnlessNotFound returns an error with status code info, unless the status code is 404

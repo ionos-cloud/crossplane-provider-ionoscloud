@@ -8,6 +8,8 @@
 - Server, Nic, Volume, FirewallRule and Lan store the DELETE request ID in the `ionos.cloud/delete-request-id` annotation and wait on that request instead of sending a new DELETE.
 - Send each compute API call once (SDK `MaxRetries=1`), with no quick SDK retries on `429`/`5xx`.
 - Lan Delete waits until no NICs are attached to the LAN.
+- After a failed DELETE, Server, Nic, Volume, FirewallRule and Lan wait 30s, 1m, 2m, 4m, then at most 5m before the next DELETE (`ionos.cloud/delete-failures` and `ionos.cloud/delete-failed-at` annotations; remove both to retry now).
+- Changes to the provider's `ionos.cloud/delete-*` annotations no longer trigger a reconcile of these resources.
 ### Chores:
 - Update go version, crossplane-runtime and crypto dependencies to fix CVEs.
 - Run go fix on the codebase to run modernize on the codebase.

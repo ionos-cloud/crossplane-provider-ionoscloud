@@ -591,6 +591,12 @@ var _ = Describe("LAN Controller E2E Tests", func() {
 			Expect(svc.GetDeleteCalls()).To(ConsistOf(lanID))
 		})
 
+		It("should hold the next DELETE once the stored one FAILED", func() {
+			svc, err := observeThenDeleteLanWithDeleteRequest(pendingLan, mocktest.StatusModeFailed)
+			Expect(err).To(MatchError(ContainSubstring("; next DELETE not before ")))
+			Expect(svc.GetDeleteCalls()).To(BeEmpty())
+		})
+
 		It("should not send a new DELETE if the status of the stored one cannot be read", func() {
 			svc, err := observeThenDeleteLanWithDeleteRequest(pendingLan, mocktest.StatusModeError)
 			Expect(err).To(MatchError(ContainSubstring("failed to retrieve delete request")))
